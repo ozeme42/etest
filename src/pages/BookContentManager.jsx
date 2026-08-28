@@ -4884,17 +4884,26 @@ export default function BookContentManager() {
                         if (matchingHws.length > 0) {
                           for (const h of matchingHws) {
                             await updateHomework(h.id, {
+                              test_due_dates: cleanedScheduleDates,
                               testDueDates: cleanedScheduleDates,
                               scheduleDates: cleanedScheduleDates
                             });
                           }
                         } else if (scheduleModalHw?.id) {
                           await updateHomework(scheduleModalHw.id, {
+                            test_due_dates: cleanedScheduleDates,
                             testDueDates: cleanedScheduleDates,
                             scheduleDates: cleanedScheduleDates
                           });
                         }
                       }
+
+                      // Clear any dismissed catch-up tasks so newly planned tests are immediately visible
+                      try {
+                        const stdId = scheduleModalHw?.studentId || scheduleModalHw?.student_id || scheduleModalHw?.targetIds?.[0];
+                        if (stdId) localStorage.removeItem(`dismissed_tasks_${stdId}`);
+                        localStorage.removeItem('dismissed_tasks_default');
+                      } catch {}
 
                       // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)
                       if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(cleanedScheduleDates).length > 0) {

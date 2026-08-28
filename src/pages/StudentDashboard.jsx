@@ -2422,19 +2422,25 @@ export default function StudentDashboard() {
   const handleDeleteTask = async (task) => {
     if (!task) return;
 
+    if (task === 'RESTORE_DISMISSED_CATCHUP') {
+      setDismissedTaskKeys([]);
+      try {
+        localStorage.removeItem(`dismissed_tasks_${selectedStudent?.id || 'default'}`);
+        localStorage.removeItem('dismissed_tasks_default');
+      } catch {}
+      return;
+    }
+
     if (task === 'CLEAR_ALL_CATCHUP' || task.isClearAllCatchUp) {
       if (!window.confirm('Tüm telafi havuzundaki görevleri kaldırmak istediğinize emin misiniz?')) return;
       const allKeys = [];
       catchUpTasks.forEach(t => {
+        const testId = t.testId || t.bookTestId || t.realTestId;
         allKeys.push(
           String(t.id || ''),
-          String(t.hwId || ''),
-          String(t.testId || ''),
-          String(t.realTestId || ''),
-          String(t.bookTestId || ''),
           String(t.uniqueKey || ''),
-          String(t.title || ''),
-          `book_due_${t.bookId || t.hwId}_${t.testId}`
+          testId ? `book_due_${t.bookId || t.hwId}_${testId}` : null,
+          testId ? `dismiss_${testId}` : null
         );
       });
       setDismissedTaskKeys(prev => {
@@ -2453,15 +2459,12 @@ export default function StudentDashboard() {
     }
 
     // 1. Optimistic Instant Dismissal from UI & LocalStorage
+    const testId = task.testId || task.bookTestId || task.realTestId;
     const keysToAdd = [
       String(task.id || ''),
-      String(task.hwId || ''),
-      String(task.testId || ''),
-      String(task.realTestId || ''),
-      String(task.bookTestId || ''),
       String(task.uniqueKey || ''),
-      String(task.title || ''),
-      `book_due_${task.bookId || task.hwId}_${task.testId}`
+      testId ? `book_due_${task.bookId || task.hwId}_${testId}` : null,
+      testId ? `dismiss_${testId}` : null
     ].filter(Boolean);
 
     setDismissedTaskKeys(prev => {
@@ -3486,6 +3489,7 @@ export default function StudentDashboard() {
                 activeDayConfig={DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0]}
                 dayProgramInfo={dayProgramInfo}
                 catchUpTasks={catchUpTasks}
+                dismissedCount={dismissedTaskKeys.length}
                 showAllDayTasks={showAllDayTasks}
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}

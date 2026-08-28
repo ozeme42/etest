@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Trash2 } from 'lucide-react';
+import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Trash2, RotateCcw } from 'lucide-react';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -7,6 +7,7 @@ export default memo(function DashboardTodayTasks({
   activeDayConfig = {},
   dayProgramInfo = { items: [], isToday: true, totalCount: 0, completedCount: 0 },
   catchUpTasks = [],
+  dismissedCount = 0,
   showAllDayTasks = false,
   setShowAllDayTasks,
   onToggleTask,
@@ -490,6 +491,32 @@ export default memo(function DashboardTodayTasks({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {dismissedCount > 0 && onDeleteTask && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteTask('RESTORE_DISMISSED_CATCHUP');
+                }}
+                style={{
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: 8,
+                  padding: '3px 8px',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+                title="Daha önce gizlenen/temizlenen görevleri geri getir"
+              >
+                <RotateCcw size={12} />
+                <span>Gizlenenleri Göster ({dismissedCount})</span>
+              </button>
+            )}
             {hasCatchUp && onDeleteTask && (
               <button
                 type="button"
