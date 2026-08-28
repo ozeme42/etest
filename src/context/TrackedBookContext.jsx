@@ -44,15 +44,15 @@ export function TrackedBookProvider({ children }) {
     list.forEach(t => {
       if (!t) return;
       const bKey = String(t.bookId || t.book_id || '');
-      const sKey = String(t.subjectId || t.subject_id || '');
-      const topKey = String(t.topicId || t.topic_id || '');
+      const bCanonical = toUUID(bKey) || bKey;
+      const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
       const nameKey = String(t.name || '').trim().toLowerCase();
-      const key = `${bKey}___${sKey}___${topKey}___${nameKey}`;
+      const key = `${bCanonical}___${topKey}___${nameKey}`;
       if (!map.has(key)) {
         map.set(key, t);
       } else {
         const existing = map.get(key);
-        map.set(key, { ...existing, ...t });
+        map.set(key, { ...existing, ...t, id: existing.id || t.id });
       }
     });
     return Array.from(map.values());

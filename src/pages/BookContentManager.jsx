@@ -201,6 +201,53 @@ export default function BookContentManager() {
     };
   }, [books, id, localLiveBook]);
 
+  const isTestInSubject = (t, subj, bookSubjects = []) => {
+    if (!t || !subj) return false;
+    const sId = String(subj.id || '');
+    const sIdUuid = toUUID(sId);
+    const sName = String(subj.name || '').toLowerCase().trim();
+    const tSubId = String(t.subjectId || t.subject_id || '');
+    const tSubUuid = toUUID(tSubId);
+
+    // 1. Direct ID / UUID match
+    if (tSubId && (tSubId === sId || (sIdUuid && tSubId === sIdUuid) || (sIdUuid && tSubUuid === sIdUuid) || (tSubUuid && tSubUuid === sId))) {
+      return true;
+    }
+
+    // 2. Subject name match
+    const tSubName = String(t.subjectName || t.subject || '').toLowerCase().trim();
+    if (tSubName && (tSubName === sName || (sName && (tSubName.includes(sName) || sName.includes(tSubName))))) {
+      return true;
+    }
+
+    // 3. Name keyword heuristic (Paragraf/Türkçe vs Problem/Matematik etc.)
+    const tName = String(t.name || '').toLowerCase().trim();
+    if (sName.includes('türkçe') || sName.includes('turkce') || sName.includes('paragraf')) {
+      if (tName.includes('paragraf') || tName.includes('türkçe') || tName.includes('turkce') || tName.includes('okuma') || tName.includes('metin') || tName.includes('dil bilgisi')) {
+        return true;
+      }
+    }
+    if (sName.includes('matematik') || sName.includes('problem')) {
+      if (tName.includes('problem') || tName.includes('matematik') || tName.includes('sayı') || tName.includes('geometri')) {
+        return true;
+      }
+    }
+    if (sName.includes('fen')) {
+      if (tName.includes('fen')) return true;
+    }
+    if (sName.includes('sosyal')) {
+      if (tName.includes('sosyal')) return true;
+    }
+
+    // 4. Single subject fallback: If book has only 1 subject, all tests belong to it
+    const activeSubjects = Array.isArray(bookSubjects) && bookSubjects.length > 0 ? bookSubjects : (book?.subjects || []);
+    if (activeSubjects.length === 1 && String(activeSubjects[0]?.id) === sId) {
+      return true;
+    }
+
+    return false;
+  };
+
   const tests = useMemo(() => {
     const list = (localLiveTests && localLiveTests.length > 0) ? localLiveTests : (bookTests || []);
     const idStr = String(id || '');
@@ -218,22 +265,39 @@ export default function BookContentManager() {
       return false;
     });
 
-    // Deduplicate duplicate tests in same subject & topic
+    // Deduplicate duplicate tests in same book
     const deduplicatedMap = new Map();
     filtered.forEach(t => {
-      const sKey = String(t.subjectId || t.subject_id || t.subjectName || t.subject || '').trim().toLowerCase();
-      const topKey = String(t.topicId || t.topic_id || t.topicName || t.topic || 'direct').trim().toLowerCase();
       const nameKey = String(t.name || '').trim().toLowerCase();
-      const key = `${sKey}___${topKey}___${nameKey}`;
+      if (!nameKey) return;
+
+      // Find normalized subject for this test
+      let matchedSubjId = '';
+      if (book?.subjects) {
+        const matchedSubj = book.subjects.find(s => isTestInSubject(t, s, book.subjects));
+        if (matchedSubj) matchedSubjId = String(matchedSubj.id);
+      }
+      const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
+      const key = `${matchedSubjId || 'subj'}___${topKey}___${nameKey}`;
 
       if (!deduplicatedMap.has(key)) {
         deduplicatedMap.set(key, t);
       } else {
         const existing = deduplicatedMap.get(key);
-        const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
-        const newAnsCount = Object.keys(t.answerKey || {}).filter(k => k !== '__meta').length;
-        if (newAnsCount > existingAnsCount) {
+        // Prefer the one that directly matches book.subjects ID format
+        const existingMatchesDirect = book?.subjects?.some(s => String(s.id) === String(existing.subjectId || existing.subject_id));
+        const newMatchesDirect = book?.subjects?.some(s => String(s.id) === String(t.subjectId || t.subject_id));
+        
+        if (newMatchesDirect && !existingMatchesDirect) {
           deduplicatedMap.set(key, t);
+        } else if (!newMatchesDirect && existingMatchesDirect) {
+          // keep existing
+        } else {
+          const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
+          const newAnsCount = Object.keys(t.answerKey || {}).filter(k => k !== '__meta').length;
+          if (newAnsCount > existingAnsCount) {
+            deduplicatedMap.set(key, t);
+          }
         }
       }
     });
@@ -598,53 +662,6 @@ export default function BookContentManager() {
       toUUID(cid) === tIdStr ||
       (tUuidStr && toUUID(cid) === tUuidStr)
     ));
-  };
-
-  const isTestInSubject = (t, subj, bookSubjects = []) => {
-    if (!t || !subj) return false;
-    const sId = String(subj.id || '');
-    const sIdUuid = toUUID(sId);
-    const sName = String(subj.name || '').toLowerCase().trim();
-    const tSubId = String(t.subjectId || t.subject_id || '');
-    const tSubUuid = toUUID(tSubId);
-
-    // 1. Direct ID / UUID match
-    if (tSubId && (tSubId === sId || (sIdUuid && tSubId === sIdUuid) || (sIdUuid && tSubUuid === sIdUuid) || (tSubUuid && tSubUuid === sId))) {
-      return true;
-    }
-
-    // 2. Subject name match
-    const tSubName = String(t.subjectName || t.subject || '').toLowerCase().trim();
-    if (tSubName && (tSubName === sName || (sName && (tSubName.includes(sName) || sName.includes(tSubName))))) {
-      return true;
-    }
-
-    // 3. Name keyword heuristic (Paragraf/Türkçe vs Problem/Matematik etc.)
-    const tName = String(t.name || '').toLowerCase().trim();
-    if (sName.includes('türkçe') || sName.includes('turkce') || sName.includes('paragraf')) {
-      if (tName.includes('paragraf') || tName.includes('türkçe') || tName.includes('turkce') || tName.includes('okuma') || tName.includes('metin') || tName.includes('dil bilgisi')) {
-        return true;
-      }
-    }
-    if (sName.includes('matematik') || sName.includes('problem')) {
-      if (tName.includes('problem') || tName.includes('matematik') || tName.includes('sayı') || tName.includes('geometri')) {
-        return true;
-      }
-    }
-    if (sName.includes('fen')) {
-      if (tName.includes('fen')) return true;
-    }
-    if (sName.includes('sosyal')) {
-      if (tName.includes('sosyal')) return true;
-    }
-
-    // 4. Single subject fallback: If book has only 1 subject, all tests belong to it
-    const activeSubjects = Array.isArray(bookSubjects) && bookSubjects.length > 0 ? bookSubjects : (book?.subjects || []);
-    if (activeSubjects.length === 1 && String(activeSubjects[0]?.id) === sId) {
-      return true;
-    }
-
-    return false;
   };
 
   // 1. Pre-index tests for O(1) instant lookup
