@@ -842,10 +842,22 @@ export default function StudentDashboard() {
         const tUuidStr = String(toUUID(t.id) || '');
         const tName = String(t.name || '').toLowerCase().trim();
 
+        const subjects = book.raw_data?.subjects || book.subjects || [];
+        let sName = '';
+        let topName = '';
+        if (Array.isArray(subjects)) {
+          const matchedSubj = subjects.find(s => String(s.id) === String(t.subjectId || t.subject_id));
+          if (matchedSubj) {
+            sName = String(matchedSubj.name || '').toLowerCase().trim();
+            const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
+            if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
+          }
+        }
+
         const solvedSubs = studentSubs.filter(s => {
           const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
+          const sSubj = String(s.subject || s.subjectName || s.metadata?.subjectName || s.metadata?.subject || '').toLowerCase().trim();
           const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-          const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
 
           const matchFields = [
             String(s.testId || ''),
@@ -869,6 +881,22 @@ export default function StudentDashboard() {
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
 
+          let isNameMatch = false;
+          if (!isDirectMatch && tName) {
+            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (isTestNameMatch) {
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  isNameMatch = isTopicMatch || !sTitle.includes('›');
+                } else {
+                  isNameMatch = true;
+                }
+              }
+            }
+          }
+
           return isDirectMatch || isNameMatch;
         });
 
@@ -881,10 +909,23 @@ export default function StudentDashboard() {
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
             const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
             const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            if (isDirect) return true;
+
             const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
+            const sSubj = String(s.subject || s.subjectName || '').toLowerCase().trim();
             const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-            const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
-            return isDirect || isNameMatch;
+            const isTestNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            if (isTestNameMatch) {
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  return isTopicMatch || !sTitle.includes('›');
+                }
+                return true;
+              }
+            }
+            return false;
           });
           if (match) {
             hwSub = match;

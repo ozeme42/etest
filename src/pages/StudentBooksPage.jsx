@@ -317,26 +317,52 @@ export default function StudentBooksPage() {
         const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
         const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
 
+        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLowerCase().trim();
+
         if (sBookId && (sBookId === bId || (bUuid && sBookId === bUuid) || sBookId.includes(bId))) return true;
         if (sBookTitle && (sBookTitle === bTitle || sBookTitle.includes(bTitle) || bTitle.includes(sBookTitle))) return true;
         if (sTitle && bTitle && (sTitle.startsWith(bTitle) || sTitle.includes(bTitle))) return true;
         
-        if (testsInBook.some(t => {
+        return testsInBook.some(t => {
           const tId = String(t.id);
           const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
           const tUuid = String(toUUID(t.id) || '');
           const tName = String(t.name || '').toLowerCase().trim();
 
-          return (
+          const isDirect = (
             sTestId === tId ||
             sTestId === tClean ||
             (tUuid && sTestId === tUuid) ||
-            (toUUID(sTestId) && toUUID(sTestId) === tUuid) ||
-            (tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)))
+            (toUUID(sTestId) && toUUID(sTestId) === tUuid)
           );
-        })) return true;
+          if (isDirect) return true;
 
-        return false;
+          if (tName) {
+            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (isTestNameMatch) {
+              const subjects = b.raw_data?.subjects || b.subjects || [];
+              let sName = '';
+              let topName = '';
+              if (Array.isArray(subjects)) {
+                const matchedSubj = subjects.find(sb => String(sb.id) === String(t.subjectId || t.subject_id));
+                if (matchedSubj) {
+                  sName = String(matchedSubj.name || '').toLowerCase().trim();
+                  const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
+                  if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
+                }
+              }
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  return isTopicMatch || !sTitle.includes('›');
+                }
+                return true;
+              }
+            }
+          }
+          return false;
+        });
       });
 
       // Calculate total test count in book
@@ -373,6 +399,7 @@ export default function StudentBooksPage() {
       matchedSubs.forEach(s => {
         const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
         const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
+        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLowerCase().trim();
         const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
         const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
 
@@ -382,20 +409,48 @@ export default function StudentBooksPage() {
           const tUuid = String(toUUID(t.id) || '');
           const tName = String(t.name || '').toLowerCase().trim();
 
-          return (
+          const isDirect = (
             sTestId === tId ||
             sTestId === tClean ||
             (tUuid && sTestId === tUuid) ||
-            (toUUID(sTestId) && toUUID(sTestId) === tUuid) ||
-            (tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)))
+            (toUUID(sTestId) && toUUID(sTestId) === tUuid)
           );
+          if (isDirect) return true;
+
+          if (tName) {
+            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (isTestNameMatch) {
+              const subjects = b.raw_data?.subjects || b.subjects || [];
+              let sName = '';
+              let topName = '';
+              if (Array.isArray(subjects)) {
+                const matchedSubj = subjects.find(sb => String(sb.id) === String(t.subjectId || t.subject_id));
+                if (matchedSubj) {
+                  sName = String(matchedSubj.name || '').toLowerCase().trim();
+                  const matchedTop = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
+                  if (matchedTop) topName = String(matchedTop.name || '').toLowerCase().trim();
+                }
+              }
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  return isTopicMatch || !sTitle.includes('›');
+                }
+                return true;
+              }
+            }
+          }
+          return false;
         });
 
-        const testKey = matchingTest ? String(matchingTest.id) : (cleanSTitle || sTestId || s.id);
-        const existing = testSubsMap[testKey];
-        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
-        if (!existing || score > Number(existing.score || existing.computedScore || (existing.correct_count ?? existing.correctCount ?? existing.correct ?? 0))) {
-          testSubsMap[testKey] = s;
+        if (matchingTest) {
+          const testKey = String(matchingTest.id);
+          const existing = testSubsMap[testKey];
+          const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+          if (!existing || score > Number(existing.score || existing.computedScore || (existing.correct_count ?? existing.correctCount ?? existing.correct ?? 0))) {
+            testSubsMap[testKey] = s;
+          }
         }
       });
 

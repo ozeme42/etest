@@ -331,6 +331,10 @@ export default function StudentBookDetailsPage() {
 
         const tName = String(t.name || '').toLowerCase().trim();
 
+        const sName = String(subject.name || '').toLowerCase().trim();
+        const parentTopic = (subject.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
+        const topName = parentTopic ? String(parentTopic.name || '').toLowerCase().trim() : '';
+
         const solvedSubs = submissions.filter(s => {
           if (!s || isDeletedItem(s)) return false;
           const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
@@ -340,13 +344,8 @@ export default function StudentBookDetailsPage() {
 
           const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
           const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
+          const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLowerCase().trim();
           const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-
-          const isNameMatch = Boolean(tName && (
-            cleanSTitle === tName ||
-            sTitle.includes(tName) ||
-            tName.includes(cleanSTitle)
-          ));
 
           const matchFields = [
             String(s.testId || ''),
@@ -369,6 +368,23 @@ export default function StudentBookDetailsPage() {
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
+
+          let isNameMatch = false;
+          if (!isDirectMatch && tName) {
+            const isTestNameMatch = cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle);
+            if (isTestNameMatch) {
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  isNameMatch = isTopicMatch || !sTitle.includes('›');
+                } else {
+                  isNameMatch = true;
+                }
+              }
+            }
+          }
+
           return isDirectMatch || isNameMatch;
         });
 
@@ -382,10 +398,23 @@ export default function StudentBookDetailsPage() {
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
             const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
             const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            if (isDirect) return true;
+
             const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
+            const sSubj = String(s.subject || s.subjectName || '').toLowerCase().trim();
             const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-            const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
-            return isDirect || isNameMatch;
+            const isTestNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            if (isTestNameMatch) {
+              const isSubjectMatch = !sName || sTitle.includes(sName) || sSubj.includes(sName) || sName.includes(sSubj);
+              if (isSubjectMatch) {
+                if (topName && (sTitle.includes('ünite') || sTitle.includes('unite'))) {
+                  const isTopicMatch = sTitle.includes(topName) || topName.includes(sTitle.split('›')[1]?.split('(')[0]?.trim() || '');
+                  return isTopicMatch || !sTitle.includes('›');
+                }
+                return true;
+              }
+            }
+            return false;
           });
           if (match) {
             hwSub = match;
