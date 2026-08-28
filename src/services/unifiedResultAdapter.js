@@ -408,8 +408,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
           const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
           for (let i = 1; i <= 20; i++) {
             const genId = `tbt_${bId}_${sId}_${tpId}_${i}`;
+            const genUuid = toUUID(genId).toLowerCase();
+            const candLower = testIdCandidate.toLowerCase();
             const genName = i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`);
-            if (genId === testIdCandidate || cleanCandidate.endsWith(`_${tpId}_${i}`) || testIdCandidate.includes(`_${sId}_${tpId}_${i}`) || testIdCandidate.includes(`_${tpId}_${i}`)) {
+            if (genId === testIdCandidate || cleanCandidate.endsWith(`_${tpId}_${i}`) || testIdCandidate.includes(`_${sId}_${tpId}_${i}`) || testIdCandidate.includes(`_${tpId}_${i}`) || (genUuid && candLower === genUuid)) {
               matchedBookTest = {
                 id: genId,
                 bookId: b.id,
@@ -973,7 +975,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
                   String(meta?.realId || '')
                 ].filter(Boolean);
 
-                if (candidateIds.some(cid => cid === tIdStr || cid === tCleanId)) return true;
+                if (candidateIds.some(cid => cid === tIdStr || cid === tCleanId || (tUuidStr && cid.toLowerCase() === tUuidStr.toLowerCase()))) return true;
 
                 // Exact title candidate match (e.g. "Test-8", "Yeni Nesil 1", "Ü. Değ. 4")
                 const titleCandidates = [s.testTitle, s.testName, s.title, s.name, meta?.testTitle, meta?.testName].filter(Boolean);
