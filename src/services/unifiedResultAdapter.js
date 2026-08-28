@@ -410,9 +410,35 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  // Resolve valid curriculum subject name
+  // Gather all identifier strings for deep parsing
+  const allIdAndTitleStrings = [
+    testIdCandidate,
+    rawSub.testId,
+    rawSub.realTestId,
+    rawSub.bookTestId,
+    meta.realTestId,
+    meta.bookTestId,
+    meta.unitTopic,
+    meta.topicName,
+    rawSub.testTitle,
+    rawSub.title,
+    rawSub.unitTopic
+  ].filter(Boolean).join(' ');
+
+  // 1. Resolve exact subject name
   const validCurriculumSubjects = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'T.C. İnkılap Tarihi', 'Genel'];
   let subjectName = matchedSubject?.name;
+
+  if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
+    const subjIndexMatch = allIdAndTitleStrings.match(/subj_(\d+)/i);
+    if (subjIndexMatch && matchedBook?.subjects && matchedBook.subjects.length > 0) {
+      const sIdx = parseInt(subjIndexMatch[1], 10);
+      if (!isNaN(sIdx) && matchedBook.subjects[sIdx]) {
+        subjectName = matchedBook.subjects[sIdx].name;
+      }
+    }
+  }
+
   if (!subjectName || !validCurriculumSubjects.includes(subjectName)) {
     if (matchedBook?.subject && validCurriculumSubjects.includes(matchedBook.subject)) {
       subjectName = matchedBook.subject;
@@ -427,10 +453,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  let topicName = matchedTopic?.name || meta.topicName || meta.unitTopic || rawSub.topic || rawSub.unitTopic || matchedBookTest?.topicName || '1. Ünite';
-  if (topicName === 'Genel Konu' || !topicName) topicName = '1. Ünite';
+  // 2. Resolve exact unit name (1. Ünite, 2. Ünite, 3. Ünite, 4. Ünite, 5. Ünite...)
+  let topicName = matchedTopic?.name || meta.topicName || meta.unitTopic || rawSub.topic || rawSub.unitTopic || matchedBookTest?.topicName;
+  if (!topicName || topicName === 'Genel Konu' || topicName === '1. Ünite') {
+    const unitMatch = allIdAndTitleStrings.match(/top_subj_\d+_(\d+)/i) ||
+                      allIdAndTitleStrings.match(/top_\w+_(\d+)/i) ||
+                      allIdAndTitleStrings.match(/(\d+)\.\s*Ünite/i);
+    if (unitMatch) {
+      topicName = `${unitMatch[1]}. Ünite`;
+    } else {
+      topicName = '1. Ünite';
+    }
+  }
 
-  // Extract clean test name
+  // 3. Resolve clean test name (Test-1, Test-8, Yeni Nesil 6, Ü. Değ. 4...)
   let testName = matchedBookTest?.name;
   if (!testName || testName === 'Test') {
     const candidates = [
@@ -444,7 +480,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
     for (const c of candidates) {
       const match = String(c).match(/(Test[-\s]?\d+|Yeni Nesil[-\s]?\d+|Ü\.?\s?Değ\.?[-\s]?\d+|Ünite Değerlendirme[-\s]?\d+)/i);
-      if (match) {
+      if (match && !match[0].includes('Tüm Kitap')) {
         testName = match[0].replace(/Ünite Değerlendirme/i, 'Ü. Değ.');
         break;
       }
@@ -457,13 +493,16 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     if (match) {
       testName = match[0];
     } else {
-      const parts = tIdStr.split('_');
-      const lastPart = parts[parts.length - 1];
-      const testNum = parseInt(lastPart, 10);
-      if (!isNaN(testNum) && testNum >= 1 && testNum <= 30) {
-        testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
-      } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)') && !rawSub.testTitle.includes('Tüm Kitap')) {
-        testName = rawSub.testTitle;
+      const tbtNumMatch = tIdStr.match(/_(\d+)$/);
+      if (tbtNumMatch) {
+        const testNum = parseInt(tbtNumMatch[1], 10);
+        if (!isNaN(testNum) && testNum >= 1 && testNum <= 30) {
+          testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
+        } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)') && !rawSub.testTitle.includes('Tüm Kitap')) {
+          testName = rawSub.testTitle;
+        } else {
+          testName = 'Test-1';
+        }
       } else {
         testName = 'Test-1';
       }
