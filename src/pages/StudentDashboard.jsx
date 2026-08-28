@@ -1282,7 +1282,7 @@ export default function StudentDashboard() {
       });
 
       const validQIdSet = new Set();
-      (questions || []).forEach(q => {
+      (allQuestions || []).forEach(q => {
         if (!q?.id) return;
         validQIdSet.add(String(q.id));
         const u = toUUID(q.id);
