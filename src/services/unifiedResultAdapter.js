@@ -20,23 +20,22 @@ export function isDeletedItem(s) {
     }
   } catch {}
 
+  // 🛡️ SADECE tekil yanıt/sınav oturumu ID'leri kontrol edilir.
+  // Test tanım ID'leri (tbt_..., bt_...) ASLA deleted kabul edilmez çünkü öğrenci testi baştan çözebilir!
+  const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
   const candidates = [
     s.id,
     s.submissionId,
     s.supabaseId,
-    s.testId,
-    s.realTestId,
-    s.bookTestId,
-    s.metadata?.realTestId,
-    s.metadata?.bookTestId,
-    s.metadata?.testId
+    s.originalSubmissionId,
+    meta?.realId,
+    meta?.submissionId
   ];
   return candidates.some(c => {
     if (!c) return false;
     const str = String(c);
-    const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
     const u = toUUID(str);
-    return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+    return deletedIds.has(str) || (u && deletedIds.has(String(u)));
   });
 }
 
@@ -47,17 +46,7 @@ export function purgeTestCache(testId, studentId) {
   const sStr = studentId ? String(studentId) : '';
 
   try {
-    const rawDel = localStorage.getItem('eTestDeletedSubmissions');
-    let delSet = new Set();
-    if (rawDel) {
-      const parsed = JSON.parse(rawDel);
-      if (Array.isArray(parsed)) delSet = new Set(parsed.map(String));
-    }
-    delSet.add(tStr);
-    delSet.add(tClean);
-    delSet.add(`bt_${tClean}`);
-    delSet.add(`tbt_${tClean}`);
-    localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(delSet).slice(-500)));
+    // ⚠️ purgeTestCache sadece taslak yanıtları ve sayaçları temizler, testId'yi kalıcı silinmiş listesine eklemez!
 
     const patterns = [
       `draft_tracked_book_test_${tStr}_${sStr}`,
@@ -887,23 +876,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
     const isDeletedItem = (s) => {
       if (!s) return true;
+      const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
       const candidates = [
         s.id,
         s.submissionId,
         s.supabaseId,
-        s.testId,
-        s.realTestId,
-        s.bookTestId,
-        s.metadata?.realTestId,
-        s.metadata?.bookTestId,
-        s.metadata?.testId
+        s.originalSubmissionId,
+        meta?.realId,
+        meta?.submissionId
       ];
       return candidates.some(c => {
         if (!c) return false;
         const str = String(c);
-        const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
         const u = toUUID(str);
-        return deletedIds.has(str) || deletedIds.has(clean) || (u && deletedIds.has(String(u)));
+        return deletedIds.has(str) || (u && deletedIds.has(String(u)));
       });
     };
 

@@ -762,8 +762,10 @@ export default function TrackedBookQuizRunner() {
 
     // 1. Save to EvaluationContext
     try {
+      const newSubId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       const fullTestTitle = `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${resolvedUnit || resolvedTopic || '1. Ünite'} (${resolvedTest.name})`;
       await addSubmission({
+        id: newSubId,
         testId: resolvedTest.id,
         realTestId: resolvedTest.id,
         bookTestId: resolvedTest.id,
@@ -790,7 +792,8 @@ export default function TrackedBookQuizRunner() {
           ...answersList,
           {
             type: 'metadata',
-            realId: `sub_${resolvedTest.id}_${studentId}`,
+            realId: newSubId,
+            submissionId: newSubId,
             realTestId: resolvedTest.id,
             bookTestId: resolvedTest.id,
             bookTitle: resolvedBook?.title || 'Kitap',

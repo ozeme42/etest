@@ -395,6 +395,9 @@ export function EvaluationProvider({ children }) {
 
     setSubmissions(prev => {
       unmarkIdAsDeleted(newSub.id);
+      if (newSub.testId) unmarkIdAsDeleted(newSub.testId);
+      if (newSub.realTestId) unmarkIdAsDeleted(newSub.realTestId);
+      if (newSub.bookTestId) unmarkIdAsDeleted(newSub.bookTestId);
       const nextSubs = [...prev, newSub];
       try {
         localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
