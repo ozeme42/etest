@@ -158,6 +158,7 @@ export default function PdfQuestionSlicerModal({
     return initialBook?.id || initialBookId || (books.length > 0 ? books[0].id : null);
   });
   const [showMistakesGuide, setShowMistakesGuide] = useState(true);
+  const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeTargetQuestion, setActiveTargetQuestion] = useState(null);
 
   const [testTitle, setTestTitle] = useState('');
@@ -659,6 +660,26 @@ export default function PdfQuestionSlicerModal({
     }
   }, [slicedQuestions, currentRect, pdfCurrentPage]);
 
+  const handleAutoFit = useCallback((mode = 'page') => {
+    const img = imageObjRef.current;
+    const container = containerRef.current;
+    if (!img || !container || !img.width || !img.height) return;
+
+    const availW = container.clientWidth - 40;
+    const availH = container.clientHeight - 40;
+    if (availW <= 0 || availH <= 0) return;
+
+    if (mode === 'width') {
+      const z = Math.min(2.0, Math.max(0.2, Number((availW / img.width).toFixed(2))));
+      setZoom(z);
+    } else {
+      const scaleX = availW / img.width;
+      const scaleY = availH / img.height;
+      const z = Math.min(1.5, Math.max(0.2, Number((Math.min(scaleX, scaleY) * 0.98).toFixed(2))));
+      setZoom(z);
+    }
+  }, []);
+
   const renderPdfPage = async (doc, pageNum) => {
     try {
       setIsLoadingFile(true);
@@ -679,6 +700,20 @@ export default function PdfQuestionSlicerModal({
         imageObjRef.current = img;
         setSourceImage(dataUrl);
         setIsLoadingFile(false);
+
+        // Otomatik olarak tüm sayfayı pencereye tam sığdır
+        setTimeout(() => {
+          if (containerRef.current && img.width && img.height) {
+            const availW = containerRef.current.clientWidth - 40;
+            const availH = containerRef.current.clientHeight - 40;
+            if (availW > 0 && availH > 0) {
+              const scaleX = availW / img.width;
+              const scaleY = availH / img.height;
+              const z = Math.min(1.5, Math.max(0.2, Number((Math.min(scaleX, scaleY) * 0.98).toFixed(2))));
+              setZoom(z);
+            }
+          }
+        }, 60);
       };
       img.src = dataUrl;
     } catch (err) {
@@ -1038,12 +1073,12 @@ export default function PdfQuestionSlicerModal({
         position: 'fixed',
         inset: 0,
         zIndex: 999999,
-        background: 'rgba(0, 0, 0, 0.78)',
+        background: 'rgba(0, 0, 0, 0.85)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '0.75rem',
+        padding: '0.4rem',
         boxSizing: 'border-box'
       }}
     >
@@ -1051,10 +1086,10 @@ export default function PdfQuestionSlicerModal({
         style={{
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
-          width: '98vw',
-          maxWidth: 1380,
-          height: '94vh',
-          borderRadius: 20,
+          width: '99vw',
+          maxWidth: '99vw',
+          height: '98vh',
+          borderRadius: 14,
           border: '1.5px solid var(--color-border)',
           display: 'flex',
           flexDirection: 'column',
@@ -1064,21 +1099,21 @@ export default function PdfQuestionSlicerModal({
       >
         <div
           style={{
-            padding: '0.75rem 1.25rem',
+            padding: '0.6rem 1.1rem',
             borderBottom: '1.5px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f8fafc',
             flexWrap: 'wrap',
-            gap: 10
+            gap: 8
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 borderRadius: 10,
                 background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                 display: 'flex',
@@ -1091,77 +1126,52 @@ export default function PdfQuestionSlicerModal({
               <Scissors size={18} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <h2 style={{ fontSize: '1.05rem', fontWeight: 900, margin: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.94rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   Akıllı PDF Soru Kırpıcı & Telafi Testi Birleştirici
-                </h2>
-                <span style={{ fontSize: '0.68rem', fontWeight: 900, background: isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff', color: '#4f46e5', padding: '2px 8px', borderRadius: 6 }}>
+                </span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#e0e7ff', color: '#4338ca', padding: '1px 7px', borderRadius: 99 }}>
                   Smart Slicer 2.0
                 </span>
               </div>
-              <p style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', margin: 0 }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 1 }}>
                 Kitap takibindeki yanlış soruları görerek PDF üzerinden tek tıkla kırpın ve yeni bir telafi testinde birleştirin.
-              </p>
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {books.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff', padding: '4px 8px', borderRadius: 10, border: '1px solid var(--color-border)' }}>
-                <BookOpen size={14} className="text-indigo-500" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitap:</span>
                 <select
                   value={selectedBookId || ''}
                   onChange={(e) => {
-                    const bId = e.target.value;
-                    setSelectedBookId(bId);
-                    const bObj = books.find(b => String(b.id) === String(bId));
-                    if (bObj?.pdfUrl) {
-                      loadPdfFromUrlOrBuffer(bObj.pdfUrl, bObj.title);
+                    setSelectedBookId(e.target.value);
+                    const b = books.find(item => String(item.id) === e.target.value);
+                    if (b?.pdfUrl) {
+                      loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
                     }
                   }}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
+                    padding: '4px 8px',
+                    borderRadius: 8,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
                     fontSize: '0.76rem',
                     fontWeight: 800,
-                    color: 'var(--color-text)',
-                    cursor: 'pointer',
                     maxWidth: 220,
-                    outline: 'none'
+                    cursor: 'pointer'
                   }}
                 >
                   {books.map(b => (
                     <option key={b.id} value={b.id}>
-                      {b.title} ({b.subject || 'Genel'})
+                      {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
-
-            {bookMistakesList.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowMistakesGuide(prev => !prev)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  border: showMistakesGuide ? '1.5px solid #ef4444' : '1px solid var(--color-border)',
-                  background: showMistakesGuide ? (isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2') : 'transparent',
-                  color: showMistakesGuide ? '#ef4444' : 'var(--color-text)',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                <AlertCircle size={14} />
-                <span>Yanlışlar Kılavuzu ({bookMistakesList.reduce((sum, t) => sum + t.wrongQuestions.length, 0)} Soru)</span>
-                {showMistakesGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
             )}
 
             <button
@@ -1171,7 +1181,7 @@ export default function PdfQuestionSlicerModal({
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--color-text-muted)',
-                padding: 6,
+                padding: 5,
                 borderRadius: 8
               }}
             >
@@ -1182,10 +1192,11 @@ export default function PdfQuestionSlicerModal({
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
           
-          {showMistakesGuide && bookMistakesList.length > 0 && (
+          {/* SOL PANEL: YANLIŞLAR KILAVUZU AKORDİYONU */}
+          {showMistakesGuide && (
             <div
               style={{
-                width: 310,
+                width: 290,
                 borderRight: '1.5px solid var(--color-border)',
                 background: isDark ? '#0c111d' : '#f8fafc',
                 display: 'flex',
@@ -1195,18 +1206,18 @@ export default function PdfQuestionSlicerModal({
             >
               <div
                 style={{
-                  padding: '0.65rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   borderBottom: '1px solid var(--color-border)',
                   background: isDark ? 'rgba(239,68,68,0.08)' : '#fef2f2',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: 6
+                  gap: 4
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <AlertCircle size={14} className="text-red-500" />
-                  <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#dc2626' }}>
+                  <AlertCircle size={13} className="text-red-500" />
+                  <span style={{ fontSize: '0.76rem', fontWeight: 900, color: '#dc2626' }}>
                     Yanlışlar Kılavuzu
                   </span>
                 </div>
@@ -1218,34 +1229,34 @@ export default function PdfQuestionSlicerModal({
                       background: 'var(--color-surface)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 6,
-                      padding: '2px 6px',
-                      fontSize: '0.65rem',
+                      padding: '2px 5px',
+                      fontSize: '0.62rem',
                       fontWeight: 800,
                       color: 'var(--color-text-muted)',
                       cursor: 'pointer'
                     }}
                   >
-                    {Object.keys(openSubjects).length > 0 ? 'Tümünü Kapat' : 'Tümünü Aç'}
+                    {Object.keys(openSubjects).length > 0 ? 'Kapat' : 'Aç'}
                   </button>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 6 }}>
+                  <span style={{ fontSize: '0.66rem', fontWeight: 800, background: '#fee2e2', color: '#991b1b', padding: '1px 5px', borderRadius: 6 }}>
                     {bookMistakesList.length} Test
                   </span>
                 </div>
               </div>
 
               {activeTargetQuestion && (
-                <div style={{ padding: '0.5rem 0.85rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800 }}>
+                <div style={{ padding: '0.45rem 0.75rem', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 800 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     🎯 Sıradaki: <strong>{activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : ''}{activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : ''}{activeTargetQuestion.testName} › Soru {activeTargetQuestion.qNo}</strong>
                   </span>
-                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 5px', borderRadius: 4, flexShrink: 0, marginLeft: 6 }}>
-                    Cevap: {activeTargetQuestion.correctAnswer}
+                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 4px', borderRadius: 4, flexShrink: 0, marginLeft: 4 }}>
+                    {activeTargetQuestion.correctAnswer}
                   </span>
                 </div>
               )}
 
               {/* 🌲 AKORDİYON LİSTESİ: DERS › ÜNİTE › TESTLER */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0.4rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {groupedMistakesTree.map(sGroup => {
                   const sStyle = getSubjectBadgeStyle(sGroup.subjectName, isDark);
                   const isSubjOpen = Boolean(openSubjects[sGroup.subjectName]);
@@ -1254,50 +1265,50 @@ export default function PdfQuestionSlicerModal({
                     <div
                       key={sGroup.subjectName}
                       style={{
-                        borderRadius: 12,
+                        borderRadius: 10,
                         border: `1.5px solid ${isSubjOpen ? sStyle.border : 'var(--color-border)'}`,
                         background: 'var(--color-surface)',
                         overflow: 'hidden',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.02)'
                       }}
                     >
-                      {/* 1. KADEME: DERS BAŞLIĞI (AKORDİYON BUTONU) */}
+                      {/* 1. KADEME: DERS BAŞLIĞI */}
                       <button
                         type="button"
                         onClick={() => toggleSubject(sGroup.subjectName)}
                         style={{
                           width: '100%',
-                          padding: '0.6rem 0.75rem',
+                          padding: '0.55rem 0.65rem',
                           background: isSubjOpen ? sStyle.bg : 'var(--color-surface)',
                           border: 'none',
                           borderBottom: isSubjOpen ? `1px solid ${sStyle.border}` : 'none',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          gap: 6,
+                          gap: 5,
                           cursor: 'pointer',
                           textAlign: 'left',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                           <span style={{ color: sStyle.color, display: 'flex', alignItems: 'center' }}>
-                            {isSubjOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                            {isSubjOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </span>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 900, color: isSubjOpen ? sStyle.color : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isSubjOpen ? sStyle.color : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
                             <span>{sStyle.icon}</span>
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sGroup.subjectName}</span>
                           </span>
                         </div>
 
-                        <span style={{ fontSize: '0.66rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: 6, flexShrink: 0 }}>
+                        <span style={{ fontSize: '0.64rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 6, flexShrink: 0 }}>
                           {sGroup.totalTests} Test • {sGroup.totalWrong} Y
                         </span>
                       </button>
 
                       {/* 2. KADEME: ÜNİTELER LİSTESİ */}
                       {isSubjOpen && (
-                        <div style={{ padding: '0.4rem', display: 'flex', flexDirection: 'column', gap: 6, background: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(241,245,249,0.5)' }}>
+                        <div style={{ padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: 5, background: isDark ? 'rgba(0,0,0,0.15)' : 'rgba(241,245,249,0.5)' }}>
                           {sGroup.units.map(uGroup => {
                             const uKey = `${sGroup.subjectName}___${uGroup.unitName}`;
                             const isUnitOpen = Boolean(openUnits[uKey]);
@@ -1306,74 +1317,72 @@ export default function PdfQuestionSlicerModal({
                               <div
                                 key={uKey}
                                 style={{
-                                  borderRadius: 10,
+                                  borderRadius: 8,
                                   border: isUnitOpen ? (isDark ? '1px solid rgba(168,85,247,0.4)' : '1px solid #e9d5ff') : '1px solid var(--color-border)',
                                   background: 'var(--color-surface)',
                                   overflow: 'hidden'
                                 }}
                               >
-                                {/* 2. KADEME: ÜNİTE BAŞLIĞI (AKORDİYON BUTONU) */}
+                                {/* 2. KADEME: ÜNİTE BAŞLIĞI */}
                                 <button
                                   type="button"
                                   onClick={() => toggleUnit(uKey)}
                                   style={{
                                     width: '100%',
-                                    padding: '0.5rem 0.65rem',
+                                    padding: '0.45rem 0.55rem',
                                     background: isUnitOpen ? (isDark ? 'rgba(168,85,247,0.15)' : '#faf5ff') : 'var(--color-surface)',
                                     border: 'none',
                                     borderBottom: isUnitOpen ? (isDark ? '1px solid rgba(168,85,247,0.3)' : '1px solid #f3e8ff') : 'none',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
-                                    gap: 6,
+                                    gap: 5,
                                     cursor: 'pointer',
                                     textAlign: 'left'
                                   }}
                                 >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
                                     <span style={{ color: '#9333ea', display: 'flex', alignItems: 'center' }}>
-                                      {isUnitOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                      {isUnitOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                                     </span>
-                                    <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isUnitOpen ? '#9333ea' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      <Layers size={11} />
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, color: isUnitOpen ? '#9333ea' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                      <Layers size={10} />
                                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uGroup.unitName}</span>
                                     </span>
                                   </div>
 
-                                  <span style={{ fontSize: '0.64rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>
-                                    {uGroup.tests.length} Test • {uGroup.totalWrong} Y
+                                  <span style={{ fontSize: '0.62rem', fontWeight: 800, background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', color: '#dc2626', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>
+                                    {uGroup.tests.length} T • {uGroup.totalWrong} Y
                                   </span>
                                 </button>
 
-                                {/* 3. KADEME: TESTLER VE SORU BUTONLARI (KİTAP SIRASINA GÖRE) */}
+                                {/* 3. KADEME: TESTLER VE SORULAR */}
                                 {isUnitOpen && (
-                                  <div style={{ padding: '0.45rem', display: 'flex', flexDirection: 'column', gap: 6, background: isDark ? 'rgba(15,23,42,0.4)' : '#f8fafc' }}>
+                                  <div style={{ padding: '0.35rem', display: 'flex', flexDirection: 'column', gap: 5, background: isDark ? 'rgba(15,23,42,0.4)' : '#f8fafc' }}>
                                     {uGroup.tests.map(t => {
                                       return (
                                         <div
                                           key={t.testId}
                                           style={{
-                                            padding: '0.55rem 0.65rem',
-                                            borderRadius: 8,
+                                            padding: '0.45rem 0.55rem',
+                                            borderRadius: 7,
                                             border: '1px solid var(--color-border)',
                                             background: 'var(--color-surface)',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            gap: 4
+                                            gap: 3
                                           }}
                                         >
-                                          {/* Test Başlığı & Yanlış Sayısı */}
                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                                            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
+                                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
                                               📌 {t.testName}
                                             </span>
-                                            <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>
+                                            <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#ef4444', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 4px', borderRadius: 4, flexShrink: 0 }}>
                                               {t.wrongQuestions.length} Yanlış
                                             </span>
                                           </div>
 
-                                          {/* Soru Butonları */}
-                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
+                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 2 }}>
                                             {t.wrongQuestions.map(qNo => {
                                               const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
                                               const isActive = activeTargetQuestion?.testId === t.testId && activeTargetQuestion?.qNo === qNo;
@@ -1394,24 +1403,24 @@ export default function PdfQuestionSlicerModal({
                                                     });
                                                   }}
                                                   style={{
-                                                    padding: '2px 6px',
-                                                    borderRadius: 6,
+                                                    padding: '2px 5px',
+                                                    borderRadius: 5,
                                                     border: isActive ? '1.5px solid #4f46e5' : (isDone ? '1px solid #bbf7d0' : '1px solid #fca5a5'),
                                                     background: isActive ? '#4f46e5' : (isDone ? (isDark ? 'rgba(34,197,94,0.15)' : '#f0fdf4') : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2')),
                                                     color: isActive ? '#ffffff' : (isDone ? '#16a34a' : '#dc2626'),
-                                                    fontSize: '0.68rem',
+                                                    fontSize: '0.66rem',
                                                     fontWeight: 800,
                                                     cursor: 'pointer',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: 3,
+                                                    gap: 2,
                                                     transition: 'all 0.15s'
                                                   }}
-                                                  title={isDone ? `Soru ${qNo} kırpıldı` : `Soru ${qNo} (Doğru Cevap: ${cAns || 'Bilinmiyor'})`}
+                                                  title={isDone ? `Soru ${qNo} kırpıldı` : `Soru ${qNo} (Doğru: ${cAns || '?'})`}
                                                 >
-                                                  {isDone ? <Check size={10} /> : <X size={10} />}
-                                                  <span>Soru {qNo}</span>
-                                                  {cAns && <span style={{ opacity: 0.8, fontSize: '0.62rem' }}>({cAns})</span>}
+                                                  {isDone ? <Check size={9} /> : <X size={9} />}
+                                                  <span>S.{qNo}</span>
+                                                  {cAns && <span style={{ opacity: 0.8, fontSize: '0.6rem' }}>({cAns})</span>}
                                                 </button>
                                               );
                                             })}
@@ -1433,6 +1442,7 @@ export default function PdfQuestionSlicerModal({
             </div>
           )}
 
+          {/* ORTA BÖLÜM: PDF / GÖRSEL GÖRÜNTÜLEYİCİ VE KIRPICI ÇALIŞMA ALANI */}
           <div
             style={{
               flex: 1,
@@ -1443,36 +1453,60 @@ export default function PdfQuestionSlicerModal({
               overflow: 'hidden'
             }}
           >
+            {/* Üst Araç Çubuğu (Toolbar) */}
             <div
               style={{
-                padding: '6px 12px',
+                padding: '6px 10px',
                 background: 'var(--color-surface)',
                 borderBottom: '1px solid var(--color-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: 8,
+                gap: 6,
                 flexWrap: 'wrap'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {/* Yanlışlar Panelini Aç/Kapat Butonu */}
+                <button
+                  type="button"
+                  onClick={() => setShowMistakesGuide(p => !p)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    borderRadius: 7,
+                    border: '1px solid var(--color-border)',
+                    background: showMistakesGuide ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface)',
+                    color: showMistakesGuide ? '#4f46e5' : 'var(--color-text-muted)',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title={showMistakesGuide ? 'Yanlışlar Panelini Gizle' : 'Yanlışlar Panelini Göster'}
+                >
+                  <Layers size={13} />
+                  <span>{showMistakesGuide ? '◀ Kılavuzu Gizle' : '▶ Yanlışlar'}</span>
+                </button>
+
                 <label
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 5,
-                    padding: '5px 12px',
-                    borderRadius: 8,
+                    padding: '4px 10px',
+                    borderRadius: 7,
                     background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                     color: 'white',
-                    fontSize: '0.78rem',
+                    fontSize: '0.74rem',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(99,102,241,0.25)'
+                    boxShadow: '0 2px 5px rgba(99,102,241,0.25)'
                   }}
                 >
-                  <Upload size={14} />
-                  <span>{sourceImage ? 'Başka PDF / Dosya Aç' : '📁 PDF veya Görsel Seç'}</span>
+                  <Upload size={13} />
+                  <span>{sourceImage ? 'Başka Dosya Aç' : '📁 PDF / Görsel Seç'}</span>
                   <input
                     type="file"
                     accept=".pdf,image/*"
@@ -1482,30 +1516,30 @@ export default function PdfQuestionSlicerModal({
                 </label>
 
                 {sourceFileName && (
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {sourceFileName}
                   </span>
                 )}
               </div>
 
               {pdfNumPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '3px 8px', borderRadius: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '2px 6px', borderRadius: 7 }}>
                   <button
                     onClick={handlePrevPage}
                     disabled={pdfCurrentPage <= 1 || isLoadingFile}
                     style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage <= 1 ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage <= 1 ? 0.4 : 1, padding: 2 }}
                     title="Önceki Sayfa"
                   >
-                    <ChevronLeft size={16} />
+                    <ChevronLeft size={15} />
                   </button>
-                  <form onSubmit={handlePageJump} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <form onSubmit={handlePageJump} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <input
                       type="text"
                       value={pageJumpInput}
                       onChange={(e) => setPageJumpInput(e.target.value)}
-                      style={{ width: 32, textAlign: 'center', fontSize: '0.74rem', fontWeight: 800, background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)' }}
+                      style={{ width: 28, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)' }}
                     />
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ {pdfNumPages}</span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>/ {pdfNumPages}</span>
                   </form>
                   <button
                     onClick={handleNextPage}
@@ -1513,61 +1547,127 @@ export default function PdfQuestionSlicerModal({
                     style={{ background: 'transparent', border: 'none', cursor: pdfCurrentPage >= pdfNumPages ? 'not-allowed' : 'pointer', color: 'var(--color-text)', opacity: pdfCurrentPage >= pdfNumPages ? 0.4 : 1, padding: 2 }}
                     title="Sonraki Sayfa"
                   >
-                    <ChevronRight size={16} />
+                    <ChevronRight size={15} />
                   </button>
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '3px 6px', borderRadius: 8 }}>
+              {/* Hızlı Görünüm ve Sığdırma Butonları */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {sourceImage && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleAutoFit('page')}
+                      style={{
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text)',
+                        padding: '3px 7px',
+                        borderRadius: 6,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                      title="Tüm Sayfayı Ekrana Sığdır (Tam Görünüm)"
+                    >
+                      📄 Sayfaya Sığdır
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAutoFit('width')}
+                      style={{
+                        background: 'var(--color-surface)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text)',
+                        padding: '3px 7px',
+                        borderRadius: 6,
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                      title="Genişliğe Sığdır"
+                    >
+                      ↔️ Genişlik
+                    </button>
+                  </>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '2px 5px', borderRadius: 7 }}>
+                  <button
+                    onClick={() => setZoom(z => Math.max(0.25, Number((z - 0.1).toFixed(2))))}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 2 }}
+                    title="Uzaklaş"
+                  >
+                    <ZoomOut size={13} />
+                  </button>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, minWidth: 32, textAlign: 'center' }}>
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    onClick={() => setZoom(z => Math.min(2.5, Number((z + 0.1).toFixed(2))))}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 2 }}
+                    title="Yakınlaş"
+                  >
+                    <ZoomIn size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleAutoFit('page')}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 2 }}
+                    title="Sıfırla / Sığdır"
+                  >
+                    <RotateCcw size={12} />
+                  </button>
+                </div>
+
+                {/* Sağ Kırpılanlar Panelini Aç/Kapat */}
                 <button
-                  onClick={() => setZoom(z => Math.max(0.4, Number((z - 0.15).toFixed(2))))}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 3 }}
-                  title="Uzaklaş"
+                  type="button"
+                  onClick={() => setShowRightPanel(p => !p)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    borderRadius: 7,
+                    border: '1px solid var(--color-border)',
+                    background: showRightPanel ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface)',
+                    color: showRightPanel ? '#4f46e5' : 'var(--color-text-muted)',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                  title={showRightPanel ? 'Kırpılanlar Panelini Gizle' : 'Kırpılanlar Panelini Göster'}
                 >
-                  <ZoomOut size={14} />
-                </button>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, minWidth: 36, textAlign: 'center' }}>
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  onClick={() => setZoom(z => Math.min(2.5, Number((z + 0.15).toFixed(2))))}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 3 }}
-                  title="Yakınlaş"
-                >
-                  <ZoomIn size={14} />
-                </button>
-                <button
-                  onClick={() => setZoom(1)}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text)', padding: 3 }}
-                  title="Sıfırla"
-                >
-                  <RotateCcw size={13} />
+                  <Scissors size={12} />
+                  <span>{showRightPanel ? 'Kırpılanlar ▶' : '◀ Kırpılanlar'}</span>
                 </button>
               </div>
             </div>
 
+            {/* Canvas / Sayfa Görüntüleme Sahnesi */}
             <div
               ref={containerRef}
               style={{
                 flex: 1,
                 overflow: 'auto',
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 justifyContent: 'center',
-                padding: '1.5rem',
+                padding: '0.75rem',
                 cursor: sourceImage ? 'crosshair' : 'default',
                 position: 'relative'
               }}
             >
               {isLoadingFile && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#6366f1' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#6366f1', margin: 'auto' }}>
                   <Loader2 size={32} className="animate-spin" />
                   <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>Sayfa hazırlanıyor…</span>
                 </div>
               )}
 
               {loadError && !isLoadingFile && (
-                <div style={{ textAlign: 'center', color: '#ef4444', maxWidth: 360, background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', padding: '1.5rem', borderRadius: 14, border: '1px solid #fecaca' }}>
+                <div style={{ textAlign: 'center', color: '#ef4444', maxWidth: 360, background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2', padding: '1.5rem', borderRadius: 14, border: '1px solid #fecaca', margin: 'auto' }}>
                   <AlertCircle size={32} style={{ margin: '0 auto 8px auto' }} />
                   <p style={{ margin: '0 0 10px 0', fontWeight: 700, fontSize: '0.82rem' }}>{loadError}</p>
                   <label
@@ -1597,7 +1697,7 @@ export default function PdfQuestionSlicerModal({
               )}
 
               {!sourceImage && !isLoadingFile && !loadError && (
-                <div style={{ textAlign: 'center', maxWidth: 360 }}>
+                <div style={{ textAlign: 'center', maxWidth: 360, margin: 'auto' }}>
                   <div style={{ width: 56, height: 56, borderRadius: 18, background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
                     <FileText size={28} className="text-indigo-500" />
                   </div>
@@ -1608,16 +1708,24 @@ export default function PdfQuestionSlicerModal({
                 </div>
               )}
 
-              <div style={{ display: sourceImage && !isLoadingFile ? 'block' : 'none', transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.1s' }}>
+              <div
+                style={{
+                  display: sourceImage && !isLoadingFile ? 'inline-block' : 'none',
+                  transform: `scale(${zoom})`,
+                  transformOrigin: 'top center',
+                  transition: 'transform 0.08s ease-out'
+                }}
+              >
                 <canvas
                   ref={canvasRef}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   style={{
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
                     borderRadius: 6,
                     maxWidth: 'none',
+                    display: 'block',
                     userSelect: 'none'
                   }}
                 />
@@ -1625,56 +1733,58 @@ export default function PdfQuestionSlicerModal({
             </div>
           </div>
 
-          <div
-            style={{
-              width: 360,
-              borderLeft: '1.5px solid var(--color-border)',
-              background: 'var(--color-surface)',
-              display: 'flex',
-              flexDirection: 'column',
-              flexShrink: 0
-            }}
-          >
+          {/* SAĞ PANEL: KIRPILAN SORULAR & TEST OLUŞTURUCU */}
+          {showRightPanel && (
             <div
               style={{
-                padding: '0.75rem 1rem',
-                borderBottom: '1px solid var(--color-border)',
+                width: 320,
+                borderLeft: '1.5px solid var(--color-border)',
+                background: 'var(--color-surface)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8
+                flexShrink: 0
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h3 style={{ fontSize: '0.88rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Scissors size={15} className="text-indigo-500" />
-                  <span>Kırpılan Sorular ({slicedQuestions.length})</span>
-                </h3>
-                {slicedQuestions.length > 0 && (
-                  <button
-                    onClick={() => setSlicedQuestions([])}
-                    style={{ fontSize: '0.7rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
-                  >
-                    Temizle
-                  </button>
-                )}
-              </div>
-
-              <input
-                type="text"
-                value={testTitle}
-                onChange={(e) => setTestTitle(e.target.value)}
-                placeholder="Test Başlığı (Örn: Sosyal Bilgiler Telafi Testi)"
+              <div
                 style={{
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  border: '1.5px solid var(--color-border)',
-                  background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
-                  color: 'var(--color-text)',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  outline: 'none'
+                  padding: '0.65rem 0.85rem',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6
                 }}
-              />
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '0.84rem', fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Scissors size={14} className="text-indigo-500" />
+                    <span>Kırpılan Sorular ({slicedQuestions.length})</span>
+                  </h3>
+                  {slicedQuestions.length > 0 && (
+                    <button
+                      onClick={() => setSlicedQuestions([])}
+                      style={{ fontSize: '0.68rem', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 800 }}
+                    >
+                      Temizle
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  value={testTitle}
+                  onChange={(e) => setTestTitle(e.target.value)}
+                  placeholder="Test Başlığı (Örn: Sosyal Bilgiler Telafi Testi)"
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    border: '1.5px solid var(--color-border)',
+                    background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                    color: 'var(--color-text)',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    outline: 'none'
+                  }}
+                />
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: 6 }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Varsayılan Şık:</span>
@@ -1839,8 +1949,9 @@ export default function PdfQuestionSlicerModal({
               </button>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
+  </div>
   );
 }
