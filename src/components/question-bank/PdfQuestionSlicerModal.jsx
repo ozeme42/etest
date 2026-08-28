@@ -672,8 +672,6 @@ export default function PdfQuestionSlicerModal({
       : (currentBook.raw_data?.subjects || []);
 
     const canonicalTests = [];
-    let globalIndex = 0;
-
     if (rawSubjects.length > 0) {
       rawSubjects.forEach((subj, sIdx) => {
         const sId = String(subj.id || `subj_${sIdx}`);
@@ -713,12 +711,11 @@ export default function PdfQuestionSlicerModal({
           }
 
           matchedTests.forEach((t) => {
-            globalIndex++;
             canonicalTests.push({
               id: String(t.id),
               cleanId: String(t.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
               uuid: toUUID(t.id),
-              name: t.name || t.title || `Test ${globalIndex}`,
+              name: t.name || t.title || 'Test',
               subjectName: sName,
               unitName: uName,
               answerKey: t.answerKey || t.answer_key || currentBook.answerKey || {}
@@ -732,12 +729,11 @@ export default function PdfQuestionSlicerModal({
 
       if (bTests.length > 0) {
         bTests.forEach((bt) => {
-          globalIndex++;
           canonicalTests.push({
             id: String(bt.id),
             cleanId: String(bt.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
             uuid: toUUID(bt.id),
-            name: bt.name || bt.title || `Test ${globalIndex}`,
+            name: bt.name || bt.title || 'Test',
             subjectName: resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, defaultSubj),
             unitName: bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '1. Ünite',
             answerKey: bt.answerKey || bt.answer_key || currentBook.answerKey || {}
@@ -746,7 +742,7 @@ export default function PdfQuestionSlicerModal({
       }
     }
 
-    // 2. For each canonical test, find mistakes using O(1) memory lookup
+    // 2. For each canonical test, find mistakes using strict submission matching
     const list = [];
 
     const getCorrectLetter = (q, ak) => {
@@ -757,12 +753,36 @@ export default function PdfQuestionSlicerModal({
     };
 
     canonicalTests.forEach(testObj => {
-      // Find matching submissions in O(1)
-      const matchedSubs = [
-        ...(subsByTestId.get(testObj.id) || []),
-        ...(subsByTestId.get(testObj.cleanId) || []),
-        ...(testObj.uuid ? (subsByTestId.get(String(testObj.uuid)) || []) : [])
-      ];
+      const tIdStr = String(testObj.id);
+      const tCleanId = String(testObj.cleanId || '');
+      const tUuidStr = String(testObj.uuid || '');
+
+      const matchedSubs = (submissions || []).filter(s => {
+        if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
+        if (s.status === 'in_progress' || s.status === 'draft') return false;
+
+        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+        const matchFields = [
+          String(s.testId || ''),
+          String(s.realTestId || ''),
+          String(s.bookTestId || ''),
+          String(s.id || ''),
+          String(meta?.realTestId || ''),
+          String(meta?.bookTestId || ''),
+          String(meta?.realId || '')
+        ].filter(f => Boolean(f) && f.length >= 2);
+        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+          matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2));
+        }
+
+        return matchFields.some(f => (
+          f === tIdStr ||
+          (tCleanId && tCleanId.length >= 3 && f === tCleanId) ||
+          (tUuidStr && f === tUuidStr) ||
+          (toUUID(f) && toUUID(f) === tIdStr) ||
+          (tUuidStr && toUUID(f) === tUuidStr)
+        ));
+      });
 
       if (matchedSubs.length === 0) return;
 
@@ -785,47 +805,12 @@ export default function PdfQuestionSlicerModal({
             if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
           });
         }
-
-        const rawReasons = sub.mistakeReasons || sub.raw_data?.mistakeReasons;
-        if (rawReasons && typeof rawReasons === 'object') {
-          Object.keys(rawReasons).forEach(k => {
-            const qNo = parseInt(k, 10);
-            if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-          });
-        }
       });
 
-      // Check pre-indexed localStorage in O(1)
-      const reasonKeys = [
-        `mistake_reasons_${testObj.id}_${studentIdStr}`,
-        `mistake_reasons_bt_${testObj.id}_${studentIdStr}`,
-        `mistake_reasons_${testObj.id}`,
-        `mistake_reasons_bt_${testObj.id}`
-      ];
-      for (const rk of reasonKeys) {
-        const parsed = localReasonsMap.get(rk);
-        if (parsed && typeof parsed === 'object') {
-          Object.keys(parsed).forEach(qKey => {
-            const qNo = parseInt(qKey, 10);
-            if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-          });
-        }
-      }
-
-      if (wrongQNos.size === 0) {
-        const maxWrong = Math.max(...matchedSubs.map(s => s.wrongCount ?? s.wrong ?? s.raw_data?.wrongCount ?? s.raw_data?.wrong ?? 0));
-        if (maxWrong > 0) {
-          const totalQ = matchedSubs[0]?.totalQuestions || 10;
-          const corr = matchedSubs[0]?.correctCount ?? 0;
-          for (let i = corr + 1; i <= Math.min(totalQ, corr + maxWrong); i++) {
-            wrongQNos.add(i);
-          }
-        }
-      }
+      // ONLY include tests that ACTUALLY have wrong questions
+      if (wrongQNos.size === 0) return;
 
       const wrongList = Array.from(wrongQNos).sort((a, b) => a - b);
-      if (wrongList.length === 0) return;
-
       const akMap = {};
       wrongList.forEach(q => {
         const letter = getCorrectLetter(q, testObj.answerKey);
