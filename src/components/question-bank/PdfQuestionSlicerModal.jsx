@@ -129,17 +129,18 @@ function SlicerPdfPageItem({
   pdfNumPages = 1,
   isDark = false
 }) {
-  const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const imageObjRef = useRef(null);
+  const pdfCanvasRef = useRef(null);
+  const overlayCanvasRef = useRef(null);
 
-  const [isVisible, setIsVisible] = useState(pageNum <= 3 || viewMode === 'single');
+  const [isVisible, setIsVisible] = useState(pageNum <= 2 || viewMode === 'single');
   const [isRendered, setIsRendered] = useState(false);
+  const [pageSize, setPageSize] = useState({ width: 800, height: 1130 });
   const [currentRect, setCurrentRect] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
-  // IntersectionObserver for lazy page rendering in scroll mode
+  // IntersectionObserver for lazy page rendering in scroll mode (hızlı ve hafif pre-load)
   useEffect(() => {
     if (viewMode === 'single' || isVisible || !containerRef.current) return;
     const observer = new IntersectionObserver(([entry]) => {
@@ -147,65 +148,74 @@ function SlicerPdfPageItem({
         setIsVisible(true);
         observer.disconnect();
       }
-    }, { rootMargin: '1200px' });
+    }, { rootMargin: '500px' });
 
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [isVisible, viewMode]);
 
-  // Render the PDF page onto offscreen canvas and keep imageObjRef
+  // Doğrudan PDF.js donanım hızlandırmalı render (Sıfır Base64, Sıfır Gecikme)
   useEffect(() => {
     if (!doc || !isVisible) return;
+    let renderTask = null;
     let isCancelled = false;
 
     const render = async () => {
       try {
         const page = await doc.getPage(pageNum);
         if (isCancelled) return;
-        const viewport = page.getViewport({ scale: 2.0 });
 
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = viewport.width;
-        offCanvas.height = viewport.height;
-        const offCtx = offCanvas.getContext('2d');
+        const viewport = page.getViewport({ scale: 1.8 });
+        const width = Math.round(viewport.width);
+        const height = Math.round(viewport.height);
+        setPageSize({ width, height });
 
-        await page.render({ canvasContext: offCtx, viewport }).promise;
-        if (isCancelled) return;
+        const canvas = pdfCanvasRef.current;
+        if (!canvas) return;
 
-        const dataUrl = offCanvas.toDataURL('image/png');
-        const img = new Image();
-        img.onload = () => {
-          if (isCancelled) return;
-          imageObjRef.current = img;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        renderTask = page.render({ canvasContext: ctx, viewport });
+        await renderTask.promise;
+
+        if (!isCancelled) {
           setIsRendered(true);
-        };
-        img.src = dataUrl;
+        }
       } catch (err) {
-        console.error(`Page ${pageNum} render error:`, err);
+        if (err?.name !== 'RenderingCancelledException') {
+          console.error(`Page ${pageNum} render error:`, err);
+        }
       }
     };
 
     render();
-    return () => { isCancelled = true; };
+
+    return () => {
+      isCancelled = true;
+      if (renderTask) {
+        try { renderTask.cancel(); } catch {}
+      }
+    };
   }, [doc, pageNum, isVisible]);
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const img = imageObjRef.current;
-    if (!canvas || !img) return;
+  // Şeffaf üst katman: soru dikdörtgenleri ve anlık fare çizimi (Ultra Hafif 60+ FPS)
+  const drawOverlay = useCallback(() => {
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
 
-    if (canvas.width !== img.width || canvas.height !== img.height) {
-      canvas.width = img.width;
-      canvas.height = img.height;
+    if (canvas.width !== pageSize.width || canvas.height !== pageSize.height) {
+      canvas.width = pageSize.width;
+      canvas.height = pageSize.height;
     }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
 
-    // Draw sliced question boxes on this page
+    // Kırpılmış soruların yeşil kutucukları
     slicedQuestions.forEach(sq => {
       if (sq.rect && (!sq.page || Number(sq.page) === Number(pageNum))) {
         ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
@@ -224,7 +234,7 @@ function SlicerPdfPageItem({
       }
     });
 
-    // Draw active drawing rect
+    // Aktif fare ile çizilen mavi seçim kutucuğu
     if (currentRect && currentRect.w && currentRect.h) {
       ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
       ctx.fillRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
@@ -234,14 +244,14 @@ function SlicerPdfPageItem({
       ctx.strokeRect(currentRect.x, currentRect.y, currentRect.w, currentRect.h);
       ctx.setLineDash([]);
     }
-  }, [slicedQuestions, pageNum, currentRect]);
+  }, [slicedQuestions, pageNum, currentRect, pageSize]);
 
   useEffect(() => {
-    if (isRendered) draw();
-  }, [isRendered, draw, slicedQuestions, currentRect]);
+    drawOverlay();
+  }, [drawOverlay, isRendered, slicedQuestions, currentRect]);
 
   const getCanvasCoords = (e) => {
-    const canvas = canvasRef.current;
+    const canvas = overlayCanvasRef.current || pdfCanvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const r = canvas.getBoundingClientRect();
     const scaleX = canvas.width / r.width;
@@ -279,8 +289,9 @@ function SlicerPdfPageItem({
       return;
     }
     setIsDrawing(false);
-    const img = imageObjRef.current;
-    if (!img) return;
+
+    const pdfCanvas = pdfCanvasRef.current;
+    if (!pdfCanvas) return;
 
     const cropCanvas = document.createElement('canvas');
     cropCanvas.width = currentRect.w;
@@ -289,19 +300,18 @@ function SlicerPdfPageItem({
     if (!cropCtx) return;
 
     cropCtx.drawImage(
-      img,
+      pdfCanvas,
       currentRect.x, currentRect.y, currentRect.w, currentRect.h,
       0, 0, currentRect.w, currentRect.h
     );
 
-    const croppedBase64 = cropCanvas.toDataURL('image/png');
-    const compressed = await compressImageToWebP(croppedBase64, 1200, 0.85);
+    const compressed = await compressImageToWebP(cropCanvas, 1400, 0.82);
 
     onSliceQuestion({
       rect: currentRect,
       page: pageNum,
-      image: compressed.dataUrl || croppedBase64,
-      sizeKb: compressed.sizeKb || 50
+      image: compressed.dataUrl,
+      sizeKb: compressed.sizeKb
     });
 
     setCurrentRect(null);
@@ -346,31 +356,51 @@ function SlicerPdfPageItem({
 
       <div
         style={{
+          position: 'relative',
           transform: `scale(${zoom})`,
           transformOrigin: 'top center',
           transition: 'transform 0.08s ease-out',
-          minHeight: isRendered ? 'auto' : 320,
-          display: 'inline-block',
+          width: pageSize.width,
+          height: pageSize.height,
           background: '#ffffff',
           borderRadius: 6,
           boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
           overflow: 'hidden'
         }}
       >
+        {/* Katman 1: PDF Render Canvas (Doğrudan donanım hızlandırmalı) */}
         <canvas
-          ref={canvasRef}
+          ref={pdfCanvasRef}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: pageSize.width,
+            height: pageSize.height,
+            display: isRendered ? 'block' : 'none'
+          }}
+        />
+
+        {/* Katman 2: Şeffaf Seçim ve Kırpma Overlay Canvas (60+ FPS Çizim) */}
+        <canvas
+          ref={overlayCanvasRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           style={{
-            display: isRendered ? 'block' : 'none',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: pageSize.width,
+            height: pageSize.height,
             cursor: 'crosshair',
             userSelect: 'none',
-            maxWidth: 'none'
+            zIndex: 2
           }}
         />
+
         {!isRendered && (
-          <div style={{ padding: '6rem 4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: '#6366f1' }}>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#6366f1', background: isDark ? '#1e293b' : '#f8fafc' }}>
             <Loader2 size={28} className="animate-spin" />
             <span style={{ fontSize: '0.74rem', fontWeight: 800 }}>Sayfa {pageNum} hazırlanıyor…</span>
           </div>
@@ -1015,7 +1045,7 @@ export default function PdfQuestionSlicerModal({
       setPdfNumPages(doc.numPages);
       setPdfCurrentPage(1);
       setPageJumpInput('1');
-      await renderPdfPage(doc, 1);
+      setIsLoadingFile(false);
     } catch (err) {
       console.error('PDF URL yükleme hatası:', err);
       setLoadError('PDF bağlantısı doğrudan açılamadı. Lütfen PDF dosyanızı aşağıdaki butondan seçiniz.');
@@ -1050,7 +1080,7 @@ export default function PdfQuestionSlicerModal({
         setPdfNumPages(doc.numPages);
         setPdfCurrentPage(1);
         setPageJumpInput('1');
-        await renderPdfPage(doc, 1);
+        setIsLoadingFile(false);
       } catch (err) {
         console.error('PDF yükleme hatası:', err);
         setLoadError('PDF dosyası açılamadı. Lütfen geçerli bir PDF veya görsel dosyası seçin.');
