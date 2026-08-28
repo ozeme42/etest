@@ -725,12 +725,39 @@ export default function StudentDashboard() {
   const assignedBooksList = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return [];
     
-    const studentIdStr = String(selectedStudent.id || '');
-    const studentUuidStr = String(toUUID(selectedStudent.id) || '');
+    // Build comprehensive ID set for selected student (aliases, UUIDs, matching email/name)
+    const allStudentIds = new Set();
+    const addId = (val) => {
+      if (!val) return;
+      const sVal = String(val).trim();
+      allStudentIds.add(sVal);
+      const uv = toUUID(sVal);
+      if (uv) allStudentIds.add(uv);
+    };
+
+    addId(selectedStudent.id);
+    addId(selectedStudent.student_id);
+    addId(selectedStudent.studentId);
+    addId(selectedStudent.uuid);
+
+    const sName = String(selectedStudent.name || '').trim().toLowerCase();
+    const sEmail = String(selectedStudent.email || '').trim().toLowerCase();
+
+    (users || []).forEach(u => {
+      const uName = String(u.name || '').trim().toLowerCase();
+      const uEmail = String(u.email || '').trim().toLowerCase();
+      const isNameMatch = sName && uName && sName === uName;
+      const isEmailMatch = sEmail && uEmail && (sEmail === uEmail || sEmail.split('@')[0] === uEmail.split('@')[0]);
+      if (isNameMatch || isEmailMatch) {
+        addId(u.id);
+        addId(u.student_id);
+        addId(u.studentId);
+      }
+    });
 
     const studentSubs = (submissions || []).filter(s => {
       const sid = String(s?.studentId || s?.student_id || s?.userId || s?.user_id || '');
-      const isMatchStudent = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+      const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
       return true;
@@ -782,18 +809,20 @@ export default function StudentDashboard() {
     const list = Object.values(bookMap).map((book, idx) => {
       const bId = String(book.id);
       const bUuid = toUUID(bId);
-      const testsInBookRaw = (bookTests || []).filter(bt => 
-        String(bt.bookId) === bId || 
-        String(bt.book_id) === bId || 
-        (bUuid && String(bt.bookId) === bUuid) ||
-        (bUuid && toUUID(bt.bookId) === bUuid)
-      );
+      const bTitle = String(book.title || '').toLowerCase().trim();
+
+      const testsInBookRaw = (bookTests || []).filter(bt => {
+        const btBId = String(bt.bookId || bt.book_id || '');
+        if (btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid)) return true;
+        if (bt.bookTitle && String(bt.bookTitle).toLowerCase().trim() === bTitle) return true;
+        return false;
+      });
 
       // Deduplicate tests by subject + topic + name
       const testsInBook = [];
       const seenTestKeys = new Set();
       testsInBookRaw.forEach(t => {
-        const tKey = `${String(t.subjectId || '')}_${String(t.topicId || '')}_${String(t.name || '').trim().toLowerCase()}`;
+        const tKey = `${String(t.subjectId || t.subject_id || '')}_${String(t.topicId || t.topic_id || '')}_${String(t.name || '').trim().toLowerCase()}`;
         if (!seenTestKeys.has(tKey)) {
           seenTestKeys.add(tKey);
           testsInBook.push(t);
@@ -811,10 +840,16 @@ export default function StudentDashboard() {
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
         const tUuidStr = String(toUUID(t.id) || '');
+        const tName = String(t.name || '').toLowerCase().trim();
 
         const solvedSubs = studentSubs.filter(s => {
+          const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
+          const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+          const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+
           const matchFields = [
             String(s.testId || ''),
+            String(s.test_id || ''),
             String(s.realTestId || ''),
             String(s.bookTestId || ''),
             String(s.metadata?.realTestId || ''),
@@ -825,7 +860,7 @@ export default function StudentDashboard() {
             matchFields.push(...s.bookTestIds.map(String));
           }
 
-          return matchFields.some(f => f && (
+          const isDirectMatch = matchFields.some(f => f && (
             f === tIdStr ||
             f === tCleanId ||
             f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
@@ -833,6 +868,8 @@ export default function StudentDashboard() {
             toUUID(f) === tIdStr ||
             (tUuidStr && toUUID(f) === tUuidStr)
           ));
+
+          return isDirectMatch || isNameMatch;
         });
 
         let hwSub = null;
@@ -840,10 +877,14 @@ export default function StudentDashboard() {
           if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
           const match = hw.submissions.find(s => {
             const sid = String(s.studentId || s.student_id || s.user_id || '');
-            const isMatchStudent = sid === studentIdStr || (studentUuidStr && sid === studentUuidStr) || (studentUuidStr && toUUID(sid) === studentUuidStr);
+            const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
-            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
+            const isDirect = subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+            const sTitle = String(s.title || s.testTitle || s.test_title || '').toLowerCase().trim();
+            const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+            const isNameMatch = Boolean(tName && (cleanSTitle === tName || sTitle.includes(tName) || tName.includes(cleanSTitle)));
+            return isDirect || isNameMatch;
           });
           if (match) {
             hwSub = match;
@@ -862,9 +903,9 @@ export default function StudentDashboard() {
           }
 
           if (bestSub) {
-            totalCorrect += bestSub.correctCount || 0;
-            totalWrong += bestSub.wrongCount || 0;
-            totalBlank += bestSub.blankCount || 0;
+            totalCorrect += Number(bestSub.correctCount ?? bestSub.correct ?? 0);
+            totalWrong += Number(bestSub.wrongCount ?? bestSub.wrong ?? 0);
+            totalBlank += Number(bestSub.emptyCount ?? bestSub.blankCount ?? bestSub.blank ?? 0);
           }
         } else if (!nextTest) {
           nextTest = t;
