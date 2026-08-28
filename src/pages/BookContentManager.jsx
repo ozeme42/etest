@@ -4537,227 +4537,220 @@ export default function BookContentManager() {
                         {/* Subject Content (Expanded Only) */}
                         {isExpanded && (
                           <div style={{ padding: '1.15rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            
-                            {/* Direct Tests (if any exist directly under Subject) */}
-                            {directTests.length > 0 && (
-                              <div style={{ padding: '0.85rem 1rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)' }}>
-                                <h5 style={{ margin: '0 0 0.65rem 0', fontSize: '0.9rem', color: '#60a5fa', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <FileText size={15} /> Direkt Testler ({directTests.length})
-                                </h5>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
-                                  {directTests.map(t => {
-                                    const testVal = scheduleDates[t.id] || '';
-                                    const isSelected = scheduleSelectedTestIds.includes(t.id);
-                                    const matchedSubs = getTestSolveDetails(t.id);
-                                    const isSolved = matchedSubs.length > 0;
-                                    const primarySub = isSolved ? matchedSubs[0] : null;
-
-                                    return (
-                                      <div 
-                                        key={t.id} 
-                                        style={{ 
-                                          background: isSelected ? 'rgba(99, 102, 241, 0.15)' : isSolved ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface)', 
-                                          padding: '0.75rem 0.95rem', 
-                                          borderRadius: '0.75rem', 
-                                          border: `1.5px solid ${isSelected ? '#6366f1' : isSolved ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border)'}`, 
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          justifyContent: 'space-between', 
-                                          gap: '0.65rem',
-                                          boxShadow: isSolved ? '0 2px 10px rgba(16,185,129,0.08)' : 'none'
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
-                                          <input
-                                            type="checkbox"
-                                            checked={isSelected}
-                                            onChange={() => setScheduleSelectedTestIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
-                                            style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
-                                          />
-                                          <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                              {t.name}
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                                              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{t.questionCount || 20} Soru</span>
-                                              
-                                              {isSolved ? (
-                                                modalTargetStudents.length === 1 ? (
-                                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                    {(() => {
-                                                      const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
-                                                      const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
-                                                      const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
-                                                      const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
-                                                      const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                      return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
-                                                    })()}
-                                                  </span>
-                                                ) : (
-                                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                                                    ✅ {matchedSubs.length}/{modalTargetStudents.length} Çözdü
-                                                  </span>
-                                                )
-                                              ) : (
-                                                <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '0.1rem 0.45rem', borderRadius: '0.35rem' }}>
-                                                  ⏳ Çözülmedi
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <input
-                                          type="date"
-                                          value={testVal}
-                                          onChange={e => setScheduleDates(p => ({ ...p, [t.id]: e.target.value }))}
-                                          style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
-                                        />
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Topics / Units List (Ders > Ünite / Konu > Testler) */}
                             {topicsList.length > 0 ? (
-                              topicsList.map(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
-                                if (topicTests.length === 0) return null;
+                              <>
+                                {/* Direct Tests under Subject (if any exist alongside topics) */}
+                                {directTests.length > 0 && (
+                                  <div style={{ padding: '0.85rem 1rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)' }}>
+                                    <h5 style={{ margin: '0 0 0.65rem 0', fontSize: '0.9rem', color: '#60a5fa', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                      <FileText size={15} /> Direkt Testler ({directTests.length})
+                                    </h5>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                                      {directTests.map(t => {
+                                        const testVal = getScheduleDateVal(t.id);
+                                        const isSelected = scheduleSelectedTestIds.includes(t.id);
+                                        const matchedSubs = getTestSolveDetails(t.id);
+                                        const isSolved = matchedSubs.length > 0;
+                                        const primarySub = isSolved ? matchedSubs[0] : null;
 
-                                // Default to collapsed (true) if undefined
-                                const isTopicExpanded = scheduleCollapsedTopic[topic.id] === false;
-                                const allTopicSelected = topicTests.every(t => scheduleSelectedTestIds.includes(t.id));
-                                const topicSolvedCount = topicTests.filter(t => getTestSolveDetails(t.id).length > 0).length;
-
-                                return (
-                                  <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', paddingLeft: '0.85rem', background: 'var(--color-surface)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
-                                    
-                                    {/* Topic Header (Collapsible) */}
-                                    <div 
-                                      style={{ padding: '0.75rem 0.95rem', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: isTopicExpanded ? '1.5px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
-                                      onClick={() => setScheduleCollapsedTopic(p => ({ ...p, [topic.id]: p[topic.id] === false ? true : false }))}
-                                    >
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                                        {isTopicExpanded ? <ChevronDown size={16} style={{ color: '#6366f1' }} /> : <ChevronRight size={16} style={{ color: '#6366f1' }} />}
-                                        <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                          <FileText size={15} style={{ color: '#7c3aed' }} /> {topic.name}
-                                        </h5>
-                                        <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800 }}>
-                                          {topicTests.length} Test
-                                          {topicSolvedCount > 0 && (
-                                            <strong style={{ color: '#10b981', marginLeft: '0.35rem' }}>• 🟢 {topicSolvedCount} Çözüldü</strong>
-                                          )}
-                                        </span>
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const topicTestIds = topicTests.map(t => t.id);
-                                          if (allTopicSelected) {
-                                            setScheduleSelectedTestIds(prev => prev.filter(id => !topicTestIds.includes(id)));
-                                          } else {
-                                            setScheduleSelectedTestIds(prev => Array.from(new Set([...prev, ...topicTestIds])));
-                                          }
-                                        }}
-                                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 800, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', cursor: 'pointer' }}
-                                      >
-                                        {allTopicSelected ? '✅ Üniteyi Kaldır' : '☑️ Üniteyi Seç'}
-                                      </button>
-                                    </div>
-
-                                    {/* Topic Tests Grid (Expanded Only) */}
-                                    {isTopicExpanded && (
-                                      <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
-                                        {topicTests.map(t => {
-                                          const testVal = scheduleDates[t.id] || '';
-                                          const isSelected = scheduleSelectedTestIds.includes(t.id);
-                                          const matchedSubs = getTestSolveDetails(t.id);
-                                          const isSolved = matchedSubs.length > 0;
-                                          const primarySub = isSolved ? matchedSubs[0] : null;
-
-                                          return (
-                                            <div 
-                                              key={t.id} 
-                                              style={{ 
-                                                background: isSelected ? 'rgba(99, 102, 241, 0.15)' : isSolved ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface)', 
-                                                padding: '0.75rem 0.95rem', 
-                                                borderRadius: '0.75rem', 
-                                                border: `1.5px solid ${isSelected ? '#6366f1' : isSolved ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border)'}`, 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'space-between', 
-                                                gap: '0.65rem', 
-                                                transition: 'all 0.15s',
-                                                boxShadow: isSolved ? '0 2px 10px rgba(16,185,129,0.08)' : 'none'
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
-                                                <input
-                                                  type="checkbox"
-                                                  checked={isSelected}
-                                                  onChange={() => {
-                                                    setScheduleSelectedTestIds(prev =>
-                                                      prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                                                    );
-                                                  }}
-                                                  style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
-                                                />
-                                                <div style={{ minWidth: 0, flex: 1 }}>
-                                                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {t.name}
-                                                  </div>
-                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{t.questionCount || 20} Soru</span>
-                                                    
-                                                    {isSolved ? (
-                                                      modalTargetStudents.length === 1 ? (
-                                                        <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                          {(() => {
-                                                            const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
-                                                            const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
-                                                            const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
-                                                            const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
-                                                            const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                            return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
-                                                          })()}
-                                                        </span>
-                                                      ) : (
-                                                        <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                                                          ✅ {matchedSubs.length}/{modalTargetStudents.length} Çözdü
-                                                        </span>
-                                                      )
-                                                    ) : (
-                                                      <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '0.1rem 0.45rem', borderRadius: '0.35rem' }}>
-                                                        ⏳ Çözülmedi
+                                        return (
+                                          <div 
+                                            key={t.id} 
+                                            style={{ 
+                                              background: isSelected ? 'rgba(99, 102, 241, 0.15)' : isSolved ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface)', 
+                                              padding: '0.75rem 0.95rem', 
+                                              borderRadius: '0.75rem', 
+                                              border: `1.5px solid ${isSelected ? '#6366f1' : isSolved ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border)'}`, 
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              justifyContent: 'space-between', 
+                                              gap: '0.65rem',
+                                              boxShadow: isSolved ? '0 2px 10px rgba(16,185,129,0.08)' : 'none'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                                              <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => setScheduleSelectedTestIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                                                style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
+                                              />
+                                              <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                  {t.name}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                                                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{t.questionCount || 20} Soru</span>
+                                                  
+                                                  {isSolved ? (
+                                                    modalTargetStudents.length === 1 ? (
+                                                      <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                        {(() => {
+                                                          const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
+                                                          const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
+                                                          const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
+                                                          const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
+                                                          const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                          return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
+                                                        })()}
                                                       </span>
-                                                    )}
-                                                  </div>
+                                                    ) : (
+                                                      <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                                                        ✅ {matchedSubs.length}/{modalTargetStudents.length} Çözdü
+                                                      </span>
+                                                    )
+                                                  ) : (
+                                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '0.1rem 0.45rem', borderRadius: '0.35rem' }}>
+                                                      ⏳ Çözülmedi
+                                                    </span>
+                                                  )}
                                                 </div>
                                               </div>
-
-                                              <input
-                                                type="date"
-                                                value={getScheduleDateVal(t.id)}
-                                                onChange={(e) => setScheduleDateVal(t.id, e.target.value)}
-                                                style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
-                                              />
                                             </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
+
+                                            <input
+                                              type="date"
+                                              value={testVal}
+                                              onChange={e => setScheduleDateVal(t.id, e.target.value)}
+                                              style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
+                                            />
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
-                                );
-                              })
+                                )}
+
+                                {/* Topics List */}
+                                {topicsList.map(topic => {
+                                  const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                                  if (topicTests.length === 0) return null;
+
+                                  const isTopicExpanded = scheduleCollapsedTopic[topic.id] === false;
+                                  const allTopicSelected = topicTests.every(t => scheduleSelectedTestIds.includes(t.id));
+                                  const topicSolvedCount = topicTests.filter(t => getTestSolveDetails(t.id).length > 0).length;
+
+                                  return (
+                                    <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', paddingLeft: '0.85rem', background: 'var(--color-surface)', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+                                      <div 
+                                        style={{ padding: '0.75rem 0.95rem', background: 'var(--color-surface-hover)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', borderBottom: isTopicExpanded ? '1.5px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
+                                        onClick={() => setScheduleCollapsedTopic(p => ({ ...p, [topic.id]: p[topic.id] === false ? true : false }))}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                          {isTopicExpanded ? <ChevronDown size={16} style={{ color: '#6366f1' }} /> : <ChevronRight size={16} style={{ color: '#6366f1' }} />}
+                                          <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <FileText size={15} style={{ color: '#7c3aed' }} /> {topic.name}
+                                          </h5>
+                                          <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text-muted)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800 }}>
+                                            {topicTests.length} Test
+                                            {topicSolvedCount > 0 && (
+                                              <strong style={{ color: '#10b981', marginLeft: '0.35rem' }}>• 🟢 {topicSolvedCount} Çözüldü</strong>
+                                            )}
+                                          </span>
+                                        </div>
+
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const topicTestIds = topicTests.map(t => t.id);
+                                            if (allTopicSelected) {
+                                              setScheduleSelectedTestIds(prev => prev.filter(id => !topicTestIds.includes(id)));
+                                            } else {
+                                              setScheduleSelectedTestIds(prev => Array.from(new Set([...prev, ...topicTestIds])));
+                                            }
+                                          }}
+                                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem', fontWeight: 800, background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', cursor: 'pointer' }}
+                                        >
+                                          {allTopicSelected ? '✅ Üniteyi Kaldır' : '☑️ Üniteyi Seç'}
+                                        </button>
+                                      </div>
+
+                                      {isTopicExpanded && (
+                                        <div style={{ padding: '0.85rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                                          {topicTests.map(t => {
+                                            const testVal = getScheduleDateVal(t.id);
+                                            const isSelected = scheduleSelectedTestIds.includes(t.id);
+                                            const matchedSubs = getTestSolveDetails(t.id);
+                                            const isSolved = matchedSubs.length > 0;
+                                            const primarySub = isSolved ? matchedSubs[0] : null;
+
+                                            return (
+                                              <div 
+                                                key={t.id} 
+                                                style={{ 
+                                                  background: isSelected ? 'rgba(99, 102, 241, 0.15)' : isSolved ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface)', 
+                                                  padding: '0.75rem 0.95rem', 
+                                                  borderRadius: '0.75rem', 
+                                                  border: `1.5px solid ${isSelected ? '#6366f1' : isSolved ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border)'}`, 
+                                                  display: 'flex', 
+                                                  alignItems: 'center', 
+                                                  justifyContent: 'space-between', 
+                                                  gap: '0.65rem', 
+                                                  transition: 'all 0.15s',
+                                                  boxShadow: isSolved ? '0 2px 10px rgba(16,185,129,0.08)' : 'none'
+                                                }}
+                                              >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => setScheduleSelectedTestIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                                                    style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
+                                                  />
+                                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                                    <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                      {t.name}
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                                                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>{t.questionCount || 20} Soru</span>
+                                                      
+                                                      {isSolved ? (
+                                                        modalTargetStudents.length === 1 ? (
+                                                          <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                            {(() => {
+                                                              const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
+                                                              const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
+                                                              const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
+                                                              const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
+                                                              const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                              return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
+                                                            })()}
+                                                          </span>
+                                                        ) : (
+                                                          <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                                                            ✅ {matchedSubs.length}/{modalTargetStudents.length} Çözdü
+                                                          </span>
+                                                        )
+                                                      ) : (
+                                                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '0.1rem 0.45rem', borderRadius: '0.35rem' }}>
+                                                          ⏳ Çözülmedi
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </div>
+
+                                                <input
+                                                  type="date"
+                                                  value={testVal}
+                                                  onChange={(e) => setScheduleDateVal(t.id, e.target.value)}
+                                                  style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
+                                                />
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </>
                             ) : (
-                              /* Fallback when no topics exist: show all tests under subject */
+                              /* No Topics in Subject (All tests are direct tests under the subject) */
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
                                 {allSubjTests.map(t => {
-                                  const testVal = scheduleDates[t.id] || '';
+                                  const testVal = getScheduleDateVal(t.id);
                                   const isSelected = scheduleSelectedTestIds.includes(t.id);
                                   const matchedSubs = getTestSolveDetails(t.id);
                                   const isSolved = matchedSubs.length > 0;
@@ -4783,11 +4776,7 @@ export default function BookContentManager() {
                                         <input
                                           type="checkbox"
                                           checked={isSelected}
-                                          onChange={() => {
-                                            setScheduleSelectedTestIds(prev =>
-                                              prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id]
-                                            );
-                                          }}
+                                          onChange={() => setScheduleSelectedTestIds(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
                                           style={{ width: '1.15rem', height: '1.15rem', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
                                         />
                                         <div style={{ minWidth: 0, flex: 1 }}>
@@ -4800,15 +4789,14 @@ export default function BookContentManager() {
                                             {isSolved ? (
                                               modalTargetStudents.length === 1 ? (
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                  ✅ Çözüldü (%{(() => {
-                                                      const c = primarySub?.correctCount ?? primarySub?.correct ?? 0;
-                                                      const w = primarySub?.wrongCount ?? primarySub?.wrong ?? 0;
-                                                      const b = primarySub?.emptyCount ?? primarySub?.blank ?? 0;
-                                                      const q = primarySub?.totalQuestions || (c + w + b);
-                                                      return q > 0 && (c > 0 || w > 0 || b > 0)
-                                                        ? Math.min(100, Math.max(0, Math.round((c / q) * 100)))
-                                                        : Math.round(primarySub?.scorePercentage ?? primarySub?.score ?? 0);
-                                                    })()} • {primarySub?.correctCount ?? 0}D {primarySub?.wrongCount ?? 0}Y)
+                                                  {(() => {
+                                                    const c = Number(primarySub?.correct_count ?? primarySub?.correctCount ?? primarySub?.correct ?? 0);
+                                                    const w = Number(primarySub?.wrong_count ?? primarySub?.wrongCount ?? primarySub?.wrong ?? 0);
+                                                    const b = Number(primarySub?.empty_count ?? primarySub?.blankCount ?? primarySub?.blank ?? 0);
+                                                    const q = Number(primarySub?.total_questions ?? primarySub?.totalQuestions ?? (c + w + b));
+                                                    const pct = q > 0 ? Math.round((c / q) * 100) : Math.round(primarySub?.score_percentage ?? primarySub?.scorePercentage ?? primarySub?.score ?? 0);
+                                                    return `✅ Çözüldü (%${pct} • ${c}D ${w}Y)`;
+                                                  })()}
                                                 </span>
                                               ) : (
                                                 <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.12rem 0.5rem', borderRadius: '0.4rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
@@ -4826,7 +4814,7 @@ export default function BookContentManager() {
 
                                       <input
                                         type="date"
-                                        value={getScheduleDateVal(t.id)}
+                                        value={testVal}
                                         onChange={(e) => setScheduleDateVal(t.id, e.target.value)}
                                         style={{ width: '135px', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', fontWeight: 800, flexShrink: 0 }}
                                       />
@@ -4835,7 +4823,6 @@ export default function BookContentManager() {
                                 })}
                               </div>
                             )}
-
                           </div>
                         )}
                       </div>
@@ -4853,10 +4840,18 @@ export default function BookContentManager() {
                   onClick={async () => {
                     try {
                       const cleanedScheduleDates = {};
-                      Object.keys(scheduleDates).forEach((k) => {
-                         const v = getScheduleDateVal(k);
-                         const f = formatSafeInputYMD(v);
-                         if (f) cleanedScheduleDates[k] = f;
+                      tests.forEach(t => {
+                        const v = getScheduleDateVal(t.id);
+                        const f = formatSafeInputYMD(v);
+                        if (f) {
+                          const sId = String(t.id);
+                          const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
+                          const sUuid = String(toUUID(sId) || '');
+                          cleanedScheduleDates[sId] = f;
+                          if (sClean) cleanedScheduleDates[sClean] = f;
+                          if (sUuid) cleanedScheduleDates[sUuid] = f;
+                          cleanedScheduleDates[`bt_${sClean}`] = f;
+                        }
                       });
 
                       // 1. Update homework in HomeworkContext (and Supabase homeworks table)
@@ -4883,18 +4878,18 @@ export default function BookContentManager() {
 
                       // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)
                       if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(cleanedScheduleDates).length > 0) {
-                        const testsToUpdate = Object.entries(cleanedScheduleDates).map(([tId, dStr]) => {
-                          const existingTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
-                          return {
-                            ...(existingTest || {}),
-                            id: tId,
-                            bookId: book?.id,
-                            dueDate: dStr,
-                            testDueDate: dStr,
-                            date: dStr
-                          };
-                        });
-                        await batchSaveTrackedBookTests(testsToUpdate);
+                        const testsToUpdate = tests.map(t => {
+                          const d = getScheduleDateVal(t.id);
+                          return d ? {
+                            ...t,
+                            dueDate: d,
+                            testDueDate: d,
+                            date: d
+                          } : null;
+                        }).filter(Boolean);
+                        if (testsToUpdate.length > 0) {
+                          await batchSaveTrackedBookTests(testsToUpdate);
+                        }
                       }
 
                       // 3. Update book.subjects tests inside the book object
@@ -4928,7 +4923,6 @@ export default function BookContentManager() {
                   Tüm Test Tarihlerini Kaydet
                 </button>
               </div>
-
             </div>
           </div>
         );
