@@ -27,13 +27,29 @@ if (!pdfjs.GlobalWorkerOptions.workerSrc) {
 }
 
 const detectSubject = (text = '') => {
-  const t = String(text).toLowerCase();
-  if (t.includes('matematik') || t.includes('mat')) return 'Matematik';
+  if (!text || typeof text !== 'string') return null;
+  const t = text.toLowerCase();
+  if (t.includes('matematik') || t.includes('geometri') || t.includes('mat')) return 'Matematik';
   if (t.includes('fen') || t.includes('fizik') || t.includes('kimya') || t.includes('biyoloji')) return 'Fen Bilimleri';
-  if (t.includes('türkçe') || t.includes('turkce') || t.includes('edebiyat')) return 'Türkçe';
+  if (t.includes('türkçe') || t.includes('turkce') || t.includes('edebiyat') || t.includes('paragraf') || t.includes('dil bilgisi')) return 'Türkçe';
   if (t.includes('sosyal') || t.includes('tarih') || t.includes('coğrafya') || t.includes('cografya') || t.includes('inkılap') || t.includes('inkilap')) return 'Sosyal Bilgiler';
-  if (t.includes('din') || t.includes('ahlak')) return 'Din Kültürü';
+  if (t.includes('din') || t.includes('ahlak') || t.includes('dkab')) return 'Din Kültürü';
   if (t.includes('ingilizce') || t.includes('ing') || t.includes('english')) return 'İngilizce';
+  return null;
+};
+
+const resolveSubjectName = (...candidates) => {
+  for (const c of candidates) {
+    if (c && typeof c === 'string') {
+      const trimmed = c.trim();
+      const detected = detectSubject(trimmed);
+      if (detected) return detected;
+      const lower = trimmed.toLowerCase();
+      if (lower !== '' && lower !== 'ders' && lower !== 'genel' && lower !== 'null' && lower !== 'undefined' && lower !== 'standart' && lower !== 'optik') {
+        return trimmed;
+      }
+    }
+  }
   return 'Genel';
 };
 
@@ -179,7 +195,7 @@ export default function PdfQuestionSlicerModal({
 
     if (currentBook?.subjects && Array.isArray(currentBook.subjects)) {
       currentBook.subjects.forEach((subj) => {
-        const sName = subj.name || currentBook.subject || 'Ders';
+        const sName = resolveSubjectName(subj.name, currentBook.subject, currentBook.title);
         (subj.topics || []).forEach((top) => {
           const uName = top.name || top.title || top.unit || '';
           (top.tests || []).forEach((t) => {
@@ -205,7 +221,8 @@ export default function PdfQuestionSlicerModal({
         if (!bookStructureMap.has(tId)) {
           globalIndex++;
           const uName = bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '';
-          const sName = bt.subject_name || bt.subjectName || currentBook.subject || 'Ders';
+          const parentSubj = (currentBook?.subjects || []).find(s => String(s.id) === String(bt.subjectId || bt.subject_id));
+          const sName = resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, parentSubj?.name, currentBook.subject, currentBook.title);
           const structObj = {
             index: Number(bt.order || bt.order_index || globalIndex),
             unitName: uName,
@@ -217,10 +234,6 @@ export default function PdfQuestionSlicerModal({
         }
       });
     }
-
-    const bookDefaultSubj = currentBook?.subject || 
-      (currentBook?.subjects && currentBook.subjects[0]?.name) || 
-      detectSubject(currentBook?.title || '') || 'Ders';
 
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: studentId || '',
@@ -240,7 +253,6 @@ export default function PdfQuestionSlicerModal({
     relevantSubs.forEach(sub => {
       const tId = sub.realTestId || sub.testId || sub.bookTestId || sub.id;
       const tName = sub.testName || sub.testTitle || sub.title || 'Test';
-      const subjName = sub.subjectName || sub.subject || bookDefaultSubj;
       
       const bTest = (bookTests || []).find(bt => String(bt.id) === String(tId) || toUUID(bt.id) === toUUID(tId));
       const ak = bTest?.answerKey || bTest?.answer_key || sub.answerKey || currentBook.answerKey || {};
@@ -272,8 +284,30 @@ export default function PdfQuestionSlicerModal({
         };
 
         const struct = bookStructureMap.get(String(tId)) || (toUUID(tId) ? bookStructureMap.get(toUUID(tId)) : null);
-        const unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
+        let unitName = struct?.unitName || sub.unit || sub.unitName || sub.topicName || sub.unitTopic || '';
+        if (unitName && (unitName.toLowerCase() === 'genel' || unitName.toLowerCase() === 'ders')) {
+          unitName = '';
+        }
         const cleanTestName = struct?.testName || tName;
+        if (!unitName) {
+          const m = (sub.testTitle || sub.fullTitle || sub.title || cleanTestName).match(/(\d+)\.\s*Ünite/i);
+          if (m) unitName = `${m[1]}. Ünite`;
+        }
+
+        const resolvedSubj = resolveSubjectName(
+          sub.subject,
+          sub.subjectName,
+          sub.testTitle,
+          sub.fullTitle,
+          sub.title,
+          sub.raw_data?.subject,
+          bTest?.subject_name,
+          bTest?.subject,
+          struct?.subjectName,
+          currentBook?.subject,
+          currentBook?.title
+        );
+
         const orderIndex = struct?.index ?? (parseInt(cleanTestName.replace(/\D/g, ''), 10) || 9999);
 
         list.push({
@@ -281,7 +315,7 @@ export default function PdfQuestionSlicerModal({
           testName: cleanTestName,
           unitName: unitName,
           orderIndex: orderIndex,
-          subjectName: struct?.subjectName || subjName || bookDefaultSubj,
+          subjectName: resolvedSubj,
           wrongQuestions: wrongQNos.sort((a, b) => a - b),
           answerKeyMap: wrongQNos.reduce((acc, q) => {
             const letter = getCorrectLetter(q);
@@ -317,6 +351,12 @@ export default function PdfQuestionSlicerModal({
       }
     }
   }, [bookMistakesList, activeTargetQuestion]);
+
+  useEffect(() => {
+    if (bookMistakesList.length > 0 && bookMistakesList[0]?.subjectName && bookMistakesList[0].subjectName !== 'Genel') {
+      setSelectedSubject(bookMistakesList[0].subjectName);
+    }
+  }, [bookMistakesList]);
 
   const drawCanvas = useCallback((img = imageObjRef.current, rect = currentRect) => {
     const canvas = canvasRef.current;
