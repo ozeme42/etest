@@ -786,11 +786,51 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
           let testId = k.replace(/^mistake_reasons_bt_/, '').replace(/^mistake_reasons_/, '').replace(`_${keyStudentId}`, '');
           if (!testId || existingCandidateTestIds.has(testId)) continue;
 
-          const matchedBt = (bookTests || []).find(bt => String(bt.id) === testId || toUUID(bt.id) === testId || String(bt.id).includes(testId));
-          const matchedB = matchedBt ? (books || []).find(b => String(b.id) === String(matchedBt.bookId || matchedBt.book_id)) : null;
+          let matchedBt = (bookTests || []).find(bt => String(bt.id) === testId || toUUID(bt.id) === testId || String(bt.id).includes(testId));
+          let matchedB = matchedBt ? (books || []).find(b => String(b.id) === String(matchedBt.bookId || matchedBt.book_id)) : (books && books[0] ? books[0] : null);
+          let matchedS = null;
+          let matchedTp = null;
+          let testName = matchedBt?.name || 'Test';
+          let unitName = matchedBt?.unit_name || matchedBt?.unitName || matchedBt?.topic_name || matchedBt?.topicName || '1. Ünite';
+          let subjectName = matchedBt?.subject_name || matchedBt?.subjectName || matchedBt?.subject || matchedB?.subject || 'Genel';
+
+          // If testId is generated format tbt_bookId_subjId_topId_i or contains subj/top indices:
+          if (books && Array.isArray(books)) {
+            for (const b of books) {
+              const bId = String(b.id || '');
+              const rawSubjs = b.subjects || b.raw_data?.subjects || [];
+              for (let sIdx = 0; sIdx < rawSubjs.length; sIdx++) {
+                const s = rawSubjs[sIdx];
+                const sId = String(s.id || `subj_${sIdx}`);
+                const topics = s.topics || [{ id: `top_${sId}_1`, name: '1. Ünite' }];
+                for (let tpIdx = 0; tpIdx < topics.length; tpIdx++) {
+                  const tp = topics[tpIdx];
+                  const tpId = String(tp.id || `tp_${tpIdx}`);
+                  const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+                  for (let i = 1; i <= 20; i++) {
+                    const genId = `tbt_${bId}_${sId}_${tpId}_${i}`;
+                    const genName = i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`);
+                    if (genId === testId || testId.endsWith(`_${tpId}_${i}`) || testId.includes(`_${sId}_${tpId}_${i}`) || testId.includes(`_${tpId}_${i}`)) {
+                      matchedBt = { id: genId, name: genName };
+                      matchedB = b;
+                      matchedS = s;
+                      matchedTp = tp;
+                      testName = genName;
+                      unitName = uName;
+                      subjectName = s.name || b.subject || 'Genel';
+                      break;
+                    }
+                  }
+                  if (matchedS) break;
+                }
+                if (matchedS) break;
+              }
+              if (matchedB && matchedS) break;
+            }
+          }
 
           const wrongQNos = Object.keys(parsedReasons).map(q => parseInt(q, 10)).filter(q => !isNaN(q) && q > 0);
-          const totalQ = matchedBt?.questionCount || matchedBt?.question_count || Math.max(10, ...wrongQNos);
+          const totalQ = matchedBt?.questionCount || matchedBt?.question_count || Math.max(12, ...wrongQNos);
           const wrongCount = wrongQNos.length;
           const correctCount = Math.max(0, totalQ - wrongCount);
 
@@ -806,22 +846,59 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
             });
           }
 
+          const cleanBookTitle = (matchedB?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+          const fullTitle = `${cleanBookTitle} — ${subjectName} › ${unitName} (${testName})`;
+
           allCandidateSubs.push({
             id: `mistake_sub_${testId}_${studentIdStr}`,
+            submissionId: `mistake_sub_${testId}_${studentIdStr}`,
             testId: testId,
             realTestId: testId,
             bookTestId: testId,
-            bookId: matchedB?.id || matchedBt?.bookId,
-            testTitle: `${matchedB?.title || 'Kitap'} — ${matchedBt?.name || 'Test'}`,
+            bookId: matchedB?.id || 'book_1',
+            bookTitle: cleanBookTitle,
+            subjectId: matchedS?.id || 'subj_1',
+            subjectName: subjectName,
+            subject: subjectName,
+            topicId: matchedTp?.id || 'top_1',
+            topicName: unitName,
+            unitTopic: unitName,
+            testName: testName,
+            testTitle: fullTitle,
+            title: testName,
+            fullTitle: fullTitle,
             studentId: studentIdStr,
             score: Number((correctCount - (wrongCount / 4)).toFixed(2)),
+            computedScore: Math.round((correctCount / totalQ) * 100),
+            scorePercentage: Math.round((correctCount / totalQ) * 100),
             correctCount,
             wrongCount,
             blankCount: 0,
+            emptyCount: 0,
+            totalNet: Number((correctCount - (wrongCount / 4)).toFixed(2)),
+            netScore: Number((correctCount - (wrongCount / 4)).toFixed(2)),
             totalQuestions: totalQ,
-            answers: syntheticAnswers,
+            answers: [
+              ...syntheticAnswers,
+              {
+                type: 'metadata',
+                realId: `mistake_sub_${testId}_${studentIdStr}`,
+                realTestId: testId,
+                bookTestId: testId,
+                bookTitle: cleanBookTitle,
+                subjectName: subjectName,
+                topicName: unitName,
+                unitTopic: unitName,
+                totalQuestions: totalQ,
+                totalNet: Number((correctCount - (wrongCount / 4)).toFixed(2)),
+                isManual: false,
+                sourceType: 'trackedBook',
+                mistakeReasons: parsedReasons
+              }
+            ],
             mistakeReasons: parsedReasons,
             sourceType: 'trackedBook',
+            typeKey: 'book',
             date: getTurkeyToday(),
             submittedAt: new Date().toISOString(),
             isStandalone: true
