@@ -1073,9 +1073,13 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
                   processedBookTestIds.add(tIdStr);
                   if (tCleanId) processedBookTestIds.add(tCleanId);
 
+                  // Build a fully unique ID that is NEVER shared between different book tests
+                  const uniqueEntryId = `sub_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`;
+
                   results.push({
-                    id: String(bestSub.id || `book_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`),
-                    submissionId: String(bestSub.id || `book_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`),
+                    id: uniqueEntryId,
+                    submissionId: String(bestSub.id || uniqueEntryId),
+                    supabaseId: bestSub.id || null,
                     testId: t.id,
                     realTestId: t.id,
                     bookTestId: t.id,

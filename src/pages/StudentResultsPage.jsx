@@ -3153,7 +3153,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         const th = theme(s.subjectKey);
                         const SubIcon = th.icon;
                         return (
-                          <tr key={s.id || idx} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)' }}>
+                          <tr key={`${s.id || s.submissionId || s.testId}_${idx}`} style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)' }}>
                             <td style={{ padding: '0.85rem 1rem', minWidth: isMobile ? 220 : 340 }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                                 <div style={{
@@ -3427,7 +3427,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                   const SubIcon = th.icon;
                   return (
                     <div
-                      key={i}
+                      key={`${s.id || s.submissionId || s.testId}_${i}`}
                       className="sr-card-hover"
                       style={{
                         background: 'var(--color-surface)',
