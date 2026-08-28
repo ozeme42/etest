@@ -2122,6 +2122,55 @@ export default function StudentDashboard() {
       });
     };
 
+    const isAlreadySeen = (it) => {
+      if (!it) return false;
+      const tid = it.testId || it.bookTestId || it.realTestId;
+      if (tid) {
+        if (seen.has(String(tid))) return true;
+        if (seen.has(String(tid).replace(/^bt_/, '').replace(/^q_/, ''))) return true;
+        if (toUUID(tid) && seen.has(String(toUUID(tid)))) return true;
+        if (seen.has(`book_due_${it.bookId || it.hwId}_${tid}`)) return true;
+      }
+      if (it.id && seen.has(String(it.id))) return true;
+      if (it.uniqueKey && seen.has(String(it.uniqueKey))) return true;
+      if (it.roadmapAssignmentId && seen.has(String(it.id || it.roadmapAssignmentId))) return true;
+
+      const bTitle = String(it.bookTitle || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+      const sTitle = String(it.subject || '').toLocaleLowerCase('tr').trim();
+      const uTopic = String(it.unitTopic || '').toLocaleLowerCase('tr').trim();
+      const tName = String(it.testName || it.title || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+
+      if (tName && tName.length > 2) {
+        const cleanK = `${bTitle}_${sTitle}_${uTopic}_${tName}`;
+        if (seen.has(cleanK)) return true;
+      }
+      return false;
+    };
+
+    const addKeysToSeen = (it) => {
+      if (!it) return;
+      const tid = it.testId || it.bookTestId || it.realTestId;
+      if (tid) {
+        seen.add(String(tid));
+        seen.add(String(tid).replace(/^bt_/, '').replace(/^q_/, ''));
+        if (toUUID(tid)) seen.add(String(toUUID(tid)));
+        seen.add(`book_due_${it.bookId || it.hwId}_${tid}`);
+      }
+      if (it.id) seen.add(String(it.id));
+      if (it.uniqueKey) seen.add(String(it.uniqueKey));
+      if (it.roadmapAssignmentId) seen.add(String(it.id || it.roadmapAssignmentId));
+
+      const bTitle = String(it.bookTitle || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+      const sTitle = String(it.subject || '').toLocaleLowerCase('tr').trim();
+      const uTopic = String(it.unitTopic || '').toLocaleLowerCase('tr').trim();
+      const tName = String(it.testName || it.title || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+
+      if (tName && tName.length > 2) {
+        const cleanK = `${bTitle}_${sTitle}_${uTopic}_${tName}`;
+        seen.add(cleanK);
+      }
+    };
+
     // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ TÜM GÖREVLER
     const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
     DAYS_OF_WEEK.forEach((d, idx) => {
@@ -2129,11 +2178,8 @@ export default function StudentDashboard() {
         const dData = fullProcessedWeekMap[d.key];
         (dData?.items || []).forEach(item => {
           if (!item.done && !isItemSolved(item) && !isTaskDismissed(item)) {
-            const key = String(item.uniqueKey || item.id || item.hwId || `${item.testId || ''}_${d.key}`);
-            const cleanKey = key.replace(/^auto_hw_/, '').replace(/^book_test_/, '');
-            const alreadyIn = Array.from(seen).some(k => k === key || k.includes(cleanKey) || (cleanKey && k === cleanKey));
-            if (!alreadyIn) {
-              seen.add(key);
+            if (!isAlreadySeen(item)) {
+              addKeysToSeen(item);
               list.push({
                 ...item,
                 categoryType: item.categoryType || (item.isBookTask ? 'kitap' : (item.isExamTask ? 'deneme' : 'program')),
@@ -2246,20 +2292,15 @@ export default function StudentDashboard() {
             reason: `📖 Kitap Testi Gecikti (Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')})`
           };
 
-          if (!isItemSolved(itemObj) && !isTaskDismissed(itemObj)) {
-            const key = `book_due_${itemObj.bookId || hw.id}_${itemObj.testId}`;
-            const cleanKey = `${itemObj.bookTitle}_${itemObj.subject}_${itemObj.unitTopic}_${itemObj.testName}`;
-            if (!seen.has(key) && !seen.has(cleanKey)) {
-              seen.add(key);
-              seen.add(cleanKey);
-              list.push(itemObj);
-            }
+          if (!isItemSolved(itemObj) && !isTaskDismissed(itemObj) && !isAlreadySeen(itemObj)) {
+            addKeysToSeen(itemObj);
+            list.push(itemObj);
           }
         }
       });
     });
 
-    // 2. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
+    // 3. YOL HARİTASI (STUDY PLAN / ÇALIŞMA PLANI) GÖREVLERİ
     (studyAssignments || []).filter(a => String(a?.studentId) === studentId).forEach(assignment => {
       if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
       const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
@@ -2302,8 +2343,8 @@ export default function StudentDashboard() {
               reason: `🗺️ Yol Haritası Gecikti (Hedef: ${targetDateObj.toLocaleDateString('tr-TR')})`
             };
 
-            if (!seen.has(key) && !isTaskDismissed(roadmapItem)) {
-              seen.add(key);
+            if (!isTaskDismissed(roadmapItem) && !isAlreadySeen(roadmapItem)) {
+              addKeysToSeen(roadmapItem);
               list.push(roadmapItem);
             }
           }
@@ -2311,26 +2352,21 @@ export default function StudentDashboard() {
       });
     });
 
-    // 3. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
+    // 4. DİĞER TARİHİ GEÇMİŞ TEKİL ÖDEVLER & DENEME SINAVLARI
     (pendingTasks || []).forEach(task => {
       const dueDateObj = task.dueDateObj || parseSafeDate(task.dueDate);
-      if (dueDateObj && dueDateObj.getTime() < nowTime && !task.done && !isItemSolved(task) && !isTaskDismissed(task)) {
-        const key = String(task.id || task.hwId || task.testId);
-        const hwCleanKey = key.replace(/^hw_/, '').replace(/^auto_hw_/, '').replace(/^book_test_/, '');
-        const alreadyIn = Array.from(seen).some(k => k === key || k === hwCleanKey || k.includes(hwCleanKey));
-        if (!alreadyIn) {
-          seen.add(key);
-          const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam';
-          list.push({
-            ...task,
-            isCatchUp: true,
-            isOverdueHomework: true,
-            categoryType: isExam ? 'deneme' : 'ödev',
-            reason: isExam 
-              ? `📊 Deneme Sınavı Gecikti (Son Teslim: ${task.dueDateStr})` 
-              : `📝 Ödev Teslimi Gecikti (Son Teslim: ${task.dueDateStr})`
-          });
-        }
+      if (dueDateObj && dueDateObj.getTime() < nowTime && !task.done && !isItemSolved(task) && !isTaskDismissed(task) && !isAlreadySeen(task)) {
+        addKeysToSeen(task);
+        const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam';
+        list.push({
+          ...task,
+          isCatchUp: true,
+          isOverdueHomework: true,
+          categoryType: isExam ? 'deneme' : 'ödev',
+          reason: isExam 
+            ? `📊 Deneme Sınavı Gecikti (Son Teslim: ${task.dueDateStr})` 
+            : `📝 Ödev Teslimi Gecikti (Son Teslim: ${task.dueDateStr})`
+        });
       }
     });
 
