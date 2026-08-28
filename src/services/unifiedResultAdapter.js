@@ -847,310 +847,254 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     };
 
     const results = [];
-    const processedTestIds = new Set();
+    const processedAttemptKeys = new Set();
+    const processedBookTestIds = new Set();
 
-    const allCandidateSubs = [];
-
-    // 1. Standalone Submissions (Pure Source of Truth for test-by-test completion date)
-    (submissions || []).filter(isMatchStudent).forEach(sub => {
-      allCandidateSubs.push({ ...sub, isStandalone: true });
-    });
-
-    // 2. Homework Submissions
-    (homeworks || []).forEach(hw => {
-      if (!hw) return;
-      const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
-        ? hw.submissions
-        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
-
-      hwSubList.filter(isMatchStudent).forEach(sub => {
-        allCandidateSubs.push({ ...sub, hwId: hw.id, homeworkTitle: hw.title, isStandalone: false });
-      });
-    });
-
-    // 3. Synthesize submissions for tests that have recorded mistake reasons in localStorage
-    if (typeof localStorage !== 'undefined') {
-      const existingCandidateTestIds = new Set(allCandidateSubs.map(s => String(s.testId || s.realTestId || s.bookTestId || s.id)));
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k || (!k.startsWith('mistake_reasons_') && !k.startsWith('mistake_reason_'))) continue;
-
-        const parts = k.split('_');
-        const keyStudentId = parts[parts.length - 1];
-        const isMatchThisStudent = !studentIdStr || keyStudentId === studentIdStr || (studentUuidStr && keyStudentId === studentUuidStr) || (studentUuidStr && toUUID(keyStudentId) === studentUuidStr);
-        if (!isMatchThisStudent && parts.length > 3) continue;
-
-        try {
-          const val = localStorage.getItem(k);
-          if (!val) continue;
-          const parsedReasons = JSON.parse(val);
-          if (!parsedReasons || typeof parsedReasons !== 'object' || Object.keys(parsedReasons).length === 0) continue;
-
-          let testId = k.replace(/^mistake_reasons_bt_/, '').replace(/^mistake_reasons_/, '').replace(`_${keyStudentId}`, '');
-          if (!testId || existingCandidateTestIds.has(testId)) continue;
-
-          let matchedBt = (bookTests || []).find(bt => String(bt.id) === testId || toUUID(bt.id) === testId || String(bt.id).includes(testId));
-          let matchedB = matchedBt ? (books || []).find(b => String(b.id) === String(matchedBt.bookId || matchedBt.book_id)) : (books && books[0] ? books[0] : null);
-          let matchedS = null;
-          let matchedTp = null;
-          let testName = matchedBt?.name || 'Test';
-          let unitName = matchedBt?.unit_name || matchedBt?.unitName || matchedBt?.topic_name || matchedBt?.topicName || '1. Ünite';
-          let subjectName = matchedBt?.subject_name || matchedBt?.subjectName || matchedBt?.subject || matchedB?.subject || 'Genel';
-
-          // If testId is generated format tbt_bookId_subjId_topId_i or contains subj/top indices:
-          if (books && Array.isArray(books)) {
-            for (const b of books) {
-              const bId = String(b.id || '');
-              const rawSubjs = b.subjects || b.raw_data?.subjects || [];
-              for (let sIdx = 0; sIdx < rawSubjs.length; sIdx++) {
-                const s = rawSubjs[sIdx];
-                const sId = String(s.id || `subj_${sIdx}`);
-                const topics = s.topics || [{ id: `top_${sId}_1`, name: '1. Ünite' }];
-                for (let tpIdx = 0; tpIdx < topics.length; tpIdx++) {
-                  const tp = topics[tpIdx];
-                  const tpId = String(tp.id || `tp_${tpIdx}`);
-                  const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
-                  for (let i = 1; i <= 20; i++) {
-                    const genId = `tbt_${bId}_${sId}_${tpId}_${i}`;
-                    const genName = i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`);
-                    if (genId === testId || testId.endsWith(`_${tpId}_${i}`) || testId.includes(`_${sId}_${tpId}_${i}`) || testId.includes(`_${tpId}_${i}`)) {
-                      matchedBt = { id: genId, name: genName };
-                      matchedB = b;
-                      matchedS = s;
-                      matchedTp = tp;
-                      testName = genName;
-                      unitName = uName;
-                      subjectName = s.name || b.subject || 'Genel';
-                      break;
-                    }
-                  }
-                  if (matchedS) break;
-                }
-                if (matchedS) break;
-              }
-              if (matchedB && matchedS) break;
-            }
-          }
-
-          const wrongQNos = Object.keys(parsedReasons).map(q => parseInt(q, 10)).filter(q => !isNaN(q) && q > 0);
-          const totalQ = matchedBt?.questionCount || matchedBt?.question_count || Math.max(12, ...wrongQNos);
-          const wrongCount = wrongQNos.length;
-          const correctCount = Math.max(0, totalQ - wrongCount);
-
-          const syntheticAnswers = [];
-          for (let q = 1; q <= totalQ; q++) {
-            const isWrong = wrongQNos.includes(q);
-            syntheticAnswers.push({
-              questionNo: q,
-              isCorrect: !isWrong,
-              userAnswer: isWrong ? 'Y' : 'D',
-              correctAnswer: matchedBt?.answerKey?.[q] || 'A',
-              mistakeReason: parsedReasons[q] || null
-            });
-          }
-
-          const cleanBookTitle = (matchedB?.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
-          const fullTitle = `${cleanBookTitle} — ${subjectName} › ${unitName} (${testName})`;
-
-          allCandidateSubs.push({
-            id: `mistake_sub_${testId}_${studentIdStr}`,
-            submissionId: `mistake_sub_${testId}_${studentIdStr}`,
-            testId: testId,
-            realTestId: testId,
-            bookTestId: testId,
-            bookId: matchedB?.id || 'book_1',
-            bookTitle: cleanBookTitle,
-            subjectId: matchedS?.id || 'subj_1',
-            subjectName: subjectName,
-            subject: subjectName,
-            topicId: matchedTp?.id || 'top_1',
-            topicName: unitName,
-            unitTopic: unitName,
-            testName: testName,
-            testTitle: fullTitle,
-            title: testName,
-            fullTitle: fullTitle,
-            studentId: studentIdStr,
-            score: Number((correctCount - (wrongCount / 4)).toFixed(2)),
-            computedScore: Math.round((correctCount / totalQ) * 100),
-            scorePercentage: Math.round((correctCount / totalQ) * 100),
-            correctCount,
-            wrongCount,
-            blankCount: 0,
-            emptyCount: 0,
-            totalNet: Number((correctCount - (wrongCount / 4)).toFixed(2)),
-            netScore: Number((correctCount - (wrongCount / 4)).toFixed(2)),
-            totalQuestions: totalQ,
-            answers: [
-              ...syntheticAnswers,
-              {
-                type: 'metadata',
-                realId: `mistake_sub_${testId}_${studentIdStr}`,
-                realTestId: testId,
-                bookTestId: testId,
-                bookTitle: cleanBookTitle,
-                subjectName: subjectName,
-                topicName: unitName,
-                unitTopic: unitName,
-                totalQuestions: totalQ,
-                totalNet: Number((correctCount - (wrongCount / 4)).toFixed(2)),
-                isManual: false,
-                sourceType: 'trackedBook',
-                mistakeReasons: parsedReasons
-              }
-            ],
-            mistakeReasons: parsedReasons,
-            sourceType: 'trackedBook',
-            typeKey: 'book',
-            date: getTurkeyToday(),
-            submittedAt: new Date().toISOString(),
-            isStandalone: true
-          });
-          existingCandidateTestIds.add(testId);
-        } catch (e) {}
-      }
-    }
-
-    // 4. Scan all canonical book tests and match with submissions
+    // 1. PRIMARY SOURCE: Scan tracked books exactly as StudentBookDetailsPage (Book Tracking) does
     if (books && Array.isArray(books)) {
-      const existingCandidateTestIds = new Set(allCandidateSubs.map(s => String(s.id || s.submissionId || s.testId || s.realTestId || s.bookTestId || '')));
+      books.forEach(book => {
+        if (!book) return;
+        const bId = String(book.id || '');
+        const bUuid = String(toUUID(book.id) || '');
+        const cleanBookTitle = String(book.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+        const rawSubjects = (book.subjects && Array.isArray(book.subjects) && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []);
 
-      books.forEach(b => {
-        const bId = String(b.id || '');
-        const bUuid = toUUID(b.id);
-        const rawSubjs = (b.subjects && b.subjects.length > 0) ? b.subjects : (b.raw_data?.subjects || []);
-
-        rawSubjs.forEach((subj, sIdx) => {
-          const sId = String(subj.id || `subj_${sIdx}`);
-          const sName = subj.name || b.subject || 'Genel';
-          const topics = (subj.topics && Array.isArray(subj.topics) && subj.topics.length > 0)
-            ? subj.topics
+        rawSubjects.forEach((subject, sIdx) => {
+          const sId = String(subject.id || `subj_${sIdx}`);
+          const sName = subject.name || book.subject || 'Türkçe';
+          const topics = (subject.topics && Array.isArray(subject.topics) && subject.topics.length > 0)
+            ? subject.topics
             : [{ id: `top_${sId}_1`, name: '1. Ünite' }];
 
-          topics.forEach((tp, tpIdx) => {
-            const tpId = String(tp.id || `tp_${tpIdx}`);
-            const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+          // Find all tests in bookTests matching this subject OR book
+          let allSubjectTests = (bookTests || []).filter(t => {
+            const isMatchBook = String(t.bookId || t.book_id) === bId || (bUuid && String(t.bookId || t.book_id) === bUuid);
+            if (!isMatchBook) return false;
+            if (String(t.subjectId || t.subject_id) === sId) return true;
+            if (topics.some(tp => String(tp.id) === String(t.topicId || t.topic_id))) return true;
+            return false;
+          });
 
-            let matchedTests = (bookTests || []).filter(bt => {
-              const isMatchBook = String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid);
-              if (!isMatchBook) return false;
-              return String(bt.topicId || bt.topic_id) === tpId || (topics.length === 1 && String(bt.subjectId || bt.subject_id) === sId);
-            });
-
-            if (matchedTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
-              matchedTests = tp.tests;
-            }
-
-            if (matchedTests.length === 0) {
-              matchedTests = [];
+          // Fallback: If no tests found in bookTests, generate default tests per topic
+          if (allSubjectTests.length === 0) {
+            topics.forEach((tp, tpIdx) => {
+              const tpId = String(tp.id || `tp_${tpIdx}`);
               for (let i = 1; i <= 20; i++) {
-                matchedTests.push({
+                allSubjectTests.push({
                   id: `tbt_${bId}_${sId}_${tpId}_${i}`,
                   bookId: bId,
                   subjectId: sId,
                   topicId: tpId,
                   name: i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`),
-                  questionCount: 20,
+                  questionCount: 12,
                   answerKey: {}
                 });
               }
+            });
+          }
+
+          topics.forEach((tp, tpIdx) => {
+            const tpId = String(tp.id || `tp_${tpIdx}`);
+            const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
+
+            let topicTests = allSubjectTests.filter(t => String(t.topicId || t.topic_id) === tpId);
+            if (topicTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
+              topicTests = tp.tests;
+            }
+            if (topicTests.length === 0) {
+              topicTests = allSubjectTests.filter(t => String(t.id).includes(`_${tpId}_`));
             }
 
-            matchedTests.forEach(testObj => {
-              const tIdStr = String(testObj.id);
+            topicTests.forEach(t => {
+              const tIdStr = String(t.id);
               const tCleanId = tIdStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-              const tUuidStr = String(toUUID(testObj.id) || '');
+              const tUuidStr = String(toUUID(t.id) || '');
 
-              const matchedSubs = (submissions || []).filter(s => {
+              const solvedSubs = submissions.filter(s => {
                 if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
                 if (s.status === 'in_progress' || s.status === 'draft') return false;
 
-                const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+                const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
                 const matchFields = [
                   String(s.testId || ''),
+                  String(s.test_id || ''),
                   String(s.realTestId || ''),
                   String(s.bookTestId || ''),
                   String(s.id || ''),
                   String(meta?.realTestId || ''),
                   String(meta?.bookTestId || ''),
                   String(meta?.realId || '')
-                ].filter(f => Boolean(f) && f.length >= 2);
+                ];
                 if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-                  matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2));
+                  matchFields.push(...s.bookTestIds.map(String));
                 }
 
-                return matchFields.some(f => (
+                return matchFields.some(f => f && (
                   f === tIdStr ||
-                  (tCleanId && tCleanId.length >= 3 && f === tCleanId) ||
+                  f === tCleanId ||
+                  f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
                   (tUuidStr && f === tUuidStr) ||
-                  (toUUID(f) && toUUID(f) === tIdStr) ||
+                  toUUID(f) === tIdStr ||
                   (tUuidStr && toUUID(f) === tUuidStr)
                 ));
               });
 
-              matchedSubs.forEach(s => {
-                const subKey = String(s.id || s.submissionId || `${tIdStr}_${s.studentId}`);
-                if (!existingCandidateTestIds.has(subKey)) {
-                  allCandidateSubs.push({
-                    ...s,
-                    bookId: b.id,
-                    bookTitle: b.title,
+              let hwSub = null;
+              for (const hw of homeworks) {
+                if (!hw || !hw.submissions || !Array.isArray(hw.submissions)) continue;
+                const match = hw.submissions.find(s => {
+                  if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
+                  if (s.status === 'in_progress' || s.status === 'draft') return false;
+                  const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
+                  return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
+                });
+                if (match) {
+                  hwSub = match;
+                  break;
+                }
+              }
+
+              // Check localStorage mistake reasons for this test
+              let localMistakeReasons = null;
+              if (typeof localStorage !== 'undefined') {
+                const mistakeKey = `mistake_reasons_${tIdStr}_${studentIdStr}`;
+                const mistakeKeyClean = `mistake_reasons_${tCleanId}_${studentIdStr}`;
+                try {
+                  const mrVal = localStorage.getItem(mistakeKey) || localStorage.getItem(mistakeKeyClean);
+                  if (mrVal) localMistakeReasons = JSON.parse(mrVal);
+                } catch (e) {}
+              }
+
+              if (solvedSubs.length > 0 || hwSub || (localMistakeReasons && Object.keys(localMistakeReasons).length > 0)) {
+                let bestSub = null;
+                if (solvedSubs.length > 0) {
+                  bestSub = solvedSubs.reduce((prev, curr) => ((Number(curr.score || curr.correct_count || curr.correctCount || 0) > Number(prev.score || prev.correct_count || prev.correctCount || 0)) ? curr : prev), solvedSubs[0]);
+                } else if (hwSub) {
+                  bestSub = hwSub;
+                } else {
+                  const wrongQNos = Object.keys(localMistakeReasons).map(q => parseInt(q, 10)).filter(q => !isNaN(q) && q > 0);
+                  const totalQ = Math.max(12, ...wrongQNos);
+                  const wrongCount = wrongQNos.length;
+                  const correctCount = Math.max(0, totalQ - wrongCount);
+                  bestSub = {
+                    testId: tIdStr,
+                    correctCount,
+                    wrongCount,
+                    blankCount: 0,
+                    totalQuestions: totalQ,
+                    mistakeReasons: localMistakeReasons,
+                    date: getTurkeyToday()
+                  };
+                }
+
+                const corr = Number(bestSub.correctCount ?? bestSub.correct_count ?? bestSub.correct ?? 0);
+                const wrg = Number(bestSub.wrongCount ?? bestSub.wrong_count ?? bestSub.wrong ?? 0);
+                const totQ = Math.max(
+                  t.questionCount || t.question_count || 0,
+                  bestSub.totalQuestions || 0,
+                  corr + wrg + Number(bestSub.blankCount ?? bestSub.empty_count ?? 0),
+                  Object.keys(bestSub.answers || {}).length,
+                  12
+                );
+                const blk = Number(bestSub.blankCount ?? bestSub.empty_count ?? Math.max(0, totQ - corr - wrg));
+                const net = Number(bestSub.totalNet ?? bestSub.net ?? (corr - (wrg / 4)).toFixed(2));
+                const pct = totQ > 0 ? Math.min(100, Math.max(0, Math.round((corr / totQ) * 100))) : 0;
+                const fullTitle = `${cleanBookTitle} — ${sName} › ${uName} (${t.name})`;
+
+                const subDate = extractItemDate(bestSub);
+                const dedupeKey = `${studentIdStr}_${bId}_${sName}_${uName}_${t.name}_${subDate}_${corr}_${wrg}`;
+
+                if (!processedAttemptKeys.has(dedupeKey)) {
+                  processedAttemptKeys.add(dedupeKey);
+                  processedBookTestIds.add(tIdStr);
+                  if (tCleanId) processedBookTestIds.add(tCleanId);
+
+                  results.push({
+                    id: String(bestSub.id || `book_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`),
+                    submissionId: String(bestSub.id || `book_${bId}_${sId}_${tpId}_${t.id}_${studentIdStr}`),
+                    testId: t.id,
+                    realTestId: t.id,
+                    bookTestId: t.id,
+                    bookId: bId,
+                    bookTitle: cleanBookTitle,
                     subjectId: sId,
                     subjectName: sName,
+                    subject: sName,
+                    subjectKey: getSubjectKey({ fullTitle, subjectName: sName }),
                     topicId: tpId,
                     topicName: uName,
-                    testId: tIdStr,
-                    realTestId: tIdStr,
-                    testName: testObj.name,
-                    isStandalone: true
+                    unitTopic: uName,
+                    testName: t.name,
+                    testTitle: fullTitle,
+                    title: t.name,
+                    fullTitle: fullTitle,
+                    studentId: studentIdStr,
+                    totalQuestions: totQ,
+                    correctCount: corr,
+                    wrongCount: wrg,
+                    blankCount: blk,
+                    emptyCount: blk,
+                    score: pct,
+                    scorePercentage: pct,
+                    computedScore: pct,
+                    pct: pct,
+                    totalNet: net,
+                    netScore: net,
+                    net: net,
+                    date: subDate,
+                    submittedAt: bestSub.submittedAt || bestSub.date || new Date().toISOString(),
+                    answers: bestSub.answers || [],
+                    studentAnswersMap: bestSub.studentAnswers || {},
+                    mistakeReasons: bestSub.mistakeReasons || localMistakeReasons || {},
+                    sourceType: 'trackedBook',
+                    typeKey: 'book',
+                    isStandalone: true,
+                    isCompleted: true,
+                    status: 'completed',
+                    raw: bestSub
                   });
-                  existingCandidateTestIds.add(subKey);
                 }
-              });
+              }
             });
           });
         });
       });
     }
 
-    // Sort candidates: Evaluated first, Standalone submissions before generic homework updates, then newest
-    allCandidateSubs.sort((a, b) => {
-      const aEval = (a.isEvaluated || a.isEvaluatedByTeacher || a.status === 'evaluated' || a.teacherFeedback) ? 1 : 0;
-      const bEval = (b.isEvaluated || b.isEvaluatedByTeacher || b.status === 'evaluated' || b.teacherFeedback) ? 1 : 0;
-      if (bEval !== aEval) return bEval - aEval;
-
-      const aStand = a.isStandalone ? 1 : 0;
-      const bStand = b.isStandalone ? 1 : 0;
-      if (bStand !== aStand) return bStand - aStand;
-
-      return new Date(b.submittedAt || b.date || 0).getTime() - new Date(a.submittedAt || a.date || 0).getTime();
-    });
-
-    allCandidateSubs.forEach(sub => {
+    // 2. Add any OTHER standalone submissions (e.g. mock trial exams, open ended, physical exams)
+    (submissions || []).filter(isMatchStudent).forEach(sub => {
       if (!sub || isDeletedItem(sub)) return;
       if (sub.status === 'in_progress' || sub.status === 'draft') return;
-      const rawSubId = String(sub.id || sub.submissionId || '');
-      if (rawSubId.startsWith('draft_') || rawSubId.startsWith('64726166')) return;
+      const subTId = String(sub.testId || sub.realTestId || sub.bookTestId || sub.id || '');
+      if (processedBookTestIds.has(subTId)) return;
 
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (!normalized || isDeletedItem(normalized)) return;
 
-      // Filter out umbrella "(Tüm Kitap Görevi)" placeholder container assignments ONLY if no specific test was completed
-      const t = String(normalized.testTitle || normalized.fullTitle || normalized.title || '').toLowerCase();
-      const isPlaceholderWithoutTest = (t.includes('(tüm kitap görevi)') || t.includes('(tüm kitap)')) && (!normalized.testId || String(normalized.testId) === String(normalized.bookId));
-      if (isPlaceholderWithoutTest) return;
-
-      // Deduplicate identical test attempts by test identifier, unit, subject, date, and score
-      const cleanTestIdentifier = normalized.testName || normalized.realTestId || normalized.testId || 'Test';
-      const testKey = `${normalized.studentId || ''}_${normalized.bookId || ''}_${normalized.subjectName || normalized.subject || ''}_${normalized.topicName || ''}_${cleanTestIdentifier}_${normalized.date || ''}_${normalized.correctCount}_${normalized.wrongCount}`;
-      if (processedTestIds.has(testKey)) return;
-      processedTestIds.add(testKey);
-
-      results.push(normalized);
+      const dedupeKey = `${studentIdStr}_${normalized.bookId || ''}_${normalized.subjectName || ''}_${normalized.topicName || ''}_${normalized.testName || ''}_${normalized.date || ''}_${normalized.correctCount}_${normalized.wrongCount}`;
+      if (!processedAttemptKeys.has(dedupeKey)) {
+        processedAttemptKeys.add(dedupeKey);
+        results.push(normalized);
+      }
     });
 
-    // Sort newest first by exact timestamp
+    // 3. Add mock exams submissions
+    (mockExams || []).forEach(exam => {
+      if (!exam || !exam.submissions || !Array.isArray(exam.submissions)) return;
+      exam.submissions.filter(isMatchStudent).forEach(sub => {
+        if (!sub || isDeletedItem(sub)) return;
+        const normalized = normalizeUnifiedSubmission({ ...sub, testTitle: exam.title, isExam: true }, { books, bookTests, homeworks });
+        if (normalized && !isDeletedItem(normalized)) {
+          const dedupeKey = `${studentIdStr}_${normalized.testId || normalized.id}_${normalized.date}_${normalized.correctCount}_${normalized.wrongCount}`;
+          if (!processedAttemptKeys.has(dedupeKey)) {
+            processedAttemptKeys.add(dedupeKey);
+            results.push(normalized);
+          }
+        }
+      });
+    });
+
+    // Sort newest first by date/submittedAt
     results.sort((a, b) => {
       const timeB = new Date(b.submittedAt || b.date || 0).getTime();
       const timeA = new Date(a.submittedAt || a.date || 0).getTime();
