@@ -45,9 +45,10 @@ export function TrackedBookProvider({ children }) {
       if (!t) return;
       const bKey = String(t.bookId || t.book_id || '');
       const bCanonical = toUUID(bKey) || bKey;
+      const sKey = String(t.subjectId || t.subject_id || 'direct').trim().toLowerCase();
       const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
       const nameKey = String(t.name || '').trim().toLowerCase();
-      const key = `${bCanonical}___${topKey}___${nameKey}`;
+      const key = `${bCanonical}___${sKey}___${topKey}___${nameKey}`;
       if (!map.has(key)) {
         map.set(key, t);
       } else {

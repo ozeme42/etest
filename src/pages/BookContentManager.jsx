@@ -277,7 +277,8 @@ export default function BookContentManager() {
         const matchedSubj = book.subjects.find(s => isTestInSubject(t, s, book.subjects));
         if (matchedSubj) matchedSubjId = String(matchedSubj.id);
       }
-      const key = `${nameKey}`;
+      const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
+      const key = `${matchedSubjId || t.subjectId || t.subject_id || 'direct'}___${topKey}___${nameKey}`;
 
       if (!deduplicatedMap.has(key)) {
         deduplicatedMap.set(key, t);
