@@ -753,6 +753,7 @@ export default function ModularQuizReviewPage() {
   ));
 
   const isImageTest = !isHtml && !isPdf && Boolean(
+    test.isRemedialTest || test.sourceType === 'pdfSlicer' ||
     test.sourceFormat === 'image' || test.formatType === 'image' ||
     test.contentType === 'gorsel' || test.type === 'gorsel' || test.questionType === 'gorsel_klasik' || hasExplicitImageQuestions ||
     Boolean(test.imageUrl || (test.imageUrls && test.imageUrls.length > 0)) ||
@@ -761,8 +762,17 @@ export default function ModularQuizReviewPage() {
     (typeof test.contentPayload === 'string' && (test.contentPayload.startsWith('data:image') || test.contentPayload.startsWith('http') || test.contentPayload.includes('.png') || test.contentPayload.includes('.jpg')))
   );
 
-  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended)
-  const isBookOrOptical = !isWritten && !isSectionOpenEnded(test) && Boolean(
+  const isExplicitImageOrDigital = Boolean(
+    isImageTest ||
+    test.isRemedialTest ||
+    test.sourceType === 'pdfSlicer' ||
+    test.contentType === 'gorsel' ||
+    test.type === 'gorsel' ||
+    (questions && questions.some(q => q.imageUrl || (q.imageUrls && q.imageUrls.length > 0) || q.contentPayload?.startsWith?.('data:image') || q.contentType === 'gorsel'))
+  );
+
+  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended and NOT digital/image/remedial)
+  const isBookOrOptical = !isExplicitImageOrDigital && !isWritten && !isSectionOpenEnded(test) && Boolean(
     test.bookId ||
     test.bookTestId ||
     submission?.bookId ||
@@ -805,7 +815,7 @@ export default function ModularQuizReviewPage() {
     (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)')))
   );
 
-  const isPhysical = !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+  const isPhysical = !isExplicitImageOrDigital && !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||

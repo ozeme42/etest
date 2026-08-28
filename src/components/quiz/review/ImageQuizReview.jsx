@@ -554,29 +554,38 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
 
   const imageUrls = useMemo(() => {
-    // 1. If questions array has multiple questions and the current question has a distinct image
-    if (Array.isArray(questions) && questions.length > 1 && questions[currentIndex]) {
+    // 1. Direct question from questions array at currentIndex
+    if (Array.isArray(questions) && questions[currentIndex]) {
       const q = questions[currentIndex];
       if (q?.id && idbPayloadMap[q.id]) {
         const idbImgs = extractImageUrls(idbPayloadMap[q.id]);
         if (idbImgs.length > 0) return [idbImgs[0]];
       }
+      if (q?.imageUrl && isValidImageUrl(q.imageUrl)) {
+        return [normalizeImageUrl(q.imageUrl)];
+      }
+      if (q?.contentPayload && isValidImageUrl(q.contentPayload)) {
+        return [normalizeImageUrl(q.contentPayload)];
+      }
       const qImgs = extractImageUrls(q);
       if (qImgs.length > 0) {
+        if (qImgs.length > 1 && qImgs[currentIndex]) return [qImgs[currentIndex]];
         return [qImgs[0]];
       }
     }
 
-    // 2. If allAvailableImages has multiple images matching questions (e.g. question set with 3 images)
-    if (allAvailableImages.length > 1) {
+    // 2. If allAvailableImages has images matching current index
+    if (allAvailableImages.length > 0) {
       if (allAvailableImages[currentIndex]) {
         return [allAvailableImages[currentIndex]];
       }
-      return [allAvailableImages[allAvailableImages.length - 1]];
+      if (allAvailableImages.length === 1 && currentIndex === 0) {
+        return [allAvailableImages[0]];
+      }
     }
 
     // 3. If activeQuestion has imageUrls array
-    if (Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 1) {
+    if (Array.isArray(activeQuestion.imageUrls) && activeQuestion.imageUrls.length > 0) {
       const list = activeQuestion.imageUrls.filter(isValidImageUrl).map(normalizeImageUrl);
       if (list[currentIndex]) return [list[currentIndex]];
       if (list.length > 0) return [list[0]];
@@ -590,12 +599,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
       return [normalizeImageUrl(activeQuestion.imageUrl)];
     }
 
-    // 5. If allAvailableImages has at least 1 image
-    if (allAvailableImages.length > 0) {
-      return [allAvailableImages[0]];
-    }
-
-    // 6. From activeQuestion contentPayload
+    // 5. From activeQuestion contentPayload
     if (activeQuestion.contentPayload && isValidImageUrl(activeQuestion.contentPayload)) {
       const extracted = extractImageUrls(activeQuestion.contentPayload);
       if (extracted.length > 0) {
