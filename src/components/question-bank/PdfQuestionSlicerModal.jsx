@@ -194,14 +194,14 @@ function SlicerPdfPageItem({
   const pdfCanvasRef = useRef(null);
   const overlayCanvasRef = useRef(null);
 
-  const [isVisible, setIsVisible] = useState(pageNum <= 2 || viewMode === 'single');
+  const [isVisible, setIsVisible] = useState(pageNum === 1 || viewMode === 'single');
   const [isRendered, setIsRendered] = useState(false);
   const [pageSize, setPageSize] = useState({ width: 800, height: 1130 });
   const [currentRect, setCurrentRect] = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
 
-  // IntersectionObserver for lazy page rendering in scroll mode (hızlı ve hafif pre-load)
+  // IntersectionObserver for lazy page rendering in scroll mode
   useEffect(() => {
     if (viewMode === 'single' || isVisible || !containerRef.current) return;
     const observer = new IntersectionObserver(([entry]) => {
@@ -209,13 +209,13 @@ function SlicerPdfPageItem({
         setIsVisible(true);
         observer.disconnect();
       }
-    }, { rootMargin: '500px' });
+    }, { rootMargin: '300px' });
 
     observer.observe(containerRef.current);
     return () => observer.disconnect();
   }, [isVisible, viewMode]);
 
-  // Doğrudan PDF.js donanım hızlandırmalı render (Sıfır Base64, Sıfır Gecikme)
+  // Doğrudan PDF.js donanım hızlandırmalı render (Ultra Hızlı ve Hafif)
   useEffect(() => {
     if (!doc || !isVisible) return;
     let renderTask = null;
@@ -226,7 +226,7 @@ function SlicerPdfPageItem({
         const page = await doc.getPage(pageNum);
         if (isCancelled) return;
 
-        const viewport = page.getViewport({ scale: 1.8 });
+        const viewport = page.getViewport({ scale: 1.35 });
         const width = Math.round(viewport.width);
         const height = Math.round(viewport.height);
         setPageSize({ width, height });
@@ -562,7 +562,7 @@ export default function PdfQuestionSlicerModal({
 
   const bookMistakesList = useMemo(() => {
     if (initialMistakes && Array.isArray(initialMistakes) && initialMistakes.length > 0) {
-      return initialMistakes;
+      return [...initialMistakes].sort(compareBookTestsOrder);
     }
     if (!currentBook) return [];
 
@@ -604,6 +604,68 @@ export default function PdfQuestionSlicerModal({
       });
     };
 
+    // ⚡ O(1) Pre-built Submissions Index (Indexed by all test ID variants)
+    const subsByTestId = new Map();
+    const addSubToMap = (key, sub) => {
+      if (!key) return;
+      const kStr = String(key).trim();
+      if (!kStr) return;
+      if (!subsByTestId.has(kStr)) subsByTestId.set(kStr, []);
+      subsByTestId.get(kStr).push(sub);
+
+      const clean = kStr.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+      if (clean && clean !== kStr) {
+        if (!subsByTestId.has(clean)) subsByTestId.set(clean, []);
+        subsByTestId.get(clean).push(sub);
+      }
+      const u = toUUID(kStr);
+      if (u && String(u) !== kStr) {
+        const uStr = String(u);
+        if (!subsByTestId.has(uStr)) subsByTestId.set(uStr, []);
+        subsByTestId.get(uStr).push(sub);
+      }
+    };
+
+    (submissions || []).forEach(s => {
+      if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
+      if (s.status === 'in_progress' || s.status === 'draft') return;
+      const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
+      const ids = [s.testId, s.test_id, s.realTestId, s.bookTestId, s.id, meta?.realTestId, meta?.bookTestId, meta?.realId];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
+      ids.forEach(id => addSubToMap(id, s));
+    });
+
+    (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      const hwSubs = Array.isArray(hw.submissions) && hw.submissions.length > 0
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+      hwSubs.forEach(s => {
+        if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
+        if (s.status === 'in_progress' || s.status === 'draft') return;
+        addSubToMap(s.testId || s.test_id || s.bookTestId || s.realTestId || s.id, s);
+      });
+    });
+
+    // ⚡ O(1) Pre-built localStorage Mistake Reasons Index (Single fast scan)
+    const localReasonsMap = new Map();
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('mistake_reasons_')) {
+          const val = localStorage.getItem(k);
+          if (val) {
+            try {
+              const parsed = JSON.parse(val);
+              if (parsed && typeof parsed === 'object') {
+                localReasonsMap.set(k, parsed);
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
     // 1. Build canonical list of tests strictly belonging to currentBook
     const rawSubjects = (currentBook.subjects && currentBook.subjects.length > 0)
       ? currentBook.subjects
@@ -625,19 +687,16 @@ export default function PdfQuestionSlicerModal({
           const tpId = String(tp.id || `tp_${tpIdx}`);
           const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
 
-          // Find tests in bookTests matching this book & (subject or topic)
           let matchedTests = (bookTests || []).filter(bt => {
             const isMatchBook = String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid);
             if (!isMatchBook) return false;
-            return String(bt.topicId || bt.topic_id) === tpId || String(bt.subjectId || bt.subject_id) === sId;
+            return String(bt.topicId || bt.topic_id) === tpId || (topics.length === 1 && String(bt.subjectId || bt.subject_id) === sId);
           });
 
-          // If no tests in bookTests for this topic, check tp.tests
           if (matchedTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
             matchedTests = tp.tests;
           }
 
-          // Fallback: Default 5 tests per unit topic (same as Kitap Takibi)
           if (matchedTests.length === 0) {
             matchedTests = [];
             for (let i = 1; i <= 5; i++) {
@@ -662,14 +721,12 @@ export default function PdfQuestionSlicerModal({
               name: t.name || t.title || `Test ${globalIndex}`,
               subjectName: sName,
               unitName: uName,
-              orderIndex: Number(t.order || t.order_index || globalIndex),
               answerKey: t.answerKey || t.answer_key || currentBook.answerKey || {}
             });
           });
         });
       });
     } else {
-      // If book has no subjects array, check bookTests for this book
       const bTests = (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid));
       const defaultSubj = resolveSubjectName(currentBook.subject, currentBook.title);
 
@@ -683,14 +740,13 @@ export default function PdfQuestionSlicerModal({
             name: bt.name || bt.title || `Test ${globalIndex}`,
             subjectName: resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, defaultSubj),
             unitName: bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '1. Ünite',
-            orderIndex: Number(bt.order || bt.order_index || globalIndex),
             answerKey: bt.answerKey || bt.answer_key || currentBook.answerKey || {}
           });
         });
       }
     }
 
-    // 2. For each canonical test, find mistakes from submissions
+    // 2. For each canonical test, find mistakes using O(1) memory lookup
     const list = [];
 
     const getCorrectLetter = (q, ak) => {
@@ -701,65 +757,15 @@ export default function PdfQuestionSlicerModal({
     };
 
     canonicalTests.forEach(testObj => {
-      // Find matching submissions for this test
-      const matchedSubs = [];
-
-      (submissions || []).forEach(s => {
-        if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
-        if (s.status === 'in_progress' || s.status === 'draft') return;
-
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const matchFields = [
-          String(s.testId || ''),
-          String(s.test_id || ''),
-          String(s.realTestId || ''),
-          String(s.bookTestId || ''),
-          String(s.id || ''),
-          String(meta?.realTestId || ''),
-          String(meta?.bookTestId || ''),
-          String(meta?.realId || '')
-        ];
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String));
-        }
-
-        const isMatch = matchFields.some(f => f && (
-          f === testObj.id ||
-          f === testObj.cleanId ||
-          f.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '') === testObj.cleanId ||
-          (testObj.uuid && f === testObj.uuid) ||
-          (testObj.uuid && toUUID(f) === testObj.uuid)
-        ));
-
-        if (isMatch) matchedSubs.push(s);
-      });
-
-      (homeworks || []).forEach(hw => {
-        if (!hw) return;
-        const hwSubList = Array.isArray(hw.submissions) && hw.submissions.length > 0
-          ? hw.submissions
-          : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
-
-        hwSubList.forEach(s => {
-          if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
-          if (s.status === 'in_progress' || s.status === 'draft') return;
-
-          const subTId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || s.id || '');
-          const isMatch = (
-            subTId === testObj.id ||
-            subTId === testObj.cleanId ||
-            subTId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '') === testObj.cleanId ||
-            (testObj.uuid && subTId === testObj.uuid) ||
-            (testObj.uuid && toUUID(subTId) === testObj.uuid)
-          );
-
-          if (isMatch) matchedSubs.push(s);
-        });
-      });
+      // Find matching submissions in O(1)
+      const matchedSubs = [
+        ...(subsByTestId.get(testObj.id) || []),
+        ...(subsByTestId.get(testObj.cleanId) || []),
+        ...(testObj.uuid ? (subsByTestId.get(String(testObj.uuid)) || []) : [])
+      ];
 
       if (matchedSubs.length === 0) return;
 
-      // Extract wrong questions
       const wrongQNos = new Set();
       matchedSubs.forEach(sub => {
         if (Array.isArray(sub.answers) && sub.answers.length > 0) {
@@ -789,29 +795,23 @@ export default function PdfQuestionSlicerModal({
         }
       });
 
-      // Check localStorage for mistake reasons
-      try {
-        const keysToTry = [
-          `mistake_reasons_${testObj.id}_${studentIdStr}`,
-          `mistake_reasons_bt_${testObj.id}_${studentIdStr}`,
-          `mistake_reasons_${testObj.id}`,
-          `mistake_reasons_bt_${testObj.id}`
-        ];
-        for (const key of keysToTry) {
-          const val = localStorage.getItem(key);
-          if (val) {
-            const parsed = JSON.parse(val);
-            if (parsed && typeof parsed === 'object') {
-              Object.keys(parsed).forEach(qKey => {
-                const qNo = parseInt(qKey, 10);
-                if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
-              });
-            }
-          }
+      // Check pre-indexed localStorage in O(1)
+      const reasonKeys = [
+        `mistake_reasons_${testObj.id}_${studentIdStr}`,
+        `mistake_reasons_bt_${testObj.id}_${studentIdStr}`,
+        `mistake_reasons_${testObj.id}`,
+        `mistake_reasons_bt_${testObj.id}`
+      ];
+      for (const rk of reasonKeys) {
+        const parsed = localReasonsMap.get(rk);
+        if (parsed && typeof parsed === 'object') {
+          Object.keys(parsed).forEach(qKey => {
+            const qNo = parseInt(qKey, 10);
+            if (!isNaN(qNo) && qNo > 0) wrongQNos.add(qNo);
+          });
         }
-      } catch {}
+      }
 
-      // Fallback if wrongCount > 0 but no specific question numbers
       if (wrongQNos.size === 0) {
         const maxWrong = Math.max(...matchedSubs.map(s => s.wrongCount ?? s.wrong ?? s.raw_data?.wrongCount ?? s.raw_data?.wrong ?? 0));
         if (maxWrong > 0) {
@@ -836,19 +836,13 @@ export default function PdfQuestionSlicerModal({
         testId: testObj.id,
         testName: testObj.name,
         unitName: testObj.unitName,
-        orderIndex: testObj.orderIndex,
         subjectName: testObj.subjectName,
         wrongQuestions: wrongList,
         answerKeyMap: akMap
       });
     });
 
-    // Sort strictly by book test order
-    list.sort((a, b) => {
-      if (a.orderIndex !== b.orderIndex) return a.orderIndex - b.orderIndex;
-      return a.testName.localeCompare(b.testName, 'tr', { numeric: true });
-    });
-
+    list.sort(compareBookTestsOrder);
     return list;
   }, [currentBook, initialMistakes, studentId, submissions, homeworks, bookTests]);
 
