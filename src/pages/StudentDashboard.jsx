@@ -1433,7 +1433,7 @@ export default function StudentDashboard() {
           }
         });
 
-        // Filter out manual/program items referencing deleted homeworks or book tests
+        // Filter out manual/program items referencing deleted homeworks, book tests, or deleted study plans/roadmaps
         dayManualItems = dayManualItems.filter(item => {
           if (item.hwId) {
             const hasHw = (homeworks || []).some(h => String(h.id) === String(item.hwId) || toUUID(h.id) === toUUID(item.hwId));
@@ -1442,6 +1442,12 @@ export default function StudentDashboard() {
           if (item.testId && !item.hwId) {
             const hasBt = (bookTests || []).some(bt => String(bt.id) === String(item.testId) || toUUID(bt.id) === toUUID(item.testId));
             if (!hasBt) return false;
+          }
+          if (item.roadmapAssignmentId || item.isRoadmapTask || item.taskType === 'yol_haritasi' || item.taskType === 'konu') {
+            const assignment = (studyAssignments || []).find(a => String(a?.id) === String(item.roadmapAssignmentId));
+            if (!assignment) return false;
+            const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId || assignment.study_plan_id));
+            if (!plan) return false;
           }
           return true;
         });

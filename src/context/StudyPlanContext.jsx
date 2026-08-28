@@ -75,6 +75,7 @@ export function StudyPlanProvider({ children }) {
 
   const deleteStudyPlan = async (id) => {
     setStudyPlans(prev => prev.filter(p => p.id !== id));
+    setStudyAssignments(prev => prev.filter(a => (a.studyPlanId !== id && a.study_plan_id !== id && a.planId !== id && a.plan_id !== id)));
     await dbDeleteStudyPlan(id);
   };
 

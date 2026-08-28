@@ -1856,6 +1856,7 @@ export async function dbAddStudyPlan(plan) {
 export async function dbDeleteStudyPlan(planId) {
   if (!isSupabaseConfigured()) return null;
   try {
+    await supabase.from('study_assignments').delete().eq('study_plan_id', String(planId));
     const { error } = await supabase.from('study_plans').delete().eq('id', String(planId));
     if (error) throw error;
     return true;
