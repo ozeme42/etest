@@ -23,6 +23,7 @@ import { computeStudentAnalyticsData } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
 import TeacherActionCenter from '../components/teacher/TeacherActionCenter';
+import TeacherRemedialTracker from '../components/teacher/TeacherRemedialTracker';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import TeacherClassPulseRadar from '../components/teacher/TeacherClassPulseRadar';
 import TeacherClassroomExplorer from '../components/teacher/TeacherClassroomExplorer';
@@ -986,6 +987,8 @@ export default function TeacherDashboard() {
                   students={students}
                 />
 
+                {/* 🎯 4. ATANAN TELAFİ TESTLERİ & %100 USTALIK TAKİP PANELİ */}
+                <TeacherRemedialTracker />
               </div>
 
               {/* ═══════════════════════════════════════════

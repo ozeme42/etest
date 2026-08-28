@@ -1439,9 +1439,10 @@ export default function StudentDashboard() {
             const hasHw = (homeworks || []).some(h => String(h.id) === String(item.hwId) || toUUID(h.id) === toUUID(item.hwId));
             if (!hasHw) return false;
           }
-          if (item.testId && !item.hwId) {
+          if (item.testId && !item.hwId && item.type !== 'remedialTest' && !item.isRemedial && !item.isTeacherRemedial && !item.isSpacedRepetition) {
             const hasBt = (bookTests || []).some(bt => String(bt.id) === String(item.testId) || toUUID(bt.id) === toUUID(item.testId));
-            if (!hasBt) return false;
+            const hasBankQ = (questions || []).some(q => String(q.id) === String(item.testId) || toUUID(q.id) === toUUID(item.testId));
+            if (!hasBt && !hasBankQ) return false;
           }
           if (item.roadmapAssignmentId || item.isRoadmapTask || item.taskType === 'yol_haritasi' || item.taskType === 'konu') {
             const assignment = (studyAssignments || []).find(a => String(a?.id) === String(item.roadmapAssignmentId));

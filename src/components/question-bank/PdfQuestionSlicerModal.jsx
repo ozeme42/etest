@@ -18,6 +18,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { getAllUnifiedStudentSubmissions } from '../../services/unifiedResultAdapter';
 import { getEmbeddablePdfUrl } from '../../utils/pdfUtils';
 import { toUUID } from '../../services/supabaseService';
+import { scheduleRemedialTestInProgram, REPETITION_PRESETS } from '../../services/remedialSpacedRepetitionService';
 import { pdfjs } from 'react-pdf';
 
 // Ensure PDF.js worker is configured reliably with correct MIME type
@@ -519,7 +520,8 @@ export default function PdfQuestionSlicerModal({
   const { coachingProfiles = [], saveCoachingProfile } = useCoaching();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [mobileActiveTab, setMobileActiveTab] = useState(() => mode === 'mistakes' ? 'guide' : 'pdf'); // 'guide' | 'pdf' | 'sliced'
-  const [addToTodaySchedule, setAddToTodaySchedule] = useState(true);
+  const [scheduleMode, setScheduleMode] = useState('spaced_leitner'); // 'spaced_leitner' | 'fast' | 'today' | 'none'
+  const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
 
   const [sourceImage, setSourceImage] = useState(null);
   const [sourceFileName, setSourceFileName] = useState('');
@@ -1534,43 +1536,38 @@ export default function PdfQuestionSlicerModal({
           isRemedialTest: true,
           sourceType: 'pdfSlicer',
           studentId: studentId || null,
-          createdBy: studentId || null
+          createdBy: studentId || 'teacher',
+          teacherAssigned: Boolean(studentId),
+          repetitionScheduleMode: scheduleMode,
+          repetitionIntervals: scheduleMode === 'spaced_leitner'
+            ? [1, 3, 7, 15]
+            : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])),
+          targetMasteryPct: keepMasteryTracking ? 100 : null
         });
       }
 
-      if (addToTodaySchedule && studentId && saveCoachingProfile) {
+      const repetitionIntervals = scheduleMode === 'spaced_leitner'
+        ? [1, 3, 7, 15]
+        : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []));
+
+      if (scheduleMode !== 'none' && studentId && saveCoachingProfile) {
         try {
-          const map = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
-          const todayKey = map[new Date().getDay()] || 'Pzt';
           const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
           const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
             studentId,
             weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
           };
-          const rawProg = Array.isArray(currentProfile.weeklyProgram)
-            ? currentProfile.weeklyProgram
-            : DAYS_LIST.map(d => ({ day: d, items: [] }));
 
-          const newItem = {
-            id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-            text: finalTitle,
-            subject: selectedSubject,
-            qCount: slicedQuestions.length,
-            targetCount: slicedQuestions.length,
-            testId: savedTest?.id || `test_${Date.now()}`,
-            type: 'remedialTest',
-            done: false,
-            date: new Date().toISOString().split('T')[0]
-          };
-
-          const updatedProg = rawProg.map(dObj => {
-            if (dObj.day === todayKey) {
-              return {
-                ...dObj,
-                items: [...(dObj.items || []), newItem]
-              };
-            }
-            return dObj;
+          const updatedProg = scheduleRemedialTestInProgram({
+            currentWeeklyProgram: currentProfile.weeklyProgram || [],
+            testItem: {
+              id: savedTest?.id || `test_${Date.now()}`,
+              title: finalTitle,
+              subject: selectedSubject,
+              questionCount: slicedQuestions.length
+            },
+            intervals: repetitionIntervals,
+            studentId
           });
 
           await saveCoachingProfile({
@@ -1593,11 +1590,17 @@ export default function PdfQuestionSlicerModal({
         });
       }
 
-      setSaveSuccessMsg(`✓ "${finalTitle}" (${slicedQuestions.length} Soru) kaydedildi ${addToTodaySchedule ? 've bugünün programına eklendi!' : '!'}`);
+      const scheduleMsg = scheduleMode === 'spaced_leitner'
+        ? 've 1, 3, 7, 15 günlük aralıklı tekrar programına eklendi!'
+        : (scheduleMode === 'fast'
+            ? 've 1, 2, 4, 7 günlük hızlı pekiştirme programına eklendi!'
+            : (scheduleMode === 'today' ? 've bugünün programına eklendi!' : '!'));
+
+      setSaveSuccessMsg(`✓ "${finalTitle}" (${slicedQuestions.length} Soru) kaydedildi ${scheduleMsg}`);
       setTimeout(() => {
         setSaveSuccessMsg(null);
         onClose();
-      }, 2000);
+      }, 2500);
     } catch (err) {
       console.error('Test kaydetme hatası:', err);
       alert('Test kaydedilirken bir hata oluştu: ' + (err.message || err));
@@ -2731,27 +2734,56 @@ export default function PdfQuestionSlicerModal({
               )}
             </div>
 
-            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* Checkbox to add to today's schedule */}
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                color: 'var(--color-text)',
-                cursor: 'pointer',
-                userSelect: 'none',
-                padding: '2px 4px'
-              }}>
-                <input
-                  type="checkbox"
-                  checked={addToTodaySchedule}
-                  onChange={(e) => setAddToTodaySchedule(e.target.checked)}
-                  style={{ accentColor: '#6366f1', cursor: 'pointer' }}
-                />
-                <span>📅 Bugünün Çalışma Programına Ekle</span>
-              </label>
+            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Spaced Repetition Scheduling Controls */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Sparkles size={12} className="text-indigo-500" />
+                  <span>Tekrar & Çalışma Planı Modu:</span>
+                </span>
+                
+                <select
+                  value={scheduleMode}
+                  onChange={(e) => setScheduleMode(e.target.value)}
+                  style={{
+                    padding: '5px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: isDark ? '#1e293b' : '#f8fafc',
+                    color: 'var(--color-text)',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="spaced_leitner">🧠 Standart Leitner (1, 3, 7, 15 Gün - Önerilen)</option>
+                  <option value="fast">⚡ Hızlı Pekiştirme (1, 2, 4, 7 Gün)</option>
+                  <option value="today">📅 Sadece Bugünün Programına Ekle (1 Gün)</option>
+                  <option value="none">🚫 Programa Ekleme (Sadece Havuzda Tut)</option>
+                </select>
+
+                {scheduleMode !== 'none' && (
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    color: '#059669',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    padding: '2px 0'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={keepMasteryTracking}
+                      onChange={(e) => setKeepMasteryTracking(e.target.checked)}
+                      style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                    />
+                    <span>🎯 %100 Doğru Yapılana Kadar Tekrar Döngüsünü Sürdür</span>
+                  </label>
+                )}
+              </div>
 
               {saveSuccessMsg && (
                 <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#16a34a', textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px', borderRadius: 8 }}>
