@@ -385,9 +385,9 @@ export default function StudentDashboard() {
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
 
-  // Instant fresh homework sync when opening the dashboard
+  // Background homework sync when opening the dashboard (only if stale)
   useEffect(() => {
-    refreshHomeworks?.(true);
+    refreshHomeworks?.(false);
   }, []);
 
   const handleDashboardRefresh = async () => {
@@ -407,7 +407,34 @@ export default function StudentDashboard() {
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  
+  // Synchronous, instant cache-first student initialization (0ms initial render)
+  const [selectedStudent, setSelectedStudent] = useState(() => {
+    try {
+      const authUserStr = localStorage.getItem('eTestAuthUser');
+      if (authUserStr) {
+        const authUser = JSON.parse(authUserStr);
+        if (authUser?.role === 'student') return authUser;
+      }
+      const savedObj = localStorage.getItem('etest_selected_student_obj');
+      if (savedObj) {
+        const parsed = JSON.parse(savedObj);
+        if (parsed && parsed.id) return parsed;
+      }
+      const savedId = localStorage.getItem('etest_selected_student_id');
+      const usersStr = localStorage.getItem('eTestUsers');
+      if (usersStr) {
+        const allU = JSON.parse(usersStr);
+        const stList = (allU || []).filter(u => u.role === 'student');
+        if (stList.length > 0) {
+          const found = stList.find(s => String(s.id) === String(savedId));
+          return found || stList[0];
+        }
+      }
+    } catch {}
+    return null;
+  });
+
   const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
 
   const [dismissedTaskKeys, setDismissedTaskKeys] = useState(() => {
@@ -435,6 +462,8 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (selectedStudent?.id) {
       try {
+        localStorage.setItem('etest_selected_student_id', selectedStudent.id);
+        localStorage.setItem('etest_selected_student_obj', JSON.stringify(selectedStudent));
         const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent.id}`);
         if (stored) setDismissedTaskKeys(JSON.parse(stored));
       } catch {}
@@ -447,9 +476,11 @@ export default function StudentDashboard() {
     } else if (studentMembers.length > 0) {
       const savedStudentId = localStorage.getItem('etest_selected_student_id');
       const found = studentMembers.find(s => String(s.id) === String(savedStudentId));
-      setSelectedStudent(found || studentMembers[0]);
-    } else {
-      setSelectedStudent(null);
+      if (found) {
+        setSelectedStudent(found);
+      } else if (!selectedStudent) {
+        setSelectedStudent(studentMembers[0]);
+      }
     }
   }, [currentUser, studentMembers]);
 
