@@ -22,7 +22,14 @@ const getDeletedIds = () => {
     const saved = localStorage.getItem('eTestDeletedSubmissions');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return new Set(parsed);
+      if (Array.isArray(parsed)) {
+        // 🛡️ Sadece gerçek silinmiş submission oturum ID'leri tutulur; test ID'leri (tbt_..., bt_..., q_...) ASLA deleted listesinde kalamaz!
+        const cleanList = parsed.filter(id => {
+          const s = String(id || '');
+          return (s.startsWith('sub_') || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) && !s.startsWith('tbt_') && !s.startsWith('bt_') && !s.startsWith('q_');
+        });
+        return new Set(cleanList);
+      }
     }
   } catch {}
   return new Set();
@@ -32,7 +39,11 @@ const markIdsAsDeleted = (ids) => {
   try {
     const current = getDeletedIds();
     (ids || []).forEach(id => {
-      if (id) current.add(String(id));
+      const s = String(id || '');
+      // Sadece tekil oturum ID'lerini kaydet, test ID'lerini kaydetme
+      if (s && (s.startsWith('sub_') || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) && !s.startsWith('tbt_') && !s.startsWith('bt_') && !s.startsWith('q_')) {
+        current.add(s);
+      }
     });
     const arr = Array.from(current).slice(-500);
     localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(arr));
@@ -43,8 +54,18 @@ const unmarkIdAsDeleted = (id) => {
   if (!id) return;
   try {
     const current = getDeletedIds();
-    if (current.has(String(id))) {
-      current.delete(String(id));
+    let changed = false;
+    const str = String(id);
+    if (current.has(str)) {
+      current.delete(str);
+      changed = true;
+    }
+    const u = toUUID(str);
+    if (u && current.has(String(u))) {
+      current.delete(String(u));
+      changed = true;
+    }
+    if (changed) {
       localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(current)));
     }
   } catch {}
@@ -122,14 +143,13 @@ export function EvaluationProvider({ children }) {
       const dbSubsList = await dbGetSubmissions();
       if (dbSubsList && Array.isArray(dbSubsList)) {
         touchCache('submissions');
-        const deletedIds = getDeletedIds();
 
-        // Filter out deleted items from DB list immediately
-        const validDbSubs = dbSubsList.filter(s => {
-          const sid = String(s?.id || '');
-          const suid = String(s?.supabaseId || '');
-          if (deletedIds.has(sid) || (suid && deletedIds.has(suid))) return false;
-          return true;
+        // 🛡️ Supabase veritabanı tek ve mutlak gerçeklik kaynağıdır.
+        // Veritabanında olan bir kayıt, tabletteki eski yerel silinmişler listesi tarafından engellenemez!
+        const validDbSubs = dbSubsList;
+        validDbSubs.forEach(s => {
+          if (s?.id) unmarkIdAsDeleted(s.id);
+          if (s?.supabaseId) unmarkIdAsDeleted(s.supabaseId);
         });
 
         // Auto-sync any local mistake reasons into submissions and Supabase (strict key matching)
