@@ -8,8 +8,7 @@ import {
 } from 'lucide-react';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
-import { useCurriculum } from '../../context/CurriculumContext';
-import { toUUID } from '../../services/supabaseService';
+import { toUUID, dbRecordDeletedItem } from '../../services/supabaseService';
 
 const SUBJECT_ICONS = {
   'Sosyal Bilgiler': '🏛️',
@@ -519,12 +518,17 @@ export default function TeacherStudentMistakesPool({
         await deleteSubmissionsByTestId(test.testId);
       }
 
-      // Record in local deletion cache for instant response
+      // Record in local & Supabase deletion cache for instant cloud response
       try {
         const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
         const parsed = savedDeleted ? JSON.parse(savedDeleted) : [];
         const toAdd = [String(test.id), String(test.supabaseId || ''), String(test.testId || '')].filter(Boolean);
         localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(new Set([...parsed, ...toAdd]))));
+
+        // Sync deletion to Supabase deleted_records table
+        toAdd.forEach(itemKey => {
+          dbRecordDeletedItem(itemKey, 'submission', student?.id);
+        });
       } catch {}
     } catch (err) {
       console.error('Error deleting test submission:', err);

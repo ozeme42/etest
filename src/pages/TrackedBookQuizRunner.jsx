@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
-import { toUUID } from '../services/supabaseService';
+import { toUUID, dbSaveMistakeReasons } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
@@ -331,6 +331,7 @@ export default function TrackedBookQuizRunner() {
       if (sub && updateSubmission) {
         updateSubmission(sub.id, { mistakeReasons: next });
       }
+      dbSaveMistakeReasons(studentId, testId, sub?.id, next);
       return next;
     });
   };
@@ -349,6 +350,7 @@ export default function TrackedBookQuizRunner() {
       if (sub && updateSubmission) {
         await updateSubmission(sub.id, { mistakeReasons: mistakeReasons });
       }
+      await dbSaveMistakeReasons(studentId, testId, sub?.id, mistakeReasons);
       setSaveToast('✓ Hata analizi veritabanına ve sisteme başarıyla kaydedildi!');
     } catch (e) {
       console.error(e);

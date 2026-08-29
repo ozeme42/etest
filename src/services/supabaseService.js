@@ -2958,3 +2958,124 @@ export async function dbSaveSystemAiApiKey(apiKey, metadata = {}) {
   }
 }
 
+// ==========================================
+// 12. HATA ANALİZİ, ARALIKLI TEKRAR & SİLİNEN KAYITLAR (REMEDIAL & MISTAKES)
+// ==========================================
+export async function dbSaveMistakeReasons(studentId, testId, submissionId, mistakeReasonsMap = {}) {
+  if (!isSupabaseConfigured() || !studentId || !testId || !mistakeReasonsMap) return false;
+  try {
+    const sId = String(studentId);
+    const tId = String(testId);
+    const subId = submissionId ? String(submissionId) : null;
+
+    const rows = Object.entries(mistakeReasonsMap).map(([qNo, reasonTag]) => {
+      const qNum = parseInt(qNo, 10) || 1;
+      return {
+        id: `mr_${sId}_${tId}_${qNum}`,
+        student_id: sId,
+        test_id: tId,
+        submission_id: subId,
+        question_no: qNum,
+        reason_tag: String(reasonTag),
+        raw_data: { studentId: sId, testId: tId, submissionId: subId, qNo: qNum, reasonTag }
+      };
+    });
+
+    if (rows.length > 0) {
+      await supabase.from('mistake_reasons').upsert(rows, { onConflict: 'id' });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveMistakeReasons error:', err.message);
+    return false;
+  }
+}
+
+export async function dbGetMistakeReasons(studentId, testId) {
+  if (!isSupabaseConfigured() || !studentId) return {};
+  try {
+    let query = supabase.from('mistake_reasons').select('*').eq('student_id', String(studentId));
+    if (testId) query = query.eq('test_id', String(testId));
+    const { data, error } = await query;
+    if (error || !data) return {};
+
+    const result = {};
+    data.forEach(row => {
+      if (row.question_no && row.reason_tag) {
+        result[row.question_no] = row.reason_tag;
+      }
+    });
+    return result;
+  } catch (err) {
+    console.warn('[Supabase] dbGetMistakeReasons error:', err.message);
+    return {};
+  }
+}
+
+export async function dbSaveRemedialRepetition({ studentId, testId, homeworkId, intervals = [1, 3, 7, 15], keepMasteryTracking = true, startDate = new Date() }) {
+  if (!isSupabaseConfigured() || !studentId || !testId) return false;
+  try {
+    const sId = String(studentId);
+    const tId = String(testId);
+    const hwId = homeworkId ? String(homeworkId) : null;
+
+    const rows = intervals.map((intervalDays, idx) => {
+      const stage = idx + 1;
+      const targetDate = new Date(startDate.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+      const dateStr = targetDate.toISOString().split('T')[0];
+
+      return {
+        id: `rep_${sId}_${tId}_s${stage}`,
+        student_id: sId,
+        test_id: tId,
+        homework_id: hwId,
+        stage,
+        total_stages: intervals.length,
+        interval_days: intervalDays,
+        target_date: dateStr,
+        is_completed: false,
+        keep_mastery_tracking: Boolean(keepMasteryTracking),
+        raw_data: { studentId: sId, testId: tId, homeworkId: hwId, stage, intervalDays, targetDate: dateStr }
+      };
+    });
+
+    if (rows.length > 0) {
+      await supabase.from('remedial_spaced_repetition').upsert(rows, { onConflict: 'id' });
+    }
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbSaveRemedialRepetition error:', err.message);
+    return false;
+  }
+}
+
+export async function dbRecordDeletedItem(id, recordType = 'submission', deletedBy = null) {
+  if (!isSupabaseConfigured() || !id) return false;
+  try {
+    const idStr = String(id);
+    await supabase.from('deleted_records').upsert([{
+      id: idStr,
+      record_type: String(recordType),
+      deleted_by: deletedBy ? String(deletedBy) : null,
+      deleted_at: new Date().toISOString()
+    }], { onConflict: 'id' });
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbRecordDeletedItem error:', err.message);
+    return false;
+  }
+}
+
+export async function dbGetDeletedItems() {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const { data, error } = await supabase.from('deleted_records').select('*');
+    if (error || !data) return [];
+    return data.map(d => d.id);
+  } catch (err) {
+    console.warn('[Supabase] dbGetDeletedItems error:', err.message);
+    return [];
+  }
+}
+
+
