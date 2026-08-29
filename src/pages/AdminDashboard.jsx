@@ -396,7 +396,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* 5 GLOWING KPI METRIC CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 155px), 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: '0.75rem' }}>
           {[
             { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğr.`, icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)' },
             { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.3)' },
@@ -441,7 +441,8 @@ export default function AdminDashboard() {
           borderRadius: '1.25rem',
           border: '1.5px solid var(--color-border)',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          scrollbarWidth: 'none'
         }}>
           {[
             { id: 'curriculum', label: 'Müfredat Hiyerarşisi', icon: FolderTree, count: `${totalGrades} Sınıf` },
@@ -908,7 +909,9 @@ function CurriculumManager() {
       padding: '1.15rem',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: 400,
+      minHeight: 460,
+      height: '100%',
+      boxSizing: 'border-box',
       boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
@@ -920,7 +923,7 @@ function CurriculumManager() {
         </span>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: 280, maxHeight: 420, paddingRight: 4 }}>
         {sortedGrades.map(grade => {
           const count = data.subjects.filter(s => s.gradeId === grade.id).length;
           const isActive = selectedGrade === grade.id;
@@ -1004,7 +1007,9 @@ function CurriculumManager() {
       padding: '1.15rem',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: 400,
+      minHeight: 460,
+      height: '100%',
+      boxSizing: 'border-box',
       boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
@@ -1020,7 +1025,7 @@ function CurriculumManager() {
 
       {selectedGrade ? (
         <>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: 280, maxHeight: 420, paddingRight: 4 }}>
             {filteredSubjects.length === 0 ? (
               <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu sınıfa ait henüz ders eklenmemiş.</p>
             ) : (
@@ -1086,7 +1091,7 @@ function CurriculumManager() {
             <input
               name="addInput"
               type="text"
-              placeholder="+ Ders ekle (Örn: Matematik, Fen)"
+              placeholder="+ Ders ekle (Örn: Matematik)"
               style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
             />
             <button
@@ -1114,7 +1119,9 @@ function CurriculumManager() {
       padding: '1.15rem',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: 400,
+      minHeight: 460,
+      height: '100%',
+      boxSizing: 'border-box',
       boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
@@ -1130,7 +1137,7 @@ function CurriculumManager() {
 
       {selectedSubject ? (
         <>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: 280, maxHeight: 420, paddingRight: 4 }}>
             {filteredUnits.length === 0 ? (
               <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu derse ait henüz ünite eklenmemiş.</p>
             ) : (
@@ -1223,7 +1230,9 @@ function CurriculumManager() {
       padding: '1.15rem',
       display: 'flex',
       flexDirection: 'column',
-      minHeight: 400,
+      minHeight: 460,
+      height: '100%',
+      boxSizing: 'border-box',
       boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
@@ -1239,7 +1248,7 @@ function CurriculumManager() {
 
       {selectedUnit ? (
         <>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', minHeight: 280, maxHeight: 420, paddingRight: 4 }}>
             {filteredTopics.length === 0 ? (
               <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu üniteye ait henüz konu eklenmemiş.</p>
             ) : (
@@ -1452,7 +1461,7 @@ function CurriculumManager() {
       </div>
 
       {/* DESKTOP 4-COLUMN MILLER HIERARCHY GRID */}
-      <div className="admin-desktop-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', alignItems: 'start', width: '100%', minWidth: 0 }}>
+      <div className="admin-desktop-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))', gap: '1rem', alignItems: 'stretch', width: '100%', minWidth: 0 }}>
         {renderGradeColumn()}
         {renderSubjectColumn()}
         {renderUnitColumn()}

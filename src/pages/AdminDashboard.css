@@ -194,20 +194,22 @@
 .role-student { background: rgba(16, 185, 129, 0.15); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.3); }
 
 /* Mobile / Desktop Display Utilities */
-.admin-mobile-only {
+.admin-mobile-only,
+.admin-mobile-flex,
+.admin-mobile-grid {
   display: none !important;
 }
 
 .admin-desktop-only {
-  display: block;
+  display: block !important;
 }
 
 .admin-desktop-flex {
-  display: flex;
+  display: flex !important;
 }
 
 .admin-desktop-grid {
-  display: grid;
+  display: grid !important;
 }
 
 /* Mobile Step Wizard */
