@@ -1167,13 +1167,31 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return Number(targetTest.orderIndex) === Number(s.metadata.orderIndex);
   }
 
-  // Generic names across subjects MUST NOT match loosely without matching subject and unit
+  // Generic names across subjects MUST have subject match to avoid cross-subject false positives.
+  // Unit is only checked when BOTH sides have unit info (to avoid blocking when unit is simply missing).
   const isGeneric = /^(problem sayfası|etkinlik sayfası|sayfa|test|deneme|kazanım testi|konu testi|ödev|çalışma|test \d+|test-\d+|ü\.?\s*değ\.?\s*\d+|ünite değerlendirme \d+|yeni nesil \d+|etkinlik \d+)$/i.test(tName);
   if (isGeneric) {
-    if (targetSubject && subSubject && targetUnit && subUnit) {
-      return cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
+    // Subject must match
+    if (!targetSubject || !subSubject) return false;
+    const isSubjOk = subSubject === targetSubject ||
+      subSubject.includes(targetSubject) || targetSubject.includes(subSubject) ||
+      (targetSubject.includes('türk') && subSubject.includes('türk')) ||
+      (targetSubject.includes('mat') && subSubject.includes('mat')) ||
+      (targetSubject.includes('fen') && subSubject.includes('fen')) ||
+      (targetSubject.includes('sos') && subSubject.includes('sos')) ||
+      (targetSubject.includes('ing') && subSubject.includes('ing')) ||
+      (targetSubject.includes('din') && subSubject.includes('din'));
+    if (!isSubjOk) return false;
+
+    // If BOTH sides have unit info, verify they don't conflict
+    if (targetUnit && subUnit) {
+      const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
+      const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
+      if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
     }
-    return false;
+
+    // Title must match
+    return cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
   }
 
   // Non-generic unique title match
