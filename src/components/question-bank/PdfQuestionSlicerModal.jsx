@@ -9,6 +9,7 @@ import {
 import { compressImageToWebP } from '../../services/imageCompressionService';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useUser } from '../../context/UserContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useHomework } from '../../context/HomeworkContext';
@@ -513,7 +514,14 @@ export default function PdfQuestionSlicerModal({
   grade: initialGrade = '8. Sınıf'
 }) {
   const { isDark } = useTheme();
-  const { currentUser, users = [], students = [] } = useAuth();
+  const { currentUser } = useAuth();
+  const { users = [] } = useUser();
+  const studentList = useMemo(() => {
+    return (users || []).filter(u => {
+      if (!u) return false;
+      return u.role === 'student' || (!u.role && u.role !== 'teacher' && u.role !== 'admin');
+    });
+  }, [users]);
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
   const { homeworks = [] } = useHomework();
@@ -2673,10 +2681,10 @@ export default function PdfQuestionSlicerModal({
                         cursor: 'pointer'
                       }}
                     >
-                      <option value="">🏢 Tüm Sınıf / Genel Test (Sadece Soru Bankası)</option>
-                      {(students.length > 0 ? students : users.filter(u => u.role === 'student')).map(st => (
+                      <option value="">🏢 Tüm Sınıf / Genel Test (Soru Bankası Havuzu)</option>
+                      {studentList.map(st => (
                         <option key={st.id} value={st.id}>
-                          👤 {st.name || st.fullName} {st.grade ? `(${st.grade}. Sınıf)` : ''}
+                          👤 {st.name || st.fullName} {st.grade || st.gradeId ? `(${st.grade || st.gradeId}. Sınıf)` : ''}
                         </option>
                       ))}
                     </select>
