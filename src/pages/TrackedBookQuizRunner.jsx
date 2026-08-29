@@ -224,14 +224,26 @@ export default function TrackedBookQuizRunner() {
       navigate(`/physical-exam/${targetId}?studentId=${studentId || ''}`, { replace: true });
       return;
     }
-    // If not a tracked book test but a normal homework/quiz, redirect to /quiz/:id
+    // If not a tracked book test but a normal homework/quiz, redirect to /review/ (if completed) or /quiz/:id
     if (!resolvedTest && !booksLoading && !hwLoading && homeworks?.length > 0) {
       const cleanHwMatch = homeworks.find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId || cleanId.includes(String(hw.id)));
       if (cleanHwMatch && !cleanHwMatch.isBookAssignment) {
-        navigate(`/quiz/${cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true });
+        const existingSub = (submissions || []).find(s => {
+          if (s.status === 'in_progress' || s.status === 'draft') return false;
+          const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+          const isSt = sId === String(studentId) || (studentId && toUUID(sId) === toUUID(studentId));
+          const isHw = String(s.homework_id || s.hwId || s.testId || s.test_id || '') === String(cleanHwMatch.id);
+          return isSt && isHw;
+        });
+
+        if (existingSub || isTeacherReviewing) {
+          navigate(`/review/${existingSub ? existingSub.id : cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true, state: { from: returnUrl || '/remedials' } });
+        } else {
+          navigate(`/quiz/${cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true });
+        }
       }
     }
-  }, [resolvedBook, resolvedHw, resolvedTest, booksLoading, hwLoading, homeworks, cleanId, studentId, navigate]);
+  }, [resolvedBook, resolvedHw, resolvedTest, booksLoading, hwLoading, homeworks, cleanId, studentId, submissions, isTeacherReviewing, returnUrl, navigate]);
 
   const pdfUrl = resolvedTest?.pdfUrl || resolvedBook?.pdfUrl || resolvedHw?.pdfUrl || '';
   const hasPdf = Boolean(pdfUrl);

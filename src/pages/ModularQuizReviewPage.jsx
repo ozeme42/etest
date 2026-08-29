@@ -548,19 +548,17 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundSubmission) {
-      // If this submission belongs to a tracked book test, redirect directly to /book-quiz/:bookTestId
-      const isBook = Boolean(
-        foundSubmission.bookId ||
-        foundSubmission.bookTestId ||
-        foundSubmission.taskType === 'kitap' ||
-        foundSubmission.sourceType === 'bookTest' ||
-        foundSubmission.metadata?.bookTestId ||
-        (foundTest && (foundTest.bookId || foundTest.book_id))
+      // If this submission belongs to an actual tracked book test in bookTests, redirect to /book-quiz/:bookTestId
+      const isTrackedBookTest = Boolean(
+        (foundTest?.isBookAssignment === true || foundSubmission.sourceType === 'trackedBook') &&
+        (bookTests || []).some(bt => String(bt.id) === String(foundSubmission.bookTestId || foundSubmission.testId || foundTest?.id))
       );
-      const bTestId = foundSubmission.bookTestId || foundSubmission.realTestId || foundSubmission.testId || foundSubmission.metadata?.bookTestId || foundSubmission.metadata?.realTestId || (foundTest?.bookId ? foundTest.id : null);
-      if (isBook && bTestId) {
-        navigate(`/book-quiz/${bTestId}?studentId=${studentId || currentUser?.id || ''}&from=${fromPath || '/student'}`, { replace: true, state: { from: fromPath || '/student' } });
-        return;
+      if (isTrackedBookTest) {
+        const bTestId = foundSubmission.bookTestId || foundSubmission.realTestId || foundSubmission.testId || foundTest?.id;
+        if (bTestId) {
+          navigate(`/book-quiz/${bTestId}?studentId=${studentId || currentUser?.id || ''}&from=${fromPath || '/student'}`, { replace: true, state: { from: fromPath || '/student' } });
+          return;
+        }
       }
 
       if ((!foundSubmission.answers || foundSubmission.answers.length === 0) && (foundSubmission.studentAnswers || foundSubmission.answersMap)) {

@@ -1129,10 +1129,19 @@ export default function TeacherStudentMistakesPool({
                     <button
                       type="button"
                       onClick={() => {
-                        const targetId = test.testId || test.id;
-                        navigate(`/book-quiz/${targetId}?studentId=${student.id}`, {
-                          state: { from: '/remedials' }
-                        });
+                        const isTrackedBook = activeBook && activeBook.bookId !== 'other_tests' && books.some(b => String(b.id) === String(activeBook.bookId) || toUUID(b.id) === String(activeBook.bookId));
+                        const isVerifiedBookTest = Boolean(test.testId && (test.testId.startsWith('tbt_') || test.testId.startsWith('7462745f') || (bookTests || []).some(bt => String(bt.id) === String(test.testId))));
+
+                        if (isTrackedBook && isVerifiedBookTest) {
+                          navigate(`/book-quiz/${test.testId}?studentId=${student.id}`, {
+                            state: { from: '/remedials' }
+                          });
+                        } else {
+                          const subId = test.submissionId || test.id;
+                          navigate(`/review/${subId}?studentId=${student.id}`, {
+                            state: { from: '/remedials' }
+                          });
+                        }
                       }}
                       title="Bu testi ve öğrencinin optik form / soru çözümlerini incele"
                       style={{
