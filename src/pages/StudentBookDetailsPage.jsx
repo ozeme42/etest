@@ -2173,7 +2173,7 @@ export default function StudentBookDetailsPage() {
                                   <button
                                     className="sbdp-btn-solve"
                                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                    onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                    onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                   >
                                     <Eye size={13} /> Sonucu İncele
                                   </button>
@@ -2357,7 +2357,7 @@ export default function StudentBookDetailsPage() {
                                           <button
                                             className="sbdp-btn-solve"
                                             style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                            onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                            onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                           >
                                             <Eye size={13} /> Sonucu İncele
                                           </button>
@@ -2494,7 +2494,7 @@ export default function StudentBookDetailsPage() {
                                 <button
                                   className="sbdp-btn-solve"
                                   style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                  onClick={() => navigate(`/review/${test.latestSubId}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
                                 >
                                   <Eye size={13} /> Sonucu İncele
                                 </button>

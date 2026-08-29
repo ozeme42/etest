@@ -1136,6 +1136,14 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
       return;
     }
+    const isBookTest = Boolean(s.bookId || s.bookTestId || s.taskType === 'kitap' || s.sourceType === 'bookTest' || s.metadata?.bookTestId);
+    const bookTestId = s.bookTestId || s.testId || s.realTestId || s.metadata?.bookTestId || s.metadata?.realTestId;
+    if (isBookTest && bookTestId) {
+      navigate(`/book-quiz/${bookTestId}?studentId=${selectedStudent?.id || ''}`, {
+        state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }
+      });
+      return;
+    }
     const targetSubId = s.supabaseId || s.submissionId || s.realId || s.id || s.bookTestId || s.testId || s.hwId;
     navigate(`/review/${targetSubId}?studentId=${selectedStudent?.id || ''}`, {
       state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }

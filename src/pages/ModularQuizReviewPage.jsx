@@ -547,6 +547,21 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundSubmission) {
+      // If this submission belongs to a tracked book test, redirect directly to /book-quiz/:bookTestId
+      const isBook = Boolean(
+        foundSubmission.bookId ||
+        foundSubmission.bookTestId ||
+        foundSubmission.taskType === 'kitap' ||
+        foundSubmission.sourceType === 'bookTest' ||
+        foundSubmission.metadata?.bookTestId ||
+        (foundTest && (foundTest.bookId || foundTest.book_id))
+      );
+      const bTestId = foundSubmission.bookTestId || foundSubmission.realTestId || foundSubmission.testId || foundSubmission.metadata?.bookTestId || foundSubmission.metadata?.realTestId || (foundTest?.bookId ? foundTest.id : null);
+      if (isBook && bTestId) {
+        navigate(`/book-quiz/${bTestId}?studentId=${studentId || currentUser?.id || ''}&from=${fromPath || '/student'}`, { replace: true, state: { from: fromPath || '/student' } });
+        return;
+      }
+
       if ((!foundSubmission.answers || foundSubmission.answers.length === 0) && (foundSubmission.studentAnswers || foundSubmission.answersMap)) {
         const sAnswers = foundSubmission.studentAnswers || foundSubmission.answersMap || {};
         const ak = foundTest?.answerKey || foundTest?.answers || {};
@@ -569,7 +584,7 @@ export default function ModularQuizReviewPage() {
     }
 
     setLoading(false);
-  }, [targetId, studentId, homeworks, submissions, curriculumData, allBankQuestions, bookTests]);
+  }, [targetId, studentId, homeworks, submissions, curriculumData, allBankQuestions, bookTests, navigate, fromPath, currentUser]);
 
   useEffect(() => {
     let isMounted = true;

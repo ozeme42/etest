@@ -82,6 +82,29 @@ export default function TrackedBookQuizRunner() {
 
     if (!cleanId) return { resolvedTest: null, resolvedBook: null, resolvedHw: null };
 
+    // 0. Match from submissions if cleanId is a submission ID (e.g. sub_study_... or sub_...)
+    if (!t && submissions && submissions.length > 0) {
+      const subMatch = submissions.find(s => String(s.id) === cleanId || String(s.supabaseId) === cleanId || String(s.submissionId) === cleanId || toUUID(s.id) === cleanId);
+      if (subMatch) {
+        const candidateIds = [subMatch.bookTestId, subMatch.realTestId, subMatch.testId, subMatch.metadata?.bookTestId, subMatch.metadata?.realTestId, subMatch.metadata?.testId].filter(Boolean);
+        for (const cId of candidateIds) {
+          t = (bookTests || []).find(test => String(test.id) === String(cId) || toUUID(test.id) === String(cId) || toUUID(test.id) === toUUID(cId));
+          if (t) break;
+        }
+        if (!t && subMatch.bookId) {
+          const bookMatch = (books || []).find(bk => String(bk.id) === String(subMatch.bookId) || toUUID(bk.id) === String(subMatch.bookId));
+          if (bookMatch) {
+            b = bookMatch;
+            const bTests = (bookTests || []).filter(test => String(test.bookId) === String(bookMatch.id) || toUUID(test.bookId) === String(bookMatch.id));
+            if (bTests.length > 0) {
+              const matchedName = bTests.find(bt => (subMatch.testTitle || subMatch.title || '').includes(bt.name) || bt.name.includes((subMatch.testTitle || subMatch.title || '')));
+              t = matchedName || bTests[0];
+            }
+          }
+        }
+      }
+    }
+
     // 1. Composite ID (e.g. auto_hw_123_456_date or book_test_123_456 or bt_123_456)
     if (cleanId.startsWith('auto_hw_') || cleanId.startsWith('book_test_') || cleanId.startsWith('bt_') || cleanId.includes('_tbt_') || cleanId.includes('_bt_')) {
       const parts = cleanId.split('_');

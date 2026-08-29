@@ -6795,7 +6795,16 @@ export default function StudyRoomPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const subId = completedQuizResult.id;
+                  const subId = completedQuizResult?.id;
+                  const targetBookTestId = completedQuizResult?.testId || completedQuizResult?.realTestId || completedQuizResult?.bookTestId || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.realTestId;
+                  const isBookQuiz = Boolean(
+                    selectedTask?.sourceType === 'bookTest' ||
+                    selectedTask?.taskType === 'kitap' ||
+                    selectedTask?.bookId ||
+                    completedQuizResult?.bookId ||
+                    completedQuizResult?.bookTestId ||
+                    matchedBookObj
+                  );
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
                   handleClearSelectedTask();
@@ -6803,7 +6812,11 @@ export default function StudyRoomPage() {
                     localStorage.removeItem('study_active_selected_task');
                     window.history.replaceState({}, document.title);
                   } catch (e) {}
-                  navigate(`/review/${subId}?studentId=${currentUser?.id || ''}&from=/study-room`, { state: { from: '/study-room' } });
+                  if (isBookQuiz && targetBookTestId) {
+                    navigate(`/book-quiz/${targetBookTestId}?studentId=${currentUser?.id || ''}&from=/study-room`, { state: { from: '/study-room' } });
+                  } else {
+                    navigate(`/review/${subId}?studentId=${currentUser?.id || ''}&from=/study-room`, { state: { from: '/study-room' } });
+                  }
                 }}
                 style={{
                   padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
