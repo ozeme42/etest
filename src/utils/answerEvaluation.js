@@ -22,6 +22,9 @@ export function cleanMathAndUnitString(str) {
   // 4. Replace decimal commas with dots: 3,5 -> 3.5 (only if between digits)
   s = s.replace(/(\d+),(\d+)/g, '$1.$2');
 
+  // Strip variable prefixes like x=, y=, a=, n=, k=, cevap=, cevap:, sonuç=
+  s = s.replace(/^(?:[a-z]|cevap|sonuc|alan|hacim|cevre|çevre)\s*[:=]\s*/gi, '');
+
   // 5. Remove degree symbols and words (e.g. 30°, 30 derece, 30°C)
   s = s.replace(/°c|°|º|deg|derece|santigrat|celcius/gi, '');
 

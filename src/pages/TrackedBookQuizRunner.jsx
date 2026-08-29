@@ -1049,6 +1049,20 @@ export default function TrackedBookQuizRunner() {
   );
   const optionsList = isFourOptions ? ['A', 'B', 'C', 'D'] : ['A', 'B', 'C', 'D', 'E'];
 
+  const handleGoBack = useCallback(() => {
+    if (returnUrl) {
+      navigate(returnUrl);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else if (resolvedBook?.bookType === 'exam') {
+      navigate('/student/exams');
+    } else if (resolvedBook?.id) {
+      navigate(`/student/books/${resolvedBook.id}`);
+    } else {
+      navigate('/student');
+    }
+  }, [returnUrl, resolvedBook, navigate]);
+
   // Loading Screen
   if (booksLoading || hwLoading) {
     return (
@@ -1080,20 +1094,6 @@ export default function TrackedBookQuizRunner() {
       </div>
     );
   }
-
-  const handleGoBack = useCallback(() => {
-    if (returnUrl) {
-      navigate(returnUrl);
-    } else if (window.history.length > 1) {
-      navigate(-1);
-    } else if (resolvedBook?.bookType === 'exam') {
-      navigate('/student/exams');
-    } else if (resolvedBook?.id) {
-      navigate(`/student/books/${resolvedBook.id}`);
-    } else {
-      navigate('/student');
-    }
-  }, [returnUrl, resolvedBook, navigate]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>

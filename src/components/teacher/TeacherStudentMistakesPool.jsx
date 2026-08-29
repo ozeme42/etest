@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
+import { useCurriculum } from '../../context/CurriculumContext';
 import { toUUID, dbRecordDeletedItem } from '../../services/supabaseService';
 
 const SUBJECT_ICONS = {
