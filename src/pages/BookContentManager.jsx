@@ -303,7 +303,29 @@ export default function BookContentManager() {
       }
     });
 
-    return Array.from(deduplicatedMap.values());
+    return Array.from(deduplicatedMap.values()).map(t => {
+      let subjectName = '';
+      let unit = '';
+      if (book?.subjects) {
+        const matchedSubj = book.subjects.find(s => isTestInSubject(t, s, book.subjects));
+        if (matchedSubj) {
+          subjectName = matchedSubj.name;
+          const parentTopic = (matchedSubj.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
+          if (parentTopic) {
+            unit = parentTopic.name;
+          }
+        }
+      }
+      return {
+        ...t,
+        subjectName,
+        subject: subjectName,
+        parentSubjectName: subjectName,
+        unit,
+        unitName: unit,
+        bookId: book?.id
+      };
+    });
   }, [bookTests, id, book, localLiveTests]);
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
