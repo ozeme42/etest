@@ -11,6 +11,7 @@ import { useEvaluation } from '../../context/EvaluationContext';
 import { useHomework } from '../../context/HomeworkContext';
 import { useUser } from '../../context/UserContext';
 import { getRemedialTestMasteryStatus } from '../../services/remedialSpacedRepetitionService';
+import { toUUID } from '../../services/supabaseService';
 
 export default function TeacherRemedialTracker({ isDark: propIsDark, targetStudentId = null }) {
   const themeContext = useTheme();
@@ -49,8 +50,13 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       const targetStudentIds = new Set();
       if (t.studentId && t.studentId !== 'teacher') targetStudentIds.add(String(t.studentId));
       if (t.assignedStudentId && t.assignedStudentId !== 'teacher') targetStudentIds.add(String(t.assignedStudentId));
-      if (Array.isArray(t.targetIds)) t.targetIds.forEach(id => targetStudentIds.add(String(id)));
-      if (Array.isArray(t.studentIds)) t.studentIds.forEach(id => targetStudentIds.add(String(id)));
+      if (t.targetStudentId && t.targetStudentId !== 'teacher') targetStudentIds.add(String(t.targetStudentId));
+      if (t.targetStudent && t.targetStudent !== 'teacher') targetStudentIds.add(String(t.targetStudent));
+      if (t.raw_data?.targetStudentId && t.raw_data.targetStudentId !== 'teacher') targetStudentIds.add(String(t.raw_data.targetStudentId));
+      if (t.raw_data?.studentId && t.raw_data.studentId !== 'teacher') targetStudentIds.add(String(t.raw_data.studentId));
+      if (Array.isArray(t.targetIds)) t.targetIds.forEach(id => id && id !== 'teacher' && targetStudentIds.add(String(id)));
+      if (Array.isArray(t.studentIds)) t.studentIds.forEach(id => id && id !== 'teacher' && targetStudentIds.add(String(id)));
+      if (Array.isArray(t.targetStudentIds)) t.targetStudentIds.forEach(id => id && id !== 'teacher' && targetStudentIds.add(String(id)));
 
       // Also check submissions for this test
       const testSubs = (submissions || []).filter(s => {
@@ -64,9 +70,9 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
 
       if (targetStudentIds.size > 0) {
         targetStudentIds.forEach(sid => {
-          const studentObj = (students.length > 0 ? students : users).find(u => String(u.id) === sid);
+          const studentObj = (students.length > 0 ? students : users).find(u => String(u.id) === sid || (toUUID(u.id) && String(toUUID(u.id)) === String(toUUID(sid))));
           const studentName = studentObj?.name || studentObj?.fullName || 'Öğrenci';
-          const studentSubs = testSubs.filter(s => String(s.studentId || s.userId || s.student_id) === sid);
+          const studentSubs = testSubs.filter(s => String(s.studentId || s.userId || s.student_id) === sid || (toUUID(s.studentId) && String(toUUID(s.studentId)) === String(toUUID(sid))));
           const statusInfo = getRemedialTestMasteryStatus(t, studentSubs.length > 0 ? studentSubs : submissions);
 
           rows.push({
@@ -82,7 +88,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
         rows.push({
           ...statusInfo,
           studentId: null,
-          studentName: '🏢 Soru Bankası Havuzunda',
+          studentName: '🏢 Genel Telafi Havuzu',
           studentObj: null,
           rawTest: t
         });
@@ -90,12 +96,18 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
     });
 
     return rows;
-  }, [tests, questions, submissions, users, students]);
+  }, [tests, questions, homeworks, submissions, users, students]);
 
   // Filtered List
   const scopedList = useMemo(() => {
-    if (!targetStudentId) return remedialMasteryList;
-    return remedialMasteryList.filter(item => String(item.studentId) === String(targetStudentId));
+    if (!targetStudentId || targetStudentId === 'all') return remedialMasteryList;
+    const targetStr = String(targetStudentId);
+    const targetUuid = String(toUUID(targetStudentId) || '');
+    return remedialMasteryList.filter(item => {
+      if (!item.studentId) return false;
+      const sid = String(item.studentId);
+      return sid === targetStr || (targetUuid && (sid === targetUuid || toUUID(sid) === targetUuid));
+    });
   }, [remedialMasteryList, targetStudentId]);
 
   // Filtered List
