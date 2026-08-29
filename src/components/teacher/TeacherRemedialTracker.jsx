@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, Award, CheckCircle2, AlertCircle, Clock, Search,
   ChevronRight, RotateCcw, Eye, Zap, Calendar, TrendingUp,
   Filter, BookOpen, Layers, Check, ArrowRight, UserCheck,
-  Edit3, Trash2, Save, X, Plus, CalendarDays, RefreshCw
+  Edit3, Trash2, Save, X, Plus, CalendarDays, RefreshCw,
+  ZoomIn, ChevronLeft, Image as ImageIcon, CheckSquare
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useQuestionBank } from '../../context/QuestionBankContext';
@@ -18,6 +19,7 @@ import {
   REPETITION_PRESETS
 } from '../../services/remedialSpacedRepetitionService';
 import { toUUID, dbSaveRemedialRepetition, dbRecordDeletedItem } from '../../services/supabaseService';
+import { idbGetPayload } from '../../services/indexedDbService';
 
 const SUBJECT_OPTIONS = [
   'Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler',
@@ -26,7 +28,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 /**
- * Modal to edit remedial test metadata, dates/intervals, answer key and study program sync.
+ * Modal to edit remedial test metadata, view/preview questions, dates/intervals, and sync to study program.
  */
 function EditRemedialModal({
   isOpen,
@@ -49,6 +51,57 @@ function EditRemedialModal({
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [syncToProgram, setSyncToProgram] = useState(true);
   const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
+  const [activeTab, setActiveTab] = useState('questions'); // 'questions' | 'schedule' | 'general'
+  const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
+  const [lightboxImage, setLightboxImage] = useState(null);
+
+  // Initialize questions list with images and answers
+  const [questionsList, setQuestionsList] = useState(() => {
+    const raw = testItem?.rawTest;
+    if (Array.isArray(raw?.questionsList) && raw.questionsList.length > 0) {
+      return raw.questionsList.map((q, idx) => ({
+        ...q,
+        id: q.id || `q_${idx}_${Date.now()}`,
+        questionNo: q.questionNo || idx + 1,
+        title: q.title || q.questionText || `${idx + 1}. Soru`,
+        imageUrl: q.imageUrl || q.contentPayload || (Array.isArray(raw.imageUrls) ? raw.imageUrls[idx] : '') || '',
+        contentPayload: q.contentPayload || q.imageUrl || (Array.isArray(raw.imageUrls) ? raw.imageUrls[idx] : '') || '',
+        correctAnswer: q.correctAnswer || (raw.answerKey ? raw.answerKey[idx + 1] : 'A') || 'A'
+      }));
+    }
+    if (Array.isArray(raw?.imageUrls) && raw.imageUrls.length > 0) {
+      return raw.imageUrls.map((img, idx) => ({
+        id: `q_${idx}_${Date.now()}`,
+        questionNo: idx + 1,
+        title: `${idx + 1}. Soru`,
+        imageUrl: img,
+        contentPayload: img,
+        correctAnswer: (raw.answerKey ? raw.answerKey[idx + 1] : 'A') || 'A'
+      }));
+    }
+    if (raw?.contentPayload && typeof raw.contentPayload === 'string') {
+      const parts = raw.contentPayload.split(/\n\n|\n|\|/).filter(s => s.trim().length > 0);
+      if (parts.length > 0 && (parts[0].startsWith('data:') || parts[0].startsWith('http'))) {
+        return parts.map((img, idx) => ({
+          id: `q_${idx}_${Date.now()}`,
+          questionNo: idx + 1,
+          title: `${idx + 1}. Soru`,
+          imageUrl: img,
+          contentPayload: img,
+          correctAnswer: (raw.answerKey ? raw.answerKey[idx + 1] : 'A') || 'A'
+        }));
+      }
+    }
+    const qCount = testItem?.totalQuestions || 1;
+    return Array.from({ length: qCount }, (_, idx) => ({
+      id: `q_${idx}_${Date.now()}`,
+      questionNo: idx + 1,
+      title: `${idx + 1}. Soru`,
+      imageUrl: '',
+      correctAnswer: (raw?.answerKey ? raw.answerKey[idx + 1] : 'A') || 'A'
+    }));
+  });
+
   const [answerKey, setAnswerKey] = useState(() => {
     const raw = testItem?.rawTest?.answerKey;
     if (raw && typeof raw === 'object') return { ...raw };
@@ -57,17 +110,45 @@ function EditRemedialModal({
       raw.forEach((ans, i) => { obj[i + 1] = ans; });
       return obj;
     }
-    const qList = testItem?.rawTest?.questionsList;
-    if (Array.isArray(qList)) {
-      const obj = {};
-      qList.forEach((q, i) => { obj[i + 1] = q.correctAnswer || 'A'; });
-      return obj;
-    }
-    return {};
+    const obj = {};
+    questionsList.forEach((q, i) => { obj[i + 1] = q.correctAnswer || 'A'; });
+    return obj;
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+
+  // Restore images from IndexedDB if stored as placeholder
+  useEffect(() => {
+    async function restoreImages() {
+      const raw = testItem?.rawTest;
+      if (!raw) return;
+
+      const restoredList = await Promise.all(questionsList.map(async (q, idx) => {
+        let img = q.imageUrl || q.contentPayload;
+        const isMissing = !img || (typeof img === 'string' && (img.includes('[STORED_IN_INDEXEDDB]') || img.includes('[LOCALSTORAGE_CACHE]')));
+        if (isMissing) {
+          const fromIdb = await idbGetPayload(q.id) ||
+                          await idbGetPayload(String(q.id).replace(/^q_?/, '')) ||
+                          await idbGetPayload(testItem.testId) ||
+                          await idbGetPayload(raw.id) ||
+                          await idbGetPayload(toUUID(raw.id));
+          if (fromIdb) {
+            img = fromIdb;
+          }
+        }
+        return {
+          ...q,
+          imageUrl: img || q.imageUrl,
+          contentPayload: img || q.contentPayload
+        };
+      }));
+
+      setQuestionsList(restoredList);
+    }
+
+    restoreImages();
+  }, [testItem?.testId]);
 
   // Compute preview dates for repetition intervals
   const stageDatesPreview = useMemo(() => {
@@ -122,6 +203,7 @@ function EditRemedialModal({
       ...prev,
       [qNo]: opt
     }));
+    setQuestionsList(prev => prev.map((q, i) => (i + 1 === qNo ? { ...q, correctAnswer: opt } : q)));
   };
 
   const handleSave = async () => {
@@ -137,13 +219,12 @@ function EditRemedialModal({
       const targetStudent = studentId || testItem.studentId || null;
 
       // Update question list if present
-      let updatedQuestionsList = raw.questionsList;
-      if (Array.isArray(updatedQuestionsList)) {
-        updatedQuestionsList = updatedQuestionsList.map((q, idx) => ({
-          ...q,
-          correctAnswer: answerKey[idx + 1] || q.correctAnswer || 'A'
-        }));
-      }
+      const updatedQuestionsList = questionsList.map((q, idx) => ({
+        ...q,
+        questionNo: idx + 1,
+        title: q.title || `${idx + 1}. Soru`,
+        correctAnswer: answerKey[idx + 1] || q.correctAnswer || 'A'
+      }));
 
       const updatedPayload = {
         ...raw,
@@ -156,7 +237,10 @@ function EditRemedialModal({
         targetStudentIds: targetStudent ? [targetStudent] : [],
         repetitionIntervals: intervals,
         answerKey: answerKey,
+        questionCount: updatedQuestionsList.length,
+        totalQuestions: updatedQuestionsList.length,
         questionsList: updatedQuestionsList,
+        imageUrls: updatedQuestionsList.map(q => q.imageUrl || q.contentPayload).filter(Boolean),
         isRemedial: true,
         isRemedialTest: true,
         isTeacherRemedial: true,
@@ -207,7 +291,7 @@ function EditRemedialModal({
             hwId: raw.id || testItem.testId,
             title: title.trim(),
             subject: subject,
-            questionCount: testItem.totalQuestions || 1
+            questionCount: updatedQuestionsList.length || 1
           },
           intervals,
           startDate: new Date(startDate),
@@ -231,15 +315,16 @@ function EditRemedialModal({
     }
   };
 
-  const totalQuestions = testItem.totalQuestions || Object.keys(answerKey).length || 1;
+  const currentQ = questionsList[activeQuestionIdx] || questionsList[0] || {};
+  const currentQNo = activeQuestionIdx + 1;
 
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
       zIndex: 9999,
-      background: 'rgba(0, 0, 0, 0.75)',
-      backdropFilter: 'blur(5px)',
+      background: 'rgba(0, 0, 0, 0.8)',
+      backdropFilter: 'blur(6px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -250,8 +335,8 @@ function EditRemedialModal({
         border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
         borderRadius: '1.25rem',
         width: '100%',
-        maxWidth: 680,
-        maxHeight: '90vh',
+        maxWidth: 820,
+        maxHeight: '92vh',
         overflowY: 'auto',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
         display: 'flex',
@@ -259,17 +344,20 @@ function EditRemedialModal({
       }}>
         {/* Modal Header */}
         <div style={{
-          padding: '1.25rem 1.5rem',
+          padding: '1rem 1.25rem',
           borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc'
+          background: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f8fafc',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               borderRadius: 10,
               background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
               color: '#ffffff',
@@ -281,11 +369,11 @@ function EditRemedialModal({
               ✏️
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                Telafi Testini ve Tarihlerini Düzenle
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                Telafi Testini Düzenle &amp; Soruları İncele
               </h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                Test bilgilerini, aralıklı tekrar tarihlerini ve haftalık programı güncelleyin
+              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                Kırpılmış soruları görüntüleyin, şıkları değiştirin, tarih ve takvimi güncelleyin
               </p>
             </div>
           </div>
@@ -305,8 +393,48 @@ function EditRemedialModal({
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+        {/* Navigation Tabs */}
+        <div style={{
+          display: 'flex',
+          borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
+          background: isDark ? 'rgba(15, 23, 42, 0.8)' : '#ffffff',
+          padding: '0 1rem'
+        }}>
+          {[
+            { id: 'questions', label: `📸 Sorular & Cevaplar (${questionsList.length})`, icon: ImageIcon },
+            { id: 'schedule', label: '🧠 Tekrar Planı & Tarihler', icon: CalendarDays },
+            { id: 'general', label: '⚙️ Test Bilgileri', icon: Edit3 }
+          ].map(tab => {
+            const isSel = activeTab === tab.id;
+            const IconComponent = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  borderBottom: isSel ? '3px solid #6366f1' : '3px solid transparent',
+                  background: 'transparent',
+                  color: isSel ? '#6366f1' : 'var(--color-text-muted)',
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <IconComponent size={15} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Modal Body Content */}
+        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {errorMsg && (
             <div style={{
               padding: '0.75rem 1rem',
@@ -323,346 +451,589 @@ function EditRemedialModal({
             </div>
           )}
 
-          {/* Test Title */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
-              📝 Telafi Testi Başlığı
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Örn: 1. Ünite Telafi Testi"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid var(--color-border)',
-                background: isDark ? '#1e293b' : '#f8fafc',
-                color: 'var(--color-text)',
-                fontSize: '0.86rem',
-                fontWeight: 700,
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Subject & Student Selection */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
-                📚 Ders
-              </label>
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid var(--color-border)',
-                  background: isDark ? '#1e293b' : '#f8fafc',
-                  color: 'var(--color-text)',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                {SUBJECT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
-                👤 Atanan Öğrenci
-              </label>
-              <select
-                value={studentId}
-                onChange={(e) => setStudentId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid var(--color-border)',
-                  background: isDark ? '#1e293b' : '#f8fafc',
-                  color: 'var(--color-text)',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                <option value="">🏢 Genel Havuz (Tüm Öğrenciler)</option>
-                {studentsList.map(st => (
-                  <option key={st.id} value={st.id}>{st.name || st.fullName || 'Öğrenci'}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Spaced Repetition Settings */}
-          <div style={{
-            background: isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc',
-            border: '1px solid var(--color-border)',
-            borderRadius: 12,
-            padding: '1rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.85rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CalendarDays size={16} className="text-indigo-500" />
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                  🧠 Aralıklı Tekrar (Leitner) &amp; Tarih Planı
-                </span>
+          {/* TAB 1: QUESTIONS & VISUAL PREVIEW */}
+          {activeTab === 'questions' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Question Step Pills */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                overflowX: 'auto',
+                paddingBottom: 4
+              }}>
+                {questionsList.map((q, idx) => {
+                  const isSel = activeQuestionIdx === idx;
+                  const curAns = answerKey[idx + 1] || q.correctAnswer || 'A';
+                  return (
+                    <button
+                      key={q.id || idx}
+                      type="button"
+                      onClick={() => setActiveQuestionIdx(idx)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        border: isSel ? '2px solid #6366f1' : '1px solid var(--color-border)',
+                        background: isSel ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff') : (isDark ? '#1e293b' : '#f8fafc'),
+                        color: isSel ? '#6366f1' : 'var(--color-text)',
+                        fontSize: '0.76rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        flexShrink: 0
+                      }}
+                    >
+                      <span>S.{idx + 1}</span>
+                      <span style={{
+                        background: '#10b981',
+                        color: '#ffffff',
+                        fontSize: '0.66rem',
+                        fontWeight: 900,
+                        padding: '1px 5px',
+                        borderRadius: 4
+                      }}>
+                        {curAns}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div>
-                <label style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, marginRight: 6 }}>
-                  Başlangıç:
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: 6,
-                    border: '1px solid var(--color-border)',
-                    background: isDark ? '#0f172a' : '#ffffff',
-                    color: 'var(--color-text)',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    outline: 'none'
-                  }}
-                />
-              </div>
-            </div>
+              {/* Active Question Display Card */}
+              <div style={{
+                background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 14,
+                padding: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.85rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      color: '#ffffff',
+                      fontSize: '0.76rem',
+                      fontWeight: 900,
+                      padding: '3px 9px',
+                      borderRadius: 6
+                    }}>
+                      Soru {currentQNo} / {questionsList.length}
+                    </span>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      {currentQ.title || `${currentQNo}. Soru`}
+                    </span>
+                  </div>
 
-            {/* Presets */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
-              {[
-                { id: 'standard_leitner', label: 'Standart (1, 3, 7, 15g)', icon: '🧠' },
-                { id: 'fast', label: 'Hızlı (1, 2, 4, 7g)', icon: '⚡' },
-                { id: 'weekly', label: 'Haftalık (2, 5, 10, 20g)', icon: '📅' },
-                { id: 'today', label: 'Hemen (1, 2g)', icon: '🚀' },
-                { id: 'custom', label: 'Özel Aralık', icon: '✏️' }
-              ].map(p => {
-                const isSel = schedulePreset === p.id;
-                return (
+                  {currentQ.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImage(currentQ.imageUrl)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: isDark ? '#0f172a' : '#ffffff',
+                        color: 'var(--color-text)',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <ZoomIn size={13} /> <span>Büyüt</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Question Image Preview */}
+                <div style={{
+                  background: isDark ? '#020617' : '#ffffff',
+                  border: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
+                  borderRadius: 10,
+                  padding: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 220,
+                  maxHeight: 400,
+                  overflowY: 'auto'
+                }}>
+                  {currentQ.imageUrl ? (
+                    <img
+                      src={currentQ.imageUrl}
+                      alt={`Soru ${currentQNo}`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: 360,
+                        objectFit: 'contain',
+                        borderRadius: 6,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setLightboxImage(currentQ.imageUrl)}
+                    />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-muted)' }}>
+                      <ImageIcon size={36} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                      <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 700 }}>
+                        {currentQ.questionText || `${currentQNo}. Soru Metni`}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.72rem' }}>
+                        (Görsel yüklenmedi veya metin tabanlı soru)
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option / Answer Key Selector for Current Question */}
+                <div style={{
+                  background: isDark ? '#0f172a' : '#ffffff',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 10,
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CheckSquare size={16} className="text-emerald-500" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      Bu Sorunun Doğru Cevabı:
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {['A', 'B', 'C', 'D', 'E'].map(opt => {
+                      const isSelected = (answerKey[currentQNo] || currentQ.correctAnswer || 'A') === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleOptionChange(currentQNo, opt)}
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 8,
+                            border: isSelected ? '2px solid #059669' : '1px solid var(--color-border)',
+                            background: isSelected ? '#10b981' : (isDark ? '#1e293b' : '#f1f5f9'),
+                            color: isSelected ? '#ffffff' : 'var(--color-text)',
+                            fontSize: '0.88rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: isSelected ? '0 4px 10px rgba(16,185,129,0.3)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Previous / Next Question Navigation Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                   <button
-                    key={p.id}
                     type="button"
-                    onClick={() => handlePresetSelect(p.id)}
+                    disabled={activeQuestionIdx === 0}
+                    onClick={() => setActiveQuestionIdx(prev => Math.max(0, prev - 1))}
                     style={{
-                      padding: '6px 8px',
+                      padding: '6px 12px',
                       borderRadius: 8,
-                      border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                      background: isSel ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : (isDark ? '#0f172a' : '#ffffff'),
-                      color: isSel ? '#6366f1' : 'var(--color-text)',
-                      fontSize: '0.72rem',
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: activeQuestionIdx === 0 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      fontSize: '0.76rem',
                       fontWeight: 800,
-                      cursor: 'pointer',
+                      cursor: activeQuestionIdx === 0 ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 4
+                      gap: 4,
+                      opacity: activeQuestionIdx === 0 ? 0.5 : 1
                     }}
                   >
-                    <span>{p.icon}</span>
-                    <span>{p.label}</span>
+                    <ChevronLeft size={14} /> <span>Önceki Soru</span>
                   </button>
-                );
-              })}
-            </div>
 
-            {schedulePreset === 'custom' && (
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                    {currentQNo} / {questionsList.length} Soru
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={activeQuestionIdx === questionsList.length - 1}
+                    onClick={() => setActiveQuestionIdx(prev => Math.min(questionsList.length - 1, prev + 1))}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: activeQuestionIdx === questionsList.length - 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: activeQuestionIdx === questionsList.length - 1 ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      opacity: activeQuestionIdx === questionsList.length - 1 ? 0.5 : 1
+                    }}
+                  >
+                    <span>Sonraki Soru</span> <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: SPICED REPETITION & DATES */}
+          {activeTab === 'schedule' && (
+            <div style={{
+              background: isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc',
+              border: '1px solid var(--color-border)',
+              borderRadius: 12,
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CalendarDays size={16} className="text-indigo-500" />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    🧠 Aralıklı Tekrar (Leitner) &amp; Tarih Planı
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, marginRight: 6 }}>
+                    Başlangıç Tarihi:
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: 'var(--color-text)',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Presets */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
+                {[
+                  { id: 'standard_leitner', label: 'Standart (1, 3, 7, 15g)', icon: '🧠' },
+                  { id: 'fast', label: 'Hızlı (1, 2, 4, 7g)', icon: '⚡' },
+                  { id: 'weekly', label: 'Haftalık (2, 5, 10, 20g)', icon: '📅' },
+                  { id: 'today', label: 'Hemen (1, 2g)', icon: '🚀' },
+                  { id: 'custom', label: 'Özel Aralık', icon: '✏️' }
+                ].map(p => {
+                  const isSel = schedulePreset === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handlePresetSelect(p.id)}
+                      style={{
+                        padding: '6px 8px',
+                        borderRadius: 8,
+                        border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                        background: isSel ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : (isDark ? '#0f172a' : '#ffffff'),
+                        color: isSel ? '#6366f1' : 'var(--color-text)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <span>{p.icon}</span>
+                      <span>{p.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {schedulePreset === 'custom' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+                    Virgülle ayırarak günleri giriniz (Örn: 1, 3, 7, 14, 30):
+                  </label>
+                  <input
+                    type="text"
+                    value={customIntervalsStr}
+                    onChange={(e) => handleCustomIntervalsChange(e.target.value)}
+                    placeholder="1, 3, 7, 15"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: 'var(--color-text)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* Live Dates Table Preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                  🗓️ Hesaplanmış Tekrar Tarihleri:
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                  {stageDatesPreview.map(s => (
+                    <div
+                      key={s.stage}
+                      style={{
+                        background: isDark ? '#0f172a' : '#ffffff',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 8,
+                        padding: '5px 8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2
+                      }}
+                    >
+                      <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#6366f1' }}>
+                        {s.stage}. Tekrar ({s.days}. Gün)
+                      </span>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text)' }}>
+                        {s.dateFormatted}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sync to Study Program Checkbox */}
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: 'pointer',
+                marginTop: 6,
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                color: 'var(--color-text)'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={syncToProgram}
+                  onChange={(e) => setSyncToProgram(e.target.checked)}
+                  style={{ width: 16, height: 16, accentColor: '#6366f1', cursor: 'pointer' }}
+                />
+                <span>📅 Öğrencinin Haftalık Çalışma Programına (Pzt-Paz) Otomatik Yerleştir</span>
+              </label>
+            </div>
+          )}
+
+          {/* TAB 3: GENERAL INFO */}
+          {activeTab === 'general' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
-                  Virgülle ayırarak günleri giriniz (Örn: 1, 3, 7, 14, 30):
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
+                  📝 Telafi Testi Başlığı
                 </label>
                 <input
                   type="text"
-                  value={customIntervalsStr}
-                  onChange={(e) => handleCustomIntervalsChange(e.target.value)}
-                  placeholder="1, 3, 7, 15"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Örn: 1. Ünite Telafi Testi"
                   style={{
                     width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: 6,
+                    padding: '8px 12px',
+                    borderRadius: 8,
                     border: '1px solid var(--color-border)',
-                    background: isDark ? '#0f172a' : '#ffffff',
+                    background: isDark ? '#1e293b' : '#f8fafc',
                     color: 'var(--color-text)',
-                    fontSize: '0.78rem',
+                    fontSize: '0.86rem',
                     fontWeight: 700,
                     outline: 'none',
                     boxSizing: 'border-box'
                   }}
                 />
               </div>
-            )}
 
-            {/* Live Dates Table Preview */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                🗓️ Hesaplanmış Tekrar Tarihleri:
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
-                {stageDatesPreview.map(s => (
-                  <div
-                    key={s.stage}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
+                    📚 Ders
+                  </label>
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
                     style={{
-                      background: isDark ? '#0f172a' : '#ffffff',
-                      border: '1px solid var(--color-border)',
+                      width: '100%',
+                      padding: '8px 12px',
                       borderRadius: 8,
-                      padding: '5px 8px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#1e293b' : '#f8fafc',
+                      color: 'var(--color-text)',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      outline: 'none'
                     }}
                   >
-                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#6366f1' }}>
-                      {s.stage}. Tekrar ({s.days}. Gün)
-                    </span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-text)' }}>
-                      {s.dateFormatted}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+                    {SUBJECT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
 
-            {/* Sync to Study Program Checkbox */}
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              cursor: 'pointer',
-              marginTop: 6,
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              color: 'var(--color-text)'
-            }}>
-              <input
-                type="checkbox"
-                checked={syncToProgram}
-                onChange={(e) => setSyncToProgram(e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: '#6366f1', cursor: 'pointer' }}
-              />
-              <span>📅 Öğrencinin Haftalık Çalışma Programına (Pzt-Paz) Otomatik Yerleştir</span>
-            </label>
-          </div>
-
-          {/* Answer Key Editor */}
-          {totalQuestions > 0 && (
-            <div>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 6 }}>
-                🎯 Soru Cevap Anahtarını Düzenle ({totalQuestions} Soru):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 6 }}>
-                {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(qNo => {
-                  const currentAns = answerKey[qNo] || 'A';
-                  return (
-                    <div
-                      key={qNo}
-                      style={{
-                        background: isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 8,
-                        padding: '4px 6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}
-                    >
-                      <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                        S.{qNo}
-                      </span>
-                      <div style={{ display: 'flex', gap: 3 }}>
-                        {['A', 'B', 'C', 'D', 'E'].map(opt => {
-                          const isSel = currentAns === opt;
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => handleOptionChange(qNo, opt)}
-                              style={{
-                                width: 18,
-                                height: 18,
-                                borderRadius: 4,
-                                border: 'none',
-                                background: isSel ? '#10b981' : (isDark ? '#1e293b' : '#e2e8f0'),
-                                color: isSel ? '#ffffff' : 'var(--color-text)',
-                                fontSize: '0.66rem',
-                                fontWeight: 900,
-                                cursor: 'pointer',
-                                padding: 0
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 5 }}>
+                    👤 Atanan Öğrenci
+                  </label>
+                  <select
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#1e293b' : '#f8fafc',
+                      color: 'var(--color-text)',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="">🏢 Genel Havuz (Tüm Öğrenciler)</option>
+                    {studentsList.map(st => (
+                      <option key={st.id} value={st.id}>{st.name || st.fullName || 'Öğrenci'}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           )}
         </div>
 
+        {/* Lightbox Zoom Modal */}
+        {lightboxImage && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 11000,
+              background: 'rgba(0, 0, 0, 0.9)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.5rem'
+            }}
+            onClick={() => setLightboxImage(null)}
+          >
+            <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+              <button
+                type="button"
+                onClick={() => setLightboxImage(null)}
+                style={{
+                  position: 'absolute',
+                  top: -40,
+                  right: 0,
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+              <img
+                src={lightboxImage}
+                alt="Büyütülmüş Soru"
+                style={{ maxWidth: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: 8 }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Modal Footer */}
         <div style={{
-          padding: '1rem 1.5rem',
+          padding: '1rem 1.25rem',
           borderTop: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: 8,
-          background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc'
+          justifyContent: 'space-between',
+          background: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f8fafc'
         }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              color: 'var(--color-text-muted)',
-              fontSize: '0.82rem',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-          >
-            Vazgeç
-          </button>
+          <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+            Toplam: {questionsList.length} Soru
+          </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            style={{
-              padding: '8px 20px',
-              borderRadius: 8,
-              border: 'none',
-              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-              color: '#ffffff',
-              fontSize: '0.84rem',
-              fontWeight: 900,
-              cursor: isSaving ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-            }}
-          >
-            {isSaving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
-            <span>{isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet & Senkronize Et'}</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                background: 'transparent',
+                color: 'var(--color-text-muted)',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              Vazgeç
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              style={{
+                padding: '8px 20px',
+                borderRadius: 8,
+                border: 'none',
+                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                color: '#ffffff',
+                fontSize: '0.84rem',
+                fontWeight: 900,
+                cursor: isSaving ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              {isSaving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+              <span>{isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet &amp; Senkronize Et'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -962,7 +1333,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
               ✂️ Atanan Telafi Testleri & %100 Ustalık Takip Paneli
             </h3>
             <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              Telafi testlerini düzenleyin, aralıklı tekrar tarihlerini güncelleyin ve haftalık ders programında canlı takip edin.
+              Telafi testlerini düzenleyin, soruları inceleyin, aralıklı tekrar tarihlerini güncelleyin ve haftalık ders programında canlı takip edin.
             </p>
           </div>
         </div>
@@ -1237,9 +1608,9 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
                       justifyContent: 'center',
                       gap: 4
                     }}
-                    title="Testi, Tarihleri ve Cevap Anahtarını Düzenle"
+                    title="Testi, Soruları, Tarihleri ve Cevap Anahtarını Düzenle"
                   >
-                    <Edit3 size={12} /> <span>✏️ Düzenle &amp; Tarihler</span>
+                    <Edit3 size={12} /> <span>✏️ Soruları &amp; Planı Düzenle</span>
                   </button>
 
                   {/* Sync to Program Quick Button */}
