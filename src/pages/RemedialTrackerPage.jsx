@@ -1,12 +1,14 @@
-﻿import React from 'react';
+import React, { useState } from 'react';
 import TeacherRemedialTracker from '../components/teacher/TeacherRemedialTracker';
+import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 import { useTheme } from '../context/ThemeContext';
-import { Scissors, Sparkles, ArrowLeft } from 'lucide-react';
+import { Scissors, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function RemedialTrackerPage() {
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const [isSlicerOpen, setIsSlicerOpen] = useState(false);
 
   return (
     <div style={{
@@ -76,26 +78,29 @@ export default function RemedialTrackerPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/questions')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '0.6rem 1.15rem',
-            borderRadius: '0.9rem',
-            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-            border: 'none',
-            color: 'white',
-            fontWeight: 800,
-            fontSize: '0.82rem',
-            cursor: 'pointer',
-            boxShadow: '0 4px 14px rgba(79,70,229,0.3)'
-          }}
-        >
-          <Sparkles size={16} />
-          <span>Soru Bankası &amp; PDF Kırpıcı</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setIsSlicerOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '0.65rem 1.25rem',
+              borderRadius: '0.9rem',
+              background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '0.84rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(244,63,94,0.35)',
+              transition: 'transform 0.15s'
+            }}
+          >
+            <Scissors size={16} />
+            <span>✂️ Yeni Telafi Testi Kırp &amp; Oluştur</span>
+          </button>
+        </div>
       </div>
 
       {/* 📊 TELAFİ VE USTALIK TAKİP BİLEŞENİ */}
@@ -108,6 +113,15 @@ export default function RemedialTrackerPage() {
       }}>
         <TeacherRemedialTracker isDark={isDark} />
       </div>
+
+      {/* ✂️ AKILLI PDF TELAFİ TESTİ KIRPICI MODAL */}
+      {isSlicerOpen && (
+        <PdfQuestionSlicerModal
+          isOpen={isSlicerOpen}
+          onClose={() => setIsSlicerOpen(false)}
+          mode="mistakes"
+        />
+      )}
     </div>
   );
 }

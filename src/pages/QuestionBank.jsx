@@ -31,10 +31,14 @@ export default function QuestionBank() {
   const { data: curData } = useCurriculum();
   const { questions: allQuestions, addQuestion, updateQuestion, deleteQuestion } = useQuestionBank();
 
-  // Teacher sees ONLY questions created by themselves, Admin sees all
+  // Teacher sees ONLY questions created by themselves, Admin sees all (EXCLUDE remedial tests)
   const questions = useMemo(() => {
-    if (currentUser?.role === 'admin') return allQuestions || [];
-    return (allQuestions || []).filter(q => q.createdBy === currentUser?.id);
+    const rawList = (allQuestions || []).filter(q => {
+      if (!q) return false;
+      return !q.isRemedialTest && q.type !== 'remedial' && q.sourceType !== 'pdfSlicerRemedial';
+    });
+    if (currentUser?.role === 'admin') return rawList;
+    return rawList.filter(q => q.createdBy === currentUser?.id);
   }, [allQuestions, currentUser]);
   
   // Portal Overview Active Tab is always grades now

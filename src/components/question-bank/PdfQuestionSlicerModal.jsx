@@ -1510,7 +1510,8 @@ export default function PdfQuestionSlicerModal({
 
       const finalTitle = testTitle.trim() || `Kırpılmış Telafi Testi (${slicedQuestions.length} Soru)`;
 
-      const finalStudentId = targetStudentId || studentId || null;
+      const isRemedial = mode === 'mistakes';
+      const finalStudentId = isRemedial ? (targetStudentId || studentId || null) : null;
 
       let savedTest = null;
       if (addQuestion) {
@@ -1533,25 +1534,25 @@ export default function PdfQuestionSlicerModal({
           imageAnswers: imageAnswersObj,
           bookId: currentBook?.id || null,
           bookTitle: currentBook?.title || null,
-          isRemedialTest: true,
-          sourceType: 'pdfSlicer',
+          isRemedialTest: isRemedial,
+          sourceType: isRemedial ? 'pdfSlicerRemedial' : 'pdfSlicerGeneral',
           studentId: finalStudentId,
           assignedStudentId: finalStudentId,
           createdBy: finalStudentId || currentUser?.id || 'teacher',
           teacherAssigned: Boolean(finalStudentId),
-          repetitionScheduleMode: scheduleMode,
-          repetitionIntervals: scheduleMode === 'spaced_leitner'
-            ? [1, 3, 7, 15]
-            : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])),
-          targetMasteryPct: keepMasteryTracking ? 100 : null
+          repetitionScheduleMode: isRemedial ? scheduleMode : 'none',
+          repetitionIntervals: isRemedial
+            ? (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])))
+            : [],
+          targetMasteryPct: (isRemedial && keepMasteryTracking) ? 100 : null
         });
       }
 
-      const repetitionIntervals = scheduleMode === 'spaced_leitner'
-        ? [1, 3, 7, 15]
-        : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []));
+      const repetitionIntervals = isRemedial
+        ? (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])))
+        : [];
 
-      if (scheduleMode !== 'none' && finalStudentId && saveCoachingProfile) {
+      if (isRemedial && scheduleMode !== 'none' && finalStudentId && saveCoachingProfile) {
         try {
           const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
           const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(finalStudentId)) || {
@@ -2648,35 +2649,37 @@ export default function PdfQuestionSlicerModal({
                   }}
                 />
 
-                {/* 🎯 Hedef Öğrenci Seçimi */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Users size={12} className="text-indigo-500" />
-                    <span>Telafi Atanacak Öğrenci:</span>
-                  </label>
-                  <select
-                    value={targetStudentId}
-                    onChange={(e) => setTargetStudentId(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      borderRadius: 8,
-                      border: '1.5px solid var(--color-border)',
-                      background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
-                      color: 'var(--color-text)',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="">🏢 Tüm Sınıf / Genel Test (Sadece Soru Bankası)</option>
-                    {(students.length > 0 ? students : users.filter(u => u.role === 'student')).map(st => (
-                      <option key={st.id} value={st.id}>
-                        👤 {st.name || st.fullName} {st.grade ? `(${st.grade}. Sınıf)` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* 🎯 Hedef Öğrenci Seçimi (Sadece Telafi Modunda) */}
+                {mode === 'mistakes' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Users size={12} className="text-indigo-500" />
+                      <span>Telafi Atanacak Öğrenci:</span>
+                    </label>
+                    <select
+                      value={targetStudentId}
+                      onChange={(e) => setTargetStudentId(e.target.value)}
+                      style={{
+                        padding: '5px 8px',
+                        borderRadius: 8,
+                        border: '1.5px solid var(--color-border)',
+                        background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                        color: 'var(--color-text)',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="">🏢 Tüm Sınıf / Genel Test (Sadece Soru Bankası)</option>
+                      {(students.length > 0 ? students : users.filter(u => u.role === 'student')).map(st => (
+                        <option key={st.id} value={st.id}>
+                          👤 {st.name || st.fullName} {st.grade ? `(${st.grade}. Sınıf)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: 6 }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Varsayılan Şık:</span>
@@ -2809,55 +2812,57 @@ export default function PdfQuestionSlicerModal({
             </div>
 
             <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Spaced Repetition Scheduling Controls */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <Sparkles size={12} className="text-indigo-500" />
-                  <span>Tekrar & Çalışma Planı Modu:</span>
-                </span>
-                
-                <select
-                  value={scheduleMode}
-                  onChange={(e) => setScheduleMode(e.target.value)}
-                  style={{
-                    padding: '5px 8px',
-                    borderRadius: 6,
-                    border: '1px solid var(--color-border)',
-                    background: isDark ? '#1e293b' : '#f8fafc',
-                    color: 'var(--color-text)',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="spaced_leitner">🧠 Standart Leitner (1, 3, 7, 15 Gün - Önerilen)</option>
-                  <option value="fast">⚡ Hızlı Pekiştirme (1, 2, 4, 7 Gün)</option>
-                  <option value="today">📅 Sadece Bugünün Programına Ekle (1 Gün)</option>
-                  <option value="none">🚫 Programa Ekleme (Sadece Havuzda Tut)</option>
-                </select>
+              {/* Spaced Repetition Scheduling Controls (Sadece Telafi Modunda) */}
+              {mode === 'mistakes' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Sparkles size={12} className="text-indigo-500" />
+                    <span>Tekrar &amp; Çalışma Planı Modu:</span>
+                  </span>
+                  
+                  <select
+                    value={scheduleMode}
+                    onChange={(e) => setScheduleMode(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: isDark ? '#1e293b' : '#f8fafc',
+                      color: 'var(--color-text)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="spaced_leitner">🧠 Standart Leitner (1, 3, 7, 15 Gün - Önerilen)</option>
+                    <option value="fast">⚡ Hızlı Pekiştirme (1, 2, 4, 7 Gün)</option>
+                    <option value="today">📅 Sadece Bugünün Programına Ekle (1 Gün)</option>
+                    <option value="none">🚫 Programa Ekleme (Sadece Havuzda Tut)</option>
+                  </select>
 
-                {scheduleMode !== 'none' && (
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    color: '#059669',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    padding: '2px 0'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={keepMasteryTracking}
-                      onChange={(e) => setKeepMasteryTracking(e.target.checked)}
-                      style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                    />
-                    <span>🎯 %100 Doğru Yapılana Kadar Tekrar Döngüsünü Sürdür</span>
-                  </label>
-                )}
-              </div>
+                  {scheduleMode !== 'none' && (
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      color: '#059669',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      padding: '2px 0'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={keepMasteryTracking}
+                        onChange={(e) => setKeepMasteryTracking(e.target.checked)}
+                        style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                      />
+                      <span>🎯 %100 Doğru Yapılana Kadar Tekrar Döngüsünü Sürdür</span>
+                    </label>
+                  )}
+                </div>
+              )}
 
               {saveSuccessMsg && (
                 <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#16a34a', textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px', borderRadius: 8 }}>
