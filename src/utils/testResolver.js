@@ -1104,21 +1104,8 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  // 3. Unit (Ünite) verification
-  const targetUnit = String(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || '').toLowerCase().trim();
-  const subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
-
-  if (targetUnit && subUnit) {
-    const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
-    const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
-    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) {
-      return false; // Unit mismatch!
-    }
-  }
-
   if (!targetTest) return false;
 
-  // 4. Strict page & unique test name matching
   const extractPageNumbers = (str) => {
     if (!str || typeof str !== 'string') return null;
     const match = str.match(/(\d+)\s*[-–/]\s*(\d+)/);
@@ -1143,20 +1130,34 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     extractPageNumbers(s.testTitle) ||
     extractPageNumbers(s.test_title);
 
-  // If the target test has a page range (e.g. "7-8. Sayfa"), submission MUST have the exact same page range!
+  // 3. Strict page matching (Definitive if both exist)
   if (targetPages) {
     if (subPages) {
-      return targetPages === subPages;
+      if (targetPages === subPages) return true;
+    } else {
+      const hasPageRangeInTitle = sTitle.includes(targetPages) || cleanSTitle.includes(targetPages);
+      if (hasPageRangeInTitle) return true;
     }
-    // Check if submission title contains the exact page range (e.g. "7-8")
-    const hasPageRangeInTitle = sTitle.includes(targetPages) || cleanSTitle.includes(targetPages);
-    return hasPageRangeInTitle;
-  }
-
-  // If submission has specific pages but target test does not, they cannot match
-  if (subPages && !targetPages) {
+    // If target has specific pages and submission DOES NOT match those pages, reject immediately
+    if (subPages && targetPages !== subPages) return false;
+  } else if (subPages) {
+    // Submission has specific pages but target test does not, they cannot match
     return false;
   }
+
+  // 4. Unit (Ünite) verification
+  const targetUnit = String(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || '').toLowerCase().trim();
+  const subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
+
+  if (targetUnit && subUnit) {
+    const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
+    const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
+    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) {
+      return false; // Unit mismatch!
+    }
+  }
+
+
 
   // If both have orderIndex, check orderIndex
   if (targetTest.orderIndex !== undefined && targetTest.orderIndex !== null && s.metadata?.orderIndex !== undefined && s.metadata?.orderIndex !== null) {
