@@ -1,4 +1,4 @@
-﻿/**
+/**
  * remedialSpacedRepetitionService.js
  * Teacher-assigned remedial test spaced repetition & 100% mastery tracking engine.
  */
@@ -38,16 +38,23 @@ export function scheduleRemedialTestInProgram({
     const newItem = {
       id: `remedial_stage_${testItem.id}_${stageNum}_${Date.now()}`,
       text: `👨‍🏫 [${stageNum}. Tekrar (${intervalDays}g)] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+      topic: `[${stageNum}. Tekrar] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
       subject: testItem.subject || 'Genel',
       qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+      questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       testId: testItem.id,
+      hwId: testItem.hwId || testItem.id,
       type: 'remedialTest',
+      taskType: 'remedialTest',
       isTeacherRemedial: true,
+      isRemedial: true,
       stage: stageNum,
       totalStages: intervals.length,
       intervalDays,
       done: false,
+      targetDayKey,
+      scheduledDate: dateStr,
       date: dateStr
     };
 

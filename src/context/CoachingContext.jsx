@@ -11,7 +11,8 @@ import {
   dbGetCoachingMeetings,
   dbSaveCoachingMeeting,
   dbGetCoachingProfiles,
-  dbSaveCoachingProfile
+  dbSaveCoachingProfile,
+  toUUID
 } from '../services/supabaseService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 
@@ -133,23 +134,31 @@ export function CoachingProvider({ children }) {
   };
 
   const saveCoachingProfile = async (profileData) => {
-    const profileId = profileData.id || `cp_${profileData.studentId}`;
+    const studentId = profileData.studentId;
+    const profileId = profileData.id || `cp_${studentId}`;
     const newProfile = {
       id: profileId,
       createdAt: new Date().toISOString(),
       ...profileData
     };
+    const sidStr = String(studentId || '');
+    const sidUuid = String(toUUID(sidStr) || '');
+
     setCoachingProfiles(prev => {
-      const idx = prev.findIndex(p => String(p.studentId) === String(profileData.studentId));
+      const idx = prev.findIndex(p => {
+        if (!p) return false;
+        const pSid = String(p.studentId || p.userId || p.id || '');
+        const pUuid = String(toUUID(pSid) || '');
+        return pSid === sidStr || (sidUuid && pSid === sidUuid) || (pUuid && (pUuid === sidStr || pUuid === sidUuid));
+      });
       let copy = [...prev];
       if (idx >= 0) {
         copy[idx] = { ...copy[idx], ...newProfile };
       } else {
         copy = [newProfile, ...copy];
       }
-      try {
-        localStorage.setItem('etest_coaching_profiles', JSON.stringify(copy));
-      } catch (e) {}
+      safeSetItem('eTestCoachingProfiles', JSON.stringify(copy));
+      safeSetItem('etest_coaching_profiles', JSON.stringify(copy));
       return copy;
     });
     await dbSaveCoachingProfile(newProfile);
@@ -224,7 +233,15 @@ export function CoachingProvider({ children }) {
   };
 
   const getCoachingProfileForStudent = (studentId) => {
-    return coachingProfiles.find(p => String(p.studentId) === String(studentId)) || null;
+    if (!studentId) return null;
+    const sidStr = String(studentId);
+    const sidUuid = String(toUUID(sidStr) || '');
+    return coachingProfiles.find(p => {
+      if (!p) return false;
+      const pSid = String(p.studentId || p.userId || p.id || '');
+      const pUuid = String(toUUID(pSid) || '');
+      return pSid === sidStr || (sidUuid && pSid === sidUuid) || (pUuid && (pUuid === sidStr || pUuid === sidUuid));
+    }) || null;
   };
 
   const getMockExamsForStudent = (studentId) => {

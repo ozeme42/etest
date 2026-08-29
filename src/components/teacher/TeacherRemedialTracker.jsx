@@ -1046,7 +1046,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
   const navigate = useNavigate();
 
   const { tests = [], questions = [], deleteQuestion } = useQuestionBank();
-  const { homeworks = [], deleteHomework } = useHomework();
+  const { homeworks = [], addHomework, deleteHomework } = useHomework();
   const { coachingProfiles = [], saveCoachingProfile } = useCoaching();
   const { submissions = [] } = useEvaluation();
   const { users = [], students = [] } = useUser();
@@ -1177,15 +1177,28 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
 
   // Quick sync to weekly program
   const handleQuickSyncToProgram = async (item) => {
-    if (!item || !item.studentId || !saveCoachingProfile) return;
+    if (!item) return;
+    if (!item.studentId) {
+      setEditingTest(item);
+      showToast('⚠️ Bu telafi testini programa eklemek için lütfen önce bir öğrenci seçiniz.');
+      return;
+    }
     try {
       const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
-      const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(item.studentId)) || {
+      const targetSid = String(item.studentId);
+      const targetUuid = String(toUUID(targetSid) || '');
+
+      const currentProfile = coachingProfiles.find(p => {
+        if (!p) return false;
+        const pSid = String(p.studentId || p.userId || p.id || '');
+        const pUuid = String(toUUID(pSid) || '');
+        return pSid === targetSid || (targetUuid && pSid === targetUuid) || (pUuid && (pUuid === targetSid || pUuid === targetUuid));
+      }) || {
         studentId: item.studentId,
         weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
       };
 
-      const intervals = item.intervals || [1, 3, 7, 15];
+      const intervals = item.intervals && item.intervals.length > 0 ? item.intervals : [1, 3, 7, 15];
 
       // Remove existing items for this test
       const cleanedProg = (currentProfile.weeklyProgram || []).map(dObj => ({
@@ -1213,7 +1226,28 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
         weeklyProgram: updatedProg
       });
 
-      showToast(`✓ "${item.title}" haftalık çalışma programına eklendi!`);
+      // Also ensure it is registered in homeworks with target student
+      if (addHomework) {
+        const raw = item.rawTest || {};
+        await addHomework({
+          ...raw,
+          id: item.testId,
+          title: item.title,
+          testTitle: item.title,
+          subject: item.subject,
+          studentId: item.studentId,
+          targetStudentId: item.studentId,
+          assignedStudentId: item.studentId,
+          targetStudentIds: [item.studentId],
+          targetIds: [item.studentId],
+          targetType: 'student',
+          isRemedial: true,
+          isRemedialTest: true,
+          isTeacherRemedial: true
+        });
+      }
+
+      showToast(`✓ "${item.title}" öğrencisi (${item.studentName}) için haftalık programa ve ödevlere eklendi!`);
     } catch (err) {
       console.error('Programa ekleme hatası:', err);
       showToast(`❌ Programa eklenirken hata oluştu.`);

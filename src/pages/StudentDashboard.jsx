@@ -1622,6 +1622,11 @@ export default function StudentDashboard() {
           if (found && Array.isArray(found.items)) {
             found.items.forEach(item => {
               if (!item) return;
+              // Remedial tests scheduled by teacher should always show on their assigned day column
+              if (item.isTeacherRemedial || item.type === 'remedialTest') {
+                dayManualItems.push({ ...item, isWeeklyProgItem: true });
+                return;
+              }
               const itemYMD = extractItemYMD(item);
               if (itemYMD && itemYMD !== dayYMD) return;
               if (item.createdYMD && dayYMD < item.createdYMD) return;

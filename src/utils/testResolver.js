@@ -542,7 +542,19 @@ export function isHomeworkForStudent(hw, student, grades = []) {
   const studentObj = typeof student === 'string' ? { id: student } : student;
   const studentId = String(studentObj.id || studentObj.studentId || studentObj.userId || '');
   const studentUuid = toUUID(studentId);
-  const rawTargetIds = hw.targetIds || hw.target_ids || hw.raw_data?.targetIds || hw.raw_data?.target_ids || [];
+  const rawTargetIds = [
+    ...(Array.isArray(hw.targetIds) ? hw.targetIds : []),
+    ...(Array.isArray(hw.target_ids) ? hw.target_ids : []),
+    ...(Array.isArray(hw.targetStudentIds) ? hw.targetStudentIds : []),
+    ...(Array.isArray(hw.studentIds) ? hw.studentIds : []),
+    ...(hw.studentId ? [hw.studentId] : []),
+    ...(hw.targetStudentId ? [hw.targetStudentId] : []),
+    ...(hw.assignedStudentId ? [hw.assignedStudentId] : []),
+    ...(hw.targetStudent ? [hw.targetStudent] : []),
+    ...(hw.raw_data?.targetIds || []),
+    ...(hw.raw_data?.targetStudentId ? [hw.raw_data.targetStudentId] : []),
+    ...(hw.raw_data?.studentId ? [hw.raw_data.studentId] : [])
+  ];
   const targetIds = Array.isArray(rawTargetIds) ? rawTargetIds.map(String) : [];
 
   // Check if student is explicitly targeted by id or UUID

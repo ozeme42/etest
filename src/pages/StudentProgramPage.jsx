@@ -57,13 +57,13 @@ export default function StudentProgramPage() {
   const weekRange = getWeekDateRange();
 
   useEffect(() => {
-    if (existingProfile.weeklyProgram && existingProfile.weeklyProgram.length > 0) {
+    if (existingProfile?.weeklyProgram) {
       setWeeklyProgramState(normalizeWeeklyProgram(existingProfile.weeklyProgram));
     }
-    if (existingProfile.topicPool && existingProfile.topicPool.length > 0) {
+    if (existingProfile?.topicPool) {
       setTopicPoolState(existingProfile.topicPool);
     }
-  }, [existingProfile.id]);
+  }, [existingProfile?.weeklyProgram, existingProfile?.topicPool, existingProfile?.id, studentId]);
 
   const handleSave = async () => {
     await saveCoachingProfile({ ...existingProfile, studentId, weeklyProgram, topicPool });
