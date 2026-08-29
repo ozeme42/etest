@@ -11,9 +11,10 @@ import {
   FolderTree, Trash2, Plus, ArrowRight, Edit, X, UserPlus, Check, Clock, Users,
   GraduationCap, ShieldCheck, FileJson, Search, BookOpen, Sparkles, CheckCircle2,
   AlertTriangle, Key, Copy, RefreshCw, Layers, ChevronRight, BarChart3, FileText,
-  BookOpenCheck, Shield, UserCheck
+  BookOpenCheck, Shield, UserCheck, Scissors
 } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
+import TeacherRemedialTracker from '../components/teacher/TeacherRemedialTracker';
 import SummaryManagerPage from './SummaryManagerPage';
 import StudentResultsPage from './StudentResultsPage';
 import AdminAiSettingsTab from '../components/admin/AdminAiSettingsTab';
@@ -448,9 +449,10 @@ export default function AdminDashboard() {
             { id: 'curriculum', label: 'Müfredat Hiyerarşisi', icon: FolderTree, count: `${totalGrades} Sınıf` },
             { id: 'users', label: 'Kullanıcılar & Onaylar', icon: Users, count: `${users.length}`, alert: pendingTeachers.length },
             { id: 'matrix', label: 'Öğretmen & Öğrenci Eşleşmeleri', icon: GraduationCap, count: `${teachers.length} Öğretmen`, alert: unassignedStudents.length },
+            { id: 'remedials', label: '✂️ Atanan Telafi Testleri & Ustalık', icon: Scissors, count: 'Ustalık' },
+            { id: 'homeworks', label: '📝 Atanan Ödevler & Görev Takibi', icon: BarChart3, count: 'Ödevler' },
             { id: 'ai_settings', label: '🤖 Yapay Zeka (AI) & API Ayarları', icon: Sparkles, count: 'Global' },
             { id: 'summaries', label: 'Ders Özetleri Modülü', icon: BookOpen, count: 'Editör' },
-            { id: 'homeworks', label: 'Ödev Takip Merkezi', icon: BarChart3, count: 'Rapor' },
             { id: 'results', label: 'Tüm Sınav & Test Sonuçları', icon: Award, count: `${submissions.length} Sonuç` },
           ].map(tab => {
             const Icon = tab.icon;
@@ -510,6 +512,18 @@ export default function AdminDashboard() {
           {activeTab === 'curriculum' && <CurriculumManager />}
           {activeTab === 'users' && <UserManager />}
           {activeTab === 'matrix' && <TeacherStudentMatrix />}
+          {activeTab === 'remedials' && (
+            <div style={{
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: '1.5rem',
+              padding: '1.25rem',
+              boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
+            }}>
+              <TeacherRemedialTracker />
+            </div>
+          )}
+          {activeTab === 'homeworks' && <AdminHomeworkTracker />}
           {activeTab === 'ai_settings' && <AdminAiSettingsTab />}
           {activeTab === 'summaries' && (
             <div style={{
@@ -522,7 +536,6 @@ export default function AdminDashboard() {
               <SummaryManagerPage />
             </div>
           )}
-          {activeTab === 'homeworks' && <AdminHomeworkTracker />}
           {activeTab === 'results' && (
             <div style={{
               background: 'var(--color-surface)',
