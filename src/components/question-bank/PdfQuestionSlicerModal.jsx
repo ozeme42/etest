@@ -19,7 +19,7 @@ import { useCoaching } from '../../context/CoachingContext';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { getAllUnifiedStudentSubmissions } from '../../services/unifiedResultAdapter';
 import { getEmbeddablePdfUrl } from '../../utils/pdfUtils';
-import { toUUID } from '../../services/supabaseService';
+import { toUUID, dbSaveRemedialRepetition } from '../../services/supabaseService';
 import { scheduleRemedialTestInProgram, REPETITION_PRESETS } from '../../services/remedialSpacedRepetitionService';
 import { pdfjs } from 'react-pdf';
 
@@ -545,7 +545,7 @@ export default function PdfQuestionSlicerModal({
   }, [curData]);
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
-  const { homeworks = [] } = useHomework();
+  const { homeworks = [], addHomework } = useHomework();
   const { addQuestion } = useQuestionBank();
   const { coachingProfiles = [], saveCoachingProfile } = useCoaching();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -1575,6 +1575,10 @@ export default function PdfQuestionSlicerModal({
       const isRemedial = mode === 'mistakes';
       const finalStudentId = isRemedial ? (targetStudentId || studentId || null) : null;
 
+      const repetitionIntervals = isRemedial
+        ? (scheduleMode === 'custom' ? customIntervals : (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []))))
+        : [];
+
       let savedTest = null;
       if (addQuestion) {
         savedTest = await addQuestion({
@@ -1597,22 +1601,67 @@ export default function PdfQuestionSlicerModal({
           bookId: currentBook?.id || null,
           bookTitle: currentBook?.title || null,
           isRemedialTest: isRemedial,
+          isRemedial: isRemedial,
+          isTeacherRemedial: Boolean(finalStudentId),
           sourceType: isRemedial ? 'pdfSlicerRemedial' : 'pdfSlicerGeneral',
           studentId: finalStudentId,
           assignedStudentId: finalStudentId,
           createdBy: finalStudentId || currentUser?.id || 'teacher',
           teacherAssigned: Boolean(finalStudentId),
           repetitionScheduleMode: isRemedial ? scheduleMode : 'none',
-          repetitionIntervals: isRemedial
-            ? (scheduleMode === 'custom' ? customIntervals : (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []))))
-            : [],
+          repetitionIntervals,
           targetMasteryPct: (isRemedial && keepMasteryTracking) ? 100 : null
         });
       }
 
-      const repetitionIntervals = isRemedial
-        ? (scheduleMode === 'custom' ? customIntervals : (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []))))
-        : [];
+      let savedHw = null;
+      if (isRemedial && addHomework) {
+        savedHw = await addHomework({
+          title: finalTitle,
+          subject: selectedSubject,
+          grade: selectedGrade,
+          gradeId: selectedGrade.replace(/[^0-9]/g, '') || '8',
+          targetStudentId: finalStudentId,
+          studentId: finalStudentId,
+          assignedStudentId: finalStudentId,
+          targetType: 'student',
+          targetStudentIds: finalStudentId ? [finalStudentId] : [],
+          questionCount: slicedQuestions.length,
+          totalQuestions: slicedQuestions.length,
+          questionsList: subQuestions,
+          questionIds: subQuestions.map(sq => sq.id),
+          answerKey: answerKeyObj,
+          imageAnswers: imageAnswersObj,
+          contentPayload: base64List.join('\n\n'),
+          imageUrl: base64List[0] || '',
+          imageUrls: base64List,
+          bookId: currentBook?.id || null,
+          bookTitle: currentBook?.title || null,
+          isRemedial: true,
+          isRemedialTest: true,
+          isTeacherRemedial: true,
+          sourceType: 'pdfSlicerRemedial',
+          repetitionScheduleMode: scheduleMode,
+          repetitionIntervals,
+          keepMasteryTracking,
+          targetMasteryPct: keepMasteryTracking ? 100 : null,
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+        });
+      }
+
+      const assignedTestId = savedHw?.id || savedTest?.id || `test_${Date.now()}`;
+
+      // Save to Supabase remedial_spaced_repetition table
+      if (isRemedial && finalStudentId && repetitionIntervals.length > 0) {
+        dbSaveRemedialRepetition({
+          studentId: finalStudentId,
+          testId: assignedTestId,
+          homeworkId: savedHw?.id || null,
+          intervals: repetitionIntervals,
+          keepMasteryTracking,
+          startDate: new Date()
+        }).catch(e => console.warn('[Supabase] dbSaveRemedialRepetition error:', e));
+      }
 
       if (isRemedial && scheduleMode !== 'none' && finalStudentId && saveCoachingProfile) {
         try {
@@ -1625,7 +1674,8 @@ export default function PdfQuestionSlicerModal({
           const updatedProg = scheduleRemedialTestInProgram({
             currentWeeklyProgram: currentProfile.weeklyProgram || [],
             testItem: {
-              id: savedTest?.id || `test_${Date.now()}`,
+              id: assignedTestId,
+              hwId: savedHw?.id || null,
               title: finalTitle,
               subject: selectedSubject,
               questionCount: slicedQuestions.length

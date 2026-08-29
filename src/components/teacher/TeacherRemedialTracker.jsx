@@ -8,6 +8,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useQuestionBank } from '../../context/QuestionBankContext';
 import { useEvaluation } from '../../context/EvaluationContext';
+import { useHomework } from '../../context/HomeworkContext';
 import { useUser } from '../../context/UserContext';
 import { getRemedialTestMasteryStatus } from '../../services/remedialSpacedRepetitionService';
 
@@ -17,6 +18,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
   const navigate = useNavigate();
 
   const { tests = [], questions = [] } = useQuestionBank();
+  const { homeworks = [] } = useHomework();
   const { submissions = [] } = useEvaluation();
   const { users = [], students = [] } = useUser();
 
@@ -26,12 +28,16 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
 
   // Identify all remedial tests assigned by or for students
   const remedialMasteryList = useMemo(() => {
-    const allItems = [...tests, ...questions];
+    const allItems = [...tests, ...questions, ...homeworks];
     const candidateTests = allItems.filter(t => {
       if (!t) return false;
       return t.isRemedialTest === true ||
+             t.isRemedial === true ||
+             t.isTeacherRemedial === true ||
              t.sourceType === 'pdfSlicer' ||
+             t.sourceType === 'pdfSlicerRemedial' ||
              t.type === 'remedial' ||
+             t.type === 'remedialTest' ||
              (t.title && (t.title.includes('Telafi') || t.title.includes('Kırpılmış')));
     });
 

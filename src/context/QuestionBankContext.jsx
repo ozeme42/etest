@@ -170,6 +170,7 @@ export function QuestionBankProvider({ children }) {
         const row = savedBundle[0];
         setQuestions(prev => prev.map(item => toUUID(item.id) === bundleId ? { ...item, id: row.id || bundleId, contentPayload: row.content_payload || item.contentPayload, ...(row.raw_data || {}) } : item));
       }
+      return singleBundleQuestion;
     } else {
       const isHtmlType = questionData.contentType === 'html';
       const rawId = questionData.id || `q_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -207,6 +208,7 @@ export function QuestionBankProvider({ children }) {
         const row = savedQ[0];
         setQuestions(prev => prev.map(item => toUUID(item.id) === qId ? { ...item, id: row.id || qId, contentPayload: row.content_payload || item.contentPayload, imageUrl: row.image_url || item.imageUrl, ...(row.raw_data || {}) } : item));
       }
+      return newQuestion;
     }
   };
 
