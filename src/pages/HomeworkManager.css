@@ -1,0 +1,207 @@
+﻿/* ═══════════════════════════════════════════════════════════
+   HOMEWORK MANAGER - MODERN MOBILE APP & DESKTOP STYLES
+═══════════════════════════════════════════════════════════ */
+
+.hw-page-container {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.5rem 5rem 1.5rem;
+  background: var(--color-bg);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--color-text);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.hw-glass-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+/* Visibility toggles */
+.hw-mobile-only {
+  display: none !important;
+}
+
+.hw-desktop-only {
+  display: block;
+}
+
+.hw-desktop-flex {
+  display: flex;
+}
+
+.hw-mobile-flex {
+  display: none !important;
+}
+
+.hw-desktop-grid {
+  display: grid;
+}
+
+.hw-mobile-grid {
+  display: none !important;
+}
+
+/* 2x2 KPI Grid on mobile, responsive on desktop */
+.hw-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.hw-kpi-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hw-kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Native Mobile Homework Card */
+.hw-mobile-item-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 1.15rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.hw-mobile-item-card:active {
+  transform: scale(0.99);
+}
+
+.hw-mobile-item-card.selected {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.04);
+}
+
+/* Native Mobile Student Card */
+.hw-student-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 1.15rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Mobile Wizard Steps */
+.hw-step-pill {
+  flex: 1;
+  padding: 0.65rem 0.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.hw-step-pill.active {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+}
+
+.hw-step-pill.completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE BREAKPOINT (< 768px)
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .hw-page-container {
+    padding: 0.75rem 0.75rem 5.5rem 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .hw-glass-card {
+    padding: 1rem;
+    border-radius: 1.25rem;
+  }
+
+  .hw-mobile-only {
+    display: block !important;
+  }
+
+  .hw-mobile-flex {
+    display: flex !important;
+  }
+
+  .hw-mobile-grid {
+    display: grid !important;
+  }
+
+  .hw-desktop-only {
+    display: none !important;
+  }
+
+  .hw-desktop-flex {
+    display: none !important;
+  }
+
+  .hw-desktop-grid {
+    display: none !important;
+  }
+
+  /* 2-column mobile KPI grid */
+  .hw-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.55rem !important;
+  }
+
+  .hw-kpi-card {
+    padding: 0.75rem !important;
+    gap: 0.6rem !important;
+    border-radius: 1rem !important;
+  }
+
+  .hw-kpi-card > div:first-child {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 0.65rem !important;
+  }
+
+  .hw-kpi-card > div:first-child svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .hw-kpi-card span:nth-child(2) {
+    font-size: 1.05rem !important;
+  }
+}

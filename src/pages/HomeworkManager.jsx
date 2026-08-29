@@ -16,6 +16,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { idbGetPayload } from '../services/indexedDbService';
 import { toUUID } from '../services/supabaseService';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
+import './HomeworkManager.css';
 
 const subjectThemes = {
   'Matematik': { bg: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.4)' },
@@ -919,7 +920,7 @@ export default function HomeworkManager() {
     };
 
     return (
-      <div style={pageContainerStyle}>
+      <div className="hw-page-container">
         <Toast msg={toast} />
 
         {/* ══════════ STICKY TOP CONTROL HEADER ══════════ */}
@@ -927,15 +928,15 @@ export default function HomeworkManager() {
           background: 'var(--color-surface)',
           border: '1.5px solid var(--color-border)',
           borderRadius: '1.5rem',
-          padding: '1.25rem 1.75rem',
+          padding: '1.15rem 1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.85rem',
           boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => {
                 if (window.history.length > 1) navigate(-1);
@@ -945,33 +946,34 @@ export default function HomeworkManager() {
                 background: 'var(--color-surface-hover)',
                 border: '1.5px solid var(--color-border-input)',
                 borderRadius: '0.75rem',
-                padding: '0.55rem 0.9rem',
+                padding: '0.5rem 0.85rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                gap: '0.35rem',
                 fontWeight: 800,
+                fontSize: '0.8rem',
                 color: 'var(--color-text)',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
               }}
             >
-              <ArrowLeft size={16} /> Geri Dön
+              <ArrowLeft size={15} /> Geri
             </button>
 
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.25rem 0.75rem', borderRadius: 99, background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', color: '#60a5fa', fontSize: '0.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                <Sparkles size={13} /> LMS Ödev &amp; Görev Masası
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', color: '#60a5fa', fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+                <Sparkles size={12} /> LMS Ödev Masası
               </div>
-              <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
+              <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
                 Ödev &amp; Test Yönetim Merkezi 📝
               </h1>
-              <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+              <p className="hw-desktop-only" style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
                 Ödev havuzu takibi, öğrenci bazlı karne incelemesi ve canlı sınav değerlendirmesi.
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {currentUser?.role === 'admin' && (
               <button
                 onClick={() => {
@@ -981,26 +983,26 @@ export default function HomeworkManager() {
                   }
                 }}
                 style={{
-                  padding: '0.55rem 1rem', borderRadius: '0.75rem',
+                  padding: '0.5rem 0.85rem', borderRadius: '0.75rem',
                   background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
-                  color: '#f87171', fontWeight: 800, fontSize: '0.78rem',
+                  color: '#f87171', fontWeight: 800, fontSize: '0.76rem',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem'
                 }}
               >
-                <Trash2 size={14} /> Tümünü Sil
+                <Trash2 size={13} /> <span className="hw-desktop-only">Tümünü Sil</span>
               </button>
             )}
             <button
               onClick={() => { resetForm(); setViewMode('create'); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
+                padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
                 background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
                 cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)'
               }}
             >
-              <Sparkles size={16} /> + Yeni Ödev Sihirbazı
+              <Sparkles size={15} /> + Yeni Ödev
             </button>
           </div>
         </header>
@@ -1013,56 +1015,62 @@ export default function HomeworkManager() {
           flexWrap: 'wrap',
           gap: '0.75rem',
           background: 'var(--color-surface)',
-          padding: '0.6rem 1rem',
+          padding: '0.55rem 0.85rem',
           borderRadius: '1.25rem',
           border: '1.5px solid var(--color-border)'
         }}>
-          <div style={{ display: 'flex', gap: '0.4rem', background: 'var(--color-surface-hover)', padding: '0.3rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--color-surface-hover)', padding: '0.3rem', borderRadius: '0.85rem', border: '1px solid var(--color-border)', width: '100%', maxWidth: 'fit-content' }}>
             <button
               type="button"
               onClick={() => setSubViewMode('homeworks')}
               style={{
-                padding: '0.5rem 1.15rem',
+                flex: 1,
+                padding: '0.45rem 1rem',
                 borderRadius: '0.65rem',
                 border: 'none',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                justifyContent: 'center',
+                gap: '0.35rem',
                 background: subViewMode === 'homeworks' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
                 color: subViewMode === 'homeworks' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: subViewMode === 'homeworks' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <ClipboardList size={16} /> 📋 Ödev Bazlı Görünüm ({homeworks.length})
+              <ClipboardList size={15} /> 📋 Ödev Bazlı ({homeworks.length})
             </button>
             <button
               type="button"
               onClick={() => setSubViewMode('students')}
               style={{
-                padding: '0.5rem 1.15rem',
+                flex: 1,
+                padding: '0.45rem 1rem',
                 borderRadius: '0.65rem',
                 border: 'none',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.78rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
+                justifyContent: 'center',
+                gap: '0.35rem',
                 background: subViewMode === 'students' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
                 color: subViewMode === 'students' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: subViewMode === 'students' ? '0 4px 12px rgba(79,70,229,0.3)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <Users size={16} /> 👨‍🎓 Öğrenci Bazlı Takip ({students.length})
+              <Users size={15} /> 👨‍🎓 Öğrenci Bazlı ({students.length})
             </button>
           </div>
 
-          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+          <div className="hw-desktop-only" style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
             {subViewMode === 'homeworks'
               ? 'Tüm tanımlı ödevlerin teslim oranlarını ve sınıf raporlarını izleyin.'
               : 'Öğrenci bazında tamamlanan ve bekleyen ödevleri, başarı puanlarını tek ekranda inceleyin.'}
@@ -1072,89 +1080,63 @@ export default function HomeworkManager() {
         {/* ══════════ SUBVIEW 1: HOMEWORKS LIST ══════════ */}
         {subViewMode === 'homeworks' && (
           <>
-            {/* 4 LIVE KPI HERO METRIC CARDS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+            {/* 4 LIVE KPI HERO METRIC CARDS (RESPONSIVE 2-COL MOBILE / 4-COL DESKTOP) */}
+            <div className="hw-kpi-grid">
               <div
+                className="hw-kpi-card"
                 onClick={() => { resetForm(); setViewMode('create'); }}
-                style={{
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: '1.25rem', padding: '1rem 1.25rem',
-                  display: 'flex', alignItems: 'center', gap: '1rem',
-                  cursor: 'pointer', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
-                  transition: 'transform 0.15s ease'
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                style={{ cursor: 'pointer' }}
               >
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Zap size={24} />
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Zap size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Yeni Görev</span>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>+ Oluştur</span>
-                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sihirbazı Başlat</span>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                borderRadius: '1.25rem', padding: '1rem 1.25rem',
-                display: 'flex', alignItems: 'center', gap: '1rem',
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Clock size={24} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Aktif Ödevler</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.active} Ödev</span>
-                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Süresi devam eden</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Yeni Görev</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>+ Oluştur</span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Sihirbazı Başlat</span>
                 </div>
               </div>
 
-              <div style={{
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                borderRadius: '1.25rem', padding: '1rem 1.25rem',
-                display: 'flex', alignItems: 'center', gap: '1rem',
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(2,132,199,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Trophy size={24} />
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Katılım</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{globalAnalytics.avgRate}</span>
-                  <span style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 700 }}>Öğrenci teslim oranı</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Aktif Ödevler</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.active} Ödev</span>
+                  <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Süresi devam eden</span>
                 </div>
               </div>
 
-              <div style={{
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                borderRadius: '1.25rem', padding: '1rem 1.25rem',
-                display: 'flex', alignItems: 'center', gap: '1rem',
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
-              }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <AlertCircle size={24} />
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(2,132,199,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trophy size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Süresi Bitenler</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.expired} Ödev</span>
-                  <span style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700 }}>Teslim süresi doldu</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ortalama Katılım</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{globalAnalytics.avgRate}</span>
+                  <span style={{ fontSize: '0.68rem', color: '#38bdf8', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Teslim oranı</span>
+                </div>
+              </div>
+
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <AlertCircle size={22} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Süresi Bitenler</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{globalAnalytics.expired} Ödev</span>
+                  <span style={{ fontSize: '0.68rem', color: '#f87171', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Teslim süresi doldu</span>
                 </div>
               </div>
             </div>
 
             {/* HOMEWORK LIST CONTAINER */}
-            <div style={glassCardStyle}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                  <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <ClipboardList size={20} color="#818cf8" /> Ödev Havuzu &amp; Takip Tablosu
+            <div className="hw-glass-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight: 900, fontSize: '0.98rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <ClipboardList size={18} color="#818cf8" /> Ödev Havuzu
                   </div>
 
                   {/* Student Filter in Homework List */}
@@ -1162,13 +1144,13 @@ export default function HomeworkManager() {
                     value={selectedStudentFilterInHwList}
                     onChange={(e) => setSelectedStudentFilterInHwList(e.target.value)}
                     style={{
-                      padding: '0.35rem 0.75rem',
+                      padding: '0.35rem 0.65rem',
                       borderRadius: '0.6rem',
                       border: '1.5px solid var(--color-border-input)',
                       background: 'var(--color-surface)',
                       color: 'var(--color-text)',
                       fontWeight: 800,
-                      fontSize: '0.75rem',
+                      fontSize: '0.74rem',
                       outline: 'none',
                       cursor: 'pointer'
                     }}
@@ -1184,43 +1166,43 @@ export default function HomeworkManager() {
                       type="button"
                       onClick={handleToggleSelectAllHw}
                       style={{
-                        padding: '0.35rem 0.75rem', borderRadius: '0.6rem',
+                        padding: '0.35rem 0.65rem', borderRadius: '0.6rem',
                         border: isAllHwSelected ? '1.5px solid #6366f1' : '1.5px solid var(--color-border-input)',
                         background: isAllHwSelected ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
-                        color: isAllHwSelected ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.75rem',
-                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem'
+                        color: isAllHwSelected ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.72rem',
+                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem'
                       }}
                     >
-                      <CheckCheck size={14} />
-                      {isAllHwSelected ? 'Tüm Seçimi Kaldır' : `Tümünü Seç (${filteredHw.length})`}
+                      <CheckCheck size={13} />
+                      {isAllHwSelected ? 'Kaldır' : `Tümü (${filteredHw.length})`}
                     </button>
                   )}
 
                   {selectedHwListIds.length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.3rem 0.65rem', borderRadius: '0.5rem', border: '1px solid #3b82f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#60a5fa', background: 'rgba(37,99,235,0.12)', padding: '0.25rem 0.5rem', borderRadius: '0.45rem', border: '1px solid #3b82f6' }}>
                         {selectedHwListIds.length} Seçildi
                       </span>
                       <button
                         type="button"
                         onClick={handleDeleteSelectedHw}
                         style={{
-                          padding: '0.38rem 0.85rem', borderRadius: '0.6rem', border: 'none',
+                          padding: '0.32rem 0.75rem', borderRadius: '0.55rem', border: 'none',
                           background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff',
-                          fontWeight: 900, fontSize: '0.75rem', cursor: 'pointer',
-                          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                          fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                           boxShadow: '0 2px 8px rgba(220,38,38,0.25)'
                         }}
                       >
-                        <Trash2 size={13} /> Seçilenleri Sil ({selectedHwListIds.length})
+                        <Trash2 size={12} /> Sil ({selectedHwListIds.length})
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedHwListIds([])}
                         style={{
-                          padding: '0.35rem 0.6rem', borderRadius: '0.6rem',
+                          padding: '0.3rem 0.5rem', borderRadius: '0.55rem',
                           border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)',
-                          color: 'var(--color-text)', fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer'
+                          color: 'var(--color-text)', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer'
                         }}
                       >
                         İptal
@@ -1229,7 +1211,7 @@ export default function HomeworkManager() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid var(--color-border)' }}>
                   {[
                     { key: 'all', label: 'Tümü (' + globalAnalytics.total + ')' },
                     { key: 'active', label: 'Aktif (' + globalAnalytics.active + ')' },
@@ -1239,8 +1221,8 @@ export default function HomeworkManager() {
                       key={t.key}
                       onClick={() => { setActiveTab(t.key); setSelectedHwListIds([]); }}
                       style={{
-                        padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
-                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                        padding: '0.35rem 0.75rem', borderRadius: '0.55rem', border: 'none',
+                        fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap',
                         background: activeTab === t.key ? (t.key === 'expired' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#4f46e5,#6366f1)') : 'transparent',
                         color: activeTab === t.key ? '#ffffff' : 'var(--color-text-muted)',
                         boxShadow: activeTab === t.key ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
@@ -1253,17 +1235,17 @@ export default function HomeworkManager() {
               </div>
 
               {filteredHw.length === 0 ? (
-                <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                  <BookOpen size={48} style={{ opacity: 0.35 }} />
-                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.05rem' }}>Bu kriterlerde ödev bulunamadı.</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Filtreleri değiştirerek veya Yeni Ödev Sihirbazı ile ödev tanımlayabilirsiniz!</div>
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <BookOpen size={44} style={{ opacity: 0.35 }} />
+                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.98rem' }}>Bu kriterlerde ödev bulunamadı.</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Filtreleri değiştirerek veya Yeni Ödev butonu ile ödev tanımlayabilirsiniz!</div>
                   <button
                     onClick={() => { resetForm(); setViewMode('create'); }}
                     style={{
                       marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
+                      padding: '0.55rem 1.2rem', borderRadius: '0.75rem',
                       background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
                       cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)'
                     }}
                   >
@@ -1271,139 +1253,254 @@ export default function HomeworkManager() {
                   </button>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-                        <th style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={isAllHwSelected}
-                            onChange={handleToggleSelectAllHw}
-                            style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
-                            title="Tümünü Seç / Kaldır"
-                          />
-                        </th>
-                        {['Ödev / Başlık', 'Hedef Kitle', 'Son Tarih', 'İlerleme & Katılım', 'İşlemler'].map((h, i) => (
-                          <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredHw.map(hw => {
-                        const stats = getHomeworkStats(hw);
-                        const isPast = new Date(hw.dueDate) < now;
-                        const theme = getTheme(hw.subject);
-                        const isSelected = selectedHwListIds.includes(hw.id);
+                <>
+                  {/* MOBILE NATIVE HOMEWORK CARDS (< 768px) */}
+                  <div className="hw-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    {filteredHw.map(hw => {
+                      const stats = getHomeworkStats(hw);
+                      const isPast = new Date(hw.dueDate) < now;
+                      const theme = getTheme(hw.subject);
+                      const isSelected = selectedHwListIds.includes(hw.id);
 
-                        return (
-                          <tr 
-                            key={hw.id}
-                            style={{ 
-                              borderBottom: '1px solid var(--color-border)', 
-                              transition: 'background 0.15s',
-                              background: isSelected ? 'rgba(37,99,235,0.08)' : 'transparent'
-                            }}
-                          >
-                            <td style={{ width: 44, padding: '0.9rem 0.5rem 0.9rem 1rem', textAlign: 'center' }}>
+                      return (
+                        <div key={hw.id} className={`hw-mobile-item-card ${isSelected ? 'selected' : ''}`}>
+                          {/* Card Header: Checkbox + Subject Icon + Title + Target Badge */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={(e) => handleToggleHwSelect(hw.id, e)}
-                                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
                               />
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
-                                  <BookOpen size={16} color={theme.color} />
+                              <div style={{ width: 36, height: 36, borderRadius: '0.7rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
+                                <BookOpen size={16} color={theme.color} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.9rem', lineHeight: 1.25 }}>
+                                  {hw.title}
                                 </div>
-                                <div>
-                                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                    <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span>
-                                    {stats.isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 {stats.totalTestsPerStudent} Test</span>}
-                                    <span>• {hw.totalQuestions} Soru</span>
-                                    <span>• {hw.timePerQuestion} dk/soru</span>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                                  <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span>
+                                  {stats.isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 {stats.totalTestsPerStudent} Test</span>}
+                                  <span>• {hw.totalQuestions} Soru</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.68rem', padding: '0.15rem 0.5rem', borderRadius: 99, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              {getTargetLabel(hw)}
+                            </span>
+                          </div>
+
+                          {/* Due Date & Status Bar */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-hover)', padding: '0.45rem 0.65rem', borderRadius: '0.65rem', border: '1px solid var(--color-border)', fontSize: '0.74rem' }}>
+                            <div style={{ fontWeight: 800, color: isPast ? '#f87171' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} />
+                              <span>{new Date(hw.dueDate).toLocaleDateString('tr-TR')}</span>
+                            </div>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isPast ? '#f87171' : '#34d399' }}>
+                              {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
+                            </span>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <div>
+                            <GlassProgressBar
+                              customPct={stats.rate}
+                              customLabel={
+                                stats.isMultiTest
+                                  ? (stats.total === 1
+                                      ? `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
+                                      : `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
+                                  : `%${stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
+                              }
+                              color={stats.rate === 100 ? '#10b981' : theme.color}
+                            />
+                          </div>
+
+                          {/* 3 Touch Actions */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '0.45rem', paddingTop: '0.4rem', borderTop: '1px solid var(--color-border)' }}>
+                            <button
+                              onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
+                              style={{
+                                padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                color: '#fff', border: 'none', fontWeight: 900, fontSize: '0.76rem',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                              }}
+                            >
+                              <BarChart2 size={13} /> Raporu İncele
+                            </button>
+                            <button
+                              onClick={() => openEditPage(hw)}
+                              style={{
+                                padding: '0.45rem 0.65rem', borderRadius: '0.65rem',
+                                background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text)'
+                              }}
+                              title="Düzenle"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
+                                  deleteHomework(hw.id);
+                                  deleteSubmissionsByTestId(hw.id);
+                                }
+                              }}
+                              style={{
+                                padding: '0.45rem 0.65rem', borderRadius: '0.65rem',
+                                background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f87171'
+                              }}
+                              title="Sil"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* DESKTOP TABLE (>= 769px) */}
+                  <div className="hw-desktop-only" style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                          <th style={{ width: 44, padding: '0.85rem 0.5rem 0.85rem 1rem', textAlign: 'center' }}>
+                            <input
+                              type="checkbox"
+                              checked={isAllHwSelected}
+                              onChange={handleToggleSelectAllHw}
+                              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                              title="Tümünü Seç / Kaldır"
+                            />
+                          </th>
+                          {['Ödev / Başlık', 'Hedef Kitle', 'Son Tarih', 'İlerleme & Katılım', 'İşlemler'].map((h, i) => (
+                            <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 4 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredHw.map(hw => {
+                          const stats = getHomeworkStats(hw);
+                          const isPast = new Date(hw.dueDate) < now;
+                          const theme = getTheme(hw.subject);
+                          const isSelected = selectedHwListIds.includes(hw.id);
+
+                          return (
+                            <tr 
+                              key={hw.id}
+                              style={{ 
+                                borderBottom: '1px solid var(--color-border)', 
+                                transition: 'background 0.15s',
+                                background: isSelected ? 'rgba(37,99,235,0.08)' : 'transparent'
+                              }}
+                            >
+                              <td style={{ width: 44, padding: '0.9rem 0.5rem 0.9rem 1rem', textAlign: 'center' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => handleToggleHwSelect(hw.id, e)}
+                                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#6366f1' }}
+                                />
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${theme.border}` }}>
+                                    <BookOpen size={16} color={theme.color} />
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{hw.title}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                      <span style={{ color: theme.color, fontWeight: 800 }}>{hw.subject || 'Ders'}</span>
+                                      {stats.isMultiTest && <span style={{ color: '#818cf8', fontWeight: 800 }}>• 📚 {stats.totalTestsPerStudent} Test</span>}
+                                      <span>• {hw.totalQuestions} Soru</span>
+                                      <span>• {hw.timePerQuestion} dk/soru</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem' }}>
-                              <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                                {getTargetLabel(hw)}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
-                              <div style={{ fontWeight: 800, color: isPast ? '#f87171' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>
-                                <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
-                              </div>
-                              <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isPast ? '#f87171' : '#34d399', marginTop: 2 }}>
-                                {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
-                              </div>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
-                              <GlassProgressBar
-                                customPct={stats.rate}
-                                customLabel={
-                                  stats.isMultiTest
-                                    ? (stats.total === 1
-                                        ? `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
-                                        : `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
-                                    : `%${stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
-                                }
-                                color={stats.rate === 100 ? '#10b981' : theme.color}
-                              />
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                                <button
-                                  onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
-                                  style={{
-                                    padding: '0.4rem 0.85rem', borderRadius: '0.6rem',
-                                    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                                    color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.75rem',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                                    boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
-                                  }}
-                                >
-                                  <BarChart2 size={13} /> Rapor
-                                </button>
-                                <button
-                                  onClick={() => openEditPage(hw)}
-                                  style={{
-                                    padding: '0.4rem', borderRadius: '0.6rem',
-                                    background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)',
-                                    cursor: 'pointer', display: 'flex', color: 'var(--color-text)'
-                                  }}
-                                  title="Düzenle"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-                                      deleteHomework(hw.id);
-                                      deleteSubmissionsByTestId(hw.id);
-                                    }
-                                  }}
-                                  style={{
-                                    padding: '0.4rem', borderRadius: '0.6rem',
-                                    background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-                                    cursor: 'pointer', display: 'flex', color: '#f87171'
-                                  }}
-                                  title="Sil"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem' }}>
+                                <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                  {getTargetLabel(hw)}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontWeight: 800, color: isPast ? '#f87171' : 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.8rem' }}>
+                                  <Calendar size={13} color={isPast ? '#f87171' : '#818cf8'} /> {new Date(hw.dueDate).toLocaleDateString('tr-TR')}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: isPast ? '#f87171' : '#34d399', marginTop: 2 }}>
+                                  {isPast ? '⚠️ Süresi Doldu' : '✅ Devam Ediyor'}
+                                </div>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
+                                <GlassProgressBar
+                                  customPct={stats.rate}
+                                  customLabel={
+                                    stats.isMultiTest
+                                      ? (stats.total === 1
+                                          ? `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalTestsPerStudent} Test)`
+                                          : `%${stats.rate} (${stats.totalCompletedTests}/${stats.totalPossibleTests} Test · ${stats.completed}/${stats.total} Bitiren)`)
+                                      : `%${stats.rate} (${stats.completed}/${stats.total} Öğrenci)`
+                                  }
+                                  color={stats.rate === 100 ? '#10b981' : theme.color}
+                                />
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                                  <button
+                                    onClick={() => { setActiveHomework(hw); setStatsStudentFilter('all'); setShowStatsModal(true); }}
+                                    style={{
+                                      padding: '0.4rem 0.85rem', borderRadius: '0.6rem',
+                                      background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                      color: '#fff', border: 'none', fontWeight: 800, fontSize: '0.75rem',
+                                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                      boxShadow: '0 2px 8px rgba(99,102,241,0.25)'
+                                    }}
+                                  >
+                                    <BarChart2 size={13} /> Rapor
+                                  </button>
+                                  <button
+                                    onClick={() => openEditPage(hw)}
+                                    style={{
+                                      padding: '0.4rem', borderRadius: '0.6rem',
+                                      background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)',
+                                      cursor: 'pointer', display: 'flex', color: 'var(--color-text)'
+                                    }}
+                                    title="Düzenle"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
+                                        deleteHomework(hw.id);
+                                        deleteSubmissionsByTestId(hw.id);
+                                      }
+                                    }}
+                                    style={{
+                                      padding: '0.4rem', borderRadius: '0.6rem',
+                                      background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+                                      cursor: 'pointer', display: 'flex', color: '#f87171'
+                                    }}
+                                    title="Sil"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </>
@@ -1412,73 +1509,73 @@ export default function HomeworkManager() {
         {/* ══════════ SUBVIEW 2: STUDENT-CENTRIC TRACKING DASHBOARD ══════════ */}
         {subViewMode === 'students' && (
           <>
-            {/* 4 LIVE STUDENT KPI CARDS */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
-              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Users size={24} />
+            {/* 4 LIVE STUDENT KPI CARDS (RESPONSIVE 2-COL MOBILE / 4-COL DESKTOP) */}
+            <div className="hw-kpi-grid">
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Toplam Öğrenci</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.totalStudents} Öğrenci</span>
-                  <span style={{ fontSize: '0.72rem', color: '#60a5fa', fontWeight: 700 }}>Kayıtlı öğrenciler</span>
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <UserCheck size={24} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ödevi Olanlar</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withHw} Öğrenci</span>
-                  <span style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700 }}>Ödev tanımlı</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Toplam Öğrenci</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.totalStudents} Öğrenci</span>
+                  <span style={{ fontSize: '0.68rem', color: '#60a5fa', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Kayıtlı öğrenciler</span>
                 </div>
               </div>
 
-              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Clock size={24} />
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <UserCheck size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Eksik / Bekleyen</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withPending} Öğrenci</span>
-                  <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Teslim beklenen</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ödevi Olanlar</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withHw} Öğrenci</span>
+                  <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ödev tanımlı</span>
                 </div>
               </div>
 
-              <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.25rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '0.85rem', background: 'rgba(99,102,241,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Trophy size={24} />
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={22} />
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Ortalama Tamamlama</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{studentGlobalAnalytics.avgOverallRate}</span>
-                  <span style={{ fontSize: '0.72rem', color: '#818cf8', fontWeight: 700 }}>Genel öğrenci başarısı</span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Eksik / Bekleyen</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{studentGlobalAnalytics.withPending} Öğrenci</span>
+                  <span style={{ fontSize: '0.68rem', color: '#fbbf24', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Teslim beklenen</span>
+                </div>
+              </div>
+
+              <div className="hw-kpi-card">
+                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(99,102,241,0.12)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trophy size={22} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ortalama Başarı</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>%{studentGlobalAnalytics.avgOverallRate}</span>
+                  <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 700, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Genel tamamlama</span>
                 </div>
               </div>
             </div>
 
             {/* STUDENT LIST CONTAINER */}
-            <div style={glassCardStyle}>
+            <div className="hw-glass-card">
               {/* Search, Grade & Status Filters */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', flex: 1, minWidth: 280 }}>
-                  <div style={{ position: 'relative', minWidth: 220, flex: 1 }}>
-                    <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flex: 1, minWidth: 260 }}>
+                  <div style={{ position: 'relative', minWidth: 180, flex: 1 }}>
+                    <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                     <input
                       type="text"
-                      placeholder="Öğrenci adı, soyadı veya no ile ara..."
+                      placeholder="Öğrenci ara..."
                       value={studentListSearchQuery}
                       onChange={(e) => setStudentListSearchQuery(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '0.5rem 0.85rem 0.5rem 2.2rem',
+                        padding: '0.45rem 0.75rem 0.45rem 2rem',
                         borderRadius: '0.65rem',
                         border: '1.5px solid var(--color-border-input)',
                         background: 'var(--color-surface)',
                         color: 'var(--color-text)',
-                        fontSize: '0.82rem',
+                        fontSize: '0.78rem',
                         outline: 'none',
                         boxSizing: 'border-box'
                       }}
@@ -1489,12 +1586,12 @@ export default function HomeworkManager() {
                     value={studentListGradeFilter}
                     onChange={(e) => setStudentListGradeFilter(e.target.value)}
                     style={{
-                      padding: '0.5rem 0.85rem',
+                      padding: '0.45rem 0.75rem',
                       borderRadius: '0.65rem',
                       border: '1.5px solid var(--color-border-input)',
                       background: 'var(--color-surface)',
                       color: 'var(--color-text)',
-                      fontSize: '0.82rem',
+                      fontSize: '0.78rem',
                       fontWeight: 800,
                       outline: 'none',
                       cursor: 'pointer'
@@ -1507,19 +1604,19 @@ export default function HomeworkManager() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.3rem', border: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem', padding: '0.25rem', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
                   {[
                     { key: 'all', label: `Tümü (${studentSummaries.length})` },
-                    { key: 'has_homework', label: `Ödevi Olanlar (${studentGlobalAnalytics.withHw})` },
-                    { key: 'has_pending', label: `Eksik / Bekleyen (${studentGlobalAnalytics.withPending})` },
-                    { key: 'all_completed', label: `Tamamlayan (${studentGlobalAnalytics.allCompleted})` },
+                    { key: 'has_homework', label: `Ödevliler (${studentGlobalAnalytics.withHw})` },
+                    { key: 'has_pending', label: `Bekleyen (${studentGlobalAnalytics.withPending})` },
+                    { key: 'all_completed', label: `Biten (${studentGlobalAnalytics.allCompleted})` },
                   ].map(t => (
                     <button
                       key={t.key}
                       onClick={() => setStudentListStatusFilter(t.key)}
                       style={{
-                        padding: '0.4rem 0.85rem', borderRadius: '0.55rem', border: 'none',
-                        fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', whiteSpace: 'nowrap',
+                        padding: '0.35rem 0.7rem', borderRadius: '0.55rem', border: 'none',
+                        fontWeight: 800, fontSize: '0.72rem', cursor: 'pointer', whiteSpace: 'nowrap',
                         background: studentListStatusFilter === t.key ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
                         color: studentListStatusFilter === t.key ? '#ffffff' : 'var(--color-text-muted)',
                         boxShadow: studentListStatusFilter === t.key ? '0 4px 12px rgba(79,70,229,0.25)' : 'none'
@@ -1532,112 +1629,195 @@ export default function HomeworkManager() {
               </div>
 
               {filteredStudentSummaries.length === 0 ? (
-                <div style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                  <Users size={48} style={{ opacity: 0.35 }} />
-                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '1.05rem' }}>Eşleşen öğrenci bulunamadı.</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Filtreleri veya arama kriterini değiştirerek tekrar deneyiniz.</div>
+                <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <Users size={44} style={{ opacity: 0.35 }} />
+                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.98rem' }}>Eşleşen öğrenci bulunamadı.</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>Filtreleri veya arama kriterini değiştirerek tekrar deneyiniz.</div>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-                        {['Öğrenci', 'Sınıf / Şube', 'Atanan Ödev', 'Tamamlanan / Bekleyen', 'Tamamlanma Oranı', 'Ortalama Başarı', 'İşlemler'].map((h, i) => (
-                          <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 6 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredStudentSummaries.map(({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails }) => {
-                        return (
-                          <tr
-                            key={student.id}
-                            style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}
-                          >
-                            <td style={{ padding: '0.9rem 1rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.2)' }}>
-                                  {(student.name || 'Ö').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{student.name}</div>
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                    {student.email || student.username || (student.studentNumber ? `No: ${student.studentNumber}` : 'Öğrenci')}
+                <>
+                  {/* MOBILE NATIVE STUDENT CARDS (< 768px) */}
+                  <div className="hw-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    {filteredStudentSummaries.map(({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails }) => (
+                      <div key={student.id} className="hw-student-card">
+                        {/* Header: Avatar, Name, Email, Grade Chip */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {(student.name || 'Ö').charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student.name}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {student.email || student.username || 'Öğrenci'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.7rem', padding: '0.15rem 0.55rem', borderRadius: 99, flexShrink: 0 }}>
+                            {gradeName}
+                          </span>
+                        </div>
+
+                        {/* Status Stats Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-hover)', padding: '0.45rem 0.65rem', borderRadius: '0.65rem', border: '1px solid var(--color-border)', fontSize: '0.74rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 900, color: 'var(--color-text)' }}>{total} Ödev</span>
+                            <span style={{ color: '#16a34a', fontWeight: 800 }}>✓ {completed} Bitti</span>
+                            {pending > 0 && <span style={{ color: '#d97706', fontWeight: 800 }}>⏳ {pending} Bekliyor</span>}
+                          </div>
+
+                          {avgScore !== null && (
+                            <span style={{
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '0.45rem',
+                              background: avgScore >= 70 ? 'rgba(16,185,129,0.15)' : avgScore >= 50 ? 'rgba(37,99,235,0.15)' : 'rgba(239,68,68,0.15)',
+                              color: avgScore >= 70 ? '#34d399' : avgScore >= 50 ? '#60a5fa' : '#f87171',
+                              border: `1px solid ${avgScore >= 70 ? '#10b981' : avgScore >= 50 ? '#3b82f6' : '#ef4444'}`,
+                              fontWeight: 900,
+                              fontSize: '0.74rem'
+                            }}>
+                              %{avgScore}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div>
+                          <GlassProgressBar value={completed} max={total} color={rate === 100 ? '#10b981' : rate > 50 ? '#6366f1' : '#f59e0b'} />
+                        </div>
+
+                        {/* Action Button */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedStudentForDetail({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails })}
+                          style={{
+                            width: '100%',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '0.65rem',
+                            background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 900,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            boxShadow: '0 2px 8px rgba(79,70,229,0.25)'
+                          }}
+                        >
+                          <Eye size={13} /> Ödevleri İncele ({total})
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* DESKTOP TABLE (>= 769px) */}
+                  <div className="hw-desktop-only" style={{ overflowX: 'auto', marginTop: '0.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 780 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                          {['Öğrenci', 'Sınıf / Şube', 'Atanan Ödev', 'Tamamlanan / Bekleyen', 'Tamamlanma Oranı', 'Ortalama Başarı', 'İşlemler'].map((h, i) => (
+                            <th key={h} style={{ padding: '0.85rem 1rem', textAlign: i === 6 ? 'right' : 'left', fontWeight: 900, fontSize: '0.72rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudentSummaries.map(({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails }) => {
+                          return (
+                            <tr
+                              key={student.id}
+                              style={{ borderBottom: '1px solid var(--color-border)', transition: 'background 0.15s' }}
+                            >
+                              <td style={{ padding: '0.9rem 1rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.2)' }}>
+                                    {(student.name || 'Ö').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>{student.name}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                      {student.email || student.username || (student.studentNumber ? `No: ${student.studentNumber}` : 'Öğrenci')}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem' }}>
-                              <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                                {gradeName}
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
-                              <span style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.85rem' }}>
-                                {total} Ödev
-                              </span>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
-                                  ✓ {completed} Bitti
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem' }}>
+                                <span style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 800, fontSize: '0.72rem', padding: '0.25rem 0.65rem', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                  {gradeName}
                                 </span>
-                                {pending > 0 && (
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
-                                    ⏳ {pending} Bekliyor
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.85rem' }}>
+                                  {total} Ödev
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
+                                    ✓ {completed} Bitti
                                   </span>
+                                  {pending > 0 && (
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.2rem 0.5rem', borderRadius: '0.45rem' }}>
+                                      ⏳ {pending} Bekliyor
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
+                                <GlassProgressBar value={completed} max={total} color={rate === 100 ? '#10b981' : rate > 50 ? '#6366f1' : '#f59e0b'} />
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
+                                {avgScore !== null ? (
+                                  <span style={{
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '0.5rem',
+                                    background: avgScore >= 70 ? 'rgba(16,185,129,0.15)' : avgScore >= 50 ? 'rgba(37,99,235,0.15)' : 'rgba(239,68,68,0.15)',
+                                    color: avgScore >= 70 ? '#34d399' : avgScore >= 50 ? '#60a5fa' : '#f87171',
+                                    border: `1px solid ${avgScore >= 70 ? '#10b981' : avgScore >= 50 ? '#3b82f6' : '#ef4444'}`,
+                                    fontWeight: 900,
+                                    fontSize: '0.8rem'
+                                  }}>
+                                    %{avgScore}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>—</span>
                                 )}
-                              </div>
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', minWidth: 160 }}>
-                              <GlassProgressBar value={completed} max={total} color={rate === 100 ? '#10b981' : rate > 50 ? '#6366f1' : '#f59e0b'} />
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', whiteSpace: 'nowrap' }}>
-                              {avgScore !== null ? (
-                                <span style={{
-                                  padding: '0.25rem 0.65rem',
-                                  borderRadius: '0.5rem',
-                                  background: avgScore >= 70 ? 'rgba(16,185,129,0.15)' : avgScore >= 50 ? 'rgba(37,99,235,0.15)' : 'rgba(239,68,68,0.15)',
-                                  color: avgScore >= 70 ? '#34d399' : avgScore >= 50 ? '#60a5fa' : '#f87171',
-                                  border: `1px solid ${avgScore >= 70 ? '#10b981' : avgScore >= 50 ? '#3b82f6' : '#ef4444'}`,
-                                  fontWeight: 900,
-                                  fontSize: '0.8rem'
-                                }}>
-                                  %{avgScore}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedStudentForDetail({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails })}
-                                style={{
-                                  padding: '0.45rem 0.95rem',
-                                  borderRadius: '0.65rem',
-                                  background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  fontWeight: 900,
-                                  fontSize: '0.76rem',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.35rem',
-                                  boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
-                                  transition: 'all 0.15s ease'
-                                }}
-                              >
-                                <Eye size={13} /> Ödevleri İncele ({total})
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              </td>
+                              <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedStudentForDetail({ student, gradeName, total, completed, pending, rate, avgScore, hwDetails })}
+                                  style={{
+                                    padding: '0.45rem 0.95rem',
+                                    borderRadius: '0.65rem',
+                                    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontWeight: 900,
+                                    fontSize: '0.76rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    boxShadow: '0 2px 8px rgba(79,70,229,0.25)',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <Eye size={13} /> Ödevleri İncele ({total})
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </>
@@ -2038,7 +2218,7 @@ export default function HomeworkManager() {
   const selTopics = curData.topics.filter(t => selUnit !== 'all' ? t.unitId === selUnit : selUnits.map(u => u.id).includes(t.unitId));
 
   return (
-    <div style={pageContainerStyle}>
+    <div className="hw-page-container">
       <Toast msg={toast} />
 
       {/* ── STICKY WIZARD HEADER ── */}
@@ -2046,12 +2226,12 @@ export default function HomeworkManager() {
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
         borderRadius: '1.5rem',
-        padding: '1.25rem 1.75rem',
+        padding: '1.15rem 1.5rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '1rem',
+        gap: '0.85rem',
         boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
       }}>
         <button
@@ -2060,23 +2240,24 @@ export default function HomeworkManager() {
             background: 'var(--color-surface-hover)',
             border: '1.5px solid var(--color-border-input)',
             borderRadius: '0.75rem',
-            padding: '0.55rem 0.9rem',
+            padding: '0.5rem 0.85rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
+            gap: '0.35rem',
             fontWeight: 800,
+            fontSize: '0.8rem',
             color: 'var(--color-text)'
           }}
         >
-          <ArrowLeft size={15} /> Geri Dön
+          <ArrowLeft size={15} /> Geri
         </button>
 
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--color-text)' }}>
+          <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)' }}>
             {editingHwId ? 'Ödevi Düzenle' : 'Yeni Ödev Sihirbazı ✨'}
           </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
             Adım {step}/3 · {STEPS_DEF[step-1]?.desc}
           </div>
         </div>
@@ -2085,13 +2266,13 @@ export default function HomeworkManager() {
           onClick={handleSave}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '0.6rem 1.35rem', borderRadius: '0.75rem',
+            padding: '0.55rem 1.2rem', borderRadius: '0.75rem',
             background: 'linear-gradient(135deg,#059669,#10b981)',
-            border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+            border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
             cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)'
           }}
         >
-          <CheckCheck size={16} /> Ödevi Yayınla
+          <CheckCheck size={15} /> <span className="hw-desktop-only">Ödevi</span> Yayınla
         </button>
       </header>
 
@@ -2099,8 +2280,8 @@ export default function HomeworkManager() {
       <div style={{
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
-        borderRadius: '1.25rem', padding: '0.5rem',
-        display: 'flex', gap: '0.5rem', flexWrap: 'wrap',
+        borderRadius: '1.25rem', padding: '0.4rem',
+        display: 'flex', gap: '0.4rem',
         boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
       }}>
         {STEPS_DEF.map(s => {
@@ -2112,22 +2293,17 @@ export default function HomeworkManager() {
             <button
               key={s.id}
               onClick={() => canGo && setStep(s.id)}
+              className={`hw-step-pill ${isAct ? 'active' : ''} ${isDone ? 'completed' : ''}`}
               style={{
-                flex: 1, padding: '0.75rem 0.5rem', borderRadius: '0.85rem',
-                border: isAct ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                cursor: canGo ? 'pointer' : 'not-allowed',
-                background: isAct ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : isDone ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)',
-                color: isAct ? '#ffffff' : isDone ? '#34d399' : 'var(--color-text-muted)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
-                boxShadow: isAct ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
-                opacity: canGo ? 1 : 0.5
+                opacity: canGo ? 1 : 0.5,
+                cursor: canGo ? 'pointer' : 'not-allowed'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                {isDone ? <CheckCircle size={15} color="#34d399" /> : <SIcon size={15} color={isAct ? '#fff' : '#818cf8'} />}
-                <span style={{ fontWeight: 900, fontSize: '0.82rem' }}>{s.label}</span>
+                {isDone ? <CheckCircle size={14} color="#34d399" /> : <SIcon size={14} color={isAct ? '#fff' : '#818cf8'} />}
+                <span style={{ fontWeight: 900, fontSize: '0.8rem' }}>{s.label}</span>
               </div>
-              <span style={{ fontSize: '0.68rem', color: isAct ? '#e0e7ff' : 'var(--color-text-muted)', fontWeight: 600 }}>{s.desc}</span>
+              <span className="hw-desktop-only" style={{ fontSize: '0.66rem', color: isAct ? '#e0e7ff' : 'var(--color-text-muted)', fontWeight: 600 }}>{s.desc}</span>
             </button>
           );
         })}
@@ -2135,8 +2311,8 @@ export default function HomeworkManager() {
 
       {/* ── STEP 1: TEMEL BİLGİLER ── */}
       {step === 1 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={glassCardStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="hw-glass-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
               <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#4f46e5,#6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ClipboardList size={20} color="#fff" />
@@ -2235,8 +2411,8 @@ export default function HomeworkManager() {
 
       {/* ── STEP 2: HEDEF KİTLE ── */}
       {step === 2 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div style={glassCardStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="hw-glass-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
               <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'linear-gradient(135deg,#059669,#10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Target size={20} color="#fff" />
@@ -2283,7 +2459,7 @@ export default function HomeworkManager() {
               </div>
 
               {targetMode === 'grade' ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.65rem' }}>
                   {curData.grades.map(g => {
                     const isSel = selectedTargets.includes(g.id);
                     return (
@@ -2291,22 +2467,22 @@ export default function HomeworkManager() {
                         key={g.id}
                         onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== g.id) : [...prev, g.id])}
                         style={{
-                          padding: '1rem', borderRadius: '1rem', cursor: 'pointer',
+                          padding: '0.85rem', borderRadius: '1rem', cursor: 'pointer',
                           border: isSel ? '2px solid #10b981' : '1.5px solid var(--color-border)',
                           background: isSel ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)',
-                          display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'all 0.15s'
+                          display: 'flex', alignItems: 'center', gap: '0.65rem', transition: 'all 0.15s'
                         }}
                       >
-                        <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <GraduationCap size={18} color={isSel ? '#ffffff' : 'var(--color-text-muted)'} />
+                        <div style={{ width: 36, height: 36, borderRadius: '0.75rem', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <GraduationCap size={17} color={isSel ? '#ffffff' : 'var(--color-text-muted)'} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)' }}>{g.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                          <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>{g.name}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
                             {students.filter(s => isStudentInGrade(s, g)).length} Öğrenci
                           </div>
                         </div>
-                        {isSel && <CheckCircle size={18} color="#34d399" />}
+                        {isSel && <CheckCircle size={16} color="#34d399" />}
                       </div>
                     );
                   })}
@@ -2341,7 +2517,7 @@ export default function HomeworkManager() {
                     ))}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.6rem', maxHeight: 320, overflowY: 'auto' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.55rem', maxHeight: 320, overflowY: 'auto' }}>
                     {filteredStudents.map(s => {
                       const isSel = selectedTargets.includes(s.id);
                       return (
@@ -2349,20 +2525,20 @@ export default function HomeworkManager() {
                           key={s.id}
                           onClick={() => setSelectedTargets(prev => isSel ? prev.filter(x => x !== s.id) : [...prev, s.id])}
                           style={{
-                            padding: '0.65rem 0.85rem', borderRadius: '0.85rem', cursor: 'pointer',
+                            padding: '0.6rem 0.75rem', borderRadius: '0.85rem', cursor: 'pointer',
                             border: isSel ? '2px solid #10b981' : '1.5px solid var(--color-border)',
                             background: isSel ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)',
-                            display: 'flex', alignItems: 'center', gap: '0.6rem'
+                            display: 'flex', alignItems: 'center', gap: '0.55rem'
                           }}
                         >
-                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'var(--color-surface)', color: isSel ? '#ffffff' : 'var(--color-text-muted)', fontWeight: 900, fontSize: '0.82rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: isSel ? 'linear-gradient(135deg,#059669,#10b981)' : 'var(--color-surface)', color: isSel ? '#ffffff' : 'var(--color-text-muted)', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {s.name.charAt(0)}
                           </div>
                           <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {s.name}
                             </div>
-                            <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)' }}>
                               {curData.grades.find(g => isStudentInGrade(s, g))?.name || s.grade || s.gradeId || 'Sınıf Belirtilmemiş'}
                             </div>
                           </div>
@@ -2380,9 +2556,9 @@ export default function HomeworkManager() {
             <button
               onClick={() => setStep(1)}
               style={{
-                padding: '0.65rem 1.25rem', borderRadius: '0.75rem',
+                padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
                 border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)',
-                color: 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem',
+                color: 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                 display: 'flex', alignItems: 'center', gap: 4
               }}
             >
@@ -2392,9 +2568,9 @@ export default function HomeworkManager() {
               onClick={() => { if (selectedTargets.length > 0) setStep(3); else showToast('Lütfen en az bir hedef seçin.'); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '0.65rem 1.4rem', borderRadius: '0.75rem',
+                padding: '0.55rem 1.3rem', borderRadius: '0.75rem',
                 background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
                 cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)'
               }}
             >
@@ -2406,10 +2582,10 @@ export default function HomeworkManager() {
 
       {/* ── STEP 3: SORU BANKASI & TEST SEÇİMİ ── */}
       {step === 3 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           {/* FILTER CRITERIA */}
-          <div style={glassCardStyle}>
+          <div className="hw-glass-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.85rem' }}>
               <Filter size={18} color="#818cf8" />
               <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>Soru Bankası Filtreleme</span>
@@ -2418,9 +2594,9 @@ export default function HomeworkManager() {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.45rem' }}>
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selGrade}
                 onChange={e => { setSelGrade(e.target.value); setSelSubject('all'); setSelUnit('all'); setSelTopic('all'); }}
               >
@@ -2429,7 +2605,7 @@ export default function HomeworkManager() {
               </select>
 
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selSubject}
                 onChange={e => { setSelSubject(e.target.value); setSelUnit('all'); setSelTopic('all'); }}
               >
@@ -2438,7 +2614,7 @@ export default function HomeworkManager() {
               </select>
 
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selUnit}
                 onChange={e => { setSelUnit(e.target.value); setSelTopic('all'); }}
               >
@@ -2447,7 +2623,7 @@ export default function HomeworkManager() {
               </select>
 
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selTopic}
                 onChange={e => setSelTopic(e.target.value)}
               >
@@ -2456,7 +2632,7 @@ export default function HomeworkManager() {
               </select>
 
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selQuestionType}
                 onChange={e => setSelQuestionType(e.target.value)}
               >
@@ -2467,7 +2643,7 @@ export default function HomeworkManager() {
               </select>
 
               <select
-                style={{ width: '100%', padding: '0.55rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', outline: 'none' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.76rem', outline: 'none' }}
                 value={selContentType}
                 onChange={e => setSelContentType(e.target.value)}
               >
@@ -2483,7 +2659,7 @@ export default function HomeworkManager() {
             <div style={{ position: 'relative', marginTop: '0.65rem' }}>
               <Search size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
               <input
-                style={{ width: '100%', padding: '0.6rem 0.85rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '0.55rem 0.85rem 0.55rem 2.2rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none', boxSizing: 'border-box' }}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Soru metni veya başlıkla ara..."
@@ -2492,7 +2668,7 @@ export default function HomeworkManager() {
           </div>
 
           {/* QUESTIONS CHECKLIST */}
-          <div style={glassCardStyle}>
+          <div className="hw-glass-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
                 Soru Bankası Listesi
@@ -2584,13 +2760,7 @@ export default function HomeworkManager() {
 
           {/* TOPLU ATAMA BİÇİMİ (IF > 1 TEST) */}
           {selectedQuestionIds.length > 1 && !editingHwId && (
-            <div style={{
-              background: 'var(--color-surface)',
-              border: '1.5px solid var(--color-border)',
-              borderRadius: '1.5rem', padding: '1.5rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-              display: 'flex', flexDirection: 'column', gap: '1rem'
-            }}>
+            <div className="hw-glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <Layers size={22} color="#818cf8" />
                 <div>
@@ -2660,7 +2830,7 @@ export default function HomeworkManager() {
           )}
 
           {/* BOTTOM SUMMARY & PUBLISH BAR */}
-          <div style={{ ...glassCardStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div className="hw-glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
               <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
                 {selectedQuestionIds.length > 0 ? `${selectedQuestionIds.length} Soru / Test Seçildi` : 'Henüz soru seçilmedi'}
@@ -2675,9 +2845,9 @@ export default function HomeworkManager() {
               <button
                 onClick={() => setStep(2)}
                 style={{
-                  padding: '0.65rem 1.25rem', borderRadius: '0.75rem',
+                  padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
                   border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.82rem',
+                  color: 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.8rem',
                   display: 'flex', alignItems: 'center', gap: 4
                 }}
               >
@@ -2687,17 +2857,17 @@ export default function HomeworkManager() {
                 onClick={handleSave}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '0.65rem 1.5rem', borderRadius: '0.75rem',
+                  padding: '0.55rem 1.35rem', borderRadius: '0.75rem',
                   background: 'linear-gradient(135deg,#059669,#10b981)',
-                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.85rem',
+                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
                   cursor: 'pointer', boxShadow: '0 4px 16px rgba(16,185,129,0.3)'
                 }}
               >
-                <Sparkles size={16} />{' '}
+                <Sparkles size={15} />{' '}
                 {editingHwId
                   ? 'Ödevi Güncelle'
                   : selectedQuestionIds.length > 1 && assignmentMode === 'separate'
-                  ? `${selectedQuestionIds.length} Ödevi Ayrı Ayrı Yayınla!`
+                  ? `${selectedQuestionIds.length} Ödevi Yayınla!`
                   : 'Ödevi Yayınla!'}
               </button>
             </div>
