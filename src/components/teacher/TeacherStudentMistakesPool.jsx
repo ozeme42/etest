@@ -27,9 +27,10 @@ const resolveSubjectName = (...candidates) => {
   for (const c of candidates) {
     if (!c || typeof c !== 'string') continue;
     const lower = c.toLowerCase().trim();
-    if (lower.includes('mat')) return 'Matematik';
+    if (lower === 'genel' || lower === 'genel testler' || lower === 'other' || lower === 'undefined' || lower === 'null') continue;
+    if (lower.includes('mat') || lower.includes('problem')) return 'Matematik';
     if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
-    if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat')) return 'Türkçe';
+    if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat') || lower.includes('dil bilgisi')) return 'Türkçe';
     if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
     if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
     if (lower.includes('din')) return 'Din Kültürü';
@@ -38,7 +39,7 @@ const resolveSubjectName = (...candidates) => {
 };
 
 const resolveUnitName = (title, unit, fallback) => {
-  if (unit && typeof unit === 'string' && unit.trim() && unit.trim() !== '1. Ünite') {
+  if (unit && typeof unit === 'string' && unit.trim()) {
     const mU = unit.match(/(\d+)/);
     if (mU) return `${mU[1]}. Ünite`;
     return unit.trim();
@@ -94,6 +95,23 @@ export default function TeacherStudentMistakesPool({
   // Selected questions map: key -> question object
   const [selectedQuestions, setSelectedQuestions] = useState({});
 
+  // Build mapping lookup from books: subjectId -> Subject Name, topicId -> Topic/Unit Name
+  const { subjectNameMap, topicNameMap } = useMemo(() => {
+    const sMap = new Map();
+    const tMap = new Map();
+    (books || []).forEach(b => {
+      (b.subjects || []).forEach(s => {
+        if (s && s.id) {
+          sMap.set(String(s.id), s.name);
+          (s.topics || []).forEach(top => {
+            if (top && top.id) tMap.set(String(top.id), top.name);
+          });
+        }
+      });
+    });
+    return { subjectNameMap: sMap, topicNameMap: tMap };
+  }, [books]);
+
   // Build comprehensive, ACCURATE mistake database for this student across ALL books
   const booksMistakesTree = useMemo(() => {
     if (!student?.id) return [];
@@ -148,23 +166,43 @@ export default function TeacherStudentMistakesPool({
 
     const bookTree = new Map();
 
-    const resolveBookInfo = (s) => {
+    const resolveBookAndTestInfo = (s) => {
       const rawAnswers = s.answers || [];
       const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
       const title = s.title || s.testTitle || '';
 
-      let matchedBook = books.find(b => {
-        if (meta?.bookTitle && b.title === meta.bookTitle) return true;
-        if (title && b.title && title.includes(b.title)) return true;
-        return false;
-      });
+      // Lookup matching bookTest
+      const candidateIds = [
+        s.testId, s.test_id, s.realTestId, s.bookTestId,
+        meta?.realTestId, meta?.bookTestId, meta?.testId, s.id
+      ].filter(Boolean);
+
+      let matchedBookTest = null;
+      for (const cid of candidateIds) {
+        const cidStr = String(cid);
+        const cidUuid = toUUID(cidStr);
+        matchedBookTest = (bookTests || []).find(bt => {
+          const btIdStr = String(bt.id || bt.testId || '');
+          return btIdStr === cidStr || btIdStr === cidUuid || toUUID(btIdStr) === cidUuid ||
+            (bt.answer_key?.__meta?.realTestId && String(bt.answer_key.__meta.realTestId) === cidStr) ||
+            (bt.answerKey?.__meta?.realTestId && String(bt.answerKey.__meta.realTestId) === cidStr);
+        });
+        if (matchedBookTest) break;
+      }
+
+      // Lookup matched book
+      let matchedBook = null;
+      if (matchedBookTest) {
+        const bTestBookId = String(matchedBookTest.bookId || matchedBookTest.book_id || '');
+        matchedBook = books.find(b => String(b.id) === bTestBookId || toUUID(b.id) === bTestBookId || toUUID(b.id) === toUUID(bTestBookId));
+      }
 
       if (!matchedBook) {
-        const testIdCandidate = s.testId || s.test_id || s.realTestId || s.bookTestId;
-        const bTest = (bookTests || []).find(bt => String(bt.id) === String(testIdCandidate) || String(bt.testId) === String(testIdCandidate));
-        if (bTest) {
-          matchedBook = books.find(b => String(b.id) === String(bTest.bookId || bTest.book_id));
-        }
+        matchedBook = books.find(b => {
+          if (meta?.bookTitle && b.title === meta.bookTitle) return true;
+          if (title && b.title && title.includes(b.title)) return true;
+          return false;
+        });
       }
 
       if (!matchedBook) {
@@ -181,7 +219,21 @@ export default function TeacherStudentMistakesPool({
       const bSubject = matchedBook?.subject || null;
       const bGrade = matchedBook?.grade || null;
 
-      return { bookId: bId, bookTitle: bTitle, bookPdfUrl: bPdfUrl, bookSubject: bSubject, bookGrade: bGrade, matchedBook };
+      // Extract subject from matched test
+      const testSubjFromId = matchedBookTest?.subject_id ? subjectNameMap.get(String(matchedBookTest.subject_id)) : (matchedBookTest?.subjectId ? subjectNameMap.get(String(matchedBookTest.subjectId)) : null);
+      const testTopicFromId = matchedBookTest?.topic_id ? topicNameMap.get(String(matchedBookTest.topic_id)) : (matchedBookTest?.topicId ? topicNameMap.get(String(matchedBookTest.topicId)) : null);
+
+      return {
+        bookId: bId,
+        bookTitle: bTitle,
+        bookPdfUrl: bPdfUrl,
+        bookSubject: bSubject,
+        bookGrade: bGrade,
+        matchedBook,
+        matchedBookTest,
+        testSubjFromId,
+        testTopicFromId
+      };
     };
 
     studentSubs.forEach(s => {
@@ -234,9 +286,30 @@ export default function TeacherStudentMistakesPool({
 
       if (wrongList.length === 0) return;
 
-      const { bookId, bookTitle, bookPdfUrl, bookSubject, bookGrade } = resolveBookInfo(s);
-      const subjectName = resolveSubjectName(s.subject, meta?.subject, s.title, bookSubject);
-      const unitName = resolveUnitName(s.title || s.testTitle, meta?.unitTopic || meta?.unit);
+      const {
+        bookId,
+        bookTitle,
+        bookPdfUrl,
+        bookSubject,
+        bookGrade,
+        testSubjFromId,
+        testTopicFromId
+      } = resolveBookAndTestInfo(s);
+
+      const subjectName = resolveSubjectName(
+        testSubjFromId,
+        s.title,
+        s.testTitle,
+        meta?.subject,
+        s.subject,
+        bookSubject
+      );
+
+      const unitName = resolveUnitName(
+        s.title || s.testTitle,
+        testTopicFromId || meta?.unitTopic || meta?.unit
+      );
+
       const displayTitle = cleanTestDisplayTitle(s.title || s.testTitle || 'Test');
 
       if (!bookTree.has(bookId)) {
@@ -307,6 +380,14 @@ export default function TeacherStudentMistakesPool({
         });
       });
 
+      // Subject display ordering: Türkçe, Matematik, Fen Bilimleri, Sosyal Bilgiler, İngilizce, Din Kültürü, Diğer
+      const order = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel'];
+      subjects.sort((a, b) => {
+        const idxA = order.indexOf(a.subjectName);
+        const idxB = order.indexOf(b.subjectName);
+        return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+      });
+
       bookResults.push({
         bookId: b.bookId,
         bookTitle: b.bookTitle,
@@ -320,7 +401,7 @@ export default function TeacherStudentMistakesPool({
     });
 
     return bookResults;
-  }, [student, submissions, books, bookTests]);
+  }, [student, submissions, books, bookTests, subjectNameMap, topicNameMap]);
 
   // Auto-select first book with mistakes
   useEffect(() => {
