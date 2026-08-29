@@ -134,7 +134,9 @@ export function EvaluationProvider({ children }) {
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
     if (showLoading) setIsSyncing(true);
-    if (!force && isCacheValid('submissions', 30) && submissions.length > 0) {
+    // FORCE CACHE INVALIDATION FOR THIS DEPLOYMENT (temporary override to clear stale data)
+    const forceInvalidate = true; 
+    if (!forceInvalidate && !force && isCacheValid('submissions', 30) && submissions.length > 0) {
       if (showLoading) setIsSyncing(false);
       return submissions;
     }
