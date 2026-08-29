@@ -3006,6 +3006,24 @@ export function MonthlyListPanel({
                                         {subjectName}
                                       </span>
 
+                                      {(item.type === 'remedialTest' || item.isTeacherRemedial || String(item.text || '').includes('Tekrar')) && (
+                                        <span style={{
+                                          fontSize: '0.64rem',
+                                          fontWeight: 900,
+                                          color: '#e11d48',
+                                          background: isDark ? 'rgba(225,29,72,0.18)' : '#ffe4e6',
+                                          border: '1px solid rgba(225,29,72,0.3)',
+                                          padding: '1px 6px',
+                                          borderRadius: 5,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          flexShrink: 0
+                                        }}>
+                                          ✂️ Telafi Testi {item.stage ? `(${item.stage}. Aşama)` : ''}
+                                        </span>
+                                      )}
+
                                       {pageBadge && (
                                         <span style={{
                                           fontSize: '0.62rem',
