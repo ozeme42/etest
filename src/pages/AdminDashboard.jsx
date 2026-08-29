@@ -173,7 +173,8 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* DESKTOP ACTIONS */}
+          <div className="admin-desktop-flex" style={{ alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               onClick={handleDownloadBackup}
               disabled={isBackingUp}
@@ -302,38 +303,128 @@ export default function AdminDashboard() {
               <CheckCircle2 size={15} /> Sistem Aktif & Senkronize
             </div>
           </div>
+
+          {/* MOBILE 2x2 ACTION CARDS */}
+          <div className="admin-mobile-grid" style={{ width: '100%', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <button
+              onClick={handleDownloadBackup}
+              disabled={isBackingUp}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #059669, #10b981)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.76rem',
+                fontWeight: 900,
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <Download size={15} /> {isBackingUp ? 'İndiriliyor...' : '📥 Yedek İndir'}
+            </button>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+                color: '#fff',
+                fontSize: '0.76rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(2, 132, 199, 0.3)'
+              }}
+            >
+              <Upload size={15} /> 📤 Dosya Yükle
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleRestoreFile}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            <button
+              onClick={() => { setShowPasteModal(true); setRestoreError(null); }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.76rem',
+                fontWeight: 900,
+                boxShadow: '0 2px 8px rgba(14, 165, 233, 0.3)'
+              }}
+            >
+              <ClipboardCheck size={15} /> 📋 JSON Yapıştır
+            </button>
+
+            <button
+              onClick={handleStartMigration}
+              disabled={isMigrating}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '0.65rem 0.5rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                color: '#fff',
+                border: 'none',
+                fontSize: '0.76rem',
+                fontWeight: 900,
+                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              <UploadCloud size={15} /> {isMigrating ? 'İşleniyor...' : '🚀 Bulut Aktar'}
+            </button>
+          </div>
         </div>
 
         {/* 5 GLOWING KPI METRIC CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 155px), 1fr))', gap: '0.75rem' }}>
           {[
-            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğretmen`, icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)' },
+            { label: 'Kayıtlı Kullanıcı', value: `${users.length} Kişi`, sub: `${students.length} Öğrenci · ${teachers.length} Öğr.`, icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.3)' },
             { label: 'Öğrenci Sayısı', value: `${students.length} Öğrenci`, sub: unassignedStudents.length > 0 ? `⚠️ ${unassignedStudents.length} Atanmamış` : '✅ Tümü Atanmış', icon: GraduationCap, color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', border: 'rgba(139, 92, 246, 0.3)' },
             { label: 'Aktif Öğretmen', value: `${teachers.length} Öğretmen`, sub: pendingTeachers.length > 0 ? `⏳ ${pendingTeachers.length} Onay Bekliyor` : 'Tüm Kayıtlar Aktif', icon: UserCheck, color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.3)' },
             { label: 'Müfredat Kapsamı', value: `${totalGrades} Sınıf · ${totalSubjects} Ders`, sub: `${totalUnits} Ünite · ${totalTopics} Konu`, icon: Layers, color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.15)', border: 'rgba(244, 63, 94, 0.3)' },
-            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri (Görüntüle)', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', onClick: () => setActiveTab('results') },
+            { label: 'Çözülen Sınavlar', value: `${submissions.length} Sınav`, sub: 'Öğrenci Değerlendirmeleri', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.3)', onClick: () => setActiveTab('results') },
           ].map(kpi => {
             const Icon = kpi.icon;
             return (
               <div key={kpi.label} onClick={kpi.onClick} style={{
                 background: 'var(--color-surface)',
                 border: '1.5px solid var(--color-border)',
-                borderRadius: '1.25rem',
-                padding: '1rem 1.25rem',
+                borderRadius: '1.15rem',
+                padding: '0.85rem 1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '1rem',
+                gap: '0.75rem',
                 boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)',
                 cursor: kpi.onClick ? 'pointer' : 'default',
                 transition: 'transform 0.15s ease'
               }}>
-                <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: kpi.bg, color: kpi.color, border: `1px solid ${kpi.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={22} />
+                <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: kpi.bg, color: kpi.color, border: `1px solid ${kpi.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={19} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>{kpi.label}</span>
-                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
-                  <span style={{ fontSize: '0.72rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#f59e0b' : 'var(--color-text-muted)', fontWeight: 600 }}>{kpi.sub}</span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kpi.label}</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>{kpi.value}</span>
+                  <span style={{ fontSize: '0.68rem', color: kpi.sub.includes('⚠️') || kpi.sub.includes('⏳') ? '#f59e0b' : 'var(--color-text-muted)', fontWeight: 600, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kpi.sub}</span>
                 </div>
               </div>
             );
@@ -757,6 +848,7 @@ function CurriculumManager() {
   const [selectedGrade, setSelectedGrade] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [mobileStep, setMobileStep] = useState('grade'); // 'grade' | 'subject' | 'unit' | 'topic'
 
   const [newItemName, setNewItemName] = useState('');
   const [jsonModal, setJsonModal] = useState(false);
@@ -807,6 +899,414 @@ function CurriculumManager() {
     }
   };
 
+  // Reusable Column Renders for Grade, Subject, Unit, Topic
+  const renderGradeColumn = () => (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: '1.5px solid var(--color-border)',
+      borderRadius: '1.25rem',
+      padding: '1.15rem',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 400,
+      boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <FolderTree size={18} /> 1. Sınıflar / Düzeyler
+        </div>
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+          {sortedGrades.length} Sınıf
+        </span>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+        {sortedGrades.map(grade => {
+          const count = data.subjects.filter(s => s.gradeId === grade.id).length;
+          const isActive = selectedGrade === grade.id;
+          return (
+            <div
+              key={grade.id}
+              onClick={() => {
+                setSelectedGrade(grade.id);
+                setSelectedSubject(null);
+                setSelectedUnit(null);
+                setMobileStep('subject');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '0.85rem',
+                background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface-hover)',
+                border: isActive ? '1.5px solid #4338ca' : '1px solid var(--color-border)',
+                color: isActive ? '#ffffff' : 'var(--color-text)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.25)' : 'none'
+              }}
+            >
+              <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{grade.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
+                  {count} Ders
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditModal({ open: true, type: 'grades', typeLabel: 'Sınıf', id: grade.id, name: grade.name });
+                  }}
+                  style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Sınıfı Düzenle"
+                >
+                  <Edit size={13} />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteItem('grades', grade.id); }}
+                  style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Sınıfı Sil"
+                >
+                  <Trash2 size={14} />
+                </button>
+                <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('grade', null, val); e.target.elements.addInput.value = ''; }}
+        style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
+      >
+        <input
+          name="addInput"
+          type="text"
+          placeholder="+ Yeni Sınıf Ekle (Örn: 4. Sınıf)"
+          style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
+        />
+        <button
+          type="submit"
+          style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#6366f1,#4f46e5)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+        >
+          <Plus size={16} />
+        </button>
+      </form>
+    </div>
+  );
+
+  const renderSubjectColumn = () => (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: '1.5px solid var(--color-border)',
+      borderRadius: '1.25rem',
+      padding: '1.15rem',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 400,
+      boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0284c7', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <BookOpen size={18} /> 2. Dersler
+        </div>
+        {selectedGrade && (
+          <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(2, 132, 199, 0.3)' }}>
+            {filteredSubjects.length} Ders
+          </span>
+        )}
+      </div>
+
+      {selectedGrade ? (
+        <>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+            {filteredSubjects.length === 0 ? (
+              <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu sınıfa ait henüz ders eklenmemiş.</p>
+            ) : (
+              filteredSubjects.map(subject => {
+                const unitCount = data.units.filter(u => u.subjectId === subject.id).length;
+                const isActive = selectedSubject === subject.id;
+                return (
+                  <div
+                    key={subject.id}
+                    onClick={() => {
+                      setSelectedSubject(subject.id);
+                      setSelectedUnit(null);
+                      setMobileStep('unit');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '0.85rem',
+                      background: isActive ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'var(--color-surface-hover)',
+                      border: isActive ? '1.5px solid #0369a1' : '1px solid var(--color-border)',
+                      color: isActive ? '#ffffff' : 'var(--color-text)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isActive ? '0 4px 14px rgba(2, 132, 199, 0.25)' : 'none'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{subject.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
+                        {unitCount} Ünite
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditModal({ open: true, type: 'subjects', typeLabel: 'Ders', id: subject.id, name: subject.name });
+                        }}
+                        style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Dersi Düzenle"
+                      >
+                        <Edit size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteItem('subjects', subject.id); }}
+                        style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Dersi Sil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('subject', selectedGrade, val); e.target.elements.addInput.value = ''; }}
+            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
+          >
+            <input
+              name="addInput"
+              type="text"
+              placeholder="+ Ders ekle (Örn: Matematik, Fen)"
+              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
+            />
+            <button
+              type="submit"
+              style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#0284c7,#0ea5e9)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+            >
+              <Plus size={16} />
+            </button>
+          </form>
+        </>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
+          <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir sınıf seçin.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderUnitColumn = () => (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: '1.5px solid var(--color-border)',
+      borderRadius: '1.25rem',
+      padding: '1.15rem',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 400,
+      boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b5cf6', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <Layers size={18} /> 3. Üniteler
+        </div>
+        {selectedSubject && (
+          <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+            {filteredUnits.length} Ünite
+          </span>
+        )}
+      </div>
+
+      {selectedSubject ? (
+        <>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+            {filteredUnits.length === 0 ? (
+              <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu derse ait henüz ünite eklenmemiş.</p>
+            ) : (
+              filteredUnits.map(unit => {
+                const topicCount = data.topics.filter(t => t.unitId === unit.id).length;
+                const isActive = selectedUnit === unit.id;
+                return (
+                  <div
+                    key={unit.id}
+                    onClick={() => {
+                      setSelectedUnit(unit.id);
+                      setMobileStep('topic');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '0.85rem',
+                      background: isActive ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'var(--color-surface-hover)',
+                      border: isActive ? '1.5px solid #6d28d9' : '1px solid var(--color-border)',
+                      color: isActive ? '#ffffff' : 'var(--color-text)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isActive ? '0 4px 14px rgba(124, 58, 237, 0.25)' : 'none'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{unit.name}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
+                        {topicCount} Konu
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditModal({ open: true, type: 'units', typeLabel: 'Ünite', id: unit.id, name: unit.name });
+                        }}
+                        style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Üniteyi Düzenle"
+                      >
+                        <Edit size={13} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteItem('units', unit.id); }}
+                        style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Üniteyi Sil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                      <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('unit', selectedSubject, val); e.target.elements.addInput.value = ''; }}
+            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
+          >
+            <input
+              name="addInput"
+              type="text"
+              placeholder="+ Ünite ekle (Örn: 1. Ünite - Çarpanlar)"
+              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
+            />
+            <button
+              type="submit"
+              style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+            >
+              <Plus size={16} />
+            </button>
+          </form>
+        </>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
+          <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ders seçin.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTopicColumn = () => (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: '1.5px solid var(--color-border)',
+      borderRadius: '1.25rem',
+      padding: '1.15rem',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 400,
+      boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f43f5e', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
+          <FileText size={18} /> 4. Konular
+        </div>
+        {selectedUnit && (
+          <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(244, 63, 94, 0.3)' }}>
+            {filteredTopics.length} Konu
+          </span>
+        )}
+      </div>
+
+      {selectedUnit ? (
+        <>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 360, paddingRight: 4 }}>
+            {filteredTopics.length === 0 ? (
+              <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu üniteye ait henüz konu eklenmemiş.</p>
+            ) : (
+              filteredTopics.map(topic => (
+                <div
+                  key={topic.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '0.85rem',
+                    background: 'var(--color-surface-hover)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, lineHeight: 1.3 }}>{topic.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      onClick={() => setEditModal({ open: true, type: 'topics', typeLabel: 'Konu', id: topic.id, name: topic.name })}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title="Konuyu Düzenle"
+                    >
+                      <Edit size={13} />
+                    </button>
+                    <button
+                      onClick={() => deleteItem('topics', topic.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title="Konuyu Sil"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('topic', selectedUnit, val); e.target.elements.addInput.value = ''; }}
+            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
+          >
+            <input
+              name="addInput"
+              type="text"
+              placeholder="+ Konu ekle (virgülle çoklu)"
+              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
+            />
+            <button
+              type="submit"
+              style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+            >
+              <Plus size={16} />
+            </button>
+          </form>
+        </>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
+          <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
+          <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ünite seçin.</p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
@@ -815,464 +1315,148 @@ function CurriculumManager() {
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
-        padding: '1rem 1.25rem',
+        padding: '0.85rem 1.15rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '0.85rem',
+        gap: '0.75rem',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            📍 Aktif Yol:
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            📍 Yol:
           </span>
-          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedGrade ? '#3b82f6' : 'var(--color-text-muted)', background: selectedGrade ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedGrade ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--color-border)' }}>
-            {currentGradeObj?.name || 'Sınıf Seçilmedi'}
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: selectedGrade ? '#3b82f6' : 'var(--color-text-muted)', background: selectedGrade ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', border: selectedGrade ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--color-border)' }}>
+            {currentGradeObj?.name || 'Sınıf Seçin'}
           </span>
           {selectedGrade && (
             <>
-              <ChevronRight size={14} color="var(--color-text-muted)" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedSubject ? '#0284c7' : 'var(--color-text-muted)', background: selectedSubject ? 'rgba(2, 132, 199, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedSubject ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid var(--color-border)' }}>
-                {currentSubjectObj?.name || 'Ders Seçilmedi'}
+              <ChevronRight size={13} color="var(--color-text-muted)" />
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: selectedSubject ? '#0284c7' : 'var(--color-text-muted)', background: selectedSubject ? 'rgba(2, 132, 199, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', border: selectedSubject ? '1px solid rgba(2, 132, 199, 0.3)' : '1px solid var(--color-border)' }}>
+                {currentSubjectObj?.name || 'Ders Seçin'}
               </span>
             </>
           )}
           {selectedSubject && (
             <>
-              <ChevronRight size={14} color="var(--color-text-muted)" />
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: selectedUnit ? '#8b5cf6' : 'var(--color-text-muted)', background: selectedUnit ? 'rgba(139, 92, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', border: selectedUnit ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--color-border)' }}>
-                {currentUnitObj?.name || 'Ünite Seçilmedi'}
+              <ChevronRight size={13} color="var(--color-text-muted)" />
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: selectedUnit ? '#8b5cf6' : 'var(--color-text-muted)', background: selectedUnit ? 'rgba(139, 92, 246, 0.15)' : 'var(--color-surface-hover)', padding: '0.2rem 0.55rem', borderRadius: '0.5rem', border: selectedUnit ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--color-border)' }}>
+                {currentUnitObj?.name || 'Ünite Seçin'}
               </span>
             </>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <button
-            onClick={() => setJsonModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '0.5rem 1rem',
-              borderRadius: '0.75rem',
-              background: 'rgba(59, 130, 246, 0.15)',
-              border: '1.5px solid rgba(59, 130, 246, 0.35)',
-              color: '#3b82f6',
-              fontSize: '0.8rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s'
-            }}
-          >
-            <FileJson size={16} /> Toplu JSON Müfredat Ekle
-          </button>
-        </div>
+        <button
+          onClick={() => setJsonModal(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '0.45rem 0.85rem',
+            borderRadius: '0.75rem',
+            background: 'rgba(59, 130, 246, 0.15)',
+            border: '1.5px solid rgba(59, 130, 246, 0.35)',
+            color: '#3b82f6',
+            fontSize: '0.76rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            transition: 'all 0.15s'
+          }}
+        >
+          <FileJson size={15} /> Toplu JSON Ekle
+        </button>
       </div>
 
-      {/* 4-COLUMN MILLER HIERARCHY GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem', alignItems: 'start', width: '100%', minWidth: 0 }}>
+      {/* MOBILE STEP WIZARD BAR (NATIVE APP EXPERIENCE) */}
+      <div className="admin-mobile-flex" style={{ gap: '0.45rem', overflowX: 'auto', paddingBottom: '0.25rem', scrollbarWidth: 'none' }}>
+        <button
+          onClick={() => setMobileStep('grade')}
+          className={`admin-step-pill ${mobileStep === 'grade' ? 'active' : selectedGrade ? 'completed' : ''}`}
+        >
+          <FolderTree size={14} />
+          <span>1. Sınıflar</span>
+          {currentGradeObj && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>({currentGradeObj.name})</span>}
+        </button>
         
-        {/* COLUMN 1: GRADES */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem',
-          padding: '1.15rem',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 460,
-          boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-primary)', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
-              <FolderTree size={18} /> 1. Sınıflar / Düzeyler
-            </div>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-              {sortedGrades.length} Sınıf
-            </span>
-          </div>
+        <button
+          onClick={() => selectedGrade && setMobileStep('subject')}
+          disabled={!selectedGrade}
+          className={`admin-step-pill ${mobileStep === 'subject' ? 'active' : selectedSubject ? 'completed' : ''}`}
+          style={{ opacity: selectedGrade ? 1 : 0.45 }}
+        >
+          <BookOpen size={14} />
+          <span>2. Dersler</span>
+          {currentSubjectObj && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>({currentSubjectObj.name})</span>}
+        </button>
 
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
-            {sortedGrades.map(grade => {
-              const count = data.subjects.filter(s => s.gradeId === grade.id).length;
-              const isActive = selectedGrade === grade.id;
-              return (
-                <div
-                  key={grade.id}
-                  onClick={() => { setSelectedGrade(grade.id); setSelectedSubject(null); setSelectedUnit(null); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '0.85rem',
-                    background: isActive ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface-hover)',
-                    border: isActive ? '1.5px solid #4338ca' : '1px solid var(--color-border)',
-                    color: isActive ? '#ffffff' : 'var(--color-text)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    boxShadow: isActive ? '0 4px 14px rgba(79, 70, 229, 0.25)' : 'none'
-                  }}
-                >
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{grade.name}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
-                      {count} Ders
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditModal({ open: true, type: 'grades', typeLabel: 'Sınıf / Düzey', id: grade.id, name: grade.name });
-                      }}
-                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'}
-                      title="Sınıfı Düzenle"
-                    >
-                      <Edit size={13} />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteItem('grades', grade.id); }}
-                      style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                      title="Sınıfı Sil"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <button
+          onClick={() => selectedSubject && setMobileStep('unit')}
+          disabled={!selectedSubject}
+          className={`admin-step-pill ${mobileStep === 'unit' ? 'active' : selectedUnit ? 'completed' : ''}`}
+          style={{ opacity: selectedSubject ? 1 : 0.45 }}
+        >
+          <Layers size={14} />
+          <span>3. Üniteler</span>
+          {currentUnitObj && <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>({currentUnitObj.name})</span>}
+        </button>
 
-          <form
-            onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('grade', null, val); e.target.elements.addInput.value = ''; }}
-            style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
-          >
-            <input
-              name="addInput"
-              type="text"
-              placeholder="+ Sınıf ekle (virgülle çoklu)"
-              style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
-            />
+        <button
+          onClick={() => selectedUnit && setMobileStep('topic')}
+          disabled={!selectedUnit}
+          className={`admin-step-pill ${mobileStep === 'topic' ? 'active' : ''}`}
+          style={{ opacity: selectedUnit ? 1 : 0.45 }}
+        >
+          <FileText size={14} />
+          <span>4. Konular</span>
+        </button>
+      </div>
+
+      {/* MOBILE SINGLE-STEP DRILLDOWN VIEW */}
+      <div className="admin-mobile-only">
+        {mobileStep === 'grade' && renderGradeColumn()}
+        {mobileStep === 'subject' && (
+          <div>
             <button
-              type="submit"
-              style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
+              onClick={() => setMobileStep('grade')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.75rem', background: 'none', border: 'none', color: '#3b82f6', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
             >
-              <Plus size={16} />
+              ‹ Sınıf Seçimine Dön ({currentGradeObj?.name})
             </button>
-          </form>
-        </div>
-
-        {/* COLUMN 2: SUBJECTS */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem',
-          padding: '1.15rem',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 460,
-          boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0284c7', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
-              <BookOpen size={18} /> 2. Dersler
-            </div>
-            {selectedGrade && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(2, 132, 199, 0.15)', color: '#0284c7', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(2, 132, 199, 0.3)' }}>
-                {filteredSubjects.length} Ders
-              </span>
-            )}
+            {renderSubjectColumn()}
           </div>
-
-          {selectedGrade ? (
-            <>
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
-                {filteredSubjects.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu sınıfa ait henüz ders eklenmemiş.</p>
-                ) : (
-                  filteredSubjects.map(subject => {
-                    const unitCount = data.units.filter(u => u.subjectId === subject.id).length;
-                    const isActive = selectedSubject === subject.id;
-                    return (
-                      <div
-                        key={subject.id}
-                        onClick={() => { setSelectedSubject(subject.id); setSelectedUnit(null); }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.65rem 0.85rem',
-                          borderRadius: '0.85rem',
-                          background: isActive ? 'linear-gradient(135deg, #0284c7, #0ea5e9)' : 'var(--color-surface-hover)',
-                          border: isActive ? '1.5px solid #0369a1' : '1px solid var(--color-border)',
-                          color: isActive ? '#ffffff' : 'var(--color-text)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isActive ? '0 4px 14px rgba(14, 165, 233, 0.25)' : 'none'
-                        }}
-                      >
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{subject.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
-                            {unitCount} Ünite
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditModal({ open: true, type: 'subjects', typeLabel: 'Ders', id: subject.id, name: subject.name });
-                            }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#38bdf8'}
-                            title="Dersi Düzenle"
-                          >
-                            <Edit size={13} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteItem('subjects', subject.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            title="Dersi Sil"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <form
-                onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('subject', selectedGrade, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
-              >
-                <input
-                  name="addInput"
-                  type="text"
-                  placeholder="+ Ders ekle (Örn: Matematik, Fen)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
-                />
-                <button
-                  type="submit"
-                  style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#0284c7,#0ea5e9)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
-                >
-                  <Plus size={16} />
-                </button>
-              </form>
-            </>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
-              <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
-              <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir sınıf seçin.</p>
-            </div>
-          )}
-        </div>
-
-        {/* COLUMN 3: UNITS */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem',
-          padding: '1.15rem',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 460,
-          boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#8b5cf6', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
-              <Layers size={18} /> 3. Üniteler
-            </div>
-            {selectedSubject && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                {filteredUnits.length} Ünite
-              </span>
-            )}
+        )}
+        {mobileStep === 'unit' && (
+          <div>
+            <button
+              onClick={() => setMobileStep('subject')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.75rem', background: 'none', border: 'none', color: '#0284c7', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+            >
+              ‹ Ders Seçimine Dön ({currentSubjectObj?.name})
+            </button>
+            {renderUnitColumn()}
           </div>
-
-          {selectedSubject ? (
-            <>
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
-                {filteredUnits.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu derse ait henüz ünite eklenmemiş.</p>
-                ) : (
-                  filteredUnits.map(unit => {
-                    const topicCount = data.topics.filter(t => t.unitId === unit.id).length;
-                    const isActive = selectedUnit === unit.id;
-                    return (
-                      <div
-                        key={unit.id}
-                        onClick={() => setSelectedUnit(unit.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.65rem 0.85rem',
-                          borderRadius: '0.85rem',
-                          background: isActive ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'var(--color-surface-hover)',
-                          border: isActive ? '1.5px solid #6d28d9' : '1px solid var(--color-border)',
-                          color: isActive ? '#ffffff' : 'var(--color-text)',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          boxShadow: isActive ? '0 4px 14px rgba(124, 58, 237, 0.25)' : 'none'
-                        }}
-                      >
-                        <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>{unit.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--color-surface)', color: isActive ? '#ffffff' : 'var(--color-text-secondary)', padding: '0.15rem 0.45rem', borderRadius: 99, border: isActive ? 'none' : '1px solid var(--color-border)' }}>
-                            {topicCount} Konu
-                          </span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditModal({ open: true, type: 'units', typeLabel: 'Ünite', id: unit.id, name: unit.name });
-                            }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#c084fc'}
-                            title="Üniteyi Düzenle"
-                          >
-                            <Edit size={13} />
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteItem('units', unit.id); }}
-                            style={{ background: 'none', border: 'none', color: isActive ? '#ffffff' : 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            title="Üniteyi Sil"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <ArrowRight size={14} color={isActive ? '#ffffff' : 'var(--color-text-muted)'} />
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <form
-                onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('unit', selectedSubject, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
-              >
-                <input
-                  name="addInput"
-                  type="text"
-                  placeholder="+ Ünite ekle (Örn: 1. Ünite - Çarpanlar)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
-                />
-                <button
-                  type="submit"
-                  style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#7c3aed,#8b5cf6)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
-                >
-                  <Plus size={16} />
-                </button>
-              </form>
-            </>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
-              <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
-              <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ders seçin.</p>
-            </div>
-          )}
-        </div>
-
-        {/* COLUMN 4: TOPICS */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: '1.25rem',
-          padding: '1.15rem',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 460,
-          boxShadow: '0 4px 16px -2px rgba(0, 0, 0, 0.03)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f43f5e', fontWeight: 900, fontSize: '0.85rem', textTransform: 'uppercase' }}>
-              <FileText size={18} /> 4. Konular
-            </div>
-            {selectedUnit && (
-              <span style={{ fontSize: '0.7rem', fontWeight: 900, background: 'rgba(244, 63, 94, 0.15)', color: '#f43f5e', padding: '0.15rem 0.55rem', borderRadius: 99, border: '1px solid rgba(244, 63, 94, 0.3)' }}>
-                {filteredTopics.length} Konu
-              </span>
-            )}
+        )}
+        {mobileStep === 'topic' && (
+          <div>
+            <button
+              onClick={() => setMobileStep('unit')}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '0.75rem', background: 'none', border: 'none', color: '#8b5cf6', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+            >
+              ‹ Ünite Seçimine Dön ({currentUnitObj?.name})
+            </button>
+            {renderTopicColumn()}
           </div>
+        )}
+      </div>
 
-          {selectedUnit ? (
-            <>
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: 320, paddingRight: 4 }}>
-                {filteredTopics.length === 0 ? (
-                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 'auto', textAlign: 'center' }}>Bu üniteye ait henüz konu eklenmemiş.</p>
-                ) : (
-                  filteredTopics.map(topic => (
-                    <div
-                      key={topic.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0.65rem 0.85rem',
-                        borderRadius: '0.85rem',
-                        background: 'var(--color-surface-hover)',
-                        border: '1px solid var(--color-border)',
-                        color: 'var(--color-text)',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, lineHeight: 1.3 }}>{topic.name}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button
-                          onClick={() => setEditModal({ open: true, type: 'topics', typeLabel: 'Konu', id: topic.id, name: topic.name })}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                          onMouseEnter={e => e.currentTarget.style.color = '#f43f5e'}
-                          title="Konuyu Düzenle"
-                        >
-                          <Edit size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteItem('topics', topic.id)}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', padding: 2, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                          title="Konuyu Sil"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <form
-                onSubmit={(e) => { e.preventDefault(); const val = e.target.elements.addInput.value; handleAdd('topic', selectedUnit, val); e.target.elements.addInput.value = ''; }}
-                style={{ display: 'flex', gap: 6, marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--color-border)' }}
-              >
-                <input
-                  name="addInput"
-                  type="text"
-                  placeholder="+ Konu ekle (virgülle çoklu)"
-                  style={{ flex: 1, padding: '0.55rem 0.75rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', outline: 'none' }}
-                />
-                <button
-                  type="submit"
-                  style={{ padding: '0.55rem 0.85rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg,#f43f5e,#e11d48)', border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer' }}
-                >
-                  <Plus size={16} />
-                </button>
-              </form>
-            </>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
-              <ArrowRight size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
-              <p style={{ fontSize: '0.8rem', margin: 0 }}>Lütfen soldan bir ünite seçin.</p>
-            </div>
-          )}
-        </div>
-
+      {/* DESKTOP 4-COLUMN MILLER HIERARCHY GRID */}
+      <div className="admin-desktop-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', alignItems: 'start', width: '100%', minWidth: 0 }}>
+        {renderGradeColumn()}
+        {renderSubjectColumn()}
+        {renderUnitColumn()}
+        {renderTopicColumn()}
       </div>
 
       {/* MODAL: MÜFREDAT ELEMANINI DÜZENLE */}
@@ -1649,8 +1833,134 @@ function UserManager() {
         </div>
       </div>
 
-      {/* USERS GLASS TABLE */}
-      <div style={{
+      {/* MOBILE USER CARDS LIST (NATIVE APP EXPERIENCE) */}
+      <div className="admin-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {filteredUsers.map(user => {
+          const roleBadge = user.role === 'admin' 
+            ? { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.3)', label: 'Yönetici' }
+            : user.role === 'teacher'
+            ? { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6', border: 'rgba(59, 130, 246, 0.3)', label: 'Öğretmen' }
+            : { bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981', border: 'rgba(16, 185, 129, 0.3)', label: 'Öğrenci' };
+
+          const userGradeObj = curData?.grades?.find(g => String(g.id) === String(user.gradeId) || String(g.id) === String(user.classId))
+            || curData?.grades?.find(g => g.name === user.gradeId || g.name === user.grade || g.name === user.className);
+          const currentGradeVal = userGradeObj ? userGradeObj.id : (user.gradeId || '');
+
+          return (
+            <div key={user.id} className="admin-user-card">
+              {/* Card Header: Avatar, Name, Role, Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: roleBadge.bg, color: roleBadge.text, border: `1.5px solid ${roleBadge.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem', flexShrink: 0 }}>
+                    {user.name?.charAt(0) || 'U'}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.92rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.name}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user.email}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 900, background: roleBadge.bg, color: roleBadge.text, border: `1px solid ${roleBadge.border}` }}>
+                    {roleBadge.label}
+                  </span>
+                  <button
+                    onClick={() => handleOpenModal(user)}
+                    style={{ padding: '0.35rem', borderRadius: '0.5rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-text)', cursor: 'pointer' }}
+                    title="Düzenle"
+                  >
+                    <Edit size={14} />
+                  </button>
+                  <button
+                    onClick={() => deleteUser(user.id)}
+                    style={{ padding: '0.35rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', cursor: 'pointer' }}
+                    title="Sil"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Student Selectors (Grade & Teacher) */}
+              {user.role === 'student' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '0.55rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
+                  <div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Sınıf:</span>
+                    <select
+                      value={currentGradeVal}
+                      onChange={async (e) => {
+                        const newGradeId = e.target.value;
+                        const gradeObj = curData?.grades?.find(g => String(g.id) === String(newGradeId));
+                        const gradeName = gradeObj ? gradeObj.name : newGradeId;
+                        const updated = { ...user, gradeId: newGradeId, classId: newGradeId, grade: gradeName, className: gradeName };
+                        await updateUser(user.id, updated);
+                        await dbAddUser(updated);
+                      }}
+                      style={{ width: '100%', padding: '0.35rem 0.45rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 800, outline: 'none' }}
+                    >
+                      <option value="">— Sınıf Seçin</option>
+                      {curData.grades.map(g => (
+                        <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Öğretmen:</span>
+                    <select
+                      value={user.teacherId || ''}
+                      onChange={async (e) => {
+                        const updated = { ...user, teacherId: e.target.value || null };
+                        await updateUser(user.id, updated);
+                        await dbAddUser(updated);
+                      }}
+                      style={{ width: '100%', padding: '0.35rem 0.45rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: user.teacherId ? 'var(--color-surface)' : 'rgba(245, 158, 11, 0.15)', color: user.teacherId ? 'var(--color-text)' : '#f59e0b', fontWeight: 800, outline: 'none' }}
+                    >
+                      <option value="">— Atanmamış</option>
+                      {teachers.map(t => (
+                        <option key={t.id} value={t.id}>👨‍🏫 {t.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Card Footer: Password & Teacher Approval */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', paddingTop: '0.35rem', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Şifre:</span>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 900, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '0.15rem 0.5rem', borderRadius: '0.45rem', fontFamily: 'monospace' }}>
+                    🔑 {user.password || '123456'}
+                  </span>
+                </div>
+
+                {user.role === 'teacher' && user.isApproved === false && (
+                  <button
+                    onClick={() => handleApproveTeacher(user)}
+                    style={{ padding: '0.35rem 0.85rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg, #059669, #10b981)', border: 'none', color: 'white', fontSize: '0.76rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Check size={14} /> Onayla
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredUsers.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)', background: 'var(--color-surface)', borderRadius: '1rem', border: '1px solid var(--color-border)' }}>
+            <Users size={32} style={{ opacity: 0.3, margin: '0 auto 0.5rem auto' }} />
+            <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem' }}>Seçilen kriterlere uygun kullanıcı bulunamadı.</p>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP USERS GLASS TABLE */}
+      <div className="admin-desktop-only" style={{
         background: 'var(--color-surface)',
         border: '1.5px solid var(--color-border)',
         borderRadius: '1.25rem',
@@ -2009,7 +2319,39 @@ function TeacherStudentMatrix() {
             </h4>
           </div>
           
-          <div style={{ overflowX: 'auto' }}>
+          {/* MOBILE UNASSIGNED CARDS */}
+          <div className="admin-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {unassignedStudents.map(std => (
+              <div key={std.id} style={{ background: 'var(--color-surface)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '0.85rem', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.88rem' }}>{std.name}</span>
+                  <span style={{ fontSize: '0.72rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.5rem', borderRadius: 99, fontWeight: 800 }}>
+                    {getGradeName(std.gradeId)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                  <span>{std.email}</span>
+                  <span style={{ fontWeight: 900, color: '#f59e0b', fontFamily: 'monospace' }}>🔑 {std.password || '123456'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 4, borderTop: '1px dashed rgba(245, 158, 11, 0.3)' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b' }}>Öğretmen Ata:</span>
+                  <select
+                    value=""
+                    onChange={e => handleAssignTeacher(std.id, e.target.value)}
+                    style={{ flex: 1, padding: '0.35rem 0.55rem', borderRadius: '0.55rem', border: '1px solid rgba(245, 158, 11, 0.35)', fontSize: '0.75rem', background: 'var(--color-surface)', fontWeight: 800, color: '#f59e0b', cursor: 'pointer', outline: 'none' }}
+                  >
+                    <option value="">Öğretmen Seçiniz...</option>
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>👨‍🏫 {t.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP UNASSIGNED TABLE */}
+          <div className="admin-desktop-only" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(245, 158, 11, 0.35)', background: 'rgba(245, 158, 11, 0.2)' }}>
@@ -2101,56 +2443,98 @@ function TeacherStudentMatrix() {
                 {teacherStudents.length === 0 ? (
                   <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: '0.5rem 0' }}>Bu öğretmene henüz bağlı öğrenci bulunmuyor.</p>
                 ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '750px' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Çözülen Sınav</th>
-                          <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmeni Değiştir</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {teacherStudents.map(std => {
-                          const solvedCount = submissions.filter(sub => sub.studentId === std.id).length;
-                          return (
-                            <tr key={std.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: 'var(--color-text)', fontSize: '0.85rem' }}>{std.name}</td>
-                              <td style={{ padding: '0.65rem 0.85rem' }}>
-                                <span style={{ fontSize: '0.72rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.2rem 0.55rem', borderRadius: 99, fontWeight: 800, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                  <>
+                    {/* MOBILE TEACHER STUDENTS LIST */}
+                    <div className="admin-mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {teacherStudents.map(std => {
+                        const solvedCount = submissions.filter(sub => sub.studentId === std.id).length;
+                        return (
+                          <div key={std.id} style={{ background: 'var(--color-surface-hover)', borderRadius: '0.85rem', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.45rem', border: '1px solid var(--color-border)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.85rem' }}>{std.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: '0.7rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.15rem 0.45rem', borderRadius: 99, fontWeight: 800 }}>
                                   {getGradeName(std.gradeId)}
                                 </span>
-                              </td>
-                              <td style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>{std.email}</td>
-                              <td style={{ padding: '0.65rem 0.85rem' }}>
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                                  🔑 {std.password || '123456'}
+                                <span style={{ fontSize: '0.7rem', fontWeight: 900, color: solvedCount > 0 ? '#10b981' : 'var(--color-text-muted)', background: 'var(--color-surface)', padding: '0.15rem 0.45rem', borderRadius: 99, border: '1px solid var(--color-border)' }}>
+                                  {solvedCount} Sınav
                                 </span>
-                              </td>
-                              <td style={{ padding: '0.65rem 0.85rem', fontWeight: 900, color: solvedCount > 0 ? '#10b981' : 'var(--color-text-muted)', fontSize: '0.85rem' }}>
-                                {solvedCount}
-                              </td>
-                              <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>
-                                <select
-                                  value={std.teacherId || ''}
-                                  onChange={e => handleAssignTeacher(std.id, e.target.value)}
-                                  style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
-                                >
-                                  {teachers.map(t => (
-                                    <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>👨‍🏫 {t.name}</option>
-                                  ))}
-                                  <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Atanmamış Yap</option>
-                                </select>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                              <span>{std.email}</span>
+                              <span style={{ fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' }}>🔑 {std.password || '123456'}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingTop: 4, borderTop: '1px solid var(--color-border)' }}>
+                              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Öğretmeni Değiştir:</span>
+                              <select
+                                value={std.teacherId || ''}
+                                onChange={e => handleAssignTeacher(std.id, e.target.value)}
+                                style={{ flex: 1, padding: '0.35rem 0.5rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 700, outline: 'none' }}
+                              >
+                                {teachers.map(t => (
+                                  <option key={t.id} value={t.id}>👨‍🏫 {t.name}</option>
+                                ))}
+                                <option value="">Atanmamış Yap</option>
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* DESKTOP TEACHER STUDENTS TABLE */}
+                    <div className="admin-desktop-only" style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '750px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-hover)' }}>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Öğrenci Adı</th>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Sınıfı</th>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>E-Posta</th>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Giriş Şifresi</th>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase' }}>Çözülen Sınav</th>
+                            <th style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-muted)', fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', textAlign: 'right' }}>Öğretmeni Değiştir</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teacherStudents.map(std => {
+                            const solvedCount = submissions.filter(sub => sub.studentId === std.id).length;
+                            return (
+                              <tr key={std.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                <td style={{ padding: '0.65rem 0.85rem', fontWeight: 800, color: 'var(--color-text)', fontSize: '0.85rem' }}>{std.name}</td>
+                                <td style={{ padding: '0.65rem 0.85rem' }}>
+                                  <span style={{ fontSize: '0.72rem', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', padding: '0.2rem 0.55rem', borderRadius: 99, fontWeight: 800, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                                    {getGradeName(std.gradeId)}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.65rem 0.85rem', color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>{std.email}</td>
+                                <td style={{ padding: '0.65rem 0.85rem' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '0.15rem 0.45rem', borderRadius: 4, fontFamily: 'monospace', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                                    🔑 {std.password || '123456'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.65rem 0.85rem', fontWeight: 900, color: solvedCount > 0 ? '#10b981' : 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                                  {solvedCount}
+                                </td>
+                                <td style={{ padding: '0.65rem 0.85rem', textAlign: 'right' }}>
+                                  <select
+                                    value={std.teacherId || ''}
+                                    onChange={e => handleAssignTeacher(std.id, e.target.value)}
+                                    style={{ padding: '0.35rem 0.6rem', borderRadius: '0.55rem', border: '1px solid var(--color-border-input)', fontSize: '0.75rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 700, cursor: 'pointer', outline: 'none' }}
+                                  >
+                                    {teachers.map(t => (
+                                      <option key={t.id} value={t.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>👨‍🏫 {t.name}</option>
+                                    ))}
+                                    <option value="" style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>Atanmamış Yap</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             );
