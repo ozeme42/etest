@@ -1080,23 +1080,26 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return true;
   }
 
-  // If the submission is explicitly tied to a DIFFERENT specific test ID, it MUST NOT match this test —
-  // BUT only if both submission and target are from the SAME book. If the submission's bookId differs
-  // (e.g., it was saved from a now-deleted duplicate book version), allow fallback page/name matching.
-  const sBookId = String(s.bookId || s.metadata?.bookId || s.metadata?.realBookId || '');
-  const tBookId = String(targetTest?.bookId || '');
-  const isSameBook = !sBookId || !tBookId || sBookId === tBookId ||
-    (toUUID(sBookId) && toUUID(sBookId) === toUUID(tBookId));
+  // Only block on ID mismatch if that ID is actually a KNOWN test in the current bookTests list.
+  // If sBookTestId/sRealTestId came from a now-deleted book version (orphaned), it won't exist in
+  // bookTests — skip the guard so page/name fallback matching can still work.
+  const isKnownId = (testId) => {
+    if (!testId || !bookTests || bookTests.length === 0) return false;
+    const tid = String(testId);
+    const tuuid = String(toUUID(testId) || '');
+    return bookTests.some(bt => {
+      const btId = String(bt.id);
+      return btId === tid || btId === tuuid || (tuuid && String(toUUID(bt.id) || '') === tuuid);
+    });
+  };
 
-  if (isSameBook) {
-    if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
-      return false;
-    }
-    if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
-      return false;
-    }
+  if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
+    // Only block if this ID actually exists in bookTests (not an orphaned ID from a deleted book)
+    if (isKnownId(sBookTestId)) return false;
   }
-  // If books differ (e.g. orphaned submission from deleted book version), skip ID guard and fall through to page/name matching
+  if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
+    if (isKnownId(sRealTestId)) return false;
+  }
 
   // 2. Subject (Ders) verification - CRUCIAL for multi-lesson books
   const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
