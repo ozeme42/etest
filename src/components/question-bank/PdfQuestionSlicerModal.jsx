@@ -516,17 +516,37 @@ export default function PdfQuestionSlicerModal({
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
   const { users = [] } = useUser();
+  const { data: curData } = useCurriculum();
   const studentList = useMemo(() => {
     return (users || []).filter(u => {
       if (!u) return false;
       return u.role === 'student' || (!u.role && u.role !== 'teacher' && u.role !== 'admin');
     });
   }, [users]);
+
+  const getStudentGradeLabel = useCallback((st) => {
+    if (!st) return '';
+    if (st.className && !st.className.startsWith('g_')) return st.className;
+    if (st.grade && !String(st.grade).startsWith('g_')) {
+      return String(st.grade).includes('Sınıf') ? st.grade : `${st.grade}. Sınıf`;
+    }
+    const matchedGrade = curData?.grades?.find(g => 
+      String(g.id) === String(st.gradeId) || 
+      String(g.id) === String(st.classId) || 
+      g.name === st.gradeId ||
+      g.name === st.grade
+    );
+    if (matchedGrade?.name) return matchedGrade.name;
+    if (st.gradeId) {
+      const num = String(st.gradeId).replace(/[^0-9]/g, '');
+      if (num && num.length <= 2) return `${num}. Sınıf`;
+    }
+    return '';
+  }, [curData]);
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
   const { homeworks = [] } = useHomework();
   const { addQuestion } = useQuestionBank();
-  const { data: curData } = useCurriculum();
   const { coachingProfiles = [], saveCoachingProfile } = useCoaching();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [mobileActiveTab, setMobileActiveTab] = useState(() => mode === 'mistakes' ? 'guide' : 'pdf'); // 'guide' | 'pdf' | 'sliced'
@@ -2682,11 +2702,14 @@ export default function PdfQuestionSlicerModal({
                       }}
                     >
                       <option value="">🏢 Tüm Sınıf / Genel Test (Soru Bankası Havuzu)</option>
-                      {studentList.map(st => (
-                        <option key={st.id} value={st.id}>
-                          👤 {st.name || st.fullName} {st.grade || st.gradeId ? `(${st.grade || st.gradeId}. Sınıf)` : ''}
-                        </option>
-                      ))}
+                      {studentList.map(st => {
+                        const gradeLbl = getStudentGradeLabel(st);
+                        return (
+                          <option key={st.id} value={st.id}>
+                            👤 {st.name || st.fullName} {gradeLbl ? `(${gradeLbl})` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}
