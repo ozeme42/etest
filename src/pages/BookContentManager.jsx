@@ -17,6 +17,7 @@ import './BookManager.css';
 import ManualTestModal from '../components/ManualTestModal';
 
 import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/book-management/constants/bookHelpers';
+import { isSubmissionMatchingBookTest } from '../utils/testResolver';
 
 export function formatSafeInputYMD(val) {
   if (!val) return '';
@@ -780,30 +781,8 @@ export default function BookContentManager() {
       }
 
       if (!matchedTest) {
-        const sTestName = String(s.testTitle || s.testName || s.title || '').toLowerCase().trim();
-        const cleanSTitle = sTestName.replace(/^.*?—\s*/, '').trim();
-
-        if (sTestName && testLookup.byName.has(sTestName)) {
-          const candidates = testLookup.byName.get(sTestName);
-          const sSubj = String(s.subject || s.extra_data?.subject || '').toLowerCase().trim();
-          matchedTest = candidates.find(c => {
-            const cSubj = String(c.subjectName || c.subject || '').toLowerCase().trim();
-            return !sSubj || !cSubj || sSubj === cSubj;
-          }) || candidates[0];
-        } else if (cleanSTitle && testLookup.byName.has(cleanSTitle)) {
-          const candidates = testLookup.byName.get(cleanSTitle);
-          const sSubj = String(s.subject || s.extra_data?.subject || '').toLowerCase().trim();
-          matchedTest = candidates.find(c => {
-            const cSubj = String(c.subjectName || c.subject || '').toLowerCase().trim();
-            return !sSubj || !cSubj || sSubj === cSubj;
-          }) || candidates[0];
-        } else {
-          matchedTest = (tests || []).find(t => {
-            const tName = String(t.name || '').toLowerCase().trim();
-            if (!tName || tName.length < 3) return false;
-            return sTestName.includes(tName) || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
-          }) || null;
-        }
+        // Find using robust central resolver to ensure consistency with Student Dashboard
+        matchedTest = (tests || []).find(t => isSubmissionMatchingBookTest(s, t, tests, [book]));
       }
 
       // Collect all key aliases for this test to guarantee 100% matching
