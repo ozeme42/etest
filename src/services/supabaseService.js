@@ -2079,33 +2079,16 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
   }
 
   try {
-    // 1. Check if row already exists by ID
+    // 1. Check if row already exists in Supabase under any candidate ID
     const { data: existingRows } = await supabase.from('tracked_books').select('id').in('id', candidateIds);
     const existingId = existingRows && existingRows.length > 0 ? existingRows[0].id : null;
 
     if (existingId) {
-      // Row exists by ID — update in-place to prevent duplication
+      // Row exists! Update in-place to prevent duplication
       const { data, error } = await supabase.from('tracked_books').update(payload).eq('id', existingId).select().maybeSingle();
       if (!error && data) return data;
     } else {
-      // 2. Before inserting, check for a duplicate by TITLE (same title = same book, different ID)
-      // This prevents the root cause of ID mismatch bugs where the same book is uploaded twice.
-      const newTitle = (initialPayload.title || payload.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
-      if (newTitle) {
-        const { data: titleMatches } = await supabase.from('tracked_books').select('id, title').ilike('title', newTitle);
-        const titleMatch = titleMatches && titleMatches.find(b => {
-          const bTitle = String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ');
-          return bTitle === newTitle;
-        });
-        if (titleMatch) {
-          // Duplicate by title found! Update that book instead of creating a new entry.
-          console.warn(`[Supabase] Duplicate book title detected: "${newTitle}". Updating existing book (${titleMatch.id}) instead of creating new.`);
-          const { data, error } = await supabase.from('tracked_books').update(payload).eq('id', titleMatch.id).select().maybeSingle();
-          if (!error && data) return data;
-        }
-      }
-
-      // 3. Truly new book — insert with primary id
+      // New row! Insert with primary id
       payload.id = idStr;
       const { data, error } = await supabase.from('tracked_books').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
       if (!error && data) return data;
