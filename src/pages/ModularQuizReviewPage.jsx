@@ -649,16 +649,38 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  const isMultipleChoiceTest = Boolean(
-    isMultipleChoice(test) ||
-    (questions && questions.length > 0 && questions.some(q => isMultipleChoice(q))) ||
-    (test.questions && Array.isArray(test.questions) && test.questions.some(q => isMultipleChoice(q))) ||
-    (Array.isArray(test.options) && test.options.filter(Boolean).length >= 2) ||
-    test.questionType === 'coktan_secmeli' ||
-    test.type === 'coktan_secmeli'
+  const isExplicitOpenEnded = Boolean(
+    submission?.isOpenEnded === true ||
+    submission?.is_open_ended === true ||
+    test.isOpenEnded === true ||
+    test.is_open_ended === true ||
+    submission?.questionType === 'acik_uclu' ||
+    submission?.type === 'acik_uclu' ||
+    test.questionType === 'acik_uclu' ||
+    test.type === 'acik_uclu' ||
+    test.contentType === 'acik_uclu' ||
+    test.type === 'gorsel_klasik' ||
+    test.questionType === 'gorsel_klasik' ||
+    test.answerKey?.__meta?.isOpenEnded === true ||
+    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    test.answer_key?.__meta?.isOpenEnded === true ||
+    test.answer_key?.__meta?.questionType === 'acik_uclu' ||
+    isSectionOpenEnded(test) ||
+    isSectionOpenEnded(submission) ||
+    (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => v && String(v).trim().length > 0)) ||
+    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded === true || (a.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim() !== '' && (a.userAnswer === null || a.userAnswer === undefined))))
   );
 
-  const isWritten = !isMultipleChoiceTest && (
+  const isMultipleChoiceTest = !isExplicitOpenEnded && Boolean(
+    isMultipleChoice(test) ||
+    (Array.isArray(test.options) && test.options.filter(Boolean).length >= 2) ||
+    test.questionType === 'coktan_secmeli' ||
+    test.type === 'coktan_secmeli' ||
+    (questions && questions.length > 0 && questions.some(q => isMultipleChoice(q) && hasMeaningfulOptions(q.options))) ||
+    (test.questions && Array.isArray(test.questions) && test.questions.some(q => isMultipleChoice(q) && hasMeaningfulOptions(q.options)))
+  );
+
+  const isWritten = isExplicitOpenEnded || (!isMultipleChoiceTest && (
     isSectionOpenEnded(test) ||
     Boolean(
       test.questionType === 'acik_uclu' ||
@@ -674,27 +696,18 @@ export default function ModularQuizReviewPage() {
       (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => v && String(v).trim().length > 0)) ||
       (test.title && (
         test.title.toLowerCase().includes('açık uçlu') ||
-        test.title.toLowerCase().includes('acik uclu') ||
-        test.title.toLowerCase().includes('klasik soru') ||
-        test.title.toLowerCase().includes('yazılı klasik')
+        test.title.toLowerCase().includes('acik uclu')
       )) ||
       (test.name && (
         test.name.toLowerCase().includes('açık uçlu') ||
-        test.name.toLowerCase().includes('acik uclu') ||
-        test.name.toLowerCase().includes('klasik soru') ||
-        test.name.toLowerCase().includes('yazılı klasik')
+        test.name.toLowerCase().includes('acik uclu')
       )) ||
       (submission?.testTitle && (
         submission.testTitle.toLowerCase().includes('açık uçlu') ||
-        submission.testTitle.toLowerCase().includes('acik uclu') ||
-        submission.testTitle.toLowerCase().includes('klasik soru') ||
-        submission.testTitle.toLowerCase().includes('yazılı klasik')
-      )) ||
-      (test.questions && Array.isArray(test.questions) && test.questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && !isMultipleChoice(q))) ||
-      (questions && Array.isArray(questions) && questions.some(q => (q.type === 'acik_uclu' || q.isOpenEnded) && !isMultipleChoice(q))) ||
-      (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded && !a.selectedOption && (a.userAnswerText && String(a.userAnswerText).trim() !== '')))
+        submission.testTitle.toLowerCase().includes('acik uclu')
+      ))
     )
-  );
+  ));
 
   const hasExplicitHtmlQuestions = Boolean(questions && Array.isArray(questions) && questions.some(q => 
     q.type === 'html' || q.questionType === 'html' || q.contentType === 'html' || q.formatType === 'html' || q.sourceFormat === 'html' || (q.htmlPayload && !q.options && q.type !== 'coktan_secmeli' && q.type !== 'yazili')
@@ -772,7 +785,7 @@ export default function ModularQuizReviewPage() {
   );
 
   // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended and NOT digital/image/remedial)
-  const isBookOrOptical = !isExplicitImageOrDigital && !isWritten && !isSectionOpenEnded(test) && Boolean(
+  const isBookOrOptical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isSectionOpenEnded(test) && Boolean(
     test.bookId ||
     test.bookTestId ||
     submission?.bookId ||
@@ -781,10 +794,12 @@ export default function ModularQuizReviewPage() {
     test.sourceType === 'bookTest' ||
     test.sourceType === 'optik' ||
     test.sourceType === 'book' ||
+    test.sourceType === 'study_room_optical' ||
     submission?.sourceType === 'trackedBook' ||
     submission?.sourceType === 'bookTest' ||
     submission?.sourceType === 'optik' ||
     submission?.sourceType === 'book' ||
+    submission?.sourceType === 'study_room_optical' ||
     submission?.typeKey === 'book' ||
     submission?.type === 'book' ||
     submission?.isManual === true ||
@@ -811,11 +826,10 @@ export default function ModularQuizReviewPage() {
       String(b.id) === String(test.bookId) || 
       String(b.id) === String(submission?.bookId) ||
       (toUUID(b.id) && (toUUID(b.id) === toUUID(test.bookId) || toUUID(b.id) === toUUID(submission?.bookId)))
-    )) ||
-    (test.title && (test.title.includes('(Tüm Kitap Görevi)') || test.title.includes('(Tüm Kitap)') || test.title.includes('(Kendi Eklediğim)')))
+    ))
   );
 
-  const isPhysical = !isExplicitImageOrDigital && !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+  const isPhysical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
@@ -829,13 +843,13 @@ export default function ModularQuizReviewPage() {
     (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 1)
   );
 
-  const isMultiSection = !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
+  const isMultiSection = !isExplicitOpenEnded && !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
     test.isBulk ||
     test.isMulti ||
     test.isComposite
   ));
 
-  const isSingleOE = !isMultiSection && !isPhysical && !isBookOrOptical && !isPdf && !isHtml && !isImageTest && !isMultipleChoiceTest && (isWritten || isSectionOpenEnded(test));
+  const isSingleOE = isExplicitOpenEnded || (!isMultiSection && !isPhysical && !isBookOrOptical && !isPdf && !isHtml && !isImageTest && !isMultipleChoiceTest && (isWritten || isSectionOpenEnded(test)));
 
   const isTeacher = Boolean(
     currentUser?.role === 'teacher' ||
@@ -861,7 +875,20 @@ export default function ModularQuizReviewPage() {
   };
 
   // ── Render the correct review component based on test type ──────────────────
-  // 1. Multi-section composite homework
+  // 1. Single Open-Ended Review / Teacher Grading (Highest Priority for OE)
+  if (isExplicitOpenEnded || isSingleOE) {
+    return (
+      <SingleOpenEndedReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        isTeacher={isTeacher}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 2. Multi-section composite homework
   if (isMultiSection) {
     return (
       <CompositeHomeworkReview
@@ -874,7 +901,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 2. Physical & Tracked Book Optical Review (Pure Optical Sheet + Mistake Diagnostics + AI Solver)
+  // 3. Physical & Tracked Book Optical Review (Pure Optical Sheet + Mistake Diagnostics + AI Solver)
   if (isPhysical || isBookOrOptical) {
     return (
       <PhysicalQuizReview
@@ -886,7 +913,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 3. Single PDF Review
+  // 4. Single PDF Review
   if (isPdf) {
     return (
       <PdfQuizReview
@@ -898,26 +925,13 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single HTML Review
+  // 5. Single HTML Review
   if (isHtml) {
     return (
       <HtmlQuizReview
         submission={submission}
         test={test}
         questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 5. Single Open-Ended Review / Teacher Grading
-  if (isSingleOE) {
-    return (
-      <SingleOpenEndedReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );
