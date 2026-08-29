@@ -814,9 +814,6 @@ export default function BookContentManager() {
         const mUuid = toUUID(matchedTest.id);
         if (mUuid) testKeys.add(mUuid);
         testKeys.add(String(matchedTest.id).replace(/^bt_/, '').replace(/^q_/, ''));
-        if (matchedTest.name) {
-          testKeys.add(`name_${String(matchedTest.name).toLowerCase().trim()}`);
-        }
       }
       fields.forEach(f => {
         if (f) {
@@ -4168,11 +4165,9 @@ export default function BookContentManager() {
               studentSolvedIndex.submissionMap.get(`${stId}_${tIdStr}`) ||
               (tUuidStr && studentSolvedIndex.submissionMap.get(`${stId}_${tUuidStr}`)) ||
               studentSolvedIndex.submissionMap.get(`${stId}_${tCleanId}`) ||
-              (tName && studentSolvedIndex.submissionMap.get(`${stId}_name_${tName}`)) ||
               (stUuid && studentSolvedIndex.submissionMap.get(`${stUuid}_${tIdStr}`)) ||
               (stUuid && tUuidStr && studentSolvedIndex.submissionMap.get(`${stUuid}_${tUuidStr}`)) ||
               (stUuid && studentSolvedIndex.submissionMap.get(`${stUuid}_${tCleanId}`)) ||
-              (stUuid && tName && studentSolvedIndex.submissionMap.get(`${stUuid}_name_${tName}`)) ||
               null;
 
             if (sub) {
