@@ -700,6 +700,7 @@ function AppContent() {
               <Route path="/my-program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
               <Route path="/student/program" element={<RequireAuth><StudentProgramPage /></RequireAuth>} />
               <Route path="/coaching/:studentId" element={<RequireRole roles={['teacher', 'admin']}><StudentCoachingPage /></RequireRole>} />
+              <Route path="/student-program/:studentId" element={<RequireRole roles={['teacher', 'admin']}><StudentCoachingPage /></RequireRole>} />
               <Route path="/my-coaching" element={<RequireAuth><MyCoachingPage /></RequireAuth>} />
               <Route path="/physical-exam" element={<RequireRole roles={['teacher', 'admin']}><ExamManager /></RequireRole>} />
               <Route path="/scales" element={<RequireRole roles={['teacher', 'admin']}><ScalePage /></RequireRole>} />

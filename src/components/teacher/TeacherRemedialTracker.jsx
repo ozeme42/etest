@@ -478,7 +478,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
                 <button
                   type="button"
                   onClick={() => {
-                    navigate(`/student-program/${item.studentId}`);
+                    navigate(`/coaching/${item.studentId}`);
                   }}
                   style={{
                     padding: '5px 8px',
@@ -493,9 +493,9 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
                     alignItems: 'center',
                     gap: 4
                   }}
-                  title="Öğrencinin Haftalık Programını Aç"
+                  title="Öğrencinin Haftalık Koçluk & Çalışma Programını Aç"
                 >
-                  <Calendar size={12} /> <span>Program</span>
+                  <Calendar size={12} /> <span>Haftalık Programda Gör</span>
                 </button>
               </div>
             </div>
