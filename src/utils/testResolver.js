@@ -1080,26 +1080,9 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return true;
   }
 
-  // Only block on ID mismatch if that ID is actually a KNOWN test in the current bookTests list.
-  // If sBookTestId/sRealTestId came from a now-deleted book version (orphaned), it won't exist in
-  // bookTests — skip the guard so page/name fallback matching can still work.
-  const isKnownId = (testId) => {
-    if (!testId || !bookTests || bookTests.length === 0) return false;
-    const tid = String(testId);
-    const tuuid = String(toUUID(testId) || '');
-    return bookTests.some(bt => {
-      const btId = String(bt.id);
-      return btId === tid || btId === tuuid || (tuuid && String(toUUID(bt.id) || '') === tuuid);
-    });
-  };
-
-  if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
-    // Only block if this ID actually exists in bookTests (not an orphaned ID from a deleted book)
-    if (isKnownId(sBookTestId)) return false;
-  }
-  if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
-    if (isKnownId(sRealTestId)) return false;
-  }
+  // Note: sBookTestId/sRealTestId guard removed intentionally.
+  // Subject (step 2) + page number (step 4) + title matching is specific enough to prevent false
+  // positives without an expensive O(n) bookTests lookup on every submission check.
 
   // 2. Subject (Ders) verification - CRUCIAL for multi-lesson books
   const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
