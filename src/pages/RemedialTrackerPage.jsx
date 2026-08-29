@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
+import { useHomework } from '../context/HomeworkContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { toUUID } from '../services/supabaseService';
@@ -21,6 +22,7 @@ export default function RemedialTrackerPage() {
   const { users = [], students = [] } = useUser();
   const { data: curData } = useCurriculum();
   const { tests = [], questions = [] } = useQuestionBank();
+  const { homeworks = [] } = useHomework();
   const { submissions = [] } = useEvaluation();
   const { books = [], bookTests = [] } = useTrackedBooks();
 
@@ -72,10 +74,10 @@ export default function RemedialTrackerPage() {
       const sUuid = String(toUUID(st.id) || '');
 
       // 1. Remedial tests count for this student
-      const allRemedials = [...tests, ...questions].filter(t => {
+      const allRemedials = [...tests, ...questions, ...homeworks].filter(t => {
         if (!t) return false;
-        const isRem = t.isRemedialTest === true || t.sourceType === 'pdfSlicerRemedial' || t.type === 'remedial' || (t.title && t.title.includes('Telafi'));
-        const isForSt = String(t.studentId) === sid || String(t.assignedStudentId) === sid || (Array.isArray(t.targetIds) && t.targetIds.includes(sid));
+        const isRem = t.isRemedialTest === true || t.isRemedial === true || t.isTeacherRemedial === true || t.sourceType === 'pdfSlicerRemedial' || t.type === 'remedial' || t.type === 'remedialTest' || (t.title && t.title.includes('Telafi'));
+        const isForSt = String(t.studentId) === sid || String(t.assignedStudentId) === sid || String(t.targetStudentId) === sid || (Array.isArray(t.targetIds) && t.targetIds.includes(sid)) || (Array.isArray(t.targetStudentIds) && t.targetStudentIds.includes(sid));
         return isRem && isForSt;
       });
 
@@ -118,7 +120,7 @@ export default function RemedialTrackerPage() {
     });
 
     return metricsMap;
-  }, [studentList, tests, questions, submissions, books, bookTests]);
+  }, [studentList, tests, questions, homeworks, submissions, books, bookTests]);
 
   const activeStudent = useMemo(() => {
     if (!selectedStudentId || selectedStudentId === 'all') return null;
@@ -447,6 +449,18 @@ export default function RemedialTrackerPage() {
           >
             <AlertCircle size={16} />
             <span>⚠️ Yanlışlar Havuzu &amp; Telafi Oluşturucu</span>
+            {studentMetrics[selectedStudentId]?.mistakeCount > 0 && (
+              <span style={{
+                background: isDark ? 'rgba(244,63,94,0.2)' : '#ffe4e6',
+                color: '#f43f5e',
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                padding: '1px 6px',
+                borderRadius: '1rem'
+              }}>
+                {studentMetrics[selectedStudentId].mistakeCount}
+              </span>
+            )}
           </button>
         )}
 
@@ -471,6 +485,18 @@ export default function RemedialTrackerPage() {
         >
           <Sparkles size={16} />
           <span>📊 Atanan Telafi Testleri &amp; %100 Ustalık Takibi</span>
+          {selectedStudentId && studentMetrics[selectedStudentId]?.remedialCount > 0 && (
+            <span style={{
+              background: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff',
+              color: '#6366f1',
+              fontSize: '0.72rem',
+              fontWeight: 900,
+              padding: '1px 6px',
+              borderRadius: '1rem'
+            }}>
+              {studentMetrics[selectedStudentId].remedialCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -503,6 +529,9 @@ export default function RemedialTrackerPage() {
           onClose={() => {
             setIsSlicerOpen(false);
             setSlicerConfig(null);
+          }}
+          onSaveQuestions={() => {
+            setActiveTab('remedial_tests');
           }}
           mode="mistakes"
           studentId={slicerConfig?.studentId || activeStudent?.id}
