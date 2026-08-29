@@ -548,6 +548,7 @@ export default function PdfQuestionSlicerModal({
   const [activeTargetQuestion, setActiveTargetQuestion] = useState(null);
 
   const [testTitle, setTestTitle] = useState('');
+  const [targetStudentId, setTargetStudentId] = useState(() => studentId || '');
   const [selectedSubject, setSelectedSubject] = useState(initialSubject);
   const [selectedGrade, setSelectedGrade] = useState(initialGrade);
   const [isSavingTest, setIsSavingTest] = useState(false);
@@ -1509,6 +1510,8 @@ export default function PdfQuestionSlicerModal({
 
       const finalTitle = testTitle.trim() || `Kırpılmış Telafi Testi (${slicedQuestions.length} Soru)`;
 
+      const finalStudentId = targetStudentId || studentId || null;
+
       let savedTest = null;
       if (addQuestion) {
         savedTest = await addQuestion({
@@ -1532,9 +1535,10 @@ export default function PdfQuestionSlicerModal({
           bookTitle: currentBook?.title || null,
           isRemedialTest: true,
           sourceType: 'pdfSlicer',
-          studentId: studentId || null,
-          createdBy: studentId || 'teacher',
-          teacherAssigned: Boolean(studentId),
+          studentId: finalStudentId,
+          assignedStudentId: finalStudentId,
+          createdBy: finalStudentId || currentUser?.id || 'teacher',
+          teacherAssigned: Boolean(finalStudentId),
           repetitionScheduleMode: scheduleMode,
           repetitionIntervals: scheduleMode === 'spaced_leitner'
             ? [1, 3, 7, 15]
@@ -1547,11 +1551,11 @@ export default function PdfQuestionSlicerModal({
         ? [1, 3, 7, 15]
         : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []));
 
-      if (scheduleMode !== 'none' && studentId && saveCoachingProfile) {
+      if (scheduleMode !== 'none' && finalStudentId && saveCoachingProfile) {
         try {
           const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
-          const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
-            studentId,
+          const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(finalStudentId)) || {
+            studentId: finalStudentId,
             weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
           };
 
@@ -1564,12 +1568,12 @@ export default function PdfQuestionSlicerModal({
               questionCount: slicedQuestions.length
             },
             intervals: repetitionIntervals,
-            studentId
+            studentId: finalStudentId
           });
 
           await saveCoachingProfile({
             ...currentProfile,
-            studentId,
+            studentId: finalStudentId,
             weeklyProgram: updatedProg
           });
         } catch (schedErr) {
@@ -2643,6 +2647,36 @@ export default function PdfQuestionSlicerModal({
                     outline: 'none'
                   }}
                 />
+
+                {/* 🎯 Hedef Öğrenci Seçimi */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Users size={12} className="text-indigo-500" />
+                    <span>Telafi Atanacak Öğrenci:</span>
+                  </label>
+                  <select
+                    value={targetStudentId}
+                    onChange={(e) => setTargetStudentId(e.target.value)}
+                    style={{
+                      padding: '5px 8px',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--color-border)',
+                      background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                      color: 'var(--color-text)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="">🏢 Tüm Sınıf / Genel Test (Sadece Soru Bankası)</option>
+                    {(students.length > 0 ? students : users.filter(u => u.role === 'student')).map(st => (
+                      <option key={st.id} value={st.id}>
+                        👤 {st.name || st.fullName} {st.grade ? `(${st.grade}. Sınıf)` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: 6 }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Varsayılan Şık:</span>

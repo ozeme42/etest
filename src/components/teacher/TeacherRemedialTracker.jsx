@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, Award, CheckCircle2, AlertCircle, Clock, Search,
@@ -37,22 +37,53 @@ export default function TeacherRemedialTracker({ isDark: propIsDark }) {
 
     // Deduplicate by ID
     const uniqueTests = Array.from(new Map(candidateTests.map(t => [String(t.id), t])).values());
+    const rows = [];
 
-    return uniqueTests.map(t => {
-      const studentId = t.studentId || t.assignedStudentId || t.createdBy;
-      const studentObj = (students.length > 0 ? students : users).find(u => String(u.id) === String(studentId));
-      const studentName = studentObj?.name || studentObj?.fullName || 'Öğrenci';
+    uniqueTests.forEach(t => {
+      const targetStudentIds = new Set();
+      if (t.studentId && t.studentId !== 'teacher') targetStudentIds.add(String(t.studentId));
+      if (t.assignedStudentId && t.assignedStudentId !== 'teacher') targetStudentIds.add(String(t.assignedStudentId));
+      if (Array.isArray(t.targetIds)) t.targetIds.forEach(id => targetStudentIds.add(String(id)));
+      if (Array.isArray(t.studentIds)) t.studentIds.forEach(id => targetStudentIds.add(String(id)));
 
-      const statusInfo = getRemedialTestMasteryStatus(t, submissions);
+      // Also check submissions for this test
+      const testSubs = (submissions || []).filter(s => {
+        if (!s) return false;
+        return String(s.testId) === String(t.id) || String(s.realTestId) === String(t.id) || String(s.hwId) === String(t.id);
+      });
+      testSubs.forEach(s => {
+        const sid = s.studentId || s.userId || s.student_id;
+        if (sid && sid !== 'teacher') targetStudentIds.add(String(sid));
+      });
 
-      return {
-        ...statusInfo,
-        studentId,
-        studentName,
-        studentObj,
-        rawTest: t
-      };
+      if (targetStudentIds.size > 0) {
+        targetStudentIds.forEach(sid => {
+          const studentObj = (students.length > 0 ? students : users).find(u => String(u.id) === sid);
+          const studentName = studentObj?.name || studentObj?.fullName || 'Öğrenci';
+          const studentSubs = testSubs.filter(s => String(s.studentId || s.userId || s.student_id) === sid);
+          const statusInfo = getRemedialTestMasteryStatus(t, studentSubs.length > 0 ? studentSubs : submissions);
+
+          rows.push({
+            ...statusInfo,
+            studentId: sid,
+            studentName,
+            studentObj,
+            rawTest: t
+          });
+        });
+      } else {
+        const statusInfo = getRemedialTestMasteryStatus(t, submissions);
+        rows.push({
+          ...statusInfo,
+          studentId: null,
+          studentName: '🏢 Soru Bankası Havuzunda',
+          studentObj: null,
+          rawTest: t
+        });
+      }
     });
+
+    return rows;
   }, [tests, questions, submissions, users, students]);
 
   // Filtered List
@@ -250,7 +281,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark }) {
         {filteredList.map(item => {
           return (
             <div
-              key={item.testId}
+              key={`${item.testId}_${item.studentId || 'pool'}`}
               style={{
                 background: isDark ? 'rgba(30,41,59,0.7)' : '#ffffff',
                 border: item.isMastered
