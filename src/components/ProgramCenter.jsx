@@ -3485,10 +3485,16 @@ export default function ProgramCenter({
       matchedTest?.type === 'gorsel_klasik' ||
       matchedTest?.answerKey?.__meta?.isOpenEnded === true ||
       matchedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      matchedTest?.answer_key?.__meta?.isOpenEnded === true ||
+      matchedTest?.answer_key?.__meta?.questionType === 'acik_uclu' ||
       matchedBook?.bookType === 'open_ended' ||
+      matchedBook?.book_type === 'open_ended' ||
       item.isOpenEnded === true ||
+      item.is_open_ended === true ||
       item.questionType === 'acik_uclu' ||
-      (matchedTest?.name && /açık\s*uçlu|acik\s*uclu/i.test(matchedTest.name))
+      item.question_type === 'acik_uclu' ||
+      (matchedTest?.name && /açık\s*uçlu|acik\s*uclu|problem/i.test(matchedTest.name)) ||
+      (item.text && /açık\s*uçlu|acik\s*uclu|problem/i.test(item.text))
     );
 
     const taskPayload = {

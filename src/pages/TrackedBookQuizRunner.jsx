@@ -354,17 +354,21 @@ export default function TrackedBookQuizRunner() {
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
   const rawAnsKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
   const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
-  const isExplicitMC = resolvedTest?.isOpenEnded === false || resolvedTest?.is_open_ended === false || resolvedTest?.questionType === 'coktan_secmeli' || resolvedTest?.question_type === 'coktan_secmeli' || resolvedBook?.bookType === 'multiple_choice' || resolvedBook?.bookType === 'standard' || resolvedBook?.bookType === 'exam' || hasOptionLetters;
 
-  const isOpenEnded = !isExplicitMC && Boolean(
-    resolvedBook?.bookType === 'open_ended' ||
+  const isOpenEnded = Boolean(
     resolvedTest?.isOpenEnded === true ||
     resolvedTest?.is_open_ended === true ||
     resolvedTest?.questionType === 'acik_uclu' ||
     resolvedTest?.question_type === 'acik_uclu' ||
+    resolvedTest?.type === 'acik_uclu' ||
+    resolvedTest?.type === 'gorsel_klasik' ||
     resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
     resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (resolvedTest?.name && /açık\s*uçlu|acik\s*uclu/i.test(resolvedTest.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(resolvedTest.name))
+    resolvedTest?.answer_key?.__meta?.isOpenEnded === true ||
+    resolvedTest?.answer_key?.__meta?.questionType === 'acik_uclu' ||
+    resolvedBook?.bookType === 'open_ended' ||
+    resolvedBook?.book_type === 'open_ended' ||
+    (resolvedTest?.name && /açık\s*uçlu|acik\s*uclu|klasik|problem/i.test(resolvedTest.name) && !hasOptionLetters)
   );
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);

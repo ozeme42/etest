@@ -1065,10 +1065,8 @@ export default function StudyRoomPage() {
       matchedTestObj?.type === 'coktan_secmeli' ||
       matchedBookObj?.bookType === 'multiple_choice' ||
       matchedBookObj?.bookType === 'exam' ||
-      matchedBookObj?.bookType === 'standard' ||
       matchedBookObj?.book_type === 'multiple_choice' ||
-      matchedBookObj?.book_type === 'exam' ||
-      matchedBookObj?.book_type === 'standard'
+      matchedBookObj?.book_type === 'exam'
     ) {
       return false;
     }
