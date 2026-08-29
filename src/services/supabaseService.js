@@ -2220,17 +2220,19 @@ export async function dbUpdateTrackedBook(bookId, updates) {
 export async function dbDeleteTrackedBook(bookId) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
-    const validBookUuids = ensureUUIDs([String(bookId), String(bookId).replace(/^book_?/, '')]);
+    const rawId = String(bookId);
+    const validBookUuids = ensureUUIDs([rawId, rawId.replace(/^book_?/, '')]);
+    const allIds = Array.from(new Set([rawId, rawId.replace(/^book_?/, ''), ...validBookUuids]));
     
     // 1. Delete associated tests first to avoid FK constraint blocks
-    if (validBookUuids.length > 0) {
-      try {
-        await supabase.from('tracked_book_tests').delete().in('book_id', validBookUuids);
-      } catch {}
-      try {
-        await supabase.from('tracked_books').delete().in('id', validBookUuids);
-      } catch {}
-    }
+    try {
+      await supabase.from('tracked_book_tests').delete().in('book_id', allIds);
+    } catch {}
+    
+    try {
+      await supabase.from('tracked_books').delete().in('id', allIds);
+    } catch {}
+    
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteTrackedBook error:', err.message);
@@ -2387,10 +2389,12 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
 export async function dbDeleteTrackedBookTest(testId) {
   if (!isSupabaseConfigured() || !testId) return null;
   try {
-    const validTestUuids = ensureUUIDs([String(testId), String(testId).replace(/^test_?/, '')]);
-    if (validTestUuids.length > 0) {
-      await supabase.from('tracked_book_tests').delete().in('id', validTestUuids);
-    }
+    const rawId = String(testId);
+    const validTestUuids = ensureUUIDs([rawId, rawId.replace(/^test_?/, '')]);
+    const allIds = Array.from(new Set([rawId, rawId.replace(/^test_?/, ''), ...validTestUuids]));
+    
+    await supabase.from('tracked_book_tests').delete().in('id', allIds);
+    
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteTrackedBookTest error:', err.message);
