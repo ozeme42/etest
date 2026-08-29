@@ -6,7 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
-  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck
+  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck, Scissors
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
@@ -21,6 +21,7 @@ const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
 const StudentBookDetailsPage = lazy(() => import('./pages/StudentBookDetailsPage'));
 const HomeworkManager = lazy(() => import('./pages/HomeworkManager'));
+const RemedialTrackerPage = lazy(() => import('./pages/RemedialTrackerPage'));
 const EvaluationManager = lazy(() => import('./pages/EvaluationManager'));
 const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage'));
 const QuestionBank = lazy(() => import('./pages/QuestionBank'));
@@ -510,6 +511,12 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
                 </div>
                 <span>Ödev Yönetimi</span>
               </NavLink>
+              <NavLink to="/remedials" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', boxShadow: '0 2px 10px rgba(244,63,94,0.35)' }}>
+                  <Scissors size={16} color="white" />
+                </div>
+                <span>Telafi &amp; Ustalık Takibi</span>
+              </NavLink>
               <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
                   <ClipboardCheck size={16} color="white" />
@@ -666,6 +673,8 @@ function AppContent() {
               <Route path="/student/exams" element={<RequireAuth><StudentExamsPage /></RequireAuth>} />
               <Route path="/student/exams/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/homeworks" element={<RequireRole roles={['teacher', 'admin']}><HomeworkManager /></RequireRole>} />
+              <Route path="/remedials" element={<RequireRole roles={['teacher', 'admin']}><RemedialTrackerPage /></RequireRole>} />
+              <Route path="/telafi-takip" element={<Navigate to="/remedials" replace />} />
               <Route path="/approvals" element={<RequireRole roles={['teacher', 'admin']}><ApprovalsPage /></RequireRole>} />
               <Route path="/onaylar" element={<Navigate to="/approvals" replace />} />
               <Route path="/evaluations" element={<RequireRole roles={['teacher', 'admin']}><EvaluationManager /></RequireRole>} />
