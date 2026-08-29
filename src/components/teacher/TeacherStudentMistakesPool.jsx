@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle, CheckCircle2, Scissors, Sparkles, BookOpen,
   Filter, Search, CheckSquare, Square, Calendar, ChevronRight,
-  BookMarked, Eye, Clock, ArrowRight, UserCheck, Layers, HelpCircle
+  BookMarked, Eye, Clock, ArrowRight, UserCheck, Layers, HelpCircle,
+  Trash2
 } from 'lucide-react';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
@@ -77,7 +79,8 @@ export default function TeacherStudentMistakesPool({
   isDark,
   onLaunchSlicer
 }) {
-  const { submissions = [] } = useEvaluation();
+  const navigate = useNavigate();
+  const { submissions = [], deleteSubmission, deleteSubmissionsByTestId } = useEvaluation();
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { data: curData } = useCurriculum();
 
@@ -86,6 +89,9 @@ export default function TeacherStudentMistakesPool({
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Deleting in progress state
+  const [deletingId, setDeletingId] = useState(null);
 
   // Repetition scheduler settings
   const [scheduleMode, setScheduleMode] = useState('spaced_leitner');
@@ -364,14 +370,17 @@ export default function TeacherStudentMistakesPool({
       uNode.totalWrong += wrongList.length;
       uNode.tests.push({
         id: String(s.id),
-        testId: String(s.testId || s.test_id || s.id),
+        submissionId: String(s.id),
+        supabaseId: s.supabaseId || s.id,
+        testId: String(s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || s.id),
         name: displayTitle,
         fullTitle: s.title || s.testTitle,
         subjectName,
         unitName,
         pdfPage: meta?.page || 1,
         wrongCount: wrongList.length,
-        wrongQuestions: wrongList
+        wrongQuestions: wrongList,
+        rawSubmission: s
       });
     });
 
@@ -466,6 +475,35 @@ export default function TeacherStudentMistakesPool({
 
     return tests;
   }, [activeSubjectObj, selectedUnit, searchQuery]);
+
+  // Handle Deleting a single test submission
+  const handleDeleteTestSubmission = async (test) => {
+    const confirmMessage = `"${test.fullTitle || test.name}" testinin çözüm kaydını silmek istediğinize emin misiniz?\n\nBu işlem öğrencinin bu teste ait sınav sonucunu ve yanlış havuzundaki sorularını temizler.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setDeletingId(test.id);
+    try {
+      if (typeof deleteSubmission === 'function') {
+        if (test.id) await deleteSubmission(test.id);
+        if (test.supabaseId && test.supabaseId !== test.id) await deleteSubmission(test.supabaseId);
+      }
+      if (typeof deleteSubmissionsByTestId === 'function' && test.testId) {
+        await deleteSubmissionsByTestId(test.testId);
+      }
+
+      // Record in local deletion cache for instant response
+      try {
+        const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
+        const parsed = savedDeleted ? JSON.parse(savedDeleted) : [];
+        const toAdd = [String(test.id), String(test.supabaseId || ''), String(test.testId || '')].filter(Boolean);
+        localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(new Set([...parsed, ...toAdd]))));
+      } catch {}
+    } catch (err) {
+      console.error('Error deleting test submission:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Toggle selection for a single question
   const handleToggleQuestion = (test, q) => {
@@ -980,6 +1018,7 @@ export default function TeacherStudentMistakesPool({
           visibleTests.map(test => {
             const allTestSelected = test.wrongQuestions.every(q => selectedQuestions[`${test.id}_${q.qNo}`]);
             const someTestSelected = test.wrongQuestions.some(q => selectedQuestions[`${test.id}_${q.qNo}`]);
+            const isThisDeleting = deletingId === test.id;
 
             return (
               <div
@@ -994,7 +1033,9 @@ export default function TeacherStudentMistakesPool({
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: '0.85rem',
-                  boxShadow: someTestSelected ? '0 3px 12px rgba(99,102,241,0.12)' : 'none'
+                  boxShadow: someTestSelected ? '0 3px 12px rgba(99,102,241,0.12)' : 'none',
+                  opacity: isThisDeleting ? 0.45 : 1,
+                  transition: 'all 0.15s'
                 }}
               >
                 {/* Test Başlığı & Ünite */}
@@ -1020,7 +1061,7 @@ export default function TeacherStudentMistakesPool({
                   </button>
 
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
                         📌 {test.name}
                       </span>
@@ -1041,44 +1082,102 @@ export default function TeacherStudentMistakesPool({
                   </div>
                 </div>
 
-                {/* Soru Butonları (S.1 (C), S.4 (A)...) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  {test.wrongQuestions.map(q => {
-                    const qKey = `${test.id}_${q.qNo}`;
-                    const isQSelected = Boolean(selectedQuestions[qKey]);
+                {/* Soru Butonları ve Aksiyon Butonları (İncele & Sil) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  {/* Soru Butonları (S.1 (C), S.4 (A)...) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {test.wrongQuestions.map(q => {
+                      const qKey = `${test.id}_${q.qNo}`;
+                      const isQSelected = Boolean(selectedQuestions[qKey]);
 
-                    return (
-                      <button
-                        key={q.qNo}
-                        type="button"
-                        onClick={() => handleToggleQuestion(test, q)}
-                        title={`Soru ${q.qNo}: Doğru Cevap [${q.correctAns}], Öğrencinin Cevabı [${q.userAns}]`}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          padding: '4px 10px',
-                          borderRadius: 8,
-                          border: isQSelected ? '2px solid #6366f1' : (isDark ? '1.5px solid rgba(239,68,68,0.45)' : '1.5px solid #fecaca'),
-                          background: isQSelected
-                            ? '#6366f1'
-                            : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2'),
-                          color: isQSelected ? 'white' : '#dc2626',
-                          cursor: 'pointer',
-                          fontWeight: 900,
-                          fontSize: '0.75rem',
-                          minWidth: 56,
-                          transition: 'all 0.15s',
-                          boxShadow: isQSelected ? '0 2px 8px rgba(99,102,241,0.35)' : 'none'
-                        }}
-                      >
-                        <span>S.{q.qNo}</span>
-                        <span style={{ fontSize: '0.68rem', opacity: isQSelected ? 0.95 : 0.8 }}>
-                          ({q.correctAns})
-                        </span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={q.qNo}
+                          type="button"
+                          onClick={() => handleToggleQuestion(test, q)}
+                          title={`Soru ${q.qNo}: Doğru Cevap [${q.correctAns}], Öğrencinin Cevabı [${q.userAns}]`}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            border: isQSelected ? '2px solid #6366f1' : (isDark ? '1.5px solid rgba(239,68,68,0.45)' : '1.5px solid #fecaca'),
+                            background: isQSelected
+                              ? '#6366f1'
+                              : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2'),
+                            color: isQSelected ? 'white' : '#dc2626',
+                            cursor: 'pointer',
+                            fontWeight: 900,
+                            fontSize: '0.75rem',
+                            minWidth: 56,
+                            transition: 'all 0.15s',
+                            boxShadow: isQSelected ? '0 2px 8px rgba(99,102,241,0.35)' : 'none'
+                          }}
+                        >
+                          <span>S.{q.qNo}</span>
+                          <span style={{ fontSize: '0.68rem', opacity: isQSelected ? 0.95 : 0.8 }}>
+                            ({q.correctAns})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 👁️ İncele & 🗑️ Sil Butonları */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, borderLeft: '1.5px solid var(--color-border)', paddingLeft: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetId = test.testId || test.id;
+                        navigate(`/book-quiz/${targetId}?studentId=${student.id}`, {
+                          state: { from: '/remedials' }
+                        });
+                      }}
+                      title="Bu testi ve öğrencinin optik form / soru çözümlerini incele"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '6px 11px',
+                        borderRadius: 8,
+                        border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid #c7d2fe',
+                        background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                        color: '#4f46e5',
+                        fontWeight: 900,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <Eye size={13} />
+                      <span>İncele</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isThisDeleting}
+                      onClick={() => handleDeleteTestSubmission(test)}
+                      title="Bu testin çözüm kaydını ve yanlışlarını sil"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        border: isDark ? '1px solid rgba(239,68,68,0.3)' : '1px solid #fecaca',
+                        background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2',
+                        color: '#dc2626',
+                        fontWeight: 900,
+                        fontSize: '0.74rem',
+                        cursor: isThisDeleting ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      <span>Sil</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
