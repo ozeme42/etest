@@ -93,11 +93,6 @@ export function isMultipleChoice(item = {}) {
     if (hasMC) return true;
   }
 
-  // Default to Multiple Choice for standard tracked book tests unless explicitly open-ended
-  if (item.bookId || item.bookTestId || item.bookTitle) {
-    return !isExplicitOE;
-  }
-
   return false;
 }
 

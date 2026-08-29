@@ -931,42 +931,71 @@ export default function StudyRoomPage() {
   const [completedQuizResult, setCompletedQuizResult] = useState(null);
   const [isSubmittingOptical, setIsSubmittingOptical] = useState(false);
 
+  const matchedBookObj = useMemo(() => {
+    if (!selectedTask) return null;
+    const bId = selectedTask.bookId || selectedTask.book_id;
+    const bTitle = (selectedTask.bookName || selectedTask.bookTitle || '').toLowerCase().trim();
+    if (books && Array.isArray(books)) {
+      if (bId) {
+        const found = books.find(b => String(b.id) === String(bId) || toUUID(b.id) === String(bId));
+        if (found) return found;
+      }
+      if (bTitle) {
+        const found = books.find(b => {
+          const t = (b.title || '').toLowerCase().trim();
+          return t.includes(bTitle) || bTitle.includes(t);
+        });
+        if (found) return found;
+      }
+    }
+    return null;
+  }, [selectedTask, books]);
+
   const matchedTestObj = useMemo(() => {
     if (!selectedTask) return null;
-    const testId = selectedTask.bookTestId || selectedTask.realTestId || selectedTask.testId || selectedTask.id;
-    const taskTitle = (selectedTask.title || selectedTask.text || selectedTask.topic || '').toLowerCase();
+    const testId = String(selectedTask.bookTestId || selectedTask.realTestId || selectedTask.testId || selectedTask.id || '');
+    const cleanTId = testId.replace(/^bt_|^test_/, '');
+    const taskTitle = (selectedTask.title || selectedTask.text || selectedTask.topic || selectedTask.testName || '').toLowerCase().trim();
 
     // 1. Check in bookTests directly
     if (bookTests && Array.isArray(bookTests)) {
-      const found = bookTests.find(bt => 
-        (testId && (String(bt.id) === String(testId) || toUUID(bt.id) === String(testId) || String(bt.realTestId) === String(testId))) ||
-        (selectedTask.bookTestId && String(bt.id) === String(selectedTask.bookTestId)) ||
-        (taskTitle && bt.name && taskTitle.includes(bt.name.toLowerCase()))
-      );
+      const found = bookTests.find(bt => {
+        const btId = String(bt.id || '');
+        const btClean = btId.replace(/^bt_|^test_/, '');
+        const btReal = String(bt.realTestId || '');
+        if (testId && (btId === testId || btClean === cleanTId || btReal === testId || toUUID(btId) === testId)) return true;
+        if (taskTitle && bt.name && taskTitle.includes(bt.name.toLowerCase().trim())) return true;
+        return false;
+      });
       if (found) return found;
     }
 
-    // 2. Search deeply inside books -> subjects -> topics -> tests
-    if (books && Array.isArray(books)) {
-      for (const b of books) {
-        if (b.subjects && Array.isArray(b.subjects)) {
-          for (const s of b.subjects) {
-            if (s.tests && Array.isArray(s.tests)) {
-              const fTest = s.tests.find(t =>
-                (testId && (String(t.id) === String(testId) || toUUID(t.id) === String(testId))) ||
-                (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase()))
-              );
-              if (fTest) return fTest;
-            }
-            if (s.topics && Array.isArray(s.topics)) {
-              for (const tp of s.topics) {
-                if (tp.tests && Array.isArray(tp.tests)) {
-                  const fTest = tp.tests.find(t =>
-                    (testId && (String(t.id) === String(testId) || toUUID(t.id) === String(testId))) ||
-                    (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase()))
-                  );
-                  if (fTest) return fTest;
-                }
+    // 2. Search deeply inside matchedBookObj or all books -> subjects -> topics -> tests
+    const searchBooks = matchedBookObj ? [matchedBookObj, ...(books || []).filter(b => b.id !== matchedBookObj.id)] : (books || []);
+    for (const b of searchBooks) {
+      if (b.subjects && Array.isArray(b.subjects)) {
+        for (const s of b.subjects) {
+          if (s.tests && Array.isArray(s.tests)) {
+            const fTest = s.tests.find(t => {
+              const tId = String(t.id || '');
+              const tClean = tId.replace(/^bt_|^test_/, '');
+              if (testId && (tId === testId || tClean === cleanTId || toUUID(tId) === testId)) return true;
+              if (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase().trim())) return true;
+              return false;
+            });
+            if (fTest) return { ...fTest, bookType: b.bookType };
+          }
+          if (s.topics && Array.isArray(s.topics)) {
+            for (const tp of s.topics) {
+              if (tp.tests && Array.isArray(tp.tests)) {
+                const fTest = tp.tests.find(t => {
+                  const tId = String(t.id || '');
+                  const tClean = tId.replace(/^bt_|^test_/, '');
+                  if (testId && (tId === testId || tClean === cleanTId || toUUID(tId) === testId)) return true;
+                  if (taskTitle && t.name && taskTitle.includes(t.name.toLowerCase().trim())) return true;
+                  return false;
+                });
+                if (fTest) return { ...fTest, bookType: b.bookType };
               }
             }
           }
@@ -977,44 +1006,69 @@ export default function StudyRoomPage() {
     // 3. Search in homeworks
     if (homeworks && Array.isArray(homeworks)) {
       const found = homeworks.find(hw => 
-        (testId && (String(hw.id) === String(testId) || toUUID(hw.id) === String(testId))) ||
+        (testId && (String(hw.id) === testId || toUUID(hw.id) === testId)) ||
         (selectedTask.hwId && String(hw.id) === String(selectedTask.hwId))
       );
       if (found) return found;
     }
 
     return null;
-  }, [selectedTask, bookTests, books, homeworks]);
+  }, [selectedTask, bookTests, books, matchedBookObj, homeworks]);
 
   const isSelectedTaskOpenEnded = useMemo(() => {
-    // 1. If either selectedTask or matchedTestObj is Multiple Choice, it is NOT open-ended
-    if (selectedTask && isMultipleChoice(selectedTask)) return false;
-    if (matchedTestObj && isMultipleChoice(matchedTestObj)) return false;
-
-    // 2. Check if either is explicitly Open-Ended via isSectionOpenEnded
-    if (matchedTestObj && isSectionOpenEnded(matchedTestObj, matchedTestObj)) return true;
-    if (selectedTask && isSectionOpenEnded(selectedTask, selectedTask)) return true;
-
-    // 3. Check explicit flags
+    // 1. Direct explicit Open-Ended flags (Highest Priority)
     if (
       selectedTask?.isOpenEnded === true ||
       selectedTask?.is_open_ended === true ||
       selectedTask?.questionType === 'acik_uclu' ||
+      selectedTask?.question_type === 'acik_uclu' ||
       selectedTask?.type === 'acik_uclu' ||
       selectedTask?.type === 'gorsel_klasik' ||
       matchedTestObj?.isOpenEnded === true ||
       matchedTestObj?.is_open_ended === true ||
       matchedTestObj?.questionType === 'acik_uclu' ||
+      matchedTestObj?.question_type === 'acik_uclu' ||
       matchedTestObj?.type === 'acik_uclu' ||
       matchedTestObj?.type === 'gorsel_klasik' ||
       matchedTestObj?.answerKey?.__meta?.isOpenEnded === true ||
-      matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu'
+      matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      matchedBookObj?.bookType === 'open_ended'
     ) {
       return true;
     }
 
+    // 2. Direct explicit Multiple Choice flags
+    if (
+      selectedTask?.isOpenEnded === false ||
+      selectedTask?.questionType === 'coktan_secmeli' ||
+      selectedTask?.question_type === 'coktan_secmeli' ||
+      selectedTask?.type === 'coktan_secmeli' ||
+      matchedTestObj?.isOpenEnded === false ||
+      matchedTestObj?.questionType === 'coktan_secmeli' ||
+      matchedTestObj?.question_type === 'coktan_secmeli' ||
+      matchedTestObj?.type === 'coktan_secmeli' ||
+      matchedBookObj?.bookType === 'multiple_choice' ||
+      matchedBookObj?.bookType === 'exam'
+    ) {
+      return false;
+    }
+
+    // 3. AnswerKey letter inspection (A-E means Multiple Choice)
+    const ak = matchedTestObj?.answerKey || selectedTask?.answerKey || matchedTestObj?.correctAnswers || selectedTask?.correctAnswers;
+    if (ak && ak.__meta?.isOpenEnded !== true && ak.__meta?.questionType !== 'acik_uclu') {
+      if (Array.isArray(ak) && ak.length > 0 && ak.every(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()))) {
+        return false;
+      }
+      if (typeof ak === 'object' && !Array.isArray(ak)) {
+        const vals = Object.values(ak).filter(v => v !== null && typeof v === 'string');
+        if (vals.length > 0 && vals.every(v => /^[A-Ea-e]$/.test(v.trim()))) {
+          return false;
+        }
+      }
+    }
+
     // 4. Strict Title Keyword Detection (ONLY if explicitly contains "açık uçlu" and NOT "çoktan seçmeli" or "test")
-    const titleStr = `${selectedTask?.title || ''} ${matchedTestObj?.name || ''} ${matchedTestObj?.title || ''}`.toLowerCase();
+    const titleStr = `${selectedTask?.title || ''} ${selectedTask?.topic || ''} ${matchedTestObj?.name || ''} ${matchedTestObj?.title || ''}`.toLowerCase();
     if (
       (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu')) &&
       !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli') && !titleStr.includes('test')
@@ -1022,8 +1076,9 @@ export default function StudyRoomPage() {
       return true;
     }
 
+    // Default to false (multiple choice optical form)
     return false;
-  }, [selectedTask, matchedTestObj]);
+  }, [selectedTask, matchedTestObj, matchedBookObj]);
 
   const resolvedAnswerKey = useMemo(() => {
     const src = matchedTestObj || selectedTask;

@@ -3476,6 +3476,21 @@ export default function ProgramCenter({
       qCount = typeof matchedTest.answerKey === 'object' ? Object.keys(matchedTest.answerKey).length : qCount;
     }
 
+    const isTaskOE = Boolean(
+      matchedTest?.isOpenEnded === true ||
+      matchedTest?.is_open_ended === true ||
+      matchedTest?.questionType === 'acik_uclu' ||
+      matchedTest?.question_type === 'acik_uclu' ||
+      matchedTest?.type === 'acik_uclu' ||
+      matchedTest?.type === 'gorsel_klasik' ||
+      matchedTest?.answerKey?.__meta?.isOpenEnded === true ||
+      matchedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      matchedBook?.bookType === 'open_ended' ||
+      item.isOpenEnded === true ||
+      item.questionType === 'acik_uclu' ||
+      (matchedTest?.name && /açık\s*uçlu|acik\s*uclu/i.test(matchedTest.name))
+    );
+
     const taskPayload = {
       id: item.id,
       title: finalBookTitle ? `${finalBookTitle} — ${finalTestName}` : (finalUnit ? `${finalSubject} • ${finalUnit}` : `${finalSubject} Çalışması`),
@@ -3494,6 +3509,9 @@ export default function ProgramCenter({
       roadmapAssignmentId: item.roadmapAssignmentId || null,
       sourceType: item.roadmapAssignmentId ? 'roadmap' : (matchedTest || item.taskType === 'kitap') ? 'bookTest' : item.hwId ? 'homework' : 'program',
       sourceLabel: item.roadmapAssignmentId ? '🗺️ Yol Haritası' : (matchedTest || item.taskType === 'kitap') ? '📚 Kitap Testi' : item.hwId ? '📝 Atanmış Ödev' : '📅 Ders Programı',
+      isOpenEnded: isTaskOE,
+      questionType: isTaskOE ? 'acik_uclu' : 'coktan_secmeli',
+      answerKey: matchedTest?.answerKey || item.answerKey || null,
       autoStart: true
     };
 
