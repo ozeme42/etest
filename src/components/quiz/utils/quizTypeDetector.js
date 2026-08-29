@@ -8,11 +8,14 @@
 /**
  * Checks if a section or question is definitively Multiple Choice (has options or is coktan_secmeli).
  */
+/**
+ * Checks if a section or question is definitively Multiple Choice (has options or is coktan_secmeli).
+ */
 export function isMultipleChoice(item = {}) {
   if (!item) return false;
 
   // 1. Explicit Open-Ended overrides (NEVER Multiple Choice)
-  if (
+  const isExplicitOE = (
     item.isOpenEnded === true ||
     item.is_open_ended === true ||
     item.openEnded === true ||
@@ -26,13 +29,29 @@ export function isMultipleChoice(item = {}) {
     item.bankQ?.questionType === 'acik_uclu' ||
     item.bankQ?.isOpenEnded === true ||
     item.answerKey?.__meta?.isOpenEnded === true ||
-    item.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (item.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(item.name)) ||
-    (item.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(item.title))
-  ) {
+    item.answerKey?.__meta?.questionType === 'acik_uclu'
+  );
+
+  if (isExplicitOE) {
     // If it has explicit 2+ options it could be MC, otherwise strictly open-ended
     if (!Array.isArray(item.options) || item.options.filter(Boolean).length <= 1) {
       return false;
+    }
+  }
+
+  // 2. Multiple Choice Answer Key detection (Letters A-E)
+  const ak = item.answerKey || item.correctAnswers || item.opticAnswers;
+  if (ak && ak.__meta?.isOpenEnded !== true && ak.__meta?.questionType !== 'acik_uclu') {
+    if (Array.isArray(ak) && ak.length > 0) {
+      const allLetters = ak.every(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()));
+      if (allLetters) return true;
+    }
+    if (typeof ak === 'object' && !Array.isArray(ak)) {
+      const vals = Object.values(ak).filter(v => v !== null && typeof v === 'string');
+      if (vals.length > 0 && vals.every(v => /^[A-Ea-e]$/.test(v.trim()))) return true;
+    }
+    if (typeof ak === 'string' && /^[A-Ea-e\s]+$/.test(ak.trim()) && ak.trim().length > 0) {
+      return true;
     }
   }
 
@@ -40,7 +59,8 @@ export function isMultipleChoice(item = {}) {
   
   if (
     qType === 'coktan_secmeli' ||
-    qType === 'multiple_choice'
+    qType === 'multiple_choice' ||
+    qType === 'test'
   ) {
     return true;
   }
@@ -50,20 +70,7 @@ export function isMultipleChoice(item = {}) {
     qType === 'optic' ||
     qType === 'optik'
   ) {
-    // If it is explicitly open-ended, it is not multiple choice
-    if (
-      item.isOpenEnded === true ||
-      item.is_open_ended === true ||
-      item.type === 'acik_uclu' ||
-      item.questionType === 'acik_uclu' ||
-      item.answerKey?.__meta?.isOpenEnded === true ||
-      item.answerKey?.__meta?.questionType === 'acik_uclu' ||
-      (item.name && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(item.name)) ||
-      (item.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(item.title))
-    ) {
-      return false;
-    }
-    return true;
+    return !isExplicitOE;
   }
 
   if (Array.isArray(item.options) && item.options.filter(Boolean).length >= 2) {
@@ -86,6 +93,11 @@ export function isMultipleChoice(item = {}) {
     if (hasMC) return true;
   }
 
+  // Default to Multiple Choice for standard tracked book tests unless explicitly open-ended
+  if (item.bookId || item.bookTestId || item.bookTitle) {
+    return !isExplicitOE;
+  }
+
   return false;
 }
 
@@ -96,7 +108,7 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
   const bankQ = sec?.bankQ || test?.bankQ || {};
 
   // 1. If section, bankQ, or test is definitively Multiple Choice -> NEVER Open-Ended
-  if (isMultipleChoice(sec) || isMultipleChoice(bankQ)) {
+  if (isMultipleChoice(sec) || isMultipleChoice(bankQ) || (test?.id && isMultipleChoice(test))) {
     return false;
   }
 
@@ -143,11 +155,11 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
-  // 3. Title Keyword Detection strictly for Açık Uçlu / Klasik (when NOT coktan_secmeli)
+  // 3. Title Keyword Detection strictly for Açık Uçlu (when NOT coktan_secmeli or test)
   const titleStr = String(sec?.title || sec?.name || bankQ?.title || bankQ?.name || test?.title || test?.name || '').toLowerCase();
   if (
-    (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu') || titleStr.includes('klasik soru') || titleStr.includes('yazılı klasik')) &&
-    !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli') && !titleStr.includes('çok')
+    (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu')) &&
+    !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli') && !titleStr.includes('test')
   ) {
     return true;
   }

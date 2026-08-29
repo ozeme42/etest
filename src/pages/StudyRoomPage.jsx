@@ -32,6 +32,7 @@ import {
   matchSubjectFromTask,
   extractQuestionCountFromTask
 } from '../features/study-room/constants/studyRoomConstants';
+import { isMultipleChoice, isSectionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 
 const ambientAudio = new AmbientEngine();
 
@@ -986,21 +987,42 @@ export default function StudyRoomPage() {
   }, [selectedTask, bookTests, books, homeworks]);
 
   const isSelectedTaskOpenEnded = useMemo(() => {
-    return Boolean(
-      selectedTask?.isOpenEnded ||
-      selectedTask?.is_open_ended ||
+    // 1. If either selectedTask or matchedTestObj is Multiple Choice, it is NOT open-ended
+    if (selectedTask && isMultipleChoice(selectedTask)) return false;
+    if (matchedTestObj && isMultipleChoice(matchedTestObj)) return false;
+
+    // 2. Check if either is explicitly Open-Ended via isSectionOpenEnded
+    if (matchedTestObj && isSectionOpenEnded(matchedTestObj, matchedTestObj)) return true;
+    if (selectedTask && isSectionOpenEnded(selectedTask, selectedTask)) return true;
+
+    // 3. Check explicit flags
+    if (
+      selectedTask?.isOpenEnded === true ||
+      selectedTask?.is_open_ended === true ||
       selectedTask?.questionType === 'acik_uclu' ||
       selectedTask?.type === 'acik_uclu' ||
-      matchedTestObj?.isOpenEnded ||
-      matchedTestObj?.is_open_ended ||
+      selectedTask?.type === 'gorsel_klasik' ||
+      matchedTestObj?.isOpenEnded === true ||
+      matchedTestObj?.is_open_ended === true ||
       matchedTestObj?.questionType === 'acik_uclu' ||
       matchedTestObj?.type === 'acik_uclu' ||
-      matchedTestObj?.answerKey?.__meta?.isOpenEnded ||
-      matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-      (selectedTask?.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(selectedTask.title)) ||
-      (matchedTestObj?.name && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(matchedTestObj.name)) ||
-      (matchedTestObj?.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(matchedTestObj.title))
-    );
+      matchedTestObj?.type === 'gorsel_klasik' ||
+      matchedTestObj?.answerKey?.__meta?.isOpenEnded === true ||
+      matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu'
+    ) {
+      return true;
+    }
+
+    // 4. Strict Title Keyword Detection (ONLY if explicitly contains "açık uçlu" and NOT "çoktan seçmeli" or "test")
+    const titleStr = `${selectedTask?.title || ''} ${matchedTestObj?.name || ''} ${matchedTestObj?.title || ''}`.toLowerCase();
+    if (
+      (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu')) &&
+      !titleStr.includes('çoktan seçmeli') && !titleStr.includes('coktan secmeli') && !titleStr.includes('test')
+    ) {
+      return true;
+    }
+
+    return false;
   }, [selectedTask, matchedTestObj]);
 
   const resolvedAnswerKey = useMemo(() => {
