@@ -841,8 +841,7 @@ export function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
                  (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
                  (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
                  { answers: {}, openEndedText: {}, teacherScores: {} };
-
-      const secQs = sec.questions || [];
+          const secQs = sec.questions || [];
       const count = sec.qCount || secQs.length || 1;
       const isSecOpenEnded = sec.type === 'open_ended';
 
@@ -979,8 +978,15 @@ export function computeStudentAnalyticsData({
       subject: s.subjectName || s.subject || 'Genel',
       subjectName: s.subjectName || s.subject || 'Genel',
       date: s.date,
-            wrongCount: s.wrongCount || 0,
+      totalNet: s.netScore ?? s.totalNet ?? 0,
+      net: s.netScore ?? s.totalNet ?? 0,
+      correctCount: s.correctCount || 0,
+      correct: s.correctCount || 0,
+      wrongCount: s.wrongCount || 0,
+      wrong: s.wrongCount || 0,
       emptyCount: s.blankCount ?? s.emptyCount ?? 0,
+      blankCount: s.blankCount ?? s.emptyCount ?? 0,
+      empty: s.blankCount ?? s.emptyCount ?? 0,
       totalQuestions: s.totalQuestions || 0,
       sourceType: s.sourceType,
       approvalStatus: 'approved',
