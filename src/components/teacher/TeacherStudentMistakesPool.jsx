@@ -649,20 +649,31 @@ export default function TeacherStudentMistakesPool({
           ...item.testItem,
           id: item.testId,
           testId: item.testId,
+          name: item.testTitle || item.name || 'Test',
+          testName: item.testTitle || item.name || 'Test',
           title: item.fullTitle || item.testTitle,
+          unitName: item.testItem?.unitName || '1. Ünite',
+          subjectName: item.subject || activeSubjectObj?.subjectName || 'Genel',
           page: item.testPage,
           pdfPage: item.testPage,
+          wrongQuestions: [],
           wrongQuestionsList: [],
-          wrongCount: 0
+          wrongCount: 0,
+          answerKeyMap: {}
         };
       }
+      mistakesByTest[item.testId].wrongQuestions.push(item.qNo);
       mistakesByTest[item.testId].wrongQuestionsList.push({
         qNum: item.qNo,
+        qNo: item.qNo,
         selectedOption: item.selectedOption,
         correctOption: item.correctOption,
         page: item.testPage,
         pdfPage: item.testPage
       });
+      if (item.correctOption && item.correctOption !== '?' && item.correctOption !== '—') {
+        mistakesByTest[item.testId].answerKeyMap[item.qNo] = item.correctOption;
+      }
       mistakesByTest[item.testId].wrongCount++;
     });
 

@@ -618,7 +618,28 @@ export default function PdfQuestionSlicerModal({
 
   const bookMistakesList = useMemo(() => {
     if (initialMistakes && Array.isArray(initialMistakes) && initialMistakes.length > 0) {
-      return [...initialMistakes].sort(compareBookTestsOrder);
+      return initialMistakes.map(item => {
+        const wrongList = (item.wrongQuestionsList || item.wrongQuestions || []).map(q => typeof q === 'object' ? (q.qNo || q.qNum || 1) : Number(q));
+        const akMap = item.answerKeyMap || {};
+        if (Array.isArray(item.wrongQuestionsList)) {
+          item.wrongQuestionsList.forEach(q => {
+            const num = q.qNo || q.qNum || 1;
+            const corr = q.correctOption || q.correctAns;
+            if (corr && corr !== '?' && corr !== '—') akMap[num] = corr;
+          });
+        }
+        return {
+          ...item,
+          testId: item.testId || item.id,
+          testName: item.testName || item.name || item.title || 'Test',
+          unitName: item.unitName || '1. Ünite',
+          subjectName: item.subjectName || item.subject || 'Genel',
+          pdfPage: item.pdfPage || item.page || 1,
+          wrongQuestions: wrongList.length > 0 ? wrongList : (item.wrongCount ? Array.from({ length: item.wrongCount }, (_, i) => i + 1) : []),
+          wrongCount: wrongList.length || item.wrongCount || 0,
+          answerKeyMap: akMap
+        };
+      }).sort(compareBookTestsOrder);
     }
     if (!currentBook) return [];
 
@@ -910,8 +931,9 @@ export default function PdfQuestionSlicerModal({
         });
       }
 
+      const wCount = (testItem.wrongQuestions || []).length || testItem.wrongCount || 0;
       const sGroup = subjectMap.get(sName);
-      sGroup.totalWrong += testItem.wrongQuestions.length;
+      sGroup.totalWrong += wCount;
       sGroup.totalTests += 1;
 
       if (!sGroup.unitMap.has(uName)) {
@@ -925,7 +947,7 @@ export default function PdfQuestionSlicerModal({
       }
 
       const uGroup = sGroup.unitMap.get(uName);
-      uGroup.totalWrong += testItem.wrongQuestions.length;
+      uGroup.totalWrong += wCount;
       uGroup.tests.push(testItem);
     });
 
@@ -994,7 +1016,7 @@ export default function PdfQuestionSlicerModal({
       tests = tests.filter(t => 
         (t.testName || '').toLowerCase().includes(q) ||
         (t.unitName || '').toLowerCase().includes(q) ||
-        t.wrongQuestions.some(qNo => String(qNo) === q || `s.${qNo}`.includes(q))
+        (t.wrongQuestions || []).some(qNo => String(qNo) === q || `s.${qNo}`.includes(q))
       );
     }
 
@@ -1008,15 +1030,15 @@ export default function PdfQuestionSlicerModal({
       sGroup.units.forEach(uGroup => {
         const sortedTests = [...uGroup.tests].sort(compareBookTestsOrder);
         sortedTests.forEach(t => {
-          const sortedWrongQNos = [...t.wrongQuestions].sort((a, b) => a - b);
+          const sortedWrongQNos = [...(t.wrongQuestions || [])].sort((a, b) => Number(a) - Number(b));
           sortedWrongQNos.forEach(qNo => {
             list.push({
               testId: t.testId,
-              testName: t.testName,
+              testName: t.testName || t.name || t.title,
               unitName: t.unitName,
               subjectName: t.subjectName,
               qNo: qNo,
-              correctAnswer: t.answerKeyMap[qNo] || 'A'
+              correctAnswer: (t.answerKeyMap && t.answerKeyMap[qNo]) || 'A'
             });
           });
         });
@@ -2358,16 +2380,16 @@ export default function PdfQuestionSlicerModal({
                           📌 {t.testName} {activeGuideUnit === 'all' ? `(${t.unitName})` : ''}
                         </span>
                         <span style={{ fontSize: '0.64rem', fontWeight: 800, color: '#dc2626', background: isDark ? 'rgba(239,68,68,0.15)' : '#fee2e2', padding: '1px 5px', borderRadius: 4 }}>
-                          {t.wrongQuestions.length} Yanlış
+                          {(t.wrongQuestions || []).length} Yanlış
                         </span>
                       </div>
 
                       {/* Soru Butonları */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {t.wrongQuestions.map(qNo => {
+                        {(t.wrongQuestions || []).map(qNo => {
                           const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
                           const isActive = activeTargetQuestion?.testId === t.testId && activeTargetQuestion?.qNo === qNo;
-                          const cAns = t.answerKeyMap[qNo] || '';
+                          const cAns = t.answerKeyMap ? (t.answerKeyMap[qNo] || '') : '';
 
                           return (
                             <button
