@@ -846,6 +846,10 @@ export default function StudyRoomPage() {
     if (incomingTask) {
       const shouldAutoStart = location.state?.autoStart ?? incomingTask.autoStart ?? true;
       handleSelectTask(incomingTask, shouldAutoStart);
+      try {
+        localStorage.removeItem('study_active_selected_task');
+        window.history.replaceState({}, document.title);
+      } catch (e) {}
     }
   }, [location.state]);
 
@@ -1351,6 +1355,8 @@ export default function StudyRoomPage() {
     try {
       localStorage.removeItem('study_optical_answers');
       if (taskId) localStorage.removeItem(`study_optical_answers_${taskId}`);
+      localStorage.removeItem('study_active_selected_task');
+      window.history.replaceState({}, document.title);
     } catch (e) {}
 
     // Stop timer
@@ -6770,16 +6776,14 @@ export default function StudyRoomPage() {
                 type="button"
                 onClick={() => {
                   const subId = completedQuizResult.id;
-                  const finalTid = completedQuizResult.bookTestId || completedQuizResult.realTestId || completedQuizResult.testId;
-                  const isBook = completedQuizResult.sourceType === 'bookTest' || Boolean(completedQuizResult.bookTestId);
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
                   handleClearSelectedTask();
-                  if (isBook && finalTid) {
-                    navigate(`/book-quiz/${finalTid}?studentId=${currentUser?.id || ''}`);
-                  } else {
-                    navigate(`/review/${subId}?studentId=${currentUser?.id || ''}`);
-                  }
+                  try {
+                    localStorage.removeItem('study_active_selected_task');
+                    window.history.replaceState({}, document.title);
+                  } catch (e) {}
+                  navigate(`/review/${subId}?studentId=${currentUser?.id || ''}&from=/study-room`, { state: { from: '/study-room' } });
                 }}
                 style={{
                   padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
@@ -6806,6 +6810,10 @@ export default function StudyRoomPage() {
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
                   handleClearSelectedTask();
+                  try {
+                    localStorage.removeItem('study_active_selected_task');
+                    window.history.replaceState({}, document.title);
+                  } catch (e) {}
                   navigate('/student-results');
                 }}
                 style={{
@@ -6832,6 +6840,11 @@ export default function StudyRoomPage() {
                 onClick={() => {
                   setCompletedQuizResult(null);
                   handleClearOpticalAnswers();
+                  handleClearSelectedTask();
+                  try {
+                    localStorage.removeItem('study_active_selected_task');
+                    window.history.replaceState({}, document.title);
+                  } catch (e) {}
                 }}
                 style={{
                   padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem',
@@ -6854,7 +6867,15 @@ export default function StudyRoomPage() {
 
               <button
                 type="button"
-                onClick={() => setCompletedQuizResult(null)}
+                onClick={() => {
+                  setCompletedQuizResult(null);
+                  handleClearOpticalAnswers();
+                  handleClearSelectedTask();
+                  try {
+                    localStorage.removeItem('study_active_selected_task');
+                    window.history.replaceState({}, document.title);
+                  } catch (e) {}
+                }}
                 style={{
                   padding: isMobile ? '0.6rem 0.75rem' : '0.75rem 1.25rem',
                   borderRadius: 10,
