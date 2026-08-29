@@ -578,8 +578,9 @@ export default function StudentDashboard() {
     // Include submissions from both studentSubmissions and homeworks.submissions
     const allStudentSubs = [...(studentSubmissions || [])];
     (homeworks || []).forEach(hw => {
-      (hw.submissions || []).forEach(sub => {
-        if (sub && (String(sub.studentId) === String(selectedStudent?.id) || String(sub.student_id) === String(selectedStudent?.id) || String(sub.userId) === String(selectedStudent?.id))) {
+      const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      (hwSubs || []).forEach(sub => {
+        if (sub && (String(sub.studentId) === String(selectedStudent?.id) || String(sub.student_id) === String(selectedStudent?.id) || String(sub.userId) === String(selectedStudent?.id) || (toUUID(sub.studentId) && toUUID(sub.studentId) === toUUID(selectedStudent?.id)))) {
           if (!allStudentSubs.some(x => x.id === sub.id)) {
             allStudentSubs.push(sub);
           }
@@ -611,26 +612,38 @@ export default function StudentDashboard() {
           const str = String(id);
           const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
           const u = toUUID(str);
+          
+          set.add(str);
+          set.add(clean);
+          if (u) set.add(u);
+          set.add(`tid_${str}`);
+          set.add(`tid_${clean}`);
+          if (u) set.add(`tid_${u}`);
+
           if (sName) {
             set.add(`subj_tid_${sName}_${str}`);
             set.add(`subj_tid_${sName}_${clean}`);
             if (u) set.add(`subj_tid_${sName}_${u}`);
+          }
+          if (bId) {
+            set.add(`bid_tid_${bId}_${str}`);
+            set.add(`bid_tid_${bId}_${clean}`);
           }
           if (bId && sName) {
             set.add(`bid_subj_tid_${bId}_${sName}_${str}`);
             set.add(`bid_subj_tid_${bId}_${sName}_${clean}`);
             if (u) set.add(`bid_subj_tid_${bId}_${sName}_${u}`);
           }
-          set.add(`tid_${str}`);
-          set.add(`tid_${clean}`);
-          if (u) set.add(`tid_${u}`);
         }
       });
 
-      // Composite Keys with STRICT Subject isolation
+      // Composite Keys
       if (sName && tName) {
         set.add(`subj_test_${sName}_${tName}`);
         set.add(`title_${sName}_${tName}`);
+      }
+      if (bTitle && tName) {
+        set.add(`book_test_${bTitle}_${tName}`);
       }
       if (bTitle && sName && tName) {
         set.add(`full_${bTitle}_${sName}_${tName}`);
@@ -638,8 +651,17 @@ export default function StudentDashboard() {
       if (bTitle && sName && uTopic && tName) {
         set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
       }
+      if (bId && tName) {
+        set.add(`bid_tname_${bId}_${tName}`);
+      }
       if (bId && sName && tName) {
         set.add(`bid_subj_tname_${bId}_${sName}_${tName}`);
+      }
+
+      // Full specific title (preserving exact page numbers and test numbers)
+      const fullTitleStr = normalizeKey(s.title || s.testTitle || s.testName);
+      if (fullTitleStr && fullTitleStr.length >= 8) {
+        set.add(`title_${fullTitleStr}`);
       }
     });
     return set;
@@ -662,12 +684,20 @@ export default function StudentDashboard() {
     const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
     const tName = normalizeKey(item.testName || item.title);
 
-    // 1. Direct Test ID with Subject isolation
+    // 1. Direct Test ID
     if (tId) {
       const tidStr = String(tId);
       const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
       const tidUuid = toUUID(tidStr);
 
+      if (studentSolvedSet.has(tidStr) ||
+          studentSolvedSet.has(tidClean) ||
+          (tidUuid && studentSolvedSet.has(tidUuid)) ||
+          studentSolvedSet.has(`tid_${tidStr}`) ||
+          studentSolvedSet.has(`tid_${tidClean}`) ||
+          (tidUuid && studentSolvedSet.has(`tid_${tidUuid}`))) {
+        return true;
+      }
       if (sName) {
         if (studentSolvedSet.has(`subj_tid_${sName}_${tidStr}`) ||
             studentSolvedSet.has(`subj_tid_${sName}_${tidClean}`) ||
@@ -675,23 +705,29 @@ export default function StudentDashboard() {
           return true;
         }
       }
-      if (bId && sName) {
-        if (studentSolvedSet.has(`bid_subj_tid_${bId}_${sName}_${tidStr}`) ||
-            studentSolvedSet.has(`bid_subj_tid_${bId}_${sName}_${tidClean}`) ||
-            (tidUuid && studentSolvedSet.has(`bid_subj_tid_${bId}_${sName}_${tidUuid}`))) {
+      if (bId) {
+        if (studentSolvedSet.has(`bid_tid_${bId}_${tidStr}`) ||
+            studentSolvedSet.has(`bid_tid_${bId}_${tidClean}`)) {
           return true;
         }
       }
     }
 
-    // 2. Strict Subject + Test Name Composite matching (NEVER match across different subjects!)
+    // 2. Composite matching
     if (bTitle && sName && uTopic && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
     if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
     if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
+    if (bTitle && tName && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
+    if (bId && tName && studentSolvedSet.has(`bid_tname_${bId}_${tName}`)) return true;
     if (bId && sName && tName && studentSolvedSet.has(`bid_subj_tname_${bId}_${sName}_${tName}`)) return true;
     if (sName && tName && studentSolvedSet.has(`title_${sName}_${tName}`)) return true;
 
-    // 3. Robust fallback using isSubmissionMatchingBookTest with strict subject check
+    const itemFullNorm = normalizeKey(item.title || item.testName);
+    if (itemFullNorm && itemFullNorm.length >= 8) {
+      if (studentSolvedSet.has(`title_${itemFullNorm}`)) return true;
+    }
+
+    // 3. Fallback using isSubmissionMatchingBookTest
     if (Array.isArray(studentSubmissions) && studentSubmissions.length > 0) {
       if (studentSubmissions.some(s => isSubmissionMatchingBookTest(s, item, bookTests, books))) {
         return true;

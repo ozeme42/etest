@@ -1092,7 +1092,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
   const subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || s.lesson || '').toLowerCase().trim();
 
-  if (targetSubject && subSubject) {
+  if (targetSubject && subSubject && targetSubject !== 'genel' && subSubject !== 'genel' && subSubject !== 'genel testler' && targetSubject !== 'genel testler') {
     const isSubjectMatch = subSubject === targetSubject ||
       subSubject.includes(targetSubject) ||
       targetSubject.includes(subSubject) ||
