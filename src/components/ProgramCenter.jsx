@@ -3350,16 +3350,35 @@ export default function ProgramCenter({
       return;
     }
 
-    if (item.testId) {
-      navigate(`/book-quiz/${item.testId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+    const hwObj = item.hwId ? (allHomeworks || []).find(h => String(h.id) === String(item.hwId)) : null;
+    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || item.bookId));
+    const isExam = item.isExamTask || item.taskType === 'deneme' || item.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+    
+    if (isExam) {
+      navigate(`/physical-exam/${item.hwId || item.testId || item.realTestId || item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+
+    const targetBookTestId = item.bookTestId || item.testId || item.realTestId ||
+      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null) ||
+      (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0 ? hwObj.tests[0] : null);
+
+    const isBook = Boolean(
+      item.isBookTask ||
+      item.taskType === 'kitap' ||
+      item.sourceType === 'trackedBook' ||
+      item.sourceType === 'bookTest' ||
+      hwObj?.isBookAssignment ||
+      targetBookTestId
+    );
+
+    if (targetBookTestId && isBook) {
+      navigate(`/book-quiz/${targetBookTestId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
 
     if (item.hwId) {
-      const hwObj = (allHomeworks || []).find(h => String(h.id) === String(item.hwId));
-      if (hwObj?.type === 'physicalExam') {
-        navigate(`/physical-exam/${item.hwId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
-      } else if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
+      if (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0) {
         navigate(`/book-quiz/${hwObj.tests[0]}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       } else {
         navigate(`/quiz/${item.hwId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
@@ -3372,7 +3391,17 @@ export default function ProgramCenter({
       navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
-  }, [navigate, effectiveStudentId, allHomeworks, location.pathname]);
+
+    if (targetBookTestId) {
+      navigate(`/book-quiz/${targetBookTestId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+
+    if (item.id) {
+      navigate(`/quiz/${item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+  }, [navigate, effectiveStudentId, allHomeworks, books, location.pathname]);
 
   const handleStartInStudyRoom = useCallback((item) => {
     if (!item) return;

@@ -24,7 +24,11 @@ export function isMultipleChoice(item = {}) {
     item.sourceFormat === 'gorsel_klasik' ||
     item.bankQ?.type === 'acik_uclu' ||
     item.bankQ?.questionType === 'acik_uclu' ||
-    item.bankQ?.isOpenEnded === true
+    item.bankQ?.isOpenEnded === true ||
+    item.answerKey?.__meta?.isOpenEnded === true ||
+    item.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    (item.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(item.name)) ||
+    (item.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(item.title))
   ) {
     // If it has explicit 2+ options it could be MC, otherwise strictly open-ended
     if (!Array.isArray(item.options) || item.options.filter(Boolean).length <= 1) {
@@ -36,11 +40,29 @@ export function isMultipleChoice(item = {}) {
   
   if (
     qType === 'coktan_secmeli' ||
-    qType === 'multiple_choice' ||
+    qType === 'multiple_choice'
+  ) {
+    return true;
+  }
+
+  if (
     qType === 'optik_form' ||
     qType === 'optic' ||
     qType === 'optik'
   ) {
+    // If it is explicitly open-ended, it is not multiple choice
+    if (
+      item.isOpenEnded === true ||
+      item.is_open_ended === true ||
+      item.type === 'acik_uclu' ||
+      item.questionType === 'acik_uclu' ||
+      item.answerKey?.__meta?.isOpenEnded === true ||
+      item.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      (item.name && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(item.name)) ||
+      (item.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(item.title))
+    ) {
+      return false;
+    }
     return true;
   }
 

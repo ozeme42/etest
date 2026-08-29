@@ -834,14 +834,26 @@ export default function StudyRoomPage() {
 
   const handleLaunchTaskQuiz = (task) => {
     if (!task) return;
-    if (task.sourceType === 'bookTest' || task.isBookAssignment) {
-      navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId || task.id}?studentId=${currentUser.id}`);
-    } else if (task.type === 'physicalExam' || task.isPhysical) {
+    const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
+      (task.hwId && (homeworks || []).find(h => String(h.id) === String(task.hwId))?.tests?.[0]);
+    const isBook = Boolean(
+      task.sourceType === 'bookTest' ||
+      task.sourceType === 'trackedBook' ||
+      task.taskType === 'kitap' ||
+      task.isBookAssignment ||
+      task.isBookTask ||
+      task.bookId ||
+      targetBookTestId
+    );
+
+    if (task.type === 'physicalExam' || task.isPhysical || task.isExamTask || task.taskType === 'deneme') {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${currentUser.id}`);
-    } else if (task.sourceType === 'program') {
+    } else if (isBook && targetBookTestId) {
+      navigate(`/book-quiz/${targetBookTestId}?studentId=${currentUser.id}`);
+    } else if (task.sourceType === 'program' && !task.hwId && !task.testId && !task.bookTestId) {
       handleSelectTask(task, false);
     } else {
-      navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${currentUser.id}`);
+      navigate(`/quiz/${task.realTestId || task.hwId || task.testId || task.id}?studentId=${currentUser.id}`);
     }
   };
 
@@ -952,6 +964,24 @@ export default function StudyRoomPage() {
     return null;
   }, [selectedTask, bookTests, books, homeworks]);
 
+  const isSelectedTaskOpenEnded = useMemo(() => {
+    return Boolean(
+      selectedTask?.isOpenEnded ||
+      selectedTask?.is_open_ended ||
+      selectedTask?.questionType === 'acik_uclu' ||
+      selectedTask?.type === 'acik_uclu' ||
+      matchedTestObj?.isOpenEnded ||
+      matchedTestObj?.is_open_ended ||
+      matchedTestObj?.questionType === 'acik_uclu' ||
+      matchedTestObj?.type === 'acik_uclu' ||
+      matchedTestObj?.answerKey?.__meta?.isOpenEnded ||
+      matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      (selectedTask?.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(selectedTask.title)) ||
+      (matchedTestObj?.name && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(matchedTestObj.name)) ||
+      (matchedTestObj?.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(matchedTestObj.title))
+    );
+  }, [selectedTask, matchedTestObj]);
+
   const resolvedAnswerKey = useMemo(() => {
     const src = matchedTestObj || selectedTask;
     if (!src) return null;
@@ -959,7 +989,7 @@ export default function StudyRoomPage() {
     let key = src.answerKey || src.correctAnswers || src.opticAnswers || src.test?.answerKey || src.rawAnswerKey;
 
     if (!key && src.answers && Array.isArray(src.answers)) {
-      key = src.answers.map(a => a.correctAnswer ?? a.correctAnswerLetter);
+      key = src.answers.map(a => a.correctAnswer ?? a.correctAnswerLetter ?? a.userAnswerText);
     }
 
     if (!key && src.questions && Array.isArray(src.questions)) {
@@ -975,15 +1005,20 @@ export default function StudyRoomPage() {
       for (let i = 1; i <= total; i++) {
         const val = key[String(i)] ?? key[i] ?? key[String(i - 1)] ?? key[i - 1];
         if (val !== undefined && val !== null && val !== '') {
-          const str = String(val).trim().toUpperCase();
-          if (/^[A-E]$/.test(str)) {
+          const str = String(val).trim();
+          if (isSelectedTaskOpenEnded) {
             arr.push(str);
           } else {
-            const num = Number(str);
-            if (!isNaN(num) && num >= 0 && num <= 4) {
-              arr.push(String.fromCharCode(65 + num));
+            const up = str.toUpperCase();
+            if (/^[A-E]$/.test(up)) {
+              arr.push(up);
             } else {
-              arr.push(null);
+              const num = Number(str);
+              if (!isNaN(num) && num >= 0 && num <= 4) {
+                arr.push(String.fromCharCode(65 + num));
+              } else {
+                arr.push(str);
+              }
             }
           }
         } else {
@@ -997,23 +1032,26 @@ export default function StudyRoomPage() {
     if (Array.isArray(key) && key.length > 0) {
       return key.map(k => {
         if (k === null || k === undefined || k === '') return null;
-        if (typeof k === 'number') return String.fromCharCode(65 + k);
-        const str = String(k).trim().toUpperCase();
-        if (/^[A-E]$/.test(str)) return str;
+        if (typeof k === 'number') return isSelectedTaskOpenEnded ? String(k) : String.fromCharCode(65 + k);
+        const str = String(k).trim();
+        if (isSelectedTaskOpenEnded) return str;
+        const up = str.toUpperCase();
+        if (/^[A-E]$/.test(up)) return up;
         const num = Number(str);
         if (!isNaN(num) && num >= 0 && num <= 4) return String.fromCharCode(65 + num);
-        return null;
+        return str;
       });
     }
 
     // Format 3: String "ABCD..." or "A B C D..."
     if (typeof key === 'string') {
+      if (isSelectedTaskOpenEnded) return [key.trim()];
       const clean = key.replace(/[^A-Ea-e]/g, '').toUpperCase();
       return clean.length > 0 ? clean.split('') : null;
     }
 
     return null;
-  }, [matchedTestObj, selectedTask, targetGoalCount]);
+  }, [matchedTestObj, selectedTask, targetGoalCount, isSelectedTaskOpenEnded]);
 
   // Optik Cevap Seçme / Kaldırma
   const handleSelectOpticalOption = (qNo, optLetter) => {
@@ -1043,6 +1081,31 @@ export default function StudyRoomPage() {
     });
   };
 
+  const handleSetOpticalTextAnswer = (qNo, textVal) => {
+    setOpticalAnswers(prev => {
+      const next = { ...prev };
+      if (textVal === undefined || textVal === null || textVal === '') {
+        delete next[qNo];
+      } else {
+        next[qNo] = textVal;
+      }
+      try {
+        localStorage.setItem('study_optical_answers', JSON.stringify(next));
+      } catch (e) {}
+
+      const answeredCount = Object.keys(next).length;
+      setCurrentProgressCount(answeredCount);
+      const todayKey = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`study_progress_${todayKey}`, String(answeredCount));
+
+      if (!isRunning && sessionElapsedSeconds === 0) {
+        setIsRunning(true);
+      }
+
+      return next;
+    });
+  };
+
   const handleClearOpticalAnswers = () => {
     setOpticalAnswers({});
     localStorage.removeItem('study_optical_answers');
@@ -1062,14 +1125,22 @@ export default function StudyRoomPage() {
     let blankCount = 0;
 
     for (let i = 1; i <= totalQ; i++) {
-      const userLetter = opticalAnswers[i] || null;
-      const correctLetter = resolvedAnswerKey ? (resolvedAnswerKey[i - 1] || null) : null;
+      const userRaw = opticalAnswers[i] ?? opticalAnswers[String(i)] ?? null;
+      const userAnsStr = userRaw !== null && userRaw !== undefined ? String(userRaw).trim() : '';
+      const correctRaw = resolvedAnswerKey ? (resolvedAnswerKey[i - 1] || null) : null;
+      const correctAnsStr = correctRaw !== null && correctRaw !== undefined ? String(correctRaw).trim() : '';
       let isCorrect = null;
 
-      if (!userLetter) {
+      if (!userAnsStr) {
         blankCount++;
-      } else if (correctLetter) {
-        isCorrect = userLetter.toUpperCase() === correctLetter.toUpperCase();
+      } else if (correctAnsStr) {
+        if (isSelectedTaskOpenEnded) {
+          const cleanUser = userAnsStr.replace(/\s/g, '').replace(',', '.').toLowerCase();
+          const cleanCorr = correctAnsStr.replace(/\s/g, '').replace(',', '.').toLowerCase();
+          isCorrect = cleanUser === cleanCorr || userAnsStr.toLowerCase() === correctAnsStr.toLowerCase();
+        } else {
+          isCorrect = userAnsStr.toUpperCase() === correctAnsStr.toUpperCase();
+        }
         if (isCorrect) correctCount++;
         else wrongCount++;
       } else {
@@ -1079,10 +1150,13 @@ export default function StudyRoomPage() {
 
       answersList.push({
         questionNo: i,
-        userAnswer: userLetter ? (userLetter.charCodeAt(0) - 65) : null,
-        userAnswerLetter: userLetter,
-        correctAnswer: correctLetter ? (correctLetter.charCodeAt(0) - 65) : null,
-        correctAnswerLetter: correctLetter,
+        userAnswer: isSelectedTaskOpenEnded ? null : (userAnsStr ? (userAnsStr.charCodeAt(0) - 65) : null),
+        userAnswerLetter: userAnsStr || null,
+        userAnswerText: userAnsStr || null,
+        correctAnswer: isSelectedTaskOpenEnded ? null : (correctAnsStr ? (correctAnsStr.charCodeAt(0) - 65) : null),
+        correctAnswerLetter: correctAnsStr || null,
+        correctAnswerText: correctAnsStr || null,
+        isOpenEnded: isSelectedTaskOpenEnded,
         isCorrect
       });
     }
@@ -1095,7 +1169,7 @@ export default function StudyRoomPage() {
     const finalBookId = selectedTask?.bookId || matchedTestObj?.bookId || null;
     const finalBookTitle = selectedTask?.bookTitle || matchedTestObj?.bookTitle || null;
     const resolvedTestId = finalBookTestId || selectedTask?.testId || selectedTask?.id || submissionId;
-    const finalTestTitle = matchedTestObj?.name || selectedTask?.testName || selectedTask?.title || selectedTask?.topic || `${selectedSubject} Optik Sınavı`;
+    const finalTestTitle = matchedTestObj?.name || selectedTask?.testName || selectedTask?.title || selectedTask?.topic || `${selectedSubject} ${isSelectedTaskOpenEnded ? 'Yazılı / Açık Uçlu Sınavı' : 'Optik Sınavı'}`;
     const finalUnit = selectedTask?.unit || matchedTestObj?.unit || matchedTestObj?.unitName || '';
     const finalTopic = selectedTask?.topic || matchedTestObj?.topic || matchedTestObj?.topicName || '';
 
@@ -1117,6 +1191,7 @@ export default function StudyRoomPage() {
       sourceType: selectedTask?.sourceType || 'study_room_optical',
       hwId: selectedTask?.hwId || null,
       roadmapAssignmentId: selectedTask?.roadmapAssignmentId || null,
+      isOpenEnded: isSelectedTaskOpenEnded,
       answers: answersList,
       correctCount,
       wrongCount,
@@ -2982,10 +3057,10 @@ export default function StudyRoomPage() {
                     </button>
                   </div>
 
-                  {/* OPTİK FORM GÖRÜNÜMÜ */}
+                  {/* OPTİK / AÇIK UÇLU FORM GÖRÜNÜMÜ */}
                   {opticalInputMode === 'optical' ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 10 }}>
-                      {/* Optik Araç Çubuğu */}
+                      {/* Form Araç Çubuğu */}
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -3001,60 +3076,63 @@ export default function StudyRoomPage() {
                           <span style={{
                             fontSize: isMobile ? '0.68rem' : '0.74rem',
                             fontWeight: 900,
-                            color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : themeObj.accent,
+                            color: Object.keys(opticalAnswers).length === targetGoalCount ? '#10b981' : (isSelectedTaskOpenEnded ? '#8b5cf6' : themeObj.accent),
                             background: themeObj.innerBg,
                             padding: '2px 7px',
                             borderRadius: 8,
                             border: `1px solid ${themeObj.border}`
                           }}>
-                            {Object.keys(opticalAnswers).length} / {targetGoalCount} Kodlandı
+                            {isSelectedTaskOpenEnded ? '✍️ Açık Uçlu: ' : '📋 Optik: '}
+                            {Object.keys(opticalAnswers).length} / {targetGoalCount} {isSelectedTaskOpenEnded ? 'Yanıtlandı' : 'Kodlandı'}
                           </span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {/* 4 / 5 Şık Seçici */}
-                          <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpticalOptionCount(4);
-                                localStorage.setItem('study_optical_opt_count', '4');
-                              }}
-                              style={{
-                                padding: '2px 6px',
-                                borderRadius: 6,
-                                border: 'none',
-                                background: opticalOptionCount === 4 ? themeObj.accent : 'transparent',
-                                color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
-                                fontSize: isMobile ? '0.64rem' : '0.68rem',
-                                fontWeight: 900,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s'
-                              }}
-                            >
-                              A-D (4)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOpticalOptionCount(5);
-                                localStorage.setItem('study_optical_opt_count', '5');
-                              }}
-                              style={{
-                                padding: '2px 6px',
-                                borderRadius: 6,
-                                border: 'none',
-                                background: opticalOptionCount === 5 ? themeObj.accent : 'transparent',
-                                color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
-                                fontSize: isMobile ? '0.64rem' : '0.68rem',
-                                fontWeight: 900,
-                                cursor: 'pointer',
-                                transition: 'all 0.15s'
-                              }}
-                            >
-                              A-E (5)
-                            </button>
-                          </div>
+                          {/* 4 / 5 Şık Seçici (Sadece Çoktan Seçmelide) */}
+                          {!isSelectedTaskOpenEnded && (
+                            <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpticalOptionCount(4);
+                                  localStorage.setItem('study_optical_opt_count', '4');
+                                }}
+                                style={{
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: opticalOptionCount === 4 ? themeObj.accent : 'transparent',
+                                  color: opticalOptionCount === 4 ? '#ffffff' : themeObj.subText,
+                                  fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                A-D (4)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpticalOptionCount(5);
+                                  localStorage.setItem('study_optical_opt_count', '5');
+                                }}
+                                style={{
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: opticalOptionCount === 5 ? themeObj.accent : 'transparent',
+                                  color: opticalOptionCount === 5 ? '#ffffff' : themeObj.subText,
+                                  fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s'
+                                }}
+                              >
+                                A-E (5)
+                              </button>
+                            </div>
+                          )}
 
                           {Object.keys(opticalAnswers).length > 0 && (
                             <button
@@ -3070,7 +3148,7 @@ export default function StudyRoomPage() {
                                 fontWeight: 800,
                                 cursor: 'pointer'
                               }}
-                              title="Tüm optik kodlamayı temizle"
+                              title="Tüm yanıtları temizle"
                             >
                               Temizle
                             </button>
@@ -3078,7 +3156,7 @@ export default function StudyRoomPage() {
                         </div>
                       </div>
 
-                      {/* Optik Sorular Grid Listesi */}
+                      {/* Sorular Grid Listesi */}
                       <div style={{
                         maxHeight: isFullscreenView ? '600px' : isMobile ? '360px' : '500px',
                         overflowY: 'auto',
@@ -3087,14 +3165,64 @@ export default function StudyRoomPage() {
                         borderRadius: 14,
                         border: `1.5px solid ${themeObj.border}`,
                         display: 'grid',
-                        gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))'),
+                        gridTemplateColumns: isSelectedTaskOpenEnded
+                          ? (isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))')
+                          : (isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))')),
                         gap: isMobile ? 6 : 8,
                         alignItems: 'start'
                       }} className="custom-scrollbar">
                         {Array.from({ length: targetGoalCount }).map((_, idx) => {
                           const qNo = idx + 1;
-                          const userAns = opticalAnswers[qNo] || null;
+                          const userAns = opticalAnswers[qNo] ?? opticalAnswers[String(qNo)] ?? null;
                           const opts = opticalOptionCount === 5 ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
+
+                          if (isSelectedTaskOpenEnded) {
+                            return (
+                              <div
+                                key={qNo}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: isMobile ? 6 : 8,
+                                  padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.65rem',
+                                  borderRadius: 10,
+                                  background: userAns ? (themeObj.opticalSelectedBg || 'rgba(124, 58, 237, 0.12)') : themeObj.innerBg,
+                                  border: `1.5px solid ${userAns ? (themeObj.opticalSelectedBorder || '#8b5cf6') : themeObj.border}`,
+                                  transition: 'all 0.15s',
+                                  minWidth: 0
+                                }}
+                              >
+                                <span style={{
+                                  fontSize: isMobile ? '0.74rem' : '0.8rem',
+                                  fontWeight: 900,
+                                  color: userAns ? '#8b5cf6' : themeObj.text,
+                                  minWidth: isMobile ? 42 : 52,
+                                  flexShrink: 0
+                                }}>
+                                  Soru {qNo}:
+                                </span>
+                                <input
+                                  type="text"
+                                  value={userAns || ''}
+                                  onChange={(e) => handleSetOpticalTextAnswer(qNo, e.target.value)}
+                                  placeholder="Yanıtı yazınız..."
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.6rem',
+                                    borderRadius: 7,
+                                    border: `1px solid ${userAns ? '#8b5cf6' : themeObj.border}`,
+                                    background: themeObj.cardBg,
+                                    color: themeObj.text,
+                                    fontSize: isMobile ? '0.78rem' : '0.84rem',
+                                    fontWeight: 700,
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                              </div>
+                            );
+                          }
 
                           return (
                             <div
@@ -3160,7 +3288,7 @@ export default function StudyRoomPage() {
                         })}
                       </div>
 
-                      {/* Optiği Kaydet & Sınavı Tamamla Butonu */}
+                      {/* Optiği / Yanıtları Kaydet & Sınavı Tamamla Butonu */}
                       <button
                         type="button"
                         onClick={handleFinishOpticalQuiz}
@@ -3171,7 +3299,7 @@ export default function StudyRoomPage() {
                           padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.1rem',
                           borderRadius: 14,
                           background: Object.keys(opticalAnswers).length > 0
-                            ? 'linear-gradient(135deg, #10b981, #059669)'
+                            ? (isSelectedTaskOpenEnded ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #10b981, #059669)')
                             : themeObj.buttonBg,
                           color: Object.keys(opticalAnswers).length > 0 ? '#ffffff' : themeObj.subText,
                           border: 'none',
@@ -3188,7 +3316,7 @@ export default function StudyRoomPage() {
                       >
                         <CheckCircle2 size={isMobile ? 16 : 18} />
                         <span>
-                          {isSubmittingOptical ? 'Kaydediliyor...' : `Optiği Kaydet & Bitir (${Object.keys(opticalAnswers).length} Soru) 🎯`}
+                          {isSubmittingOptical ? 'Kaydediliyor...' : `${isSelectedTaskOpenEnded ? 'Yanıtları' : 'Optiği'} Kaydet & Bitir (${Object.keys(opticalAnswers).length} Soru) 🎯`}
                         </span>
                       </button>
                     </div>

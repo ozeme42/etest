@@ -411,22 +411,29 @@ export default function ModularQuizPage() {
           const qCount = bt.questionCount || bt.totalQuestions || bt.questionsCount || foundTest.totalQuestions || foundTest.questionCount || 20;
           const ansKey = bt.answerKey || foundTest.answerKey || {};
           const ansMeta = ansKey.__meta || {};
+
+          const isOe = Boolean(
+            bt.isOpenEnded === true ||
+            bt.is_open_ended === true ||
+            foundTest.isOpenEnded === true ||
+            foundTest.is_open_ended === true ||
+            ansMeta.isOpenEnded === true ||
+            bt.questionType === 'acik_uclu' ||
+            bt.question_type === 'acik_uclu' ||
+            foundTest.questionType === 'acik_uclu' ||
+            ansMeta.questionType === 'acik_uclu' ||
+            (bt.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.name)) ||
+            (bt.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.title)) ||
+            (foundTest.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.name)) ||
+            (foundTest.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.title))
+          );
+
           const hasKey = (Array.isArray(ansKey) && ansKey.length > 0) ||
                          (typeof ansKey === 'string' && ansKey.trim().length > 0) ||
                          (typeof ansKey === 'object' && ansKey !== null && Object.keys(ansKey).length > 0 && ansMeta.isOpenEnded !== true);
           const hasOptions = (Array.isArray(bt.options) && bt.options.length > 1);
-          const isExplicitMC = bt.questionType === 'coktan_secmeli' || bt.type === 'coktan_secmeli' || hasKey || hasOptions;
+          const isExplicitMC = !isOe && (bt.questionType === 'coktan_secmeli' || bt.type === 'coktan_secmeli' || hasOptions || hasKey);
 
-          const isOe = !isExplicitMC && Boolean(
-            bt.isOpenEnded === true ||
-            bt.is_open_ended === true ||
-            ansMeta.isOpenEnded === true ||
-            bt.questionType === 'acik_uclu' ||
-            bt.question_type === 'acik_uclu' ||
-            ansMeta.questionType === 'acik_uclu' ||
-            (bt.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.name)) ||
-            (bt.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(bt.title))
-          );
           const qType = isOe ? 'acik_uclu' : (bt.questionType || bt.question_type || ansMeta.questionType || 'coktan_secmeli');
 
           const secQs = [];
@@ -780,9 +787,9 @@ export default function ModularQuizPage() {
     return () => { isMounted = false; };
   }, [test?.id, test?.contentPayload]);
 
-  // If this is a physical exam (from ExamManager or TrackedBook with bookType: 'exam'), redirect directly to /physical-exam/:id
+  // If this is a physical exam or tracked book test, redirect to the appropriate specialized runner
   useEffect(() => {
-    if (test) {
+    if (test && !isRetake) {
       const isPhysicalExam = (
         test.type === 'physicalExam' ||
         test.contentType === 'physicalExam' ||
@@ -794,9 +801,23 @@ export default function ModularQuizPage() {
       if (isPhysicalExam) {
         const targetId = test.hwId || test.bookId || test.id || testId;
         navigate(`/physical-exam/${targetId}?studentId=${studentId || ''}`, { replace: true });
+        return;
+      }
+
+      const isTrackedBook = Boolean(
+        !String(test.id || '').startsWith('hw_') &&
+        (
+          test.sourceType === 'trackedBook' ||
+          test.sourceType === 'bookTest' ||
+          (test.bookId && !test.contentType && !test.contentPayload && !test.imageUrls && !test.imageUrl && !test.sections && !test.questionsList && (!test.questions || test.questions.length <= 1)) ||
+          (test.id && (String(test.id).startsWith('bt_') || String(test.id).startsWith('tbt_')))
+        )
+      );
+      if (isTrackedBook && test.id) {
+        navigate(`/book-quiz/${test.id}?studentId=${studentId || ''}`, { replace: true });
       }
     }
-  }, [test, bookForTest, testId, studentId, navigate]);
+  }, [test, bookForTest, testId, studentId, isRetake, navigate]);
 
 
 
@@ -1202,9 +1223,7 @@ export default function ModularQuizPage() {
     test.isComposite
   ));
 
-  const bookPdfUrl = test?.pdfUrl || bookForTest?.pdfUrl || '';
-
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isPhysical && !isImageTest && (isWritten || isSectionOpenEnded(effectiveTest));
+  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isImageTest && (isWritten || isSectionOpenEnded(effectiveTest) || test.isOpenEnded === true || test.questionType === 'acik_uclu' || test.type === 'acik_uclu');
 
   const renderRunner = () => {
     // 1. Composite / Multi-Section Homework
