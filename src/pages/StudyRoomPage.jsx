@@ -730,7 +730,28 @@ export default function StudyRoomPage() {
 
       // Hedef soru sayısını ayarla
       const qCount = extractQuestionCountFromTask(task);
-      handleSetNewTargetGoal(qCount, true);
+      handleSetNewTargetGoal(qCount, false);
+
+      // Check if this task has draft optical answers saved
+      const taskId = task.id || task.testId || task.bookTestId || task.hwId;
+      let existingAnswers = {};
+      try {
+        const savedTaskAnswers = taskId ? localStorage.getItem(`study_optical_answers_${taskId}`) : null;
+        if (savedTaskAnswers) {
+          existingAnswers = JSON.parse(savedTaskAnswers);
+        } else {
+          const generalSaved = localStorage.getItem('study_optical_answers');
+          if (generalSaved) existingAnswers = JSON.parse(generalSaved);
+        }
+      } catch (e) {}
+
+      if (existingAnswers && Object.keys(existingAnswers).length > 0) {
+        setOpticalAnswers(existingAnswers);
+        setCurrentProgressCount(Object.keys(existingAnswers).length);
+      } else {
+        setOpticalAnswers({});
+        setCurrentProgressCount(0);
+      }
 
       // Soru moduna geç
       setActiveStudyMode('question');
@@ -1062,8 +1083,10 @@ export default function StudyRoomPage() {
       } else {
         next[qNo] = optLetter;
       }
+      const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
       try {
         localStorage.setItem('study_optical_answers', JSON.stringify(next));
+        if (taskId) localStorage.setItem(`study_optical_answers_${taskId}`, JSON.stringify(next));
       } catch (e) {}
 
       // Otomatik çözülen soru sayısını güncelle
@@ -1089,8 +1112,10 @@ export default function StudyRoomPage() {
       } else {
         next[qNo] = textVal;
       }
+      const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
       try {
         localStorage.setItem('study_optical_answers', JSON.stringify(next));
+        if (taskId) localStorage.setItem(`study_optical_answers_${taskId}`, JSON.stringify(next));
       } catch (e) {}
 
       const answeredCount = Object.keys(next).length;
@@ -1107,8 +1132,12 @@ export default function StudyRoomPage() {
   };
 
   const handleClearOpticalAnswers = () => {
+    const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
     setOpticalAnswers({});
-    localStorage.removeItem('study_optical_answers');
+    try {
+      localStorage.removeItem('study_optical_answers');
+      if (taskId) localStorage.removeItem(`study_optical_answers_${taskId}`);
+    } catch (e) {}
     setCurrentProgressCount(0);
     const todayKey = new Date().toISOString().split('T')[0];
     localStorage.setItem(`study_progress_${todayKey}`, '0');
@@ -1217,6 +1246,12 @@ export default function StudyRoomPage() {
 
     // Save subject stats
     recordSubjectStudy(selectedSubject, Object.keys(opticalAnswers).length, sessionElapsedSeconds);
+
+    const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
+    try {
+      localStorage.removeItem('study_optical_answers');
+      if (taskId) localStorage.removeItem(`study_optical_answers_${taskId}`);
+    } catch (e) {}
 
     // Stop timer
     setIsRunning(false);

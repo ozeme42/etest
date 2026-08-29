@@ -632,17 +632,25 @@ export default function TrackedBookQuizRunner() {
       setResults(calculated);
       initializedRef.current = true;
     } else {
-      // Test is not solved or was reset -> ensure blank fresh test state
+      // In-progress test (not yet submitted) -> restore draft answers if available
       setIsSubmitted(false);
       setResults(null);
-      setAnswers({});
+      let draftAnswers = {};
       try {
-        localStorage.removeItem(draftKey);
-        localStorage.removeItem(`${draftKey}_time`);
+        const draftStr = localStorage.getItem(draftKey) || 
+                         localStorage.getItem(`draft_tracked_book_test_${cleanId}_${studentId}`) ||
+                         (resolvedTest?.id ? localStorage.getItem(`draft_tracked_book_test_${resolvedTest.id}_${studentId}`) : null);
+        if (draftStr) {
+          const parsed = JSON.parse(draftStr);
+          if (parsed && typeof parsed === 'object') draftAnswers = parsed;
+        }
       } catch {}
+      if (Object.keys(draftAnswers).length > 0) {
+        setAnswers(draftAnswers);
+      }
       initializedRef.current = true;
     }
-  }, [resolvedTest, resolvedHw, resolvedBook, studentId, isRetake, draftKey, submissions, calculateTestResults]);
+  }, [resolvedTest, resolvedHw, resolvedBook, studentId, isRetake, draftKey, cleanId, submissions, calculateTestResults]);
 
   // Real-time synchronization on test reset or deletion
   useEffect(() => {
@@ -714,6 +722,8 @@ export default function TrackedBookQuizRunner() {
       };
       try {
         localStorage.setItem(draftKey, JSON.stringify(updated));
+        if (cleanId) localStorage.setItem(`draft_tracked_book_test_${cleanId}_${studentId}`, JSON.stringify(updated));
+        if (resolvedTest?.id) localStorage.setItem(`draft_tracked_book_test_${resolvedTest.id}_${studentId}`, JSON.stringify(updated));
       } catch (e) {
         console.error("Failed to save draft to localStorage", e);
       }
@@ -727,6 +737,8 @@ export default function TrackedBookQuizRunner() {
       const updated = { ...prev, [qNum]: '', [String(qNum)]: '' };
       try {
         localStorage.setItem(draftKey, JSON.stringify(updated));
+        if (cleanId) localStorage.setItem(`draft_tracked_book_test_${cleanId}_${studentId}`, JSON.stringify(updated));
+        if (resolvedTest?.id) localStorage.setItem(`draft_tracked_book_test_${resolvedTest.id}_${studentId}`, JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
@@ -738,6 +750,8 @@ export default function TrackedBookQuizRunner() {
       const updated = { ...prev, [qNum]: text, [String(qNum)]: text };
       try {
         localStorage.setItem(draftKey, JSON.stringify(updated));
+        if (cleanId) localStorage.setItem(`draft_tracked_book_test_${cleanId}_${studentId}`, JSON.stringify(updated));
+        if (resolvedTest?.id) localStorage.setItem(`draft_tracked_book_test_${resolvedTest.id}_${studentId}`, JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });

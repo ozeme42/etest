@@ -91,7 +91,8 @@ export default function SingleMultipleChoiceRunner({
       return init;
     }
     try {
-      const saved = localStorage.getItem(`${draftKey}_ans`);
+      const saved = localStorage.getItem(`${draftKey}_ans`) || 
+                    (test.id ? localStorage.getItem(`draft_quiz_${test.id}_ans`) : null);
       if (saved) return JSON.parse(saved);
     } catch {}
     return {};
@@ -133,6 +134,7 @@ export default function SingleMultipleChoiceRunner({
       }
       try {
         localStorage.setItem(`${draftKey}_ans`, JSON.stringify(updated));
+        if (test.id) localStorage.setItem(`draft_quiz_${test.id}_ans`, JSON.stringify(updated));
       } catch {}
       triggerAutoSave(updated);
       return updated;

@@ -6,13 +6,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  */
 export function useQuizState({
   testId,
+  test = {},
   sections = [],
   draftAnswers = [],
   timePerQuestion = 2,
   onAutoSave = null,
   isReviewMode = false
 }) {
-  const draftKey = `draft_quiz_${testId || 'test'}`;
+  const effectiveId = testId || test.id || test.hwId || 'test';
+  const draftKey = `draft_quiz_${effectiveId}`;
 
   // 1. Initial State construction from sections & drafts
   const [sectionAnswers, setSectionAnswers] = useState(() => {

@@ -43,7 +43,8 @@ export default function SingleOpenEndedRunner({
       return init;
     }
     try {
-      const saved = localStorage.getItem(`${draftKey}_txt`);
+      const saved = localStorage.getItem(`${draftKey}_txt`) || 
+                    (test.id ? localStorage.getItem(`draft_quiz_${test.id}_txt`) : null);
       if (saved) return JSON.parse(saved);
     } catch {}
     return {};
@@ -123,6 +124,7 @@ export default function SingleOpenEndedRunner({
       const next = { ...prev, [qNo]: val };
       try {
         localStorage.setItem(`${draftKey}_txt`, JSON.stringify(next));
+        if (test.id) localStorage.setItem(`draft_quiz_${test.id}_txt`, JSON.stringify(next));
       } catch {}
       triggerAutoSave(next);
       return next;

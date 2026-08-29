@@ -43,7 +43,18 @@ export default function ModularQuizPage() {
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [hasStarted, setHasStarted] = useState(() => {
+    try {
+      const cleanId = String(testId || '').trim();
+      const started = localStorage.getItem(`quiz_started_${cleanId}`);
+      const draftAns = localStorage.getItem(`draft_quiz_${cleanId}_ans`) || 
+                       localStorage.getItem(`quiz_draft_${cleanId}`) ||
+                       localStorage.getItem(`draft_single_mc_${cleanId}_ans`) ||
+                       localStorage.getItem(`draft_single_oe_${cleanId}_txt`);
+      if (started === 'true' || draftAns) return true;
+    } catch {}
+    return false;
+  });
   const [submittedResult, setSubmittedResult] = useState(null);
   const isSubmittingRef = useRef(false);
 
@@ -60,47 +71,26 @@ export default function ModularQuizPage() {
   const handleGoBack = useCallback(() => {
     if (returnUrl) {
       navigate(returnUrl);
-    } else if (window.history.length > 1) {
-      navigate(-1);
     } else {
-      navigate('/student');
+      navigate(-1);
     }
-  }, [returnUrl, navigate]);
+  }, [navigate, returnUrl]);
 
   const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
 
-  // Check if there is an active homework assigned to this student that matches this test
+  // Find associated homework object if any
   const activeHomework = useMemo(() => {
     if (!homeworks || homeworks.length === 0) return null;
-    const cleanId = String(testId || '').trim();
     return homeworks.find(h => {
-      const match = String(h.id) === cleanId || 
-                    (h.questionIds && h.questionIds.map(String).includes(cleanId)) ||
-                    (h.tests && h.tests.map(String).includes(cleanId));
+      if (String(h.id) === String(testId) || String(h.id).replace('hw_', '') === String(testId)) return true;
+      const match = h.tests && h.tests.some(t => String(t) === String(testId) || (toUUID(t) && toUUID(t) === toUUID(testId)));
       return Boolean(match);
     });
   }, [homeworks, testId]);
 
-  const isNewOrReassigned = useMemo(() => {
-    if (!activeHomework) return false;
-    const hwCreatedTime = activeHomework.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
-    const subInHw = (activeHomework.submissions || []).find(s => 
-      String(s.studentId) === String(studentId) && s.status !== 'in_progress' && s.status !== 'draft'
-    );
-    if (subInHw) return false;
-
-    const subAfterHw = (submissions || []).find(s => 
-      (String(s.hwId) === String(activeHomework.id) || String(s.testId) === String(activeHomework.id) || String(s.testId) === String(testId)) && 
-      String(s.studentId) === String(studentId) && 
-      s.status !== 'in_progress' && s.status !== 'draft' &&
-      (s.submittedAt ? new Date(s.submittedAt).getTime() >= (hwCreatedTime - 60000) : false)
-    );
-    return !subAfterHw;
-  }, [activeHomework, submissions, studentId, testId]);
-
-  // If this is a new or re-assigned homework, clear any old localStorage draft keys so student gets a fresh blank test
+  // If this is an explicit re-take of a test, clear old draft keys so student gets a fresh blank test
   useEffect(() => {
-    if (isNewOrReassigned || isRetake) {
+    if (isRetake) {
       try {
         const cleanId = String(testId || '').trim();
         const keysToClean = [
@@ -114,14 +104,17 @@ export default function ModularQuizPage() {
           localStorage.removeItem(`draft_quiz_${k}_ans`);
           localStorage.removeItem(`draft_quiz_${k}_txt`);
           localStorage.removeItem(`draft_quiz_${k}_time`);
+          localStorage.removeItem(`draft_single_mc_${k}_ans`);
+          localStorage.removeItem(`draft_single_oe_${k}_txt`);
           localStorage.removeItem(`quiz_draft_${k}`);
+          localStorage.removeItem(`quiz_started_${k}`);
         });
       } catch (e) {}
     }
-  }, [isNewOrReassigned, isRetake, testId, activeHomework?.id, test?.id, test?.realTestId]);
+  }, [isRetake, testId, activeHomework?.id, test?.id, test?.realTestId]);
 
   const draftSubmission = useMemo(() => {
-    if (isRetake || isNewOrReassigned) return null;
+    if (isRetake) return null;
     if (!submissions || submissions.length === 0) return null;
     const hwCreatedTime = activeHomework?.createdAt ? new Date(activeHomework.createdAt).getTime() : 0;
     const currentTId = String(test?.id || testId);
@@ -151,7 +144,7 @@ export default function ModularQuizPage() {
       }
       return true;
     });
-  }, [submissions, testId, test?.id, studentId, activeHomework, isRetake, isNewOrReassigned]);
+  }, [submissions, testId, test?.id, studentId, activeHomework, isRetake]);
 
   // Prevent taking the exam again ONLY IF this specific test was already submitted AFTER it was assigned
   const completedSub = useMemo(() => {
