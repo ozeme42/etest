@@ -578,7 +578,17 @@ export default function PdfQuestionSlicerModal({
   const [activeTargetQuestion, setActiveTargetQuestion] = useState(null);
 
   const [testTitle, setTestTitle] = useState('');
-  const [targetStudentId, setTargetStudentId] = useState(() => studentId || '');
+  const [targetStudentId, setTargetStudentId] = useState(() => studentId || (currentUser?.role === 'student' ? currentUser?.id : ''));
+  const [customIntervals, setCustomIntervals] = useState([1, 3, 7, 15]);
+
+  useEffect(() => {
+    if (!targetStudentId && currentUser?.role !== 'student' && studentList.length > 0) {
+      setTargetStudentId(studentList[0].id);
+    }
+  }, [targetStudentId, currentUser, studentList]);
+
+  const effectiveStudentId = targetStudentId || studentId || (currentUser?.role === 'student' ? currentUser?.id : '');
+
   const [selectedSubject, setSelectedSubject] = useState(initialSubject);
   const [selectedGrade, setSelectedGrade] = useState(initialGrade);
   const [isSavingTest, setIsSavingTest] = useState(false);
@@ -614,8 +624,8 @@ export default function PdfQuestionSlicerModal({
 
     const bId = String(currentBook.id || '');
     const bUuid = String(toUUID(currentBook.id) || '');
-    const studentIdStr = String(studentId || '').trim();
-    const studentUuidStr = String(toUUID(studentId) || '').trim();
+    const studentIdStr = String(effectiveStudentId || '').trim();
+    const studentUuidStr = String(toUUID(effectiveStudentId) || '').trim();
 
     const isMatchStudent = (s) => {
       if (!studentIdStr) return true;
@@ -1572,14 +1582,14 @@ export default function PdfQuestionSlicerModal({
           teacherAssigned: Boolean(finalStudentId),
           repetitionScheduleMode: isRemedial ? scheduleMode : 'none',
           repetitionIntervals: isRemedial
-            ? (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])))
+            ? (scheduleMode === 'custom' ? customIntervals : (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []))))
             : [],
           targetMasteryPct: (isRemedial && keepMasteryTracking) ? 100 : null
         });
       }
 
       const repetitionIntervals = isRemedial
-        ? (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : [])))
+        ? (scheduleMode === 'custom' ? customIntervals : (scheduleMode === 'spaced_leitner' ? [1, 3, 7, 15] : (scheduleMode === 'fast' ? [1, 2, 4, 7] : (scheduleMode === 'today' ? [1] : []))))
         : [];
 
       if (isRemedial && scheduleMode !== 'none' && finalStudentId && saveCoachingProfile) {
@@ -1804,6 +1814,189 @@ export default function PdfQuestionSlicerModal({
             </button>
           </div>
         </div>
+
+        {/* ── 🎯 1. ADIM: HEDEF ÖĞRENCİ, KİTAP & ARALIKLI TEKRAR DÖNGÜSÜ AYARLARI ── */}
+        {mode === 'mistakes' && (
+          <div style={{
+            background: isDark ? '#1e293b' : '#f8fafc',
+            borderBottom: '1.5px solid var(--color-border)',
+            padding: '0.6rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            flexShrink: 0,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            zIndex: 25
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              {/* 1. Hedef Öğrenci Seçimi */}
+              {currentUser?.role !== 'student' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Users size={14} className="text-indigo-500" />
+                    <span>Öğrenci:</span>
+                  </span>
+                  <select
+                    value={targetStudentId}
+                    onChange={(e) => setTargetStudentId(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1.5px solid #6366f1',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: 'var(--color-text)',
+                      fontSize: '0.78rem',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(99,102,241,0.15)'
+                    }}
+                  >
+                    <option value="">🏢 Tüm Sınıf / Genel Test</option>
+                    {studentList.map(st => {
+                      const gradeLbl = getStudentGradeLabel(st);
+                      return (
+                        <option key={st.id} value={st.id}>
+                          👤 {st.name || st.fullName} {gradeLbl ? `(${gradeLbl})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+
+              {/* 2. Kitap Seçimi */}
+              {books.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <BookOpen size={14} className="text-emerald-500" />
+                    <span>Kitap:</span>
+                  </span>
+                  <select
+                    value={selectedBookId || ''}
+                    onChange={(e) => {
+                      setSelectedBookId(e.target.value);
+                      const b = books.find(item => String(item.id) === e.target.value);
+                      if (b?.pdfUrl) {
+                        loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
+                      }
+                    }}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1.5px solid var(--color-border)',
+                      background: isDark ? '#0f172a' : '#ffffff',
+                      color: 'var(--color-text)',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      maxWidth: 240,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {books.map(b => (
+                      <option key={b.id} value={b.id}>
+                        📖 {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* 3. Leitner Tekrar Modu & Gün Aralıkları */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Sparkles size={14} className="text-amber-500" />
+                  <span>Tekrar Planı:</span>
+                </span>
+                <select
+                  value={scheduleMode}
+                  onChange={(e) => setScheduleMode(e.target.value)}
+                  style={{
+                    padding: '5px 8px',
+                    borderRadius: 8,
+                    border: '1.5px solid var(--color-border)',
+                    background: isDark ? '#0f172a' : '#ffffff',
+                    color: 'var(--color-text)',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="spaced_leitner">🧠 Standart Leitner (1, 3, 7, 15 Gün)</option>
+                  <option value="fast">⚡ Hızlı Pekiştirme (1, 2, 4, 7 Gün)</option>
+                  <option value="today">📅 Sadece Bugün (1 Gün)</option>
+                  <option value="custom">⚙️ Özel Gün Aralıkları...</option>
+                  <option value="none">🚫 Programa Ekleme (Sadece Havuz)</option>
+                </select>
+
+                {/* Özel Gün Aralıkları Butonları */}
+                {scheduleMode === 'custom' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5, 7, 10, 14, 21, 30].map(dayNum => {
+                      const isSelected = customIntervals.includes(dayNum);
+                      return (
+                        <button
+                          key={dayNum}
+                          type="button"
+                          onClick={() => {
+                            setCustomIntervals(prev => {
+                              if (prev.includes(dayNum)) {
+                                if (prev.length <= 1) return prev;
+                                return prev.filter(d => d !== dayNum);
+                              } else {
+                                return [...prev, dayNum].sort((a, b) => a - b);
+                              }
+                            });
+                          }}
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            fontSize: '0.7rem',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            border: isSelected ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                            background: isSelected ? '#6366f1' : 'transparent',
+                            color: isSelected ? 'white' : 'var(--color-text-muted)',
+                            transition: 'all 0.15s'
+                          }}
+                        >
+                          {dayNum}g
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* %100 Ustalık Checkbox */}
+            {scheduleMode !== 'none' && (
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                color: '#059669',
+                cursor: 'pointer',
+                userSelect: 'none',
+                background: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5',
+                padding: '4px 8px',
+                borderRadius: 8,
+                border: '1px solid rgba(16,185,129,0.3)'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={keepMasteryTracking}
+                  onChange={(e) => setKeepMasteryTracking(e.target.checked)}
+                  style={{ accentColor: '#10b981', cursor: 'pointer' }}
+                />
+                <span>🎯 %100 Doğru Yapılana Kadar Tekrar Et</span>
+              </label>
+            )}
+          </div>
+        )}
 
         {/* ── MOBİL SEKMELER (YANLIŞLAR | PDF & KIRPICI | KIRPILANLAR) ── */}
         {isMobile && (
@@ -2679,41 +2872,6 @@ export default function PdfQuestionSlicerModal({
                   }}
                 />
 
-                {/* 🎯 Hedef Öğrenci Seçimi (Sadece Telafi Modunda) */}
-                {mode === 'mistakes' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    <label style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Users size={12} className="text-indigo-500" />
-                      <span>Telafi Atanacak Öğrenci:</span>
-                    </label>
-                    <select
-                      value={targetStudentId}
-                      onChange={(e) => setTargetStudentId(e.target.value)}
-                      style={{
-                        padding: '5px 8px',
-                        borderRadius: 8,
-                        border: '1.5px solid var(--color-border)',
-                        background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
-                        color: 'var(--color-text)',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="">🏢 Tüm Sınıf / Genel Test (Soru Bankası Havuzu)</option>
-                      {studentList.map(st => {
-                        const gradeLbl = getStudentGradeLabel(st);
-                        return (
-                          <option key={st.id} value={st.id}>
-                            👤 {st.name || st.fullName} {gradeLbl ? `(${gradeLbl})` : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                )}
-
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9', padding: '0.25rem 0.5rem', borderRadius: 6 }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Varsayılan Şık:</span>
                 <div style={{ display: 'flex', gap: 3 }}>
@@ -2845,58 +3003,6 @@ export default function PdfQuestionSlicerModal({
             </div>
 
             <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {/* Spaced Repetition Scheduling Controls (Sadece Telafi Modunda) */}
-              {mode === 'mistakes' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Sparkles size={12} className="text-indigo-500" />
-                    <span>Tekrar &amp; Çalışma Planı Modu:</span>
-                  </span>
-                  
-                  <select
-                    value={scheduleMode}
-                    onChange={(e) => setScheduleMode(e.target.value)}
-                    style={{
-                      padding: '5px 8px',
-                      borderRadius: 6,
-                      border: '1px solid var(--color-border)',
-                      background: isDark ? '#1e293b' : '#f8fafc',
-                      color: 'var(--color-text)',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="spaced_leitner">🧠 Standart Leitner (1, 3, 7, 15 Gün - Önerilen)</option>
-                    <option value="fast">⚡ Hızlı Pekiştirme (1, 2, 4, 7 Gün)</option>
-                    <option value="today">📅 Sadece Bugünün Programına Ekle (1 Gün)</option>
-                    <option value="none">🚫 Programa Ekleme (Sadece Havuzda Tut)</option>
-                  </select>
-
-                  {scheduleMode !== 'none' && (
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: '0.68rem',
-                      fontWeight: 800,
-                      color: '#059669',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      padding: '2px 0'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={keepMasteryTracking}
-                        onChange={(e) => setKeepMasteryTracking(e.target.checked)}
-                        style={{ accentColor: '#10b981', cursor: 'pointer' }}
-                      />
-                      <span>🎯 %100 Doğru Yapılana Kadar Tekrar Döngüsünü Sürdür</span>
-                    </label>
-                  )}
-                </div>
-              )}
-
               {saveSuccessMsg && (
                 <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#16a34a', textAlign: 'center', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px', borderRadius: 8 }}>
                   {saveSuccessMsg}
