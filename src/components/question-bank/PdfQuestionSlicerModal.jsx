@@ -4,10 +4,11 @@ import {
   ZoomIn, ZoomOut, RotateCcw, Image as ImageIcon, FileText,
   CheckCircle2, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   BookOpen, Sparkles, HelpCircle, Layers, CheckSquare, Square,
-  ExternalLink, Save, Filter, ChevronDown, ChevronUp, Eye, Calendar
+  ExternalLink, Save, Filter, ChevronDown, ChevronUp, Eye, Calendar, Users
 } from 'lucide-react';
 import { compressImageToWebP } from '../../services/imageCompressionService';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useHomework } from '../../context/HomeworkContext';
@@ -512,6 +513,7 @@ export default function PdfQuestionSlicerModal({
   grade: initialGrade = '8. Sınıf'
 }) {
   const { isDark } = useTheme();
+  const { currentUser, users = [], students = [] } = useAuth();
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { submissions = [] } = useEvaluation();
   const { homeworks = [] } = useHomework();
