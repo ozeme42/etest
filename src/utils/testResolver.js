@@ -1080,13 +1080,23 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return true;
   }
 
-  // If the submission is explicitly tied to a DIFFERENT specific test ID, it MUST NOT match this test!
-  if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
-    return false;
+  // If the submission is explicitly tied to a DIFFERENT specific test ID, it MUST NOT match this test —
+  // BUT only if both submission and target are from the SAME book. If the submission's bookId differs
+  // (e.g., it was saved from a now-deleted duplicate book version), allow fallback page/name matching.
+  const sBookId = String(s.bookId || s.metadata?.bookId || s.metadata?.realBookId || '');
+  const tBookId = String(targetTest?.bookId || '');
+  const isSameBook = !sBookId || !tBookId || sBookId === tBookId ||
+    (toUUID(sBookId) && toUUID(sBookId) === toUUID(tBookId));
+
+  if (isSameBook) {
+    if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
+      return false;
+    }
+    if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
+      return false;
+    }
   }
-  if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
-    return false;
-  }
+  // If books differ (e.g. orphaned submission from deleted book version), skip ID guard and fall through to page/name matching
 
   // 2. Subject (Ders) verification - CRUCIAL for multi-lesson books
   const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
