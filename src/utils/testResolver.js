@@ -1080,6 +1080,36 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return true;
   }
 
+  // 1.5. Strict Book Isolation
+  // If the submission explicitly states which book it belongs to, and it doesn't match the target test's book, reject it!
+  const targetBookId = String(targetTest?.bookId || targetTest?.book_id || '').toLowerCase().trim();
+  const subBookId = String(s.bookId || s.book_id || s.metadata?.bookId || s.metadata?.book_id || '').toLowerCase().trim();
+  
+  if (targetBookId && subBookId) {
+    const tUuid = toUUID(targetBookId);
+    const sUuid = toUUID(subBookId);
+    if (targetBookId !== subBookId && (!tUuid || tUuid !== sUuid)) {
+      return false; // Explicit book mismatch
+    }
+  }
+
+  // Also check book title if available
+  const subBookTitle = String(s.bookTitle || s.metadata?.bookTitle || '').toLowerCase().trim();
+  if (subBookTitle && books && books.length > 0) {
+    let targetBookTitle = '';
+    if (targetTest?.bookTitle) {
+      targetBookTitle = String(targetTest.bookTitle).toLowerCase().trim();
+    } else {
+      const book = books.find(b => String(b.id) === targetBookId || toUUID(String(b.id)) === toUUID(targetBookId));
+      if (book) targetBookTitle = String(book.title).toLowerCase().trim();
+    }
+    
+    if (targetBookTitle && subBookTitle !== targetBookTitle && !targetBookTitle.includes(subBookTitle) && !subBookTitle.includes(targetBookTitle)) {
+      // Very strict mismatch, e.g. "Paragraf" vs "Ünite Ünite"
+      return false; 
+    }
+  }
+
   // Note: sBookTestId/sRealTestId guard removed intentionally.
   // Subject (step 2) + page number (step 4) + title matching is specific enough to prevent false
   // positives without an expensive O(n) bookTests lookup on every submission check.
