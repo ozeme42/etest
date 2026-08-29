@@ -1306,11 +1306,12 @@ export default function StudyRoomPage() {
     const newVal = Math.min(180, Math.max(1, current + delta));
     setDurations(p => ({ ...p, pomodoro: newVal }));
     setFocusInputVal(String(newVal));
-    const newGoal = Math.max(1, Math.round(newVal / minutesPerQuestion));
-    setTargetGoalCount(newGoal);
-    setTargetInputVal(String(newGoal));
-    if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
-      setTimeLeft(newVal * 60);
+    if (activeStudyMode === 'question' || activeStudyMode === 'study') {
+      if (isRunning) {
+        setTimeLeft(prev => Math.max(10, prev + delta * 60));
+      } else {
+        setTimeLeft(newVal * 60);
+      }
     }
   };
 
@@ -1318,9 +1319,6 @@ export default function StudyRoomPage() {
     const val = Math.min(180, Math.max(1, minutes));
     setDurations(p => ({ ...p, pomodoro: val }));
     setFocusInputVal(String(val));
-    const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
-    setTargetGoalCount(newGoal);
-    setTargetInputVal(String(newGoal));
     if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
       setTimeLeft(val * 60);
     }
@@ -1332,9 +1330,6 @@ export default function StudyRoomPage() {
     if (clean && Number(clean) >= 1) {
       const val = Math.min(180, Number(clean));
       setDurations(p => ({ ...p, pomodoro: val }));
-      const newGoal = Math.max(1, Math.round(val / minutesPerQuestion));
-      setTargetGoalCount(newGoal);
-      setTargetInputVal(String(newGoal));
       if (!isRunning && (activeStudyMode === 'question' || activeStudyMode === 'study')) {
         setTimeLeft(val * 60);
       }
@@ -3801,7 +3796,9 @@ export default function StudyRoomPage() {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 900, color: themeObj.text }}>🎯 Odak Süresi (dk)</label>
-                  <span style={{ fontSize: '0.64rem', color: '#6366f1', fontWeight: 800, background: 'rgba(99,102,241,0.1)', padding: '2px 6px', borderRadius: 6 }}>Otomatik Eşitlenir</span>
+                  <span style={{ fontSize: '0.64rem', color: '#6366f1', fontWeight: 800, background: 'rgba(99,102,241,0.1)', padding: '2px 6px', borderRadius: 6 }}>
+                    {selectedTask ? 'İsteğe Bağlı Ek Süre' : 'Süre Ayarı'}
+                  </span>
                 </div>
 
                 {/* Touch-friendly Stepper Control */}
