@@ -72,15 +72,19 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
-  const isOpenEndedMode = Boolean(
+  const rawAnsKey = test.answerKey || {};
+  const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+  const isExplicitMC = test.isOpenEnded === false || test.is_open_ended === false || test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || hasOptionLetters;
+
+  const isOpenEndedMode = !isExplicitMC && Boolean(
     test.isOpenEnded === true ||
     test.is_open_ended === true ||
     test.questionType === 'acik_uclu' ||
     test.type === 'acik_uclu' ||
     test.answerKey?.__meta?.isOpenEnded === true ||
     test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (test.title && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(test.title)) ||
-    (test.name && /açık\s*uçlu|acik\s*uclu|klasik|yazılı/i.test(test.name)) ||
+    (test.title && /açık\s*uçlu|acik\s*uclu/i.test(test.title) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.title)) ||
+    (test.name && /açık\s*uçlu|acik\s*uclu/i.test(test.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.name)) ||
     isSectionOpenEnded(test)
   );
 
@@ -558,16 +562,15 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
                 const selectedOpt = answers[qNo] !== undefined ? answers[qNo] : answers[String(qNo)];
                 const textVal = openEndedText[qNo] || openEndedText[String(qNo)] || '';
 
-                const isItemOE = Boolean(
+                const isItemExplicitMC = qObj.isOpenEnded === false || qObj.is_open_ended === false || qObj.questionType === 'coktan_secmeli' || qObj.type === 'coktan_secmeli';
+                const isItemOE = !isItemExplicitMC && Boolean(
                   isOpenEndedMode ||
                   qObj.isOpenEnded === true ||
                   qObj.is_open_ended === true ||
                   qObj.questionType === 'acik_uclu' ||
                   qObj.type === 'acik_uclu' ||
-                  qObj.questionType === 'yazili' ||
-                  qObj.type === 'yazili' ||
-                  (qObj.testName && /açık uçlu|acik uclu|klasik|yazılı/i.test(qObj.testName)) ||
-                  (qObj.questionText && /açık uçlu|acik uclu|klasik|yazılı/i.test(qObj.questionText))
+                  (qObj.testName && /açık\s*uçlu|acik\s*uclu/i.test(qObj.testName) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(qObj.testName)) ||
+                  (qObj.questionText && /açık\s*uçlu|acik\s*uclu/i.test(qObj.questionText) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(qObj.questionText))
                 );
 
                 return (

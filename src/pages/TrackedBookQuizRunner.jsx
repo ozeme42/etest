@@ -352,7 +352,11 @@ export default function TrackedBookQuizRunner() {
   }, [showOptikForm, effectivePdfMode]);
 
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
-  const isOpenEnded = Boolean(
+  const rawAnsKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+  const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+  const isExplicitMC = resolvedTest?.isOpenEnded === false || resolvedTest?.is_open_ended === false || resolvedTest?.questionType === 'coktan_secmeli' || resolvedTest?.question_type === 'coktan_secmeli' || resolvedBook?.bookType === 'multiple_choice' || resolvedBook?.bookType === 'standard' || resolvedBook?.bookType === 'exam' || hasOptionLetters;
+
+  const isOpenEnded = !isExplicitMC && Boolean(
     resolvedBook?.bookType === 'open_ended' ||
     resolvedTest?.isOpenEnded === true ||
     resolvedTest?.is_open_ended === true ||
@@ -360,7 +364,7 @@ export default function TrackedBookQuizRunner() {
     resolvedTest?.question_type === 'acik_uclu' ||
     resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
     resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    (resolvedTest?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(resolvedTest.name))
+    (resolvedTest?.name && /açık\s*uçlu|acik\s*uclu/i.test(resolvedTest.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(resolvedTest.name))
   );
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
@@ -389,16 +393,7 @@ export default function TrackedBookQuizRunner() {
     const targetAnswers = answersToCalc || answers;
     const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
     const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
-    const testIsOpenEnded = Boolean(
-      resolvedBook?.bookType === 'open_ended' ||
-      resolvedTest?.isOpenEnded === true ||
-      resolvedTest?.is_open_ended === true ||
-      resolvedTest?.questionType === 'acik_uclu' ||
-      resolvedTest?.question_type === 'acik_uclu' ||
-      resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
-      resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-      (resolvedTest?.name && /açık uçlu|acik uclu|klasik|yazılı/i.test(resolvedTest.name))
-    );
+    const testIsOpenEnded = isOpenEnded;
 
     const toLetter = (val) => {
       if (val === null || val === undefined || val === '' || val === 'empty') return '';
