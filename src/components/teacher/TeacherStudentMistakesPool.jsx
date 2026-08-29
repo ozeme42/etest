@@ -170,6 +170,34 @@ export default function TeacherStudentMistakesPool({
       return true;
     });
 
+    // Deduplicate and prioritize submissions with real question answers over empty metadata summary rows
+    const subGroups = new Map();
+    studentSubs.forEach(s => {
+      const getRealAnswersCount = (item) => {
+        let raw = item.answers || [];
+        if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch {} }
+        return Array.isArray(raw) ? raw.filter(x => x && x.type !== 'metadata' && (x.userAnswer || x.selectedOption || x.answer || x.correctAnswer || x.qNo || x.questionNo)).length : 0;
+      };
+
+      const meta = (Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || null);
+      const testKey = String(s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || s.id || '').trim();
+
+      if (!subGroups.has(testKey)) {
+        subGroups.set(testKey, s);
+      } else {
+        const existing = subGroups.get(testKey);
+        const existingCount = getRealAnswersCount(existing);
+        const currentCount = getRealAnswersCount(s);
+        if (currentCount > existingCount) {
+          subGroups.set(testKey, s);
+        } else if (currentCount === existingCount && new Date(s.created_at || 0) > new Date(existing.created_at || 0)) {
+          subGroups.set(testKey, s);
+        }
+      }
+    });
+
+    const activeSubsList = Array.from(subGroups.values());
+
     const bookTree = new Map();
 
     const resolveBookAndTestInfo = (s) => {
@@ -251,7 +279,7 @@ export default function TeacherStudentMistakesPool({
       };
     };
 
-    studentSubs.forEach(s => {
+    activeSubsList.forEach(s => {
       const rawAnswers = s.answers || [];
       const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
       const cleanAnswers = (Array.isArray(rawAnswers)) ? rawAnswers.filter(a => a?.type !== 'metadata') : [];

@@ -567,7 +567,7 @@ export default function TrackedBookQuizRunner() {
     const studentIdStr = String(studentId || currentUser?.id || '');
     const studentUuidStr = String(toUUID(studentIdStr) || '');
 
-    const existingSub = (submissions || []).find(s => {
+    const matchingSubs = (submissions || []).filter(s => {
       if (!s || isDeletedItem(s)) return false;
       const isMatchStudent = String(s.studentId) === studentIdStr || (studentUuidStr && String(s.studentId) === studentUuidStr) || (studentUuidStr && toUUID(s.studentId) === studentUuidStr);
       if (!isMatchStudent) return false;
@@ -620,6 +620,23 @@ export default function TrackedBookQuizRunner() {
 
       return false;
     });
+
+    // Sort matching submissions to prioritize the one with actual question answers!
+    matchingSubs.sort((a, b) => {
+      const countRealAns = (item) => {
+        let raw = item.answers || item.studentAnswers || [];
+        if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch {} }
+        if (Array.isArray(raw)) return raw.filter(x => x && x.type !== 'metadata').length;
+        if (raw && typeof raw === 'object') return Object.keys(raw).length;
+        return 0;
+      };
+      const countA = countRealAns(a);
+      const countB = countRealAns(b);
+      if (countB !== countA) return countB - countA;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+
+    const existingSub = matchingSubs[0] || null;
 
     if (existingSub) {
       setIsSubmitted(true);
