@@ -11,7 +11,7 @@ import { useEvaluation } from '../../context/EvaluationContext';
 import { useUser } from '../../context/UserContext';
 import { getRemedialTestMasteryStatus } from '../../services/remedialSpacedRepetitionService';
 
-export default function TeacherRemedialTracker({ isDark: propIsDark }) {
+export default function TeacherRemedialTracker({ isDark: propIsDark, targetStudentId = null }) {
   const themeContext = useTheme();
   const isDark = propIsDark !== undefined ? propIsDark : themeContext?.isDark;
   const navigate = useNavigate();
@@ -87,8 +87,14 @@ export default function TeacherRemedialTracker({ isDark: propIsDark }) {
   }, [tests, questions, submissions, users, students]);
 
   // Filtered List
+  const scopedList = useMemo(() => {
+    if (!targetStudentId) return remedialMasteryList;
+    return remedialMasteryList.filter(item => String(item.studentId) === String(targetStudentId));
+  }, [remedialMasteryList, targetStudentId]);
+
+  // Filtered List
   const filteredList = useMemo(() => {
-    return remedialMasteryList.filter(item => {
+    return scopedList.filter(item => {
       const matchSearch = !searchQuery.trim() ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -102,17 +108,17 @@ export default function TeacherRemedialTracker({ isDark: propIsDark }) {
 
       return matchSearch && matchSubject && matchStatus;
     });
-  }, [remedialMasteryList, searchQuery, selectedSubjectFilter, selectedStatusFilter]);
+  }, [scopedList, searchQuery, selectedSubjectFilter, selectedStatusFilter]);
 
   // Overview KPIs
   const stats = useMemo(() => {
-    const total = remedialMasteryList.length;
-    const mastered = remedialMasteryList.filter(i => i.isMastered).length;
+    const total = scopedList.length;
+    const mastered = scopedList.filter(i => i.isMastered).length;
     const inProgress = total - mastered;
-    const totalSolves = remedialMasteryList.reduce((acc, i) => acc + i.solveCount, 0);
+    const totalSolves = scopedList.reduce((acc, i) => acc + i.solveCount, 0);
 
     return { total, mastered, inProgress, totalSolves };
-  }, [remedialMasteryList]);
+  }, [scopedList]);
 
   if (remedialMasteryList.length === 0) {
     return (
