@@ -30,6 +30,7 @@ export default function ModularQuizReviewPage() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const studentId = searchParams.get('studentId') || location.state?.studentId;
+  const fromPath = searchParams.get('from') || location.state?.from || '/student';
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const { currentUser } = useAuth();
