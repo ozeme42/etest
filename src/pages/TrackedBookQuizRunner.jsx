@@ -612,24 +612,51 @@ export default function TrackedBookQuizRunner() {
       setIsSubmitted(true);
       setShowOptikForm(true);
 
-      let loadedAnswers = existingSub.studentAnswers || {};
+      let loadedAnswers = existingSub.studentAnswers || existingSub.studentAnswersMap || {};
       if (Array.isArray(existingSub.answers) && existingSub.answers.length > 0 && Object.keys(loadedAnswers).length === 0) {
         existingSub.answers.forEach((a, idx) => {
           const qNo = a.questionNo || (idx + 1);
-          let val = a.userAnswerLetter || a.answerLetter || null;
-          if (!val && a.userAnswer !== undefined && a.userAnswer !== null && a.userAnswer !== '' && a.userAnswer !== 'empty') {
-            if (typeof a.userAnswer === 'number') {
-              val = String.fromCharCode(65 + a.userAnswer);
-            } else if (typeof a.userAnswer === 'string') {
-              if (/^[A-Ea-e]$/.test(a.userAnswer.trim())) {
-                val = a.userAnswer.trim().toUpperCase();
-              } else if (!isNaN(Number(a.userAnswer))) {
-                val = String.fromCharCode(65 + Number(a.userAnswer));
+          let val = a.userAnswerText ?? a.userAnswerLetter ?? a.answerLetter ?? a.userAnswer ?? null;
+          if (val !== null && val !== undefined && val !== '' && val !== 'empty') {
+            if (isOpenEnded) {
+              val = String(val).trim();
+            } else {
+              if (typeof val === 'number') {
+                if (val >= 0 && val <= 4) val = String.fromCharCode(65 + val);
+                else val = String(val);
+              } else if (typeof val === 'string') {
+                if (/^[A-Ea-e]$/.test(val.trim())) {
+                  val = val.trim().toUpperCase();
+                } else if (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 4) {
+                  val = String.fromCharCode(65 + Number(val));
+                }
               }
             }
           }
-          if (val) loadedAnswers[qNo] = val;
+          if (val !== null && val !== undefined && val !== '') loadedAnswers[qNo] = val;
         });
+      }
+
+      // Sanitize loaded answers for open-ended tests if strange characters were loaded
+      if (isOpenEnded && loadedAnswers && typeof loadedAnswers === 'object') {
+        const sanitized = {};
+        Object.entries(loadedAnswers).forEach(([qKey, aVal]) => {
+          if (aVal !== null && aVal !== undefined) {
+            let strVal = String(aVal);
+            if (Array.isArray(existingSub.answers)) {
+              const matchedA = existingSub.answers.find(a => String(a.questionNo) === String(qKey) || String(a.questionNo) === String(Number(qKey)));
+              if (matchedA) {
+                if (matchedA.userAnswerText !== undefined && matchedA.userAnswerText !== null && matchedA.userAnswerText !== '') {
+                  strVal = String(matchedA.userAnswerText);
+                } else if (matchedA.userAnswer !== undefined && matchedA.userAnswer !== null && matchedA.userAnswer !== '') {
+                  strVal = String(matchedA.userAnswer);
+                }
+              }
+            }
+            sanitized[qKey] = strVal;
+          }
+        });
+        loadedAnswers = sanitized;
       }
 
       if (Object.keys(loadedAnswers).length === 0) {
