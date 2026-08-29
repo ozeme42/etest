@@ -940,14 +940,11 @@ export default function PdfQuestionSlicerModal({
         tests.push(...sortedUnitTests);
       });
     } else {
-      const uObj = currentSubjectGroup.units.find(u => u.unitName === activeGuideUnit);
+      const uObj = currentSubjectGroup.units.find(u => String(u.unitName).trim().toLowerCase() === String(activeGuideUnit).trim().toLowerCase());
       if (uObj) {
         tests.push(...[...uObj.tests].sort(compareBookTestsOrder));
       } else {
-        currentSubjectGroup.units.forEach(u => {
-          const sortedUnitTests = [...u.tests].sort(compareBookTestsOrder);
-          tests.push(...sortedUnitTests);
-        });
+        tests = [];
       }
     }
 
@@ -1926,6 +1923,19 @@ export default function PdfQuestionSlicerModal({
                         onClick={() => {
                           setActiveGuideSubject(s.subjectName);
                           setActiveGuideUnit('all');
+                          setSearchQueryGuide('');
+                          const firstUnitTest = s.units?.[0]?.tests?.[0];
+                          if (firstUnitTest && firstUnitTest.wrongQuestions?.length > 0) {
+                            const qNo = firstUnitTest.wrongQuestions[0];
+                            setActiveTargetQuestion({
+                              testId: firstUnitTest.testId,
+                              testName: firstUnitTest.testName,
+                              unitName: firstUnitTest.unitName,
+                              subjectName: firstUnitTest.subjectName,
+                              qNo: qNo,
+                              correctAnswer: firstUnitTest.answerKeyMap[qNo] || 'A'
+                            });
+                          }
                         }}
                         style={{
                           flex: '1 0 auto',
@@ -1968,7 +1978,22 @@ export default function PdfQuestionSlicerModal({
                 >
                   <button
                     type="button"
-                    onClick={() => setActiveGuideUnit('all')}
+                    onClick={() => {
+                      setActiveGuideUnit('all');
+                      setSearchQueryGuide('');
+                      const firstUnitTest = currentSubjectGroup?.units?.[0]?.tests?.[0];
+                      if (firstUnitTest && firstUnitTest.wrongQuestions?.length > 0) {
+                        const qNo = firstUnitTest.wrongQuestions[0];
+                        setActiveTargetQuestion({
+                          testId: firstUnitTest.testId,
+                          testName: firstUnitTest.testName,
+                          unitName: firstUnitTest.unitName,
+                          subjectName: firstUnitTest.subjectName,
+                          qNo: qNo,
+                          correctAnswer: firstUnitTest.answerKeyMap[qNo] || 'A'
+                        });
+                      }
+                    }}
                     style={{
                       padding: '3px 8px',
                       borderRadius: 6,
@@ -1984,12 +2009,27 @@ export default function PdfQuestionSlicerModal({
                     Tüm Üniteler ({availableUnitsForSubject.reduce((acc, u) => acc + u.tests.length, 0)})
                   </button>
                   {availableUnitsForSubject.map(u => {
-                    const isAct = activeGuideUnit === u.unitName;
+                    const isAct = String(activeGuideUnit).trim() === String(u.unitName).trim();
                     return (
                       <button
                         key={u.unitName}
                         type="button"
-                        onClick={() => setActiveGuideUnit(u.unitName)}
+                        onClick={() => {
+                          setActiveGuideUnit(u.unitName);
+                          setSearchQueryGuide('');
+                          const firstTest = u.tests?.[0];
+                          if (firstTest && firstTest.wrongQuestions?.length > 0) {
+                            const qNo = firstTest.wrongQuestions[0];
+                            setActiveTargetQuestion({
+                              testId: firstTest.testId,
+                              testName: firstTest.testName,
+                              unitName: firstTest.unitName,
+                              subjectName: firstTest.subjectName,
+                              qNo: qNo,
+                              correctAnswer: firstTest.answerKeyMap[qNo] || 'A'
+                            });
+                          }
+                        }}
                         style={{
                           padding: '3px 8px',
                           borderRadius: 6,
