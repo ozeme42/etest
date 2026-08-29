@@ -37,6 +37,32 @@ const resolveSubjectName = (...candidates) => {
   return 'Genel';
 };
 
+const resolveUnitName = (title, unit, fallback) => {
+  if (unit && typeof unit === 'string' && unit.trim() && unit.trim() !== '1. Ünite') {
+    const mU = unit.match(/(\d+)/);
+    if (mU) return `${mU[1]}. Ünite`;
+    return unit.trim();
+  }
+  const m = (title || '').match(/(\d+)\s*[\.\-]?\s*Ünite/i);
+  if (m) return `${m[1]}. Ünite`;
+  const m2 = (title || '').match(/Ünite\s*(\d+)/i);
+  if (m2) return `${m2[1]}. Ünite`;
+  const m3 = (title || '').match(/Ü\.\s*Değ\.\s*(\d+)/i);
+  if (m3) return `${m3[1]}. Ünite`;
+  return fallback || '1. Ünite';
+};
+
+const cleanTestDisplayTitle = (rawTitle) => {
+  if (!rawTitle) return 'Test';
+  let t = String(rawTitle).trim();
+  t = t.replace(/^Ünite Ünite Yeni Nesil Soru BAnkası\s*[—–-]\s*/i, '');
+  t = t.replace(/^4\.\s*Sınıf Yeni Nesil Paragraf ve Problem Tek Kitap Seti\s*[—–-]\s*/i, '');
+  const m = t.match(/^(?:Türkçe|Matematik|Fen Bilimleri|Sosyal Bilgiler|İngilizce|Din Kültürü)\s*›\s*\d+\.\s*Ünite\s*\((.*)\)$/i);
+  if (m) return m[1];
+  t = t.replace(/^(?:Türkçe|Matematik|Fen Bilimleri|Sosyal Bilgiler|İngilizce|Din Kültürü)\s*›\s*/i, '');
+  return t;
+};
+
 const compareUnitOrder = (a, b) => {
   const getNum = (name) => {
     const m = String(name || '').match(/(\d+)/);
@@ -68,7 +94,7 @@ export default function TeacherStudentMistakesPool({
   // Selected questions map: key -> question object
   const [selectedQuestions, setSelectedQuestions] = useState({});
 
-  // 1. Build comprehensive mistake database for this student across ALL books
+  // Build comprehensive, ACCURATE mistake database for this student across ALL books
   const booksMistakesTree = useMemo(() => {
     if (!student?.id) return [];
 
@@ -111,233 +137,186 @@ export default function TeacherStudentMistakesPool({
       });
     };
 
-    // Pre-index submissions
-    const subsByTestId = new Map();
-    (submissions || []).forEach(s => {
-      if (!s || isDeletedItem(s) || !isMatchStudent(s)) return;
-      const testIds = [
-        s.testId,
-        s.realTestId,
-        s.hwId,
-        s.id,
-        s.metadata?.realTestId,
-        s.metadata?.testId
-      ].filter(Boolean);
+    // Filter valid, completed submissions of this student
+    const studentSubs = (submissions || []).filter(s => {
+      if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      const subIdStr = String(s.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return false;
+      return true;
+    });
 
-      testIds.forEach(tid => {
-        const str = String(tid).trim();
-        if (!subsByTestId.has(str)) subsByTestId.set(str, []);
-        subsByTestId.get(str).push(s);
+    const bookTree = new Map();
 
-        const clean = str.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
-        if (clean && clean !== str) {
-          if (!subsByTestId.has(clean)) subsByTestId.set(clean, []);
-          subsByTestId.get(clean).push(s);
+    const resolveBookInfo = (s) => {
+      const rawAnswers = s.answers || [];
+      const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
+      const title = s.title || s.testTitle || '';
+
+      let matchedBook = books.find(b => {
+        if (meta?.bookTitle && b.title === meta.bookTitle) return true;
+        if (title && b.title && title.includes(b.title)) return true;
+        return false;
+      });
+
+      if (!matchedBook) {
+        const testIdCandidate = s.testId || s.test_id || s.realTestId || s.bookTestId;
+        const bTest = (bookTests || []).find(bt => String(bt.id) === String(testIdCandidate) || String(bt.testId) === String(testIdCandidate));
+        if (bTest) {
+          matchedBook = books.find(b => String(b.id) === String(bTest.bookId || bTest.book_id));
         }
+      }
+
+      if (!matchedBook) {
+        if (title.includes('Paragraf') || title.includes('Problem Tek Kitap')) {
+          matchedBook = books.find(b => b.title.includes('Paragraf') || b.title.includes('Problem'));
+        } else if (title.includes('Ünite Ünite')) {
+          matchedBook = books.find(b => b.title.includes('Ünite Ünite'));
+        }
+      }
+
+      const bId = matchedBook ? matchedBook.id : (meta?.bookId || 'other_tests');
+      const bTitle = matchedBook ? matchedBook.title : (meta?.bookTitle || (title ? 'Diğer Kitap & Testler' : 'Genel Testler'));
+      const bPdfUrl = matchedBook?.pdfUrl || null;
+      const bSubject = matchedBook?.subject || null;
+      const bGrade = matchedBook?.grade || null;
+
+      return { bookId: bId, bookTitle: bTitle, bookPdfUrl: bPdfUrl, bookSubject: bSubject, bookGrade: bGrade, matchedBook };
+    };
+
+    studentSubs.forEach(s => {
+      const rawAnswers = s.answers || [];
+      const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
+      const cleanAnswers = (Array.isArray(rawAnswers)) ? rawAnswers.filter(a => a?.type !== 'metadata') : [];
+
+      const wrongList = [];
+
+      if (cleanAnswers.length > 0) {
+        cleanAnswers.forEach((ans, idx) => {
+          const qNo = ans.questionNo || ans.qNum || (idx + 1);
+          const userAns = ans.userAnswer ?? ans.selectedOption ?? ans.selectedAnswer ?? ans.answer ?? ans.textAns ?? '';
+          const correctAns = ans.correctAnswer ?? ans.correctOption ?? ans.correct ?? '—';
+          
+          const isExplicitCorrect = ans.isCorrect === true || ans.evalStatus === 'correct';
+          const isMatchExact = Boolean(userAns && correctAns && correctAns !== '—' && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY');
+          const isCorrect = isExplicitCorrect || isMatchExact;
+
+          if (isCorrect) return; // ✅ Doğru soru — telafi havuzuna ASLA dahil edilmez!
+
+          const isBlank = (ans.isCorrect === null && (!userAns || userAns === 'EMPTY' || userAns === 'Boş')) || ans.evalStatus === 'empty' || userAns === 'EMPTY' || userAns === 'Boş' || !userAns;
+          const isWrong = ans.isCorrect === false || ans.evalStatus === 'wrong' || (!isCorrect && !isBlank && userAns && correctAns !== '—');
+
+          if (isWrong || isBlank) {
+            wrongList.push({
+              qNo,
+              userAns: userAns || 'Boş',
+              correctAns: (correctAns && correctAns !== '—') ? correctAns : '?',
+              isWrong: Boolean(isWrong),
+              isBlank: Boolean(isBlank),
+              page: meta?.page || 1
+            });
+          }
+        });
+      } else {
+        // Fallback: If raw answers not expanded, use wrong_count
+        const wCount = Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0);
+        for (let i = 1; i <= wCount; i++) {
+          wrongList.push({
+            qNo: i,
+            userAns: 'Yanlış',
+            correctAns: '?',
+            isWrong: true,
+            isBlank: false,
+            page: 1
+          });
+        }
+      }
+
+      if (wrongList.length === 0) return;
+
+      const { bookId, bookTitle, bookPdfUrl, bookSubject, bookGrade } = resolveBookInfo(s);
+      const subjectName = resolveSubjectName(s.subject, meta?.subject, s.title, bookSubject);
+      const unitName = resolveUnitName(s.title || s.testTitle, meta?.unitTopic || meta?.unit);
+      const displayTitle = cleanTestDisplayTitle(s.title || s.testTitle || 'Test');
+
+      if (!bookTree.has(bookId)) {
+        bookTree.set(bookId, {
+          bookId,
+          bookTitle,
+          bookPdfUrl,
+          subject: bookSubject || subjectName,
+          grade: bookGrade,
+          totalWrong: 0,
+          totalTests: 0,
+          subjectsMap: new Map()
+        });
+      }
+
+      const bNode = bookTree.get(bookId);
+      bNode.totalWrong += wrongList.length;
+      bNode.totalTests += 1;
+
+      if (!bNode.subjectsMap.has(subjectName)) {
+        bNode.subjectsMap.set(subjectName, {
+          subjectName,
+          totalWrong: 0,
+          totalTests: 0,
+          unitsMap: new Map()
+        });
+      }
+
+      const sNode = bNode.subjectsMap.get(subjectName);
+      sNode.totalWrong += wrongList.length;
+      sNode.totalTests += 1;
+
+      if (!sNode.unitsMap.has(unitName)) {
+        sNode.unitsMap.set(unitName, {
+          unitName,
+          subjectName,
+          totalWrong: 0,
+          tests: []
+        });
+      }
+
+      const uNode = sNode.unitsMap.get(unitName);
+      uNode.totalWrong += wrongList.length;
+      uNode.tests.push({
+        id: String(s.id),
+        testId: String(s.testId || s.test_id || s.id),
+        name: displayTitle,
+        fullTitle: s.title || s.testTitle,
+        subjectName,
+        unitName,
+        pdfPage: meta?.page || 1,
+        wrongCount: wrongList.length,
+        wrongQuestions: wrongList
       });
     });
 
     const bookResults = [];
-
-    books.forEach(book => {
-      const bId = String(book.id || '');
-      const bUuid = String(toUUID(book.id) || '');
-
-      // Build canonical tests for this book
-      const rawSubjects = (book.subjects && book.subjects.length > 0)
-        ? book.subjects
-        : (book.raw_data?.subjects || []);
-
-      const canonicalTests = [];
-      if (rawSubjects.length > 0) {
-        rawSubjects.forEach((subj, sIdx) => {
-          const sId = String(subj.id || ('subj_' + sIdx));
-          const sName = resolveSubjectName(subj.name, book.subject, book.title);
-          const topics = (subj.topics && Array.isArray(subj.topics) && subj.topics.length > 0)
-            ? subj.topics
-            : [{ id: ('top_' + sId + '_1'), name: '1. Ünite' }];
-
-          topics.forEach((tp, tpIdx) => {
-            const tpId = String(tp.id || ('tp_' + tpIdx));
-            const uName = tp.name || tp.title || ((tpIdx + 1) + '. Ünite');
-
-            let matchedTests = (bookTests || []).filter(bt => {
-              const isMatchBook = String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid);
-              if (!isMatchBook) return false;
-              return String(bt.topicId || bt.topic_id) === tpId || (topics.length === 1 && String(bt.subjectId || bt.subject_id) === sId);
-            });
-
-            if (matchedTests.length === 0 && tp.tests && Array.isArray(tp.tests) && tp.tests.length > 0) {
-              matchedTests = tp.tests;
-            }
-
-            if (matchedTests.length === 0) {
-              matchedTests = [];
-              for (let i = 1; i <= 5; i++) {
-                matchedTests.push({
-                  id: ('tbt_' + bId + '_' + sId + '_' + tpId + '_' + i),
-                  bookId: bId,
-                  subjectId: sId,
-                  topicId: tpId,
-                  name: i <= 3 ? ('Test-' + i) : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
-                  questionCount: 20,
-                  answerKey: {}
-                });
-              }
-            }
-
-            matchedTests.forEach(t => {
-              canonicalTests.push({
-                ...t,
-                id: String(t.id),
-                cleanId: String(t.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
-                uuid: toUUID(t.id),
-                name: t.name || t.title || 'Test',
-                subjectName: sName,
-                unitName: uName,
-                pdfPage: t.pdfPage || t.page || tp.pdfPage || 1,
-                answerKey: t.answerKey || t.answer_key || book.answerKey || {}
-              });
-            });
-          });
-        });
-      } else {
-        const bTests = (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === bId || (bUuid && String(bt.bookId || bt.book_id) === bUuid));
-        const defaultSubj = resolveSubjectName(book.subject, book.title);
-
-        if (bTests.length > 0) {
-          bTests.forEach(bt => {
-            canonicalTests.push({
-              ...bt,
-              id: String(bt.id),
-              cleanId: String(bt.id).replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, ''),
-              uuid: toUUID(bt.id),
-              name: bt.name || bt.title || 'Test',
-              subjectName: resolveSubjectName(bt.subject_name, bt.subjectName, bt.subject, defaultSubj),
-              unitName: bt.unit_name || bt.unitName || bt.topic_name || bt.topicName || '1. Ünite',
-              pdfPage: bt.pdfPage || bt.page || 1,
-              answerKey: bt.answerKey || bt.answer_key || book.answerKey || {}
-            });
-          });
-        }
-      }
-
-      // Check mistakes for this book's tests
-      const subjectMap = new Map();
-      let bookTotalWrong = 0;
-      let bookTotalTestsWithWrong = 0;
-
-      canonicalTests.forEach(testObj => {
-        const tIdStr = String(testObj.id);
-        const tCleanId = String(testObj.cleanId || '');
-        const tUuidStr = String(testObj.uuid || '');
-
-        const matchedSubs = (submissions || []).filter(s => {
-          if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
-          if (s.status === 'in_progress' || s.status === 'draft') return false;
-
-          const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
-          const matchFields = [
-            String(s.testId || ''),
-            String(s.realTestId || ''),
-            String(s.bookTestId || ''),
-            String(s.id || ''),
-            String(meta?.realTestId || ''),
-            String(meta?.bookTestId || '')
-          ].filter(f => Boolean(f) && f.length >= 2);
-
-          return matchFields.some(f => (
-            f === tIdStr || (tCleanId && tCleanId.length >= 3 && f === tCleanId) || (tUuidStr && f === tUuidStr)
-          ));
-        });
-
-        if (matchedSubs.length === 0) return;
-
-        const latestSub = [...matchedSubs].sort((a, b) => new Date(b.submittedAt || b.createdAt || 0) - new Date(a.submittedAt || a.createdAt || 0))[0];
-        if (!latestSub || !Array.isArray(latestSub.answers)) return;
-
-        const wrongQuestions = [];
-        latestSub.answers.forEach((ans, idx) => {
-          if (!ans || ans.type === 'metadata') return;
-          const qNo = ans.questionNo || ans.qNum || (idx + 1);
-          const isWrong = ans.isCorrect === false || (ans.selectedOption && ans.selectedOption !== ans.correctOption && ans.correctOption && ans.selectedOption !== 'EMPTY');
-          const isBlank = ans.selectedOption === null || ans.selectedOption === undefined || ans.selectedOption === '' || ans.selectedOption === 'EMPTY';
-
-          if (isWrong || isBlank) {
-            wrongQuestions.push({
-              qNo,
-              selectedOption: ans.selectedOption || 'Boş',
-              correctOption: ans.correctOption || '—',
-              isWrong,
-              isBlank,
-              page: testObj.pdfPage || 1
-            });
-          }
-        });
-
-        if (wrongQuestions.length === 0) return;
-
-        bookTotalWrong += wrongQuestions.length;
-        bookTotalTestsWithWrong++;
-
-        const sName = testObj.subjectName || 'Genel';
-        const uName = testObj.unitName || '1. Ünite';
-
-        if (!subjectMap.has(sName)) {
-          subjectMap.set(sName, {
-            subjectName: sName,
-            totalWrong: 0,
-            totalTests: 0,
-            unitMap: new Map()
-          });
-        }
-
-        const sGroup = subjectMap.get(sName);
-        sGroup.totalWrong += wrongQuestions.length;
-        sGroup.totalTests++;
-
-        if (!sGroup.unitMap.has(uName)) {
-          sGroup.unitMap.set(uName, {
-            unitName: uName,
-            subjectName: sName,
-            totalWrong: 0,
-            tests: []
-          });
-        }
-
-        const uGroup = sGroup.unitMap.get(uName);
-        uGroup.totalWrong += wrongQuestions.length;
-        uGroup.tests.push({
-          ...testObj,
-          wrongQuestions,
-          wrongCount: wrongQuestions.length
+    bookTree.forEach(b => {
+      const subjects = [];
+      b.subjectsMap.forEach(s => {
+        const units = Array.from(s.unitsMap.values());
+        units.sort(compareUnitOrder);
+        subjects.push({
+          subjectName: s.subjectName,
+          totalWrong: s.totalWrong,
+          totalTests: s.totalTests,
+          units
         });
       });
 
-      if (bookTotalWrong > 0) {
-        const subjects = [];
-        subjectMap.forEach(sGroup => {
-          const units = Array.from(sGroup.unitMap.values());
-          units.sort(compareUnitOrder);
-          subjects.push({
-            subjectName: sGroup.subjectName,
-            totalWrong: sGroup.totalWrong,
-            totalTests: sGroup.totalTests,
-            units
-          });
-        });
-
-        bookResults.push({
-          bookId: book.id,
-          bookTitle: book.title,
-          bookPdfUrl: book.pdfUrl,
-          subject: book.subject,
-          grade: book.grade,
-          totalWrong: bookTotalWrong,
-          totalTests: bookTotalTestsWithWrong,
-          subjects
-        });
-      }
+      bookResults.push({
+        bookId: b.bookId,
+        bookTitle: b.bookTitle,
+        bookPdfUrl: b.bookPdfUrl,
+        subject: b.subject,
+        grade: b.grade,
+        totalWrong: b.totalWrong,
+        totalTests: b.totalTests,
+        subjects
+      });
     });
 
     return bookResults;
@@ -392,7 +371,7 @@ export default function TeacherStudentMistakesPool({
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      tests = tests.filter(t => t.name.toLowerCase().includes(q) || t.unitName.toLowerCase().includes(q));
+      tests = tests.filter(t => t.name.toLowerCase().includes(q) || t.unitName.toLowerCase().includes(q) || (t.fullTitle && t.fullTitle.toLowerCase().includes(q)));
     }
 
     return tests;
@@ -400,7 +379,7 @@ export default function TeacherStudentMistakesPool({
 
   // Toggle selection for a single question
   const handleToggleQuestion = (test, q) => {
-    const qKey = test.id + '_' + q.qNo;
+    const qKey = `${test.id}_${q.qNo}`;
     setSelectedQuestions(prev => {
       const next = { ...prev };
       if (next[qKey]) {
@@ -411,11 +390,13 @@ export default function TeacherStudentMistakesPool({
           bookTitle: activeBook.bookTitle,
           testId: test.id,
           testTitle: test.name,
+          fullTitle: test.fullTitle,
           testPage: test.pdfPage || 1,
           testItem: test,
           qNo: q.qNo,
-          selectedOption: q.selectedOption,
-          correctOption: q.correctOption,
+          userAns: q.userAns,
+          selectedOption: q.userAns,
+          correctOption: q.correctAns,
           isWrong: q.isWrong,
           isBlank: q.isBlank,
           subject: test.subjectName || activeBook.subject,
@@ -428,11 +409,11 @@ export default function TeacherStudentMistakesPool({
 
   // Toggle all questions in a test
   const handleToggleTest = (test) => {
-    const allSelected = test.wrongQuestions.every(q => selectedQuestions[test.id + '_' + q.qNo]);
+    const allSelected = test.wrongQuestions.every(q => selectedQuestions[`${test.id}_${q.qNo}`]);
     setSelectedQuestions(prev => {
       const next = { ...prev };
       test.wrongQuestions.forEach(q => {
-        const qKey = test.id + '_' + q.qNo;
+        const qKey = `${test.id}_${q.qNo}`;
         if (allSelected) {
           delete next[qKey];
         } else {
@@ -441,11 +422,13 @@ export default function TeacherStudentMistakesPool({
             bookTitle: activeBook.bookTitle,
             testId: test.id,
             testTitle: test.name,
+            fullTitle: test.fullTitle,
             testPage: test.pdfPage || 1,
             testItem: test,
             qNo: q.qNo,
-            selectedOption: q.selectedOption,
-            correctOption: q.correctOption,
+            userAns: q.userAns,
+            selectedOption: q.userAns,
+            correctOption: q.correctAns,
             isWrong: q.isWrong,
             isBlank: q.isBlank,
             subject: test.subjectName || activeBook.subject,
@@ -460,14 +443,14 @@ export default function TeacherStudentMistakesPool({
   // Select all visible questions in current unit/subject
   const handleSelectAllVisible = () => {
     const allVisibleSelected = visibleTests.every(t =>
-      t.wrongQuestions.every(q => selectedQuestions[t.id + '_' + q.qNo])
+      t.wrongQuestions.every(q => selectedQuestions[`${t.id}_${q.qNo}`])
     );
 
     setSelectedQuestions(prev => {
       const next = { ...prev };
       visibleTests.forEach(t => {
         t.wrongQuestions.forEach(q => {
-          const qKey = t.id + '_' + q.qNo;
+          const qKey = `${t.id}_${q.qNo}`;
           if (allVisibleSelected) {
             delete next[qKey];
           } else {
@@ -476,11 +459,13 @@ export default function TeacherStudentMistakesPool({
               bookTitle: activeBook.bookTitle,
               testId: t.id,
               testTitle: t.name,
+              fullTitle: t.fullTitle,
               testPage: t.pdfPage || 1,
               testItem: t,
               qNo: q.qNo,
-              selectedOption: q.selectedOption,
-              correctOption: q.correctOption,
+              userAns: q.userAns,
+              selectedOption: q.userAns,
+              correctOption: q.correctAns,
               isWrong: q.isWrong,
               isBlank: q.isBlank,
               subject: t.subjectName || activeBook.subject,
@@ -508,7 +493,7 @@ export default function TeacherStudentMistakesPool({
           ...item.testItem,
           id: item.testId,
           testId: item.testId,
-          title: item.testTitle,
+          title: item.fullTitle || item.testTitle,
           page: item.testPage,
           pdfPage: item.testPage,
           wrongQuestionsList: [],
@@ -566,12 +551,12 @@ export default function TeacherStudentMistakesPool({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
       {/* ── 📚 1. SEVİYE: KİTAP SEÇİM ALANI ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <BookOpen size={15} className="text-emerald-500" />
-          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)' }}>
+          <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
             1. Kitap Seçin ({booksMistakesTree.length} Kitapta Yanlış Var):
           </span>
         </div>
@@ -583,28 +568,33 @@ export default function TeacherStudentMistakesPool({
               <button
                 key={b.bookId}
                 type="button"
-                onClick={() => setSelectedBookId(b.bookId)}
+                onClick={() => {
+                  setSelectedBookId(b.bookId);
+                  setSelectedSubject(null);
+                  setSelectedUnit('all');
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '0.6rem 1rem',
+                  padding: '0.65rem 1.1rem',
                   borderRadius: 12,
                   border: isSelected ? '2px solid #10b981' : '1.5px solid var(--color-border)',
-                  background: isSelected ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'var(--color-surface)',
+                  background: isSelected ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : 'var(--color-surface)',
                   color: isSelected ? '#059669' : 'var(--color-text)',
                   cursor: 'pointer',
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   fontWeight: 900,
                   whiteSpace: 'nowrap',
-                  boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.15)' : 'none',
+                  boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.18)' : 'none',
                   transition: 'all 0.15s'
                 }}
               >
                 <span>📖 {b.bookTitle}</span>
                 <span style={{
-                  fontSize: '0.68rem',
-                  padding: '2px 6px',
+                  fontSize: '0.7rem',
+                  fontWeight: 900,
+                  padding: '2px 7px',
                   borderRadius: 6,
                   background: isSelected ? '#10b981' : (isDark ? '#334155' : '#e2e8f0'),
                   color: isSelected ? 'white' : 'var(--color-text-muted)'
@@ -621,7 +611,7 @@ export default function TeacherStudentMistakesPool({
       {activeBook && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
               2. Ders Seçin:
             </span>
           </div>
@@ -644,20 +634,20 @@ export default function TeacherStudentMistakesPool({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 3,
-                    padding: '0.65rem 1.1rem',
+                    padding: '0.65rem 1.25rem',
                     borderRadius: 14,
                     border: isSelected ? '2px solid #6366f1' : '1.5px solid var(--color-border)',
-                    background: isSelected ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : 'var(--color-surface)',
+                    background: isSelected ? (isDark ? 'rgba(99,102,241,0.22)' : '#e0e7ff') : 'var(--color-surface)',
                     color: isSelected ? '#4338ca' : 'var(--color-text)',
                     cursor: 'pointer',
-                    minWidth: 100,
-                    boxShadow: isSelected ? '0 4px 14px rgba(99,102,241,0.18)' : 'none',
+                    minWidth: 105,
+                    boxShadow: isSelected ? '0 4px 14px rgba(99,102,241,0.2)' : 'none',
                     transition: 'all 0.15s'
                   }}
                 >
-                  <span style={{ fontSize: '1.25rem' }}>{icon}</span>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 900 }}>{s.subjectName}</span>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isSelected ? '#4f46e5' : 'var(--color-text-muted)' }}>
+                  <span style={{ fontSize: '1.3rem' }}>{icon}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 900 }}>{s.subjectName}</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 900, color: isSelected ? '#4f46e5' : 'var(--color-text-muted)' }}>
                     ({s.totalWrong} Yanlış)
                   </span>
                 </button>
@@ -675,9 +665,9 @@ export default function TeacherStudentMistakesPool({
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '0.75rem',
-          padding: '0.65rem 0.85rem',
+          padding: '0.75rem 1rem',
           background: isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc',
-          borderRadius: 12,
+          borderRadius: 14,
           border: '1px solid var(--color-border)'
         }}>
           {/* Ünite Hap Butonları */}
@@ -686,9 +676,9 @@ export default function TeacherStudentMistakesPool({
               type="button"
               onClick={() => setSelectedUnit('all')}
               style={{
-                padding: '4px 10px',
+                padding: '5px 12px',
                 borderRadius: 8,
-                fontSize: '0.72rem',
+                fontSize: '0.76rem',
                 fontWeight: 900,
                 cursor: 'pointer',
                 border: selectedUnit === 'all' ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
@@ -705,9 +695,9 @@ export default function TeacherStudentMistakesPool({
                 type="button"
                 onClick={() => setSelectedUnit(u.unitName)}
                 style={{
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   borderRadius: 8,
-                  fontSize: '0.72rem',
+                  fontSize: '0.76rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   border: selectedUnit === u.unitName ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
@@ -721,8 +711,8 @@ export default function TeacherStudentMistakesPool({
           </div>
 
           {/* Test / Soru Arama */}
-          <div style={{ position: 'relative', width: 200 }}>
-            <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+          <div style={{ position: 'relative', width: 220 }}>
+            <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
             <input
               type="text"
               value={searchQuery}
@@ -730,12 +720,12 @@ export default function TeacherStudentMistakesPool({
               placeholder="Test veya soru ara..."
               style={{
                 width: '100%',
-                padding: '4px 8px 4px 24px',
+                padding: '5px 10px 5px 28px',
                 borderRadius: 8,
                 border: '1px solid var(--color-border)',
                 background: isDark ? '#0f172a' : '#ffffff',
                 color: 'var(--color-text)',
-                fontSize: '0.72rem',
+                fontSize: '0.75rem',
                 outline: 'none'
               }}
             />
@@ -745,10 +735,10 @@ export default function TeacherStudentMistakesPool({
 
       {/* ── ⚙️ ARALIKLI TEKRAR DÖNGÜSÜ & HIZLI AKSİYON ÇUBUĞU ── */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(244,63,94,0.08))',
-        border: '1.5px solid rgba(99,102,241,0.25)',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.09), rgba(244,63,94,0.09))',
+        border: '1.5px solid rgba(99,102,241,0.28)',
         borderRadius: '1.25rem',
-        padding: '0.85rem 1.15rem',
+        padding: '0.9rem 1.25rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -756,22 +746,22 @@ export default function TeacherStudentMistakesPool({
         gap: '0.85rem'
       }}>
         {/* Tekrar Modu ve Günler */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '0.76rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Sparkles size={14} className="text-amber-500" />
+            <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Sparkles size={15} className="text-amber-500" />
               <span>Tekrar Planı:</span>
             </span>
             <select
               value={scheduleMode}
               onChange={(e) => setScheduleMode(e.target.value)}
               style={{
-                padding: '4px 8px',
+                padding: '5px 10px',
                 borderRadius: 8,
                 border: '1.5px solid var(--color-border)',
                 background: isDark ? '#0f172a' : '#ffffff',
                 color: 'var(--color-text)',
-                fontSize: '0.76rem',
+                fontSize: '0.78rem',
                 fontWeight: 800,
                 cursor: 'pointer'
               }}
@@ -825,7 +815,7 @@ export default function TeacherStudentMistakesPool({
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              fontSize: '0.72rem',
+              fontSize: '0.74rem',
               fontWeight: 900,
               color: '#059669',
               cursor: 'pointer',
@@ -848,7 +838,7 @@ export default function TeacherStudentMistakesPool({
             type="button"
             onClick={handleSelectAllVisible}
             style={{
-              fontSize: '0.74rem',
+              fontSize: '0.76rem',
               fontWeight: 900,
               color: 'var(--color-text)',
               background: 'transparent',
@@ -860,7 +850,7 @@ export default function TeacherStudentMistakesPool({
             Görünen Tümünü Seç / Kaldır
           </button>
 
-          <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#6366f1' }}>
+          <span style={{ fontSize: '0.8rem', fontWeight: 900, color: '#6366f1' }}>
             📌 {selectedCount} Soru Seçildi
           </span>
 
@@ -872,12 +862,12 @@ export default function TeacherStudentMistakesPool({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              padding: '0.6rem 1.25rem',
+              padding: '0.65rem 1.35rem',
               borderRadius: '0.85rem',
               background: selectedCount > 0 ? 'linear-gradient(135deg, #f43f5e, #e11d48)' : '#94a3b8',
               color: 'white',
               fontWeight: 900,
-              fontSize: '0.82rem',
+              fontSize: '0.84rem',
               border: 'none',
               cursor: selectedCount > 0 ? 'pointer' : 'not-allowed',
               boxShadow: selectedCount > 0 ? '0 4px 14px rgba(244,63,94,0.35)' : 'none',
@@ -885,7 +875,7 @@ export default function TeacherStudentMistakesPool({
             }}
           >
             <Scissors size={15} />
-            <span>✂️ Seçilen {selectedCount > 0 ? ('(' + selectedCount + ')') : ''} Soruyu PDF'ten Kırp & Oluştur</span>
+            <span>✂️ Seçilen {selectedCount > 0 ? `(${selectedCount})` : ''} Soruyu PDF'ten Kırp &amp; Oluştur</span>
           </button>
         </div>
       </div>
@@ -893,13 +883,13 @@ export default function TeacherStudentMistakesPool({
       {/* ── 📌 4. SEVİYE: TESTLER & SORU ROZETLERİ IZGARASI ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         {visibleTests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
             Seçilen ünite veya filtrede yanlış soru bulunamadı.
           </div>
         ) : (
           visibleTests.map(test => {
-            const allTestSelected = test.wrongQuestions.every(q => selectedQuestions[test.id + '_' + q.qNo]);
-            const someTestSelected = test.wrongQuestions.some(q => selectedQuestions[test.id + '_' + q.qNo]);
+            const allTestSelected = test.wrongQuestions.every(q => selectedQuestions[`${test.id}_${q.qNo}`]);
+            const someTestSelected = test.wrongQuestions.some(q => selectedQuestions[`${test.id}_${q.qNo}`]);
 
             return (
               <div
@@ -908,13 +898,13 @@ export default function TeacherStudentMistakesPool({
                   background: isDark ? 'rgba(30,41,59,0.7)' : '#ffffff',
                   border: someTestSelected ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
                   borderRadius: '1rem',
-                  padding: '0.85rem 1.15rem',
+                  padding: '0.9rem 1.25rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '0.75rem',
-                  boxShadow: someTestSelected ? '0 3px 12px rgba(99,102,241,0.1)' : 'none'
+                  gap: '0.85rem',
+                  boxShadow: someTestSelected ? '0 3px 12px rgba(99,102,241,0.12)' : 'none'
                 }}
               >
                 {/* Test Başlığı & Ünite */}
@@ -933,30 +923,30 @@ export default function TeacherStudentMistakesPool({
                     }}
                   >
                     {allTestSelected ? (
-                      <CheckSquare size={18} className="text-indigo-600" />
+                      <CheckSquare size={19} className="text-indigo-600" />
                     ) : (
-                      <Square size={18} className="text-gray-400" />
+                      <Square size={19} className="text-gray-400" />
                     )}
                   </button>
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      <span style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
                         📌 {test.name}
                       </span>
                       <span style={{
-                        fontSize: '0.68rem',
+                        fontSize: '0.7rem',
                         fontWeight: 900,
-                        padding: '2px 6px',
+                        padding: '2px 7px',
                         borderRadius: 6,
                         background: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2',
                         color: '#dc2626'
                       }}>
-                        {test.wrongCount} Yanlış
+                        {test.wrongCount} Yanlış Soru
                       </span>
                     </div>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      {test.unitName} • Sayfa {test.pdfPage || 1}
+                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      {test.unitName} {test.pdfPage ? `• Sayfa ${test.pdfPage}` : ''}
                     </div>
                   </div>
                 </div>
@@ -964,7 +954,7 @@ export default function TeacherStudentMistakesPool({
                 {/* Soru Butonları (S.1 (C), S.4 (A)...) */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   {test.wrongQuestions.map(q => {
-                    const qKey = test.id + '_' + q.qNo;
+                    const qKey = `${test.id}_${q.qNo}`;
                     const isQSelected = Boolean(selectedQuestions[qKey]);
 
                     return (
@@ -972,28 +962,29 @@ export default function TeacherStudentMistakesPool({
                         key={q.qNo}
                         type="button"
                         onClick={() => handleToggleQuestion(test, q)}
+                        title={`Soru ${q.qNo}: Doğru Cevap [${q.correctAns}], Öğrencinin Cevabı [${q.userAns}]`}
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           padding: '4px 10px',
                           borderRadius: 8,
-                          border: isQSelected ? '2px solid #6366f1' : (isDark ? '1.5px solid rgba(239,68,68,0.4)' : '1.5px solid #fecaca'),
+                          border: isQSelected ? '2px solid #6366f1' : (isDark ? '1.5px solid rgba(239,68,68,0.45)' : '1.5px solid #fecaca'),
                           background: isQSelected
                             ? '#6366f1'
-                            : (isDark ? 'rgba(239,68,68,0.12)' : '#fff1f2'),
+                            : (isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2'),
                           color: isQSelected ? 'white' : '#dc2626',
                           cursor: 'pointer',
                           fontWeight: 900,
-                          fontSize: '0.74rem',
-                          minWidth: 54,
+                          fontSize: '0.75rem',
+                          minWidth: 56,
                           transition: 'all 0.15s',
-                          boxShadow: isQSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                          boxShadow: isQSelected ? '0 2px 8px rgba(99,102,241,0.35)' : 'none'
                         }}
                       >
                         <span>S.{q.qNo}</span>
-                        <span style={{ fontSize: '0.66rem', opacity: isQSelected ? 0.9 : 0.75 }}>
-                          ({q.correctOption})
+                        <span style={{ fontSize: '0.68rem', opacity: isQSelected ? 0.95 : 0.8 }}>
+                          ({q.correctAns})
                         </span>
                       </button>
                     );

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Scissors, ArrowLeft, Users, AlertCircle, Sparkles,
@@ -79,31 +79,36 @@ export default function RemedialTrackerPage() {
         return isRem && isForSt;
       });
 
-      // 2. Mistakes count across all tracked books
+      // 2. Mistakes count across all solved tests
       let mistakeCount = 0;
       const subsForSt = submissions.filter(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
         const subSid = String(s.studentId ?? s.userId ?? s.student_id ?? '');
         return subSid === sid || (sUuid && subSid === sUuid);
       });
 
-      const subsByTest = new Map();
       subsForSt.forEach(s => {
-        const tid = String(s.testId || s.realTestId || s.hwId || s.id || '');
-        if (tid) subsByTest.set(tid, s);
-      });
+        const cleanAnswers = (Array.isArray(s.answers)) ? s.answers.filter(a => a?.type !== 'metadata') : [];
+        if (cleanAnswers.length > 0) {
+          cleanAnswers.forEach(ans => {
+            const userAns = ans.userAnswer ?? ans.selectedOption ?? ans.selectedAnswer ?? ans.answer ?? ans.textAns ?? '';
+            const correctAns = ans.correctAnswer ?? ans.correctOption ?? ans.correct ?? '—';
+            const isExplicitCorrect = ans.isCorrect === true || ans.evalStatus === 'correct';
+            const isMatchExact = Boolean(userAns && correctAns && correctAns !== '—' && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY');
+            const isCorrect = isExplicitCorrect || isMatchExact;
 
-      books.forEach(b => {
-        const bTs = (b.tests && b.tests.length > 0) ? b.tests : bookTests.filter(bt => String(bt.bookId) === String(b.id));
-        bTs.forEach(t => {
-          const sub = subsByTest.get(String(t.id)) || subsByTest.get(String(t.realTestId || ''));
-          if (sub && Array.isArray(sub.answers)) {
-            sub.answers.forEach(a => {
-              if (a && a.type !== 'metadata' && (a.isCorrect === false || !a.selectedOption || a.selectedOption === 'EMPTY')) {
-                mistakeCount++;
-              }
-            });
-          }
-        });
+            if (isCorrect) return;
+
+            const isBlank = (ans.isCorrect === null && (!userAns || userAns === 'EMPTY' || userAns === 'Boş')) || ans.evalStatus === 'empty' || userAns === 'EMPTY' || userAns === 'Boş' || !userAns;
+            const isWrong = ans.isCorrect === false || ans.evalStatus === 'wrong' || (!isCorrect && !isBlank && userAns && correctAns !== '—');
+
+            if (isWrong || isBlank) {
+              mistakeCount++;
+            }
+          });
+        } else {
+          mistakeCount += Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0);
+        }
       });
 
       metricsMap[sid] = {
