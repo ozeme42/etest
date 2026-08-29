@@ -729,6 +729,9 @@ export default function StudyRoomPage() {
         }
       }
 
+      // Reset manual format override to let new task auto-detect
+      setForceFormFormat(null);
+
       // Hedef soru sayısını ayarla
       const qCount = extractQuestionCountFromTask(task);
       handleSetNewTargetGoal(qCount, false);
@@ -930,6 +933,7 @@ export default function StudyRoomPage() {
   });
   const [completedQuizResult, setCompletedQuizResult] = useState(null);
   const [isSubmittingOptical, setIsSubmittingOptical] = useState(false);
+  const [forceFormFormat, setForceFormFormat] = useState(null); // 'optical' | 'open_ended' | null
 
   const matchedBookObj = useMemo(() => {
     if (!selectedTask) return null;
@@ -1016,6 +1020,9 @@ export default function StudyRoomPage() {
   }, [selectedTask, bookTests, books, matchedBookObj, homeworks]);
 
   const isSelectedTaskOpenEnded = useMemo(() => {
+    if (forceFormFormat === 'open_ended') return true;
+    if (forceFormFormat === 'optical') return false;
+
     // 1. Direct explicit Open-Ended flags (Highest Priority)
     if (
       selectedTask?.isOpenEnded === true ||
@@ -1032,7 +1039,10 @@ export default function StudyRoomPage() {
       matchedTestObj?.type === 'gorsel_klasik' ||
       matchedTestObj?.answerKey?.__meta?.isOpenEnded === true ||
       matchedTestObj?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-      matchedBookObj?.bookType === 'open_ended'
+      matchedTestObj?.answer_key?.__meta?.isOpenEnded === true ||
+      matchedTestObj?.answer_key?.__meta?.questionType === 'acik_uclu' ||
+      matchedBookObj?.bookType === 'open_ended' ||
+      matchedBookObj?.book_type === 'open_ended'
     ) {
       return true;
     }
@@ -1040,34 +1050,47 @@ export default function StudyRoomPage() {
     // 2. Direct explicit Multiple Choice flags
     if (
       selectedTask?.isOpenEnded === false ||
+      selectedTask?.is_open_ended === false ||
       selectedTask?.questionType === 'coktan_secmeli' ||
       selectedTask?.question_type === 'coktan_secmeli' ||
       selectedTask?.type === 'coktan_secmeli' ||
       matchedTestObj?.isOpenEnded === false ||
+      matchedTestObj?.is_open_ended === false ||
       matchedTestObj?.questionType === 'coktan_secmeli' ||
       matchedTestObj?.question_type === 'coktan_secmeli' ||
       matchedTestObj?.type === 'coktan_secmeli' ||
       matchedBookObj?.bookType === 'multiple_choice' ||
-      matchedBookObj?.bookType === 'exam'
+      matchedBookObj?.bookType === 'exam' ||
+      matchedBookObj?.bookType === 'standard' ||
+      matchedBookObj?.book_type === 'multiple_choice' ||
+      matchedBookObj?.book_type === 'exam' ||
+      matchedBookObj?.book_type === 'standard'
     ) {
       return false;
     }
 
     // 3. AnswerKey letter inspection (A-E means Multiple Choice)
-    const ak = matchedTestObj?.answerKey || selectedTask?.answerKey || matchedTestObj?.correctAnswers || selectedTask?.correctAnswers;
-    if (ak && ak.__meta?.isOpenEnded !== true && ak.__meta?.questionType !== 'acik_uclu') {
-      if (Array.isArray(ak) && ak.length > 0 && ak.every(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()))) {
-        return false;
+    const ak = matchedTestObj?.answerKey || matchedTestObj?.answer_key || selectedTask?.answerKey || selectedTask?.answer_key || matchedTestObj?.correctAnswers || selectedTask?.correctAnswers;
+    if (ak) {
+      if (ak.__meta?.isOpenEnded === true || ak.__meta?.questionType === 'acik_uclu') {
+        return true;
+      }
+      if (Array.isArray(ak) && ak.length > 0) {
+        const letters = ak.filter(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()));
+        if (letters.length >= Math.min(2, ak.length)) return false;
       }
       if (typeof ak === 'object' && !Array.isArray(ak)) {
-        const vals = Object.values(ak).filter(v => v !== null && typeof v === 'string');
-        if (vals.length > 0 && vals.every(v => /^[A-Ea-e]$/.test(v.trim()))) {
+        const letters = Object.entries(ak)
+          .filter(([k, v]) => k !== '__meta' && k !== 'meta' && v !== null && v !== undefined && typeof v !== 'object')
+          .map(([, v]) => (typeof v === 'number' ? String.fromCharCode(65 + v) : String(v).trim().toUpperCase()))
+          .filter(v => /^[A-E]$/.test(v));
+        if (letters.length > 0) {
           return false;
         }
       }
     }
 
-    // 4. Strict Title Keyword Detection (ONLY if explicitly contains "açık uçlu" and NOT "çoktan seçmeli" or "test")
+    // 4. Keyword in title (strictly for "açık uçlu" / "acik uclu", NOT matching standard "test" or "çoktan seçmeli")
     const titleStr = `${selectedTask?.title || ''} ${selectedTask?.topic || ''} ${matchedTestObj?.name || ''} ${matchedTestObj?.title || ''}`.toLowerCase();
     if (
       (titleStr.includes('açık uçlu') || titleStr.includes('acik uclu')) &&
@@ -1078,7 +1101,7 @@ export default function StudyRoomPage() {
 
     // Default to false (multiple choice optical form)
     return false;
-  }, [selectedTask, matchedTestObj, matchedBookObj]);
+  }, [selectedTask, matchedTestObj, matchedBookObj, forceFormFormat]);
 
   const resolvedAnswerKey = useMemo(() => {
     const src = matchedTestObj || selectedTask;
@@ -3194,7 +3217,47 @@ export default function StudyRoomPage() {
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {/* Format Değiştirici (Optik / Çoktan Seçmeli vs Açık Uçlu) */}
+                          <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
+                            <button
+                              type="button"
+                              onClick={() => setForceFormFormat('optical')}
+                              style={{
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: !isSelectedTaskOpenEnded ? (themeObj.accent || '#4f46e5') : 'transparent',
+                                color: !isSelectedTaskOpenEnded ? '#ffffff' : themeObj.subText,
+                                fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                              title="Çoktan seçmeli optik form"
+                            >
+                              📋 Optik
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForceFormFormat('open_ended')}
+                              style={{
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                                border: 'none',
+                                background: isSelectedTaskOpenEnded ? '#8b5cf6' : 'transparent',
+                                color: isSelectedTaskOpenEnded ? '#ffffff' : themeObj.subText,
+                                fontSize: isMobile ? '0.64rem' : '0.68rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                transition: 'all 0.15s'
+                              }}
+                              title="Açık uçlu metin yanıtlama formu"
+                            >
+                              ✍️ Açık Uçlu
+                            </button>
+                          </div>
+
                           {/* 4 / 5 Şık Seçici (Sadece Çoktan Seçmelide) */}
                           {!isSelectedTaskOpenEnded && (
                             <div style={{ display: 'inline-flex', background: themeObj.innerBg, padding: 2, borderRadius: 8, border: `1px solid ${themeObj.border}` }}>
