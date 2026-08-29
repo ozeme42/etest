@@ -979,9 +979,7 @@ export function computeStudentAnalyticsData({
       subject: s.subjectName || s.subject || 'Genel',
       subjectName: s.subjectName || s.subject || 'Genel',
       date: s.date,
-      totalNet: s.netScore ?? s.totalNet ?? 0,
-      correctCount: s.correctCount || 0,
-      wrongCount: s.wrongCount || 0,
+            wrongCount: s.wrongCount || 0,
       emptyCount: s.blankCount ?? s.emptyCount ?? 0,
       totalQuestions: s.totalQuestions || 0,
       sourceType: s.sourceType,
@@ -1039,7 +1037,7 @@ export function computeStudentAnalyticsData({
 }
 
 /**
- * Accurately checks if a submission matches a specific book test without falsely matching generic names like 'Problem Sayfası' or 'Test 1'.
+ * Accurately checks if a submission matches a specific book test without falsely matching generic names or cross-subject tests.
  */
 export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], books = []) {
   if (!s || !targetTestOrId) return false;
@@ -1057,18 +1055,68 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
   const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
 
-  // 1. Exact direct ID match (primary & highest confidence)
-  if (sTestId && (sTestId === specId || sTestId === specClean || (specUuid && sTestId === specUuid))) return true;
-  if (sRealTestId && (sRealTestId === specId || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
-  if (sBookTestId && (sBookTestId === specId || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
-  if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => {
-    const tStr = String(tid);
-    return tStr === specId || tStr === specClean || (specUuid && tStr === specUuid);
-  })) return true;
+  // 1. Direct Specific ID Matching:
+  const isDirectIdMatch = (sTestId && (sTestId === specId || sTestId === specClean || (specUuid && sTestId === specUuid))) ||
+                          (sRealTestId && (sRealTestId === specId || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) ||
+                          (sBookTestId && (sBookTestId === specId || sBookTestId === specClean || (specUuid && sBookTestId === specUuid)));
+
+  // If there is an exact direct testId match, confirm subjects don't conflict (e.g. reused IDs)
+  if (isDirectIdMatch) {
+    const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
+    const tSubj = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || '').toLowerCase().trim();
+    if (sSubj && tSubj) {
+      const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
+      if (isCrossConflict) return false;
+    }
+    return true;
+  }
+
+  // If the submission is explicitly tied to a DIFFERENT specific test ID, it MUST NOT match this test!
+  if (sBookTestId && sBookTestId !== specId && sBookTestId !== specClean && (!specUuid || sBookTestId !== specUuid)) {
+    return false;
+  }
+  if (sRealTestId && sRealTestId !== specId && sRealTestId !== specClean && (!specUuid || sRealTestId !== specUuid)) {
+    return false;
+  }
+
+  // 2. Subject (Ders) verification - CRUCIAL for multi-lesson books
+  const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
+  const subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || s.lesson || '').toLowerCase().trim();
+
+  if (targetSubject && subSubject) {
+    const isSubjectMatch = subSubject === targetSubject ||
+      subSubject.includes(targetSubject) ||
+      targetSubject.includes(subSubject) ||
+      (targetSubject.includes('türk') && subSubject.includes('türk')) ||
+      (targetSubject.includes('mat') && subSubject.includes('mat')) ||
+      (targetSubject.includes('fen') && subSubject.includes('fen')) ||
+      (targetSubject.includes('sos') && subSubject.includes('sos')) ||
+      (targetSubject.includes('ing') && subSubject.includes('ing')) ||
+      (targetSubject.includes('din') && subSubject.includes('din'));
+
+    if (!isSubjectMatch) {
+      return false; // Subject conflict!
+    }
+  }
+
+  // 3. Unit (Ünite) verification
+  const targetUnit = String(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || '').toLowerCase().trim();
+  const subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
+
+  if (targetUnit && subUnit) {
+    const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
+    const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
+    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) {
+      return false; // Unit mismatch!
+    }
+  }
 
   if (!targetTest) return false;
 
-  // 2. Strict page & unique test name matching
+  // 4. Strict page & unique test name matching
   const extractPageNumbers = (str) => {
     if (!str || typeof str !== 'string') return null;
     const match = str.match(/(\d+)\s*[-–/]\s*(\d+)/);
@@ -1080,7 +1128,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
 
   const tName = String(targetTest.name || targetTest.title || '').toLowerCase().trim();
   const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
-  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
+  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').replace(/\s*\(.*?\)$/, '').trim();
 
   const targetPages = targetTest.pageRange ||
     (targetTest.startPage && targetTest.endPage ? `${targetTest.startPage}-${targetTest.endPage}` : null) ||
@@ -1113,9 +1161,12 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return Number(targetTest.orderIndex) === Number(s.metadata.orderIndex);
   }
 
-  // Generic names (e.g. 'Problem Sayfası', 'Test 1', 'Sayfa') CANNOT match loosely
-  const isGeneric = /^(problem sayfası|etkinlik sayfası|sayfa|test|deneme|kazanım testi|konu testi|ödev|çalışma|test \d+)$/i.test(tName);
+  // Generic names across subjects MUST NOT match loosely without matching subject and unit
+  const isGeneric = /^(problem sayfası|etkinlik sayfası|sayfa|test|deneme|kazanım testi|konu testi|ödev|çalışma|test \d+|test-\d+|ü\.?\s*değ\.?\s*\d+|ünite değerlendirme \d+|yeni nesil \d+|etkinlik \d+)$/i.test(tName);
   if (isGeneric) {
+    if (targetSubject && subSubject && targetUnit && subUnit) {
+      return cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
+    }
     return false;
   }
 

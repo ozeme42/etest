@@ -335,6 +335,16 @@ export default function StudentBookDetailsPage() {
         const parentTopic = (subject.topics || []).find(tp => String(tp.id) === String(t.topicId || t.topic_id));
         const topName = parentTopic ? String(parentTopic.name || '').toLowerCase().trim() : '';
 
+        const contextualTest = {
+          ...t,
+          subject: subject.name,
+          subjectName: subject.name,
+          parentSubjectName: subject.name,
+          unit: parentTopic?.name || '',
+          unitName: parentTopic?.name || '',
+          bookId: book?.id
+        };
+
         const solvedSubs = submissions.filter(s => {
           if (!s || isDeletedItem(s)) return false;
           const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
@@ -342,7 +352,7 @@ export default function StudentBookDetailsPage() {
           if (!isMatchStudent) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
 
-          return isSubmissionMatchingBookTest(s, t, bookTests, books);
+          return isSubmissionMatchingBookTest(s, contextualTest, bookTests, books);
         });
 
         let hwSub = null;
@@ -353,7 +363,7 @@ export default function StudentBookDetailsPage() {
             const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
             const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
             if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            return isSubmissionMatchingBookTest(s, t, bookTests, books);
+            return isSubmissionMatchingBookTest(s, contextualTest, bookTests, books);
           });
           if (match) {
             hwSub = match;
