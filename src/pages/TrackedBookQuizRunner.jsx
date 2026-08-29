@@ -12,6 +12,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
 import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndSolverModal';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
@@ -462,18 +463,18 @@ export default function TrackedBookQuizRunner() {
       if (!rawUserAns && rawUserAns !== 0) {
         blank++;
       } else if (testIsOpenEnded) {
-        // Açık uçlu mod: sayısal/metin karşılaştırma
+        // Açık uçlu mod: esnek sayısal/sembolik/metin karşılaştırma (30°, 30 derece, 30 cm, 30 TL vb. hepsi 30 ile eşleşir)
         if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
-          const userNorm = normalizeNumeric(rawUserAns);
-          const keyNorm = normalizeNumeric(rawCorrectKey);
-          if (userNorm && keyNorm && userNorm === keyNorm) {
+          const isMatch = compareOpenEndedAnswers(rawUserAns, rawCorrectKey);
+          if (isMatch === true) {
             correct++;
             isCorrect = true;
-          } else if (userNorm) {
+          } else if (isMatch === false) {
             wrong++;
             isWrong = true;
           } else {
-            blank++;
+            pending++;
+            isPending = true;
           }
         } else {
           // Cevap anahtarı yok — pending (öğretmen onayı bekliyor)
@@ -1596,16 +1597,9 @@ export default function TrackedBookQuizRunner() {
                                 ? (answerKey[idx] ?? '')
                                 : (answerKey[qNo] ?? answerKey[String(qNo)] ?? '');
                               const hasKey = rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined;
-
-                              const normalizeNum = (v) => {
-                                const s = String(v || '').trim().replace(/\s/g, '').replace(',', '.');
-                                const n = Number(s);
-                                return !isNaN(n) ? String(n) : s.toLowerCase();
-                              };
-
-                              const isOeCorrect = isSubmitted && hasKey && selected &&
-                                normalizeNum(selected) === normalizeNum(rawCorrectKey);
-                              const isOeWrong = isSubmitted && hasKey && selected && !isOeCorrect;
+                              const isOeMatch = isSubmitted && hasKey && selected ? compareOpenEndedAnswers(selected, rawCorrectKey) : null;
+                              const isOeCorrect = isOeMatch === true;
+                              const isOeWrong = isOeMatch === false;
                               const isOePending = isSubmitted && !hasKey && selected;
 
                               return (

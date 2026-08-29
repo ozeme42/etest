@@ -1,4 +1,124 @@
 /**
+ * Cleans mathematical symbols, degree signs, units, and formatting
+ * so that values like "30°", "30 derece", "30 cm", "30 TL", "%30", "3,5", "3.5"
+ * are normalized cleanly for robust comparison.
+ */
+export function cleanMathAndUnitString(str) {
+  if (str === null || str === undefined) return '';
+  let s = String(str).trim();
+  if (!s) return '';
+
+  // 1. Convert Turkish special chars & lowercase
+  s = s.toLocaleLowerCase('tr-TR');
+
+  // 2. Unicode normalization (NFKC decomposes symbols like º, ², ³, −)
+  try {
+    s = s.normalize('NFKC');
+  } catch {}
+
+  // 3. Normalize minus signs (unicode −, –, — to standard -)
+  s = s.replace(/[\u2212\u2013\u2014]/g, '-');
+
+  // 4. Replace decimal commas with dots: 3,5 -> 3.5 (only if between digits)
+  s = s.replace(/(\d+),(\d+)/g, '$1.$2');
+
+  // 5. Remove degree symbols and words (e.g. 30°, 30 derece, 30°C)
+  s = s.replace(/°c|°|º|deg|derece|santigrat|celcius/gi, '');
+
+  // 6. Remove percentage symbols and words (e.g. %30, 30%)
+  s = s.replace(/%|yüzde/gi, '');
+
+  // 7. Remove currency units
+  s = s.replace(/tl|₺|lira|kuruş|kr\b/gi, '');
+
+  // 8. Remove common units of measurement
+  s = s.replace(/\b(cm2|cm\^2|cm3|cm\^3|cm|m2|m\^2|m3|m\^3|m|km2|km\^2|km|mm|santimetre|santimetrekare|metre|metrekare|kilometre|milimetre)\b/gi, '');
+  s = s.replace(/\b(kg|kilogram|kilo|gram|gr|g|mg|ton|miligram)\b/gi, '');
+  s = s.replace(/\b(litre|lt|l|mililitre|ml)\b/gi, '');
+  s = s.replace(/\b(saat|sa|dakika|dk|saniye|sn|gun|gün|hafta|ay|yıl|yil)\b/gi, '');
+  s = s.replace(/\b(adet|tane|kisi|kişi|katı|kati|kat)\b/gi, '');
+
+  // 9. Remove decorative quotes, brackets, trailing punctuation
+  s = s.replace(/['"`()[\]{}.,;:]+$/g, '');
+  s = s.replace(/^['"`()[\]{}.,;:]+/g, '');
+
+  // 10. Remove all whitespace
+  s = s.replace(/\s+/g, '');
+
+  return s;
+}
+
+/**
+ * Compares open-ended answers flexibly, accepting matching numerical values,
+ * math symbols, unit variations, fractions, and alternative answer keys.
+ * 
+ * @param {string|number} userAns - Answer provided by student
+ * @param {string|number} correctKey - Answer key from book / teacher
+ * @returns {boolean|null} true if matched, false if not matched, null if no answer key defined
+ */
+export function compareOpenEndedAnswers(userAns, correctKey) {
+  if (userAns === null || userAns === undefined || userAns === '' || userAns === 'empty' || userAns === 'Boş') {
+    return false;
+  }
+  if (correctKey === null || correctKey === undefined || correctKey === '') {
+    return null;
+  }
+
+  const rawU = String(userAns).trim();
+  const rawK = String(correctKey).trim();
+
+  // 1. Direct raw equality (case-insensitive)
+  if (rawU.toLowerCase() === rawK.toLowerCase()) return true;
+
+  // 2. Cleaned unit/math normalization
+  const cleanU = cleanMathAndUnitString(rawU);
+  const cleanK = cleanMathAndUnitString(rawK);
+
+  if (cleanU && cleanK && cleanU === cleanK) return true;
+
+  // 3. Numeric float equality (e.g. 30.0 === 30, 3.5 === 3.50, -5 === -5)
+  const numU = Number(cleanU);
+  const numK = Number(cleanK);
+  if (!isNaN(numU) && !isNaN(numK) && Math.abs(numU - numK) < 0.00001) {
+    return true;
+  }
+
+  // 4. Fraction vs decimal equality (e.g. 1/2 vs 0.5, 3/4 vs 0.75, 4/2 vs 2)
+  const evalFraction = (str) => {
+    if (str.includes('/')) {
+      const parts = str.split('/');
+      if (parts.length === 2) {
+        const top = Number(parts[0]);
+        const bot = Number(parts[1]);
+        if (!isNaN(top) && !isNaN(bot) && bot !== 0) {
+          return top / bot;
+        }
+      }
+    }
+    return null;
+  };
+
+  const fracU = evalFraction(cleanU);
+  const fracK = evalFraction(cleanK);
+
+  if (fracU !== null && fracK !== null && Math.abs(fracU - fracK) < 0.00001) return true;
+  if (fracU !== null && !isNaN(numK) && Math.abs(fracU - numK) < 0.00001) return true;
+  if (!isNaN(numU) && fracK !== null && Math.abs(numU - fracK) < 0.00001) return true;
+
+  // 5. Multiple accepted answers in answerKey separated by '/' or ';' or '|' or 'veya'
+  if (rawK.includes('/') || rawK.includes(';') || rawK.includes('|') || rawK.includes(' veya ') || rawK.includes(' ya da ')) {
+    const splitOptions = rawK.split(/\s*(?:\/|;|\||\bveya\b|\bya da\b)\s*/i);
+    for (const opt of splitOptions) {
+      if (opt && compareOpenEndedAnswers(rawU, opt)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Normalizes any answer representation into a standard numeric index 0..4 (0=A, 1=B, 2=C, 3=D, 4=E)
  * or returns the trimmed string if it cannot be parsed as A-E.
  */
@@ -116,9 +236,15 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
 
     if (targetKeyVal !== null && targetKeyVal !== undefined && targetKeyVal !== '' && targetKeyVal !== ' ') {
+      const isOeMatch = compareOpenEndedAnswers(userAns, targetKeyVal);
+      if (isOeMatch === true) return true;
+
       const targetIdx = normalizeAnswerIndex(targetKeyVal);
       if (targetIdx !== null) {
-        return userIdx === targetIdx;
+        if (userIdx === targetIdx) return true;
+        if (typeof userIdx === 'string' || typeof targetIdx === 'string') {
+          if (compareOpenEndedAnswers(userIdx, targetIdx)) return true;
+        }
       }
     }
   }
@@ -143,8 +269,14 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
       ];
       for (const cand of subCandidates) {
         if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          if (compareOpenEndedAnswers(userAns, cand)) return true;
           const targetIdx = normalizeAnswerIndex(cand);
-          if (targetIdx !== null) return userIdx === targetIdx;
+          if (targetIdx !== null) {
+            if (userIdx === targetIdx) return true;
+            if (typeof userIdx === 'string' || typeof targetIdx === 'string') {
+              if (compareOpenEndedAnswers(userIdx, targetIdx)) return true;
+            }
+          }
         }
       }
       if (Array.isArray(subQ.options) && subQ.options.length > 0) {
@@ -182,9 +314,13 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
 
       for (const cand of directCandidates) {
         if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          if (compareOpenEndedAnswers(userAns, cand)) return true;
           const targetIdx = normalizeAnswerIndex(cand);
           if (targetIdx !== null) {
-            return userIdx === targetIdx;
+            if (userIdx === targetIdx) return true;
+            if (typeof userIdx === 'string' || typeof targetIdx === 'string') {
+              if (compareOpenEndedAnswers(userIdx, targetIdx)) return true;
+            }
           }
         }
       }
