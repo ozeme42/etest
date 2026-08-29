@@ -3340,9 +3340,9 @@ export default function StudyRoomPage() {
                         border: `1.5px solid ${themeObj.border}`,
                         display: 'grid',
                         gridTemplateColumns: isSelectedTaskOpenEnded
-                          ? (isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))')
+                          ? (isMobile ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))')
                           : (isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : (targetGoalCount <= 8 ? '1fr' : 'repeat(auto-fill, minmax(210px, 1fr))')),
-                        gap: isMobile ? 6 : 8,
+                        gap: isMobile ? 8 : 10,
                         alignItems: 'start'
                       }} className="custom-scrollbar">
                         {Array.from({ length: targetGoalCount }).map((_, idx) => {
@@ -3355,43 +3355,65 @@ export default function StudyRoomPage() {
                               <div
                                 key={qNo}
                                 style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: isMobile ? 6 : 8,
-                                  padding: isMobile ? '0.35rem 0.5rem' : '0.45rem 0.65rem',
-                                  borderRadius: 10,
-                                  background: userAns ? (themeObj.opticalSelectedBg || 'rgba(124, 58, 237, 0.12)') : themeObj.innerBg,
+                                  background: userAns ? (themeObj.opticalSelectedBg || 'rgba(124, 58, 237, 0.08)') : themeObj.innerBg,
+                                  padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1rem',
+                                  borderRadius: '0.85rem',
                                   border: `1.5px solid ${userAns ? (themeObj.opticalSelectedBorder || '#8b5cf6') : themeObj.border}`,
-                                  transition: 'all 0.15s',
-                                  minWidth: 0
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 6,
+                                  boxSizing: 'border-box',
+                                  width: '100%',
+                                  transition: 'all 0.15s ease'
                                 }}
                               >
-                                <span style={{
-                                  fontSize: isMobile ? '0.74rem' : '0.8rem',
-                                  fontWeight: 900,
-                                  color: userAns ? '#8b5cf6' : themeObj.text,
-                                  minWidth: isMobile ? 42 : 52,
-                                  flexShrink: 0
-                                }}>
-                                  Soru {qNo}:
-                                </span>
+                                {/* Soru No & Durum */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{
+                                      fontWeight: 900,
+                                      fontSize: isMobile ? '0.82rem' : '0.9rem',
+                                      color: userAns ? '#7c3aed' : themeObj.text
+                                    }}>
+                                      {qNo}. Soru
+                                    </span>
+                                  </div>
+                                  {userAns && (
+                                    <span style={{
+                                      fontSize: '0.68rem',
+                                      fontWeight: 900,
+                                      color: '#15803d',
+                                      background: '#f0fdf4',
+                                      padding: '0.1rem 0.5rem',
+                                      borderRadius: 99,
+                                      border: '1px solid #bbf7d0'
+                                    }}>
+                                      ✓ Yanıtlandı
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Cevap input alanı */}
                                 <input
                                   type="text"
+                                  inputMode="text"
                                   value={userAns || ''}
                                   onChange={(e) => handleSetOpticalTextAnswer(qNo, e.target.value)}
-                                  placeholder="Yanıtı yazınız..."
+                                  placeholder="Cevap (boş bırakılabilir)"
                                   style={{
-                                    flex: 1,
-                                    minWidth: 0,
-                                    padding: isMobile ? '0.35rem 0.5rem' : '0.4rem 0.6rem',
-                                    borderRadius: 7,
-                                    border: `1px solid ${userAns ? '#8b5cf6' : themeObj.border}`,
+                                    width: '100%',
                                     background: themeObj.cardBg,
+                                    border: `1.5px solid ${userAns ? '#8b5cf6' : themeObj.border}`,
+                                    borderRadius: 8,
+                                    padding: isMobile ? '0.45rem 0.65rem' : '0.5rem 0.75rem',
                                     color: themeObj.text,
-                                    fontSize: isMobile ? '0.78rem' : '0.84rem',
+                                    fontSize: isMobile ? '0.9rem' : '0.96rem',
                                     fontWeight: 700,
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    boxSizing: 'border-box',
                                     outline: 'none',
-                                    boxSizing: 'border-box'
+                                    letterSpacing: '0.04em',
+                                    transition: 'all 0.15s ease'
                                   }}
                                 />
                               </div>
