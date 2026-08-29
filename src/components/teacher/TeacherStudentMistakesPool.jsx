@@ -169,7 +169,8 @@ export default function TeacherStudentMistakesPool({
     const resolveBookAndTestInfo = (s) => {
       const rawAnswers = s.answers || [];
       const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
-      const title = s.title || s.testTitle || '';
+      const title = (s.title || s.testTitle || '').trim();
+      const metaBookTitle = (meta?.bookTitle || '').trim();
 
       // Lookup matching bookTest
       const candidateIds = [
@@ -197,24 +198,32 @@ export default function TeacherStudentMistakesPool({
         matchedBook = books.find(b => String(b.id) === bTestBookId || toUUID(b.id) === bTestBookId || toUUID(b.id) === toUUID(bTestBookId));
       }
 
-      if (!matchedBook) {
+      if (!matchedBook && metaBookTitle) {
         matchedBook = books.find(b => {
-          if (meta?.bookTitle && b.title === meta.bookTitle) return true;
-          if (title && b.title && title.includes(b.title)) return true;
-          return false;
+          const bt = (b.title || '').toLowerCase().trim();
+          const mt = metaBookTitle.toLowerCase().trim();
+          return bt === mt || bt.includes(mt) || mt.includes(bt);
         });
       }
 
       if (!matchedBook) {
-        if (title.includes('Paragraf') || title.includes('Problem Tek Kitap')) {
-          matchedBook = books.find(b => b.title.includes('Paragraf') || b.title.includes('Problem'));
-        } else if (title.includes('Ünite Ünite')) {
-          matchedBook = books.find(b => b.title.includes('Ünite Ünite'));
+        const lowerTitle = title.toLowerCase();
+        const lowerMeta = metaBookTitle.toLowerCase();
+        if (lowerTitle.includes('paragraf') || lowerTitle.includes('problem') || lowerMeta.includes('paragraf') || lowerMeta.includes('problem')) {
+          matchedBook = books.find(b => {
+            const bt = (b.title || '').toLowerCase();
+            return bt.includes('paragraf') || bt.includes('problem');
+          });
+        } else if (lowerTitle.includes('ünite ünite') || lowerTitle.includes('unite unite') || lowerMeta.includes('ünite ünite') || lowerMeta.includes('unite unite')) {
+          matchedBook = books.find(b => {
+            const bt = (b.title || '').toLowerCase();
+            return bt.includes('ünite ünite') || bt.includes('unite unite');
+          });
         }
       }
 
       const bId = matchedBook ? matchedBook.id : (meta?.bookId || 'other_tests');
-      const bTitle = matchedBook ? matchedBook.title : (meta?.bookTitle || (title ? 'Diğer Kitap & Testler' : 'Genel Testler'));
+      const bTitle = matchedBook ? matchedBook.title : (metaBookTitle || (title ? 'Diğer Kitap & Testler' : 'Genel Testler'));
       const bPdfUrl = matchedBook?.pdfUrl || null;
       const bSubject = matchedBook?.subject || null;
       const bGrade = matchedBook?.grade || null;
