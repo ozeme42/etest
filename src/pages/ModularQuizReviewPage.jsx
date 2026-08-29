@@ -875,14 +875,13 @@ export default function ModularQuizReviewPage() {
   };
 
   // ── Render the correct review component based on test type ──────────────────
-  // 1. Single Open-Ended Review / Teacher Grading (Highest Priority for OE)
-  if (isExplicitOpenEnded || isSingleOE) {
+  // 1. Physical & Tracked Book Review (Supports both Optical Multiple Choice & Open-Ended Book Tests)
+  if (isPhysical || isBookOrOptical) {
     return (
-      <SingleOpenEndedReview
+      <PhysicalQuizReview
         submission={submission}
         test={test}
         questions={questions}
-        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );
@@ -901,13 +900,14 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 3. Physical & Tracked Book Optical Review (Pure Optical Sheet + Mistake Diagnostics + AI Solver)
-  if (isPhysical || isBookOrOptical) {
+  // 3. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
+  if (isExplicitOpenEnded || isSingleOE) {
     return (
-      <PhysicalQuizReview
+      <SingleOpenEndedReview
         submission={submission}
         test={test}
         questions={questions}
+        isTeacher={isTeacher}
         onClose={handleCloseReview}
       />
     );

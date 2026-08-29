@@ -332,6 +332,20 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
   }
 
+  const isEntireTestOpenEnded = useMemo(() => {
+    return Boolean(
+      test?.isOpenEnded ||
+      test?.is_open_ended ||
+      test?.questionType === 'acik_uclu' ||
+      test?.type === 'acik_uclu' ||
+      submission?.isOpenEnded ||
+      submission?.is_open_ended ||
+      submission?.questionType === 'acik_uclu' ||
+      submission?.type === 'acik_uclu' ||
+      (Array.isArray(answers) && answers.length > 0 && answers.some(a => a.isOpenEnded || (a.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswer === null)))
+    );
+  }, [test, submission, answers]);
+
   // Mistake Statistics for this test
   const mistakeCounts = useMemo(() => {
     const counts = {};
@@ -394,19 +408,19 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           </button>
           
           <div style={{ minWidth: 0, flex: 1 }}>
-            {/* 1. Üst Satır: KİTAP OPTİK İNCELEME & Kitap Adı */}
+            {/* 1. Üst Satır: KİTAP İNCELEME & Kitap Adı */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
               <span style={{
                 fontSize: isMobile ? '0.62rem' : '0.68rem',
                 fontWeight: 900,
-                color: '#2563eb',
-                background: 'rgba(37,99,235,0.1)',
-                border: '1px solid rgba(37,99,235,0.2)',
+                color: isEntireTestOpenEnded ? '#7c3aed' : '#2563eb',
+                background: isEntireTestOpenEnded ? 'rgba(124,58,237,0.1)' : 'rgba(37,99,235,0.1)',
+                border: `1px solid ${isEntireTestOpenEnded ? 'rgba(124,58,237,0.2)' : 'rgba(37,99,235,0.2)'}`,
                 padding: '1px 7px',
                 borderRadius: 5,
                 flexShrink: 0
               }}>
-                📖 KİTAP OPTİK İNCELEME
+                {isEntireTestOpenEnded ? '✍️ KİTAP AÇIK UÇLU İNCELEME' : '📖 KİTAP OPTİK İNCELEME'}
               </span>
               {resolvedMeta.bookTitle && (
                 <span style={{
@@ -705,8 +719,10 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                       <Trophy size={24} color={scorePct >= 70 ? '#15803d' : scorePct >= 50 ? '#b45309' : '#b91c1c'} />
                     </div>
                     <div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.1)', border: '1px solid #93c5fd', borderRadius: 99, padding: '0.1rem 0.55rem', marginBottom: 3 }}>
-                        <span style={{ fontSize: '0.66rem', fontWeight: 900, color: '#2563eb' }}>OPTİK FORM DEĞERLENDİRMESİ</span>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: isEntireTestOpenEnded ? 'rgba(124,58,237,0.1)' : 'rgba(37,99,235,0.1)', border: `1px solid ${isEntireTestOpenEnded ? '#c4b5fd' : '#93c5fd'}`, borderRadius: 99, padding: '0.1rem 0.55rem', marginBottom: 3 }}>
+                        <span style={{ fontSize: '0.66rem', fontWeight: 900, color: isEntireTestOpenEnded ? '#7c3aed' : '#2563eb' }}>
+                          {isEntireTestOpenEnded ? '✍️ AÇIK UÇLU / YAZILI DEĞERLENDİRMESİ' : 'OPTİK FORM DEĞERLENDİRMESİ'}
+                        </span>
                       </div>
                       <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
                         {test?.title || test?.name || submission?.testTitle || 'Test Sonucu'}
@@ -830,8 +846,6 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                 {(() => {
                   const isVeryNarrow = isMobile || containerWidth < 460;
                   const isCompact = containerWidth < 680;
-                  const bubbleSize = isVeryNarrow ? 28 : isCompact ? 32 : (questionColumns.length === 1 ? 38 : 34);
-                  const bubbleFontSize = isVeryNarrow ? '0.76rem' : isCompact ? '0.82rem' : '0.88rem';
 
                   return (
                     <div style={{
@@ -848,30 +862,54 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             const qObj = questions[qIdx] || {};
                             const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
 
-                            const rawUserAns = ansObj.userAnswer ?? submission?.studentAnswersMap?.[qNo] ?? submission?.studentAnswers?.[qNo] ?? submission?.studentAnswers?.[String(qNo)] ?? null;
-                            const userAnsLetter = (rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '')
-                              ? (typeof rawUserAns === 'string' ? rawUserAns.toUpperCase() : String.fromCharCode(65 + rawUserAns))
-                              : null;
-                            const userAnsIndex = getAnsIndex(rawUserAns);
-                            const textAns = ansObj.userAnswerText;
+                            const rawUserAns = ansObj.userAnswerText ?? ansObj.userAnswerLetter ?? ansObj.userAnswer ?? submission?.studentAnswersMap?.[qNo] ?? submission?.studentAnswers?.[qNo] ?? submission?.studentAnswers?.[String(qNo)] ?? null;
+                            const userAnsStr = rawUserAns !== null && rawUserAns !== undefined ? String(rawUserAns).trim() : '';
 
                             // Answer Key Resolution
                             const rawAk = submission?.answerKey || test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey || {};
-                            const rawKeyVal = ansObj.correctAnswer ?? ansObj.correctAnswerLetter ?? qObj.correctAnswer ?? qObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[qIdx] : (rawAk[qNo] || rawAk[String(qNo)] || rawAk[qIdx]));
-                            const correctAnsIndex = getAnsIndex(rawKeyVal);
-                            const correctLetter = (typeof rawKeyVal === 'string' && rawKeyVal.length === 1) ? rawKeyVal.toUpperCase() : (correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '');
+                            const rawKeyVal = ansObj.correctAnswerText ?? ansObj.correctAnswerLetter ?? ansObj.correctAnswer ?? qObj.correctAnswer ?? qObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[qIdx] : (rawAk[qNo] || rawAk[String(qNo)] || rawAk[qIdx]));
+                            const correctKeyStr = rawKeyVal !== null && rawKeyVal !== undefined ? String(rawKeyVal).trim() : '';
+
+                            // Determine if this item is Open-Ended
+                            const isItemOE = isEntireTestOpenEnded || Boolean(
+                              ansObj.isOpenEnded ||
+                              (correctKeyStr.length > 1 && !/^[A-E]$/i.test(correctKeyStr)) ||
+                              (userAnsStr.length > 1 && !/^[A-E]$/i.test(userAnsStr))
+                            );
 
                             let isCorrect = ansObj.isCorrect;
-                            if (isCorrect === null || isCorrect === undefined) {
-                              if (userAnsLetter && correctLetter) {
-                                isCorrect = userAnsLetter.toUpperCase() === correctLetter.toUpperCase();
-                              } else if (userAnsIndex !== null && correctAnsIndex !== null) {
-                                isCorrect = userAnsIndex === correctAnsIndex;
+                            let userAnsLetter = null;
+                            let correctLetter = '';
+                            let userAnsIndex = null;
+                            let correctAnsIndex = null;
+
+                            if (isItemOE) {
+                              const cleanUser = userAnsStr.toLowerCase().replace(/\s/g, '').replace(',', '.');
+                              const cleanKey = correctKeyStr.toLowerCase().replace(/\s/g, '').replace(',', '.');
+                              if (isCorrect === null || isCorrect === undefined) {
+                                if (cleanUser && cleanKey) {
+                                  isCorrect = cleanUser === cleanKey || userAnsStr.toLowerCase() === correctKeyStr.toLowerCase();
+                                } else if (cleanUser && !cleanKey) {
+                                  isCorrect = true;
+                                }
+                              }
+                            } else {
+                              userAnsLetter = userAnsStr ? (userAnsStr.length === 1 && /^[A-E]$/i.test(userAnsStr) ? userAnsStr.toUpperCase() : null) : (typeof rawUserAns === 'number' ? String.fromCharCode(65 + rawUserAns) : null);
+                              userAnsIndex = getAnsIndex(rawUserAns);
+                              correctAnsIndex = getAnsIndex(rawKeyVal);
+                              correctLetter = (correctKeyStr.length === 1 && /^[A-E]$/i.test(correctKeyStr)) ? correctKeyStr.toUpperCase() : (correctAnsIndex !== null ? String.fromCharCode(65 + correctAnsIndex) : '');
+
+                              if (isCorrect === null || isCorrect === undefined) {
+                                if (userAnsLetter && correctLetter) {
+                                  isCorrect = userAnsLetter.toUpperCase() === correctLetter.toUpperCase();
+                                } else if (userAnsIndex !== null && correctAnsIndex !== null) {
+                                  isCorrect = userAnsIndex === correctAnsIndex;
+                                }
                               }
                             }
 
-                            const isWrong = isCorrect === false || (userAnsIndex !== null && !isCorrect) || (ansObj.evalStatus === 'wrong');
-                            const isBlank = isCorrect !== true && !isWrong && userAnsIndex === null && !userAnsLetter && !textAns;
+                            const isWrong = isCorrect === false || (userAnsStr && !isCorrect) || (ansObj.evalStatus === 'wrong');
+                            const isBlank = isCorrect !== true && !isWrong && !userAnsStr;
 
                             return (
                               <div
@@ -908,15 +946,49 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                                   {qNo}
                                 </div>
                                 <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)' }}>
-                                  {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : '✕') : '—'}
+                                  {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : (correctKeyStr ? `(${correctKeyStr})` : '✕')) : '—'}
                                 </span>
                                 <AiUsageBadge testId={testId} questionNo={qNo} compact />
                               </div>
 
-                              {/* Bubble Options */}
-                              {textAns ? (
-                                <div style={{ fontSize: '0.78rem', color: 'var(--color-text, #0f172a)', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', padding: '0.3rem 0.55rem', borderRadius: '0.45rem', flex: 1 }}>
-                                  {textAns}
+                              {/* Options or Text Answer Display */}
+                              {isItemOE ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                  {/* Öğrenci Cevabı */}
+                                  <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    padding: isMobile ? '0.22rem 0.5rem' : '0.3rem 0.65rem',
+                                    borderRadius: '0.5rem',
+                                    background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
+                                    border: `1.5px solid ${isCorrect === true ? '#86efac' : isWrong ? '#fca5a5' : 'var(--color-border, #cbd5e1)'}`,
+                                    color: isCorrect === true ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted, #64748b)',
+                                    fontSize: isMobile ? '0.74rem' : '0.82rem',
+                                    fontWeight: 800
+                                  }}>
+                                    <span style={{ fontSize: '0.66rem', fontWeight: 900, opacity: 0.75 }}>Cevabınız:</span>
+                                    <span style={{ fontWeight: 900 }}>{userAnsStr || 'Boş'}</span>
+                                  </div>
+
+                                  {/* Doğru Cevap Anahtarı */}
+                                  {correctKeyStr && (
+                                    <div style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 5,
+                                      padding: isMobile ? '0.22rem 0.5rem' : '0.3rem 0.65rem',
+                                      borderRadius: '0.5rem',
+                                      background: '#f0fdf4',
+                                      border: '1.5px dashed #16a34a',
+                                      color: '#15803d',
+                                      fontSize: isMobile ? '0.74rem' : '0.82rem',
+                                      fontWeight: 900
+                                    }}>
+                                      <span style={{ fontSize: '0.66rem', fontWeight: 900, opacity: 0.75 }}>Cevap Anahtarı:</span>
+                                      <span>{correctKeyStr}</span>
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
                                 <div style={{ display: 'flex', gap: isMobile ? '0.25rem' : '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
