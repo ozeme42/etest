@@ -565,12 +565,13 @@ export default function StudentDashboard() {
   }, [submissions, selectedStudent]);
 
   // ── Fast O(1) Solved Tests Set for Student (with comprehensive ID & Content matching) ──
+  // ── Fast O(1) Solved Tests Set for Student (with precise ID & Content matching) ──
   const studentSolvedSet = useMemo(() => {
     const set = new Set();
-    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-    const stripPage = (str) => String(str || '').toLowerCase()
-      .replace(/\d+[-–\s\d]*\.\s*sayfa/gi, '')
-      .replace(/sayfa\s*\d+[-–\s\d]*/gi, '')
+    const normalizeKey = (str) => String(str || '')
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212]/g, '-')
+      .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
       .replace(/[^a-z0-9ğüşıöç]/g, '')
       .trim();
 
@@ -591,7 +592,11 @@ export default function StudentDashboard() {
       if (s.status === 'in_progress' || s.status === 'draft') return;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
 
-      const ids = [s.testId, s.test_id, s.bookTestId, s.realTestId, s.hwId, s.homeworkId, s.id, s.supabaseId, s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId];
+      const ids = [
+        s.testId, s.test_id, s.bookTestId, s.realTestId,
+        s.hwId, s.homeworkId, s.id, s.supabaseId,
+        s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
+      ];
       ids.forEach(id => {
         if (id) {
           const str = String(id);
@@ -613,37 +618,28 @@ export default function StudentDashboard() {
         });
       }
 
-      // Add text and content-based keys for book tests
+      // Exact content-based composite keys (requiring specific book or subject)
       const bTitle = normalizeKey(s.bookTitle || s.metadata?.bookTitle);
       const sName = normalizeKey(s.subjectName || s.subject || s.metadata?.subjectName);
       const uTopic = normalizeKey(s.topicName || s.unitTopic || s.metadata?.topicName);
       const tName = normalizeKey(s.testName || s.title || s.testTitle || s.metadata?.testName);
 
-      const strippedTitle = stripPage(s.title || s.testTitle || s.testName);
-      const strippedName = stripPage(s.testName || s.title);
-      const strippedTopic = stripPage(s.topicName || s.unitTopic);
-
-      if (tName) {
-        set.add(`name_${tName}`);
-        if (bTitle) set.add(`book_test_${bTitle}_${tName}`);
-        if (sName) set.add(`subj_test_${sName}_${tName}`);
-        if (bTitle && sName) set.add(`full_${bTitle}_${sName}_${tName}`);
-        if (bTitle && sName && uTopic) set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
-      }
-
-      if (strippedTitle) {
-        set.add(`str_${strippedTitle}`);
-      }
-      if (strippedName) {
-        set.add(`str_${strippedName}`);
-        if (strippedTopic) set.add(`str_${strippedTopic}_${strippedName}`);
-      }
+      if (bTitle && tName) set.add(`book_test_${bTitle}_${tName}`);
+      if (sName && tName) set.add(`subj_test_${sName}_${tName}`);
+      if (bTitle && sName && tName) set.add(`full_${bTitle}_${sName}_${tName}`);
+      if (bTitle && sName && uTopic && tName) set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
 
       if (s.bookId && tName) {
         set.add(`bid_tname_${s.bookId}_${tName}`);
       }
-      if (s.bookId && (s.testId || s.bookTestId)) {
-        set.add(`bid_tid_${s.bookId}_${s.testId || s.bookTestId}`);
+      if (s.bookId && (s.testId || s.bookTestId || s.realTestId)) {
+        set.add(`bid_tid_${s.bookId}_${s.testId || s.bookTestId || s.realTestId}`);
+      }
+
+      // Full specific title normalized (preserving exact page numbers and test numbers)
+      const fullTitleStr = normalizeKey(s.title || s.testTitle || s.testName);
+      if (fullTitleStr && fullTitleStr.length >= 8) {
+        set.add(`title_${fullTitleStr}`);
       }
     });
     return set;
@@ -652,10 +648,10 @@ export default function StudentDashboard() {
   const isItemSolved = useCallback((item) => {
     if (!item) return false;
     if (item.done || item.isCompleted) return true;
-    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-    const stripPage = (str) => String(str || '').toLowerCase()
-      .replace(/\d+[-–\s\d]*\.\s*sayfa/gi, '')
-      .replace(/sayfa\s*\d+[-–\s\d]*/gi, '')
+    const normalizeKey = (str) => String(str || '')
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212]/g, '-')
+      .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
       .replace(/[^a-z0-9ğüşıöç]/g, '')
       .trim();
 
@@ -673,39 +669,27 @@ export default function StudentDashboard() {
       if (studentSolvedSet.has(`bid_tid_${item.bookId}_${tId}`)) return true;
     }
 
-    // Check by content name keys (testName, subject, bookTitle)
+    // Check by composite content keys (requiring book or subject)
     const bTitle = normalizeKey(item.bookTitle);
     const sName = normalizeKey(item.subject || item.subjectName);
     const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
     const tName = normalizeKey(item.testName || item.title);
 
-    if (tName) {
-      if (studentSolvedSet.has(`name_${tName}`)) return true;
-      if (bTitle && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
-      if (sName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
-      if (bTitle && sName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
-      if (bTitle && sName && uTopic && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
-    }
+    if (bTitle && tName && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
+    if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
+    if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
+    if (bTitle && sName && uTopic && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
+    if (item.bookId && tName && studentSolvedSet.has(`bid_tname_${item.bookId}_${tName}`)) return true;
 
-    if (item.bookId && tName) {
-      if (studentSolvedSet.has(`bid_tname_${item.bookId}_${tName}`)) return true;
-    }
+    // Check full normalized specific title (e.g. "9-10. sayfa 1. ünite - paragraf test - 1")
+    const itemFullNorm = normalizeKey(item.title || item.testName);
+    if (itemFullNorm && itemFullNorm.length >= 8) {
+      if (studentSolvedSet.has(`title_${itemFullNorm}`)) return true;
 
-    // Check page-number stripped keys
-    const strippedTitle = stripPage(item.title || item.testName);
-    const strippedName = stripPage(item.testName || item.title);
-    const strippedTopic = stripPage(item.unitTopic || item.topicName);
-
-    if (strippedTitle && studentSolvedSet.has(`str_${strippedTitle}`)) return true;
-    if (strippedName && studentSolvedSet.has(`str_${strippedName}`)) return true;
-    if (strippedTopic && strippedName && studentSolvedSet.has(`str_${strippedTopic}_${strippedName}`)) return true;
-
-    // Substring check for composite titles (e.g. "4. Sınıf ... 25-26. Sayfa 1. Ünite - PARAGRAF DENEME SINAVI - 1")
-    if (strippedName && strippedName.length > 3) {
       for (const key of studentSolvedSet) {
-        if (key.startsWith('str_')) {
-          const subStr = key.slice(4);
-          if (subStr.includes(strippedName) || (strippedTitle && subStr.includes(strippedTitle)) || (strippedTitle && strippedTitle.includes(subStr))) {
+        if (key.startsWith('title_')) {
+          const subTitle = key.slice(6);
+          if (subTitle.includes(itemFullNorm) || (itemFullNorm.length >= 15 && itemFullNorm.includes(subTitle))) {
             return true;
           }
         }

@@ -208,7 +208,7 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
   }
 
   // CASE 3: GENERAL NON-TEST HOMEWORK TASK
-  const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace('hw_', '') : null) || item.id;
+  const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace(/^hw_/, '') : null) || (item.isAutoHomework || item.isHomework ? item.id : null);
   if (generalHwId) {
     const gHwIdStr = String(generalHwId);
     if (precomputedSolvedIdsSet && precomputedSolvedIdsSet.has(gHwIdStr)) return true;
@@ -218,13 +218,13 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
     const isHwSolvedInSubs = (submissions || []).some(s => {
       if (!s || !isMatchStudent(s)) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
-      const subFields = [s.hwId, s.homeworkId, s.testId, s.id].filter(Boolean).map(String);
+      const subFields = [s.hwId, s.homeworkId].filter(Boolean).map(String);
       return subFields.some(sf => sf === gHwIdStr || (gUuidStr && sf === gUuidStr) || toUUID(sf) === gHwIdStr);
     });
 
     if (isHwSolvedInSubs) return true;
 
-    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr);
+    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr || toUUID(h.id) === gHwIdStr);
     if (hwObj && Array.isArray(hwObj.submissions)) {
       const hasHwSub = hwObj.submissions.some(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
       if (hasHwSub) return true;
