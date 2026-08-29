@@ -272,12 +272,19 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
   useEffect(() => {
     let isMounted = true;
     async function fetchPdfPayload() {
-      const direct = test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload;
+      const direct = test.pdfPayload || test.contentPayload || test.pdfUrl || test.imageUrl || test.filePayload ||
+        test.raw_data?.pdfPayload || test.raw_data?.imageUrl || test.raw_data?.contentPayload ||
+        questions[0]?.pdfPayload || questions[0]?.contentPayload || questions[0]?.pdfUrl || questions[0]?.imageUrl;
       if (direct && direct !== '[STORED_IN_INDEXEDDB]' && direct !== '[LOCALSTORAGE_CACHE]') return;
 
       const candidates = [
         test.id,
         test.id?.replace(/^q_/, ''),
+        test.raw_data?.id,
+        submission?.test_id,
+        submission?.testId,
+        submission?.homework_id,
+        submission?.hwId,
         questions[0]?.id,
         test.questionsList?.[0]?.id
       ].filter(Boolean);
@@ -296,7 +303,10 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     return () => { isMounted = false; };
   }, [test, questions, submission]);
 
-  const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || questions[0]?.pdfPayload || questions[0]?.contentPayload || submission?.pdfPayload;
+  const pdfPayload = idbPdf || test.pdfPayload || test.contentPayload || test.pdfUrl || test.imageUrl || test.filePayload ||
+    test.raw_data?.pdfPayload || test.raw_data?.imageUrl || test.raw_data?.contentPayload ||
+    questions[0]?.pdfPayload || questions[0]?.contentPayload || questions[0]?.pdfUrl || questions[0]?.imageUrl ||
+    submission?.pdfPayload || submission?.raw_data?.pdfPayload;
 
   const isTrulyEvaluated = useMemo(() => {
     if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {

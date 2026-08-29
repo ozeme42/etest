@@ -798,8 +798,8 @@ export default function ModularQuizReviewPage() {
     (questions && questions.some(q => q.imageUrl || (q.imageUrls && q.imageUrls.length > 0) || q.contentPayload?.startsWith?.('data:image') || q.contentType === 'gorsel'))
   );
 
-  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended and NOT digital/image/remedial)
-  const isBookOrOptical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isSectionOpenEnded(test) && Boolean(
+  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended and NOT digital/image/remedial/pdf)
+  const isBookOrOptical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isPdf && !isHtml && !isSectionOpenEnded(test) && Boolean(
     test.bookId ||
     test.bookTestId ||
     submission?.bookId ||
@@ -843,7 +843,7 @@ export default function ModularQuizReviewPage() {
     ))
   );
 
-  const isPhysical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+  const isPhysical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isPdf && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
@@ -889,19 +889,7 @@ export default function ModularQuizReviewPage() {
   };
 
   // ── Render the correct review component based on test type ──────────────────
-  // 1. Physical & Tracked Book Review (Supports both Optical Multiple Choice & Open-Ended Book Tests)
-  if (isPhysical || isBookOrOptical) {
-    return (
-      <PhysicalQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 2. Multi-section composite homework
+  // 1. Multi-section composite homework
   if (isMultiSection) {
     return (
       <CompositeHomeworkReview
@@ -914,7 +902,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 3. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
+  // 2. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
   if (isExplicitOpenEnded || isSingleOE) {
     return (
       <SingleOpenEndedReview
@@ -927,10 +915,22 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single PDF Review
+  // 3. Single PDF Review (Rendered with PDF Document viewer + questions/optical panel)
   if (isPdf) {
     return (
       <PdfQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 4. Physical & Tracked Book Review (Supports Optical Multiple Choice for paper books)
+  if (isPhysical || isBookOrOptical) {
+    return (
+      <PhysicalQuizReview
         submission={submission}
         test={test}
         questions={questions}
