@@ -1162,7 +1162,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
         (selectedStatusFilter === 'in_progress' && !item.isMastered);
 
       return matchSearch && matchSubject && matchStatus;
-    });
+    }).sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr', { numeric: true, sensitivity: 'base' }));
   }, [scopedList, searchQuery, selectedSubjectFilter, selectedStatusFilter]);
 
   // Overview KPIs

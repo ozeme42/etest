@@ -928,12 +928,12 @@ export default function HomeworkManager() {
         if (hw.supabaseId && hw.supabaseId !== hw.id) {
           await deleteHomework(hw.supabaseId);
         }
-        if (typeof deleteSubmissionsByTestId === 'function') {
+        /* if (typeof deleteSubmissionsByTestId === 'function') {
           await deleteSubmissionsByTestId(hw.id);
           if (hw.supabaseId && hw.supabaseId !== hw.id) {
             await deleteSubmissionsByTestId(hw.supabaseId);
           }
-        }
+        } */
         setSelectedHwListIds(prev => prev.filter(x => x !== hw.id && x !== hw.supabaseId));
         showToast('🗑️ Ödev başarıyla silindi!');
       } catch (err) {
@@ -952,12 +952,12 @@ export default function HomeworkManager() {
         if (found?.supabaseId && found.supabaseId !== id) {
           await deleteHomework(found.supabaseId);
         }
-        if (typeof deleteSubmissionsByTestId === 'function') {
+        /* if (typeof deleteSubmissionsByTestId === 'function') {
           await deleteSubmissionsByTestId(id);
           if (found?.supabaseId && found.supabaseId !== id) {
             await deleteSubmissionsByTestId(found.supabaseId);
           }
-        }
+        } */
       }
       setSelectedHwListIds([]);
       showToast(`🗑️ ${count} adet ödev başarıyla silindi!`);
@@ -1023,7 +1023,6 @@ export default function HomeworkManager() {
                 onClick={() => {
                   if (window.confirm('Tüm ödevleri silmek istediğinize emin misiniz?')) {
                     if (typeof deleteAllHomeworks === 'function') deleteAllHomeworks();
-                    if (typeof deleteAllSubmissions === 'function') deleteAllSubmissions();
                   }
                 }}
                 style={{

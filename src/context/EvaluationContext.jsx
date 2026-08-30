@@ -653,15 +653,17 @@ export function EvaluationProvider({ children }) {
     } catch (e) {}
   };
 
+  /* 
   useEffect(() => {
     const handleHwDeleted = (e) => {
       if (e.detail?.id) {
-        deleteSubmissionsByTestId(e.detail.id);
+        // deleteSubmissionsByTestId(e.detail.id); // Disabled to prevent wiping out book progress when homeworks are deleted
       }
     };
     window.addEventListener('homework_deleted', handleHwDeleted);
     return () => window.removeEventListener('homework_deleted', handleHwDeleted);
   }, []);
+  */
 
   const deleteStudentSubmissionsForBookOrHw = async (studentId, hwId, bookId, testIds = []) => {
     if (!studentId) return;
