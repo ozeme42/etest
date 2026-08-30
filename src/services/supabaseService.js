@@ -2017,13 +2017,15 @@ export async function dbGetTrackedBooks() {
 
       const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
       
-      const optCount = metaObj?.optionCount !== undefined
+      const optCount = (metaObj?.optionCount !== undefined && metaObj.optionCount !== null)
         ? Number(metaObj.optionCount)
-        : (b.option_count !== undefined
-          ? Number(b.option_count)
-          : (b.optionCount !== undefined
-            ? Number(b.optionCount)
-            : (b.raw_data?.optionCount !== undefined ? Number(b.raw_data.optionCount) : 5)));
+        : ((b.raw_data?.optionCount !== undefined && b.raw_data.optionCount !== null)
+          ? Number(b.raw_data.optionCount)
+          : ((b.option_count !== undefined && b.option_count !== null)
+            ? Number(b.option_count)
+            : ((b.optionCount !== undefined && b.optionCount !== null)
+              ? Number(b.optionCount)
+              : 5)));
 
       const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
       const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
@@ -2057,6 +2059,9 @@ export async function dbGetTrackedBooks() {
         const bUuid = toUUID(b.id);
         if (bUuid) idAliasMap.set(bUuid, String(canonical.id));
         canonical.subjects = bookObj.subjects || canonical.subjects;
+        if (bookObj.optionCount !== undefined) canonical.optionCount = bookObj.optionCount;
+        if (bookObj.bookType) canonical.bookType = bookObj.bookType;
+        if (bookObj.pdfUrl) canonical.pdfUrl = bookObj.pdfUrl;
       }
     });
 
@@ -2142,10 +2147,14 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
     }
     if (initialPayload.bookType && availableCols.has('book_type')) payload.book_type = initialPayload.bookType;
     if (initialPayload.pdfUrl && availableCols.has('pdf_url')) payload.pdf_url = initialPayload.pdfUrl;
+    if (initialPayload.optionCount !== undefined && availableCols.has('option_count')) payload.option_count = initialPayload.optionCount;
+    if (initialPayload.optionCount !== undefined && availableCols.has('optionCount')) payload.optionCount = initialPayload.optionCount;
+    if (initialPayload.option_count !== undefined && availableCols.has('option_count')) payload.option_count = initialPayload.option_count;
   } else {
     payload = {
       title: initialPayload.title || 'Kitap',
-      subjects: initialPayload.subjects || []
+      subjects: initialPayload.subjects || [],
+      ...initialPayload
     };
   }
 
@@ -2173,7 +2182,7 @@ async function resilientTrackedBookMutation(initialPayload, bookId, isUpsert = f
 export async function dbAddTrackedBook(book) {
   if (!isSupabaseConfigured() || !book) return null;
   try {
-    const optCount = Number(book.optionCount) || 5;
+    const optCount = Number(book.optionCount || book.option_count) || 5;
     const bType = book.bookType || 'standard';
     const pdf = book.pdfUrl || '';
     const pub = book.publisher || '';
@@ -2210,6 +2219,8 @@ export async function dbAddTrackedBook(book) {
       publisher: pub,
       book_type: bType,
       pdf_url: pdf,
+      option_count: optCount,
+      optionCount: optCount,
       subjects: subjectsWithMeta,
       raw_data: rawData
     };
@@ -2277,9 +2288,21 @@ export async function dbUpdateTrackedBook(bookId, updates) {
       publisher: pub,
       book_type: bType,
       pdf_url: pdf,
+      option_count: optCount,
+      optionCount: optCount,
       subjects: subjectsWithMeta,
       raw_data: rawData
     };
+
+    // Update book tests in Supabase if optionCount changed
+    if (updates.optionCount !== undefined) {
+      try {
+        const candidateBookIds = [bookId, safeId, String(bookId)].filter(Boolean);
+        await supabase.from('tracked_book_tests').update({ option_count: optCount }).in('book_id', candidateBookIds);
+      } catch (err) {
+        console.warn('[Supabase] Failed to update test option_count:', err);
+      }
+    }
 
     return await resilientTrackedBookMutation(payload, bookId, false);
   } catch (err) {

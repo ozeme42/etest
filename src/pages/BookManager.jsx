@@ -46,10 +46,10 @@ export default function BookManager() {
   useEffect(() => {
     if (editingBook) {
       setNewBook({
-        title: editingBook.title,
-        publisher: editingBook.publisher,
+        title: editingBook.title || '',
+        publisher: editingBook.publisher || '',
         bookType: editingBook.bookType || 'standard',
-        optionCount: editingBook.optionCount || 5,
+        optionCount: Number(editingBook.optionCount) === 4 ? 4 : 5,
         pdfUrl: editingBook.pdfUrl || ''
       });
     } else {
@@ -761,12 +761,12 @@ export default function BookManager() {
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 4 ? '#16a34a' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 4 ? 'rgba(22,163,74,0.12)' : 'var(--color-surface-hover)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 4 ? '#16a34a' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 4 ? 'rgba(22,163,74,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
                       name="optionCount"
                       value={4}
-                      checked={newBook.optionCount === 4}
+                      checked={Number(newBook.optionCount) === 4}
                       onChange={() => setNewBook({ ...newBook, optionCount: 4 })}
                       style={{ accentColor: '#16a34a' }}
                     />
@@ -775,12 +775,12 @@ export default function BookManager() {
                       <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Ortaokul / LGS</div>
                     </div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${newBook.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.optionCount === 5 ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 5 ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
                       name="optionCount"
                       value={5}
-                      checked={newBook.optionCount === 5}
+                      checked={Number(newBook.optionCount) === 5}
                       onChange={() => setNewBook({ ...newBook, optionCount: 5 })}
                       style={{ accentColor: '#8b5cf6' }}
                     />

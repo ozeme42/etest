@@ -177,20 +177,32 @@ export function TrackedBookProvider({ children }) {
   };
 
   const updateTrackedBook = async (id, updates) => {
+    invalidateCache('tracked_books');
     sessionStorage.removeItem('eTestLastTrackedBooksSync');
     const idStr = String(id);
     const idUuid = toUUID(idStr);
-    setBooks(prev => prev.map(book => {
-      const isMatch = String(book.id) === idStr || (idUuid && String(book.id) === idUuid) || (toUUID(book.id) && String(toUUID(book.id)) === idUuid);
-      return isMatch ? { ...book, ...updates } : book;
-    }));
+    
+    setBooks(prev => {
+      const next = prev.map(book => {
+        const isMatch = String(book.id) === idStr || (idUuid && String(book.id) === idUuid) || (toUUID(book.id) && String(toUUID(book.id)) === idUuid);
+        return isMatch ? { ...book, ...updates } : book;
+      });
+      safeSetItem('eTestTrackedBooks', JSON.stringify(next));
+      return next;
+    });
+
     if (updates.optionCount !== undefined) {
       const optCountNum = Number(updates.optionCount);
-      setBookTests(prev => prev.map(t => {
-        const isMatch = String(t.bookId) === idStr || (idUuid && String(t.bookId) === idUuid) || (toUUID(t.bookId) && String(toUUID(t.bookId)) === idUuid);
-        return isMatch ? { ...t, optionCount: optCountNum } : t;
-      }));
+      setBookTests(prev => {
+        const next = prev.map(t => {
+          const isMatch = String(t.bookId) === idStr || (idUuid && String(t.bookId) === idUuid) || (toUUID(t.bookId) && String(toUUID(t.bookId)) === idUuid);
+          return isMatch ? { ...t, optionCount: optCountNum } : t;
+        });
+        safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
+        return next;
+      });
     }
+
     await dbUpdateTrackedBook(id, updates);
   };
 

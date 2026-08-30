@@ -114,13 +114,15 @@ export default function BookContentManager() {
           : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
         const metaObj = rawSubjects.find(s => s && (s.__meta === true || s.id === '__book_meta__'));
         
-        const optCount = metaObj?.optionCount !== undefined
+        const optCount = (metaObj?.optionCount !== undefined && metaObj.optionCount !== null)
           ? Number(metaObj.optionCount)
-          : (b.option_count !== undefined
-            ? Number(b.option_count)
-            : (b.optionCount !== undefined
-              ? Number(b.optionCount)
-              : (b.raw_data?.optionCount !== undefined ? Number(b.raw_data.optionCount) : 5)));
+          : ((b.raw_data?.optionCount !== undefined && b.raw_data.optionCount !== null)
+            ? Number(b.raw_data.optionCount)
+            : ((b.option_count !== undefined && b.option_count !== null)
+              ? Number(b.option_count)
+              : ((b.optionCount !== undefined && b.optionCount !== null)
+                ? Number(b.optionCount)
+                : 5)));
 
         const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
         const pub = metaObj?.publisher || b.publisher || b.raw_data?.publisher || '';
