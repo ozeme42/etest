@@ -277,6 +277,17 @@ export default function StudentBookDetailsPage() {
 
   const assignedTestIds = bookData.ids;
 
+  const handleReviewTest = useCallback((test) => {
+    if (!test) return;
+    const subId = test.bestSub?.id || test.latestSubId || test.submissionId || test.submission?.id;
+    const fromState = { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` };
+    if (subId) {
+      navigate(`/review/${subId}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: fromState });
+    } else {
+      navigate(`/quiz-review/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: fromState });
+    }
+  }, [book?.id, studentId, isFromTeacher, navigate]);
+
   // Compute test completion logic and lock statuses
   // Hierarchy: For each Subject -> ordered list of assigned tests.
   const subjectProgress = useMemo(() => {
@@ -2187,7 +2198,7 @@ export default function StudentBookDetailsPage() {
                                   <button
                                     className="sbdp-btn-solve"
                                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                    onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                    onClick={() => handleReviewTest(test)}
                                   >
                                     <Eye size={13} /> Sonucu İncele
                                   </button>
@@ -2254,7 +2265,7 @@ export default function StudentBookDetailsPage() {
                                   <button
                                     className="sbdp-btn-solve"
                                     style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                    onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                    onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                   >
                                     <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                   </button>
@@ -2371,7 +2382,7 @@ export default function StudentBookDetailsPage() {
                                           <button
                                             className="sbdp-btn-solve"
                                             style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                            onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                            onClick={() => handleReviewTest(test)}
                                           >
                                             <Eye size={13} /> Sonucu İncele
                                           </button>
@@ -2438,7 +2449,7 @@ export default function StudentBookDetailsPage() {
                                           <button
                                             className="sbdp-btn-solve"
                                             style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                            onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                            onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                           >
                                             <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                           </button>
@@ -2508,7 +2519,7 @@ export default function StudentBookDetailsPage() {
                                 <button
                                   className="sbdp-btn-solve"
                                   style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` } })}
+                                  onClick={() => handleReviewTest(test)}
                                 >
                                   <Eye size={13} /> Sonucu İncele
                                 </button>
@@ -2575,7 +2586,7 @@ export default function StudentBookDetailsPage() {
                                 <button
                                   className="sbdp-btn-solve"
                                   style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
-                                  onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                                  onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                 >
                                   <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                 </button>

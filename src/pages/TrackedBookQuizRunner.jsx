@@ -648,6 +648,14 @@ export default function TrackedBookQuizRunner() {
 
     const existingSub = matchingSubs[0] || null;
 
+    if (existingSub && !isRetake) {
+      navigate(`/review/${existingSub.id}?studentId=${studentId || ''}`, {
+        replace: true,
+        state: { from: returnUrl || (resolvedBook?.id ? `/student/books/${resolvedBook.id}?studentId=${studentId || ''}` : '/student') }
+      });
+      return;
+    }
+
     if (existingSub) {
       setIsSubmitted(true);
       setShowOptikForm(true);

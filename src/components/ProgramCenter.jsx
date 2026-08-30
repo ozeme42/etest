@@ -3381,18 +3381,55 @@ export default function ProgramCenter({
       return;
     }
 
+    // 1. Check explicit submissionId
+    if (item.submissionId) {
+      navigate(`/review/${item.submissionId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+    if (item.submission?.id) {
+      navigate(`/review/${item.submission.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+
     const hwObj = item.hwId ? (allHomeworks || []).find(h => String(h.id) === String(item.hwId)) : null;
     const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || item.bookId));
     const isExam = item.isExamTask || item.taskType === 'deneme' || item.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-    
-    if (isExam) {
-      navigate(`/physical-exam/${item.hwId || item.testId || item.realTestId || item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
-      return;
-    }
 
     const targetBookTestId = item.bookTestId || item.testId || item.realTestId ||
       (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null) ||
       (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0 ? hwObj.tests[0] : null);
+
+    // 2. Search for existing completed submission in submissions
+    const matchedSub = (submissions || []).find(s => {
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      const sStdId = String(s.studentId || s.student_id || s.userId || '');
+      const isSt = sStdId === String(sId) || (sId && toUUID(sStdId) === toUUID(sId));
+      if (!isSt) return false;
+
+      const candidateKeys = [item.hwId, targetBookTestId, item.id, item.testId, item.realTestId].filter(Boolean).map(String);
+      const subKeys = [s.id, s.hwId, s.testId, s.realTestId, s.bookTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+      return candidateKeys.some(ck => subKeys.includes(ck) || (toUUID(ck) && subKeys.includes(toUUID(ck))));
+    });
+
+    if (matchedSub) {
+      navigate(`/review/${matchedSub.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+
+    // 3. If item is marked completed, open quiz-review directly
+    if (item.isCompleted || item.isDone || item.status === 'completed') {
+      const reviewTarget = targetBookTestId || item.hwId || item.realTestId || item.testId || item.id;
+      if (reviewTarget) {
+        navigate(`/quiz-review/${reviewTarget}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+        return;
+      }
+    }
+
+    // Fallback if not completed -> start solving
+    if (isExam) {
+      navigate(`/physical-exam/${item.hwId || item.testId || item.realTestId || item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
 
     const isBook = Boolean(
       item.isBookTask ||
@@ -3432,7 +3469,7 @@ export default function ProgramCenter({
       navigate(`/quiz/${item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
-  }, [navigate, effectiveStudentId, allHomeworks, books, location.pathname]);
+  }, [navigate, effectiveStudentId, allHomeworks, books, submissions, location.pathname]);
 
   const handleStartInStudyRoom = useCallback((item) => {
     if (!item) return;

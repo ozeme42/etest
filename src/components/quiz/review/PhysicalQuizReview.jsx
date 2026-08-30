@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, Trophy, Sparkles, Check, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, HelpCircle, FileSpreadsheet, Trophy, Sparkles, Check, ChevronDown, ChevronUp, Save, RotateCcw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useEvaluation } from '../../../context/EvaluationContext';
@@ -533,6 +533,32 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
             }}>
               %{scorePct}
             </div>
+
+            {/* Tekrar Çöz Button */}
+            <button
+              onClick={() => {
+                const targetTestId = submission?.bookTestId || submission?.realTestId || submission?.testId || test?.id;
+                navigate(`/book-quiz/${targetTestId}?studentId=${submission?.studentId || ''}&retake=true`, {
+                  state: { from: location.pathname, retake: true }
+                });
+              }}
+              style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                color: 'var(--color-text)',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '0.5rem',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+              title="Bu testi sıfırdan tekrar çöz"
+            >
+              <RotateCcw size={13} /> Tekrar Çöz
+            </button>
           </div>
         )}
       </header>

@@ -210,6 +210,17 @@ export default function ModularQuizPage() {
     }) || null;
   }, [submissions, testId, test?.id, studentId, activeHomework, isRetake]);
 
+  // Auto-redirect to Review page if this test is already completed (unless explicit retake was requested)
+  useEffect(() => {
+    if (completedSub && !isRetake && !submittedResult) {
+      const targetSubId = completedSub.id || completedSub.testId || testId;
+      navigate(`/review/${targetSubId}?studentId=${studentId || ''}`, {
+        replace: true,
+        state: { from: returnUrl || '/student' }
+      });
+    }
+  }, [completedSub, isRetake, submittedResult, studentId, testId, returnUrl, navigate]);
+
   const bookForTest = useMemo(() => {
     if (!test) return null;
     const bId = test.bookId || (test.tests && Array.isArray(test.tests) && test.tests.length > 0 && bookTests?.find(bt => String(bt.id) === String(test.tests[0]) || toUUID(bt.id) === toUUID(test.tests[0]))?.bookId);

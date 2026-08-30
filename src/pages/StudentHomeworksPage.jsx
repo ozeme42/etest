@@ -555,6 +555,10 @@ export default function StudentHomeworksPage() {
   }, [filteredTests, activeTab]);
 
   const handleStartTask = (task) => {
+    if (task.isDone || task.submissionId || task.isCompleted) {
+      handleReviewTask(task);
+      return;
+    }
     if (task.type === 'physicalExam' || task.isPhysical) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     } else if (task.isBookAssignment || task.sourceType === 'trackedBook') {
