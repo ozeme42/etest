@@ -1166,19 +1166,18 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
   const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
 
-  // 1. Direct Specific ID Matching (including array fields like bookTestIds, tests, etc.):
+  // 1. Direct Specific ID Matching:
   if (specId && specId !== 'undefined' && specId !== 'null' && specClean.length > 3) {
     const isDirectIdMatch = (sTestId && (sTestId === specId || sClean === specClean || (specUuid && sUuid === specUuid))) ||
                             (sRealTestId && (sRealTestId === specId || sRealClean === specClean || (specUuid && toUUID(sRealClean) === specUuid))) ||
                             (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid))) ||
-                            (s.id && (String(s.id).includes(specId) || String(s.id).includes(specClean))) ||
                             (s.metadata?.testId && String(s.metadata.testId) === specId) ||
                             (s.metadata?.realTestId && String(s.metadata.realTestId) === specId) ||
                             (s.metadata?.bookTestId && String(s.metadata.bookTestId) === specId) ||
-                            (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
-                            (Array.isArray(s.tests) && s.tests.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
-                            (Array.isArray(s.metadata?.bookTestIds) && s.metadata.bookTestIds.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
-                            (Array.isArray(s.metadata?.tests) && s.metadata.tests.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.tests) && s.tests.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.metadata?.bookTestIds) && s.metadata.bookTestIds.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.metadata?.tests) && s.metadata.tests.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid))) ||
                             (s.testDueDates && typeof s.testDueDates === 'object' && s.testDueDates[specId]);
 
     if (isDirectIdMatch) {
@@ -1299,17 +1298,13 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   // 5. Strict Unit Isolation
-  let unitsMatched = false;
-  if (tUnit && normSubUnit) {
-    const tUnitNum = tUnit.match(/(\d+)\.\s*ünite/i)?.[1] || tUnit.match(/ünite\s*(\d+)/i)?.[1];
-    const sUnitNum = normSubUnit.match(/(\d+)\.\s*ünite/i)?.[1] || normSubUnit.match(/ünite\s*(\d+)/i)?.[1];
-    if (tUnitNum && sUnitNum) {
-      if (tUnitNum !== sUnitNum) return false;
-      unitsMatched = true;
-    }
+  const tUnitNum = tUnit.match(/(\d+)\.\s*ünite/i)?.[1] || tUnit.match(/ünite\s*(\d+)/i)?.[1];
+  const sUnitNum = normSubUnit.match(/(\d+)\.\s*ünite/i)?.[1] || normSubUnit.match(/ünite\s*(\d+)/i)?.[1];
+  if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) {
+    return false; // Different units can NEVER match!
   }
 
-  // 6. Test Category & Number Canonical Normalizer
+  // 6. Test Category & Number Canonical Normalizer (ONLY if unit numbers match!)
   const extractTestCategoryAndNumber = (str) => {
     const s = cleanHelper(str);
     const numMatch = s.match(/\d+/g);
@@ -1328,9 +1323,11 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const tCat = extractTestCategoryAndNumber(tName);
   const sCat = extractTestCategoryAndNumber(normSubTest || rawSTitle);
 
-  if (tCat.category && sCat.category && tCat.category === sCat.category) {
-    if (tCat.num !== null && sCat.num !== null && tCat.num === sCat.num) {
-      return true;
+  if (tUnitNum && sUnitNum && tUnitNum === sUnitNum) {
+    if (tCat.category && sCat.category && tCat.category === sCat.category) {
+      if (tCat.num !== null && sCat.num !== null && tCat.num === sCat.num) {
+        return true;
+      }
     }
   }
 
@@ -1344,7 +1341,9 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const normTChars = normOnlyChars(cleanTName);
 
   if (normSubChars === normTChars && normTChars.length >= 2) {
-    return true;
+    if (!tUnitNum || !sUnitNum || tUnitNum === sUnitNum) {
+      return true;
+    }
   }
 
   const subNums = (normSubTest.match(/\d+/g) || []).join('-');
@@ -1359,12 +1358,16 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   if (normSubTest === cleanTName) {
-    return true;
+    if (!tUnitNum || !sUnitNum || tUnitNum === sUnitNum) {
+      return true;
+    }
   }
 
   if ((normSubTest.length >= 6 && cleanTName.includes(normSubTest)) || (cleanTName.length >= 6 && normSubTest.includes(cleanTName))) {
     if (subNums === targetNums) {
-      return true;
+      if (!tUnitNum || !sUnitNum || tUnitNum === sUnitNum) {
+        return true;
+      }
     }
   }
 
