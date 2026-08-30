@@ -300,7 +300,7 @@ export default function StudentBookDetailsPage() {
     const studentIdStr = String(studentId || '');
     const studentUuidStr = String(toUUID(studentId) || '');
 
-    // Gather all matching submissions from both submissions table and homeworks.submissions
+    // Gather all matching submissions from both submissions table, homeworks.submissions, and localStorage
     const allStudentSubs = (submissions || []).filter(s => {
       if (!s || isDeletedItem(s)) return false;
       const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
@@ -316,12 +316,38 @@ export default function StudentBookDetailsPage() {
         const sStdId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
         const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
         if (isMatchStudent && sub.status !== 'in_progress' && sub.status !== 'draft') {
-          if (!allStudentSubs.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
-            allStudentSubs.push(sub);
+          const subId = String(sub.id || '');
+          const existing = allStudentSubs.find(x => subId && String(x.id) === subId);
+          if (!existing) {
+            allStudentSubs.push({
+              ...sub,
+              hwId: hw.id,
+              homeworkId: hw.id,
+              bookId: hw.bookId || sub.bookId,
+              tests: hw.tests,
+              testDueDates: hw.testDueDates
+            });
           }
         }
       });
     });
+
+    try {
+      const localSubs = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
+      if (Array.isArray(localSubs)) {
+        localSubs.forEach(ls => {
+          if (!ls || isDeletedItem(ls)) return;
+          const sStdId = String(ls.studentId || ls.student_id || ls.userId || ls.user_id || '');
+          const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+          if (isMatchStudent && ls.status !== 'in_progress' && ls.status !== 'draft') {
+            const lsId = String(ls.id || '');
+            if (!allStudentSubs.some(x => lsId && String(x.id) === lsId)) {
+              allStudentSubs.push(ls);
+            }
+          }
+        });
+      }
+    } catch {}
 
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');

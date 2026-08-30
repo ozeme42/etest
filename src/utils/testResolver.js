@@ -1166,11 +1166,20 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
   const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
 
-  // 1. Direct Specific ID Matching:
+  // 1. Direct Specific ID Matching (including array fields like bookTestIds, tests, etc.):
   if (specId && specId !== 'undefined' && specId !== 'null' && specClean.length > 3) {
     const isDirectIdMatch = (sTestId && (sTestId === specId || sClean === specClean || (specUuid && sUuid === specUuid))) ||
                             (sRealTestId && (sRealTestId === specId || sRealClean === specClean || (specUuid && toUUID(sRealClean) === specUuid))) ||
-                            (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid)));
+                            (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid))) ||
+                            (s.id && (String(s.id).includes(specId) || String(s.id).includes(specClean))) ||
+                            (s.metadata?.testId && String(s.metadata.testId) === specId) ||
+                            (s.metadata?.realTestId && String(s.metadata.realTestId) === specId) ||
+                            (s.metadata?.bookTestId && String(s.metadata.bookTestId) === specId) ||
+                            (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.tests) && s.tests.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.metadata?.bookTestIds) && s.metadata.bookTestIds.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
+                            (Array.isArray(s.metadata?.tests) && s.metadata.tests.some(id => String(id) === specId || String(id) === specClean || (specUuid && toUUID(id) === specUuid))) ||
+                            (s.testDueDates && typeof s.testDueDates === 'object' && s.testDueDates[specId]);
 
     if (isDirectIdMatch) {
       const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
@@ -1290,13 +1299,42 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   // 5. Strict Unit Isolation
+  let unitsMatched = false;
   if (tUnit && normSubUnit) {
     const tUnitNum = tUnit.match(/(\d+)\.\s*ünite/i)?.[1] || tUnit.match(/ünite\s*(\d+)/i)?.[1];
     const sUnitNum = normSubUnit.match(/(\d+)\.\s*ünite/i)?.[1] || normSubUnit.match(/ünite\s*(\d+)/i)?.[1];
-    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
+    if (tUnitNum && sUnitNum) {
+      if (tUnitNum !== sUnitNum) return false;
+      unitsMatched = true;
+    }
   }
 
-  // 6. Test Name Matching with Strict Number Isolation
+  // 6. Test Category & Number Canonical Normalizer
+  const extractTestCategoryAndNumber = (str) => {
+    const s = cleanHelper(str);
+    const numMatch = s.match(/\d+/g);
+    const num = numMatch ? parseInt(numMatch[numMatch.length - 1], 10) : null;
+    let category = 'test';
+    if (s.includes('ünite değerlendirme') || s.includes('ü. değ') || s.includes('ü.değ') || s.includes('ü değ') || s.includes('udeg') || s.includes('ünite deg')) {
+      category = 'udeg';
+    } else if (s.includes('yeni nesil') || s.includes('yeninesil') || s.includes('yn')) {
+      category = 'yeninesil';
+    } else if (s.includes('paragraf')) {
+      category = 'paragraf';
+    }
+    return { category, num, raw: s };
+  };
+
+  const tCat = extractTestCategoryAndNumber(tName);
+  const sCat = extractTestCategoryAndNumber(normSubTest || rawSTitle);
+
+  if (tCat.category && sCat.category && tCat.category === sCat.category) {
+    if (tCat.num !== null && sCat.num !== null && tCat.num === sCat.num) {
+      return true;
+    }
+  }
+
+  // 7. Exact String Matching with Strict Number Isolation
   if (!normSubTest || normSubTest.length < 2) return false;
 
   const cleanTName = tName.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').trim();
