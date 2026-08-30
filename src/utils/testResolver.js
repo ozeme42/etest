@@ -1085,11 +1085,17 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const targetBookId = String(targetTest?.bookId || targetTest?.book_id || '').toLowerCase().trim();
   const subBookId = String(s.bookId || s.book_id || s.metadata?.bookId || s.metadata?.book_id || '').toLowerCase().trim();
   
+  // Exception: If the test name is an exact match and highly specific (> 20 chars), allow cross-book matching
+  // (e.g. if a teacher moved a test from Book A to Book B after a student solved it)
+  const sTestName = String(s.testName || s.metadata?.testName || '').toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+  const tTestName = String(targetTest?.name || targetTest?.title || '').toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+  const isHighlySpecificNameMatch = sTestName && tTestName && sTestName === tTestName && sTestName.length > 20;
+
   if (targetBookId && subBookId) {
     const tUuid = toUUID(targetBookId);
     const sUuid = toUUID(subBookId);
     if (targetBookId !== subBookId && (!tUuid || tUuid !== sUuid)) {
-      return false; // Explicit book mismatch
+      if (!isHighlySpecificNameMatch) return false; // Explicit book mismatch
     }
   }
 
@@ -1106,7 +1112,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     
     if (targetBookTitle && subBookTitle !== targetBookTitle && !targetBookTitle.includes(subBookTitle) && !subBookTitle.includes(targetBookTitle)) {
       // Very strict mismatch, e.g. "Paragraf" vs "Ünite Ünite"
-      return false; 
+      if (!isHighlySpecificNameMatch) return false; 
     }
   }
 
