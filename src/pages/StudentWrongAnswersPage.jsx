@@ -212,7 +212,7 @@ export default function StudentWrongAnswersPage() {
       const q = { ...raw, ...item };
 
       // Must be explicitly created as a remedial / sliced test
-      const isExplicitRemedial = q.isRemedialTest === true || q.sourceType === 'pdfSlicer';
+      const isExplicitRemedial = q.isRemedialTest === true || q.isRemedial === true || q.isTeacherRemedial === true || q.sourceType === 'pdfSlicer' || q.sourceType === 'pdfSlicerRemedial' || q.type === 'remedial' || q.type === 'remedialTest';
       const titleLower = (q.title || q.name || '').toLowerCase();
       const isRemedialTitle = titleLower.includes('telafi testi') || titleLower.includes('kırpılmış');
 
@@ -220,8 +220,8 @@ export default function StudentWrongAnswersPage() {
         return false;
       }
 
-      // Check target students / ownership
-      const testStudentId = String(q.studentId || q.student_id || q.targetStudentId || q.targetStudent || '');
+      // Check all possible student targets
+      const testStudentId = String(q.studentId || q.student_id || q.targetStudentId || q.assignedStudentId || q.targetStudent || '');
       const rawTargetIds = [
         ...(Array.isArray(q.targetIds) ? q.targetIds : []),
         ...(Array.isArray(q.target_ids) ? q.target_ids : []),
@@ -232,35 +232,17 @@ export default function StudentWrongAnswersPage() {
 
       const isDirectTarget = rawTargetIds.some(tid => allStudentIds.has(tid) || (toUUID(tid) && allStudentIds.has(toUUID(tid))));
 
-      // If test is explicitly targeted/assigned to specific students and this student is NOT among them -> reject!
-      if (rawTargetIds.length > 0) {
-        if (!isDirectTarget) return false;
-      }
-
-      // If created by a student (self-created)
       const creatorId = String(q.createdBy || q.created_by || q.authorId || q.author || '');
       const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
-      const isCreatedByOtherStudent = creatorId && !isCreatedByThisStudent && (
-        q.createdByRole === 'student' ||
-        users.some(u => (u.id === creatorId || toUUID(u.id) === toUUID(creatorId)) && u.role === 'student')
-      );
 
-      if (isCreatedByOtherStudent) {
-        return false; // Another student created this test for themselves!
-      }
-
-      // Grade isolation: if test specifies a grade (e.g. "8. Sınıf") and student is "4. Sınıf" -> reject unless directly targeted
-      if (q.grade && studentGradeName && !isDirectTarget) {
-        const testGrade = String(q.grade).replace(/[^0-9]/g, '');
-        const studentGrade = String(studentGradeName).replace(/[^0-9]/g, '');
-        if (testGrade && studentGrade && testGrade !== studentGrade) {
-          return false;
-        }
+      // A remedial test MUST be strictly assigned to this student OR created by this student
+      if (!isDirectTarget && !isCreatedByThisStudent) {
+        return false;
       }
 
       return true;
     });
-  }, [bankQuestions, allStudentIds, studentGradeName, users]);
+  }, [bankQuestions, allStudentIds]);
 
   const handleAddTestToProgram = async (testItem, targetDayKey) => {
     const studentId = selectedStudent?.id || currentUser?.id;
