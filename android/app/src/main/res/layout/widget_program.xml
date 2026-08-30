@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="12dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📅 E-Test • Günün Programı"
+                android:textColor="#a5b4fc"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_student_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Öğrenci Paneli"
+                android:textColor="#ffffff"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_badge_bg"
+            android:text="0 Görev"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_section_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📝 BUGÜNKÜ TESTLER &amp; GÖREVLER"
+        android:textColor="#94a3b8"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Task Item 1 -->
+    <LinearLayout
+        android:id="@+id/widget_task_item_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="6dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_task_status_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏳"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_task_title_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Türkçe - Paragraf Test-1"
+                android:textColor="#ffffff"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/widget_task_sub_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Türkçe • 1. Ünite"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:singleLine="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Task Item 2 -->
+    <LinearLayout
+        android:id="@+id/widget_task_item_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="6dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_task_status_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏳"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_task_title_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Matematik - Problem Test-2"
+                android:textColor="#ffffff"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/widget_task_sub_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Matematik • Sayfa 12"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:singleLine="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Task Item 3 -->
+    <LinearLayout
+        android:id="@+id/widget_task_item_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="6dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_task_status_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏳"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_task_title_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fen Bilimleri - Test-3"
+                android:textColor="#ffffff"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/widget_task_sub_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Fen Bilimleri"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:singleLine="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Task Item 4 -->
+    <LinearLayout
+        android:id="@+id/widget_task_item_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="6dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_task_status_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⏳"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_task_title_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sosyal Bilgiler - Test-1"
+                android:textColor="#ffffff"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/widget_task_sub_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sosyal Bilgiler"
+                android:textColor="#94a3b8"
+                android:textSize="10sp"
+                android:singleLine="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Empty State -->
+    <TextView
+        android:id="@+id/widget_empty_tasks"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="🎉 Bugün için tüm görevler tamamlandı!"
+        android:textColor="#6ee7b7"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <!-- Action Button -->
+    <LinearLayout
+        android:id="@+id/widget_action_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_btn_bg"
+        android:gravity="center"
+        android:padding="7dp"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📅 Haftalık Programa Git ➔"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

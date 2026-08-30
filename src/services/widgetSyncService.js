@@ -3,12 +3,16 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 const WidgetBridge = registerPlugin('WidgetBridge');
 
 /**
- * Synchronizes student study program tasks & tracked books progress to the Android Home Screen Widget.
+ * Synchronizes:
+ * 1. 📚 Books Widget (BooksWidgetProvider)
+ * 2. 📅 Today's Study Program Widget (ProgramWidgetProvider)
+ * 3. 🔥 Remedial / CatchUp Pool Widget (CatchUpWidgetProvider)
  */
 export async function syncWidgetData({
   studentName = 'Öğrenci',
   todayTasks = [],
   booksProgress = [],
+  catchUpTasks = [],
   todayTotalCount = 0,
   todayRemainingCount = 0
 }) {
@@ -17,7 +21,8 @@ export async function syncWidgetData({
       return;
     }
 
-    const formattedTasks = (todayTasks || []).slice(0, 3).map(task => ({
+    // 1. Format Program Tasks (Up to 4)
+    const formattedProgramTasks = (todayTasks || []).slice(0, 4).map(task => ({
       id: String(task.id || task.testId || ''),
       title: String(task.title || task.testName || task.name || 'Test'),
       subject: String(task.subject || task.subjectName || ''),
@@ -26,7 +31,15 @@ export async function syncWidgetData({
       url: `/quiz-tracked/${task.testId || task.id || ''}`
     }));
 
-    const formattedBooks = (booksProgress || []).slice(0, 2).map(book => ({
+    const programData = {
+      studentName: String(studentName || 'Öğrenci'),
+      todayTotalCount: Number(todayTotalCount || todayTasks.length || 0),
+      todayRemainingCount: Number(todayRemainingCount >= 0 ? todayRemainingCount : todayTasks.filter(t => !t.isDone && !t.done).length),
+      todayTasks: formattedProgramTasks
+    };
+
+    // 2. Format Books Progress (Up to 4)
+    const formattedBooks = (booksProgress || []).slice(0, 4).map(book => ({
       id: String(book.id || ''),
       title: String(book.title || 'Kitap'),
       solvedTests: Number(book.solvedTests || book.completedCount || 0),
@@ -35,15 +48,39 @@ export async function syncWidgetData({
       url: `/student-book-details/${book.id || ''}`
     }));
 
-    const payload = {
+    const booksData = {
       studentName: String(studentName || 'Öğrenci'),
-      todayTotalCount: Number(todayTotalCount || todayTasks.length || 0),
-      todayRemainingCount: Number(todayRemainingCount >= 0 ? todayRemainingCount : todayTasks.filter(t => !t.isDone && !t.done).length),
-      todayTasks: formattedTasks,
+      totalBooks: Number(booksProgress.length || 0),
+      books: formattedBooks
+    };
+
+    // 3. Format CatchUp Tasks (Up to 4)
+    const formattedCatchUp = (catchUpTasks || []).slice(0, 4).map(task => ({
+      id: String(task.id || task.testId || ''),
+      title: String(task.title || task.testName || task.name || 'Telafi Testi'),
+      sourceDay: String(task.sourceDayName || task.sourceDay || task.dayName || 'Gecikmiş'),
+      bookTitle: String(task.bookTitle || task.subject || ''),
+      url: `/quiz-tracked/${task.testId || task.id || ''}`
+    }));
+
+    const catchUpData = {
+      studentName: String(studentName || 'Öğrenci'),
+      totalCatchUp: Number(catchUpTasks.length || 0),
+      catchUpTasks: formattedCatchUp
+    };
+
+    const fullPayload = {
+      booksData,
+      programData,
+      catchUpData,
+      studentName: String(studentName || 'Öğrenci'),
+      todayTotalCount: programData.todayTotalCount,
+      todayRemainingCount: programData.todayRemainingCount,
+      todayTasks: formattedProgramTasks,
       booksProgress: formattedBooks
     };
 
-    await WidgetBridge.updateWidgetData(payload);
+    await WidgetBridge.updateWidgetData(fullPayload);
   } catch (err) {
     console.debug('[WidgetSyncService] Sync failed:', err);
   }

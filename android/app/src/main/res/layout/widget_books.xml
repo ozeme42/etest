@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="12dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📚 E-Test • Kitaplarım"
+                android:textColor="#a5b4fc"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_student_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Öğrenci Paneli"
+                android:textColor="#ffffff"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:singleLine="true" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/widget_badge_bg"
+            android:text="0 Kitap"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_section_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📖 TAKİP EDİLEN KİTAPLAR"
+        android:textColor="#94a3b8"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Book Item 1 -->
+    <LinearLayout
+        android:id="@+id/widget_book_item_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="7dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📘"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/widget_book_title_1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="4. Sınıf Paragraf Seti"
+            android:textColor="#ffffff"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/widget_book_progress_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🟢 29/40 (%72)"
+            android:textColor="#34d399"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Book Item 2 -->
+    <LinearLayout
+        android:id="@+id/widget_book_item_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="7dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📙"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/widget_book_title_2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Ünite Ünite Soru Bankası"
+            android:textColor="#ffffff"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/widget_book_progress_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🟢 24/40 (%60)"
+            android:textColor="#34d399"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Book Item 3 -->
+    <LinearLayout
+        android:id="@+id/widget_book_item_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="7dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📗"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/widget_book_title_3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Fen Bilimleri Denemeleri"
+            android:textColor="#ffffff"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/widget_book_progress_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🟢 15/20 (%75)"
+            android:textColor="#34d399"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Book Item 4 -->
+    <LinearLayout
+        android:id="@+id/widget_book_item_4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/widget_item_bg"
+        android:padding="7dp"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="3dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📕"
+            android:textSize="13sp"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/widget_book_title_4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sosyal Bilgiler Soru Bankası"
+            android:textColor="#ffffff"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/widget_book_progress_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🟢 10/20 (%50)"
+            android:textColor="#34d399"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Empty State -->
+    <TextView
+        android:id="@+id/widget_empty_books"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Takip edilen kitap bulunmuyor."
+        android:textColor="#94a3b8"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <!-- Action Button -->
+    <LinearLayout
+        android:id="@+id/widget_action_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/widget_btn_bg"
+        android:gravity="center"
+        android:padding="7dp"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📚 Tüm Kitaplarıma Git ➔"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

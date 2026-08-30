@@ -43,11 +43,50 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- Home Screen Widget Receiver -->
+        <!-- 1. Books Widget Receiver -->
+        <receiver
+            android:name=".BooksWidgetProvider"
+            android:exported="true"
+            android:label="E-Test • Kitaplarım &amp; İlerleme">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_books_info" />
+        </receiver>
+
+        <!-- 2. Program Widget Receiver -->
+        <receiver
+            android:name=".ProgramWidgetProvider"
+            android:exported="true"
+            android:label="E-Test • Günün Programı">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_program_info" />
+        </receiver>
+
+        <!-- 3. CatchUp Widget Receiver -->
+        <receiver
+            android:name=".CatchUpWidgetProvider"
+            android:exported="true"
+            android:label="E-Test • Akıllı Telafi Havuzu">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_catchup_info" />
+        </receiver>
+
+        <!-- Combined Today Tasks Widget Receiver -->
         <receiver
             android:name=".TodayTasksWidgetProvider"
             android:exported="true"
-            android:label="E-Test • Günün Programı">
+            android:label="E-Test • Günlük Özet">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
