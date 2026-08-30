@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { dbGetQuestions, dbAddQuestion, dbDeleteQuestion, toUUID } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload, idbDeletePayload } from '../services/indexedDbService';
-import { isCacheValid, touchCache } from '../utils/cacheManager';
+import { isCacheValid, touchCache, invalidateCache } from '../utils/cacheManager';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 const QuestionBankContext = createContext();
 
@@ -31,25 +32,12 @@ export function QuestionBankProvider({ children }) {
     return INITIAL_QUESTIONS;
   });
 
-  useEffect(() => {
-    async function syncAndRestorePayloads() {
-      const currentQs = questions || [];
-      const restored = await Promise.all(currentQs.map(async (q) => {
-        let payload = q.contentPayload;
-        const isMissing = !payload || (typeof payload === 'string' && (payload.includes('[STORED_IN_INDEXEDDB]') || payload.includes('[LOCALSTORAGE_CACHE]')));
-        if (isMissing) {
-          const stored = await idbGetPayload(q.id) || await idbGetPayload(String(q.id).replace(/^q_?/, ''));
-          if (stored) {
-            payload = stored;
-          }
-        }
-        return {
-          ...q,
-          contentPayload: payload
-        };
-      }));
+  const syncQuestions = async (force = false) => {
+    if (!force && isCacheValid('questions', 30) && (questions || []).length > 0) {
+      return;
+    }
 
-      // Safely sync from Supabase database if configured
+    try {
       const dbQs = await dbGetQuestions();
       if (dbQs && Array.isArray(dbQs)) {
         touchCache('questions');
@@ -77,9 +65,29 @@ export function QuestionBankProvider({ children }) {
           localStorage.setItem('eTestQuestions', JSON.stringify(finalArr));
         } catch {}
       }
+    } catch (err) {
+      console.warn('[Supabase] Question sync error:', err);
     }
+  };
 
-    syncAndRestorePayloads();
+  useEffect(() => {
+    syncQuestions(false);
+
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    // Real-time synchronization: Instant updates when questions are created/edited/deleted
+    const qChannel = supabase
+      .channel('realtime_questions_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
+        syncQuestions(true);
+      })
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(qChannel);
+      } catch {}
+    };
   }, []);
 
   useEffect(() => {

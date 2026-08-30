@@ -1,4 +1,5 @@
-const CACHE_NAME = 'etest-pwa-v2';
+const CACHE_NAME = 'etest-pwa-v3';
+const IMAGE_CACHE_NAME = 'etest-supabase-images-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -9,7 +10,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== IMAGE_CACHE_NAME) {
             return caches.delete(key);
           }
         })
@@ -23,7 +24,31 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Only handle same-origin http/https requests
+  // 1. Supabase Storage Public Images (Soru resimleri, kırpılmış testler, kapaklar)
+  // Cache-First stratejisi: İlk indirmeden sonra kalıcı cihaz önbelleğinden sunar (0 Supabase bandwidth)
+  const isSupabaseStorage = url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/');
+  if (isSupabaseStorage) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) {
+          return cached;
+        }
+        try {
+          const networkResponse = await fetch(event.request);
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (err) {
+          return cached || new Response('', { status: 408, statusText: 'Image unavailable offline' });
+        }
+      })
+    );
+    return;
+  }
+
+  // Only handle same-origin http/https requests for remaining assets
   if (!url.protocol.startsWith('http')) return;
   if (url.origin !== self.location.origin) return;
 

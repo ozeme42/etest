@@ -1,4 +1,4 @@
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetTrackedBooks,
@@ -11,7 +11,7 @@ import {
   toUUID
 } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
-import { isCacheValid, touchCache } from '../utils/cacheManager';
+import { isCacheValid, touchCache, invalidateCache } from '../utils/cacheManager';
 
 const TrackedBookContext = createContext();
 
@@ -113,22 +113,25 @@ export function TrackedBookProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshTrackedBooks(true);
+    refreshTrackedBooks(false);
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    // Real-time synchronization: Instant updates when teacher edits books or tests
+    const bookChannel = supabase
+      .channel('realtime_books_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_books' }, () => {
         refreshTrackedBooks(true);
-      }
-    };
-    const handleFocus = () => {
-      refreshTrackedBooks(true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_book_tests' }, () => {
+        refreshTrackedBooks(true);
+      })
+      .subscribe();
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
+      try {
+        supabase.removeChannel(bookChannel);
+      } catch {}
     };
   }, []);
 

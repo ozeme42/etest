@@ -1,4 +1,4 @@
-import { isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetCurriculum,
@@ -12,19 +12,19 @@ import {
   dbDeleteTopic
 } from '../services/supabaseService';
 import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
-import { isCacheValid, touchCache } from '../utils/cacheManager';
+import { isCacheValid, touchCache, invalidateCache } from '../utils/cacheManager';
 
 const CurriculumContext = createContext();
 
 export function useCurriculum() {
   const context = useContext(CurriculumContext);
   if (!context) {
-    return { data: { grades: [], subjects: [], units: [], topics: [], tests: [] }, addGrade: async () => {}, addSubject: async () => {}, addUnit: async () => {}, addTopic: async () => {}, updateGrade: async () => {}, updateSubject: async () => {}, updateUnit: async () => {}, updateTopic: async () => {}, updateItem: async () => {}, deleteItem: async () => {} };
+    throw new Error('useCurriculum must be used within a CurriculumProvider');
   }
   return context;
 }
 
-const INITIAL_DATA = {
+const DEFAULT_CURRICULUM_DATA = {
   grades: [],
   subjects: [],
   units: [],
@@ -32,7 +32,7 @@ const INITIAL_DATA = {
   tests: []
 };
 
-const MOCK_IDS = new Set(['g1', 'g2', 's1', 's2', 'u1', 't1']);
+const MOCK_IDS = new Set(['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10']);
 
 export const naturalSort = (a, b) => {
   const nameA = String(a?.name || a?.grade || a?.title || a || '').trim();
@@ -44,69 +44,91 @@ const generateUniqueId = (prefix) => `${prefix}_${Date.now()}_${Math.random().to
 
 export function CurriculumProvider({ children }) {
   const [data, setData] = useState(() => {
-    try {
-      const savedLs = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
-      if (savedLs) {
-        const p = JSON.parse(savedLs);
-        if (p && Array.isArray(p.grades) && p.grades.length > 0) {
+    const saved = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.grades && Array.isArray(parsed.grades)) {
           return {
-            grades: (p.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
-            subjects: (p.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
-            units: (p.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
-            topics: (p.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
-            tests: (p.tests || []).filter(t => !MOCK_IDS.has(t.id))
+            grades: (parsed.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
+            subjects: (parsed.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
+            units: (parsed.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
+            topics: (parsed.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
+            tests: (parsed.tests || []).filter(t => !MOCK_IDS.has(t.id))
           };
         }
-      }
-    } catch {}
-    return INITIAL_DATA;
-  });
-
-  useEffect(() => {
-    async function initCurriculum() {
-      // 1. Try to load from localStorage or IndexedDB cache
-      let curCache = null;
-      try {
-        const lsVal = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
-        if (lsVal) curCache = JSON.parse(lsVal);
-        if (!curCache) {
-          const idbVal = await idbGetPayload('eTestCurriculum_Cache');
-          if (idbVal) curCache = JSON.parse(idbVal);
-        }
-      } catch (err) {
-        console.warn('Cache load failed', err);
-      }
-
-      if (curCache && curCache.grades && curCache.grades.length > 0) {
-        setData({
-          grades: (curCache.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
-          subjects: (curCache.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
-          units: (curCache.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
-          topics: (curCache.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
-          tests: (curCache.tests || []).filter(t => !MOCK_IDS.has(t.id))
-        });
-      }
-
-      // 2. Fetch latest from Supabase only if configured and 60m persistent cache expired
-      if (isCacheValid('curriculum', 60) && curCache && curCache.grades?.length > 0) {
-        return;
-      }
-
-      if (isSupabaseConfigured()) {
-        const dbCurData = await dbGetCurriculum();
-        if (dbCurData && dbCurData.grades && dbCurData.grades.length > 0) {
-          touchCache('curriculum');
-          setData({
-            grades: (dbCurData.grades || []).sort(naturalSort),
-            subjects: (dbCurData.subjects || []).sort(naturalSort),
-            units: (dbCurData.units || []).sort(naturalSort),
-            topics: (dbCurData.topics || []).sort(naturalSort),
-            tests: dbCurData.tests || []
-          });
-        }
+      } catch (e) {
+        console.warn('Failed to parse curriculum cache, using defaults:', e);
       }
     }
-    initCurriculum();
+    return DEFAULT_CURRICULUM_DATA;
+  });
+
+  const syncCurriculum = async (force = false) => {
+    let curCache = null;
+    try {
+      const idbCached = await idbGetPayload('eTestCurriculum_Cache');
+      if (idbCached) {
+        curCache = JSON.parse(idbCached);
+      }
+    } catch {}
+
+    if (!curCache) {
+      const raw = localStorage.getItem('eTestCurriculum') || localStorage.getItem('curriculumData');
+      if (raw) {
+        try { curCache = JSON.parse(raw); } catch {}
+      }
+    }
+
+    if (curCache && curCache.grades && curCache.grades.length > 0) {
+      setData({
+        grades: (curCache.grades || []).filter(g => !MOCK_IDS.has(g.id)).sort(naturalSort),
+        subjects: (curCache.subjects || []).filter(s => !MOCK_IDS.has(s.id)).sort(naturalSort),
+        units: (curCache.units || []).filter(u => !MOCK_IDS.has(u.id)).sort(naturalSort),
+        topics: (curCache.topics || []).filter(t => !MOCK_IDS.has(t.id)).sort(naturalSort),
+        tests: (curCache.tests || []).filter(t => !MOCK_IDS.has(t.id))
+      });
+    }
+
+    // Fetch latest from Supabase only if forced or 60m cache expired
+    if (!force && isCacheValid('curriculum', 60) && curCache && curCache.grades?.length > 0) {
+      return;
+    }
+
+    if (isSupabaseConfigured()) {
+      const dbCurData = await dbGetCurriculum();
+      if (dbCurData && dbCurData.grades && dbCurData.grades.length > 0) {
+        touchCache('curriculum');
+        setData({
+          grades: (dbCurData.grades || []).sort(naturalSort),
+          subjects: (dbCurData.subjects || []).sort(naturalSort),
+          units: (dbCurData.units || []).sort(naturalSort),
+          topics: (dbCurData.topics || []).sort(naturalSort),
+          tests: dbCurData.tests || []
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    syncCurriculum(false);
+
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    // Real-time synchronization: Instant updates when curriculum is edited
+    const curChannel = supabase
+      .channel('realtime_curriculum_sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'grades' }, () => syncCurriculum(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subjects' }, () => syncCurriculum(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'units' }, () => syncCurriculum(true))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'topics' }, () => syncCurriculum(true))
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(curChannel);
+      } catch {}
+    };
   }, []);
 
   useEffect(() => {

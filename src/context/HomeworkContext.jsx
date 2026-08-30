@@ -67,7 +67,7 @@ export function HomeworkProvider({ children }) {
     }
     
     // Check persistent cache
-    if (!force && isCacheValid('homeworks', 0.5) && homeworks.length > 0) {
+    if (!force && isCacheValid('homeworks', 30) && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -104,6 +104,7 @@ export function HomeworkProvider({ children }) {
 
     if (!isSupabaseConfigured() || !supabase) return;
 
+    // Real-time synchronization: Instant update when teacher assigns or edits homework
     const hwChannel = supabase
       .channel('realtime_homeworks_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'homeworks' }, () => {
@@ -111,23 +112,10 @@ export function HomeworkProvider({ children }) {
       })
       .subscribe();
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshHomeworks(true);
-      }
-    };
-    const handleFocus = () => {
-      refreshHomeworks(true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       try {
         supabase.removeChannel(hwChannel);
       } catch {}
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

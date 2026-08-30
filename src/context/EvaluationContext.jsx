@@ -135,9 +135,7 @@ export function EvaluationProvider({ children }) {
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
     if (showLoading) setIsSyncing(true);
-    // FORCE CACHE INVALIDATION FOR THIS DEPLOYMENT (temporary override to clear stale data)
-    const forceInvalidate = true; 
-    if (!forceInvalidate && !force && isCacheValid('submissions', 30) && submissions.length > 0) {
+    if (!force && isCacheValid('submissions', 15) && submissions.length > 0) {
       if (showLoading) setIsSyncing(false);
       return submissions;
     }
@@ -250,7 +248,7 @@ export function EvaluationProvider({ children }) {
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      syncFromSupabase(true, true);
+      syncFromSupabase(true, false);
     } else {
       setIsSyncing(false);
     }
@@ -279,28 +277,16 @@ export function EvaluationProvider({ children }) {
             });
           }
         } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          // Instant real-time update when student solves test or teacher reviews test
           syncFromSupabase(false, true);
         }
       })
       .subscribe();
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncFromSupabase(false, true);
-      }
-    };
-    const handleFocus = () => {
-      syncFromSupabase(false, true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
     return () => {
       try {
         supabase.removeChannel(subChannel);
       } catch {}
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
