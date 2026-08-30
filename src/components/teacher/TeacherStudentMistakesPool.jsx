@@ -66,12 +66,74 @@ const cleanTestDisplayTitle = (rawTitle) => {
   return t;
 };
 
-const compareUnitOrder = (a, b) => {
-  const getNum = (name) => {
-    const m = String(name || '').match(/(\d+)/);
-    return m ? parseInt(m[1], 10) : 9999;
-  };
-  return getNum(a.unitName) - getNum(b.unitName);
+export const parseTestNameInfo = (name) => {
+  const str = String(name || '').trim();
+  const lower = str.toLowerCase();
+
+  let cat = 6;
+  if (/^(test|kazanım|kavrama|etkinlik|konu)/i.test(lower) || /^t-\d+/i.test(lower) || /^test-\d+/i.test(lower)) {
+    cat = 1;
+  } else if (/^(sayfa|problem sayfas|problem|paragraf)/i.test(lower) || /\d+[\.\-]\s*sayfa/i.test(lower)) {
+    cat = 2;
+  } else if (/^(ünite|ü\.|değerlendirme|ü\. değ|ü\.değ)/i.test(lower)) {
+    cat = 3;
+  } else if (/^(yeni nesil|beceri|lgs)/i.test(lower)) {
+    cat = 4;
+  } else if (/^(tarama|sarmal|tekrar|genel tekrar)/i.test(lower)) {
+    cat = 5;
+  } else if (/^(deneme|sınav|tatil)/i.test(lower)) {
+    cat = 6;
+  }
+
+  const numMatch = str.match(/\d+/);
+  const num = numMatch ? parseInt(numMatch[0], 10) : 0;
+
+  return { cat, num, str };
+};
+
+export const compareBookTestsOrder = (a, b) => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+
+  // 1. If PDF page numbers are available and differ, sort by page first
+  const pageA = Number(a.pdfPage || a.page || 0);
+  const pageB = Number(b.pdfPage || b.page || 0);
+  if (pageA > 0 && pageB > 0 && pageA !== pageB) {
+    return pageA - pageB;
+  }
+
+  const nameA = String(a.name || a.testName || a.title || a.fullTitle || '').trim();
+  const nameB = String(b.name || b.testName || b.title || b.fullTitle || '').trim();
+
+  const pA = parseTestNameInfo(nameA);
+  const pB = parseTestNameInfo(nameB);
+
+  // 2. Sort by test category (Test-1..12 first -> Problem/Paragraf second -> Ünite Değerlendirme third -> Yeni Nesil fourth...)
+  if (pA.cat !== pB.cat) {
+    return pA.cat - pB.cat;
+  }
+
+  // 3. Within same category, sort numerically (1, 2, 3, 4 ... 10, 11, 12)
+  if (pA.num !== pB.num) {
+    return pA.num - pB.num;
+  }
+
+  return pA.str.localeCompare(pB.str, 'tr', { numeric: true, sensitivity: 'base' });
+};
+
+export const compareUnitOrder = (a, b) => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  const nameA = String(a.unitName || a.name || a.title || '').trim();
+  const nameB = String(b.unitName || b.name || b.title || '').trim();
+  const numA = (nameA.match(/\d+/) ? parseInt(nameA.match(/\d+/)[0], 10) : 0);
+  const numB = (nameB.match(/\d+/) ? parseInt(nameB.match(/\d+/)[0], 10) : 0);
+  if (numA !== numB && numA > 0 && numB > 0) {
+    return numA - numB;
+  }
+  return nameA.localeCompare(nameB, 'tr', { numeric: true, sensitivity: 'base' });
 };
 
 export default function TeacherStudentMistakesPool({
@@ -312,6 +374,7 @@ export default function TeacherStudentMistakesPool({
             });
           }
         });
+        wrongList.sort((a, b) => (Number(a.qNo) || 0) - (Number(b.qNo) || 0));
       } else {
         // Fallback: If raw answers not expanded, use wrong_count
         const wCount = Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0);
@@ -412,11 +475,44 @@ export default function TeacherStudentMistakesPool({
       });
     });
 
+    // Build book index map based on the official TrackedBooks array
+    const bookOrderMap = new Map();
+    (books || []).forEach((b, idx) => {
+      if (b?.id) {
+        bookOrderMap.set(String(b.id), idx);
+        const u = toUUID(b.id);
+        if (u) bookOrderMap.set(String(u), idx);
+      }
+    });
+
+    // Build test index map based on bookTests array
+    const testOrderMap = new Map();
+    (bookTests || []).forEach((bt, idx) => {
+      const btId = String(bt.id || bt.testId || '');
+      if (btId) {
+        testOrderMap.set(btId, idx);
+        const u = toUUID(btId);
+        if (u) testOrderMap.set(String(u), idx);
+      }
+    });
+
     const bookResults = [];
     bookTree.forEach(b => {
       const subjects = [];
       b.subjectsMap.forEach(s => {
         const units = Array.from(s.unitsMap.values());
+        units.forEach(u => {
+          u.tests.sort((a, bTest) => {
+            const idA = String(a.testId || a.id || '');
+            const idB = String(bTest.testId || bTest.id || '');
+            const idxA = testOrderMap.has(idA) ? testOrderMap.get(idA) : (testOrderMap.has(toUUID(idA)) ? testOrderMap.get(toUUID(idA)) : 99999);
+            const idxB = testOrderMap.has(idB) ? testOrderMap.get(idB) : (testOrderMap.has(toUUID(idB)) ? testOrderMap.get(toUUID(idB)) : 99999);
+            if (idxA !== 99999 && idxB !== 99999 && idxA !== idxB) {
+              return idxA - idxB;
+            }
+            return compareBookTestsOrder(a, bTest);
+          });
+        });
         units.sort(compareUnitOrder);
         subjects.push({
           subjectName: s.subjectName,
@@ -426,8 +522,8 @@ export default function TeacherStudentMistakesPool({
         });
       });
 
-      // Subject display ordering: Türkçe, Matematik, Fen Bilimleri, Sosyal Bilgiler, İngilizce, Din Kültürü, Diğer
-      const order = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel'];
+      // Subject display ordering: Türkçe, Matematik, Fen Bilimleri, Sosyal Bilgiler, İnkılap Tarihi, İngilizce, Din Kültürü, Diğer
+      const order = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İnkılap Tarihi', 'İngilizce', 'Din Kültürü', 'Genel'];
       subjects.sort((a, b) => {
         const idxA = order.indexOf(a.subjectName);
         const idxB = order.indexOf(b.subjectName);
@@ -444,6 +540,16 @@ export default function TeacherStudentMistakesPool({
         totalTests: b.totalTests,
         subjects
       });
+    });
+
+    // Book sorting: strictly preserve book order as configured in TrackedBooks
+    bookResults.sort((a, b) => {
+      const idA = String(a.bookId || '');
+      const idB = String(b.bookId || '');
+      const orderA = bookOrderMap.has(idA) ? bookOrderMap.get(idA) : (bookOrderMap.has(toUUID(idA)) ? bookOrderMap.get(toUUID(idA)) : (idA === 'other_tests' ? 9999 : 500));
+      const orderB = bookOrderMap.has(idB) ? bookOrderMap.get(idB) : (bookOrderMap.has(toUUID(idB)) ? bookOrderMap.get(toUUID(idB)) : (idB === 'other_tests' ? 9999 : 500));
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.bookTitle || '').localeCompare(String(b.bookTitle || ''), 'tr', { numeric: true, sensitivity: 'base' });
     });
 
     return bookResults;
@@ -683,6 +789,16 @@ export default function TeacherStudentMistakesPool({
     });
 
     const structuredMistakes = Object.values(mistakesByTest);
+    structuredMistakes.forEach(sm => {
+      sm.wrongQuestions.sort((a, b) => Number(a) - Number(b));
+      sm.wrongQuestionsList.sort((a, b) => (Number(a.qNo || a.qNum) || 0) - (Number(b.qNo || b.qNum) || 0));
+    });
+
+    structuredMistakes.sort((a, b) => {
+      const uDiff = compareUnitOrder(a, b);
+      if (uDiff !== 0) return uDiff;
+      return compareBookTestsOrder(a, b);
+    });
 
     if (onLaunchSlicer) {
       onLaunchSlicer({

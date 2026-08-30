@@ -635,11 +635,19 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
   let globalSeq = 0;
 
   (books || []).forEach((b, bIdx) => {
-    if (!b?.id) return;
-    const bId = String(b.id);
-    const bUuid = String(b.id).replace(/-/g, '');
-    bookMap.set(bId, { index: bIdx, book: b });
-    if (bUuid) bookMap.set(bUuid, { index: bIdx, book: b });
+    if (!b) return;
+    const bId = String(b.id || '');
+    const bUuid = String(b.id || '').replace(/-/g, '');
+    const entry = { index: bIdx, book: b };
+
+    if (bId) bookMap.set(bId, entry);
+    if (bUuid) bookMap.set(bUuid, entry);
+
+    // Also index by clean lowercase book title
+    const bTitle = String(b.title || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').replace(/\s*\(tüm kitap\)/gi, '').replace(/\s*\(kendi eklediğim\)/gi, '').trim();
+    if (bTitle) {
+      bookMap.set(bTitle, entry);
+    }
 
     // Traverse subjects -> tests and subjects -> topics -> tests in exact book order
     (b.subjects || []).forEach((subj, sIdx) => {
@@ -720,6 +728,80 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
     return null;
   };
 
+  const parseTestCategory = (name) => {
+    const str = String(name || '').trim();
+    const lower = str.toLowerCase();
+    let cat = 6;
+    if (/^(test|kazanım|kavrama|etkinlik|konu)/i.test(lower) || /^t-\d+/i.test(lower) || /^test-\d+/i.test(lower)) {
+      cat = 1;
+    } else if (/^(sayfa|problem sayfas|problem|paragraf)/i.test(lower) || /\d+[\.\-]\s*sayfa/i.test(lower)) {
+      cat = 2;
+    } else if (/^(ünite|ü\.|değerlendirme|ü\. değ|ü\.değ)/i.test(lower)) {
+      cat = 3;
+    } else if (/^(yeni nesil|beceri|lgs)/i.test(lower)) {
+      cat = 4;
+    } else if (/^(tarama|sarmal|tekrar|genel tekrar)/i.test(lower)) {
+      cat = 5;
+    } else if (/^(deneme|sınav|tatil)/i.test(lower)) {
+      cat = 6;
+    }
+    return cat;
+  };
+
+  const getBookInfo = (it) => {
+    if (!it) return { index: 99999, title: '', book: null, isBook: false };
+
+    const tObj = it.testId ? testMap.get(String(it.testId)) : null;
+    const bIdCandidate = it.bookId || tObj?.bookId || (it.hwId && it.isAutoHomework ? it.bookId : null);
+
+    let bInfo = null;
+    if (bIdCandidate) {
+      const sId = String(bIdCandidate);
+      bInfo = bookMap.get(sId) || bookMap.get(sId.replace(/-/g, '')) || null;
+    }
+
+    const rawBookTitle = String(it.bookTitle || tObj?.bookTitle || tObj?.book_title || '').trim();
+    const cleanBookTitle = rawBookTitle.toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').replace(/\s*\(tüm kitap\)/gi, '').replace(/\s*\(kendi eklediğim\)/gi, '').trim();
+
+    if (!bInfo && cleanBookTitle) {
+      bInfo = bookMap.get(cleanBookTitle);
+      if (!bInfo) {
+        for (const [key, val] of bookMap.entries()) {
+          if (key.length > 5 && (cleanBookTitle.includes(key) || key.includes(cleanBookTitle))) {
+            bInfo = val;
+            break;
+          }
+        }
+      }
+    }
+
+    if (bInfo) {
+      return {
+        index: bInfo.index,
+        title: bInfo.book?.title || rawBookTitle,
+        book: bInfo.book,
+        isBook: true
+      };
+    }
+
+    if (cleanBookTitle) {
+      return {
+        index: 5000,
+        title: cleanBookTitle,
+        book: null,
+        isBook: true
+      };
+    }
+
+    const isBookTask = it.isBookTask || it.sourceType === 'trackedBook' || it.taskType === 'kitap' || Boolean(it.testId && tObj);
+    return {
+      index: isBookTask ? 8000 : 99999,
+      title: isBookTask ? 'Kitap' : 'Genel',
+      book: null,
+      isBook: isBookTask
+    };
+  };
+
   return [...items].sort((a, b) => {
     // 1. Task type priority: Book tests & Quizzes first, then Topics/Roadmaps, then Manual/Schedule
     const getTypePriority = (it) => {
@@ -732,34 +814,45 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
     const prioB = getTypePriority(b);
     if (prioA !== prioB) return prioA - prioB;
 
-    // 2. Book Order (Order of books in system)
+    // 2. Strict Book Grouping (Book 1 tasks ALWAYS grouped consecutively until Book 1 finishes!)
+    const bA = getBookInfo(a);
+    const bB = getBookInfo(b);
+
+    if (bA.isBook !== bB.isBook) {
+      return bA.isBook ? -1 : 1;
+    }
+
+    if (bA.index !== bB.index) {
+      return bA.index - bB.index;
+    }
+
+    if (bA.title && bB.title && bA.title !== bB.title) {
+      return bA.title.localeCompare(bB.title, 'tr', { sensitivity: 'base' });
+    }
+
+    // 3. WITHIN THE SAME BOOK: Subject Hierarchy Order (Türkçe -> Matematik -> Fen ...)
     const tObjA = a.testId ? testMap.get(String(a.testId)) : null;
     const tObjB = b.testId ? testMap.get(String(b.testId)) : null;
-
-    const bookIdA = a.bookId || tObjA?.bookId || (a.hwId && a.isAutoHomework ? a.bookId : null);
-    const bookIdB = b.bookId || tObjB?.bookId || (b.hwId && b.isAutoHomework ? b.bookId : null);
-
-    const bInfoA = bookIdA ? bookMap.get(String(bookIdA)) : null;
-    const bInfoB = bookIdB ? bookMap.get(String(bookIdB)) : null;
-
-    const bookIndexA = bInfoA ? bInfoA.index : 9999;
-    const bookIndexB = bInfoB ? bInfoB.index : 9999;
-    if (bookIndexA !== bookIndexB) return bookIndexA - bookIndexB;
-
-    // 3. Subject Hierarchy Order (Türkçe -> Matematik -> Fen ...)
     const subjNameA = (a.subject || tObjA?.subject || '').trim();
     const subjNameB = (b.subject || tObjB?.subject || '').trim();
 
-    const bookObj = bInfoA?.book || bInfoB?.book;
+    const bookObj = bA.book || bB.book;
     if (bookObj && Array.isArray(bookObj.subjects)) {
       const sIdxA = bookObj.subjects.findIndex(s => 
         (tObjA?.subjectId && String(s.id) === String(tObjA.subjectId)) ||
-        (subjNameA && s.name?.toLocaleLowerCase('tr-TR') === subjNameA.toLocaleLowerCase('tr-TR'))
+        (subjNameA && s.name?.toLocaleLowerCase('tr') === subjNameA.toLocaleLowerCase('tr'))
       );
       const sIdxB = bookObj.subjects.findIndex(s => 
         (tObjB?.subjectId && String(s.id) === String(tObjB.subjectId)) ||
-        (subjNameB && s.name?.toLocaleLowerCase('tr-TR') === subjNameB.toLocaleLowerCase('tr-TR'))
+        (subjNameB && s.name?.toLocaleLowerCase('tr') === subjNameB.toLocaleLowerCase('tr'))
       );
+      if (sIdxA !== -1 && sIdxB !== -1 && sIdxA !== sIdxB) {
+        return sIdxA - sIdxB;
+      }
+    } else {
+      const stdOrder = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İnkılap Tarihi', 'İngilizce', 'Din Kültürü', 'Genel'];
+      const sIdxA = stdOrder.indexOf(subjNameA);
+      const sIdxB = stdOrder.indexOf(subjNameB);
       if (sIdxA !== -1 && sIdxB !== -1 && sIdxA !== sIdxB) {
         return sIdxA - sIdxB;
       }
@@ -772,24 +865,30 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
       return seqA - seqB;
     }
 
-    // 5. Page Number Order (Sayfa Numarası Sırası: 9-10 < 13-14 < 17-18 ...)
     const titleA = a.testName || a.title || a.name || '';
     const titleB = b.testName || b.title || b.name || '';
 
-    const pageA = extractPageNo(titleA);
-    const pageB = extractPageNo(titleB);
-    if (pageA !== null && pageB !== null && pageA !== pageB) {
-      return pageA - pageB;
-    }
-
-    // 6. Unit Number Order (Ünite Numarası Sırası)
-    const unitA = extractUnitNo(titleA);
-    const unitB = extractUnitNo(titleB);
+    // 5. Unit Number Order (Ünite Numarası Sırası: 1. Ünite < 2. Ünite < 3. Ünite)
+    const unitA = extractUnitNo(titleA) || extractUnitNo(a.unitTopic || a.topic);
+    const unitB = extractUnitNo(titleB) || extractUnitNo(b.unitTopic || b.topic);
     if (unitA !== null && unitB !== null && unitA !== unitB) {
       return unitA - unitB;
     }
 
-    // 7. Test Number Order (Test Numarası Sırası)
+    // 6. Page Number Order (Sayfa Numarası Sırası: 9-10 < 13-14 < 17-18 ...)
+    const pageA = extractPageNo(titleA) || Number(a.page || 0);
+    const pageB = extractPageNo(titleB) || Number(b.page || 0);
+    if (pageA > 0 && pageB > 0 && pageA !== pageB) {
+      return pageA - pageB;
+    }
+
+    // 7. Test Category & Number Order (Test-1 < Test-2 < Paragraf < Ü. Değ < Yeni Nesil)
+    const catA = parseTestCategory(titleA);
+    const catB = parseTestCategory(titleB);
+    if (catA !== catB) {
+      return catA - catB;
+    }
+
     const testNoA = extractTestNo(titleA);
     const testNoB = extractTestNo(titleB);
     if (testNoA !== null && testNoB !== null && testNoA !== testNoB) {

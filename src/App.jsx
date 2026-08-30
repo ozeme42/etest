@@ -53,12 +53,13 @@ const StudyRoomPage = lazy(() => import('./pages/StudyRoomPage'));
 const PdfQuestionSlicerPage = lazy(() => import('./pages/PdfQuestionSlicerPage'));
 
 // One-time automatic cache bust for clean database sync
-const APP_CACHE_VERSION = 'v2026_08_25_master_sync_v7';
+const APP_CACHE_VERSION = 'v2026_08_30_clean_hw_v2';
 try {
   if (localStorage.getItem('eTestAppCacheVersion') !== APP_CACHE_VERSION) {
     localStorage.removeItem('eTestTrackedBooks');
     localStorage.removeItem('eTestTrackedBookTests');
     localStorage.removeItem('eTestHomeworks');
+    localStorage.removeItem('eTestDeletedHomeworks');
     localStorage.setItem('eTestAppCacheVersion', APP_CACHE_VERSION);
   }
 } catch {}

@@ -2329,8 +2329,8 @@ export default function StudentDashboard() {
       }
     });
 
-    return list;
-  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved]);
+    return sortItemsByBookOrder(list, books, bookTests);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests]);
 
   const handleToggleTask = async (taskOrId) => {
     if (!taskOrId) return;

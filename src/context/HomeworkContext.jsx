@@ -86,41 +86,12 @@ export function HomeworkProvider({ children }) {
           return !deletedIds.has(hId) && !deletedIds.has(hSup) && (!hU || !deletedIds.has(hU));
         });
         
-        // Merge: keep any localStorage-only homeworks that aren't in DB yet and not deleted
-        const dbHwIds = new Set(cleanDbHws.map(h => String(h.id)));
-        const dbHwSupabaseIds = new Set(cleanDbHws.map(h => String(h.supabaseId || '')).filter(Boolean));
-
-        let currentLocal = [];
+        // The database is the source of truth; set cleanDbHws directly
+        setHomeworks(cleanDbHws);
         try {
-          const saved = localStorage.getItem('eTestHomeworks');
-          currentLocal = saved ? JSON.parse(saved) : [];
-          if (!Array.isArray(currentLocal)) currentLocal = [];
+          localStorage.setItem('eTestHomeworks', JSON.stringify(cleanDbHws));
         } catch {}
-
-        const localOnlyHws = currentLocal.filter(lh => {
-          if (!lh || lh.id === 'global_ai_config' || lh.subject === 'SYSTEM') return false;
-          const lhIdStr = String(lh.id || '');
-          const lhSupStr = String(lh.supabaseId || '');
-          const lhU = toUUID(lhIdStr);
-          if (deletedIds.has(lhIdStr) || deletedIds.has(lhSupStr) || (lhU && deletedIds.has(lhU))) return false;
-          return !dbHwIds.has(lhIdStr) && !dbHwSupabaseIds.has(lhIdStr);
-        });
-
-        // Attempt to sync localStorage-only homeworks back to DB
-        if (localOnlyHws.length > 0) {
-          localOnlyHws.forEach(lh => {
-            dbAddHomework(lh).catch(() => {});
-          });
-        }
-
-        // Final merged list: DB data + localStorage-only (not yet synced)
-        const merged = [...cleanDbHws, ...localOnlyHws];
-        
-        setHomeworks(merged);
-        try {
-          localStorage.setItem('eTestHomeworks', JSON.stringify(merged));
-        } catch {}
-        return merged;
+        return cleanDbHws;
       }
       return dbHws;
     } finally {

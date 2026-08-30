@@ -2281,7 +2281,7 @@ export function MonthlyListPanel({
           seenDayIds.set(key, item);
         }
       });
-      const dayItems = Array.from(seenDayIds.values());
+      const dayItems = sortItemsByBookOrder(Array.from(seenDayIds.values()), books, bookTests);
 
       daysList.push({
         day,
@@ -4259,7 +4259,7 @@ export default function ProgramCenter({
           seenWeeklyIds.set(key, item);
         }
       });
-      const dayItems = Array.from(seenWeeklyIds.values());
+      const dayItems = sortItemsByBookOrder(Array.from(seenWeeklyIds.values()), books, bookTests);
 
       return {
         ...dayObj,

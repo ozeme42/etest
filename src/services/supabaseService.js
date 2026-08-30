@@ -1536,9 +1536,21 @@ export async function dbGetHomeworks() {
       .select('id, title, subject, due_date, created_at, raw_data')
       .order('created_at', { ascending: false })
       .limit(300);
-    if (error) throw error;
+    const { data: delRecords } = await supabase.from('deleted_records').select('id').eq('record_type', 'homework');
+    const deletedIdSet = new Set((delRecords || []).map(r => String(r.id)));
+
     return (data || [])
-      .filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'))
+      .filter(h => {
+        if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
+        const hId = String(h.id || '');
+        let rawId = '';
+        try {
+          const raw = typeof h.raw_data === 'string' ? JSON.parse(h.raw_data) : (h.raw_data || {});
+          rawId = String(raw.id || raw.stringId || '');
+        } catch {}
+        if (deletedIdSet.has(hId) || (rawId && deletedIdSet.has(rawId))) return false;
+        return true;
+      })
       .map(h => {
       let raw = {};
       if (h.raw_data) {
@@ -1737,6 +1749,30 @@ export async function dbAddHomework(hw) {
     safeRaw.targetType = processedHw.targetType || 'student';
     safeRaw.targetIds = Array.isArray(processedHw.targetIds) ? processedHw.targetIds : [];
 
+    // Check if homework is recorded in deleted_records tombstone table
+    try {
+      const checkCandidates = Array.from(new Set([
+        hwId,
+        uuidId,
+        targetDbId,
+        processedHw.supabaseId,
+        processedHw.stringId,
+        toUUID(processedHw.stringId),
+        toUUID(processedHw.supabaseId)
+      ].map(String).filter(Boolean)));
+      
+      const { data: delMatch } = await supabase
+        .from('deleted_records')
+        .select('id')
+        .in('id', checkCandidates)
+        .limit(1);
+
+      if (delMatch && delMatch.length > 0) {
+        console.warn('[Supabase] dbAddHomework blocked: item is deleted in tombstone table:', targetDbId);
+        return null;
+      }
+    } catch (e) {}
+
     const safePayload = {
       id: targetDbId,
       title: processedHw.title || 'Ödev',
@@ -1790,10 +1826,10 @@ export async function dbDeleteHomework(hwId) {
       const deleteIdsList = Array.from(matchingRowIds);
       const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
 
-      // 1. Delete related submissions from the CORRECT table (test_submissions) to satisfy foreign key constraints
+      // 1. Delete related submissions from the CORRECT table (submissions) to satisfy foreign key constraints
       if (allSubTestIds.length > 0) {
         try {
-          await supabase.from('test_submissions').delete().in('test_id', allSubTestIds);
+          await supabase.from('submissions').delete().in('homework_id', allSubTestIds);
         } catch (e) {}
       }
 
