@@ -168,8 +168,49 @@ export default function StudentWrongAnswersPage() {
 
   const currentStudentId = selectedStudent?.id || currentUser?.id;
 
+  const allStudentIds = useMemo(() => {
+    const sId = currentStudentId;
+    const sObj = selectedStudent || currentUser;
+    const ids = new Set();
+    if (sId) {
+      ids.add(String(sId));
+      if (toUUID(sId)) ids.add(String(toUUID(sId)));
+    }
+    if (sObj?.student_id) ids.add(String(sObj.student_id));
+    if (sObj?.studentId) ids.add(String(sObj.studentId));
+    if (sObj?.email) {
+      (users || []).forEach(u => {
+        if (u.email && u.email.toLowerCase() === sObj.email.toLowerCase()) {
+          ids.add(String(u.id));
+          if (u.student_id) ids.add(String(u.student_id));
+          if (u.studentId) ids.add(String(u.studentId));
+        }
+      });
+    }
+    ids.delete('');
+    ids.delete('undefined');
+    ids.delete('null');
+    return ids;
+  }, [currentStudentId, selectedStudent, currentUser, users]);
+
+  const studentGradeName = useMemo(() => {
+    const sObj = selectedStudent || currentUser;
+    if (!sObj) return '';
+    if (sObj.grade) return String(sObj.grade);
+    const gId = String(sObj.grade_id || sObj.gradeId || '');
+    if (gId) {
+      const gradesList = curData?.grades || [];
+      const matched = gradesList.find(g => String(g.id) === gId || toUUID(g.id) === toUUID(gId));
+      if (matched?.name) return String(matched.name);
+    }
+    return '';
+  }, [selectedStudent, currentUser, curData?.grades]);
+
   const remedialTests = useMemo(() => {
-    return (bankQuestions || []).filter(q => {
+    return (bankQuestions || []).filter(item => {
+      const raw = item.raw_data || {};
+      const q = { ...raw, ...item };
+
       // Must be explicitly created as a remedial / sliced test
       const isExplicitRemedial = q.isRemedialTest === true || q.sourceType === 'pdfSlicer';
       const titleLower = (q.title || q.name || '').toLowerCase();
@@ -179,21 +220,47 @@ export default function StudentWrongAnswersPage() {
         return false;
       }
 
-      // Check if assigned to this student, or created by this student, or general remedial test
-      if (q.studentId && currentStudentId && String(q.studentId) !== String(currentStudentId)) {
-        return false;
+      // Check target students / ownership
+      const testStudentId = String(q.studentId || q.student_id || q.targetStudentId || q.targetStudent || '');
+      const rawTargetIds = [
+        ...(Array.isArray(q.targetIds) ? q.targetIds : []),
+        ...(Array.isArray(q.target_ids) ? q.target_ids : []),
+        ...(Array.isArray(q.assignedTo) ? q.assignedTo : []),
+        ...(Array.isArray(q.studentIds) ? q.studentIds : []),
+        ...(testStudentId && testStudentId !== 'undefined' ? [testStudentId] : [])
+      ].filter(Boolean).map(String);
+
+      const isDirectTarget = rawTargetIds.some(tid => allStudentIds.has(tid) || (toUUID(tid) && allStudentIds.has(toUUID(tid))));
+
+      // If test is explicitly targeted/assigned to specific students and this student is NOT among them -> reject!
+      if (rawTargetIds.length > 0) {
+        if (!isDirectTarget) return false;
       }
-      if (Array.isArray(q.assignedTo) && q.assignedTo.length > 0 && currentStudentId) {
-        const assignedMatch = q.assignedTo.some(id => String(id) === String(currentStudentId));
-        if (!assignedMatch) return false;
+
+      // If created by a student (self-created)
+      const creatorId = String(q.createdBy || q.created_by || q.authorId || q.author || '');
+      const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
+      const isCreatedByOtherStudent = creatorId && !isCreatedByThisStudent && (
+        q.createdByRole === 'student' ||
+        users.some(u => (u.id === creatorId || toUUID(u.id) === toUUID(creatorId)) && u.role === 'student')
+      );
+
+      if (isCreatedByOtherStudent) {
+        return false; // Another student created this test for themselves!
       }
-      if (q.createdByRole === 'student' && q.createdBy && currentStudentId && String(q.createdBy) !== String(currentStudentId)) {
-        return false;
+
+      // Grade isolation: if test specifies a grade (e.g. "8. Sınıf") and student is "4. Sınıf" -> reject unless directly targeted
+      if (q.grade && studentGradeName && !isDirectTarget) {
+        const testGrade = String(q.grade).replace(/[^0-9]/g, '');
+        const studentGrade = String(studentGradeName).replace(/[^0-9]/g, '');
+        if (testGrade && studentGrade && testGrade !== studentGrade) {
+          return false;
+        }
       }
 
       return true;
     });
-  }, [bankQuestions, currentStudentId]);
+  }, [bankQuestions, allStudentIds, studentGradeName, users]);
 
   const handleAddTestToProgram = async (testItem, targetDayKey) => {
     const studentId = selectedStudent?.id || currentUser?.id;
@@ -2042,20 +2109,29 @@ export default function StudentWrongAnswersPage() {
               gap: '0.85rem'
             }}>
               {remedialTests.map(test => {
-                const sub = (submissions || []).find(s =>
-                  String(s.testId) === String(test.id) ||
-                  String(s.id) === String(test.id) ||
-                  toUUID(s.testId) === toUUID(test.id)
-                );
+                const sub = (submissions || []).find(s => {
+                  if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+                  const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+                  const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+                  if (!isMatchStudent) return false;
+                  return String(s.testId) === String(test.id) ||
+                    String(s.id) === String(test.id) ||
+                    (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
+                    (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id));
+                });
                 const isSolved = Boolean(sub);
                 const totalQ = test.questionCount || test.totalQuestions || test.questionsList?.length || 1;
-                const correctCount = sub ? (sub.correctCount ?? sub.correct ?? 0) : 0;
-                const wrongCount = sub ? (sub.wrongCount ?? sub.wrong ?? 0) : 0;
-                const blankCount = sub ? (sub.blankCount ?? sub.blank ?? Math.max(0, totalQ - correctCount - wrongCount)) : 0;
+                const correctCount = sub ? Number(sub.correct_count ?? sub.correctCount ?? sub.correct ?? 0) : 0;
+                const wrongCount = sub ? Number(sub.wrong_count ?? sub.wrongCount ?? sub.wrong ?? 0) : 0;
+                const blankCount = sub ? Number(sub.empty_count ?? sub.blankCount ?? sub.blank ?? Math.max(0, totalQ - correctCount - wrongCount)) : 0;
                 const scorePct = sub ? (sub.scorePercentage ?? (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0)) : 0;
                 const isDaySelectorOpen = openDaySelectorId === test.id;
                 const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
-                const isTeacherAssigned = test.createdByRole === 'teacher' || (Array.isArray(test.assignedTo) && test.assignedTo.length > 0) || test.isTeacherCreated || (test.createdBy && test.createdBy !== currentStudentId && test.createdByRole !== 'student');
+                const raw = test.raw_data || {};
+                const combinedTest = { ...raw, ...test };
+                const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
+                const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
+                const isTeacherAssigned = combinedTest.createdByRole === 'teacher' || (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined');
 
                 return (
                   <div
