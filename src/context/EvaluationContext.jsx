@@ -133,12 +133,8 @@ export function EvaluationProvider({ children }) {
 
   const [isSyncing, setIsSyncing] = useState(true);
 
-  const syncFromSupabase = async (showLoading = false, force = false) => {
+  const syncFromSupabase = async (showLoading = false, force = true) => {
     if (showLoading) setIsSyncing(true);
-    if (!force && isCacheValid('submissions', 15) && submissions.length > 0) {
-      if (showLoading) setIsSyncing(false);
-      return submissions;
-    }
 
     try {
       const dbSubsList = await dbGetSubmissions();
@@ -248,7 +244,7 @@ export function EvaluationProvider({ children }) {
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      syncFromSupabase(true, false);
+      syncFromSupabase(true, true);
     } else {
       setIsSyncing(false);
     }
@@ -283,10 +279,23 @@ export function EvaluationProvider({ children }) {
       })
       .subscribe();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromSupabase(false, true);
+      }
+    };
+    const handleFocus = () => {
+      syncFromSupabase(false, true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       try {
         supabase.removeChannel(subChannel);
       } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

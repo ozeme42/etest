@@ -113,7 +113,7 @@ export function TrackedBookProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshTrackedBooks(false);
+    refreshTrackedBooks(true);
 
     if (!isSupabaseConfigured() || !supabase) return;
 
@@ -128,10 +128,23 @@ export function TrackedBookProvider({ children }) {
       })
       .subscribe();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshTrackedBooks(true);
+      }
+    };
+    const handleFocus = () => {
+      refreshTrackedBooks(true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       try {
         supabase.removeChannel(bookChannel);
       } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

@@ -60,16 +60,10 @@ export function HomeworkProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshHomeworks = async (force = false) => {
+  const refreshHomeworks = async (force = true) => {
     if (!isSupabaseConfigured()) {
       setIsLoading(false);
       return null;
-    }
-    
-    // Check persistent cache
-    if (!force && isCacheValid('homeworks', 30) && homeworks.length > 0) {
-      setIsLoading(false);
-      return homeworks;
     }
 
     setIsLoading(true);
@@ -100,7 +94,7 @@ export function HomeworkProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshHomeworks();
+    refreshHomeworks(true);
 
     if (!isSupabaseConfigured() || !supabase) return;
 
@@ -112,10 +106,23 @@ export function HomeworkProvider({ children }) {
       })
       .subscribe();
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshHomeworks(true);
+      }
+    };
+    const handleFocus = () => {
+      refreshHomeworks(true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       try {
         supabase.removeChannel(hwChannel);
       } catch {}
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
