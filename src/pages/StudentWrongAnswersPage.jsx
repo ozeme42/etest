@@ -4,7 +4,7 @@ import {
   AlertCircle, Search, Filter, CheckCircle2, XCircle,
   ArrowLeft, GraduationCap, Ruler, TestTube2, BookCopy, Globe,
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
-  Table, List, ChevronRight, Check, Clock, Plus, Upload,
+  Table, List, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Check, Clock, Plus, Upload,
   Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked,
   RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors, Play
 } from 'lucide-react';
@@ -930,6 +930,34 @@ export default function StudentWrongAnswersPage() {
     });
   }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter, sortBy]);
 
+  // Pagination for Test Submissions
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // 10, 20, 50, 'all'
+
+  // Pagination for Görsel Hata Defterim
+  const [notebookPage, setNotebookPage] = useState(1);
+  const [notebookPageSize, setNotebookPageSize] = useState(12);
+
+  // Reset page when filters or tab change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedSubject, wrongOnlyFilter, sortBy, activeMainTab, pageSize]);
+
+  useEffect(() => {
+    setNotebookPage(1);
+  }, [notebookStatusFilter, notebookSearchQuery, selectedSubject, notebookPageSize]);
+
+  const totalSubmissionsCount = filteredTestSubmissions.length;
+  const totalSubmissionsPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalSubmissionsCount / (Number(pageSize) || 10)));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalSubmissionsPages);
+
+  const paginatedSubmissions = useMemo(() => {
+    if (pageSize === 'all') return filteredTestSubmissions;
+    const numSize = Number(pageSize) || 10;
+    const startIdx = (safeCurrentPage - 1) * numSize;
+    return filteredTestSubmissions.slice(startIdx, startIdx + numSize);
+  }, [filteredTestSubmissions, safeCurrentPage, pageSize]);
+
   // Tab-Specific Global Counts
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
   const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
@@ -1374,6 +1402,249 @@ export default function StudentWrongAnswersPage() {
       questionsList
     };
   }, [allSubmissions, studentErrors, currentWrongCount, currentBlankCount, selectedStudent, currentUser, isDark]);
+
+  const totalNotebookCount = filteredStudentErrors.length;
+  const totalNotebookPages = notebookPageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalNotebookCount / (Number(notebookPageSize) || 12)));
+  const safeNotebookPage = Math.min(Math.max(1, notebookPage), totalNotebookPages);
+
+  const paginatedNotebookErrors = useMemo(() => {
+    if (notebookPageSize === 'all') return filteredStudentErrors;
+    const numSize = Number(notebookPageSize) || 12;
+    const startIdx = (safeNotebookPage - 1) * numSize;
+    return filteredStudentErrors.slice(startIdx, startIdx + numSize);
+  }, [filteredStudentErrors, safeNotebookPage, notebookPageSize]);
+
+  // Reusable Pagination Renderer
+  const renderPagination = (current, total, totalCount, size, setSize, setPage, label = 'test') => {
+    if (totalCount === 0) return null;
+    const numSize = size === 'all' ? totalCount : Number(size);
+    const startIdx = size === 'all' ? 1 : (current - 1) * numSize + 1;
+    const endIdx = size === 'all' ? totalCount : Math.min(current * numSize, totalCount);
+
+    const getPageNumbers = () => {
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      if (current <= 4) {
+        return [1, 2, 3, 4, 5, '...', total];
+      }
+      if (current >= total - 3) {
+        return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      }
+      return [1, '...', current - 1, current, current + 1, '...', total];
+    };
+
+    const pages = getPageNumbers();
+
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
+        padding: '0.85rem 1.1rem',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
+        borderRadius: '14px',
+        marginTop: '1.25rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+      }}>
+        {/* Sol: Özet Bilgi */}
+        <div style={{
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          color: 'var(--color-text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <span>Toplam <strong style={{ color: 'var(--color-text)', fontWeight: 900 }}>{totalCount}</strong> {label}ten</span>
+          <span style={{
+            background: isDark ? 'rgba(99,102,241,0.2)' : '#ede9fe',
+            color: '#6366f1',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontWeight: 900,
+            fontSize: '0.76rem'
+          }}>
+            {startIdx} - {endIdx}
+          </span>
+          <span>arası listeleniyor</span>
+        </div>
+
+        {/* Sağ: Sayfa Başına Sayı ve Sayfa Geçiş Butonları */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sayfa Başına:</span>
+            <select
+              value={size}
+              onChange={e => setSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              style={{
+                padding: '0.35rem 0.6rem',
+                borderRadius: 8,
+                border: '1.5px solid var(--color-border-input)',
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text)',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value={10}>10 {label}</option>
+              <option value={20}>20 {label}</option>
+              <option value={50}>50 {label}</option>
+              <option value="all">Tümü ({totalCount})</option>
+            </select>
+          </div>
+
+          {total > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                disabled={current === 1}
+                title="İlk Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === 1 ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === 1 ? 'not-allowed' : 'pointer',
+                  opacity: current === 1 ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronsLeft size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={current === 1}
+                title="Önceki Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === 1 ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === 1 ? 'not-allowed' : 'pointer',
+                  opacity: current === 1 ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              {pages.map((p, pIdx) => {
+                if (p === '...') {
+                  return (
+                    <span
+                      key={`dot_${pIdx}`}
+                      style={{
+                        padding: '0 4px',
+                        color: 'var(--color-text-muted)',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}
+                    >
+                      …
+                    </span>
+                  );
+                }
+
+                const isCurrent = p === current;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      padding: '0 6px',
+                      borderRadius: 8,
+                      border: isCurrent ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                      background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                      color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      boxShadow: isCurrent ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(total, p + 1))}
+                disabled={current === total}
+                title="Sonraki Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === total ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === total ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === total ? 'not-allowed' : 'pointer',
+                  opacity: current === total ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPage(total)}
+                disabled={current === total}
+                title="Son Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === total ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === total ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === total ? 'not-allowed' : 'pointer',
+                  opacity: current === total ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{
@@ -2918,7 +3189,7 @@ export default function StudentWrongAnswersPage() {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
                 gap: '0.85rem'
               }}>
-                {filteredTestSubmissions.map(sub => {
+                {paginatedSubmissions.map(sub => {
                   const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
                   const Icon = cfg.icon;
 
@@ -3226,7 +3497,7 @@ export default function StudentWrongAnswersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTestSubmissions.map((sub, idx) => {
+                    {paginatedSubmissions.map((sub, idx) => {
                       const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
                       const isEven = idx % 2 === 0;
                       let rowBg = isEven ? 'var(--color-surface)' : 'var(--color-surface-hover)';
@@ -3349,10 +3620,23 @@ export default function StudentWrongAnswersPage() {
                         </tr>
                       );
                     })}
+                    {filteredTestSubmissions.length === 0 && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                          <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '0.4rem', display: 'inline-block' }} />
+                          <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                            {activeMainTab === 'unreviewed' ? 'Harika! Kontrol edilmeyi bekleyen sınav bulunmuyor.' : 'Henüz kontrol edilmiş sınav bulunmuyor.'}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             )}
+
+            {/* Sayfalama (Pagination) */}
+            {renderPagination(safeCurrentPage, totalSubmissionsPages, totalSubmissionsCount, pageSize, setPageSize, setCurrentPage, 'test')}
           </div>
         )}
 
@@ -3433,7 +3717,7 @@ export default function StudentWrongAnswersPage() {
               gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
               gap: '0.85rem'
             }}>
-              {filteredStudentErrors.map(err => {
+              {paginatedNotebookErrors.map(err => {
                 const cfg = SUBJECT_CONFIG[err.subject] || SUBJECT_CONFIG['Matematik'];
                 const isResolved = err.status === 'resolved';
 
@@ -3577,6 +3861,9 @@ export default function StudentWrongAnswersPage() {
                 </div>
               )}
             </div>
+
+            {/* Sayfalama (Pagination) */}
+            {renderPagination(safeNotebookPage, totalNotebookPages, totalNotebookCount, notebookPageSize, setNotebookPageSize, setNotebookPage, 'soru')}
           </div>
         )}
 
