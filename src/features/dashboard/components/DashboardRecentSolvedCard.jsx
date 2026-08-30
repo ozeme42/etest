@@ -144,7 +144,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
               <div
                 key={test.id || idx}
                 onClick={() => onReviewTest && onReviewTest(test)}
-                className="sd-card"
+                className="sd-test-item"
                 style={{
                   background: 'var(--color-surface-hover, #f8fafc)',
                   border: '1px solid var(--color-border, #e2e8f0)',
@@ -155,7 +155,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: isMobile ? '0.4rem' : '0.75rem',
-                  transition: 'all 0.15s ease'
+                  transition: 'background 0.15s ease, border-color 0.15s ease'
                 }}
               >
                 {/* Sol Taraf: Ders, Başlık ve D/Y/B Detayları */}

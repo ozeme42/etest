@@ -647,7 +647,24 @@ function AppContent() {
       }
     };
     window.addEventListener('widget_navigate', handleWidgetNavigate);
-    return () => window.removeEventListener('widget_navigate', handleWidgetNavigate);
+
+    // Auto-scroll inputs/textareas into view above mobile virtual keyboard
+    const handleFocusIn = (e) => {
+      const target = e.target;
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) {
+        setTimeout(() => {
+          try {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } catch (ignored) {}
+        }, 320);
+      }
+    };
+    document.addEventListener('focusin', handleFocusIn);
+
+    return () => {
+      window.removeEventListener('widget_navigate', handleWidgetNavigate);
+      document.removeEventListener('focusin', handleFocusIn);
+    };
   }, [navigate]);
 
   return (

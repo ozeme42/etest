@@ -62,26 +62,18 @@ public class MainActivity extends BridgeActivity {
             Window window = getWindow();
             if (window == null) return;
 
-            // 1. Extend into cutout to use entire screen
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                WindowManager.LayoutParams lp = window.getAttributes();
-                if (lp != null) {
-                    lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-                    window.setAttributes(lp);
-                }
-            }
+            // 1. Soft keyboard adjust resize
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
 
-            // 2. Edge-to-edge / don't fit system windows
-            WindowCompat.setDecorFitsSystemWindows(window, false);
+            // 2. Fits system windows so bottom navigation bar does not cover app content on older or 3-button devices
+            WindowCompat.setDecorFitsSystemWindows(window, true);
 
-            // 3. Hide status bar completely (Immersive Fullscreen)
+            // 3. Status bar styling
             if (window.getDecorView() != null) {
                 WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
                 if (controller != null) {
-                    controller.hide(WindowInsetsCompat.Type.statusBars());
-                    controller.setSystemBarsBehavior(
-                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    );
+                    controller.setAppearanceLightStatusBars(false);
+                    controller.setAppearanceLightNavigationBars(false);
                 }
             }
         } catch (Throwable ignored) {
