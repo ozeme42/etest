@@ -4,7 +4,7 @@ const WidgetBridge = registerPlugin('WidgetBridge');
 
 /**
  * Synchronizes:
- * 1. 📚 Interactive Books Widget (BooksWidgetProvider) with subjects breakdown & next test solver
+ * 1. 📚 Books Widget (BooksWidgetProvider) with student-page stats (D, Y, B, Net, Success %, Progress %)
  * 2. 📅 Interactive Study Program Widget (ProgramWidgetProvider) with 7-day switcher & direct "Çöz"
  * 3. 🔥 Remedial / CatchUp Pool Widget (CatchUpWidgetProvider)
  */
@@ -55,7 +55,7 @@ export async function syncWidgetData({
       }))
     };
 
-    // 2. Format Detailed Books (with subjects breakdown and next unsolved test)
+    // 2. Format Detailed Books (with exact student-page D, Y, B, Net, Success Rate and Progress)
     const formattedBooks = (booksProgress || []).map(b => ({
       id: String(b.id || ''),
       title: String(b.title || 'Kitap'),
@@ -63,11 +63,12 @@ export async function syncWidgetData({
       solvedTests: Number(b.solvedTests || 0),
       totalTests: Number(b.totalTests || 1),
       percent: Number(b.percent || 0),
+      totalCorrect: Number(b.totalCorrect || 0),
+      totalWrong: Number(b.totalWrong || 0),
+      totalBlank: Number(b.totalBlank || 0),
+      net: Number(b.net || 0),
+      successRate: Number(b.successRate || 0),
       subjectsBreakdown: String(b.subjectsBreakdown || ''),
-      nextTest: b.nextTest ? {
-        id: String(b.nextTest.id || ''),
-        title: String(b.nextTest.title || b.nextTest.name || 'Sıradaki Test')
-      } : null,
       url: `/student-book-details/${b.id || ''}`
     }));
 

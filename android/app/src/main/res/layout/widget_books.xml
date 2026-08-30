@@ -7,13 +7,13 @@
     android:background="@drawable/widget_bg"
     android:padding="10dp">
 
-    <!-- Top Header: App & Student -->
+    <!-- Top Header: Student Name & Book Index -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:id="@+id/widget_student_name"
@@ -22,7 +22,7 @@
             android:layout_weight="1"
             android:text="👤 Öğrenci Paneli"
             android:textColor="#ffffff"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:singleLine="true" />
 
@@ -49,7 +49,7 @@
         android:gravity="center_vertical"
         android:background="@drawable/widget_item_bg"
         android:padding="4dp"
-        android:layout_marginBottom="6dp">
+        android:layout_marginBottom="5dp">
 
         <TextView
             android:id="@+id/widget_btn_prev_book"
@@ -84,7 +84,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Main Student Book Card -->
+    <!-- Main Book Card Body (Öğrenci Sayfası Detayları) -->
     <LinearLayout
         android:id="@+id/widget_book_card"
         android:layout_width="match_parent"
@@ -94,7 +94,7 @@
         android:background="@drawable/widget_item_bg"
         android:padding="8dp">
 
-        <!-- Publisher & Overall Progress -->
+        <!-- Row 1: Publisher & Success Rate -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -114,78 +114,122 @@
                 android:singleLine="true" />
 
             <TextView
-                android:id="@+id/widget_book_progress_pct"
+                android:id="@+id/widget_book_success_rate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🟢 29/40 Test (%72)"
-                android:textColor="#34d399"
+                android:text="🎯 %88 Başarı Oranı"
+                android:textColor="#fbbf24"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Subjects Breakdown (Ders bazlı durum) -->
+        <!-- Row 2: Test Progress Text -->
+        <TextView
+            android:id="@+id/widget_book_progress_pct"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📊 29 / 40 Test Çözüldü (%72 İlerleme)"
+            android:textColor="#34d399"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp" />
+
+        <!-- Row 3: 4 Stats Badge (Doğru, Yanlış, Boş, Net) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="6dp">
+
+            <!-- Doğru -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="#064e3b"
+                android:gravity="center"
+                android:padding="4dp"
+                android:layout_marginEnd="2dp">
+                <TextView
+                    android:id="@+id/widget_stat_correct"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✓ 245 D"
+                    android:textColor="#6ee7b7"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Yanlış -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="#7f1d1d"
+                android:gravity="center"
+                android:padding="4dp"
+                android:layout_marginEnd="2dp"
+                android:layout_marginStart="2dp">
+                <TextView
+                    android:id="@+id/widget_stat_wrong"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="✗ 32 Y"
+                    android:textColor="#fca5a5"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Boş -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="#334155"
+                android:gravity="center"
+                android:padding="4dp"
+                android:layout_marginEnd="2dp"
+                android:layout_marginStart="2dp">
+                <TextView
+                    android:id="@+id/widget_stat_blank"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="○ 8 B"
+                    android:textColor="#cbd5e1"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Net -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="#312e81"
+                android:gravity="center"
+                android:padding="4dp"
+                android:layout_marginStart="2dp">
+                <TextView
+                    android:id="@+id/widget_stat_net"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ 234.3 Net"
+                    android:textColor="#c7d2fe"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Row 4: Subject Breakdown Text -->
         <TextView
             android:id="@+id/widget_book_subjects_breakdown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Türkçe: 10/12 • Matematik: 8/10 • Fen: 6/8"
             android:textColor="#cbd5e1"
-            android:textSize="10sp"
-            android:singleLine="true"
-            android:layout_marginBottom="6dp" />
-
-        <!-- Next Test Highlight Box -->
-        <LinearLayout
-            android:id="@+id/widget_next_test_box"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#0f172a"
-            android:padding="6dp"
-            android:gravity="center_vertical"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🎯 SIRADAKİ ÇÖZÜLECEK TEST:"
-                    android:textColor="#f59e0b"
-                    android:textSize="9sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/widget_next_test_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="1. Ünite - Paragraf Test-4 (Sayfa 21)"
-                    android:textColor="#ffffff"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:singleLine="true" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/widget_btn_solve_next"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/widget_btn_bg"
-                android:text="⚡ Çöz"
-                android:textColor="#ffffff"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:paddingStart="9dp"
-                android:paddingEnd="9dp"
-                android:paddingTop="5dp"
-                android:paddingBottom="5dp"
-                android:layout_marginStart="4dp" />
-        </LinearLayout>
+            android:textSize="9.5sp"
+            android:singleLine="true" />
 
     </LinearLayout>
 
@@ -212,7 +256,6 @@
         android:layout_marginTop="4dp">
 
         <TextView
-            android:id="@+id/widget_action_btn_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="📖 Kitap Detayı &amp; Test Haritası ➔"

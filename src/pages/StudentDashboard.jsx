@@ -2414,7 +2414,7 @@ export default function StudentDashboard() {
         isDone: Boolean(item.done || item.isCompleted || (typeof isItemSolved === 'function' && isItemSolved(item)))
       }));
 
-      // 2. Active Books Progress with subjects breakdown & next unsolved test
+      // 2. Active Books Progress with exact D, Y, B, Net, Success %, Progress % and subjects breakdown
       const booksProgress = (books || []).filter(b => b && b.title && b.bookType !== 'exam').map(b => {
         const bId = String(b.id);
         const bUuid = String(toUUID(b.id) || '');
@@ -2425,7 +2425,9 @@ export default function StudentDashboard() {
         });
         const total = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || b.total_tests || 20);
         let solved = 0;
-        let nextUnsolvedTest = null;
+        let totalCorrect = 0;
+        let totalWrong = 0;
+        let totalBlank = 0;
 
         const subjStats = [];
         rawSubjects.forEach(s => {
@@ -2436,11 +2438,6 @@ export default function StudentDashboard() {
             const isSolved = studentSubmissions.some(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books));
             if (isSolved) {
               sSolved++;
-            } else if (!nextUnsolvedTest) {
-              nextUnsolvedTest = {
-                id: t.id,
-                title: `${s.name} - ${t.name || 'Test'}` + (t.page ? ` (Sayfa ${t.page})` : '')
-              };
             }
           });
           if (sTests.length > 0) {
@@ -2449,17 +2446,28 @@ export default function StudentDashboard() {
         });
 
         testsInBook.forEach(t => {
-          if (studentSubmissions.some(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books))) {
+          const matchingSubs = studentSubmissions.filter(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books));
+          if (matchingSubs.length > 0) {
+            const best = matchingSubs.reduce((prev, curr) => {
+              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
+              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
+              return pScore >= prevScore ? curr : prev;
+            }, matchingSubs[0]);
+
             solved++;
-          } else if (!nextUnsolvedTest) {
-            nextUnsolvedTest = {
-              id: t.id,
-              title: t.name || 'Test'
-            };
+            totalCorrect += Number(best.correct_count ?? best.correctCount ?? best.correct ?? 0);
+            totalWrong += Number(best.wrong_count ?? best.wrongCount ?? best.wrong ?? 0);
+            totalBlank += Number(best.empty_count ?? best.blankCount ?? best.blank ?? 0);
           }
         });
 
+        const totalQ = totalCorrect + totalWrong + totalBlank;
+        const successRate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+        const pRatio = Number(b.penaltyRatio) >= 0 ? Number(b.penaltyRatio) : 3;
+        const rawNet = totalCorrect - (pRatio > 0 ? totalWrong / pRatio : 0);
+        const net = Math.max(0, Number(rawNet.toFixed(1)));
         const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+
         return {
           id: b.id,
           title: b.title,
@@ -2467,8 +2475,12 @@ export default function StudentDashboard() {
           solvedTests: solved,
           totalTests: total,
           percent: pct,
-          subjectsBreakdown: subjStats.join(' • '),
-          nextTest: nextUnsolvedTest
+          totalCorrect,
+          totalWrong,
+          totalBlank,
+          net,
+          successRate,
+          subjectsBreakdown: subjStats.join(' • ')
         };
       });
 

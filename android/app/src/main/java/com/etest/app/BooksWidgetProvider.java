@@ -114,43 +114,39 @@ public class BooksWidgetProvider extends AppWidgetProvider {
             String bookId = currentBook.optString("id", "");
             String title = currentBook.optString("title", "Kitap");
             String publisher = currentBook.optString("publisher", "Özel / MEB Yayınları");
-            int solved = currentBook.optInt("solvedTests", 0);
-            int total = currentBook.optInt("totalTests", 0);
-            int pct = currentBook.optInt("percent", 0);
+            int solvedTests = currentBook.optInt("solvedTests", 0);
+            int totalTests = currentBook.optInt("totalTests", 0);
+            int percent = currentBook.optInt("percent", 0);
+            int correct = currentBook.optInt("totalCorrect", 0);
+            int wrong = currentBook.optInt("totalWrong", 0);
+            int blank = currentBook.optInt("totalBlank", 0);
+            double net = currentBook.optDouble("net", 0.0);
+            int successRate = currentBook.optInt("successRate", 0);
             String subjectsBreakdown = currentBook.optString("subjectsBreakdown", "");
 
-            JSONObject nextTest = currentBook.optJSONObject("nextTest");
-            String nextTestId = nextTest != null ? nextTest.optString("id", "") : "";
-            String nextTestTitle = nextTest != null ? nextTest.optString("title", "Test") : "";
-
-            // Header info
+            // 1. Header info
             views.setTextViewText(R.id.widget_status_badge, (selectedIndex + 1) + "/" + totalBooks + " Kitap");
             views.setTextViewText(R.id.widget_book_header_title, "📘 " + title);
 
-            // Card content
+            // 2. Card header: Publisher & Success Rate
             views.setTextViewText(R.id.widget_book_publisher, "🏷️ " + (publisher.isEmpty() ? "Kitap Takibi" : publisher));
-            views.setTextViewText(R.id.widget_book_progress_pct, "🟢 " + solved + "/" + total + " Test (%" + pct + ")");
-            views.setTextViewText(R.id.widget_book_subjects_breakdown, subjectsBreakdown.isEmpty() ? "Dersler ve Ünite Dağılımı" : subjectsBreakdown);
+            views.setTextViewText(R.id.widget_book_success_rate, "🎯 %" + successRate + " Başarı");
 
-            // Next test section
-            if (nextTest != null && !nextTestTitle.isEmpty()) {
-                views.setViewVisibility(R.id.widget_next_test_box, View.VISIBLE);
-                views.setTextViewText(R.id.widget_next_test_title, nextTestTitle);
+            // 3. Progress text
+            views.setTextViewText(R.id.widget_book_progress_pct, "📊 " + solvedTests + " / " + totalTests + " Test Çözüldü (%" + percent + " İlerleme)");
 
-                // Direct "⚡ Hemen Çöz" Intent
-                Intent nextTestIntent = new Intent(context, MainActivity.class);
-                nextTestIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                nextTestIntent.putExtra(EXTRA_TARGET_URL, "/quiz-tracked/" + nextTestId);
-                nextTestIntent.setData(Uri.parse("etest://book/next/" + bookId + "/" + System.currentTimeMillis()));
-                PendingIntent nextTestPendingIntent = PendingIntent.getActivity(
-                    context, 701, nextTestIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                );
-                views.setOnClickPendingIntent(R.id.widget_btn_solve_next, nextTestPendingIntent);
-            } else {
-                views.setViewVisibility(R.id.widget_next_test_box, View.GONE);
-            }
+            // 4. Correct / Wrong / Blank / Net Stats
+            views.setTextViewText(R.id.widget_stat_correct, "✓ " + correct + " D");
+            views.setTextViewText(R.id.widget_stat_wrong, "✗ " + wrong + " Y");
+            views.setTextViewText(R.id.widget_stat_blank, "○ " + blank + " B");
+            String netStr = String.format(java.util.Locale.US, "%.1f", net);
+            if (netStr.endsWith(".0")) netStr = netStr.substring(0, netStr.length() - 2);
+            views.setTextViewText(R.id.widget_stat_net, "⚡ " + netStr + " Net");
 
-            // Book Switcher Intents
+            // 5. Subject breakdown
+            views.setTextViewText(R.id.widget_book_subjects_breakdown, subjectsBreakdown.isEmpty() ? "Dersler ve Üniteler" : subjectsBreakdown);
+
+            // 6. Book Switcher Intents
             Intent prevBookIntent = new Intent(context, BooksWidgetProvider.class);
             prevBookIntent.setAction(ACTION_PREV_BOOK);
             PendingIntent prevPendingIntent = PendingIntent.getBroadcast(
@@ -165,7 +161,7 @@ public class BooksWidgetProvider extends AppWidgetProvider {
             );
             views.setOnClickPendingIntent(R.id.widget_btn_next_book, nextPendingIntent);
 
-            // Bottom Action Intent -> Go to Book Details & Test Map
+            // 7. Action Button & Card Intent -> Go to Book Details & Test Map
             Intent bookDetailIntent = new Intent(context, MainActivity.class);
             bookDetailIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             bookDetailIntent.putExtra(EXTRA_TARGET_URL, "/student-book-details/" + bookId);
