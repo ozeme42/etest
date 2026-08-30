@@ -42,6 +42,19 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Home Screen Widget Receiver -->
+        <receiver
+            android:name=".TodayTasksWidgetProvider"
+            android:exported="true"
+            android:label="E-Test • Günün Programı">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_tasks_info" />
+        </receiver>
     </application>
 
     <!-- Permissions -->

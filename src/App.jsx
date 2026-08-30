@@ -639,7 +639,16 @@ function AppContent() {
 
   useEffect(() => {
     initNativeApp(navigate);
-  }, []);
+
+    const handleWidgetNavigate = (e) => {
+      const targetUrl = e?.detail?.url;
+      if (targetUrl) {
+        navigate(targetUrl);
+      }
+    };
+    window.addEventListener('widget_navigate', handleWidgetNavigate);
+    return () => window.removeEventListener('widget_navigate', handleWidgetNavigate);
+  }, [navigate]);
 
   return (
     <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>

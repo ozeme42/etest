@@ -41,6 +41,7 @@ import DashboardRecentSolvedCard from '../features/dashboard/components/Dashboar
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
+import { syncWidgetData } from '../services/widgetSyncService';
 
 // Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
@@ -2308,6 +2309,57 @@ export default function StudentDashboard() {
       hasAllCompleted: false
     };
   }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
+
+  // ── 📱 ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
+  useEffect(() => {
+    if (!selectedStudent?.id) return;
+    try {
+      const todayData = fullProcessedWeekMap[todayDayKey] || dayProgramInfo;
+      const todayTasks = (todayData?.items || []).map(item => ({
+        id: item.id || item.testId || item.uniqueKey,
+        testId: item.testId || item.bookTestId || item.realTestId || item.id,
+        title: item.title || item.testName || item.name || 'Test',
+        subject: item.subject || item.subjectName || '',
+        page: item.page || (item.startPage && item.endPage ? `${item.startPage}-${item.endPage}` : ''),
+        isDone: Boolean(item.done || item.isCompleted || (typeof isItemSolved === 'function' && isItemSolved(item)))
+      }));
+
+      // Active books progress
+      const booksProgress = (books || []).filter(b => b && b.title && b.bookType !== 'exam').slice(0, 2).map(b => {
+        const bId = String(b.id);
+        const bUuid = String(toUUID(b.id) || '');
+        const testsInBook = (bookTests || []).filter(bt => {
+          const btBId = String(bt.bookId || bt.book_id || '');
+          return btBId === bId || (bUuid && btBId === bUuid);
+        });
+        const total = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || b.total_tests || 20);
+        let solved = 0;
+        testsInBook.forEach(t => {
+          if (studentSubmissions.some(s => isSubmissionMatchingBookTest(s, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books))) {
+            solved++;
+          }
+        });
+        const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+        return {
+          id: b.id,
+          title: b.title,
+          solvedTests: solved,
+          totalTests: total,
+          percent: pct
+        };
+      });
+
+      syncWidgetData({
+        studentName: selectedStudent?.name || 'Öğrenci',
+        todayTasks: todayTasks,
+        booksProgress: booksProgress,
+        todayTotalCount: todayData?.totalCount || todayTasks.length,
+        todayRemainingCount: todayTasks.filter(t => !t.isDone).length
+      });
+    } catch (err) {
+      console.debug('Widget sync error:', err);
+    }
+  }, [selectedStudent?.id, selectedStudent?.name, fullProcessedWeekMap, todayDayKey, dayProgramInfo, books, bookTests, studentSubmissions, isItemSolved]);
 
   // ── 🔥 KAPSAMLI AKILLI TELAFİ HAVUZU (HAFTALIK ÇALIŞMA PROGRAMINDA GÜNÜ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ GÖREVLER) ──
   const catchUpTasks = useMemo(() => {

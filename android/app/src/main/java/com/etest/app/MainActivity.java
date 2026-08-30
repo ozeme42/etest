@@ -7,13 +7,46 @@ import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+import android.content.Intent;
+import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
         configureFullscreen();
+        handleWidgetIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleWidgetIntent(intent);
+    }
+
+    private void handleWidgetIntent(Intent intent) {
+        if (intent == null) return;
+        String targetUrl = intent.getStringExtra(TodayTasksWidgetProvider.EXTRA_TARGET_URL);
+        if (targetUrl != null && !targetUrl.trim().isEmpty()) {
+            final String safeUrl = targetUrl.replace("'", "\\'");
+            // Run JS on bridge WebView after loaded
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            getBridge().getWebView().evaluateJavascript(
+                                "window.dispatchEvent(new CustomEvent('widget_navigate', { detail: { url: '" + safeUrl + "' } }));",
+                                null
+                            );
+                        } catch (Throwable ignored) {}
+                    }
+                });
+            }
+        }
     }
 
     @Override
