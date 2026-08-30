@@ -38,17 +38,21 @@ export function TrackedBookProvider({ children }) {
     return Array.from(map.values());
   };
 
-  const deduplicateTests = (list) => {
-    if (!Array.isArray(list)) return [];
+  const deduplicateTests = (tests) => {
     const map = new Map();
-    list.forEach(t => {
+    tests.forEach(t => {
       if (!t) return;
       const bKey = String(t.bookId || t.book_id || '');
       const bCanonical = toUUID(bKey) || bKey;
-      const sKey = String(t.subjectId || t.subject_id || 'direct').trim().toLowerCase();
-      const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
+      const sKey = String(t.subjectId || t.subject_id || t.subjectName || t.subject || 'direct').trim().toLowerCase();
+      const topKey = String(t.topicId || t.topic_id || t.topicName || t.topic || 'direct').trim().toLowerCase();
       const nameKey = String(t.name || '').trim().toLowerCase();
-      const key = `${bCanonical}___${sKey}___${topKey}___${nameKey}`;
+      
+      // Also include the original test ID in the key if available to ensure absolute uniqueness, 
+      // since some UUIDs might genuinely have the same book, subject, topic, and name but be different tests.
+      const idKey = String(t.id || '').trim();
+      const key = `${bCanonical}___${sKey}___${topKey}___${nameKey}___${idKey}`;
+      
       if (!map.has(key)) {
         map.set(key, t);
       } else {

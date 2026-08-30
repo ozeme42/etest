@@ -11,12 +11,49 @@ export function useHomework() {
   return useContext(HomeworkContext);
 }
 
+const getDeletedHomeworkIds = () => {
+  try {
+    const saved = localStorage.getItem('eTestDeletedHomeworks');
+    if (!saved) return new Set();
+    const parsed = JSON.parse(saved);
+    return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const markHomeworkIdAsDeleted = (...ids) => {
+  try {
+    const current = getDeletedHomeworkIds();
+    ids.flat().filter(Boolean).forEach(id => {
+      const s = String(id).trim();
+      current.add(s);
+      const u = toUUID(s);
+      if (u) current.add(String(u));
+      const noPrefix = s.replace(/^hw_/, '');
+      if (noPrefix !== s) {
+        current.add(noPrefix);
+        const u2 = toUUID(noPrefix);
+        if (u2) current.add(String(u2));
+      }
+    });
+    localStorage.setItem('eTestDeletedHomeworks', JSON.stringify(Array.from(current)));
+  } catch {}
+};
+
 export function HomeworkProvider({ children }) {
   const [homeworks, setHomeworks] = useState(() => {
     try {
+      const deletedIds = getDeletedHomeworkIds();
       const saved = localStorage.getItem('eTestHomeworks');
       const parsed = saved ? JSON.parse(saved) : [];
-      return (parsed || []).filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
+      return (parsed || []).filter(h => {
+        if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
+        const hId = String(h.id || '');
+        const hSup = String(h.supabaseId || '');
+        const hU = toUUID(hId);
+        return !deletedIds.has(hId) && !deletedIds.has(hSup) && (!hU || !deletedIds.has(hU));
+      });
     } catch {
       return [];
     }
@@ -29,7 +66,7 @@ export function HomeworkProvider({ children }) {
       return null;
     }
     
-    // Check 30-second persistent cache (metadata is lightweight ~5KB, so 30s gives fresh updates with zero lag)
+    // Check persistent cache
     if (!force && isCacheValid('homeworks', 0.5) && homeworks.length > 0) {
       setIsLoading(false);
       return homeworks;
@@ -40,10 +77,16 @@ export function HomeworkProvider({ children }) {
       const dbHws = await dbGetHomeworks();
       if (dbHws && Array.isArray(dbHws)) {
         touchCache('homeworks');
-        const cleanDbHws = dbHws.filter(h => h.id !== 'global_ai_config' && h.subject !== 'SYSTEM' && !String(h.title || '').includes('GLOBAL_AI_CONFIG'));
+        const deletedIds = getDeletedHomeworkIds();
+        const cleanDbHws = dbHws.filter(h => {
+          if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
+          const hId = String(h.id || '');
+          const hSup = String(h.supabaseId || '');
+          const hU = toUUID(hId);
+          return !deletedIds.has(hId) && !deletedIds.has(hSup) && (!hU || !deletedIds.has(hU));
+        });
         
-        // Merge: keep any localStorage-only homeworks that aren't in DB yet
-        // This prevents homework assignments from being silently lost on page reload
+        // Merge: keep any localStorage-only homeworks that aren't in DB yet and not deleted
         const dbHwIds = new Set(cleanDbHws.map(h => String(h.id)));
         const dbHwSupabaseIds = new Set(cleanDbHws.map(h => String(h.supabaseId || '')).filter(Boolean));
 
@@ -57,6 +100,9 @@ export function HomeworkProvider({ children }) {
         const localOnlyHws = currentLocal.filter(lh => {
           if (!lh || lh.id === 'global_ai_config' || lh.subject === 'SYSTEM') return false;
           const lhIdStr = String(lh.id || '');
+          const lhSupStr = String(lh.supabaseId || '');
+          const lhU = toUUID(lhIdStr);
+          if (deletedIds.has(lhIdStr) || deletedIds.has(lhSupStr) || (lhU && deletedIds.has(lhU))) return false;
           return !dbHwIds.has(lhIdStr) && !dbHwSupabaseIds.has(lhIdStr);
         });
 
@@ -395,40 +441,77 @@ export function HomeworkProvider({ children }) {
   };
 
   const deleteHomework = async (id) => {
-    const idStr = String(id);
+    if (!id) return;
+    const idStr = String(id).trim();
     const idUuid = toUUID(idStr);
+
+    // Find any related IDs from existing state
+    const target = (homeworks || []).find(h => 
+      String(h.id) === idStr || 
+      String(h.supabaseId || '') === idStr || 
+      (idUuid && toUUID(h.id) === idUuid) ||
+      (idUuid && toUUID(h.supabaseId || '') === idUuid)
+    );
+    const targetSupabaseId = target?.supabaseId ? String(target.supabaseId) : null;
+    const targetRawId = target?.raw_data?.id ? String(target.raw_data.id) : null;
+    const targetStringId = target?.raw_data?.stringId ? String(target.raw_data.stringId) : null;
+
+    const allIdsToPurge = Array.from(new Set([idStr, idUuid, targetSupabaseId, targetRawId, targetStringId].filter(Boolean)));
+    markHomeworkIdAsDeleted(allIdsToPurge);
+
     setHomeworks(prev => {
-      const next = prev.filter(hw => String(hw.id) !== idStr && (!idUuid || toUUID(hw.id) !== idUuid));
+      const next = prev.filter(hw => {
+        const hId = String(hw.id);
+        const hSup = String(hw.supabaseId || '');
+        const hU = toUUID(hId);
+        const isMatch = allIdsToPurge.includes(hId) || allIdsToPurge.includes(hSup) || (hU && allIdsToPurge.includes(hU));
+        return !isMatch;
+      });
       try {
         localStorage.setItem('eTestHomeworks', JSON.stringify(next));
       } catch (e) {}
       return next;
     });
+
     invalidateCache('homeworks');
+
+    // Supabase DB delete
     await dbDeleteHomework(id);
+    if (targetSupabaseId && targetSupabaseId !== idStr) {
+      await dbDeleteHomework(targetSupabaseId);
+    }
+
     try {
-      localStorage.removeItem(`quiz_draft_${id}`);
-      localStorage.removeItem(`homework_sub_${id}`);
-      localStorage.removeItem(`quiz_submission_${id}`);
-      localStorage.removeItem(`draft_quiz_${id}_ans`);
+      allIdsToPurge.forEach(tid => {
+        localStorage.removeItem(`quiz_draft_${tid}`);
+        localStorage.removeItem(`homework_sub_${tid}`);
+        localStorage.removeItem(`quiz_submission_${tid}`);
+        localStorage.removeItem(`draft_quiz_${tid}_ans`);
+      });
       if (typeof idbDeletePayload === 'function') {
-        await idbDeletePayload(id);
-        await idbDeletePayload(idStr.replace(/^hw_/, ''));
-        if (idUuid) await idbDeletePayload(idUuid);
+        for (const tid of allIdsToPurge) {
+          await idbDeletePayload(tid);
+        }
       }
     } catch (e) {}
-    window.dispatchEvent(new CustomEvent('homework_deleted', { detail: { id } }));
+
+    window.dispatchEvent(new CustomEvent('homework_deleted', { detail: { id, allIds: allIdsToPurge } }));
   };
 
   const deleteAllHomeworks = async () => {
     const currentHomeworks = [...homeworks];
+    const allIds = currentHomeworks.map(h => [h.id, h.supabaseId, toUUID(h.id)]).flat().filter(Boolean);
+    markHomeworkIdAsDeleted(allIds);
+
     setHomeworks([]);
     try {
       localStorage.setItem('eTestHomeworks', JSON.stringify([]));
     } catch (e) {}
     invalidateCache('homeworks');
+
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
+      if (hw.supabaseId) await dbDeleteHomework(hw.supabaseId);
       try {
         localStorage.removeItem(`quiz_draft_${hw.id}`);
         localStorage.removeItem(`homework_sub_${hw.id}`);

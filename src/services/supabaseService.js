@@ -1759,25 +1759,58 @@ export async function dbAddHomework(hw) {
 export async function dbDeleteHomework(hwId) {
   if (!isSupabaseConfigured() || !hwId) return null;
   try {
-    const hwStr = String(hwId);
-    const validSubTestUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
+    const hwStr = String(hwId).trim();
+    const validHwUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
 
-    if (validSubTestUuids.length > 0) {
-      try {
-        await supabase.from('submissions').delete().in('test_id', validSubTestUuids);
-      } catch (e) {}
-    }
+    // 1. Fetch matching rows to ensure exact deletion from homeworks table
+    const matchingRowIds = new Set(validHwUuids);
+    if (isValidUUID(hwStr)) matchingRowIds.add(hwStr);
+
     try {
-      await supabase.from('submissions').delete().eq('homework_id', hwStr);
+      const { data: rows } = await supabase.from('homeworks').select('id, raw_data');
+      (rows || []).forEach(r => {
+        const rId = String(r.id);
+        const rawId = String(r.raw_data?.id || '');
+        const rawStrId = String(r.raw_data?.stringId || '');
+        if (
+          rId === hwStr ||
+          validHwUuids.includes(rId) ||
+          rawId === hwStr ||
+          rawStrId === hwStr ||
+          toUUID(rawId) === hwStr ||
+          toUUID(rawStrId) === hwStr ||
+          validHwUuids.includes(toUUID(rawId)) ||
+          validHwUuids.includes(toUUID(rawStrId))
+        ) {
+          matchingRowIds.add(rId);
+        }
+      });
     } catch (e) {}
 
-    // Delete from homeworks table using valid UUIDs
-    const validHwUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
-    if (validHwUuids.length > 0) {
+    const deleteIdsList = Array.from(matchingRowIds);
+    if (deleteIdsList.length > 0) {
       try {
-        await supabase.from('homeworks').delete().in('id', validHwUuids);
+        await supabase.from('homeworks').delete().in('id', deleteIdsList);
       } catch (e) {}
     }
+
+    // 2. Delete related submissions in submissions table
+    const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
+    if (allSubTestIds.length > 0) {
+      try {
+        await supabase.from('submissions').delete().in('test_id', allSubTestIds);
+      } catch (e) {}
+      try {
+        await supabase.from('submissions').delete().in('homework_id', allSubTestIds);
+      } catch (e) {}
+    }
+
+    // 3. Record deletion in deleted_records for audit / tombstoning
+    try {
+      await dbRecordDeletedItem(hwStr, 'homework');
+      if (validHwUuids[0]) await dbRecordDeletedItem(validHwUuids[0], 'homework');
+    } catch (e) {}
+
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteHomework error:', err.message);

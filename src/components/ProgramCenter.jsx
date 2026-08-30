@@ -1910,14 +1910,14 @@ export function MonthlyListPanel({
 
           if (tObj && !subjObj && currentBook) {
             subjObj = (currentBook.subjects || []).find(s => 
-              String(s.id) === String(tObj.subjectId) || 
-              (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId)) || 
-              (s.name && tObj.subjectName && String(s.name).toLowerCase().trim() === String(tObj.subjectName).toLowerCase().trim())
+              String(s.id) === String(tObj.subjectId || tObj.subject_id) || 
+              (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId || tObj.subject_id)) || 
+              (s.name && (tObj.subjectName || tObj.subject) && String(s.name).toLowerCase().trim() === String(tObj.subjectName || tObj.subject).toLowerCase().trim())
             );
             topicObj = (subjObj?.topics || []).find(tp => 
-              String(tp.id) === String(tObj.topicId) || 
-              (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId)) || 
-              (tp.name && tObj.topicName && String(tp.name).toLowerCase().trim() === String(tObj.topicName).toLowerCase().trim())
+              String(tp.id) === String(tObj.topicId || tObj.topic_id) || 
+              (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId || tObj.topic_id)) || 
+              (tp.name && (tObj.topicName || tObj.topic) && String(tp.name).toLowerCase().trim() === String(tObj.topicName || tObj.topic).toLowerCase().trim())
             );
           }
 
@@ -2266,7 +2266,7 @@ export function MonthlyListPanel({
 
         let key = '';
         if (item.testId) {
-          key = `test_${item.testId}`;
+          key = `test_${String(item.testId).replace(/^bt_/, '')}`;
         } else if (item.hwId && !item.testId) {
           key = `hw_${item.hwId}`;
         } else if (cleanTitle && (cleanSubject || cleanBook)) {
@@ -3856,14 +3856,14 @@ export default function ProgramCenter({
 
           if (tObj && !subjObj && currentBook) {
             subjObj = (currentBook.subjects || []).find(s => 
-              String(s.id) === String(tObj.subjectId) || 
-              (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId)) || 
-              (s.name && tObj.subjectName && String(s.name).toLowerCase().trim() === String(tObj.subjectName).toLowerCase().trim())
+              String(s.id) === String(tObj.subjectId || tObj.subject_id) || 
+              (toUUID(s.id) && toUUID(s.id) === toUUID(tObj.subjectId || tObj.subject_id)) || 
+              (s.name && (tObj.subjectName || tObj.subject) && String(s.name).toLowerCase().trim() === String(tObj.subjectName || tObj.subject).toLowerCase().trim())
             );
             topicObj = (subjObj?.topics || []).find(tp => 
-              String(tp.id) === String(tObj.topicId) || 
-              (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId)) || 
-              (tp.name && tObj.topicName && String(tp.name).toLowerCase().trim() === String(tObj.topicName).toLowerCase().trim())
+              String(tp.id) === String(tObj.topicId || tObj.topic_id) || 
+              (toUUID(tp.id) && toUUID(tp.id) === toUUID(tObj.topicId || tObj.topic_id)) || 
+              (tp.name && (tObj.topicName || tObj.topic) && String(tp.name).toLowerCase().trim() === String(tObj.topicName || tObj.topic).toLowerCase().trim())
             );
           }
 
@@ -4244,7 +4244,7 @@ export default function ProgramCenter({
 
         let key = '';
         if (item.testId) {
-          key = `test_${item.testId}`;
+          key = `test_${String(item.testId).replace(/^bt_/, '')}`;
         } else if (item.hwId && !item.testId) {
           key = `hw_${item.hwId}`;
         } else if (cleanTitle && (cleanSubject || cleanBook)) {

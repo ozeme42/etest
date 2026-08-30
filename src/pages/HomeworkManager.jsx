@@ -81,12 +81,24 @@ export default function HomeworkManager() {
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id)), [users, currentUser]);
   const homeworks = useMemo(() => {
-    let list = currentUser?.role === 'admin' ? (allHomeworks || []) : (allHomeworks || []).filter(hw => hw.assignedBy === currentUser?.id);
+    let list = (allHomeworks || []);
+    if (currentUser?.role === 'teacher') {
+      const teacherId = String(currentUser.id || '');
+      const studentIds = new Set((students || []).map(s => String(s.id)));
+      list = list.filter(hw => {
+        if (!hw) return false;
+        if (hw.assignedBy === teacherId || hw.teacherId === teacherId || hw.teacher_id === teacherId || hw.assignedBy === 'teacher_1') return true;
+        if (Array.isArray(hw.targetIds) && hw.targetIds.some(tid => studentIds.has(String(tid)))) return true;
+        if (hw.studentId && studentIds.has(String(hw.studentId))) return true;
+        if (!hw.assignedBy && !hw.teacherId) return true;
+        return false;
+      });
+    }
     return list.filter(hw => {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.title && (hw.title.includes('(Tüm Kitap') || hw.title.includes('(Kendi Eklediğim)')));
       return !isBook;
     });
-  }, [allHomeworks, currentUser]);
+  }, [allHomeworks, currentUser, students]);
   const questions = useMemo(() => currentUser?.role === 'admin' ? (allQuestions || []) : (allQuestions || []).filter(q => q.createdBy === currentUser?.id), [allQuestions, currentUser]);
 
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'create' | 'edit'
@@ -906,15 +918,47 @@ export default function HomeworkManager() {
       );
     };
 
-    const handleDeleteSelectedHw = () => {
+    const handleSingleDeleteHw = async (hw, e) => {
+      if (e) e.stopPropagation();
+      if (!hw) return;
+      if (!window.confirm(`"${hw.title || 'Bu ödev'}" ödevini ve tüm öğrenci yanıtlarını silmek istediğinize emin misiniz?`)) return;
+
+      try {
+        await deleteHomework(hw.id);
+        if (hw.supabaseId && hw.supabaseId !== hw.id) {
+          await deleteHomework(hw.supabaseId);
+        }
+        if (typeof deleteSubmissionsByTestId === 'function') {
+          await deleteSubmissionsByTestId(hw.id);
+          if (hw.supabaseId && hw.supabaseId !== hw.id) {
+            await deleteSubmissionsByTestId(hw.supabaseId);
+          }
+        }
+        setSelectedHwListIds(prev => prev.filter(x => x !== hw.id && x !== hw.supabaseId));
+        showToast('🗑️ Ödev başarıyla silindi!');
+      } catch (err) {
+        console.error("Delete homework error:", err);
+      }
+    };
+
+    const handleDeleteSelectedHw = async () => {
       if (selectedHwListIds.length === 0) return;
       const count = selectedHwListIds.length;
       if (!window.confirm(`Seçilen ${count} adet ödevi ve bunlara ait tüm öğrenci yanıtlarını silmek istediğinize emin misiniz?`)) return;
 
-      selectedHwListIds.forEach(id => {
-        deleteHomework(id);
-        deleteSubmissionsByTestId(id);
-      });
+      for (const id of selectedHwListIds) {
+        const found = allHomeworks?.find(h => String(h.id) === String(id) || String(h.supabaseId) === String(id));
+        await deleteHomework(id);
+        if (found?.supabaseId && found.supabaseId !== id) {
+          await deleteHomework(found.supabaseId);
+        }
+        if (typeof deleteSubmissionsByTestId === 'function') {
+          await deleteSubmissionsByTestId(id);
+          if (found?.supabaseId && found.supabaseId !== id) {
+            await deleteSubmissionsByTestId(found.supabaseId);
+          }
+        }
+      }
       setSelectedHwListIds([]);
       showToast(`🗑️ ${count} adet ödev başarıyla silindi!`);
     };
@@ -1345,12 +1389,7 @@ export default function HomeworkManager() {
                               <Edit2 size={14} />
                             </button>
                             <button
-                              onClick={() => {
-                                if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-                                  deleteHomework(hw.id);
-                                  deleteSubmissionsByTestId(hw.id);
-                                }
-                              }}
+                              onClick={(e) => handleSingleDeleteHw(hw, e)}
                               style={{
                                 padding: '0.45rem 0.65rem', borderRadius: '0.65rem',
                                 background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
@@ -1477,12 +1516,7 @@ export default function HomeworkManager() {
                                     <Edit2 size={13} />
                                   </button>
                                   <button
-                                    onClick={() => {
-                                      if (window.confirm('Bu ödevi silmek istediğinize emin misiniz?')) {
-                                        deleteHomework(hw.id);
-                                        deleteSubmissionsByTestId(hw.id);
-                                      }
-                                    }}
+                                    onClick={(e) => handleSingleDeleteHw(hw, e)}
                                     style={{
                                       padding: '0.4rem', borderRadius: '0.6rem',
                                       background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',

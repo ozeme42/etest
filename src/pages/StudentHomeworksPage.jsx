@@ -192,6 +192,7 @@ export default function StudentHomeworksPage() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
       if (isBook) {
+        return []; // Sadece soru bankası ödevlerini göstermek için kitap takibi ödevlerini gizliyoruz
         const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
           (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
