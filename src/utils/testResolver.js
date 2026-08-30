@@ -1219,9 +1219,22 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   // Subject (step 2) + page number (step 4) + title matching is specific enough to prevent false
   // positives without an expensive O(n) bookTests lookup on every submission check.
 
-  // 2. Subject (Ders) verification - CRUCIAL for multi-lesson books
+  const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
+  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').replace(/\s*\(.*?\)$/, '').trim();
+  const tName = String(targetTest.name || targetTest.title || '').toLowerCase().trim();
+
+  // 2. Subject (Ders) extraction and verification - CRUCIAL for multi-lesson books
+  let subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || s.lesson || '').toLowerCase().trim();
+  if (!subSubject) {
+    if (sTitle.includes('türkçe') || sTitle.includes('turkce') || sTitle.includes('paragraf')) subSubject = 'türkçe';
+    else if (sTitle.includes('matematik') || sTitle.includes('mat') || sTitle.includes('problem')) subSubject = 'matematik';
+    else if (sTitle.includes('fen')) subSubject = 'fen bilimleri';
+    else if (sTitle.includes('sosyal')) subSubject = 'sosyal bilgiler';
+    else if (sTitle.includes('ingilizce')) subSubject = 'ingilizce';
+    else if (sTitle.includes('din')) subSubject = 'din kültürü';
+  }
+
   const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
-  const subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || s.lesson || '').toLowerCase().trim();
 
   if (targetSubject && subSubject && targetSubject !== 'genel' && subSubject !== 'genel' && subSubject !== 'genel testler' && targetSubject !== 'genel testler') {
     const isSubjectMatch = subSubject === targetSubject ||
@@ -1239,8 +1252,6 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  if (!targetTest) return false;
-
   const extractPageNumbers = (str) => {
     if (!str || typeof str !== 'string') return null;
     const match = str.match(/(\d+)\s*[-–/]\s*(\d+)/);
@@ -1249,10 +1260,6 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     if (singleMatch) return singleMatch[1];
     return null;
   };
-
-  const tName = String(targetTest.name || targetTest.title || '').toLowerCase().trim();
-  const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
-  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').replace(/\s*\(.*?\)$/, '').trim();
 
   const targetPages = targetTest.pageRange ||
     (targetTest.startPage && targetTest.endPage ? `${targetTest.startPage}-${targetTest.endPage}` : null) ||
@@ -1281,8 +1288,13 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   // 4. Unit (Ünite) verification
+  let subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
+  if (!subUnit) {
+    const uMatch = sTitle.match(/(\d+)\.\s*ünite/i) || sTitle.match(/ünite\s*(\d+)/i);
+    if (uMatch) subUnit = `${uMatch[1]}. ünite`;
+  }
+
   const targetUnit = String(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || '').toLowerCase().trim();
-  const subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
 
   if (targetUnit && subUnit) {
     const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
@@ -1292,40 +1304,15 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-
-
   // If both have orderIndex, check orderIndex
   if (targetTest.orderIndex !== undefined && targetTest.orderIndex !== null && s.metadata?.orderIndex !== undefined && s.metadata?.orderIndex !== null) {
     return Number(targetTest.orderIndex) === Number(s.metadata.orderIndex);
   }
 
-  // Generic names across subjects MUST have subject match to avoid cross-subject false positives.
-  // Unit is only checked when BOTH sides have unit info (to avoid blocking when unit is simply missing).
-  const isGeneric = /^(problem sayfası|etkinlik sayfası|sayfa|test|deneme|kazanım testi|konu testi|ödev|çalışma|test \d+|test-\d+|ü\.?\s*değ\.?\s*\d+|ünite değerlendirme \d+|yeni nesil \d+|etkinlik \d+)$/i.test(tName);
-  if (isGeneric) {
-    // Subject must match
-    if (!targetSubject || !subSubject) return false;
-    const isSubjOk = subSubject === targetSubject ||
-      subSubject.includes(targetSubject) || targetSubject.includes(subSubject) ||
-      (targetSubject.includes('türk') && subSubject.includes('türk')) ||
-      (targetSubject.includes('mat') && subSubject.includes('mat')) ||
-      (targetSubject.includes('fen') && subSubject.includes('fen')) ||
-      (targetSubject.includes('sos') && subSubject.includes('sos')) ||
-      (targetSubject.includes('ing') && subSubject.includes('ing')) ||
-      (targetSubject.includes('din') && subSubject.includes('din'));
-    if (!isSubjOk) return false;
-
-    // If BOTH sides have unit info, verify they don't conflict
-    if (targetUnit && subUnit) {
-      const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
-      const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
-      if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
-    }
-
-    // Title must match
-    return cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle);
+  // 5. Test name match
+  if (cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle) || sTitle.includes(`(${tName})`)) {
+    return true;
   }
 
-  // Non-generic unique title match
-  return cleanSTitle === tName;
+  return false;
 }

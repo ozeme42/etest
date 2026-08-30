@@ -1826,10 +1826,10 @@ export async function dbDeleteHomework(hwId) {
       const deleteIdsList = Array.from(matchingRowIds);
       const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
 
-      // 1. Delete related submissions from the CORRECT table (submissions) to satisfy foreign key constraints
+      // 1. Decouple related submissions rather than deleting them, ensuring student test results and book progress are preserved
       if (allSubTestIds.length > 0) {
         try {
-          await supabase.from('submissions').delete().in('homework_id', allSubTestIds);
+          await supabase.from('submissions').update({ homework_id: null }).in('homework_id', allSubTestIds);
         } catch (e) {}
       }
 

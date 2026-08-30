@@ -9,7 +9,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 
 /* ─── Constants ─── */
@@ -120,16 +120,16 @@ export function normalizeWeeklyProgram(raw) {
   });
 }
 
-export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null) {
+export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null, bookTests = [], books = []) {
   if (!item) return false;
-  if (item.done) return true;
+  if (item.done || item.isCompleted) return true;
 
   const studentIdStr = String(studentId || '');
   const studentUuidStr = String(toUUID(studentId) || '');
 
   const isMatchStudent = (s) => {
     if (!studentId) return true;
-    const sId = String(s.studentId || '');
+    const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
     return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
   };
 
@@ -149,6 +149,7 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
 
       const subFields = [
         s.testId,
+        s.test_id,
         s.realTestId,
         s.bookTestId,
         s.metadata?.realTestId,
@@ -161,12 +162,14 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
         s.bookTestIds.forEach(bid => { if (bid) subFields.push(String(bid)); });
       }
 
-      return subFields.some(sf => sf && (
+      if (subFields.some(sf => sf && (
         sf === tIdStr ||
         (tUuidStr && sf === tUuidStr) ||
         toUUID(sf) === tIdStr ||
         (tUuidStr && toUUID(sf) === tUuidStr)
-      ));
+      ))) return true;
+
+      return isSubmissionMatchingBookTest(s, item, bookTests, books);
     });
 
     if (isTestSolvedInSubs) return true;
@@ -179,8 +182,9 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
         const hasTestSub = hwObj.submissions.some(s => {
           if (!s || !isMatchStudent(s)) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
-          const sTestId = String(s.testId || s.realTestId || s.bookTestId || '');
-          return sTestId === tIdStr || (tUuidStr && sTestId === tUuidStr) || toUUID(sTestId) === tIdStr;
+          const sTestId = String(s.testId || s.test_id || s.realTestId || s.bookTestId || '');
+          if (sTestId === tIdStr || (tUuidStr && sTestId === tUuidStr) || toUUID(sTestId) === tIdStr) return true;
+          return isSubmissionMatchingBookTest(s, item, bookTests, books);
         });
         if (hasTestSub) return true;
       }
@@ -218,17 +222,26 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
     const isHwSolvedInSubs = (submissions || []).some(s => {
       if (!s || !isMatchStudent(s)) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
-      const subFields = [s.hwId, s.homeworkId].filter(Boolean).map(String);
+      const subFields = [s.id, s.hwId, s.homeworkId, s.homework_id, s.testId, s.test_id].filter(Boolean).map(String);
       return subFields.some(sf => sf === gHwIdStr || (gUuidStr && sf === gUuidStr) || toUUID(sf) === gHwIdStr);
     });
-
     if (isHwSolvedInSubs) return true;
 
-    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr || toUUID(h.id) === gHwIdStr);
+    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr || (gUuidStr && String(h.id) === gUuidStr));
     if (hwObj && Array.isArray(hwObj.submissions)) {
       const hasHwSub = hwObj.submissions.some(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
       if (hasHwSub) return true;
     }
+  }
+
+  // CASE 4: FALLBACK MATCHING BY BOOK TEST OR TITLE
+  if (Array.isArray(submissions) && submissions.length > 0) {
+    const matched = submissions.some(s => {
+      if (!s || !isMatchStudent(s)) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      return isSubmissionMatchingBookTest(s, item, bookTests, books);
+    });
+    if (matched) return true;
   }
 
   return false;
@@ -3617,7 +3630,7 @@ export default function ProgramCenter({
     const solvedIdsSet = new Set();
     (submissions || []).forEach(s => {
       if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-      const ids = [s.id, s.testId, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
+      const ids = [s.id, s.testId, s.test_id, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.homework_id, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
       if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
       ids.forEach(id => {
         if (!id) return;
@@ -3632,7 +3645,7 @@ export default function ProgramCenter({
       if (hw.submissions && Array.isArray(hw.submissions)) {
         hw.submissions.forEach(s => {
           if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-          const ids = [s.id, s.testId, s.bookTestId, s.realTestId];
+          const ids = [s.id, s.testId, s.test_id, s.bookTestId, s.realTestId];
           ids.forEach(id => {
             if (!id) return;
             const str = String(id);
@@ -3683,7 +3696,7 @@ export default function ProgramCenter({
       });
       // Map manual items to dynamically reflect test/assignment completion
       manualItems = manualItems.map(item => {
-        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet));
+        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books));
         return {
           ...item,
           done: isDone

@@ -554,15 +554,28 @@ export default function StudentDashboard() {
     const studentIdStr = String(selectedStudent.id || '');
     const studentUuidStr = String(toUUID(selectedStudent.id) || selectedStudent.uuid || '');
 
-    return (submissions || []).filter(s => {
+    const isMatch = (s) => {
       if (!s) return false;
       const sStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
       if (!sStudentId) return false;
       return sStudentId === studentIdStr ||
         (studentUuidStr && (sStudentId === studentUuidStr || toUUID(sStudentId) === studentUuidStr)) ||
         (studentIdStr && toUUID(studentIdStr) === sStudentId);
+    };
+
+    const list = (submissions || []).filter(isMatch);
+    (homeworks || []).forEach(hw => {
+      const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      (hwSubs || []).forEach(sub => {
+        if (sub && isMatch(sub)) {
+          if (!list.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+            list.push(sub);
+          }
+        }
+      });
     });
-  }, [submissions, selectedStudent]);
+    return list;
+  }, [submissions, homeworks, selectedStudent]);
 
   // ── Fast O(1) Solved Tests Set for Student (with comprehensive ID & Content matching) ──
   // ── Fast O(1) Solved Tests Set for Student (with precise ID & Content matching) ──
@@ -601,9 +614,24 @@ export default function StudentDashboard() {
       if (s.status === 'in_progress' || s.status === 'draft') return;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
 
-      const sName = normalizeKey(s.subjectName || s.subject || s.metadata?.subjectName || s.metadata?.subject || s.lesson);
+      const rawTitle = s.title || s.testTitle || s.testName || '';
+      let rawSubject = s.subjectName || s.subject || s.metadata?.subjectName || s.metadata?.subject || s.lesson;
+      if (!rawSubject) {
+        const lowT = rawTitle.toLowerCase();
+        if (lowT.includes('türkçe') || lowT.includes('turkce') || lowT.includes('paragraf')) rawSubject = 'Türkçe';
+        else if (lowT.includes('matematik') || lowT.includes('mat') || lowT.includes('problem')) rawSubject = 'Matematik';
+        else if (lowT.includes('fen')) rawSubject = 'Fen Bilimleri';
+        else if (lowT.includes('sosyal')) rawSubject = 'Sosyal Bilgiler';
+      }
+
+      const sName = normalizeKey(rawSubject);
       const bTitle = normalizeKey(s.bookTitle || s.metadata?.bookTitle);
-      const uTopic = normalizeKey(s.topicName || s.unitTopic || s.metadata?.topicName);
+      let rawTopic = s.topicName || s.unitTopic || s.metadata?.topicName;
+      if (!rawTopic) {
+        const uM = rawTitle.match(/(\d+)\.\s*ünite/i);
+        if (uM) rawTopic = `${uM[1]}. Ünite`;
+      }
+      const uTopic = normalizeKey(rawTopic);
       const tName = normalizeKey(s.testName || s.title || s.testTitle || s.metadata?.testName);
       const bId = String(s.bookId || s.metadata?.bookId || '');
 
@@ -646,7 +674,6 @@ export default function StudentDashboard() {
       });
 
       // Cleaned Title Matching — subject-scoped so same name in different subjects don't collide
-      const rawTitle = s.title || s.testTitle || s.testName || '';
       const cleanedTitle = cleanTestTitle(rawTitle);
       const normTitle = normalizeKey(cleanedTitle);
       if (normTitle && normTitle.length >= 4) {
@@ -1942,6 +1969,7 @@ export default function StudentDashboard() {
               if (sRealTestId && (sRealTestId === specStr || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) return true;
               if (sBookTestId && (sBookTestId === specStr || sBookTestId === specClean || (specUuid && sBookTestId === specUuid))) return true;
               if (s.bookTestIds && Array.isArray(s.bookTestIds) && s.bookTestIds.some(tid => String(tid) === specStr || String(tid) === specClean)) return true;
+              if (isSubmissionMatchingBookTest(s, specificTestId, bookTests, books)) return true;
               return false;
             }
 
@@ -2037,14 +2065,22 @@ export default function StudentDashboard() {
                     }
                   }
                   const testItemObj = {
+                    ...testItem,
                     id: testItem.id,
                     testId: testItem.id,
                     bookTestId: testItem.id,
                     bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
-                    testName: info.testName,
-                    title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                    unitTopic: info.topicName,
-                    subject: info.subjectName,
+                    name: testItem.name || info.testName,
+                    testName: testItem.name || info.testName,
+                    title: testItem.name || `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                    unit: info.topicName || testItem.unit || testItem.unitName || '',
+                    unitName: info.topicName || testItem.unit || testItem.unitName || '',
+                    unitTopic: info.topicName || testItem.unit || testItem.unitName || '',
+                    topic: info.topicName || '',
+                    topicName: info.topicName || '',
+                    subject: info.subjectName || testItem.subject || testItem.subjectName || '',
+                    subjectName: info.subjectName || testItem.subject || testItem.subjectName || '',
+                    parentSubjectName: info.subjectName || '',
                     bookTitle: info.cleanBookTitle
                   };
 
@@ -2076,8 +2112,8 @@ export default function StudentDashboard() {
                     return false;
                   })();
                   const isTestSolved = tidSolvedCheck ||
-                    (hw.submissions || hw.raw_data?.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id)) ||
-                    (studentSubmissions || []).some(s => isMatchHwSub(s, hw, testItem.id));
+                    (hw.submissions || hw.raw_data?.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books)) ||
+                    (studentSubmissions || []).some(s => isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books));
                   const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
 
                   const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
@@ -2093,11 +2129,18 @@ export default function StudentDashboard() {
                       isAutoHomework: true,
                       isBookTask: true,
                       taskType: 'kitap',
-                      subject: info.subjectName,
-                      unitTopic: info.topicName,
-                      bookTitle: info.cleanBookTitle,
-                      testName: info.testName,
+                      name: testItem.name || info.testName,
+                      testName: testItem.name || info.testName,
                       title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
+                      unit: info.topicName || '',
+                      unitName: info.topicName || '',
+                      unitTopic: info.topicName || '',
+                      topic: info.topicName || '',
+                      topicName: info.topicName || '',
+                      subject: info.subjectName || '',
+                      subjectName: info.subjectName || '',
+                      parentSubjectName: info.subjectName || '',
+                      bookTitle: info.cleanBookTitle,
                       questionCount: `${info.qCount} soru`,
                       time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
                       done: isTestSolved
