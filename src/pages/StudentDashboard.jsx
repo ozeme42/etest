@@ -1203,25 +1203,26 @@ export default function StudentDashboard() {
       let nextTest = null;
 
       testsInBook.forEach(t => {
-        const tIdStr = String(t.id);
-        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
-        const tUuidStr = String(toUUID(t.id) || '');
-
-        let bestSub = solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId) || (tUuidStr ? solvedSubsMap.get(tUuidStr) : null);
-        
-        if (!bestSub) {
-          bestSub = allMatchingSubs.find(s => isSubmissionMatchingBookTest(s, t, bookTests, books));
-          if (bestSub) {
-            solvedSubsMap.set(tIdStr, bestSub);
-            solvedSubsMap.set(tCleanId, bestSub);
-          }
+        const contextualTest = {
+          ...t,
+          bookId: book.id,
+          bookTitle: book.title
+        };
+        const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, bookTests, books));
+        let bestSub = null;
+        if (matchingSubs.length > 0) {
+          bestSub = matchingSubs.reduce((prev, curr) => {
+            const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
+            const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
+            return pScore >= prevScore ? curr : prev;
+          }, matchingSubs[0]);
         }
 
         if (bestSub) {
           totalSolvedTests++;
-          totalCorrect += Number(bestSub.correctCount ?? bestSub.correct ?? 0);
-          totalWrong += Number(bestSub.wrongCount ?? bestSub.wrong ?? 0);
-          totalBlank += Number(bestSub.emptyCount ?? bestSub.blankCount ?? bestSub.blank ?? 0);
+          totalCorrect += Number(bestSub.correct_count ?? bestSub.correctCount ?? bestSub.correct ?? 0);
+          totalWrong += Number(bestSub.wrong_count ?? bestSub.wrongCount ?? bestSub.wrong ?? 0);
+          totalBlank += Number(bestSub.empty_count ?? bestSub.blankCount ?? bestSub.blank ?? 0);
         } else if (!nextTest) {
           nextTest = t;
         }

@@ -217,16 +217,32 @@ export default function StudentBooksPage() {
     });
   }, [homeworks, activeStudent, curData?.grades]);
 
-  const studentSubmissions = useMemo(() =>
-    submissions.filter(s => {
+  const studentSubmissions = useMemo(() => {
+    const list = submissions.filter(s => {
       if (!s || isDeletedItem(s)) return false;
       const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
       const isMatchStudent = allStudentIds.has(sId) || (toUUID(sId) && allStudentIds.has(toUUID(sId)));
       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
       if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
       return true;
-    })
-    , [submissions, allStudentIds]);
+    });
+
+    (homeworks || []).forEach(hw => {
+      const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      (hwSubs || []).forEach(sub => {
+        if (!sub || isDeletedItem(sub)) return;
+        const sId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
+        const isMatchStudent = allStudentIds.has(sId) || (toUUID(sId) && allStudentIds.has(toUUID(sId)));
+        if (isMatchStudent && sub.status !== 'in_progress' && sub.status !== 'draft') {
+          if (!list.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+            list.push(sub);
+          }
+        }
+      });
+    });
+
+    return list;
+  }, [submissions, homeworks, allStudentIds]);
 
   const assignedBooks = useMemo(() => {
     const isExamBook = (b) => {
@@ -355,32 +371,25 @@ export default function StudentBooksPage() {
       let totalBlank = 0;
       let totalSolvedTests = 0;
 
-      // Group submissions by test (taking best score per test)
-      const testSubsMap = {};
-      matchedSubs.forEach(s => {
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
-        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLowerCase().trim();
-        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-        const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
+      testsInBook.forEach(t => {
+        const contextualTest = {
+          ...t,
+          bookId: b.id,
+          bookTitle: b.title
+        };
+        const matchingSubs = studentSubmissions.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+        if (matchingSubs.length > 0) {
+          const best = matchingSubs.reduce((prev, curr) => {
+            const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
+            const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
+            return pScore >= prevScore ? curr : prev;
+          }, matchingSubs[0]);
 
-        const matchingTest = testsInBook.find(t => isSubmissionMatchingBookTest(s, t, testsInBook, books));
-
-        if (matchingTest) {
-          const testKey = String(matchingTest.id);
-          const existing = testSubsMap[testKey];
-          const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
-          if (!existing || score > Number(existing.score || existing.computedScore || (existing.correct_count ?? existing.correctCount ?? existing.correct ?? 0))) {
-            testSubsMap[testKey] = s;
-          }
+          totalSolvedTests++;
+          totalCorrect += Number(best.correct_count ?? best.correctCount ?? best.correct ?? 0);
+          totalWrong += Number(best.wrong_count ?? best.wrongCount ?? best.wrong ?? 0);
+          totalBlank += Number(best.empty_count ?? best.blankCount ?? best.blank ?? 0);
         }
-      });
-
-      Object.values(testSubsMap).forEach(s => {
-        totalSolvedTests++;
-        totalCorrect += Number(s.correct_count ?? s.correctCount ?? s.correct ?? 0);
-        totalWrong += Number(s.wrong_count ?? s.wrongCount ?? s.wrong ?? 0);
-        totalBlank += Number(s.empty_count ?? s.blankCount ?? s.blank ?? 0);
       });
 
       if (b.targetDueDate) {

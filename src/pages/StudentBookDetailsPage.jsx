@@ -289,6 +289,29 @@ export default function StudentBookDetailsPage() {
     const studentIdStr = String(studentId || '');
     const studentUuidStr = String(toUUID(studentId) || '');
 
+    // Gather all matching submissions from both submissions table and homeworks.submissions
+    const allStudentSubs = (submissions || []).filter(s => {
+      if (!s || isDeletedItem(s)) return false;
+      const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+      return true;
+    });
+
+    (homeworks || []).forEach(hw => {
+      const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      (hwSubs || []).forEach(sub => {
+        if (!sub || isDeletedItem(sub)) return;
+        const sStdId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
+        const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+        if (isMatchStudent && sub.status !== 'in_progress' && sub.status !== 'draft') {
+          if (!allStudentSubs.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+            allStudentSubs.push(sub);
+          }
+        }
+      });
+    });
+
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
 
@@ -342,36 +365,13 @@ export default function StudentBookDetailsPage() {
           parentSubjectName: subject.name,
           unit: parentTopic?.name || '',
           unitName: parentTopic?.name || '',
-          bookId: book?.id
+          bookId: book?.id,
+          bookTitle: book?.title
         };
 
-        const solvedSubs = submissions.filter(s => {
-          if (!s || isDeletedItem(s)) return false;
-          const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-          const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
-          if (!isMatchStudent) return false;
-          if (s.status === 'in_progress' || s.status === 'draft') return false;
+        const solvedSubs = allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, bookTests, books));
 
-          return isSubmissionMatchingBookTest(s, contextualTest, bookTests, books);
-        });
-
-        let hwSub = null;
-        for (const hw of homeworks) {
-          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
-          const match = hw.submissions.find(s => {
-            if (!s || isDeletedItem(s)) return false;
-            const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-            const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
-            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            return isSubmissionMatchingBookTest(s, contextualTest, bookTests, books);
-          });
-          if (match) {
-            hwSub = match;
-            break;
-          }
-        }
-
-        const isCompleted = solvedSubs.length > 0 || !!hwSub;
+        const isCompleted = solvedSubs.length > 0;
 
         let bestScore = null;
         let bestSub = null;
@@ -405,13 +405,6 @@ export default function StudentBookDetailsPage() {
           } else {
             bestScore = Number(bestSub.score || 0);
           }
-        } else if (hwSub) {
-          bestSub = hwSub;
-          const d = Number(hwSub.correctCount ?? hwSub.correct_count ?? 0);
-          const y = Number(hwSub.wrongCount ?? hwSub.wrong_count ?? 0);
-          const b = Number(hwSub.blankCount ?? hwSub.empty_count ?? 0);
-          const tot = d + y + b;
-          bestScore = tot > 0 ? Math.round((d / tot) * 100) : (hwSub.score || 0);
         }
 
         let testDueDate = null;
@@ -433,7 +426,7 @@ export default function StudentBookDetailsPage() {
           bestScore,
           bestSub,
           testDueDate,
-          latestSubId: isCompleted ? (solvedSubs.length > 0 ? solvedSubs[solvedSubs.length - 1].id : (hwSub ? hwSub.id : null)) : null
+          latestSubId: isCompleted ? (solvedSubs.length > 0 ? solvedSubs[solvedSubs.length - 1].id : null) : null
         };
       });
 
