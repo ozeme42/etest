@@ -1296,18 +1296,38 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
   }
 
-  // 6. Test Name Matching
+  // 6. Test Name Matching with Strict Number Isolation
   if (!normSubTest || normSubTest.length < 2) return false;
 
   const cleanTName = tName.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').trim();
   const normOnlyChars = (str) => cleanHelper(str).replace(/[^a-z0-9ğüşıöç]/g, '');
 
-  if (normOnlyChars(normSubTest) === normOnlyChars(cleanTName) && normOnlyChars(cleanTName).length >= 3) {
+  const normSubChars = normOnlyChars(normSubTest);
+  const normTChars = normOnlyChars(cleanTName);
+
+  if (normSubChars === normTChars && normTChars.length >= 2) {
     return true;
   }
 
-  if (normSubTest === cleanTName || (normSubTest.length >= 4 && cleanTName.includes(normSubTest)) || (cleanTName.length >= 4 && normSubTest.includes(cleanTName))) {
+  const subNums = (normSubTest.match(/\d+/g) || []).join('-');
+  const targetNums = (cleanTName.match(/\d+/g) || []).join('-');
+
+  if (subNums && targetNums && subNums !== targetNums) {
+    return false; // Test-1 vs Test-14 mismatch!
+  }
+
+  if ((subNums && !targetNums) || (!subNums && targetNums)) {
+    return false;
+  }
+
+  if (normSubTest === cleanTName) {
     return true;
+  }
+
+  if ((normSubTest.length >= 6 && cleanTName.includes(normSubTest)) || (cleanTName.length >= 6 && normSubTest.includes(cleanTName))) {
+    if (subNums === targetNums) {
+      return true;
+    }
   }
 
   return false;

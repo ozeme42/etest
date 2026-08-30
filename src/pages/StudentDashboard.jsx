@@ -1178,22 +1178,14 @@ export default function StudentDashboard() {
       const bUuid = toUUID(bId);
       const bTitle = String(book.title || '').toLowerCase().trim();
 
-      const testsInBookRaw = [
-        ...(bookTestsByBookIdMap.get(bId) || []),
-        ...(bUuid && bUuid !== bId ? (bookTestsByBookIdMap.get(bUuid) || []) : []),
-        ...(bookTestsByBookIdMap.get(bTitle) || [])
-      ];
+      const rawSubjects = (book.subjects && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []);
+      const subjects = rawSubjects.filter(s => s && s.name);
 
-      // Deduplicate tests by subject + topic + name
-      const testsInBook = [];
-      const seenTestKeys = new Set();
-      testsInBookRaw.forEach(t => {
-        const tKey = `${String(t.subjectId || t.subject_id || '')}_${String(t.topicId || t.topic_id || '')}_${String(t.name || '').trim().toLowerCase()}`;
-        if (!seenTestKeys.has(tKey)) {
-          seenTestKeys.add(tKey);
-          testsInBook.push(t);
-        }
+      const testsInBook = (bookTests || []).filter(bt => {
+        const btBId = String(bt.bookId || bt.book_id || '');
+        return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
       });
+
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (book.totalTests || 1);
 
       let totalCorrect = 0;
@@ -1203,8 +1195,15 @@ export default function StudentDashboard() {
       let nextTest = null;
 
       testsInBook.forEach(t => {
+        const parentSubj = subjects.find(s => String(s.id) === String(t.subject_id || t.subjectId));
+        const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(t.topic_id || t.topicId)) : null;
+
         const contextualTest = {
           ...t,
+          subject: parentSubj?.name || t.subject || t.subjectName || '',
+          subjectName: parentSubj?.name || t.subject || t.subjectName || '',
+          unit: parentTopic?.name || t.unit || t.unitName || '',
+          unitName: parentTopic?.name || t.unit || t.unitName || '',
           bookId: book.id,
           bookTitle: book.title
         };

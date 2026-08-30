@@ -299,72 +299,15 @@ export default function StudentBooksPage() {
       const bUuid = String(toUUID(b.id) || '');
       const bTitle = String(b.title || '').toLowerCase().trim();
 
-      const testsInBookRaw = (bookTests || []).filter(bt => {
+      const rawSubjects = (b.subjects && b.subjects.length > 0) ? b.subjects : (b.raw_data?.subjects || []);
+      const subjects = rawSubjects.filter(s => s && s.name);
+
+      const testsInBook = (bookTests || []).filter(bt => {
         const btBId = String(bt.bookId || bt.book_id || '');
-        if (btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid)) return true;
-        if (bt.bookTitle && String(bt.bookTitle).toLowerCase().trim() === bTitle) return true;
-        return false;
+        return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
       });
 
-      const testsInBook = [];
-      const seenTestKeys = new Set();
-      testsInBookRaw.forEach(t => {
-        const tKey = `${String(t.subjectId || t.subject_id || '')}_${String(t.topicId || t.topic_id || '')}_${String(t.name || '').trim().toLowerCase()}`;
-        if (!seenTestKeys.has(tKey)) {
-          seenTestKeys.add(tKey);
-          testsInBook.push(t);
-        }
-      });
-
-      // Check all assigned homeworks for total test arrays
-      let maxHwTests = 0;
-      (b.assignedHomeworks || []).forEach(hw => {
-        const raw = hw.raw_data || {};
-        const testsLen = Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(raw.tests) ? raw.tests.length : 0);
-        if (testsLen > maxHwTests) maxHwTests = testsLen;
-      });
-
-      // Find all submissions associated with this book
-      const matchedSubs = studentSubmissions.filter(s => {
-        const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a.type === 'metadata') : (s.metadata || {});
-        const sBookId = String(s.bookId || s.book_id || meta?.bookId || '');
-        const sBookTitle = String(s.bookTitle || meta?.bookTitle || s.book_title || '').toLowerCase().trim();
-        const sTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').toLowerCase().trim();
-        const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').trim();
-        const sTestId = String(s.bookTestId || s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || '');
-
-        const sSubj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').toLowerCase().trim();
-
-        if (sBookId && (sBookId === bId || (bUuid && sBookId === bUuid) || sBookId.includes(bId))) return true;
-        if (sBookTitle && (sBookTitle === bTitle || sBookTitle.includes(bTitle) || bTitle.includes(sBookTitle))) return true;
-        if (sTitle && bTitle && (sTitle.startsWith(bTitle) || sTitle.includes(bTitle))) return true;
-        
-        return testsInBook.some(t => isSubmissionMatchingBookTest(s, t, testsInBook, books));
-      });
-
-      // Calculate total test count in book
-      const subjects = b.raw_data?.subjects || b.subjects || [];
-      let countFromSubjects = 0;
-      if (Array.isArray(subjects)) {
-        subjects.forEach(sb => {
-          if (sb.tests && Array.isArray(sb.tests)) countFromSubjects += sb.tests.length;
-          else if (sb.topics && Array.isArray(sb.topics)) {
-            sb.topics.forEach(tp => {
-              if (tp.tests && Array.isArray(tp.tests)) countFromSubjects += tp.tests.length;
-              else countFromSubjects += 1;
-            });
-          } else {
-            countFromSubjects += (sb.testCount || 1);
-          }
-        });
-      }
-
-      const totalBookTests = Math.max(
-        testsInBook.length,
-        countFromSubjects,
-        b.total_tests || b.totalTests || 0,
-        1
-      );
+      const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (b.total_tests || b.totalTests || 1);
 
       let totalCorrect = 0;
       let totalWrong = 0;
@@ -372,8 +315,15 @@ export default function StudentBooksPage() {
       let totalSolvedTests = 0;
 
       testsInBook.forEach(t => {
+        const parentSubj = subjects.find(s => String(s.id) === String(t.subject_id || t.subjectId));
+        const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(t.topic_id || t.topicId)) : null;
+
         const contextualTest = {
           ...t,
+          subject: parentSubj?.name || t.subject || t.subjectName || '',
+          subjectName: parentSubj?.name || t.subject || t.subjectName || '',
+          unit: parentTopic?.name || t.unit || t.unitName || '',
+          unitName: parentTopic?.name || t.unit || t.unitName || '',
           bookId: b.id,
           bookTitle: b.title
         };
