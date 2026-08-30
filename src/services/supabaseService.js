@@ -1787,23 +1787,25 @@ export async function dbDeleteHomework(hwId) {
       });
     } catch (e) {}
 
-    const deleteIdsList = Array.from(matchingRowIds);
-    if (deleteIdsList.length > 0) {
-      try {
-        await supabase.from('homeworks').delete().in('id', deleteIdsList);
-      } catch (e) {}
-    }
+      const deleteIdsList = Array.from(matchingRowIds);
+      const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
 
-    // 2. Delete related submissions in submissions table
-    const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
-    if (allSubTestIds.length > 0) {
-      try {
-        await supabase.from('submissions').delete().in('test_id', allSubTestIds);
-      } catch (e) {}
-      try {
-        await supabase.from('submissions').delete().in('homework_id', allSubTestIds);
-      } catch (e) {}
-    }
+      // 1. Delete related submissions from the CORRECT table (test_submissions) to satisfy foreign key constraints
+      if (allSubTestIds.length > 0) {
+        try {
+          await supabase.from('test_submissions').delete().in('test_id', allSubTestIds);
+        } catch (e) {}
+      }
+
+      // 2. Now delete the homework itself
+      if (deleteIdsList.length > 0) {
+        try {
+          const res = await supabase.from('homeworks').delete().in('id', deleteIdsList);
+          if (res.error) console.error('[Supabase] dbDeleteHomework API Error:', res.error);
+        } catch (e) {
+          console.error('[Supabase] dbDeleteHomework try/catch Error:', e);
+        }
+      }
 
     // 3. Record deletion in deleted_records for audit / tombstoning
     try {
