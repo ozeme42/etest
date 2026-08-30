@@ -226,6 +226,8 @@ export function TrackedBookProvider({ children }) {
   const batchSaveTrackedBookTests = async (testsList) => {
     if (!Array.isArray(testsList) || testsList.length === 0) return;
     sessionStorage.removeItem('eTestLastTrackedBooksSync');
+    
+    // 1. Update bookTests map and localStorage
     setBookTests(prev => {
       const map = new Map(prev.map(t => [String(t.id), t]));
       testsList.forEach(t => {
@@ -237,6 +239,56 @@ export function TrackedBookProvider({ children }) {
       safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
       return next;
     });
+
+    // 2. Also update embedded tests inside books subjects/topics
+    const testsMapById = new Map();
+    testsList.forEach(t => {
+      if (t?.id) {
+        testsMapById.set(String(t.id), t);
+        const u = toUUID(t.id);
+        if (u) testsMapById.set(String(u), t);
+      }
+    });
+
+    setBooks(prevBooks => {
+      const nextBooks = prevBooks.map(b => {
+        let changed = false;
+        const newSubjects = (b.subjects || []).map(s => {
+          let sChanged = false;
+          const newTests = (s.tests || []).map(t => {
+            const updated = testsMapById.get(String(t.id)) || (toUUID(t.id) && testsMapById.get(String(toUUID(t.id))));
+            if (updated) {
+              sChanged = true;
+              changed = true;
+              return { ...t, ...updated, id: t.id };
+            }
+            return t;
+          });
+          const newTopics = (s.topics || []).map(tp => {
+            let tpChanged = false;
+            const newTpTests = (tp.tests || []).map(t => {
+              const updated = testsMapById.get(String(t.id)) || (toUUID(t.id) && testsMapById.get(String(toUUID(t.id))));
+              if (updated) {
+                tpChanged = true;
+                changed = true;
+                return { ...t, ...updated, id: t.id };
+              }
+              return t;
+            });
+            return tpChanged ? { ...tp, tests: newTpTests } : tp;
+          });
+          return sChanged || newTopics !== s.topics ? { ...s, tests: newTests, topics: newTopics } : s;
+        });
+        return changed ? { ...b, subjects: newSubjects } : b;
+      });
+      safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
+      return nextBooks;
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tracked-book-tests-updated', { detail: { tests: testsList } }));
+    }
+
     await dbBatchUpsertTrackedBookTests(testsList);
   };
 
@@ -245,25 +297,65 @@ export function TrackedBookProvider({ children }) {
     const idStr = String(id);
     const idUuid = toUUID(idStr);
 
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
+
     setBookTests(prev => {
+      let found = false;
       const next = prev.map(test => {
         const isMatch = String(test.id) === idStr || (idUuid && String(test.id) === idUuid) || (toUUID(test.id) && String(toUUID(test.id)) === idUuid);
         if (isMatch) {
+          found = true;
           updatedObj = { ...test, ...updates, id: test.id, bookId: updates.bookId || test.bookId || test.book_id };
           return updatedObj;
         }
         return test;
       });
+      if (!found) {
+        updatedObj = { id: idStr, ...updates };
+        next.push(updatedObj);
+      }
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
       return next;
     });
 
-    if (!updatedObj) {
-      const target = bookTests.find(t => String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid));
-      if (target) {
-        updatedObj = { ...target, ...updates, id: target.id, bookId: updates.bookId || target.bookId || target.book_id };
-      } else {
-        updatedObj = { id: idStr, ...updates };
-      }
+    // Also update embedded test in books subjects/topics
+    setBooks(prevBooks => {
+      const nextBooks = prevBooks.map(b => {
+        let changed = false;
+        const newSubjects = (b.subjects || []).map(s => {
+          let sChanged = false;
+          const newTests = (s.tests || []).map(t => {
+            const isMatch = String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid);
+            if (isMatch) {
+              sChanged = true;
+              changed = true;
+              return { ...t, ...updates, id: t.id };
+            }
+            return t;
+          });
+          const newTopics = (s.topics || []).map(tp => {
+            let tpChanged = false;
+            const newTpTests = (tp.tests || []).map(t => {
+              const isMatch = String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid);
+              if (isMatch) {
+                tpChanged = true;
+                changed = true;
+                return { ...t, ...updates, id: t.id };
+              }
+              return t;
+            });
+            return tpChanged ? { ...tp, tests: newTpTests } : tp;
+          });
+          return sChanged || newTopics !== s.topics ? { ...s, tests: newTests, topics: newTopics } : s;
+        });
+        return changed ? { ...b, subjects: newSubjects } : b;
+      });
+      safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
+      return nextBooks;
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('tracked-book-tests-updated', { detail: { testId: id, test: updatedObj } }));
     }
 
     if (updatedObj) {
@@ -281,6 +373,31 @@ export function TrackedBookProvider({ children }) {
       safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
       return next;
     });
+
+    setBooks(prevBooks => {
+      const nextBooks = prevBooks.map(b => {
+        let changed = false;
+        const newSubjects = (b.subjects || []).map(s => {
+          const newTests = (s.tests || []).filter(t => !(String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid)));
+          const newTopics = (s.topics || []).map(tp => {
+            const newTpTests = (tp.tests || []).filter(t => !(String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid)));
+            return newTpTests.length !== (tp.tests || []).length ? { ...tp, tests: newTpTests } : tp;
+          });
+          if (newTests.length !== (s.tests || []).length || newTopics !== s.topics) {
+            changed = true;
+            return { ...s, tests: newTests, topics: newTopics };
+          }
+          return s;
+        });
+        return changed ? { ...b, subjects: newSubjects } : b;
+      });
+      safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
+      return nextBooks;
+    });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('test-cache-purged', { detail: { testId: id } }));
+    }
 
     await dbDeleteTrackedBookTest(id);
   };

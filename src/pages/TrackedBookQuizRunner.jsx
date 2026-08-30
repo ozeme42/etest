@@ -185,6 +185,14 @@ export default function TrackedBookQuizRunner() {
       }
     }
 
+    // Ensure test has the freshest properties from bookTests if available
+    if (t) {
+      const matchInBookTests = (bookTests || []).find(bt => String(bt.id) === String(t.id) || (toUUID(bt.id) && toUUID(bt.id) === toUUID(t.id)));
+      if (matchInBookTests) {
+        t = { ...t, ...matchInBookTests };
+      }
+    }
+
     // Resolve book if not resolved yet (thorough match by ID, UUID, normalized ID, or subjects)
     if (t && !b) {
       const cleanTBookId = String(t.bookId || '');
@@ -733,29 +741,55 @@ export default function TrackedBookQuizRunner() {
     }
   }, [resolvedTest, resolvedHw, resolvedBook, studentId, isRetake, draftKey, cleanId, submissions, calculateTestResults]);
 
-  // Real-time synchronization on test reset or deletion
+  // Real-time synchronization on test reset, answer key update, or deletion
   useEffect(() => {
     const handleCachePurged = (e) => {
       const pTestId = e?.detail?.testId;
       const tKeyStr = String(testKey);
       const resTIdStr = String(resolvedTest?.id || '');
       if (!pTestId || pTestId === tKeyStr || pTestId === resTIdStr || pTestId.includes(tKeyStr) || (resTIdStr && pTestId.includes(resTIdStr))) {
+        initializedRef.current = false;
         setIsSubmitted(false);
         setResults(null);
         setAnswers({});
+        setFlagged({});
+        setMistakeReasons({});
         try {
           localStorage.removeItem(draftKey);
           localStorage.removeItem(`${draftKey}_time`);
         } catch {}
       }
     };
+
+    const handleTestsUpdated = (e) => {
+      const detail = e?.detail;
+      const tKeyStr = String(testKey);
+      const resTIdStr = String(resolvedTest?.id || '');
+      const isTarget = (detail?.testId && (detail.testId === tKeyStr || detail.testId === resTIdStr)) ||
+                       (Array.isArray(detail?.tests) && detail.tests.some(t => String(t?.id) === tKeyStr || String(t?.id) === resTIdStr));
+      if (isTarget) {
+        initializedRef.current = false;
+        if (isSubmitted && answers) {
+          const fresh = calculateTestResults(answers);
+          if (fresh) setResults(fresh);
+        }
+      }
+    };
+
     window.addEventListener('test-cache-purged', handleCachePurged);
     window.addEventListener('test-reset-cleared', handleCachePurged);
+    window.addEventListener('test-reset', handleCachePurged);
+    window.addEventListener('submissions-updated', handleCachePurged);
+    window.addEventListener('tracked-book-tests-updated', handleTestsUpdated);
+
     return () => {
       window.removeEventListener('test-cache-purged', handleCachePurged);
       window.removeEventListener('test-reset-cleared', handleCachePurged);
+      window.removeEventListener('test-reset', handleCachePurged);
+      window.removeEventListener('submissions-updated', handleCachePurged);
+      window.removeEventListener('tracked-book-tests-updated', handleTestsUpdated);
     };
-  }, [testKey, resolvedTest, draftKey]);
+  }, [testKey, resolvedTest, draftKey, isSubmitted, answers, calculateTestResults]);
 
   // Timer interval
   useEffect(() => {

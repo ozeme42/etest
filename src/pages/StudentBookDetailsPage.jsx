@@ -94,10 +94,10 @@ export default function StudentBookDetailsPage() {
       if (typeof updateTrackedBook === 'function' && book?.id) {
         const updatedSubjects = (book.subjects || []).map(s => ({
           ...s,
-          tests: (s.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, dueDate: dStr, testDueDate: dStr } : t),
+          tests: (s.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, name: editTestFormData.name.trim(), questionCount: Number(editTestFormData.questionCount) || 20, answerKey: editTestFormData.answerKey || {}, pdfUrl: editTestFormData.pdfUrl || '', dueDate: dStr, testDueDate: dStr } : t),
           topics: (s.topics || []).map(tp => ({
             ...tp,
-            tests: (tp.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, dueDate: dStr, testDueDate: dStr } : t)
+            tests: (tp.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, name: editTestFormData.name.trim(), questionCount: Number(editTestFormData.questionCount) || 20, answerKey: editTestFormData.answerKey || {}, pdfUrl: editTestFormData.pdfUrl || '', dueDate: dStr, testDueDate: dStr } : t)
           }))
         }));
         await updateTrackedBook(book.id, { subjects: updatedSubjects });
@@ -1088,6 +1088,7 @@ export default function StudentBookDetailsPage() {
 
       allTestIdentifiers.forEach(id => {
         purgeTestCache(id, studentId);
+        purgeTestCache(id);
       });
 
       if (test.latestSubId) {
@@ -1108,6 +1109,16 @@ export default function StudentBookDetailsPage() {
       if (typeof clearHomeworkSubmissionsForStudent === 'function') {
         await clearHomeworkSubmissionsForStudent(null, studentId, book?.id, allTestIdentifiers);
       }
+
+      if (typeof window !== 'undefined') {
+        allTestIdentifiers.forEach(id => {
+          window.dispatchEvent(new CustomEvent('test-cache-purged', { detail: { testId: id, studentId } }));
+          window.dispatchEvent(new CustomEvent('test-reset-cleared', { detail: { testId: id, studentId } }));
+        });
+        window.dispatchEvent(new CustomEvent('test-reset', { detail: { testId: test.id, studentId, bookId: book?.id } }));
+        window.dispatchEvent(new CustomEvent('submissions-updated', { detail: { testId: test.id, studentId } }));
+      }
+
       setFeedbackToast(`✓ "${test.name}" başarıyla sıfırlandı!`);
       setTimeout(() => setFeedbackToast(null), 2500);
     } catch (err) {

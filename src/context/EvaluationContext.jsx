@@ -4,6 +4,7 @@ import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmiss
 import { useAuth } from './AuthContext';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 import { purgeTestCache } from '../services/unifiedResultAdapter';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 
 const EvaluationContext = createContext();
 
@@ -878,6 +879,195 @@ export function EvaluationProvider({ children }) {
     window.dispatchEvent(new CustomEvent('submission_updated', { detail: { id, ...updatePayload } }));
   };
 
+  const toLetter = (val) => {
+    if (val === null || val === undefined || val === '' || val === 'empty') return '';
+    if (typeof val === 'number') return String.fromCharCode(65 + val);
+    const str = String(val).trim().toUpperCase();
+    if (/^[A-E]$/.test(str)) return str;
+    const num = Number(str);
+    if (!isNaN(num) && num >= 0 && num <= 4) return String.fromCharCode(65 + num);
+    return str;
+  };
+
+  const reEvaluateSubmissionsForTest = async (testId, newAnswerKey, penaltyRatio = 3, questionCount = 20, isOpenEnded = false) => {
+    if (!testId || !newAnswerKey) return;
+    const tIdStr = String(testId);
+    const tClean = tIdStr.replace(/^(tbt_|bt_|q_)/, '');
+    const tUuid = toUUID(tIdStr);
+
+    let updatedList = [];
+
+    setSubmissions(prev => {
+      let changed = false;
+      const nextSubs = prev.map(sub => {
+        if (!sub) return sub;
+        const matchFields = [
+          String(sub.testId || ''),
+          String(sub.realTestId || ''),
+          String(sub.bookTestId || ''),
+          String(sub.metadata?.realTestId || ''),
+          String(sub.metadata?.bookTestId || ''),
+          String(sub.metadata?.testId || '')
+        ];
+        if (sub.bookTestIds && Array.isArray(sub.bookTestIds)) {
+          matchFields.push(...sub.bookTestIds.map(String));
+        }
+
+        const isMatch = matchFields.some(f => f && (f === tIdStr || f === tClean || (tUuid && f === tUuid) || toUUID(f) === tIdStr || (tUuid && toUUID(f) === tUuid)));
+        if (!isMatch) return sub;
+
+        changed = true;
+
+        // Extract student's answers
+        const userAnsMap = {};
+        if (Array.isArray(sub.answers) && sub.answers.length > 0) {
+          sub.answers.forEach((a, idx) => {
+            const qNo = a.questionNo || (idx + 1);
+            userAnsMap[qNo] = a.userAnswerText ?? a.userAnswerLetter ?? a.answerLetter ?? a.userAnswer ?? a.selectedOption ?? '';
+          });
+        }
+        if (sub.studentAnswers && typeof sub.studentAnswers === 'object') {
+          Object.assign(userAnsMap, sub.studentAnswers);
+        }
+        if (sub.studentAnswersMap && typeof sub.studentAnswersMap === 'object') {
+          Object.assign(userAnsMap, sub.studentAnswersMap);
+        }
+
+        const qCount = Number(questionCount) || Number(sub.totalQuestions) || Number(sub.total_questions) || Object.keys(newAnswerKey || {}).filter(k => k !== '__meta').length || 20;
+
+        let correct = 0;
+        let wrong = 0;
+        let blank = 0;
+        let pending = 0;
+        const newAnswersArray = [];
+
+        for (let i = 1; i <= qCount; i++) {
+          const rawUserAns = userAnsMap[i] ?? userAnsMap[String(i)] ?? '';
+          const rawCorrectKey = Array.isArray(newAnswerKey)
+            ? (newAnswerKey[i - 1] ?? newAnswerKey[i] ?? '')
+            : (newAnswerKey[i] ?? newAnswerKey[String(i)] ?? newAnswerKey[i - 1] ?? '');
+
+          let isCorrect = false;
+          let isWrong = false;
+          let isPending = false;
+
+          if (!rawUserAns && rawUserAns !== 0) {
+            blank++;
+          } else if (isOpenEnded || sub.isOpenEnded || sub.questionType === 'acik_uclu') {
+            if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
+              const isMatch = compareOpenEndedAnswers(rawUserAns, rawCorrectKey);
+              if (isMatch === true) {
+                correct++;
+                isCorrect = true;
+              } else if (isMatch === false) {
+                wrong++;
+                isWrong = true;
+              } else {
+                pending++;
+                isPending = true;
+              }
+            } else {
+              pending++;
+              isPending = true;
+            }
+          } else {
+            const userLetter = toLetter(rawUserAns);
+            const correctLetter = toLetter(rawCorrectKey);
+            if (!userLetter) {
+              blank++;
+            } else if (correctLetter && userLetter === correctLetter) {
+              correct++;
+              isCorrect = true;
+            } else if (correctLetter) {
+              wrong++;
+              isWrong = true;
+            } else {
+              correct++;
+              isCorrect = true;
+            }
+          }
+
+          newAnswersArray.push({
+            questionNo: i,
+            userAnswer: isOpenEnded ? String(rawUserAns || '') : toLetter(rawUserAns),
+            userAnswerLetter: !isOpenEnded ? toLetter(rawUserAns) : undefined,
+            userAnswerText: isOpenEnded ? String(rawUserAns || '') : undefined,
+            correctAnswer: isOpenEnded ? String(rawCorrectKey || '') : toLetter(rawCorrectKey),
+            correctAnswerLetter: !isOpenEnded ? toLetter(rawCorrectKey) : undefined,
+            isCorrect,
+            isWrong,
+            isBlank: !rawUserAns && rawUserAns !== 0,
+            isPending,
+            earnedPoints: isCorrect ? (100 / qCount) : 0
+          });
+        }
+
+        const pRatio = Number(penaltyRatio) >= 0 ? Number(penaltyRatio) : 3;
+        const rawNet = correct - (pRatio > 0 ? wrong / pRatio : 0);
+        const net = Math.max(0, Number(rawNet.toFixed(2)));
+        const scorePct = qCount > 0 ? Math.round((correct / qCount) * 100) : 0;
+
+        const updated = {
+          ...sub,
+          answerKey: newAnswerKey,
+          answers: newAnswersArray,
+          studentAnswers: userAnsMap,
+          studentAnswersMap: userAnsMap,
+          correctCount: correct,
+          correct_count: correct,
+          wrongCount: wrong,
+          wrong_count: wrong,
+          blankCount: blank,
+          emptyCount: blank,
+          blank_count: blank,
+          net: net,
+          score: scorePct,
+          scorePct: scorePct,
+          totalQuestions: qCount,
+          total_questions: qCount
+        };
+
+        updatedList.push(updated);
+        return updated;
+      });
+
+      if (changed) {
+        try {
+          localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
+          localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
+        } catch (e) {}
+      }
+      return nextSubs;
+    });
+
+    for (const sub of updatedList) {
+      await dbSaveSubmission(sub);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('submissions-updated', { detail: { testId, reEvaluated: true } }));
+    }
+  };
+
+  // Auto-listen to answerKey updates across the entire app
+  useEffect(() => {
+    const handleTrackedTestsUpdated = (e) => {
+      const detail = e?.detail;
+      if (detail?.test?.id && detail?.test?.answerKey) {
+        reEvaluateSubmissionsForTest(detail.test.id, detail.test.answerKey, detail.test.penaltyRatio, detail.test.questionCount, detail.test.isOpenEnded);
+      } else if (Array.isArray(detail?.tests)) {
+        detail.tests.forEach(t => {
+          if (t?.id && t?.answerKey) {
+            reEvaluateSubmissionsForTest(t.id, t.answerKey, t.penaltyRatio, t.questionCount, t.isOpenEnded);
+          }
+        });
+      }
+    };
+
+    window.addEventListener('tracked-book-tests-updated', handleTrackedTestsUpdated);
+    return () => window.removeEventListener('tracked-book-tests-updated', handleTrackedTestsUpdated);
+  }, []);
+
   const deleteAllSubmissions = async () => {
     setSubmissions(prev => {
       prev.forEach(s => dbDeleteSubmission(s.id));
@@ -904,7 +1094,8 @@ export function EvaluationProvider({ children }) {
     deleteSubmissionsByTestId,
     deleteStudentSubmissionsForBookOrHw,
     deleteBookSubmissionsForEveryone,
-    deleteAllSubmissions
+    deleteAllSubmissions,
+    reEvaluateSubmissionsForTest
   }), [submissions, isSyncing]);
 
   return (
