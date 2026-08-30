@@ -4,12 +4,13 @@ const WidgetBridge = registerPlugin('WidgetBridge');
 
 /**
  * Synchronizes:
- * 1. 📚 Books Widget (BooksWidgetProvider)
- * 2. 📅 Today's Study Program Widget (ProgramWidgetProvider)
+ * 1. 📚 Interactive Books Widget (BooksWidgetProvider) with subjects breakdown & next test solver
+ * 2. 📅 Interactive Study Program Widget (ProgramWidgetProvider) with 7-day switcher & direct "Çöz"
  * 3. 🔥 Remedial / CatchUp Pool Widget (CatchUpWidgetProvider)
  */
 export async function syncWidgetData({
   studentName = 'Öğrenci',
+  days = [],
   todayTasks = [],
   booksProgress = [],
   catchUpTasks = [],
@@ -21,40 +22,62 @@ export async function syncWidgetData({
       return;
     }
 
-    // 1. Format Program Tasks (Up to 4)
-    const formattedProgramTasks = (todayTasks || []).slice(0, 4).map(task => ({
-      id: String(task.id || task.testId || ''),
-      title: String(task.title || task.testName || task.name || 'Test'),
-      subject: String(task.subject || task.subjectName || ''),
-      page: task.page ? `Sayfa ${task.page}` : (task.pages ? `Sayfa ${task.pages}` : ''),
-      isDone: Boolean(task.isDone || task.done || task.isCompleted),
-      url: `/quiz-tracked/${task.testId || task.id || ''}`
+    // 1. Format Program Days (7 days with direct quiz URLs)
+    const formattedDays = (days || []).map(d => ({
+      dayKey: String(d.dayKey || ''),
+      dayName: String(d.dayName || ''),
+      dateLabel: String(d.dateLabel || d.short || ''),
+      isToday: Boolean(d.isToday),
+      totalCount: Number(d.totalCount || (d.items ? d.items.length : 0)),
+      remainingCount: Number(d.items ? d.items.filter(i => !i.done && !i.isCompleted).length : 0),
+      items: (d.items || []).slice(0, 4).map(task => ({
+        id: String(task.id || task.testId || ''),
+        title: String(task.title || task.testName || task.name || 'Test'),
+        subject: String(task.subject || task.subjectName || ''),
+        page: task.page ? `Sayfa ${task.page}` : (task.pages ? `Sayfa ${task.pages}` : ''),
+        isDone: Boolean(task.isDone || task.done || task.isCompleted),
+        url: `/quiz-tracked/${task.testId || task.id || ''}`
+      }))
     }));
 
     const programData = {
       studentName: String(studentName || 'Öğrenci'),
       todayTotalCount: Number(todayTotalCount || todayTasks.length || 0),
       todayRemainingCount: Number(todayRemainingCount >= 0 ? todayRemainingCount : todayTasks.filter(t => !t.isDone && !t.done).length),
-      todayTasks: formattedProgramTasks
+      days: formattedDays,
+      todayTasks: (todayTasks || []).slice(0, 4).map(t => ({
+        id: String(t.id || t.testId || ''),
+        title: String(t.title || t.testName || t.name || 'Test'),
+        subject: String(t.subject || t.subjectName || ''),
+        page: t.page ? `Sayfa ${t.page}` : '',
+        isDone: Boolean(t.isDone || t.done || t.isCompleted),
+        url: `/quiz-tracked/${t.testId || t.id || ''}`
+      }))
     };
 
-    // 2. Format Books Progress (Up to 4)
-    const formattedBooks = (booksProgress || []).slice(0, 4).map(book => ({
-      id: String(book.id || ''),
-      title: String(book.title || 'Kitap'),
-      solvedTests: Number(book.solvedTests || book.completedCount || 0),
-      totalTests: Number(book.totalTests || book.totalCount || 0),
-      percent: Number(book.percent || book.progressPercent || 0),
-      url: `/student-book-details/${book.id || ''}`
+    // 2. Format Detailed Books (with subjects breakdown and next unsolved test)
+    const formattedBooks = (booksProgress || []).map(b => ({
+      id: String(b.id || ''),
+      title: String(b.title || 'Kitap'),
+      publisher: String(b.publisher || 'Özel / MEB Yayınları'),
+      solvedTests: Number(b.solvedTests || 0),
+      totalTests: Number(b.totalTests || 1),
+      percent: Number(b.percent || 0),
+      subjectsBreakdown: String(b.subjectsBreakdown || ''),
+      nextTest: b.nextTest ? {
+        id: String(b.nextTest.id || ''),
+        title: String(b.nextTest.title || b.nextTest.name || 'Sıradaki Test')
+      } : null,
+      url: `/student-book-details/${b.id || ''}`
     }));
 
     const booksData = {
       studentName: String(studentName || 'Öğrenci'),
-      totalBooks: Number(booksProgress.length || 0),
+      totalBooks: Number(formattedBooks.length || 0),
       books: formattedBooks
     };
 
-    // 3. Format CatchUp Tasks (Up to 4)
+    // 3. Format CatchUp Tasks
     const formattedCatchUp = (catchUpTasks || []).slice(0, 4).map(task => ({
       id: String(task.id || task.testId || ''),
       title: String(task.title || task.testName || task.name || 'Telafi Testi'),
@@ -76,7 +99,7 @@ export async function syncWidgetData({
       studentName: String(studentName || 'Öğrenci'),
       todayTotalCount: programData.todayTotalCount,
       todayRemainingCount: programData.todayRemainingCount,
-      todayTasks: formattedProgramTasks,
+      todayTasks: programData.todayTasks,
       booksProgress: formattedBooks
     };
 

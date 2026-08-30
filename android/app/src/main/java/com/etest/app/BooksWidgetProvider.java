@@ -18,7 +18,42 @@ public class BooksWidgetProvider extends AppWidgetProvider {
 
     public static final String PREFS_NAME = "ETestWidgetPrefs";
     public static final String KEY_BOOKS_DATA = "widget_books_json";
+    public static final String KEY_SELECTED_BOOK_INDEX = "widget_selected_book_index";
     public static final String EXTRA_TARGET_URL = "target_url";
+
+    public static final String ACTION_PREV_BOOK = "com.etest.app.ACTION_BOOK_PREV";
+    public static final String ACTION_NEXT_BOOK = "com.etest.app.ACTION_BOOK_NEXT";
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        super.onReceive(context, intent);
+        String action = intent != null ? intent.getAction() : null;
+        if (ACTION_PREV_BOOK.equals(action) || ACTION_NEXT_BOOK.equals(action)) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            int currentIndex = prefs.getInt(KEY_SELECTED_BOOK_INDEX, 0);
+            int totalBooks = 1;
+
+            String rawJson = prefs.getString(KEY_BOOKS_DATA, null);
+            if (rawJson != null) {
+                try {
+                    JSONObject data = new JSONObject(rawJson);
+                    JSONArray books = data.optJSONArray("books");
+                    if (books != null && books.length() > 0) {
+                        totalBooks = books.length();
+                    }
+                } catch (Throwable ignored) {}
+            }
+
+            if (ACTION_PREV_BOOK.equals(action)) {
+                currentIndex = (currentIndex - 1 + totalBooks) % totalBooks;
+            } else {
+                currentIndex = (currentIndex + 1) % totalBooks;
+            }
+
+            prefs.edit().putInt(KEY_SELECTED_BOOK_INDEX, currentIndex).apply();
+            updateAllWidgets(context);
+        }
+    }
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -47,6 +82,7 @@ public class BooksWidgetProvider extends AppWidgetProvider {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_books);
             SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
             String rawJson = prefs.getString(KEY_BOOKS_DATA, null);
+            int selectedIndex = prefs.getInt(KEY_SELECTED_BOOK_INDEX, 0);
 
             String studentName = "Öğrenci Paneli";
             int totalBooks = 0;
@@ -55,60 +91,90 @@ public class BooksWidgetProvider extends AppWidgetProvider {
             if (rawJson != null && !rawJson.trim().isEmpty()) {
                 JSONObject data = new JSONObject(rawJson);
                 if (data.has("studentName")) studentName = data.optString("studentName", "Öğrenci Paneli");
-                totalBooks = data.optInt("totalBooks", 0);
                 booksArray = data.optJSONArray("books");
+                totalBooks = booksArray != null ? booksArray.length() : data.optInt("totalBooks", 0);
             }
 
             views.setTextViewText(R.id.widget_student_name, "👤 " + studentName);
-            views.setTextViewText(R.id.widget_status_badge, totalBooks + " Kitap");
 
-            // Header & Action Btn Intent to Books page
-            Intent mainIntent = new Intent(context, MainActivity.class);
-            mainIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            mainIntent.putExtra(EXTRA_TARGET_URL, "/student/books");
-            PendingIntent mainPendingIntent = PendingIntent.getActivity(
-                context, 10, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-            );
-            views.setOnClickPendingIntent(R.id.widget_header, mainPendingIntent);
-            views.setOnClickPendingIntent(R.id.widget_action_btn, mainPendingIntent);
-
-            int[] bookItemIds = { R.id.widget_book_item_1, R.id.widget_book_item_2, R.id.widget_book_item_3, R.id.widget_book_item_4 };
-            int[] bookTitleIds = { R.id.widget_book_title_1, R.id.widget_book_title_2, R.id.widget_book_title_3, R.id.widget_book_title_4 };
-            int[] bookProgressIds = { R.id.widget_book_progress_1, R.id.widget_book_progress_2, R.id.widget_book_progress_3, R.id.widget_book_progress_4 };
-
-            int bookCount = booksArray != null ? booksArray.length() : 0;
-            if (bookCount == 0) {
+            if (booksArray == null || booksArray.length() == 0) {
+                views.setTextViewText(R.id.widget_status_badge, "0 Kitap");
                 views.setViewVisibility(R.id.widget_empty_books, View.VISIBLE);
+                views.setViewVisibility(R.id.widget_book_card, View.GONE);
+                appWidgetManager.updateAppWidget(appWidgetId, views);
+                return;
+            }
+
+            views.setViewVisibility(R.id.widget_empty_books, View.GONE);
+            views.setViewVisibility(R.id.widget_book_card, View.VISIBLE);
+
+            selectedIndex = Math.max(0, Math.min(selectedIndex, booksArray.length() - 1));
+            JSONObject currentBook = booksArray.getJSONObject(selectedIndex);
+
+            String bookId = currentBook.optString("id", "");
+            String title = currentBook.optString("title", "Kitap");
+            String publisher = currentBook.optString("publisher", "Özel / MEB Yayınları");
+            int solved = currentBook.optInt("solvedTests", 0);
+            int total = currentBook.optInt("totalTests", 0);
+            int pct = currentBook.optInt("percent", 0);
+            String subjectsBreakdown = currentBook.optString("subjectsBreakdown", "");
+
+            JSONObject nextTest = currentBook.optJSONObject("nextTest");
+            String nextTestId = nextTest != null ? nextTest.optString("id", "") : "";
+            String nextTestTitle = nextTest != null ? nextTest.optString("title", "Test") : "";
+
+            // Header info
+            views.setTextViewText(R.id.widget_status_badge, (selectedIndex + 1) + "/" + totalBooks + " Kitap");
+            views.setTextViewText(R.id.widget_book_header_title, "📘 " + title);
+
+            // Card content
+            views.setTextViewText(R.id.widget_book_publisher, "🏷️ " + (publisher.isEmpty() ? "Kitap Takibi" : publisher));
+            views.setTextViewText(R.id.widget_book_progress_pct, "🟢 " + solved + "/" + total + " Test (%" + pct + ")");
+            views.setTextViewText(R.id.widget_book_subjects_breakdown, subjectsBreakdown.isEmpty() ? "Dersler ve Ünite Dağılımı" : subjectsBreakdown);
+
+            // Next test section
+            if (nextTest != null && !nextTestTitle.isEmpty()) {
+                views.setViewVisibility(R.id.widget_next_test_box, View.VISIBLE);
+                views.setTextViewText(R.id.widget_next_test_title, nextTestTitle);
+
+                // Direct "⚡ Hemen Çöz" Intent
+                Intent nextTestIntent = new Intent(context, MainActivity.class);
+                nextTestIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                nextTestIntent.putExtra(EXTRA_TARGET_URL, "/quiz-tracked/" + nextTestId);
+                nextTestIntent.setData(Uri.parse("etest://book/next/" + bookId + "/" + System.currentTimeMillis()));
+                PendingIntent nextTestPendingIntent = PendingIntent.getActivity(
+                    context, 701, nextTestIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+                views.setOnClickPendingIntent(R.id.widget_btn_solve_next, nextTestPendingIntent);
             } else {
-                views.setViewVisibility(R.id.widget_empty_books, View.GONE);
+                views.setViewVisibility(R.id.widget_next_test_box, View.GONE);
             }
 
-            for (int i = 0; i < 4; i++) {
-                if (i < bookCount) {
-                    JSONObject book = booksArray.getJSONObject(i);
-                    String title = book.optString("title", "Kitap");
-                    int solved = book.optInt("solvedTests", 0);
-                    int total = book.optInt("totalTests", 0);
-                    int pct = book.optInt("percent", 0);
-                    String progressText = "🟢 " + solved + "/" + total + " (%" + pct + ")";
-                    String targetUrl = book.optString("url", "/student/books");
+            // Book Switcher Intents
+            Intent prevBookIntent = new Intent(context, BooksWidgetProvider.class);
+            prevBookIntent.setAction(ACTION_PREV_BOOK);
+            PendingIntent prevPendingIntent = PendingIntent.getBroadcast(
+                context, 801, prevBookIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_btn_prev_book, prevPendingIntent);
 
-                    views.setViewVisibility(bookItemIds[i], View.VISIBLE);
-                    views.setTextViewText(bookTitleIds[i], title);
-                    views.setTextViewText(bookProgressIds[i], progressText);
+            Intent nextBookIntent = new Intent(context, BooksWidgetProvider.class);
+            nextBookIntent.setAction(ACTION_NEXT_BOOK);
+            PendingIntent nextPendingIntent = PendingIntent.getBroadcast(
+                context, 802, nextBookIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_btn_next_book, nextPendingIntent);
 
-                    Intent bookIntent = new Intent(context, MainActivity.class);
-                    bookIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    bookIntent.putExtra(EXTRA_TARGET_URL, targetUrl);
-                    bookIntent.setData(Uri.parse("etest://books/" + i + "/" + System.currentTimeMillis()));
-                    PendingIntent bookPendingIntent = PendingIntent.getActivity(
-                        context, 100 + i, bookIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-                    );
-                    views.setOnClickPendingIntent(bookItemIds[i], bookPendingIntent);
-                } else {
-                    views.setViewVisibility(bookItemIds[i], View.GONE);
-                }
-            }
+            // Bottom Action Intent -> Go to Book Details & Test Map
+            Intent bookDetailIntent = new Intent(context, MainActivity.class);
+            bookDetailIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            bookDetailIntent.putExtra(EXTRA_TARGET_URL, "/student-book-details/" + bookId);
+            bookDetailIntent.setData(Uri.parse("etest://book/detail/" + bookId + "/" + System.currentTimeMillis()));
+            PendingIntent bookDetailPendingIntent = PendingIntent.getActivity(
+                context, 803, bookDetailIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            views.setOnClickPendingIntent(R.id.widget_action_btn, bookDetailPendingIntent);
+            views.setOnClickPendingIntent(R.id.widget_book_card, bookDetailPendingIntent);
 
             appWidgetManager.updateAppWidget(appWidgetId, views);
         } catch (Throwable t) {

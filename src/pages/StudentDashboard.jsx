@@ -2382,6 +2382,28 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!selectedStudent?.id) return;
     try {
+      // 1. 7-Day Program with day switching support
+      const daysList = (DAYS_OF_WEEK || []).map(d => {
+        const dData = fullProcessedWeekMap[d.key];
+        const dayItems = (dData?.items || []).map(item => ({
+          id: item.id || item.testId || item.uniqueKey,
+          testId: item.testId || item.bookTestId || item.realTestId || item.id,
+          title: item.title || item.testName || item.name || 'Test',
+          subject: item.subject || item.subjectName || '',
+          page: item.page || (item.startPage && item.endPage ? `${item.startPage}-${item.endPage}` : ''),
+          isDone: Boolean(item.done || item.isCompleted || (typeof isItemSolved === 'function' && isItemSolved(item)))
+        }));
+        return {
+          dayKey: d.key,
+          dayName: d.name,
+          dateLabel: dData?.dateLabel || d.short,
+          isToday: d.key === todayDayKey,
+          totalCount: dayItems.length,
+          remainingCount: dayItems.filter(i => !i.isDone).length,
+          items: dayItems
+        };
+      });
+
       const todayData = fullProcessedWeekMap[todayDayKey] || dayProgramInfo;
       const todayTasks = (todayData?.items || []).map(item => ({
         id: item.id || item.testId || item.uniqueKey,
@@ -2392,33 +2414,67 @@ export default function StudentDashboard() {
         isDone: Boolean(item.done || item.isCompleted || (typeof isItemSolved === 'function' && isItemSolved(item)))
       }));
 
-      // Active books progress
-      const booksProgress = (books || []).filter(b => b && b.title && b.bookType !== 'exam').slice(0, 4).map(b => {
+      // 2. Active Books Progress with subjects breakdown & next unsolved test
+      const booksProgress = (books || []).filter(b => b && b.title && b.bookType !== 'exam').map(b => {
         const bId = String(b.id);
         const bUuid = String(toUUID(b.id) || '');
+        const rawSubjects = (b.subjects && b.subjects.length > 0) ? b.subjects : (b.raw_data?.subjects || []);
         const testsInBook = (bookTests || []).filter(bt => {
           const btBId = String(bt.bookId || bt.book_id || '');
           return btBId === bId || (bUuid && btBId === bUuid);
         });
         const total = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || b.total_tests || 20);
         let solved = 0;
-        testsInBook.forEach(t => {
-          if (studentSubmissions.some(s => isSubmissionMatchingBookTest(s, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books))) {
-            solved++;
+        let nextUnsolvedTest = null;
+
+        const subjStats = [];
+        rawSubjects.forEach(s => {
+          if (!s?.name) return;
+          const sTests = testsInBook.filter(t => String(t.subject_id || t.subjectId) === String(s.id));
+          let sSolved = 0;
+          sTests.forEach(t => {
+            const isSolved = studentSubmissions.some(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books));
+            if (isSolved) {
+              sSolved++;
+            } else if (!nextUnsolvedTest) {
+              nextUnsolvedTest = {
+                id: t.id,
+                title: `${s.name} - ${t.name || 'Test'}` + (t.page ? ` (Sayfa ${t.page})` : '')
+              };
+            }
+          });
+          if (sTests.length > 0) {
+            subjStats.push(`${s.name}: ${sSolved}/${sTests.length}`);
           }
         });
+
+        testsInBook.forEach(t => {
+          if (studentSubmissions.some(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books))) {
+            solved++;
+          } else if (!nextUnsolvedTest) {
+            nextUnsolvedTest = {
+              id: t.id,
+              title: t.name || 'Test'
+            };
+          }
+        });
+
         const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
         return {
           id: b.id,
           title: b.title,
+          publisher: b.publisher || 'Özel / MEB Yayınları',
           solvedTests: solved,
           totalTests: total,
-          percent: pct
+          percent: pct,
+          subjectsBreakdown: subjStats.join(' • '),
+          nextTest: nextUnsolvedTest
         };
       });
 
       syncWidgetData({
         studentName: selectedStudent?.name || 'Öğrenci',
+        days: daysList,
         todayTasks: todayTasks,
         booksProgress: booksProgress,
         catchUpTasks: catchUpTasks || [],
