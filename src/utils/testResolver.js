@@ -1148,169 +1148,165 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   if (!s || !targetTestOrId) return false;
   if (s.status === 'in_progress' || s.status === 'draft') return false;
 
-  const targetTest = typeof targetTestOrId === 'object'
+  let targetTest = typeof targetTestOrId === 'object'
     ? targetTestOrId
     : (bookTests || []).find(bt => String(bt.id) === String(targetTestOrId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(targetTestOrId)));
 
-  const specId = typeof targetTestOrId === 'object' ? String(targetTestOrId.id || '') : String(targetTestOrId);
+  const specId = typeof targetTestOrId === 'object' ? String(targetTestOrId.id || targetTestOrId.testId || targetTestOrId.bookTestId || '') : String(targetTestOrId);
   const specClean = specId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-  const specUuid = String(toUUID(specId) || '');
+  const specUuid = String(toUUID(specClean || specId) || '');
 
   const sTestId = String(s.testId || s.test_id || '');
+  const sClean = sTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+  const sUuid = String(toUUID(sClean || sTestId) || '');
+
   const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
+  const sRealClean = sRealTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+
   const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
+  const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
 
   // 1. Direct Specific ID Matching:
-  const isDirectIdMatch = (sTestId && (sTestId === specId || sTestId === specClean || (specUuid && sTestId === specUuid))) ||
-                          (sRealTestId && (sRealTestId === specId || sRealTestId === specClean || (specUuid && sRealTestId === specUuid))) ||
-                          (sBookTestId && (sBookTestId === specId || sBookTestId === specClean || (specUuid && sBookTestId === specUuid)));
+  if (specId && specId !== 'undefined' && specId !== 'null' && specClean.length > 3) {
+    const isDirectIdMatch = (sTestId && (sTestId === specId || sClean === specClean || (specUuid && sUuid === specUuid))) ||
+                            (sRealTestId && (sRealTestId === specId || sRealClean === specClean || (specUuid && toUUID(sRealClean) === specUuid))) ||
+                            (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid)));
 
-  // If there is an exact direct testId match, confirm subjects don't conflict (e.g. reused IDs)
-  if (isDirectIdMatch) {
-    const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
-    const tSubj = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || '').toLowerCase().trim();
-    if (sSubj && tSubj) {
-      const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
-      if (isCrossConflict) return false;
+    if (isDirectIdMatch) {
+      const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
+      const tSubj = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || '').toLowerCase().trim();
+      if (sSubj && tSubj) {
+        const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
+        if (isCrossConflict) return false;
+      }
+      return true;
     }
+  }
+
+  // Lookup targetTest metadata from bookTests if not already filled
+  if (targetTest && !targetTest.name && !targetTest.title && !targetTest.testName && specClean) {
+    const found = (bookTests || []).find(bt => {
+      const btClean = String(bt.id).replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      return String(bt.id) === specId || btClean === specClean || (toUUID(bt.id) && toUUID(bt.id) === specUuid);
+    });
+    if (found) targetTest = { ...found, ...targetTest };
+  }
+
+  const cleanHelper = (str) => String(str || '')
+    .toLowerCase()
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s*\(tüm kitap görevi\)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const tName = cleanHelper(targetTest?.name || targetTest?.testName || targetTest?.title || '');
+  if (!tName || tName.length < 2) return false; // Prevent empty string matching!
+
+  // Parse submission metadata
+  const rawSTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || s.testName || '').trim();
+  let subStr = rawSTitle;
+  let subBook = String(s.bookTitle || s.metadata?.bookTitle || '').trim();
+  let subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || '').trim();
+  let subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || '').trim();
+  let subTest = '';
+
+  if (subStr.includes('—')) {
+    const parts = subStr.split('—');
+    if (!subBook) subBook = parts[0].trim();
+    subStr = parts.slice(1).join('—').trim();
+  } else if (subStr.includes(' - ') && !subStr.match(/\d+\s*-\s*\d+/)) {
+    const parts = subStr.split(' - ');
+    if (!subBook && parts.length > 1) subBook = parts[0].trim();
+    subStr = parts.slice(1).join(' - ').trim();
+  }
+
+  if (subStr.includes('›') || subStr.includes('>')) {
+    const parts = subStr.split(/[›>]/);
+    if (!subSubject) subSubject = parts[0].trim();
+    subStr = parts.slice(1).join('›').trim();
+  }
+
+  const parenMatch = subStr.match(/\((.*?)\)/);
+  if (parenMatch) {
+    subTest = parenMatch[1].trim();
+    if (!subUnit) subUnit = subStr.replace(/\(.*?\)/, '').trim();
+  } else {
+    subTest = subStr.trim();
+  }
+
+  if (!subSubject) {
+    const sLow = rawSTitle.toLowerCase();
+    if (sLow.includes('türkçe') || sLow.includes('turkce') || sLow.includes('paragraf')) subSubject = 'Türkçe';
+    else if (sLow.includes('matematik') || sLow.includes('mat') || sLow.includes('problem')) subSubject = 'Matematik';
+    else if (sLow.includes('fen')) subSubject = 'Fen Bilimleri';
+    else if (sLow.includes('sosyal')) subSubject = 'Sosyal Bilgiler';
+  }
+
+  if (!subUnit) {
+    const uMatch = rawSTitle.match(/(\d+)\.\s*ünite/i);
+    if (uMatch) subUnit = `${uMatch[1]}. Ünite`;
+  }
+
+  const subPageMatch = rawSTitle.match(/(\d+)\s*[-–/]\s*(\d+)/);
+  const subPages = s.metadata?.pageRange || (subPageMatch ? `${subPageMatch[1]}-${subPageMatch[2]}` : '');
+
+  const normSubTest = cleanHelper(subTest);
+  const normSubSubject = cleanHelper(subSubject);
+  const normSubUnit = cleanHelper(subUnit);
+  const normSubBook = cleanHelper(subBook);
+
+  const tSubject = cleanHelper(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '');
+  const tUnit = cleanHelper(targetTest?.unit || targetTest?.unitName || targetTest?.unitTopic || targetTest?.topic || targetTest?.topicName || '');
+  const tBook = cleanHelper(targetTest?.bookTitle || targetTest?.bookName || '');
+  const tPageMatch = (tName || '').match(/(\d+)\s*[-–/]\s*(\d+)/);
+  const tPages = targetTest?.pageRange || (tPageMatch ? `${tPageMatch[1]}-${tPageMatch[2]}` : '');
+
+  // 2. Strict Page Number Matching
+  if (tPages && subPages) {
+    if (tPages === subPages) return true;
+    return false; // Different page ranges never match
+  }
+
+  // 3. Strict Book Isolation (if both books are known)
+  if (tBook && normSubBook) {
+    const isBookMatch = tBook.includes(normSubBook) || normSubBook.includes(tBook) ||
+      (tBook.includes('paragraf') && normSubBook.includes('paragraf')) ||
+      (tBook.includes('ünite ünite') && normSubBook.includes('ünite ünite'));
+    if (!isBookMatch) return false;
+  }
+
+  // 4. Strict Subject Isolation
+  if (tSubject && normSubSubject) {
+    const isSubjectMatch = tSubject === normSubSubject ||
+      (tSubject.includes('türk') && normSubSubject.includes('türk')) ||
+      (tSubject.includes('mat') && normSubSubject.includes('mat')) ||
+      (tSubject.includes('fen') && normSubSubject.includes('fen')) ||
+      (tSubject.includes('sos') && normSubSubject.includes('sos'));
+    if (!isSubjectMatch) return false;
+  }
+
+  // 5. Strict Unit Isolation
+  if (tUnit && normSubUnit) {
+    const tUnitNum = tUnit.match(/(\d+)\.\s*ünite/i)?.[1] || tUnit.match(/ünite\s*(\d+)/i)?.[1];
+    const sUnitNum = normSubUnit.match(/(\d+)\.\s*ünite/i)?.[1] || normSubUnit.match(/ünite\s*(\d+)/i)?.[1];
+    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
+  }
+
+  // 6. Test Name Matching
+  if (!normSubTest || normSubTest.length < 2) return false;
+
+  const cleanTName = tName.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').trim();
+  const normOnlyChars = (str) => cleanHelper(str).replace(/[^a-z0-9ğüşıöç]/g, '');
+
+  if (normOnlyChars(normSubTest) === normOnlyChars(cleanTName) && normOnlyChars(cleanTName).length >= 3) {
     return true;
   }
 
-  // 1.5. Strict Book Isolation
-  // If the submission explicitly states which book it belongs to, and it doesn't match the target test's book, reject it!
-  const targetBookId = String(targetTest?.bookId || targetTest?.book_id || '').toLowerCase().trim();
-  const subBookId = String(s.bookId || s.book_id || s.metadata?.bookId || s.metadata?.book_id || '').toLowerCase().trim();
-  
-  // Exception: If the test name is an exact match and highly specific (> 20 chars), allow cross-book matching
-  // (e.g. if a teacher moved a test from Book A to Book B after a student solved it)
-  const sTestName = String(s.testName || s.metadata?.testName || '').toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
-  const tTestName = String(targetTest?.name || targetTest?.title || '').toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
-  const isHighlySpecificNameMatch = sTestName && tTestName && sTestName === tTestName && sTestName.length > 20;
-
-  if (targetBookId && subBookId) {
-    const tUuid = toUUID(targetBookId);
-    const sUuid = toUUID(subBookId);
-    if (targetBookId !== subBookId && (!tUuid || tUuid !== sUuid)) {
-      if (!isHighlySpecificNameMatch) return false; // Explicit book mismatch
-    }
-  }
-
-  // Also check book title if available
-  const subBookTitle = String(s.bookTitle || s.metadata?.bookTitle || '').toLowerCase().trim();
-  if (subBookTitle && books && books.length > 0) {
-    let targetBookTitle = '';
-    if (targetTest?.bookTitle) {
-      targetBookTitle = String(targetTest.bookTitle).toLowerCase().trim();
-    } else {
-      const book = books.find(b => String(b.id) === targetBookId || toUUID(String(b.id)) === toUUID(targetBookId));
-      if (book) targetBookTitle = String(book.title).toLowerCase().trim();
-    }
-    
-    if (targetBookTitle && subBookTitle !== targetBookTitle && !targetBookTitle.includes(subBookTitle) && !subBookTitle.includes(targetBookTitle)) {
-      // Very strict mismatch, e.g. "Paragraf" vs "Ünite Ünite"
-      if (!isHighlySpecificNameMatch) return false; 
-    }
-  }
-
-  // Note: sBookTestId/sRealTestId guard removed intentionally.
-  // Subject (step 2) + page number (step 4) + title matching is specific enough to prevent false
-  // positives without an expensive O(n) bookTests lookup on every submission check.
-
-  const sTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || '').toLowerCase().trim();
-  const cleanSTitle = sTitle.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').replace(/\s*\(.*?\)$/, '').trim();
-  const tName = String(targetTest.name || targetTest.title || '').toLowerCase().trim();
-
-  // 2. Subject (Ders) extraction and verification - CRUCIAL for multi-lesson books
-  let subSubject = String(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.ders || s.ders || s.lesson || '').toLowerCase().trim();
-  if (!subSubject) {
-    if (sTitle.includes('türkçe') || sTitle.includes('turkce') || sTitle.includes('paragraf')) subSubject = 'türkçe';
-    else if (sTitle.includes('matematik') || sTitle.includes('mat') || sTitle.includes('problem')) subSubject = 'matematik';
-    else if (sTitle.includes('fen')) subSubject = 'fen bilimleri';
-    else if (sTitle.includes('sosyal')) subSubject = 'sosyal bilgiler';
-    else if (sTitle.includes('ingilizce')) subSubject = 'ingilizce';
-    else if (sTitle.includes('din')) subSubject = 'din kültürü';
-  }
-
-  const targetSubject = String(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '').toLowerCase().trim();
-
-  if (targetSubject && subSubject && targetSubject !== 'genel' && subSubject !== 'genel' && subSubject !== 'genel testler' && targetSubject !== 'genel testler') {
-    const isSubjectMatch = subSubject === targetSubject ||
-      subSubject.includes(targetSubject) ||
-      targetSubject.includes(subSubject) ||
-      (targetSubject.includes('türk') && subSubject.includes('türk')) ||
-      (targetSubject.includes('mat') && subSubject.includes('mat')) ||
-      (targetSubject.includes('fen') && subSubject.includes('fen')) ||
-      (targetSubject.includes('sos') && subSubject.includes('sos')) ||
-      (targetSubject.includes('ing') && subSubject.includes('ing')) ||
-      (targetSubject.includes('din') && subSubject.includes('din'));
-
-    if (!isSubjectMatch) {
-      return false; // Subject conflict!
-    }
-  }
-
-  const extractPageNumbers = (str) => {
-    if (!str || typeof str !== 'string') return null;
-    const match = str.match(/(\d+)\s*[-–/]\s*(\d+)/);
-    if (match) return `${match[1]}-${match[2]}`;
-    const singleMatch = str.match(/sayfa\s*(\d+)/i) || str.match(/(\d+)\.\s*sayfa/i);
-    if (singleMatch) return singleMatch[1];
-    return null;
-  };
-
-  const targetPages = targetTest.pageRange ||
-    (targetTest.startPage && targetTest.endPage ? `${targetTest.startPage}-${targetTest.endPage}` : null) ||
-    extractPageNumbers(targetTest.name) ||
-    extractPageNumbers(targetTest.title);
-
-  const subPages = s.metadata?.pageRange ||
-    (s.metadata?.startPage && s.metadata?.endPage ? `${s.metadata.startPage}-${s.metadata.endPage}` : null) ||
-    extractPageNumbers(s.title) ||
-    extractPageNumbers(s.testTitle) ||
-    extractPageNumbers(s.test_title);
-
-  // 3. Strict page matching (Definitive if both exist)
-  if (targetPages) {
-    if (subPages) {
-      if (targetPages === subPages) return true;
-    } else {
-      const hasPageRangeInTitle = sTitle.includes(targetPages) || cleanSTitle.includes(targetPages);
-      if (hasPageRangeInTitle) return true;
-    }
-    // If target has specific pages and submission DOES NOT match those pages, reject immediately
-    if (subPages && targetPages !== subPages) return false;
-  } else if (subPages) {
-    // Submission has specific pages but target test does not, they cannot match
-    return false;
-  }
-
-  // 4. Unit (Ünite) verification
-  let subUnit = String(s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || '').toLowerCase().trim();
-  if (!subUnit) {
-    const uMatch = sTitle.match(/(\d+)\.\s*ünite/i) || sTitle.match(/ünite\s*(\d+)/i);
-    if (uMatch) subUnit = `${uMatch[1]}. ünite`;
-  }
-
-  const targetUnit = String(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || '').toLowerCase().trim();
-
-  if (targetUnit && subUnit) {
-    const tUnitNum = targetUnit.match(/(\d+)\.\s*ünite/i)?.[1] || targetUnit.match(/ünite\s*(\d+)/i)?.[1];
-    const sUnitNum = subUnit.match(/(\d+)\.\s*ünite/i)?.[1] || subUnit.match(/ünite\s*(\d+)/i)?.[1];
-    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) {
-      return false; // Unit mismatch!
-    }
-  }
-
-  // If both have orderIndex, check orderIndex
-  if (targetTest.orderIndex !== undefined && targetTest.orderIndex !== null && s.metadata?.orderIndex !== undefined && s.metadata?.orderIndex !== null) {
-    return Number(targetTest.orderIndex) === Number(s.metadata.orderIndex);
-  }
-
-  // 5. Test name match
-  if (cleanSTitle === tName || cleanSTitle.includes(tName) || tName.includes(cleanSTitle) || sTitle.includes(`(${tName})`)) {
+  if (normSubTest === cleanTName || (normSubTest.length >= 4 && cleanTName.includes(normSubTest)) || (cleanTName.length >= 4 && normSubTest.includes(cleanTName))) {
     return true;
   }
 

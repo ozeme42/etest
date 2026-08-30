@@ -3931,10 +3931,22 @@ export default function ProgramCenter({
               const displaySub = `${cleanBookTitle} — ${testName}`;
 
               const isSolved = checkIsTaskSolved({
+                ...info.tObj,
+                id: testId,
                 testId: testId,
+                bookTestId: testId,
                 hwId: hw.id,
-                taskType: 'kitap'
-              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                taskType: 'kitap',
+                name: testName,
+                testName: testName,
+                title: testName,
+                subject: subjectName,
+                subjectName: subjectName,
+                unit: topicName,
+                unitName: topicName,
+                unitTopic: topicName,
+                bookTitle: cleanBookTitle
+              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
 
               const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
               if (!exists) {
@@ -3947,9 +3959,10 @@ export default function ProgramCenter({
                   isAutoHomework: true,
                   isBookAssignment: true,
                   taskType: 'kitap',
+                  name: testName,
+                  testName: testName,
                   subject: subjectName,
                   unit: topicName || info.tObj?.unit || info.tObj?.unitName || '',
-                  testName: testName,
                   bookName: cleanBookTitle,
                   bookTitle: cleanBookTitle,
                   topic: displaySub,
@@ -3983,13 +3996,27 @@ export default function ProgramCenter({
         if (isForThisDay) {
           if (isBook && Array.isArray(hw.tests) && hw.tests.length > 0) {
             hw.tests.forEach((testId, idx) => {
+              const info = resolveBookTestInfo(testId);
               const isTestSolved = checkIsTaskSolved({
+                ...info.tObj,
+                id: testId,
                 testId: testId,
-                hwId: hw.id
-              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                bookTestId: testId,
+                hwId: hw.id,
+                taskType: 'kitap',
+                name: info.testName,
+                testName: info.testName,
+                title: info.testName,
+                subject: info.subjectName,
+                subjectName: info.subjectName,
+                unit: info.topicName,
+                unitName: info.topicName,
+                unitTopic: info.topicName,
+                bookTitle: cleanBookTitle
+              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
 
-              const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
-              const testTitle = tObj?.name || `Test ${idx + 1}`;
+              const tObj = info.tObj || (bookTests || []).find(b => String(b.id) === String(testId));
+              const testTitle = info.testName || tObj?.name || `Test ${idx + 1}`;
               const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${dayObj.day}` || m.hwId === hw.id);
               if (!exists) {
                 autoHwItems.push({
