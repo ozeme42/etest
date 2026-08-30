@@ -2634,6 +2634,11 @@ export default function BookContentManager() {
                     }
                   }
 
+                  const isFullBookHw = hw.title && (hw.title.includes('(Tüm Kitap Görevi)') || hw.title.includes('(Tüm Kitap)'));
+                  if (isFullBookHw && tests && tests.length > 0) {
+                      hwTests = tests.map(t => String(t.id));
+                  }
+
                   const totalTestsInHw = hwTests.length || 1;
                   const hwTestsSet = new Set(hwTests.map(String));
                   const hwTestsUuidSet = new Set(hwTests.map(tid => toUUID(tid)).filter(Boolean));
