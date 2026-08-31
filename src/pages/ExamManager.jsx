@@ -49,16 +49,24 @@ const EXAM_PRESETS = {
       { name: 'Fen Bilimleri (AYT)', count: 40, options: ['A', 'B', 'C', 'D', 'E'] },
     ]
   },
-  CUSTOM: {
+  ÖZEL: {
     title: '📊 Özel / Boş Şablon (Elle veya Toplu JSON ile ders ekleyin)',
     penaltyRatio: 0,
     subjects: []
   }
 };
+EXAM_PRESETS.CUSTOM = EXAM_PRESETS.ÖZEL;
+
+export function formatPublisherName(pub) {
+  if (!pub) return 'ÖZEL';
+  const u = String(pub).toUpperCase().trim();
+  if (u === 'CUSTOM' || u === 'OZEL') return 'ÖZEL';
+  return pub;
+}
 
 const SAMPLE_JSON_TEMPLATE = {
   examTitle: "Özdebir LGS 1. Genel Deneme Sınavı",
-  examType: "CUSTOM",
+  examType: "ÖZEL",
   examDate: new Date().toISOString().split('T')[0],
   penaltyRatio: 3,
   pdfUrl: "",
@@ -188,7 +196,7 @@ export default function ExamManager() {
       const bType = String(b.bookType || b.book_type || b.raw_data?.bookType || b.type || '').toLowerCase();
       const bPub = String(b.publisher || '').toUpperCase();
       const isExamType = bType === 'exam' || bType === 'physical_exam' || b.isExam === true || b.id === 'tb_07kzdf_1787267196768';
-      const isPresetPub = ['LGS', 'TYT', 'AYT', 'CUSTOM'].includes(bPub);
+      const isPresetPub = ['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'OZEL'].includes(bPub);
       return isExamType || isPresetPub;
     });
 
@@ -385,7 +393,8 @@ export default function ExamManager() {
 
       // 2. Format / Publisher
       if (formatFilter !== 'ALL') {
-        if (exam.publisher !== formatFilter) return false;
+        const pub = formatPublisherName(exam.publisher);
+        if (pub !== formatFilter) return false;
       }
 
       // 3. PDF filter
@@ -424,8 +433,8 @@ export default function ExamManager() {
           valB = String(b.title || '').toLowerCase();
           return sortOrder === 'asc' ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
         case 'publisher':
-          valA = String(a.publisher || '').toLowerCase();
-          valB = String(b.publisher || '').toLowerCase();
+          valA = formatPublisherName(a.publisher).toLowerCase();
+          valB = formatPublisherName(b.publisher).toLowerCase();
           return sortOrder === 'asc' ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
         case 'totalQuestions':
           valA = Number(a.totalQuestions || 0);
@@ -974,7 +983,7 @@ export default function ExamManager() {
           </div>
           <div>
             <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block' }}>Sınav Formatları</span>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>LGS · TYT · AYT</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', display: 'block', lineHeight: 1.2 }}>LGS · TYT · AYT · ÖZEL</span>
             <span style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700 }}>Özel şablon destekli</span>
           </div>
         </div>
@@ -1089,7 +1098,7 @@ export default function ExamManager() {
 
               {/* Format Filter Chips */}
               <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                {['ALL', 'LGS', 'TYT', 'AYT', 'CUSTOM'].map(f => (
+                {['ALL', 'LGS', 'TYT', 'AYT', 'ÖZEL'].map(f => (
                   <button
                     key={f}
                     onClick={() => setFormatFilter(f)}
@@ -1101,7 +1110,7 @@ export default function ExamManager() {
                       boxShadow: formatFilter === f ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
                     }}
                   >
-                    {f === 'ALL' ? 'Tüm Formatlar' : f === 'CUSTOM' ? 'Özel' : f}
+                    {f === 'ALL' ? 'Tüm Formatlar' : f === 'ÖZEL' || f === 'CUSTOM' ? 'Özel' : f}
                   </button>
                 ))}
               </div>
@@ -1424,7 +1433,7 @@ export default function ExamManager() {
                       );
                       const hasDuplicates = duplicateStudentIds.size > 0;
 
-                      const pub = m.publisher || 'LGS';
+                      const pub = formatPublisherName(m.publisher);
                       const pubColor = pub === 'LGS' ? '#3b82f6' : (pub === 'TYT' ? '#0ea5e9' : (pub === 'AYT' ? '#8b5cf6' : '#10b981'));
 
                       return (
@@ -1831,7 +1840,7 @@ export default function ExamManager() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
                           <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 99, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6', textTransform: 'uppercase' }}>
-                            {m.publisher || 'LGS'}
+                            {formatPublisherName(m.publisher)}
                           </span>
                           {m.pdfUrl && (
                             <span style={{ fontSize: '0.65rem', fontWeight: 900, padding: '0.2rem 0.55rem', borderRadius: 99, background: 'rgba(2,132,199,0.15)', color: '#38bdf8', border: '1px solid rgba(2,132,199,0.3)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
@@ -2103,8 +2112,8 @@ export default function ExamManager() {
 
             {/* PRESET SELECTOR (2x2 ON MOBILE) */}
             <div className="exam-preset-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
-              {Object.keys(EXAM_PRESETS).map(key => {
-                const isSel = examType === key;
+              {Object.keys(EXAM_PRESETS).filter(k => k !== 'CUSTOM').map(key => {
+                const isSel = examType === key || (key === 'ÖZEL' && examType === 'CUSTOM');
                 return (
                   <button
                     key={key}
@@ -2119,7 +2128,7 @@ export default function ExamManager() {
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span style={{ fontSize: '0.85rem', fontWeight: 900 }}>{key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 900 }}>{key === 'ÖZEL' || key === 'CUSTOM' ? 'Özel / Boş Şablon' : `${key} Sınavı`}</span>
                     <span style={{ fontSize: '0.7rem', color: isSel ? '#c7d2fe' : 'var(--color-text-muted)', fontWeight: 700 }}>
                       {subjects.length > 0 ? `${subjects.reduce((a, s) => a + s.count, 0)} Soru` : 'Boş (Elle / JSON)'}
                     </span>
