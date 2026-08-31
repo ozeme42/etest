@@ -1117,6 +1117,7 @@ export default function StudentDashboard() {
     const studentSubs = studentSubmissions;
 
     const bookAssignments = (homeworks || []).filter(hw => {
+      if (isExamBook(hw)) return false;
       if (!hw.isBookAssignment && !hw.bookId && !hw.title?.includes('(Tüm Kitap Görevi)') && !hw.title?.includes('(Tüm Kitap)') && !hw.title?.includes('(Kendi Eklediğim)') && hw.sourceType !== 'trackedBook') return false;
       return isHomeworkForStudent(hw, selectedStudent, curData?.grades);
     });

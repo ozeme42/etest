@@ -6,21 +6,76 @@ import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapte
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 /**
- * Checks whether a tracked book is a Mock Exam (Deneme)
+ * Checks whether a tracked book or homework is a Mock Exam (Deneme)
  */
 export function isExamBook(b) {
   if (!b) return false;
   const raw = b.raw_data || {};
-  return Boolean(
+  const pub = String(b.publisher || raw.publisher || '').toUpperCase().trim();
+  const title = String(b.title || raw.title || b.name || '').toLowerCase().trim();
+
+  // 1. Explicit exam indicators
+  if (
     b.bookType === 'exam' ||
     b.book_type === 'exam' ||
     raw.bookType === 'exam' ||
     raw.book_type === 'exam' ||
     b.type === 'exam' ||
+    b.type === 'physicalExam' ||
+    raw.type === 'exam' ||
+    raw.type === 'physicalExam' ||
+    b.contentType === 'physicalExam' ||
+    raw.contentType === 'physicalExam' ||
     b.isExamBook ||
+    raw.isExamBook ||
+    b.isExam ||
+    raw.isExam ||
+    b.isPhysical ||
+    raw.isPhysical ||
     b.id === 'tb_07kzdf_1787267196768' ||
     (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher))
-  );
+  ) {
+    return true;
+  }
+
+  // 2. Exam Formats used by ExamManager & Physical Exam creator
+  const EXAM_PRESETS = ['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'DENEME', 'YKS', 'MSÜ', 'KPSS', 'DGS'];
+  if (EXAM_PRESETS.includes(pub)) {
+    // If penalty ratio or option count or multi-subject format exists
+    if (
+      b.penaltyRatio !== undefined ||
+      raw.penaltyRatio !== undefined ||
+      b.optionCount ||
+      raw.optionCount ||
+      b.examType ||
+      raw.examType
+    ) {
+      return true;
+    }
+  }
+
+  // 3. Keyword matching for exam names (deneme, sınavı, hazır bulunuşluk, tarama, fiziki deneme)
+  const isExamKeywordInTitle =
+    title.includes('deneme') ||
+    title.includes('sınav') ||
+    title.includes('sinav') ||
+    title.includes('hazır bulunuşluk') ||
+    title.includes('hazir bulunusluk') ||
+    title.includes('fiziki deneme') ||
+    title.includes('tarama testi') ||
+    title.includes('kazanım değerlendirme') ||
+    title.includes('seviye tespit');
+
+  if (isExamKeywordInTitle && (EXAM_PRESETS.includes(pub) || !pub || pub === 'CUSTOM')) {
+    return true;
+  }
+
+  // 4. If publisher is one of the standard exam formats (LGS, TYT, AYT, CUSTOM) and book has multiple subjects (LGS 6 subjects, AYT 4 subjects, etc.)
+  if (EXAM_PRESETS.includes(pub) && Array.isArray(b.subjects) && b.subjects.length >= 2) {
+    return true;
+  }
+
+  return false;
 }
 
 /**

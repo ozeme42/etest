@@ -7,7 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, isExamBook } from '../utils/testResolver';
 import {
   BookOpen, ArrowRight, Star, Plus, X, ClipboardList, TrendingUp,
   Pencil, Trash2, LayoutGrid, List, Trophy, Target, Activity,
@@ -278,10 +278,10 @@ export default function StudentExamsPage() {
   const bookAssignments = useMemo(() => homeworks.filter(hw => {
     const isTarget = isHomeworkForStudent(hw, currentUser, curData?.grades);
     if (!isTarget) return false;
-    const isDirectExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical || (hw.subjects && hw.subjects.length > 0);
+    const isDirectExam = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical || isExamBook(hw) || (hw.subjects && hw.subjects.length > 0);
     const book = hw.bookId ? books.find(b => String(b.id) === String(hw.bookId)) : null;
-    const isExamBook = book && book.bookType === 'exam';
-    return isDirectExam || (hw.isBookAssignment && isExamBook);
+    const isExam = isDirectExam || (book && isExamBook(book)) || isExamBook(hw);
+    return Boolean(isExam);
   }), [homeworks, currentUser, curData?.grades, books]);
 
   const studentSubmissions = useMemo(() => submissions.filter(s => {
@@ -298,7 +298,7 @@ export default function StudentExamsPage() {
   const assignedBooks = useMemo(() => {
     const bookMap = {};
     bookAssignments.forEach(hw => {
-      const book = books.find(b => String(b.id) === String(hw.bookId) && b.bookType === 'exam');
+      const book = books.find(b => String(b.id) === String(hw.bookId) && isExamBook(b));
       const bookKey = book ? String(book.id) : `hw_${hw.id}`;
       const bookTitle = book ? book.title : hw.title;
       const bookSubjects = book ? book.subjects : hw.subjects;

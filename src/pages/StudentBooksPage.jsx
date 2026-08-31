@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { isHomeworkForStudent, isSubmissionMatchingBookTest } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest, isExamBook, isStandardOrMixedBook } from '../utils/testResolver';
 import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
@@ -245,19 +245,11 @@ export default function StudentBooksPage() {
   }, [submissions, homeworks, allStudentIds]);
 
   const assignedBooks = useMemo(() => {
-    const isExamBook = (b) => {
-      if (!b) return false;
-      const raw = b.raw_data || {};
-      if (b.id === 'tb_07kzdf_1787267196768') return true;
-      if (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher)) return true;
-      if (b.bookType === 'exam' || b.book_type === 'exam' || raw.bookType === 'exam' || b.type === 'exam') return true;
-      return false;
-    };
     const bookMap = {};
     const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
-    // 1. Add all standard / mixed books
-    (books || []).filter(b => b && !isExamBook(b)).forEach(b => {
+    // 1. Add all standard / mixed books (strictly exclude all mock exams)
+    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
       const normK = getNormKey(b);
       if (!bookMap[normK]) {
         bookMap[normK] = { ...b, assignedHomeworks: [] };
@@ -267,15 +259,16 @@ export default function StudentBooksPage() {
     // 2. Attach any homework assignments from all homeworks (or bookAssignments)
     (homeworks || []).forEach(hw => {
       const raw = hw.raw_data || {};
+      if (isExamBook(hw)) return;
       const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.title?.includes('Kitap');
       if (!isBookHw) return;
 
-      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && !isExamBook(b));
+      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && isStandardOrMixedBook(b));
       if (!book && hw.title) {
         const cleanHwTitle = hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
         book = (books || []).find(b => {
           const bT = String(b.title).toLowerCase().trim();
-          return !isExamBook(b) && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
+          return isStandardOrMixedBook(b) && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
         });
       }
       if (book) {

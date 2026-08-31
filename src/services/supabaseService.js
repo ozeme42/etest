@@ -2027,10 +2027,24 @@ export async function dbGetTrackedBooks() {
               ? Number(b.optionCount)
               : 5)));
 
-      const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
-      const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
       const title = b.title || metaObj?.title || b.raw_data?.title || '';
       const pub = b.publisher || metaObj?.publisher || b.raw_data?.publisher || '';
+      const isExamDetected = (
+        metaObj?.bookType === 'exam' ||
+        b.book_type === 'exam' ||
+        b.bookType === 'exam' ||
+        b.raw_data?.bookType === 'exam' ||
+        b.type === 'exam' ||
+        b.type === 'physicalExam' ||
+        b.id === 'tb_07kzdf_1787267196768' ||
+        title.toLowerCase().includes('deneme') ||
+        title.toLowerCase().includes('hazır bulunuşluk') ||
+        title.toLowerCase().includes('hazir bulunusluk') ||
+        title.toLowerCase().includes('fiziki deneme') ||
+        (['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'DENEME'].includes(String(pub).toUpperCase()) && (b.penalty_ratio !== undefined || b.penaltyRatio !== undefined || b.option_count || b.optionCount))
+      );
+      const bType = isExamDetected ? 'exam' : (metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || 'standard');
+      const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
 
       const bookObj = {
         id: String(b.id),
