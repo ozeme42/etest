@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   ClipboardCheck, CheckCircle2, AlertCircle, Trash2, Plus, Sparkles,
-  BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight,
+  BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight, ChevronUp, ChevronDown,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
   Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3, Link2, Download, Search, Filter,
   Send, Save, ExternalLink
@@ -73,7 +73,7 @@ export default function ExamManager() {
   const { currentUser } = useAuth();
   const { questions } = useQuestionBank();
   const { homeworks, addHomework, updateHomework, deleteHomework } = useHomework();
-  const { deleteSubmissionsByTestId, deleteBookSubmissionsForEveryone } = useEvaluation();
+  const { submissions: evalSubmissions, deleteSubmissionsByTestId, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { data: curData } = useCurriculum();
   const { addTrackedBook, addTrackedBookTest, updateTrackedBook, updateTrackedBookTest, deleteTrackedBook, books, bookTests } = useTrackedBooks();
   const navigate = useNavigate();
