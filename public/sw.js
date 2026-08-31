@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etest-pwa-v3';
+const CACHE_NAME = 'etest-pwa-v4';
 const IMAGE_CACHE_NAME = 'etest-supabase-images-v1';
 
 self.addEventListener('install', (event) => {
@@ -76,21 +76,21 @@ self.addEventListener('fetch', (event) => {
     fetch(event.request)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          const contentType = response.headers.get('content-type') || '';
+          // Don't cache html responses returned for missing JS chunks (Vercel SPA fallback)
+          if (!url.pathname.startsWith('/assets/') || !contentType.includes('text/html')) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
         }
         return response;
       })
       .catch(async () => {
         const cached = await caches.match(event.request);
         if (cached) return cached;
-        return new Response('Ağ Hatası Oluştu', {
-          status: 408,
-          statusText: 'Request Timeout',
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-        });
+        return fetch(event.request);
       })
   );
 });

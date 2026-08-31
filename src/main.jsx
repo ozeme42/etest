@@ -15,6 +15,12 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
+// Auto-recover from dynamic import chunk mismatches on new deployments
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('Yeni sürüm tespit edildi, sayfa güncelleniyor...');
+  window.location.reload();
+});
+
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {

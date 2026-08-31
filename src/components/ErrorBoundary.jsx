@@ -13,6 +13,24 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    
+    // Check if error is due to a stale chunk / dynamic import mismatch from a new deployment
+    const errMsg = String(error?.message || '');
+    const isChunkMismatch = 
+      errMsg.includes('Failed to fetch dynamically imported module') ||
+      errMsg.includes('dynamically imported') ||
+      errMsg.includes('Loading chunk') ||
+      errMsg.includes('MIME type') ||
+      error?.name === 'ChunkLoadError';
+
+    if (isChunkMismatch) {
+      const lastReload = sessionStorage.getItem('etest_chunk_reload_ts');
+      const now = Date.now();
+      if (!lastReload || (now - Number(lastReload)) > 8000) {
+        sessionStorage.setItem('etest_chunk_reload_ts', String(now));
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = () => {

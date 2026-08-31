@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   GraduationCap, Users, Settings, Mail, Lock, User,
-  Sparkles, ArrowRight, CheckCircle2, ShieldCheck, Zap, KeyRound
+  Sparkles, ArrowRight, CheckCircle2, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCurriculum } from '../context/CurriculumContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register, fastDemoLogin, currentUser, logout } = useAuth();
+  const { login, register, currentUser, logout } = useAuth();
   const { data: curData } = useCurriculum();
 
   const [isRegister, setIsRegister] = useState(false);
@@ -18,90 +18,221 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [gradeId, setGradeId] = useState('g1');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+    setIsLoading(true);
 
-    if (isRegister) {
-      if (!name || !email || !password) {
-        setErrorMessage('Lütfen tüm alanları doldurun.');
-        return;
-      }
-      const res = await register({ name, email, password, role: selectedRole, gradeId });
-      if (res.pendingApproval) {
-        setSuccessMessage(res.message || '⏳ Öğretmen kaydınız alındı! Yönetici onayı sonrası giriş yapabilirsiniz.');
-        setIsRegister(false);
-        setPassword('');
-      } else if (res.success) {
-        if (selectedRole === 'student') navigate('/student');
-        else if (selectedRole === 'teacher') navigate('/teacher');
-        else navigate('/admin');
+    try {
+      if (isRegister) {
+        if (!name || !email || !password) {
+          setErrorMessage('Lütfen tüm alanları doldurun.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await register({ name, email, password, role: selectedRole, gradeId });
+        if (res.pendingApproval) {
+          setSuccessMessage(res.message || '⏳ Öğretmen kaydınız alındı! Yönetici onayı sonrası giriş yapabilirsiniz.');
+          setIsRegister(false);
+          setPassword('');
+        } else if (res.success) {
+          if (selectedRole === 'student') navigate('/student');
+          else if (selectedRole === 'teacher') navigate('/teacher');
+          else navigate('/admin');
+        } else {
+          setErrorMessage(res.error || 'Kayıt başarısız oldu.');
+        }
       } else {
-        setErrorMessage(res.error || 'Kayıt başarısız oldu.');
+        if (!email || !password) {
+          setErrorMessage('Lütfen e-posta ve şifrenizi girin.');
+          setIsLoading(false);
+          return;
+        }
+        const res = await login(email, password);
+        if (res.success) {
+          if (res.user?.role === 'student') navigate('/student');
+          else if (res.user?.role === 'teacher') navigate('/teacher');
+          else navigate('/admin');
+        } else {
+          setErrorMessage(res.error || 'Giriş bilgileri hatalı. Lütfen kontrol ediniz.');
+        }
       }
-    } else {
-      if (!email || !password) {
-        setErrorMessage('Lütfen e-posta ve şifrenizi girin.');
-        return;
-      }
-      const res = await login(email, password);
-      if (res.success) {
-        if (res.user.role === 'student') navigate('/student');
-        else if (res.user.role === 'teacher') navigate('/teacher');
-        else navigate('/admin');
-      } else {
-        setErrorMessage(res.error || 'Giriş bilgileri hatalı.');
-      }
+    } catch (err) {
+      setErrorMessage('Bir hata oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden font-sans text-slate-100">
-      
-      {/* GLOWING AURAS */}
-      <div className="absolute top-1/4 left-10 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div style={{
+      minHeight: '100vh',
+      minHeight: '100dvh',
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1.25rem',
+      boxSizing: 'border-box',
+      background: 'linear-gradient(135deg, #0b0f19 0%, #1e1b4b 50%, #0f172a 100%)',
+      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+      color: '#f8fafc',
+      position: 'relative',
+      overflowX: 'hidden'
+    }}>
 
-      <div className="w-full max-w-xl bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-10 shadow-2xl relative z-10">
-        
-        {/* LOGO HEADER */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center mx-auto shadow-xl shadow-indigo-500/30 mb-3">
-            <Sparkles className="w-8 h-8 text-white" />
+      {/* Decorative Glow Orbs */}
+      <div style={{
+        position: 'absolute',
+        top: '15%',
+        left: '10%',
+        width: 300,
+        height: 300,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, transparent 70%)',
+        pointerEvents: 'none',
+        filter: 'blur(40px)'
+      }} />
+      <div style={{
+        position: 'absolute',
+        bottom: '15%',
+        right: '10%',
+        width: 320,
+        height: 320,
+        borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.18) 0%, transparent 70%)',
+        pointerEvents: 'none',
+        filter: 'blur(40px)'
+      }} />
+
+      {/* Main Glass Card */}
+      <div style={{
+        width: '100%',
+        maxWidth: 480,
+        background: 'rgba(30, 41, 59, 0.75)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1.5px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: '1.75rem',
+        padding: '2rem 1.75rem',
+        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(99, 102, 241, 0.15)',
+        boxSizing: 'border-box',
+        position: 'relative',
+        zIndex: 10
+      }}>
+
+        {/* Logo & Header */}
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <div style={{
+            width: 58,
+            height: 58,
+            borderRadius: '1.15rem',
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 0.85rem auto',
+            boxShadow: '0 8px 24px rgba(99, 102, 241, 0.45)',
+            border: '1.5px solid rgba(255, 255, 255, 0.3)'
+          }}>
+            <Sparkles size={28} color="#ffffff" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white leading-tight">E-Test Platform Portal</h1>
-          <p className="text-indigo-200/70 text-xs sm:text-sm font-semibold mt-1">Giriş Yap ve Kayıt Ol</p>
+          <h1 style={{
+            fontSize: '1.55rem',
+            fontWeight: 900,
+            color: '#ffffff',
+            margin: 0,
+            letterSpacing: '-0.02em'
+          }}>
+            E-Test Platform Portal
+          </h1>
+          <p style={{
+            fontSize: '0.82rem',
+            fontWeight: 600,
+            color: 'rgba(203, 213, 225, 0.8)',
+            margin: '0.35rem 0 0 0'
+          }}>
+            {isRegister ? 'Yeni Hesap Oluşturun' : 'Giriş Yap ve Eğitime Başla'}
+          </p>
         </div>
 
-        {/* LOGGED IN ACTIVE USER NOTICE */}
+        {/* Logged in notification */}
         {currentUser && (
-          <div className="mb-6 p-4 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white">
-                {currentUser.name?.charAt(0)}
+          <div style={{
+            marginBottom: '1.25rem',
+            padding: '0.85rem 1rem',
+            borderRadius: '1rem',
+            background: 'rgba(99, 102, 241, 0.18)',
+            border: '1px solid rgba(129, 140, 248, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                background: '#6366f1',
+                color: '#fff',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.9rem',
+                flexShrink: 0
+              }}>
+                {currentUser.name?.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <p className="text-xs font-black text-white">{currentUser.name}</p>
-                <p className="text-[10px] text-indigo-200 uppercase font-bold">{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Admin'}</p>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser.name}
+                </div>
+                <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#a5b4fc', textTransform: 'uppercase' }}>
+                  {currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Admin'}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <button
+                type="button"
                 onClick={() => navigate(currentUser.role === 'student' ? '/student' : currentUser.role === 'teacher' ? '/teacher' : '/admin')}
-                className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500"
+                style={{
+                  background: '#6366f1',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.65rem',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
               >
                 Panele Git ➔
               </button>
-              <button 
-                onClick={async () => { 
-                  await logout(); 
-                  navigate('/', { replace: true }); 
-                }} 
-                className="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 font-bold text-xs hover:bg-rose-500 hover:text-white"
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  navigate('/login', { replace: true });
+                }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.2)',
+                  color: '#fca5a5',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: '0.65rem',
+                  padding: '0.4rem 0.65rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
               >
                 Çıkış
               </button>
@@ -109,32 +240,64 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* TABS SWITCHER (GİRİŞ YAP / KAYIT OL) */}
-        <div className="grid grid-cols-2 p-1.5 bg-black/30 rounded-2xl mb-6">
+        {/* Tabs (Giriş Yap / Kayıt Ol) */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          background: 'rgba(15, 23, 42, 0.65)',
+          padding: '0.3rem',
+          borderRadius: '1rem',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: '1.35rem'
+        }}>
           <button
             type="button"
             onClick={() => { setIsRegister(false); setErrorMessage(''); setSuccessMessage(''); }}
-            className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${!isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            style={{
+              padding: '0.65rem 0.5rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              background: !isRegister ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+              color: !isRegister ? '#ffffff' : '#94a3b8',
+              boxShadow: !isRegister ? '0 4px 14px rgba(99, 102, 241, 0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
           >
             Giriş Yap
           </button>
           <button
             type="button"
             onClick={() => { setIsRegister(true); setErrorMessage(''); setSuccessMessage(''); setSelectedRole('student'); }}
-            className={`py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${isRegister ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+            style={{
+              padding: '0.65rem 0.5rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              background: isRegister ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+              color: isRegister ? '#ffffff' : '#94a3b8',
+              boxShadow: isRegister ? '0 4px 14px rgba(99, 102, 241, 0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
           >
             Kayıt Ol
           </button>
         </div>
 
-        {/* ROLE SELECTION CARDS - ONLY FOR REGISTER MODE (ADMIN REMOVED FROM REGISTER) */}
+        {/* Role Picker (for Registration) */}
         {isRegister && (
-          <div className="mb-6">
-            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-2">Kayıt Türü Seçin</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              Kayıt Türü Seçin
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               {[
-                { id: 'student', label: 'Öğrenci Kaydı', icon: GraduationCap, desc: 'Sınav çöz, takip et' },
-                { id: 'teacher', label: 'Öğretmen Kaydı', icon: Users, desc: 'Yönetici onayı gerektirir' }
+                { id: 'student', label: 'Öğrenci', icon: GraduationCap, desc: 'Sınav çöz, takip et' },
+                { id: 'teacher', label: 'Öğretmen', icon: Users, desc: 'Yönetici onayı gerektirir' }
               ].map(r => {
                 const active = selectedRole === r.id;
                 const Icon = r.icon;
@@ -143,17 +306,24 @@ export default function LoginPage() {
                     key={r.id}
                     type="button"
                     onClick={() => setSelectedRole(r.id)}
-                    className={`p-3.5 rounded-2xl border transition-all flex flex-col items-center text-center gap-1.5 ${
-                      active
-                        ? 'bg-white/20 border-indigo-400 text-white shadow-lg ring-2 ring-indigo-400/30'
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                    }`}
+                    style={{
+                      padding: '0.75rem 0.65rem',
+                      borderRadius: '1rem',
+                      border: active ? '1.5px solid #818cf8' : '1.5px solid rgba(255, 255, 255, 0.1)',
+                      background: active ? 'rgba(99, 102, 241, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                      color: active ? '#ffffff' : '#94a3b8',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: active ? '0 4px 14px rgba(99, 102, 241, 0.25)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
                   >
-                    <Icon className={`w-6 h-6 ${active ? 'text-indigo-300' : 'text-slate-400'}`} />
-                    <div>
-                      <div className="text-xs font-black">{r.label}</div>
-                      <div className="text-[10px] opacity-70 mt-0.5">{r.desc}</div>
-                    </div>
+                    <Icon size={22} color={active ? '#a5b4fc' : '#64748b'} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 900 }}>{r.label}</span>
+                    <span style={{ fontSize: '0.62rem', opacity: 0.75, textAlign: 'center' }}>{r.desc}</span>
                   </button>
                 );
               })}
@@ -161,85 +331,188 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* SUCCESS MESSAGE ALERT */}
+        {/* Success Alert */}
         {successMessage && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-bold text-center flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div style={{
+            marginBottom: '1.15rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '0.85rem',
+            background: 'rgba(16, 185, 129, 0.18)',
+            border: '1px solid rgba(52, 211, 153, 0.35)',
+            color: '#6ee7b7',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <CheckCircle2 size={16} color="#34d399" style={{ flexShrink: 0 }} />
             <span>{successMessage}</span>
           </div>
         )}
 
-        {/* ERROR MESSAGE ALERT */}
+        {/* Error Alert */}
         {errorMessage && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-rose-500/20 border border-rose-400/30 text-rose-200 text-xs font-bold text-center">
-            {errorMessage}
+          <div style={{
+            marginBottom: '1.15rem',
+            padding: '0.75rem 1rem',
+            borderRadius: '0.85rem',
+            background: 'rgba(239, 68, 68, 0.18)',
+            border: '1px solid rgba(248, 113, 113, 0.35)',
+            color: '#fca5a5',
+            fontSize: '0.8rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8
+          }}>
+            <AlertCircle size={16} color="#f87171" style={{ flexShrink: 0 }} />
+            <span>{errorMessage}</span>
           </div>
         )}
 
-        {/* FORM */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+
+          {/* Name Field (Register) */}
           {isRegister && (
             <div>
-              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Ad Soyad</label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                Ad Soyad
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <User size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="Örn: Ahmet Yılmaz"
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0.8rem 1rem 0.8rem 2.75rem',
+                    borderRadius: '1rem',
+                    background: 'rgba(15, 23, 42, 0.75)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                    color: '#ffffff',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    transition: 'border-color 0.2s ease'
+                  }}
                 />
               </div>
             </div>
           )}
 
+          {/* Email Field */}
           <div>
-            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">E-Posta Adresi</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+              E-Posta Adresi
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Mail size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ornek@email.com"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '0.8rem 1rem 0.8rem 2.75rem',
+                  borderRadius: '1rem',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease'
+                }}
               />
             </div>
           </div>
 
+          {/* Password Field */}
           <div>
-            <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Şifre</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+              Şifre
+            </label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Lock size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none' }} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-3 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-slate-400 text-sm font-bold outline-none focus:border-indigo-400"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '0.8rem 2.75rem 0.8rem 2.75rem',
+                  borderRadius: '1rem',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                  color: '#ffffff',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease'
+                }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#94a3b8',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
+          {/* Grade Selector (Student Register only) */}
           {isRegister && selectedRole === 'student' && (
             <div>
-              <label className="block text-[11px] font-black text-indigo-200 uppercase tracking-wider mb-1">Sınıf Seçiniz</label>
-              <div className="relative">
-                <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 z-10 pointer-events-none" />
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#c7d2fe', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                Sınıf Seçiniz
+              </label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <GraduationCap size={18} color="#94a3b8" style={{ position: 'absolute', left: 14, pointerEvents: 'none', zIndex: 2 }} />
                 <select
                   value={gradeId}
                   onChange={e => setGradeId(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-800 border border-white/15 text-white text-sm font-bold outline-none focus:border-indigo-400 appearance-none cursor-pointer"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '0.8rem 1rem 0.8rem 2.75rem',
+                    borderRadius: '1rem',
+                    background: 'rgba(15, 23, 42, 0.9)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.12)',
+                    color: '#ffffff',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
                   required
                 >
-                  <option value="">Sınıf Seçiniz</option>
+                  <option value="" style={{ background: '#0f172a', color: '#fff' }}>Sınıf Seçiniz</option>
                   {(curData?.grades || []).map(g => (
-                    <option key={g.id} value={g.id} className="bg-slate-900 text-white">
+                    <option key={g.id} value={g.id} style={{ background: '#0f172a', color: '#fff' }}>
                       {g.name}
                     </option>
                   ))}
@@ -248,12 +521,34 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-black text-sm shadow-xl shadow-indigo-500/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              padding: '0.9rem',
+              borderRadius: '1.1rem',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)',
+              color: '#ffffff',
+              fontSize: '0.92rem',
+              fontWeight: 900,
+              border: 'none',
+              cursor: isLoading ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              boxShadow: '0 8px 24px rgba(99, 102, 241, 0.4)',
+              transition: 'all 0.2s ease',
+              marginTop: '0.5rem',
+              opacity: isLoading ? 0.75 : 1
+            }}
           >
-            <span>{isRegister ? (selectedRole === 'teacher' ? 'Öğretmen Kaydı Gönder' : 'Kayıt Ol') : 'Giriş Yap'}</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>
+              {isLoading ? 'İşleniyor...' : (isRegister ? (selectedRole === 'teacher' ? 'Öğretmen Kaydı Gönder' : 'Kayıt Ol') : 'Giriş Yap')}
+            </span>
+            {!isLoading && <ArrowRight size={18} />}
           </button>
         </form>
 
@@ -261,3 +556,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
