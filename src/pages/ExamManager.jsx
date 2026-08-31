@@ -238,6 +238,127 @@ export default function ExamManager() {
     return physicalExamsDatabase.reduce((acc, e) => acc + (e.totalQuestions || 0), 0);
   }, [physicalExamsDatabase]);
 
+  const [expandedAssignedExams, setExpandedAssignedExams] = useState({});
+  const toggleAssignedAccordion = (examId) => setExpandedAssignedExams(prev => ({ ...prev, [examId]: !prev[examId] }));
+
+  const examAssignmentsMap = useMemo(() => {
+    const map = new Map();
+
+    (physicalExamsDatabase || []).forEach(exam => {
+      const eId = String(exam.id);
+      const eUuid = toUUID(exam.id);
+      const eTitleNorm = String(exam.title || '').trim().toLowerCase();
+
+      // 1. Find all homeworks referencing this exam
+      const linkedHws = (homeworks || []).filter(h => {
+        if (!h) return false;
+        const isPhys = h.type === 'physicalExam' || h.contentType === 'physicalExam' || h.isPhysical === true || h.isPhysicalExam === true;
+        const hBookId = String(h.bookId || '');
+        const hId = String(h.id || '');
+        const hTitleNorm = String(h.title || '').trim().toLowerCase();
+
+        const matchesId = hBookId === eId || hId === eId ||
+          (eUuid && (hBookId === eUuid || hId === eUuid || toUUID(hBookId) === eUuid || toUUID(hId) === eUuid));
+        const matchesTitle = isPhys && hTitleNorm === eTitleNorm;
+
+        return matchesId || matchesTitle;
+      });
+
+      // 2. Expand every student target in these homeworks
+      const assignedList = [];
+      const now = new Date();
+
+      linkedHws.forEach(hw => {
+        const targetType = hw.targetType || 'student';
+        const targetIds = Array.isArray(hw.targetIds) ? hw.targetIds.map(String) : (hw.studentId ? [String(hw.studentId)] : []);
+        
+        let targetStudents = [];
+        if (targetType === 'grade' || targetType === 'class') {
+          targetStudents = (students || []).filter(s => targetIds.includes(String(s.gradeId)) || targetIds.includes(String(s.class)));
+        } else {
+          targetStudents = (students || []).filter(s => {
+            const sId = String(s.id);
+            const sUuid = toUUID(s.id);
+            return targetIds.includes(sId) || (sUuid && targetIds.includes(sUuid));
+          });
+        }
+
+        // Also check if any other students from all users are assigned
+        if (targetStudents.length === 0 && targetIds.length > 0) {
+          targetStudents = (users || []).filter(u => u.role === 'student' && (targetIds.includes(String(u.id)) || (toUUID(u.id) && targetIds.includes(toUUID(u.id)))));
+        }
+
+        targetStudents.forEach(st => {
+          const stId = String(st.id);
+          const stUuid = toUUID(st.id);
+
+          // Find submission for this student and homework/exam
+          const sub = (evalSubmissions || []).find(s => {
+            if (!s) return false;
+            const subStId = String(s.studentId || s.userId || '');
+            const isStudent = subStId === stId || (stUuid && subStId === stUuid);
+            if (!isStudent) return false;
+
+            const isHw = String(s.homeworkId || s.hwId || s.testId || '') === String(hw.id);
+            const isBook = String(s.bookId || '') === eId || (eUuid && String(s.bookId || '') === eUuid);
+            return isHw || isBook;
+          });
+
+          const isSolved = Boolean(sub && sub.status !== 'in_progress' && sub.status !== 'draft');
+          const isOverdue = !isSolved && hw.dueDate && new Date(hw.dueDate) < now;
+
+          assignedList.push({
+            student: st,
+            homework: hw,
+            isSolved,
+            isOverdue,
+            submission: sub || null,
+            score: sub ? (sub.score || sub.computedScore || sub.correctCount || 0) : null,
+            correctCount: sub ? (sub.correctCount || sub.correct || 0) : null,
+            wrongCount: sub ? (sub.wrongCount || sub.wrong || 0) : null,
+            blankCount: sub ? (sub.emptyCount || sub.blankCount || sub.blank || 0) : null,
+            submittedAt: sub ? (sub.submittedAt || sub.completedAt || sub.createdAt) : null
+          });
+        });
+      });
+
+      map.set(eId, assignedList);
+      if (eUuid) map.set(eUuid, assignedList);
+    });
+
+    return map;
+  }, [physicalExamsDatabase, homeworks, students, users, evalSubmissions]);
+
+  const handleRemoveStudentAssignment = async (hw, studentId) => {
+    if (!hw) return;
+    const student = (students || []).find(u => String(u.id) === String(studentId)) || (users || []).find(u => String(u.id) === String(studentId));
+    const stName = student?.name || 'Öğrenci';
+    
+    if (!window.confirm(`"${stName}" adlı öğrencinin bu deneme atamasını silmek istediğinize emin misiniz?`)) return;
+
+    try {
+      const currentTargetIds = Array.isArray(hw.targetIds) ? hw.targetIds.map(String) : (hw.studentId ? [String(hw.studentId)] : []);
+      const strStId = String(studentId);
+      const uuidStId = toUUID(studentId);
+
+      const filteredTargets = currentTargetIds.filter(id => id !== strStId && (!uuidStId || id !== uuidStId));
+
+      // If homework only had this student, or targetType is student with <= 1 targets, delete the whole homework
+      if (filteredTargets.length === 0 || (hw.targetType === 'student' && currentTargetIds.length <= 1)) {
+        if (typeof deleteHomework === 'function') await deleteHomework(hw.id);
+      } else {
+        // Otherwise update targetIds to remove this student
+        if (typeof updateHomework === 'function') {
+          await updateHomework(hw.id, { targetIds: filteredTargets });
+        }
+      }
+      alert(`✅ "${stName}" için bu deneme ataması başarıyla kaldırıldı.`);
+    } catch (err) {
+      console.error('Error removing student assignment:', err);
+      alert('Atama silinirken bir hata oluştu.');
+    }
+  };
+
   // Switch Preset Exam Format
   const handleExamTypeChange = (newType) => {
     setExamType(newType);
@@ -934,6 +1055,184 @@ export default function ExamManager() {
                         </div>
                       ))}
                     </div>
+
+                    {/* ASSIGNED STUDENTS DRAWER */}
+                    {(() => {
+                      const asgs = examAssignmentsMap.get(m.id) || (toUUID(m.id) && examAssignmentsMap.get(toUUID(m.id))) || [];
+                      const isAssignedOpen = Boolean(expandedAssignedExams[m.id]);
+
+                      const studentCounts = new Map();
+                      asgs.forEach(a => {
+                        const sid = String(a.student?.id || '');
+                        studentCounts.set(sid, (studentCounts.get(sid) || 0) + 1);
+                      });
+                      const duplicateStudentIds = new Set(
+                        Array.from(studentCounts.entries()).filter(([sid, count]) => count > 1).map(([sid]) => sid)
+                      );
+                      const hasDuplicates = duplicateStudentIds.size > 0;
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--color-border)' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleAssignedAccordion(m.id)}
+                            style={{
+                              width: '100%',
+                              padding: '0.4rem 0.6rem',
+                              borderRadius: '0.65rem',
+                              border: '1px solid var(--color-border)',
+                              background: isAssignedOpen ? 'rgba(99,102,241,0.08)' : 'var(--color-surface-hover)',
+                              color: 'var(--color-text)',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span>👥 Atanan Öğrenciler</span>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 900,
+                                padding: '0.1rem 0.45rem',
+                                borderRadius: 99,
+                                background: asgs.length > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.15)',
+                                color: asgs.length > 0 ? '#10b981' : 'var(--color-text-muted)',
+                                border: `1px solid ${asgs.length > 0 ? 'rgba(16,185,129,0.3)' : 'rgba(148,163,184,0.3)'}`
+                              }}>
+                                {asgs.length} Atama
+                              </span>
+                              {hasDuplicates && (
+                                <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.05rem 0.35rem', borderRadius: 99 }}>
+                                  ⚠️ Çift Atama Var
+                                </span>
+                              )}
+                            </span>
+                            {isAssignedOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+
+                          {isAssignedOpen && (
+                            <div style={{
+                              maxHeight: 200,
+                              overflowY: 'auto',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.35rem',
+                              padding: '0.45rem',
+                              background: 'var(--color-surface)',
+                              borderRadius: '0.65rem',
+                              border: '1px solid var(--color-border)'
+                            }}>
+                              {asgs.length === 0 ? (
+                                <div style={{ textAlign: 'center', fontSize: '0.74rem', color: 'var(--color-text-muted)', padding: '0.4rem 0' }}>
+                                  Henüz bu denemeyi alan öğrenci yok. "Ödev Ata" ile atayabilirsiniz.
+                                </div>
+                              ) : (
+                                asgs.map((asg, aIdx) => {
+                                  const isDup = duplicateStudentIds.has(String(asg.student.id));
+                                  return (
+                                    <div
+                                      key={`${asg.homework.id}_${asg.student.id}_${aIdx}`}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '0.4rem',
+                                        padding: '0.35rem 0.5rem',
+                                        borderRadius: '0.5rem',
+                                        background: isDup ? 'rgba(245,158,11,0.07)' : 'var(--color-surface-hover)',
+                                        border: `1px solid ${isDup ? 'rgba(245,158,11,0.35)' : 'var(--color-border)'}`,
+                                        fontSize: '0.74rem'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                          <span style={{ fontWeight: 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            👤 {asg.student.name}
+                                          </span>
+                                          {isDup && (
+                                            <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.2)', padding: '0.05rem 0.3rem', borderRadius: 4 }}>
+                                              Çift Atandı
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.67rem', color: 'var(--color-text-muted)' }}>
+                                          <span>Son Teslim: {asg.homework.dueDate || 'Belirtilmedi'}</span>
+                                        </div>
+                                      </div>
+
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                        {asg.isSolved ? (
+                                          <span style={{
+                                            fontSize: '0.67rem',
+                                            fontWeight: 900,
+                                            color: '#10b981',
+                                            background: 'rgba(16,185,129,0.12)',
+                                            border: '1px solid rgba(16,185,129,0.3)',
+                                            padding: '0.15rem 0.4rem',
+                                            borderRadius: '0.4rem'
+                                          }}>
+                                            ✅ Çözüldü {asg.correctCount !== null ? `(${asg.correctCount}D ${asg.wrongCount || 0}Y)` : ''}
+                                          </span>
+                                        ) : asg.isOverdue ? (
+                                          <span style={{
+                                            fontSize: '0.67rem',
+                                            fontWeight: 900,
+                                            color: '#ef4444',
+                                            background: 'rgba(239,68,68,0.12)',
+                                            border: '1px solid rgba(239,68,68,0.3)',
+                                            padding: '0.15rem 0.4rem',
+                                            borderRadius: '0.4rem'
+                                          }}>
+                                            ⚠️ Gecikti
+                                          </span>
+                                        ) : (
+                                          <span style={{
+                                            fontSize: '0.67rem',
+                                            fontWeight: 900,
+                                            color: '#6366f1',
+                                            background: 'rgba(99,102,241,0.12)',
+                                            border: '1px solid rgba(99,102,241,0.3)',
+                                            padding: '0.15rem 0.4rem',
+                                            borderRadius: '0.4rem'
+                                          }}>
+                                            ⏳ Bekliyor
+                                          </span>
+                                        )}
+
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveStudentAssignment(asg.homework, asg.student.id)}
+                                          style={{
+                                            background: '#fef2f2',
+                                            border: '1px solid #fecaca',
+                                            borderRadius: '0.4rem',
+                                            padding: '0.2rem 0.4rem',
+                                            cursor: 'pointer',
+                                            color: '#dc2626',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 2,
+                                            fontSize: '0.67rem',
+                                            fontWeight: 800
+                                          }}
+                                          title="Bu öğrencinin atamasını sil"
+                                        >
+                                          <Trash2 size={11} /> Sil
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* ACTION BUTTONS */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
@@ -1808,98 +2107,123 @@ export default function ExamManager() {
       )}
 
       {/* ══════════ MODAL: HIZLI ÖDEV ATA ══════════ */}
-      {assignModalExam && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{
-            background: 'var(--color-surface)',
-            borderRadius: '1.5rem', width: '100%', maxWidth: 500, padding: '1.75rem',
-            border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
-            display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#34d399', fontWeight: 900, fontSize: '1rem' }}>
-                <CheckCircle2 size={18} /> "{assignModalExam.title}" Ödev Olarak Ata
-              </div>
-              <button onClick={() => setAssignModalExam(null)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-                <X size={15} />
-              </button>
-            </div>
+      {assignModalExam && (() => {
+        const existingAssignedList = examAssignmentsMap.get(assignModalExam.id) || (toUUID(assignModalExam.id) && examAssignmentsMap.get(toUUID(assignModalExam.id))) || [];
+        const assignedStudentMap = new Map();
+        existingAssignedList.forEach(a => {
+          assignedStudentMap.set(String(a.student.id), a);
+        });
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', textTransform: 'uppercase', marginBottom: 4 }}>📅 Son Teslim Tarihi *</label>
-                <input
-                  type="date"
-                  value={assignDueDate}
-                  onChange={e => setAssignDueDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button 
-                  type="button" 
-                  onClick={() => { setAssignTargetMode('grade'); setAssignTargets([]); }}
-                  style={{
-                    flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
-                    border: assignTargetMode === 'grade' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input)',
-                    background: assignTargetMode === 'grade' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
-                    color: assignTargetMode === 'grade' ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
-                  }}
-                >
-                  Sınıf Bazlı ({curData.grades.length})
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => { setAssignTargetMode('student'); setAssignTargets([]); }}
-                  style={{
-                    flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
-                    border: assignTargetMode === 'student' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input)',
-                    background: assignTargetMode === 'student' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
-                    color: assignTargetMode === 'student' ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
-                  }}
-                >
-                  Öğrenci Bazlı ({students.length})
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{
+              background: 'var(--color-surface)',
+              borderRadius: '1.5rem', width: '100%', maxWidth: 520, padding: '1.75rem',
+              border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
+              display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#34d399', fontWeight: 900, fontSize: '1rem' }}>
+                  <CheckCircle2 size={18} /> "{assignModalExam.title}" Ödev Olarak Ata
+                </div>
+                <button onClick={() => setAssignModalExam(null)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                  <X size={15} />
                 </button>
               </div>
 
-              <div style={{ maxHeight: 180, overflowY: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.85rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)' }}>
-                {assignTargetMode === 'grade' ? (
-                  curData.grades.map(g => {
-                    const checked = assignTargets.includes(g.id);
-                    return (
-                      <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(37,99,235,0.12)' : 'var(--color-surface)', border: `1.5px solid ${checked ? '#818cf8' : 'var(--color-border)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text)' }}>
-                        <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(g.id) ? p.filter(id => id !== g.id) : [...p, g.id])} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎓 {g.name}</span>
-                      </label>
-                    );
-                  })
-                ) : (
-                  students.map(s => {
-                    const checked = assignTargets.includes(s.id);
-                    return (
-                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(37,99,235,0.12)' : 'var(--color-surface)', border: `1.5px solid ${checked ? '#818cf8' : 'var(--color-border)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text)' }}>
-                        <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(s.id) ? p.filter(id => id !== s.id) : [...p, s.id])} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {s.name}</span>
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text)', textTransform: 'uppercase', marginBottom: 4 }}>📅 Son Teslim Tarihi *</label>
+                  <input
+                    type="date"
+                    value={assignDueDate}
+                    onChange={e => setAssignDueDate(e.target.value)}
+                    style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+                    required
+                  />
+                </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
-              <button type="button" onClick={() => setAssignModalExam(null)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
-                İptal
-              </button>
-              <button onClick={handleQuickAssign} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
-                Ödevi Yayınla
-              </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => { setAssignTargetMode('grade'); setAssignTargets([]); }}
+                    style={{
+                      flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
+                      border: assignTargetMode === 'grade' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input)',
+                      background: assignTargetMode === 'grade' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
+                      color: assignTargetMode === 'grade' ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                    }}
+                  >
+                    Sınıf Bazlı ({curData.grades.length})
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setAssignTargetMode('student'); setAssignTargets([]); }}
+                    style={{
+                      flex: 1, padding: '0.55rem', borderRadius: '0.75rem',
+                      border: assignTargetMode === 'student' ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input)',
+                      background: assignTargetMode === 'student' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
+                      color: assignTargetMode === 'student' ? '#ffffff' : 'var(--color-text)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer'
+                    }}
+                  >
+                    Öğrenci Bazlı ({students.length})
+                  </button>
+                </div>
+
+                <div style={{ maxHeight: 200, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.5rem', borderRadius: '0.85rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)' }}>
+                  {assignTargetMode === 'grade' ? (
+                    curData.grades.map(g => {
+                      const checked = assignTargets.includes(g.id);
+                      return (
+                        <label key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(37,99,235,0.12)' : 'var(--color-surface)', border: `1.5px solid ${checked ? '#818cf8' : 'var(--color-border)'}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text)' }}>
+                          <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(g.id) ? p.filter(id => id !== g.id) : [...p, g.id])} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎓 {g.name}</span>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    students.map(s => {
+                      const checked = assignTargets.includes(s.id);
+                      const existingAsg = assignedStudentMap.get(String(s.id));
+                      return (
+                        <label key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '0.45rem 0.6rem', borderRadius: '0.6rem', background: checked ? 'rgba(37,99,235,0.12)' : (existingAsg ? 'rgba(245,158,11,0.06)' : 'var(--color-surface)'), border: `1.5px solid ${checked ? '#818cf8' : (existingAsg ? 'rgba(245,158,11,0.3)' : 'var(--color-border)')}`, cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                            <input type="checkbox" checked={checked} onChange={() => setAssignTargets(p => p.includes(s.id) ? p.filter(id => id !== s.id) : [...p, s.id])} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {s.name}</span>
+                          </div>
+                          {existingAsg && (
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 900,
+                              color: existingAsg.isSolved ? '#10b981' : '#f59e0b',
+                              background: existingAsg.isSolved ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+                              border: `1px solid ${existingAsg.isSolved ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 4,
+                              flexShrink: 0
+                            }}>
+                              {existingAsg.isSolved ? '✅ Çözüldü' : '⚠️ Zaten Atandı'}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)' }}>
+                <button type="button" onClick={() => setAssignModalExam(null)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                  İptal
+                </button>
+                <button onClick={handleQuickAssign} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)' }}>
+                  Ödevi Yayınla
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
