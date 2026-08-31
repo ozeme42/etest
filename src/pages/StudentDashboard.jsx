@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useDeferredValue } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   PlayCircle, Target, AlertCircle, Timer, BookOpen, Check,
@@ -379,19 +379,25 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
-  const { submissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { homeworks: rawHomeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { submissions: rawSubmissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
+  const { bookTests: rawBookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
+
+  // useDeferredValue: ilk render anında yapılır, ağır hesaplamalar (fullProcessedWeekMap) sonra gelir
+  const homeworks = useDeferredValue(rawHomeworks);
+  const submissions = useDeferredValue(rawSubmissions);
+  const bookTests = useDeferredValue(rawBookTests);
 
   // Background homework sync when opening the dashboard (only if stale)
   useEffect(() => {
-    refreshHomeworks?.(false);
+    const t = setTimeout(() => refreshHomeworks?.(false), 1500);
+    return () => clearTimeout(t);
   }, []);
 
   const handleDashboardRefresh = async () => {
