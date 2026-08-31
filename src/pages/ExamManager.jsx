@@ -398,7 +398,6 @@ export default function ExamManager() {
     setAnswerKey(prev => ({ ...prev, [newSubject.name]: Array(newSubject.count).fill('') }));
     setNewSubName('');
     setNewSubCount(15);
-    setShowSettingsModal(false);
   };
 
   const handleDeleteSubject = (subjectName) => {
@@ -1961,8 +1960,13 @@ export default function ExamManager() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', borderBottom: '1px solid var(--color-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#818cf8', fontWeight: 900, fontSize: '1rem' }}>
                 <Settings2 size={18} /> Ders Soru Sayıları & Özel Ders Ekle
+                {subjects.length > 0 && (
+                  <span style={{ fontSize: '0.7rem', background: 'rgba(99,102,241,0.15)', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: 99, fontWeight: 900 }}>
+                    {subjects.length} Ders
+                  </span>
+                )}
               </div>
-              <button onClick={() => setShowSettingsModal(false)} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button onClick={() => setShowSettingsModal(false)} title="Pencereyi Kapat" style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
                 <X size={15} />
               </button>
             </div>
@@ -1984,7 +1988,7 @@ export default function ExamManager() {
                         onChange={e => handleSubjectQuestionCountChange(s.name, e.target.value)}
                         style={{ width: 52, padding: '0.25rem 0.4rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontWeight: 900, textAlign: 'center', outline: 'none' }}
                       />
-                      <button onClick={() => handleDeleteSubject(s.name)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}>
+                      <button onClick={() => handleDeleteSubject(s.name)} title="Dersi Sil" style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: 4 }}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -2025,7 +2029,7 @@ export default function ExamManager() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowSettingsModal(false)} style={{ padding: '0.55rem 1rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
-                  Kapat
+                  Kapat / Tamamla
                 </button>
                 <button type="submit" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.55rem 1.25rem', borderRadius: '0.65rem', background: 'linear-gradient(135deg,#4f46e5,#6366f1)', border: 'none', color: 'white', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer' }}>
                   <Plus size={14} /> Dersi Ekle
