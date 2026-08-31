@@ -775,7 +775,7 @@ export default function GoalsAndSchedulePage() {
   const [selectedStudentId, setSelectedStudentId] = useState(defaultStudentId);
   const selectedStudent = students.find(s => s.id === selectedStudentId) || (currentUser?.role === 'student' ? currentUser : students[0]);
 
-  const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, coachingProfiles]);
+  const coachingProfile = useMemo(() => getCoachingProfileForStudent(selectedStudent?.id) || {}, [selectedStudent?.id, getCoachingProfileForStudent]);
 
   /* ─── Real-Time Solved Questions Calculation (Includes All Book Tests, Homeworks & Mock Exams) ─── */
   const solvedQuestionsStats = useMemo(() => {

@@ -61,10 +61,8 @@ export default function MobileBottomNav() {
     return current.startsWith(tabPath);
   };
 
-  // Dokunmaya basinca chunk yukle, tiklayinca navigate et (startTransition = eski sayfa kaybolmaz, yeni sayfa arka planda hazirlanir)
-  const handlePreload = (path) => { try { PAGE_PRELOADS[path]?.(); } catch {} };
   const handleTabClick = (path) => {
-    triggerHapticFeedback('light');
+    if (isTabActive(path)) return;
     navigate(path);
   };
 

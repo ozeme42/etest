@@ -293,6 +293,31 @@ export default function StudentBooksPage() {
       }
     });
 
+    // Pre-index student submissions for O(1) lookup
+    const solvedSubsMap = new Map();
+    (studentSubmissions || []).forEach(s => {
+      const matchIds = [
+        s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
+        s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
+      ];
+      if (Array.isArray(s.bookTestIds)) matchIds.push(...s.bookTestIds);
+      matchIds.forEach(id => {
+        if (!id) return;
+        const strId = String(id);
+        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        const uuid = toUUID(strId);
+        
+        const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
+        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(strId, s);
+          solvedSubsMap.set(cleanId, s);
+          if (uuid) solvedSubsMap.set(uuid, s);
+        }
+      });
+    });
+
     // 3. Compute stats for each book with multi-level submission matching
     Object.values(bookMap).forEach(b => {
       const bId = String(b.id);
@@ -327,18 +352,26 @@ export default function StudentBooksPage() {
           bookId: b.id,
           bookTitle: b.title
         };
-        const matchingSubs = studentSubmissions.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
-        if (matchingSubs.length > 0) {
-          const best = matchingSubs.reduce((prev, curr) => {
-            const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
-            const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
-            return pScore >= prevScore ? curr : prev;
-          }, matchingSubs[0]);
 
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        let bestSub = solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId);
+        if (!bestSub) {
+          const matchingSubs = studentSubmissions.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+          if (matchingSubs.length > 0) {
+            bestSub = matchingSubs.reduce((prev, curr) => {
+              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
+              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
+              return pScore >= prevScore ? curr : prev;
+            }, matchingSubs[0]);
+          }
+        }
+
+        if (bestSub) {
           totalSolvedTests++;
-          totalCorrect += Number(best.correct_count ?? best.correctCount ?? best.correct ?? 0);
-          totalWrong += Number(best.wrong_count ?? best.wrongCount ?? best.wrong ?? 0);
-          totalBlank += Number(best.empty_count ?? best.blankCount ?? best.blank ?? 0);
+          totalCorrect += Number(bestSub.correct_count ?? bestSub.correctCount ?? bestSub.correct ?? 0);
+          totalWrong += Number(bestSub.wrong_count ?? bestSub.wrongCount ?? bestSub.wrong ?? 0);
+          totalBlank += Number(bestSub.empty_count ?? bestSub.blankCount ?? bestSub.blank ?? 0);
         }
       });
 
