@@ -9,7 +9,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 
 /* ─── Constants ─── */
@@ -58,6 +58,53 @@ export const DAY_THEMES = {
 };
 
 export const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+export function canStudentDeleteItem(item, currentUser) {
+  if (!item) return false;
+  // Teachers and admins can delete anything
+  if (currentUser?.role && currentUser.role !== 'student') return true;
+
+  // Check if item is teacher-assigned, homework, curriculum, roadmap, or book test
+  const isTeacherTask = Boolean(
+    item.isAutoHomework ||
+    item.isTeacherAssigned ||
+    item.isHomework ||
+    item.homeworkId ||
+    item.hwId ||
+    item.roadmapAssignmentId ||
+    item.bookTestId ||
+    item.testId ||
+    item.bookId ||
+    item.isCurriculum ||
+    item.isRoadmap ||
+    item.source === 'teacher' ||
+    item.source === 'homework' ||
+    item.source === 'curriculum' ||
+    item.source === 'roadmap' ||
+    (item.assignedBy && currentUser?.id && String(item.assignedBy) !== String(currentUser.id)) ||
+    (typeof item.id === 'string' && (
+      item.id.startsWith('hw_') ||
+      item.id.startsWith('auto_hw_') ||
+      item.id.startsWith('tbt_') ||
+      item.id.startsWith('bt_') ||
+      item.id.startsWith('book_test_')
+    ))
+  );
+
+  if (isTeacherTask) return false;
+
+  // Student can delete only their own custom-added tasks
+  return Boolean(
+    item.isSelfAdded === true ||
+    item.isCustom === true ||
+    item.isStudentAdded === true ||
+    item.source === 'student_custom' ||
+    item.source === 'manual' ||
+    (item.addedBy && currentUser?.id && String(item.addedBy) === String(currentUser.id)) ||
+    (item.createdBy && currentUser?.id && String(item.createdBy) === String(currentUser.id)) ||
+    (!item.testId && !item.hwId && !item.homeworkId && !item.roadmapAssignmentId && !item.isAutoHomework && !item.isTeacherAssigned)
+  );
+}
 
 export function getTodayKey() {
   const d = new Date();
@@ -586,7 +633,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
                   <label style={{ fontSize: '0.7rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 4 }}>
                     KİTAP SEÇİN VEYA ADINI GİRİN *
                   </label>
-                  {books.length > 0 && (
+                  {books.filter(b => isStandardOrMixedBook(b)).length > 0 && (
                     <select
                       value={selectedBookId}
                       onChange={e => {
@@ -618,7 +665,7 @@ export function AddItemModal({ dayKey, onAdd, onEdit, initialItem, onClose, topi
                       }}
                     >
                       <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Kayıtlı Kitaplardan Seç --</option>
-                      {books.map(b => (
+                      {books.filter(b => isStandardOrMixedBook(b)).map(b => (
                         <option key={b.id} value={b.id} style={{ background: '#0f172a', color: '#ffffff' }}>
                           📖 {b.title} {b.subject ? `(${b.subject})` : ''}
                         </option>
@@ -948,6 +995,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const theme = DAY_THEMES[dayObj.day] || DAY_THEMES['Pzt'];
 
+  const { currentUser } = useAuth();
   const trackedBooksData = useTrackedBooks();
   const books = trackedBooksData?.books || [];
   const bookTests = trackedBooksData?.bookTests || [];
@@ -1234,7 +1282,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                     {item.done ? <CheckCircle2 size={11} /> : <PlayCircle size={11} />} {item.done ? 'Sonuç' : 'Çöz'}
                   </button>
                 )}
-                {!item.isAutoHomework && onEditClick && (
+                {!item.isAutoHomework && onEditClick && canStudentDeleteItem(item, currentUser) && (
                   <button onClick={() => onEditClick(dayObj.day, item)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.5)' : '#94a3b8', padding: 2, display: 'flex', borderRadius: 4 }}
                     onMouseEnter={e => e.currentTarget.style.color = '#818cf8'}
@@ -1243,7 +1291,7 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
                     <Edit3 size={12} />
                   </button>
                 )}
-                {!item.isAutoHomework && (
+                {canStudentDeleteItem(item, currentUser) && onDelete && (
                   <button onClick={() => onDelete(dayObj.day, item.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.4)' : '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4 }}
                     onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
@@ -1672,6 +1720,7 @@ export function MonthlyListPanel({
   onStartStudy,
   isDark = false
 }) {
+  const { currentUser } = useAuth();
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
   const [expandedMonthDays, setExpandedMonthDays] = useState({});
@@ -3176,7 +3225,7 @@ export function MonthlyListPanel({
                                     </>
                                   )}
 
-                                  {!item.isAutoHomework && onEditClick && (
+                                  {canStudentDeleteItem(item, currentUser) && onEditClick && (
                                     <button
                                       type="button"
                                       onClick={() => onEditClick(d.dayKey, item)}
@@ -5583,23 +5632,25 @@ export default function ProgramCenter({
                                                   </>
                                                 )}
 
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleDelete(dayObj.day, item.id)}
-                                                  style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: isDark ? 'rgba(255,255,255,0.3)' : '#cbd5e1',
-                                                    cursor: 'pointer',
-                                                    padding: 3,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                  }}
-                                                  title="Görevi Sil"
-                                                >
-                                                  <Trash2 size={13} />
-                                                </button>
+                                                {canStudentDeleteItem(item, currentUser) && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(dayObj.day, item.id)}
+                                                    style={{
+                                                      background: 'transparent',
+                                                      border: 'none',
+                                                      color: isDark ? 'rgba(255,255,255,0.3)' : '#cbd5e1',
+                                                      cursor: 'pointer',
+                                                      padding: 3,
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center'
+                                                    }}
+                                                    title="Görevi Sil"
+                                                  >
+                                                    <Trash2 size={13} />
+                                                  </button>
+                                                )}
                                               </div>
                                             </div>
                                           </div>

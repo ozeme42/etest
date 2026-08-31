@@ -23,7 +23,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook } from '../utils/testResolver';
 import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
@@ -1125,7 +1125,7 @@ export default function StudentDashboard() {
     const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
     // 1. Add all standard / tracked books
-    (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
+    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
       const normK = getNormKey(b);
       if (!bookMap[normK]) {
         bookMap[normK] = { ...b, assignedHomeworks: [] };
@@ -1134,14 +1134,14 @@ export default function StudentDashboard() {
 
     // 2. Process books assigned via homeworks
     bookAssignments.forEach(hw => {
-      let book = books.find(b => (String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId)) && b.bookType !== 'exam');
+      let book = books.find(b => (String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId)) && isStandardOrMixedBook(b));
       if (!book && hw.title) {
-        book = books.find(b => b.bookType !== 'exam' && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
+        book = books.find(b => isStandardOrMixedBook(b) && (hw.title.includes(b.title) || b.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim())));
       }
       if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
         const matchedBt = bookTests.find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
         if (matchedBt) {
-          book = books.find(b => (String(b.id) === String(matchedBt.bookId) || toUUID(b.id) === toUUID(matchedBt.bookId)) && b.bookType !== 'exam');
+          book = books.find(b => (String(b.id) === String(matchedBt.bookId) || toUUID(b.id) === toUUID(matchedBt.bookId)) && isStandardOrMixedBook(b));
         }
       }
       if (!book) return;
@@ -1561,7 +1561,7 @@ export default function StudentDashboard() {
     }
 
     if (!currentBook && books && books.length > 0) {
-      currentBook = books.find(b => b.subjects && b.subjects.length > 0) || books[0];
+      currentBook = books.find(b => isStandardOrMixedBook(b) && b.subjects && b.subjects.length > 0) || books.find(b => isStandardOrMixedBook(b)) || null;
     }
 
     if (!tObj && currentBook?.subjects && Array.isArray(currentBook.subjects)) {

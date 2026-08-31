@@ -9,6 +9,7 @@ import {
   Edit, MoreVertical, ArrowRight, FileJson, AlertCircle, Copy, Check
 } from 'lucide-react';
 import './BookManager.css';
+import { isStandardOrMixedBook } from '../utils/testResolver';
 
 export default function BookManager() {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ export default function BookManager() {
   }, [editingBook]);
 
   const enrichedBooks = useMemo(() => {
-    let filteredBooks = books.filter(b => b.bookType !== 'exam');
+    let filteredBooks = books.filter(b => isStandardOrMixedBook(b));
     if (currentUser?.role === 'teacher' && currentUser?.id) {
       filteredBooks = filteredBooks.filter(b => 
         b.createdBy === currentUser.id || 

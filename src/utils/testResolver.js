@@ -6,6 +6,31 @@ import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapte
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 /**
+ * Checks whether a tracked book is a Mock Exam (Deneme)
+ */
+export function isExamBook(b) {
+  if (!b) return false;
+  const raw = b.raw_data || {};
+  return Boolean(
+    b.bookType === 'exam' ||
+    b.book_type === 'exam' ||
+    raw.bookType === 'exam' ||
+    raw.book_type === 'exam' ||
+    b.type === 'exam' ||
+    b.isExamBook ||
+    b.id === 'tb_07kzdf_1787267196768' ||
+    (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher))
+  );
+}
+
+/**
+ * Checks whether a tracked book is a standard or mixed book (NOT a Mock Exam)
+ */
+export function isStandardOrMixedBook(b) {
+  return Boolean(b && !isExamBook(b));
+}
+
+/**
  * Intelligently extracts option choices (A, B, C, D, E) from raw question text if present.
  */
 export function parseOptionsFromText(rawText) {
