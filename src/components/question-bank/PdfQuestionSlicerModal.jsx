@@ -572,10 +572,34 @@ export default function PdfQuestionSlicerModal({
 
   // 📚 Tüm Kitaplar ve Deneme Sınavları Birleşik Listesi (Dropdown ve Kılavuz için)
   const allAvailableBooks = useMemo(() => {
-    const list = [...(books || [])];
+    const list = [];
+    // 1. Önce initialBook varsa en başa ekle (Kullanıcının tıkladığı sınav/kitap en başta ve seçili olsun)
+    if (initialBook) {
+      list.push(initialBook);
+    } else if (initialMistakes && initialMistakes.length > 0) {
+      const firstM = initialMistakes[0];
+      const mTitle = firstM.name || firstM.testName || firstM.title;
+      if (mTitle) {
+        list.push({
+          id: initialBookId || firstM.testId || firstM.id || 'custom_exam',
+          title: mTitle,
+          pdfUrl: initialPdfUrl || firstM.pdfUrl || null,
+          subject: initialSubject || firstM.subjectName || 'Genel',
+          grade: initialGrade || firstM.grade || null,
+          isExam: true
+        });
+      }
+    }
+    // 2. Takip edilen kitapları ekle
+    (books || []).forEach(b => {
+      if (!list.some(item => String(item.id) === String(b.id) || (b.title && item.title && b.title.trim().toLowerCase() === item.title.trim().toLowerCase()))) {
+        list.push(b);
+      }
+    });
+    // 3. Fiziki deneme sınavları ve ödev sınavlarını ekle
     (homeworks || []).forEach(hw => {
       if (hw && (hw.isPhysical || hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || (hw.title && hw.title.toLowerCase().includes('deneme')) || (hw.title && hw.title.toLowerCase().includes('sınav')))) {
-        if (!list.some(b => String(b.id) === String(hw.id) || (hw.title && b.title === hw.title))) {
+        if (!list.some(item => String(item.id) === String(hw.id) || (hw.title && item.title && hw.title.trim().toLowerCase() === item.title.trim().toLowerCase()))) {
           list.push({
             id: hw.id,
             title: hw.title || 'Deneme Sınavı',
@@ -587,15 +611,36 @@ export default function PdfQuestionSlicerModal({
         }
       }
     });
-    if (initialBook && !list.some(b => String(b.id) === String(initialBook.id) || (initialBook.title && b.title === initialBook.title))) {
-      list.unshift(initialBook);
-    }
     return list;
-  }, [books, homeworks, initialBook]);
+  }, [books, homeworks, initialBook, initialBookId, initialMistakes, initialPdfUrl, initialSubject, initialGrade]);
 
   const [selectedBookId, setSelectedBookId] = useState(() => {
-    return initialBook?.id || initialBookId || (initialMistakes && initialMistakes[0]?.testId) || (mode === 'mistakes' && allAvailableBooks.length > 0 ? allAvailableBooks[0].id : null);
+    if (initialBook?.id) return initialBook.id;
+    if (initialBookId) return initialBookId;
+    if (initialMistakes && initialMistakes[0]?.testId) return initialMistakes[0].testId;
+    return mode === 'mistakes' && allAvailableBooks.length > 0 ? allAvailableBooks[0].id : null;
   });
+
+  // Modal açıldığında veya gelen prop değiştiğinde seçili kitabı anında güncelle
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialBook?.id) {
+      setSelectedBookId(initialBook.id);
+    } else if (initialBookId) {
+      setSelectedBookId(initialBookId);
+    } else if (initialMistakes && initialMistakes.length > 0) {
+      const firstM = initialMistakes[0];
+      const match = allAvailableBooks.find(b =>
+        String(b.id) === String(firstM.testId || firstM.id) ||
+        (firstM.name && b.title && b.title.toLowerCase().trim() === firstM.name.toLowerCase().trim())
+      );
+      if (match) {
+        setSelectedBookId(match.id);
+      } else if (firstM.testId) {
+        setSelectedBookId(firstM.testId);
+      }
+    }
+  }, [isOpen, initialBook, initialBookId, initialMistakes, allAvailableBooks]);
   const [showMistakesGuide, setShowMistakesGuide] = useState(() => mode === 'mistakes');
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [activeTargetQuestion, setActiveTargetQuestion] = useState(null);
@@ -1871,40 +1916,7 @@ export default function PdfQuestionSlicerModal({
                   ))}
                 </select>
               </div>
-            ) : (
-              allAvailableBooks.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitap:</span>
-                  <select
-                    value={selectedBookId || ''}
-                    onChange={(e) => {
-                      setSelectedBookId(e.target.value);
-                      const b = allAvailableBooks.find(item => String(item.id) === e.target.value);
-                      if (b?.pdfUrl) {
-                        loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
-                      }
-                    }}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 8,
-                      border: '1px solid var(--color-border)',
-                      background: 'var(--color-surface)',
-                      color: 'var(--color-text)',
-                      fontSize: '0.76rem',
-                      fontWeight: 800,
-                      maxWidth: 220,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {allAvailableBooks.map(b => (
-                      <option key={b.id} value={b.id}>
-                        {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )
-            )}
+            ) : null}
 
             <button
               onClick={onClose}
