@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { safeSetItem } from '../utils/storageUtils';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
@@ -228,11 +228,11 @@ export function CoachingProvider({ children }) {
     return coachingLinks.filter(l => l.teacherId === teacherId).map(l => l.studentId);
   };
 
-  const getCoachingNoteForStudent = (studentId) => {
+  const getCoachingNoteForStudent = useCallback((studentId) => {
     return coachingNotes.find(n => String(n.studentId) === String(studentId)) || null;
-  };
+  }, [coachingNotes]);
 
-  const getCoachingProfileForStudent = (studentId) => {
+  const getCoachingProfileForStudent = useCallback((studentId) => {
     if (!studentId) return null;
     const sidStr = String(studentId);
     const sidUuid = String(toUUID(sidStr) || '');
@@ -242,20 +242,20 @@ export function CoachingProvider({ children }) {
       const pUuid = String(toUUID(pSid) || '');
       return pSid === sidStr || (sidUuid && pSid === sidUuid) || (pUuid && (pUuid === sidStr || pUuid === sidUuid));
     }) || null;
-  };
+  }, [coachingProfiles]);
 
-  const getMockExamsForStudent = (studentId) => {
+  const getMockExamsForStudent = useCallback((studentId) => {
     return mockExams.filter(m => String(m.studentId) === String(studentId));
-  };
+  }, [mockExams]);
 
-  const getMeetingsForStudent = (studentId) => {
+  const getMeetingsForStudent = useCallback((studentId) => {
     return coachingMeetings.filter(m => String(m.studentId) === String(studentId));
-  };
+  }, [coachingMeetings]);
 
-  const isStudentCoached = (studentId) => {
+  const isStudentCoached = useCallback((studentId) => {
     if (!studentId) return false;
     return coachingLinks.some(l => String(l.studentId) === String(studentId));
-  };
+  }, [coachingLinks]);
 
   const addStudentError = async (studentId, errorData) => {
     const profile = getCoachingProfileForStudent(studentId) || { studentId, errors: [] };
