@@ -442,6 +442,12 @@ export default function StudentDashboard() {
   });
 
   const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
+  const [isAnalyticsReady, setIsAnalyticsReady] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIsAnalyticsReady(true), 200);
+    return () => clearTimeout(t);
+  }, []);
 
   const [dismissedTaskKeys, setDismissedTaskKeys] = useState(() => {
     try {
@@ -2993,17 +2999,10 @@ export default function StudentDashboard() {
         boxSizing: 'border-box',
         paddingBottom: isMobile ? '2.5rem' : '4rem'
       }}>
-        {/* Mesh texture */}
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E")`,
-          opacity: 0.6
-        }} />
-
-        {/* Decorative blobs */}
-        <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.28) 0%, transparent 68%)', pointerEvents:'none', animation:'floatBlob 7s ease-in-out infinite' }} />
-        <div style={{ position:'absolute', bottom: -60, left: '15%', width: 260, height: 260, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 65%)', pointerEvents:'none', animation:'floatBlob 9s ease-in-out infinite reverse' }} />
-        <div style={{ position:'absolute', top: '10%', left: isMobile ? -40 : 0, width: 160, height: 160, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,0.3) 0%, transparent 70%)', pointerEvents:'none' }} />
+        {/* Decorative subtle ambient glows */}
+        <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.18) 0%, transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom: -60, left: '15%', width: 260, height: 260, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top: '10%', left: isMobile ? -40 : 0, width: 160, height: 160, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
 
         {/* Top glowing line */}
         <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent 0%, rgba(196,91,253,0.8) 30%, rgba(99,102,241,0.9) 55%, rgba(196,91,253,0.8) 75%, transparent 100%)', pointerEvents:'none' }} />
@@ -3642,13 +3641,19 @@ export default function StudentDashboard() {
 
             {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
             <div>
-              <Suspense fallback={<div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>📊 Analiz yükleniyor…</div>}>
-                <PeriodicQuestionAnalytics
-                  homeworkSubmissions={otherHomeworkSubmissions}
-                  mockExams={generalTrialExams}
-                  studentName={selectedStudent?.name || 'Öğrenci'}
-                />
-              </Suspense>
+              {isAnalyticsReady ? (
+                <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
+                  <PeriodicQuestionAnalytics
+                    homeworkSubmissions={otherHomeworkSubmissions}
+                    mockExams={generalTrialExams}
+                    studentName={selectedStudent?.name || 'Öğrenci'}
+                  />
+                </Suspense>
+              ) : (
+                <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
+                  📊 Analiz hazırlanıyor…
+                </div>
+              )}
             </div>
 
             {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
