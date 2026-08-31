@@ -8,5 +8,11 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173
+  },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 2000,
+    cssMinify: true
   }
 })
+
