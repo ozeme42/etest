@@ -1720,7 +1720,6 @@ export function MonthlyListPanel({
   onStartStudy,
   isDark = false
 }) {
-  const { currentUser } = useAuth();
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
   const [expandedMonthDays, setExpandedMonthDays] = useState({});
@@ -3245,7 +3244,7 @@ export function MonthlyListPanel({
                                     </button>
                                   )}
 
-                                  {!item.isAutoHomework && onDelete && (
+                                  {canStudentDeleteItem(item, currentUser) && onDelete && (
                                     <button
                                       type="button"
                                       onClick={() => onDelete(d.dayKey, item.id)}
@@ -4406,11 +4405,17 @@ export default function ProgramCenter({
     ));
   }, [setWeeklyProgram]);
 
-  const handleDelete = useCallback((dayKey, itemId) => {
-    setWeeklyProgram(prev => prev.map(d =>
-      d.day === dayKey ? { ...d, items: d.items.filter(item => item.id !== itemId) } : d
-    ));
-  }, [setWeeklyProgram]);
+    const handleDelete = useCallback((dayKey, itemId) => {
+    setWeeklyProgram(prev => prev.map(d => {
+      if (d.day !== dayKey) return d;
+      const targetItem = d.items.find(item => item.id === itemId);
+      if (targetItem && !canStudentDeleteItem(targetItem, currentUser)) {
+        alert('Öğretmeniniz tarafından atanan görev ve testleri silemezsiniz.');
+        return d;
+      }
+      return { ...d, items: d.items.filter(item => item.id !== itemId) };
+    }));
+  }, [setWeeklyProgram, currentUser]);
 
   const handleAddItem = useCallback((newItem, targetDayKey) => {
     const dayToUse = targetDayKey || addingToDay || getTodayKey();
