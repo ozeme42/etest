@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useEvaluation } from '../../context/EvaluationContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
+import { useHomework } from '../../context/HomeworkContext';
 import { useCurriculum } from '../../context/CurriculumContext';
 import { toUUID, dbRecordDeletedItem } from '../../services/supabaseService';
 import { isExamBook } from '../../utils/testResolver';
@@ -28,43 +29,42 @@ const SUBJECT_ICONS = {
 
 const resolveSubjectName = (...candidates) => {
   for (const c of candidates) {
-    if (!c || typeof c !== 'string') continue;
-    const lower = c.toLowerCase().trim();
-    if (lower === 'genel' || lower === 'genel testler' || lower === 'other' || lower === 'undefined' || lower === 'null') continue;
-    if (lower.includes('mat') || lower.includes('problem')) return 'Matematik';
+    if (!c) continue;
+    const str = String(c).trim();
+    if (!str || str === 'null' || str === 'undefined') continue;
+    const lower = str.toLowerCase();
+    if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf')) return 'Türkçe';
+    if (lower.includes('mat') || lower.includes('geometri') || lower.includes('problem')) return 'Matematik';
     if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
-    if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat') || lower.includes('dil bilgisi')) return 'Türkçe';
-    if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
-    if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
-    if (lower.includes('din')) return 'Din Kültürü';
+    if (lower.includes('sosyal') || lower.includes('tarih') || lower.includes('coğraf') || lower.includes('cograf') || lower.includes('inkılap') || lower.includes('inkilap')) return 'Sosyal Bilgiler';
+    if (lower.includes('ing') || lower.includes('yabancı') || lower.includes('dil')) return 'İngilizce';
+    if (lower.includes('din') || lower.includes('ahlak')) return 'Din Kültürü';
   }
   return 'Genel';
 };
 
-const resolveUnitName = (title, unit, fallback) => {
-  if (unit && typeof unit === 'string' && unit.trim()) {
-    const mU = unit.match(/(\d+)/);
-    if (mU) return `${mU[1]}. Ünite`;
-    return unit.trim();
+const resolveUnitName = (title, metaUnit) => {
+  if (metaUnit && typeof metaUnit === 'string' && metaUnit.trim()) {
+    return metaUnit.trim();
   }
-  const m = (title || '').match(/(\d+)\s*[\.\-]?\s*Ünite/i);
-  if (m) return `${m[1]}. Ünite`;
-  const m2 = (title || '').match(/Ünite\s*(\d+)/i);
-  if (m2) return `${m2[1]}. Ünite`;
-  const m3 = (title || '').match(/Ü\.\s*Değ\.\s*(\d+)/i);
-  if (m3) return `${m3[1]}. Ünite`;
-  return fallback || '1. Ünite';
+  const str = String(title || '');
+  const match = str.match(/(\d+)\s*\.\s*(?:Ünite|Unite|Bölüm|Bolum)/i);
+  if (match) {
+    return `${match[1]}. Ünite`;
+  }
+  const matchPage = str.match(/(\d+[\-\.]\s*\d+|\d+)\s*\.\s*Sayfa/i);
+  if (matchPage) {
+    return `${matchPage[1]}. Sayfa`;
+  }
+  return '1. Ünite';
 };
 
-const cleanTestDisplayTitle = (rawTitle) => {
-  if (!rawTitle) return 'Test';
-  let t = String(rawTitle).trim();
-  t = t.replace(/^Ünite Ünite Yeni Nesil Soru BAnkası\s*[—–-]\s*/i, '');
-  t = t.replace(/^4\.\s*Sınıf Yeni Nesil Paragraf ve Problem Tek Kitap Seti\s*[—–-]\s*/i, '');
-  const m = t.match(/^(?:Türkçe|Matematik|Fen Bilimleri|Sosyal Bilgiler|İngilizce|Din Kültürü)\s*›\s*\d+\.\s*Ünite\s*\((.*)\)$/i);
-  if (m) return m[1];
-  t = t.replace(/^(?:Türkçe|Matematik|Fen Bilimleri|Sosyal Bilgiler|İngilizce|Din Kültürü)\s*›\s*/i, '');
-  return t;
+const cleanTestDisplayTitle = (name) => {
+  if (!name) return 'Test';
+  let str = String(name).trim();
+  str = str.replace(/—\s*Özel Telafi Testi.*$/i, '').trim();
+  str = str.replace(/—\s*Telafi Testi.*$/i, '').trim();
+  return str || 'Test';
 };
 
 export const parseTestNameInfo = (name) => {
@@ -97,7 +97,6 @@ export const compareBookTestsOrder = (a, b) => {
   if (!a) return 1;
   if (!b) return -1;
 
-  // 1. If PDF page numbers are available and differ, sort by page first
   const pageA = Number(a.pdfPage || a.page || 0);
   const pageB = Number(b.pdfPage || b.page || 0);
   if (pageA > 0 && pageB > 0 && pageA !== pageB) {
@@ -110,12 +109,10 @@ export const compareBookTestsOrder = (a, b) => {
   const pA = parseTestNameInfo(nameA);
   const pB = parseTestNameInfo(nameB);
 
-  // 2. Sort by test category (Test-1..12 first -> Problem/Paragraf second -> Ünite Değerlendirme third -> Yeni Nesil fourth...)
   if (pA.cat !== pB.cat) {
     return pA.cat - pB.cat;
   }
 
-  // 3. Within same category, sort numerically (1, 2, 3, 4 ... 10, 11, 12)
   if (pA.num !== pB.num) {
     return pA.num - pB.num;
   }
@@ -145,27 +142,23 @@ export default function TeacherStudentMistakesPool({
   const navigate = useNavigate();
   const { submissions = [], deleteSubmission, deleteSubmissionsByTestId } = useEvaluation();
   const { books = [], bookTests = [] } = useTrackedBooks();
+  const { homeworks = [] } = useHomework();
   const { data: curData } = useCurriculum();
 
-  // Navigation states: Source Type (books vs exams) -> Book -> Subject -> Unit
-  const [sourceTypeTab, setSourceTypeTab] = useState('books'); // 'books' | 'exams'
+  const [sourceTypeTab, setSourceTypeTab] = useState('books'); 
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Deleting in progress state
   const [deletingId, setDeletingId] = useState(null);
 
-  // Repetition scheduler settings
   const [scheduleMode, setScheduleMode] = useState('spaced_leitner');
   const [customIntervals, setCustomIntervals] = useState([1, 3, 7, 15]);
   const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
 
-  // Selected questions map: key -> question object
   const [selectedQuestions, setSelectedQuestions] = useState({});
 
-  // Build mapping lookup from books: subjectId -> Subject Name, topicId -> Topic/Unit Name
   const { subjectNameMap, topicNameMap } = useMemo(() => {
     const sMap = new Map();
     const tMap = new Map();
@@ -182,7 +175,6 @@ export default function TeacherStudentMistakesPool({
     return { subjectNameMap: sMap, topicNameMap: tMap };
   }, [books]);
 
-  // Build comprehensive, ACCURATE mistake database for this student across ALL books & exams
   const booksMistakesTree = useMemo(() => {
     if (!student?.id) return [];
 
@@ -225,8 +217,87 @@ export default function TeacherStudentMistakesPool({
       });
     };
 
-    // Filter valid, completed submissions of this student
-    const studentSubs = (submissions || []).filter(s => {
+    const resolveIsExam = (s) => {
+      if (!s) return false;
+      const meta = (Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || null);
+      const candidateIds = [s.testId, s.test_id, s.realTestId, s.bookTestId, meta?.realTestId, meta?.bookTestId, meta?.testId, s.id].filter(Boolean);
+
+      const matchedBt = (bookTests || []).find(bt => {
+        const btIdStr = String(bt.id || bt.testId || '');
+        return candidateIds.some(cid => btIdStr === String(cid) || toUUID(btIdStr) === toUUID(String(cid)));
+      });
+      if (matchedBt) {
+        const bTestBookId = String(matchedBt.bookId || matchedBt.book_id || '');
+        const parentBook = books.find(b => String(b.id) === bTestBookId || toUUID(b.id) === bTestBookId || toUUID(b.id) === toUUID(bTestBookId));
+        if (parentBook && !isExamBook(parentBook)) {
+          return false;
+        }
+      }
+
+      if (s.bookId && s.bookId !== 'other_tests') {
+        const parentBook = books.find(b => String(b.id) === String(s.bookId) || toUUID(b.id) === String(s.bookId));
+        if (parentBook && !isExamBook(parentBook)) {
+          return false;
+        }
+      }
+
+      const matchedHw = (homeworks || []).find(h =>
+        String(h.id) === String(s.hwId || s.testId || s.id) ||
+        toUUID(h.id) === String(s.hwId || s.testId || s.id) ||
+        (s.title && h.title && s.title.toLowerCase().trim() === h.title.toLowerCase().trim())
+      );
+      if (matchedHw && (matchedHw.type === 'physicalExam' || matchedHw.contentType === 'physicalExam' || isExamBook(matchedHw) || matchedHw.examType)) {
+        return true;
+      }
+
+      if (s.type === 'physicalExam' || s.contentType === 'physicalExam' || s.isPhysicalExam === true) {
+        return true;
+      }
+
+      const matchedBook = (books || []).find(b =>
+        String(b.id) === String(s.bookId || s.hwId || s.testId) ||
+        toUUID(b.id) === String(s.bookId || s.hwId || s.testId) ||
+        (s.title && b.title && s.title.toLowerCase().trim() === b.title.toLowerCase().trim())
+      );
+      if (matchedBook && isExamBook(matchedBook)) {
+        return true;
+      }
+
+      return false;
+    };
+
+    const allStudentSubs = [...(submissions || [])];
+    (homeworks || []).forEach(hw => {
+      if (!hw || !Array.isArray(hw.submissions)) return;
+      hw.submissions.forEach(hwSub => {
+        if (!hwSub || !isMatchStudent(hwSub)) return;
+        const synthSub = {
+          id: hwSub.id || `${hw.id}_${student.id}`,
+          submissionId: hwSub.id || `${hw.id}_${student.id}`,
+          hwId: hw.id,
+          testId: hw.id,
+          bookId: hw.bookId || hw.id,
+          title: hw.title,
+          testTitle: hw.title,
+          type: hw.type || 'physicalExam',
+          contentType: hw.contentType || hw.type,
+          isPhysical: hw.isPhysical,
+          studentId: student.id,
+          studentAnswers: hwSub.studentAnswers || hwSub.answers || {},
+          subjectStats: hwSub.subjectStats,
+          wrongCount: hwSub.wrongCount,
+          correctCount: hwSub.correctCount,
+          blankCount: hwSub.blankCount,
+          created_at: hwSub.submittedAt || hwSub.completedAt || hwSub.createdAt || hw.createdAt,
+          answerKey: hw.answerKey,
+          subjects: hw.subjects,
+          pdfUrl: hw.pdfUrl
+        };
+        allStudentSubs.push(synthSub);
+      });
+    });
+
+    const studentSubs = allStudentSubs.filter(s => {
       if (!s || isDeletedItem(s) || !isMatchStudent(s)) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
       const subIdStr = String(s.id || '');
@@ -234,7 +305,6 @@ export default function TeacherStudentMistakesPool({
       return true;
     });
 
-    // Deduplicate and prioritize submissions with real question answers over empty metadata summary rows
     const subGroups = new Map();
     studentSubs.forEach(s => {
       const getRealAnswersCount = (item) => {
@@ -251,7 +321,11 @@ export default function TeacherStudentMistakesPool({
       };
 
       const meta = (Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || null);
-      const testKey = String(s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || s.id || '').trim();
+      
+      const isExam = resolveIsExam(s);
+      const testKey = isExam
+        ? `exam_${(s.title || s.testTitle || s.hwId || s.id).trim().toLowerCase()}`
+        : String(s.testId || s.test_id || meta?.realTestId || meta?.bookTestId || s.id || '').trim();
 
       if (!subGroups.has(testKey)) {
         subGroups.set(testKey, s);
@@ -268,7 +342,6 @@ export default function TeacherStudentMistakesPool({
     });
 
     const activeSubsList = Array.from(subGroups.values());
-
     const bookTree = new Map();
 
     const resolveBookAndTestInfo = (s) => {
@@ -277,7 +350,6 @@ export default function TeacherStudentMistakesPool({
       const title = (s.title || s.testTitle || '').trim();
       const metaBookTitle = (meta?.bookTitle || '').trim();
 
-      // Lookup matching bookTest
       const candidateIds = [
         s.testId, s.test_id, s.realTestId, s.bookTestId,
         meta?.realTestId, meta?.bookTestId, meta?.testId, s.id
@@ -296,7 +368,6 @@ export default function TeacherStudentMistakesPool({
         if (matchedBookTest) break;
       }
 
-      // Lookup matched book
       let matchedBook = null;
       if (matchedBookTest) {
         const bTestBookId = String(matchedBookTest.bookId || matchedBookTest.book_id || '');
@@ -311,29 +382,12 @@ export default function TeacherStudentMistakesPool({
         });
       }
 
-      if (!matchedBook) {
-        const lowerTitle = title.toLowerCase();
-        const lowerMeta = metaBookTitle.toLowerCase();
-        if (lowerTitle.includes('paragraf') || lowerTitle.includes('problem') || lowerMeta.includes('paragraf') || lowerMeta.includes('problem')) {
-          matchedBook = books.find(b => {
-            const bt = (b.title || '').toLowerCase();
-            return bt.includes('paragraf') || bt.includes('problem');
-          });
-        } else if (lowerTitle.includes('ünite ünite') || lowerTitle.includes('unite unite') || lowerMeta.includes('ünite ünite') || lowerMeta.includes('unite unite')) {
-          matchedBook = books.find(b => {
-            const bt = (b.title || '').toLowerCase();
-            return bt.includes('ünite ünite') || bt.includes('unite unite');
-          });
-        }
-      }
-
       const bId = matchedBook ? matchedBook.id : (meta?.bookId || 'other_tests');
       const bTitle = matchedBook ? matchedBook.title : (metaBookTitle || (title ? 'Diğer Kitap & Testler' : 'Genel Testler'));
       const bPdfUrl = matchedBook?.pdfUrl || null;
       const bSubject = matchedBook?.subject || null;
       const bGrade = matchedBook?.grade || null;
 
-      // Extract subject from matched test
       const testSubjFromId = matchedBookTest?.subject_id ? subjectNameMap.get(String(matchedBookTest.subject_id)) : (matchedBookTest?.subjectId ? subjectNameMap.get(String(matchedBookTest.subjectId)) : null);
       const testTopicFromId = matchedBookTest?.topic_id ? topicNameMap.get(String(matchedBookTest.topic_id)) : (matchedBookTest?.topicId ? topicNameMap.get(String(matchedBookTest.topicId)) : null);
 
@@ -351,43 +405,24 @@ export default function TeacherStudentMistakesPool({
     };
 
     activeSubsList.forEach(s => {
-      // Check if this submission is a mock exam (fiziki / dijital deneme)
-      const isExam = Boolean(
-        isExamBook(s) ||
-        s.type === 'physicalExam' ||
-        s.contentType === 'physicalExam' ||
-        s.isPhysical === true ||
-        s.isPhysicalExam === true ||
-        (books || []).some(b => isExamBook(b) && (
-          String(b.id) === String(s.bookId) ||
-          String(b.id) === String(s.hwId) ||
-          String(b.id) === String(s.testId) ||
-          toUUID(b.id) === String(s.bookId) ||
-          toUUID(b.id) === String(s.hwId) ||
-          toUUID(b.id) === String(s.testId) ||
-          (s.title && b.title && (s.title.toLowerCase().includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(s.title.toLowerCase())))
-        ))
-      );
+      const isExam = resolveIsExam(s);
 
-      // ─────────────────────────────────────────────────────────────
-      // 📊 A) DENEME SINAVLARI İŞLEME (Ders Ders Ayırma & Optik Eşleme)
-      // ─────────────────────────────────────────────────────────────
       if (isExam) {
+        const matchedHw = (homeworks || []).find(h =>
+          String(h.id) === String(s.hwId || s.testId || s.id) ||
+          toUUID(h.id) === String(s.hwId || s.testId || s.id) ||
+          (s.title && h.title && s.title.toLowerCase().trim() === h.title.toLowerCase().trim())
+        );
         const matchedExamBook = (books || []).find(b => isExamBook(b) && (
-          String(b.id) === String(s.bookId) ||
-          String(b.id) === String(s.hwId) ||
-          String(b.id) === String(s.testId) ||
-          toUUID(b.id) === String(s.bookId) ||
-          toUUID(b.id) === String(s.hwId) ||
-          toUUID(b.id) === String(s.testId) ||
-          (s.title && b.title && (s.title.toLowerCase().includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(s.title.toLowerCase())))
-        )) || null;
+          String(b.id) === String(s.bookId || s.hwId || s.testId || matchedHw?.bookId) ||
+          toUUID(b.id) === String(s.bookId || s.hwId || s.testId || matchedHw?.bookId) ||
+          (s.title && b.title && s.title.toLowerCase().trim() === b.title.toLowerCase().trim())
+        ));
 
-        const bId = matchedExamBook ? matchedExamBook.id : (s.bookId || s.hwId || s.testId || s.id);
-        const bTitle = matchedExamBook ? matchedExamBook.title : (s.title || s.testTitle || 'Deneme Sınavı');
-        const bPdfUrl = matchedExamBook?.pdfUrl || s.pdfUrl || null;
+        const bId = matchedHw ? matchedHw.id : (matchedExamBook ? matchedExamBook.id : (s.hwId || s.bookId || s.testId || s.id));
+        const bTitle = matchedHw?.title || matchedExamBook?.title || s.title || s.testTitle || 'Deneme Sınavı';
+        const bPdfUrl = matchedHw?.pdfUrl || matchedExamBook?.pdfUrl || s.pdfUrl || null;
 
-        // Build subject answer keys from bookTests for this exam
         const testsForExam = (bookTests || []).filter(t => {
           if (!t) return false;
           const tBId = String(t.bookId || t.book_id || '');
@@ -406,13 +441,18 @@ export default function TeacherStudentMistakesPool({
           }
         });
 
-        const finalExamAnswerKey = Object.keys(builtExamKeys).length > 0 ? builtExamKeys : (matchedExamBook?.answerKey || s.answerKey || {});
+        const finalExamAnswerKey = Object.keys(builtExamKeys).length > 0
+          ? builtExamKeys
+          : (matchedHw?.answerKey || matchedExamBook?.answerKey || s.answerKey || s.raw_data?.answerKey || {});
 
-        // Extract subjects list of this exam
         let examSubjectsList = [];
-        if (matchedExamBook?.subjects && Array.isArray(matchedExamBook.subjects) && matchedExamBook.subjects.length > 0) {
+        if (matchedHw?.subjects && Array.isArray(matchedHw.subjects) && matchedHw.subjects.length > 0) {
+          examSubjectsList = matchedHw.subjects.map(sub => typeof sub === 'string' ? { name: sub, count: 20 } : sub);
+        } else if (matchedExamBook?.subjects && Array.isArray(matchedExamBook.subjects) && matchedExamBook.subjects.length > 0) {
           examSubjectsList = matchedExamBook.subjects.map(sub => typeof sub === 'string' ? { name: sub, count: 20 } : sub);
-        } else if (s.subjectStats && Array.isArray(s.subjectStats) && s.subjectStats.length > 0) {
+        } else if (s.subjectStats?.subjectStats && Array.isArray(s.subjectStats.subjectStats)) {
+          examSubjectsList = s.subjectStats.subjectStats.map(st => ({ name: st.name, count: Number(st.count) || 20 }));
+        } else if (s.subjectStats && Array.isArray(s.subjectStats)) {
           examSubjectsList = s.subjectStats.map(st => ({ name: st.name || st.subject, count: Number(st.count) || 20 }));
         } else if (s.studentAnswers && typeof s.studentAnswers === 'object' && Object.keys(s.studentAnswers).length > 0) {
           examSubjectsList = Object.keys(s.studentAnswers).map(name => ({ name, count: s.studentAnswers[name]?.length || 20 }));
@@ -420,12 +460,14 @@ export default function TeacherStudentMistakesPool({
           examSubjectsList = [{ name: 'Genel', count: 20 }];
         }
 
+        const studentAnswersMap = s.studentAnswers || s.raw_data?.studentAnswers || (matchedHw?.submissions?.find(sub => isMatchStudent(sub))?.studentAnswers) || {};
+
         examSubjectsList.forEach(subObj => {
           const rawSubName = subObj.name || 'Genel';
           const normSubName = resolveSubjectName(rawSubName);
-          const subQCount = Number(subObj.count) || Number(subObj.questionCount) || 20;
+          const subQCount = Number(subObj.count) || Number(subObj.questionCount) || (studentAnswersMap[rawSubName]?.length) || (studentAnswersMap[normSubName]?.length) || 20;
 
-          const subStudentAns = s.studentAnswers?.[rawSubName] || s.studentAnswers?.[normSubName] || [];
+          const subStudentAns = studentAnswersMap[rawSubName] || studentAnswersMap[normSubName] || [];
           const subAnswersList = (Array.isArray(s.answers))
             ? s.answers.filter(a => a && a.type !== 'metadata' && (a.subject === rawSubName || a.subjectName === rawSubName || a.subject === normSubName || a.subjectName === normSubName || (!a.subject && normSubName === 'Genel')))
             : [];
@@ -446,7 +488,7 @@ export default function TeacherStudentMistakesPool({
             const isMatchExact = Boolean(userAns && correctAns && correctAns !== '—' && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY');
             const isCorrect = isExplicitCorrect || isMatchExact;
 
-            if (isCorrect) continue; // Doğru soru — telafi havuzuna eklenmez
+            if (isCorrect) continue;
 
             const isBlank = (subAnswersList?.[i]?.isCorrect === null && (!userAns || userAns === 'EMPTY' || userAns === 'Boş')) || subAnswersList?.[i]?.evalStatus === 'empty' || userAns === 'EMPTY' || userAns === 'Boş' || !userAns;
             const isWrong = subAnswersList?.[i]?.isCorrect === false || subAnswersList?.[i]?.evalStatus === 'wrong' || (!isCorrect && !isBlank && userAns && correctAns !== '—');
@@ -470,7 +512,7 @@ export default function TeacherStudentMistakesPool({
                 bookTitle: bTitle,
                 bookPdfUrl: bPdfUrl,
                 subject: 'Deneme Sınavı',
-                grade: matchedExamBook?.grade || null,
+                grade: matchedHw?.grade || matchedExamBook?.grade || null,
                 isExam: true,
                 totalWrong: 0,
                 totalTests: 0,
@@ -509,7 +551,7 @@ export default function TeacherStudentMistakesPool({
               submissionId: String(s.id),
               supabaseId: s.supabaseId || s.id,
               testId: String(s.testId || s.hwId || s.id),
-              hwId: String(s.hwId || s.testId || s.id),
+              hwId: String(matchedHw?.id || s.hwId || s.testId || s.id),
               name: bTitle,
               fullTitle: `${bTitle} (${normSubName})`,
               subjectName: normSubName,
@@ -523,12 +565,9 @@ export default function TeacherStudentMistakesPool({
           }
         });
 
-        return; // Deneme tamamlandı, sıradakine geç
+        return; 
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // 📚 B) KİTAP TAKİBİ & DİĞER TESTLER İŞLEME
-      // ─────────────────────────────────────────────────────────────
       const rawAnswers = s.answers || [];
       const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
       const cleanAnswers = (Array.isArray(rawAnswers)) ? rawAnswers.filter(a => a?.type !== 'metadata') : [];

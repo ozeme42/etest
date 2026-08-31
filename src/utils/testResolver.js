@@ -11,6 +11,17 @@ import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 export function isExamBook(b) {
   if (!b) return false;
   const raw = b.raw_data || {};
+
+  // If this object has a parent bookId of a standard book, it is a sub-test, NOT a standalone exam!
+  if (b.bookId && !b.bookType && !b.book_type && !b.isPhysical && b.type !== 'physicalExam' && b.contentType !== 'physicalExam') {
+    return false;
+  }
+
+  // If bookType is explicitly standard or mixed, it is NOT an exam!
+  if (b.bookType === 'standard' || b.bookType === 'mixed' || b.book_type === 'standard' || b.book_type === 'mixed') {
+    return false;
+  }
+
   const pub = String(b.publisher || raw.publisher || '').toUpperCase().trim();
   const title = String(b.title || raw.title || b.name || '').toLowerCase().trim();
 
@@ -30,10 +41,8 @@ export function isExamBook(b) {
     raw.isExamBook ||
     b.isExam ||
     raw.isExam ||
-    b.isPhysical ||
-    raw.isPhysical ||
-    b.id === 'tb_07kzdf_1787267196768' ||
-    (b.title === '1.Ünite' && (b.publisher === 'CUSTOM' || !b.publisher))
+    b.isPhysicalExam === true ||
+    b.id === 'tb_07kzdf_1787267196768'
   ) {
     return true;
   }
@@ -41,38 +50,29 @@ export function isExamBook(b) {
   // 2. Exam Formats used by ExamManager & Physical Exam creator
   const EXAM_PRESETS = ['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'DENEME', 'YKS', 'MSÜ', 'KPSS', 'DGS'];
   if (EXAM_PRESETS.includes(pub)) {
-    // If penalty ratio or option count or multi-subject format exists
     if (
       b.penaltyRatio !== undefined ||
       raw.penaltyRatio !== undefined ||
-      b.optionCount ||
-      raw.optionCount ||
       b.examType ||
-      raw.examType
+      raw.examType ||
+      (Array.isArray(b.subjects) && b.subjects.length >= 2) ||
+      (Array.isArray(raw.subjects) && raw.subjects.length >= 2)
     ) {
       return true;
     }
   }
 
-  // 3. Keyword matching for exam names (deneme, sınavı, hazır bulunuşluk, tarama, fiziki deneme)
-  const isExamKeywordInTitle =
-    title.includes('deneme') ||
-    title.includes('sınav') ||
-    title.includes('sinav') ||
-    title.includes('hazır bulunuşluk') ||
-    title.includes('hazir bulunusluk') ||
-    title.includes('fiziki deneme') ||
-    title.includes('tarama testi') ||
-    title.includes('kazanım değerlendirme') ||
-    title.includes('seviye tespit');
+  // 3. Standalone exam title keywords ONLY if not a sub-test
+  if (!b.bookId && !b.testId) {
+    const isExamTitle =
+      title.includes('hazır bulunuşluk') ||
+      title.includes('hazir bulunusluk') ||
+      title.includes('fiziki deneme') ||
+      (title.includes('deneme sınavı') && (EXAM_PRESETS.includes(pub) || pub === 'CUSTOM' || pub === 'DENEME'));
 
-  if (isExamKeywordInTitle && (EXAM_PRESETS.includes(pub) || !pub || pub === 'CUSTOM')) {
-    return true;
-  }
-
-  // 4. If publisher is one of the standard exam formats (LGS, TYT, AYT, CUSTOM) and book has multiple subjects (LGS 6 subjects, AYT 4 subjects, etc.)
-  if (EXAM_PRESETS.includes(pub) && Array.isArray(b.subjects) && b.subjects.length >= 2) {
-    return true;
+    if (isExamTitle) {
+      return true;
+    }
   }
 
   return false;

@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, PieChart, Pie, Cell, Legend
+  ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  LineChart, Line, AreaChart, Area, ReferenceLine
 } from 'recharts';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -377,13 +378,20 @@ export default function ExamAnalysisPage() {
       const studentExamHistory = [];
 
       sSubmissions.forEach(sub => {
+        const exQCount = Number(sub.totalQuestions) || ((Number(sub.correctCount) || 0) + (Number(sub.wrongCount) || 0) + (Number(sub.blankCount) || 0)) || 30;
+        const exNet = Number(sub.score || 0);
+        const exStatus = getSuccessStatus(exNet, exQCount);
+
         studentExamHistory.push({
           examTitle: sub.examTitle || 'Fiziki Deneme',
           examDate: sub.examDate || new Date().toISOString(),
-          score: Number(sub.score || 0),
+          score: exNet,
           correct: Number(sub.correctCount || 0),
           wrong: Number(sub.wrongCount || 0),
           blank: Number(sub.blankCount || 0),
+          totalQuestions: exQCount,
+          successPct: exStatus.pct,
+          successStatus: exStatus,
           subjectStats: sub.subjectStats || {}
         });
 
@@ -1588,163 +1596,390 @@ export default function ExamAnalysisPage() {
 
       </div>
 
-      {/* ── MODAL: ÖĞRENCİ BİREYSEL KARNESİ & DENEME GEÇMİŞİ ── */}
-      {selectedStudent && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ width: '96vw', maxWidth: '820px', maxHeight: '90vh', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.2)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            
-            {/* Header */}
-            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
-                  <User size={22} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    {selectedStudent.studentName}
-                  </h3>
-                  <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
-                    {selectedStudent.classId} • {isAllExams ? 'Tüm Denemeler Gelişim Karnesi' : `${resolvedExam?.title} Karnesi`}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
+      {/* ── MODAL: ÖĞRENCİ BİREYSEL KARNESİ & GELİŞMİŞ GELİŞİM ANALİZİ ── */}
+      {selectedStudent && (() => {
+        // Compute detailed metrics for student modal
+        const subEntries = Object.entries(selectedStudent.combinedSubjectStats || {});
+        const studentSubjData = subEntries.map(([sName, sObj]) => {
+          const qCount = sObj.count || 15;
+          const subPct = qCount > 0 ? Math.max(0, Math.min(100, Math.round(((Number(sObj.net) || 0) / qCount) * 100))) : 0;
+          const subStatus = getSuccessStatus(sObj.net || 0, qCount);
+          return {
+            name: sName,
+            'Ortalama Net': Number((Number(sObj.net) || 0).toFixed(2)),
+            'Başarı (%)': subPct,
+            'Doğru': sObj.correct || 0,
+            'Yanlış': sObj.wrong || 0,
+            'Boş': sObj.blank || 0,
+            questionCount: qCount,
+            successStatus: subStatus
+          };
+        });
 
-            {/* Body */}
-            <div style={{ padding: '1.5rem 1.6rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        const sortedByPct = [...studentSubjData].sort((a, b) => b['Başarı (%)'] - a['Başarı (%)']);
+        const bestSubj = sortedByPct[0] || null;
+        const focusSubj = sortedByPct.length > 1 ? sortedByPct[sortedByPct.length - 1] : null;
+
+        const totalAnswered = (selectedStudent.totalCorrect || 0) + (selectedStudent.totalWrong || 0);
+        const accuracyRate = totalAnswered > 0 ? Math.round(((selectedStudent.totalCorrect || 0) / totalAnswered) * 100) : 0;
+        const lostNet = Number(((selectedStudent.totalWrong || 0) / 3).toFixed(2));
+
+        const historyList = selectedStudent.examHistory || [];
+        const studentProgressData = historyList.map((ex, i) => {
+          const shortTitle = ex.examTitle?.length > 14 ? ex.examTitle.substring(0, 12) + '...' : (ex.examTitle || `${i + 1}. Deneme`);
+          const exTotal = ex.totalQuestions || ((Number(ex.correct) || 0) + (Number(ex.wrong) || 0) + (Number(ex.blank) || 0)) || 30;
+          const exNet = Number(Number(ex.score || 0).toFixed(2));
+          const exStatus = ex.successStatus || getSuccessStatus(exNet, exTotal);
+          return {
+            name: shortTitle,
+            fullName: ex.examTitle,
+            date: ex.examDate ? new Date(ex.examDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : `${i + 1}. Deneme`,
+            'Net Puan': exNet,
+            'Başarı (%)': exStatus.pct,
+            'Doğru': ex.correct || 0,
+            'Yanlış': ex.wrong || 0,
+            'Boş': ex.blank || 0,
+            successStatus: exStatus
+          };
+        });
+
+        const pieData = [
+          { name: 'Doğru', value: selectedStudent.totalCorrect, fill: '#10b981' },
+          { name: 'Yanlış', value: selectedStudent.totalWrong, fill: '#ef4444' },
+          { name: 'Boş', value: selectedStudent.totalEmpty, fill: '#94a3b8' }
+        ].filter(p => p.value > 0);
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ width: '96vw', maxWidth: '960px', maxHeight: '92vh', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               
-              {/* Summary KPIs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
-                <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>{selectedStudent.totalCorrect}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase' }}>Ort. Doğru</div>
-                </div>
-                <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#f87171' }}>{selectedStudent.totalWrong}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase' }}>Ort. Yanlış</div>
-                </div>
-                <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)' }}>{selectedStudent.totalEmpty}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Ort. Boş</div>
-                </div>
-                <div style={{ background: 'rgba(2,132,199,0.12)', border: '1px solid rgba(2,132,199,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{selectedStudent.avgScore.toFixed(2)}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>Genel Net</div>
-                </div>
-                <div style={{ background: selectedStudent.successStatus?.bg || 'rgba(99,102,241,0.12)', border: `1px solid ${selectedStudent.successStatus?.border || 'rgba(99,102,241,0.25)'}`, borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: selectedStudent.successStatus?.color || '#6366f1' }}>
-                    %{selectedStudent.successStatus?.pct}
+              {/* Header */}
+              <div style={{ padding: '1.25rem 1.6rem', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--color-surface-hover)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+                    <User size={24} />
                   </div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: selectedStudent.successStatus?.color || '#6366f1', textTransform: 'uppercase' }}>
-                    {selectedStudent.successStatus?.label}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {selectedStudent.studentName}
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#3b82f6', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                        {selectedStudent.classId}
+                      </span>
+                    </div>
+                    <p style={{ margin: '0.2rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
+                      {isAllExams ? 'Tüm Denemeler Detaylı Gelişim Karnesi & Analiz Raporu' : `${resolvedExam?.title} Bireysel Performans Karnesi`}
+                    </p>
                   </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    onClick={() => window.print()}
+                    style={{ padding: '0.5rem 1rem', borderRadius: '0.65rem', background: 'rgba(2,132,199,0.12)', border: '1px solid #0284c7', color: '#38bdf8', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Printer size={14} /> Karne Yazdır
+                  </button>
+                  <button onClick={() => setSelectedStudent(null)} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 4 }}>
+                    <X size={22} />
+                  </button>
                 </div>
               </div>
 
-              {/* Subject Breakdown */}
-              {Object.keys(selectedStudent.combinedSubjectStats).length > 0 && (
-                <div>
-                  <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Ders Bazlı Net Ortalamaları &amp; Başarı Oranları
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
-                    {Object.entries(selectedStudent.combinedSubjectStats).map(([subjName, sObj]) => {
-                      const qCnt = sObj.count || 15;
-                      const subPct = qCnt > 0 ? Math.max(0, Math.min(100, Math.round(((sObj.net || 0) / qCnt) * 100))) : 0;
-                      return (
-                        <div key={subjName} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem 0.85rem' }}>
+              {/* Body */}
+              <div style={{ padding: '1.4rem 1.6rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.35rem' }}>
+                
+                {/* 1. Summary KPI Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem' }}>
+                  <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#34d399', lineHeight: 1.1 }}>{selectedStudent.totalCorrect}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', marginTop: 4 }}>Ort. Doğru</div>
+                  </div>
+                  <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#f87171', lineHeight: 1.1 }}>{selectedStudent.totalWrong}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase', marginTop: 4 }}>Ort. Yanlış</div>
+                  </div>
+                  <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.85rem', padding: '0.75rem 0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{selectedStudent.totalEmpty}</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: 4 }}>Ort. Boş</div>
+                  </div>
+                  <div style={{ background: 'rgba(2,132,199,0.12)', border: '1px solid rgba(2,132,199,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#38bdf8', lineHeight: 1.1 }}>{selectedStudent.avgScore.toFixed(2)} Net</div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', marginTop: 4 }}>Genel Ortalama Net</div>
+                  </div>
+                  <div style={{ background: selectedStudent.successStatus?.bg || 'rgba(99,102,241,0.12)', border: `1px solid ${selectedStudent.successStatus?.border || 'rgba(99,102,241,0.25)'}`, borderRadius: '0.85rem', padding: '0.75rem 0.85rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: selectedStudent.successStatus?.color || '#6366f1', lineHeight: 1.1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <span>{selectedStudent.successStatus?.icon}</span>
+                      <span>%{selectedStudent.successStatus?.pct}</span>
+                    </div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: selectedStudent.successStatus?.color || '#6366f1', textTransform: 'uppercase', marginTop: 4 }}>
+                      {selectedStudent.successStatus?.label} Başarı
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Analytical Insights Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+                  {bestSubj && (
+                    <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{ fontSize: '1.4rem' }}>🌟</div>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>En Başarılı Ders (Zirve)</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {bestSubj.name} (%{bestSubj['Başarı (%)']} • {bestSubj['Ortalama Net']} Net)
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {focusSubj && (
+                    <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{ fontSize: '1.4rem' }}>🎯</div>
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>Gelişim / Odak Alanı</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {focusSubj.name} (%{focusSubj['Başarı (%)']} • {focusSubj['Yanlış']} Yanlış)
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '1.4rem' }}>📈</div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase' }}>İşaretleme Doğruluğu</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        %{accuracyRate} Doğruluk Oranı
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '0.85rem', padding: '0.75rem 0.9rem', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div style={{ fontSize: '1.4rem' }}>⚡</div>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>Yanlışlardan Kaybedilen Net</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        -{lostNet} Net Puan Kaybı
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Advanced Charts Section */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1rem' }}>
+                  
+                  {/* Chart 1: Denemeler Arası Net ve Başarı Gelişim Grafiği (Line & Area Chart) */}
+                  <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <TrendingUp size={18} color="#38bdf8" /> Denemeler Gelişim &amp; Trend Çizgisi
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                        {studentProgressData.length} Deneme Çözüldü
+                      </span>
+                    </div>
+
+                    {studentProgressData.length > 0 ? (
+                      <div style={{ height: 230, width: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={studentProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0}/>
+                              </linearGradient>
+                              <linearGradient id="colorPct" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} dy={5} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} />
+                            <RechartsTooltip
+                              contentStyle={{ background: 'var(--color-surface)', borderRadius: '10px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.8rem', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+                            />
+                            <Area type="monotone" dataKey="Net Puan" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorNet)" />
+                            <Area type="monotone" dataKey="Başarı (%)" stroke="#10b981" strokeWidth={2.5} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorPct)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div style={{ height: 230, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                        Gelişim grafiği için en az bir deneme sonucu gereklidir.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chart 2: Ders Bazlı Başarı & Net Grafiği (BarChart) */}
+                  <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <BarChart3 size={18} color="#818cf8" /> Derslere Göre Başarı (%) &amp; Netler
+                      </h4>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                        {studentSubjData.length} Ders
+                      </span>
+                    </div>
+
+                    {studentSubjData.length > 0 ? (
+                      <div style={{ height: 230, width: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={studentSubjData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} dy={5} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} />
+                            <RechartsTooltip
+                              contentStyle={{ background: 'var(--color-surface)', borderRadius: '10px', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.8rem', boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+                            />
+                            <Bar dataKey="Başarı (%)" fill="#6366f1" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                            <Bar dataKey="Ortalama Net" fill="#38bdf8" radius={[6, 6, 0, 0]} maxBarSize={36} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div style={{ height: 230, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
+                        Ders analizi verisi bulunamadı.
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+
+                {/* 4. Subject Breakdown Cards Grid with Progress Bars */}
+                {studentSubjData.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <BookOpen size={16} color="#6366f1" /> Ders Bazlı Detaylı Net &amp; Başarı Dağılımı
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.65rem' }}>
+                      {studentSubjData.map((subj) => (
+                        <div key={subj.name} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.85rem', padding: '0.75rem 0.95rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{subjName}</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: subPct >= 70 ? '#10b981' : subPct >= 50 ? '#f59e0b' : '#ef4444' }}>
-                              %{subPct} Başarı
+                            <span style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)' }}>{subj.name}</span>
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 900,
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: 99,
+                              background: subj.successStatus?.bg || 'rgba(16,185,129,0.12)',
+                              color: subj.successStatus?.color || '#10b981',
+                              border: `1px solid ${subj.successStatus?.border || 'rgba(16,185,129,0.3)'}`
+                            }}>
+                              %{subj['Başarı (%)']} Başarı
                             </span>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>
-                            <span style={{ color: '#34d399' }}>{sObj.correct || 0}D</span>
-                            <span style={{ color: '#f87171' }}>{sObj.wrong || 0}Y</span>
-                            <span style={{ color: 'var(--color-text-muted)' }}>{sObj.blank || 0}B</span>
-                            <span style={{ color: '#38bdf8', fontWeight: 900 }}>{sObj.net?.toFixed(2) || 0} Net</span>
+
+                          {/* Progress Bar */}
+                          <div style={{ height: 5, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden', margin: '0.5rem 0 0.4rem 0' }}>
+                            <div style={{ width: `${subj['Başarı (%)']}%`, height: '100%', background: subj.successStatus?.color || '#10b981', borderRadius: 99 }} />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', fontWeight: 800 }}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <span style={{ color: '#34d399' }}>{subj.Doğru}D</span>
+                              <span style={{ color: '#f87171' }}>{subj.Yanlış}Y</span>
+                              <span style={{ color: 'var(--color-text-muted)' }}>{subj.Boş}B</span>
+                            </div>
+                            <span style={{ color: '#38bdf8', fontWeight: 900 }}>{subj['Ortalama Net'].toFixed(2)} Net</span>
                           </div>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Multi-Exam History List (If All-Exams) */}
-              {isAllExams && selectedStudent.examHistory && selectedStudent.examHistory.length > 0 && (
-                <div>
-                  <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Girdiği Denemeler ({selectedStudent.examHistory.length})
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {selectedStudent.examHistory.map((ex, idx) => (
-                      <div key={idx} style={{
-                        background: 'var(--color-surface-hover)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '0.75rem',
-                        padding: '0.65rem 0.85rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}>
-                        <div>
-                          <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{ex.examTitle}</span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                            {ex.correct} Doğru • {ex.wrong} Yanlış • {ex.blank} Boş
-                          </span>
+                {/* 5. Multi-Exam History List with Exact Success % & Status Badges */}
+                {studentProgressData.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Calendar size={16} color="#0284c7" /> Girdiği Denemeler ({studentProgressData.length})
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                      {studentProgressData.map((ex, idx) => (
+                        <div key={idx} style={{
+                          background: 'var(--color-surface-hover)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '0.85rem',
+                          padding: '0.75rem 1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.01)'
+                        }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>{ex.fullName}</span>
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', padding: '0.1rem 0.45rem', borderRadius: 6 }}>
+                                📅 {ex.date}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: 3 }}>
+                              <span style={{ color: '#10b981', fontWeight: 800 }}>{ex.Doğru} Doğru</span> • <span style={{ color: '#ef4444', fontWeight: 800 }}>{ex.Yanlış} Yanlış</span> • <span style={{ color: 'var(--color-text-muted)', fontWeight: 800 }}>{ex.Boş} Boş</span>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: 99,
+                              background: ex.successStatus?.bg || 'rgba(16,185,129,0.12)',
+                              color: ex.successStatus?.color || '#10b981',
+                              border: `1px solid ${ex.successStatus?.border || 'rgba(16,185,129,0.3)'}`,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              {ex.successStatus?.icon} %{ex['Başarı (%)']} {ex.successStatus?.label}
+                            </span>
+                            <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#38bdf8' }}>
+                              {ex['Net Puan'].toFixed(2)} Net
+                            </span>
+                          </div>
                         </div>
-                        <span style={{ fontWeight: 900, fontSize: '1.1rem', color: '#10b981' }}>
-                          {ex.score.toFixed(2)} Net
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Recorded Mistake Reasons */}
+                {selectedStudent.mistakeReasons && Object.keys(selectedStudent.mistakeReasons).length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <HelpCircle size={16} color="#f59e0b" /> Kaydedilen Hata Nedenleri &amp; Eksik Konular
+                    </h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                      {Object.entries(selectedStudent.mistakeReasons).map(([qKey, reason]) => (
+                        <span key={qKey} style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)', padding: '0.25rem 0.65rem', borderRadius: 99 }}>
+                          {qKey.replace('_', ' Soru ')}: {reason}
                         </span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Recorded Mistake Reasons */}
-              {selectedStudent.mistakeReasons && Object.keys(selectedStudent.mistakeReasons).length > 0 && (
-                <div>
-                  <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Kaydedilen Hata Nedenleri
-                  </h4>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
-                    {Object.entries(selectedStudent.mistakeReasons).map(([qKey, reason]) => (
-                      <span key={qKey} style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)', padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                        {qKey.replace('_', ' Soru ')}: {reason}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', background: 'var(--color-surface-hover)' }}>
+                <button
+                  onClick={() => setSelectedStudent(null)}
+                  style={{ padding: '0.6rem 1.25rem', borderRadius: '0.65rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  Kapat
+                </button>
+              </div>
 
             </div>
-
-            {/* Footer */}
-            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
-              <button
-                onClick={() => setSelectedStudent(null)}
-                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                Kapat
-              </button>
-              <button
-                onClick={() => window.print()}
-                style={{ padding: '0.6rem 1.4rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <Printer size={15} /> Yazdır / PDF
-              </button>
-            </div>
-
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
 }
+
