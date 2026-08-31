@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   PlayCircle, Target, AlertCircle, Timer, BookOpen, Check,
@@ -2381,6 +2381,7 @@ export default function StudentDashboard() {
   // ── 📱 3 AYRI ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
   useEffect(() => {
     if (!selectedStudent?.id) return;
+    if (!window?.Capacitor?.isNativePlatform?.()) return;
     try {
       // 1. 7-Day Program with day switching support
       const daysList = (DAYS_OF_WEEK || []).map(d => {

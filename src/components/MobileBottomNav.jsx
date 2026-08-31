@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Layers, Award, ClipboardList, BarChart3, Calendar, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -98,6 +98,8 @@ export default function MobileBottomNav() {
               padding: '0.2rem 0',
               cursor: 'pointer',
               position: 'relative',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
               transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
               transform: isActive ? 'translateY(-2px)' : 'none',
               outline: 'none'

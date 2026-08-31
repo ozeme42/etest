@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetTrackedBooks,
@@ -128,23 +128,12 @@ export function TrackedBookProvider({ children }) {
       })
       .subscribe();
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshTrackedBooks(true);
-      }
-    };
-    const handleFocus = () => {
-      refreshTrackedBooks(true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+
 
     return () => {
       try {
         supabase.removeChannel(bookChannel);
       } catch {}
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

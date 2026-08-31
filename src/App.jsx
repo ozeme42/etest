@@ -122,7 +122,7 @@ function RequireRole({ roles, children }) {
   return children;
 }
 
-function Sidebar({ isCollapsed, setIsCollapsed }) {
+const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const { isStudentCoached, mockExams = [] } = useCoaching();
@@ -595,7 +595,7 @@ function Sidebar({ isCollapsed, setIsCollapsed }) {
       </nav>
     </>
   );
-}
+});
 
 function AppContent() {
   const location = useLocation();

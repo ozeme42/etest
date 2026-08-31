@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -279,23 +279,12 @@ export function EvaluationProvider({ children }) {
       })
       .subscribe();
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        syncFromSupabase(false, true);
-      }
-    };
-    const handleFocus = () => {
-      syncFromSupabase(false, true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+
 
     return () => {
       try {
         supabase.removeChannel(subChannel);
       } catch {}
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

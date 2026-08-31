@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -106,23 +106,12 @@ export function HomeworkProvider({ children }) {
       })
       .subscribe();
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        refreshHomeworks(true);
-      }
-    };
-    const handleFocus = () => {
-      refreshHomeworks(true);
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+
 
     return () => {
       try {
         supabase.removeChannel(hwChannel);
       } catch {}
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
