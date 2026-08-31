@@ -1,4 +1,4 @@
-﻿import React, { useTransition } from 'react';
+﻿import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Layers, Award, ClipboardList, BarChart3, Calendar, Target } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -26,7 +26,7 @@ export default function MobileBottomNav() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
-  const [, startTransition] = useTransition();
+
 
   if (!currentUser) return null;
 
@@ -65,7 +65,7 @@ export default function MobileBottomNav() {
   const handlePreload = (path) => { try { PAGE_PRELOADS[path]?.(); } catch {} };
   const handleTabClick = (path) => {
     triggerHapticFeedback('light');
-    startTransition(() => navigate(path));
+    navigate(path);
   };
 
   return (
