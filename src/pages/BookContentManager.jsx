@@ -145,21 +145,28 @@ export default function BookContentManager() {
         const mapped = tRows.map(t => {
           const ansKey = t.answer_key || {};
           const ansMeta = ansKey.__meta || {};
-          const hasKey = (Array.isArray(ansKey) && ansKey.length > 0) ||
-                         (typeof ansKey === 'string' && ansKey.trim().length > 0) ||
-                         (typeof ansKey === 'object' && ansKey !== null && Object.keys(ansKey).length > 0 && ansMeta.isOpenEnded !== true);
-          const isExplicitMC = t.question_type === 'coktan_secmeli' || t.questionType === 'coktan_secmeli' || hasKey;
-
-          const isOe = !isExplicitMC && Boolean(
+          const isExplicitOE = Boolean(
             t.is_open_ended === true ||
             t.isOpenEnded === true ||
             ansMeta.isOpenEnded === true ||
             t.question_type === 'acik_uclu' ||
             t.questionType === 'acik_uclu' ||
-            ansMeta.questionType === 'acik_uclu' ||
+            ansMeta.questionType === 'acik_uclu'
+          );
+          const isExplicitMC = !isExplicitOE && Boolean(
+            t.is_open_ended === false ||
+            t.isOpenEnded === false ||
+            ansMeta.isOpenEnded === false ||
+            t.question_type === 'coktan_secmeli' ||
+            t.questionType === 'coktan_secmeli' ||
+            ansMeta.questionType === 'coktan_secmeli'
+          );
+          const hasOptionLetters = Object.entries(ansKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+
+          const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
             (b?.bookType === 'open_ended') ||
             (t.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(t.name))
-          );
+          ));
           const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
           const sId = t.subject_id || ansMeta.subjectId || null;
           const topId = t.topic_id || ansMeta.topicId || null;
@@ -1314,10 +1321,12 @@ export default function BookContentManager() {
   const handleBulkChangeSubjectTestType = async (subject, targetType) => {
     const isOe = targetType === 'acik_uclu';
     const typeLabel = isOe ? 'Açık Uçlu / Sayısal' : 'Çoktan Seçmeli';
+    const topicIdSet = new Set((subject.topics || []).map(tp => String(tp.id)));
     const subjTests = tests.filter(t => {
       const sIdMatch = String(t.subjectId || t.subject_id || '') === String(subject.id) ||
         String(t.subjectId || t.subject_id || t.subject || '').toLowerCase().trim() === String(subject.name || '').toLowerCase().trim();
-      return sIdMatch;
+      const topMatch = t.topicId && topicIdSet.has(String(t.topicId));
+      return sIdMatch || topMatch;
     });
 
     if (subjTests.length === 0) {
@@ -1329,23 +1338,74 @@ export default function BookContentManager() {
       return;
     }
 
-    const updatedSubjTests = subjTests.map(t => ({
-      ...t,
-      isOpenEnded: isOe,
-      questionType: targetType
-    }));
+    const updatedSubjTests = subjTests.map(t => {
+      const rawAnsKey = t.answerKey || t.answer_key || {};
+      const ansMeta = rawAnsKey.__meta || {};
+      const enrichedAnsKey = {
+        ...rawAnsKey,
+        __meta: {
+          ...ansMeta,
+          isOpenEnded: isOe,
+          questionType: targetType
+        }
+      };
+      return {
+        ...t,
+        isOpenEnded: isOe,
+        is_open_ended: isOe,
+        questionType: targetType,
+        question_type: targetType,
+        answerKey: enrichedAnsKey,
+        answer_key: enrichedAnsKey
+      };
+    });
 
     const subjTestIdSet = new Set(subjTests.map(t => String(t.id)));
-    setLocalLiveTests(prev => (prev || []).map(t => subjTestIdSet.has(String(t.id)) ? { ...t, isOpenEnded: isOe, questionType: targetType } : t));
+    setLocalLiveTests(prev => (prev || []).map(t => {
+      if (subjTestIdSet.has(String(t.id))) {
+        const rawAnsKey = t.answerKey || t.answer_key || {};
+        const ansMeta = rawAnsKey.__meta || {};
+        const enrichedAnsKey = {
+          ...rawAnsKey,
+          __meta: {
+            ...ansMeta,
+            isOpenEnded: isOe,
+            questionType: targetType
+          }
+        };
+        return {
+          ...t,
+          isOpenEnded: isOe,
+          is_open_ended: isOe,
+          questionType: targetType,
+          question_type: targetType,
+          answerKey: enrichedAnsKey,
+          answer_key: enrichedAnsKey
+        };
+      }
+      return t;
+    }));
 
     await batchSaveTrackedBookTests(updatedSubjTests);
 
-    if (isOe && book.bookType === 'standard') {
-      setLocalLiveBook(prev => prev ? ({ ...prev, bookType: 'mixed' }) : prev);
-      await updateTrackedBook(book.id, { bookType: 'mixed' });
-    }
+    // Also update embedded subjects in book if present
+    const updatedSubjects = (book.subjects || []).map(s => {
+      if (String(s.id) === String(subject.id) || String(s.name).trim().toLowerCase() === String(subject.name).trim().toLowerCase()) {
+        const newTests = (s.tests || []).map(t => ({ ...t, isOpenEnded: isOe, is_open_ended: isOe, questionType: targetType, question_type: targetType }));
+        const newTopics = (s.topics || []).map(tp => ({
+          ...tp,
+          tests: (tp.tests || []).map(t => ({ ...t, isOpenEnded: isOe, is_open_ended: isOe, questionType: targetType, question_type: targetType }))
+        }));
+        return { ...s, tests: newTests, topics: newTopics };
+      }
+      return s;
+    });
 
-    showToast(`"${subject.name}" dersindeki ${subjTests.length} test başarıyla "${typeLabel}" olarak güncellendi! 🎉`);
+    const newBookType = isOe && book.bookType === 'standard' ? 'mixed' : (book.bookType || 'mixed');
+    setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects, bookType: newBookType }) : prev);
+    await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType });
+
+    showToast(`"${subject.name}" dersindeki ${subjTests.length} test başarıyla "${typeLabel}" olarak güncellendi ve kalıcı kaydedildi! 🎉`);
   };
 
   // --- BULK WIZARD EXECUTION ---

@@ -2074,18 +2074,27 @@ export async function dbGetTrackedBooks() {
       const canonicalBookId = idAliasMap.get(tBookIdStr) || (toUUID(tBookIdStr) ? idAliasMap.get(toUUID(tBookIdStr)) : null) || tBookIdStr;
       const ansKey = t.answer_key || {};
       const ansMeta = ansKey.__meta || {};
-      const hasOptionLetters = Object.entries(ansKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
-      const isExplicitMC = t.is_open_ended === false || t.isOpenEnded === false || t.question_type === 'coktan_secmeli' || t.questionType === 'coktan_secmeli' || ansMeta.questionType === 'coktan_secmeli' || ansMeta.isOpenEnded === false || hasOptionLetters;
-
-      const isOe = !isExplicitMC && Boolean(
+      const isExplicitOE = Boolean(
         t.is_open_ended === true ||
         t.isOpenEnded === true ||
         ansMeta.isOpenEnded === true ||
         t.question_type === 'acik_uclu' ||
         t.questionType === 'acik_uclu' ||
-        ansMeta.questionType === 'acik_uclu' ||
-        (t.name && /açık\s*uçlu|acik\s*uclu/i.test(t.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(t.name))
+        ansMeta.questionType === 'acik_uclu'
       );
+      const isExplicitMC = !isExplicitOE && Boolean(
+        t.is_open_ended === false ||
+        t.isOpenEnded === false ||
+        ansMeta.isOpenEnded === false ||
+        t.question_type === 'coktan_secmeli' ||
+        t.questionType === 'coktan_secmeli' ||
+        ansMeta.questionType === 'coktan_secmeli'
+      );
+      const hasOptionLetters = Object.entries(ansKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+
+      const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
+        (t.name && /açık\s*uçlu|acik\s*uclu/i.test(t.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(t.name))
+      ));
       const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
       const sId = t.subject_id ? String(t.subject_id) : null;
       const topId = t.topic_id ? String(t.topic_id) : null;
@@ -2342,18 +2351,27 @@ export async function dbAddTrackedBookTest(test) {
     const safeTestId = toUUID(test.id || `tbt_${Date.now()}`);
     const rawAnsKey = test.answerKey || test.answer_key || {};
     const ansMeta = rawAnsKey.__meta || {};
-    const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
-    const isExplicitMC = test.is_open_ended === false || test.isOpenEnded === false || test.question_type === 'coktan_secmeli' || test.questionType === 'coktan_secmeli' || ansMeta.questionType === 'coktan_secmeli' || ansMeta.isOpenEnded === false || hasOptionLetters;
-
-    const isOe = !isExplicitMC && Boolean(
+    const isExplicitOE = Boolean(
       test.isOpenEnded === true ||
       test.is_open_ended === true ||
       ansMeta.isOpenEnded === true ||
       test.questionType === 'acik_uclu' ||
       test.question_type === 'acik_uclu' ||
-      ansMeta.questionType === 'acik_uclu' ||
-      (test.name && /açık\s*uçlu|acik\s*uclu/i.test(test.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.name))
+      ansMeta.questionType === 'acik_uclu'
     );
+    const isExplicitMC = !isExplicitOE && Boolean(
+      test.isOpenEnded === false ||
+      test.is_open_ended === false ||
+      ansMeta.isOpenEnded === false ||
+      test.questionType === 'coktan_secmeli' ||
+      test.question_type === 'coktan_secmeli' ||
+      ansMeta.questionType === 'coktan_secmeli'
+    );
+    const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+
+    const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
+      (test.name && /açık\s*uçlu|acik\s*uclu/i.test(test.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.name))
+    ));
     const qType = isOe ? 'acik_uclu' : (test.questionType || test.question_type || ansMeta.questionType || 'coktan_secmeli');
 
     const sId = test.subjectId || test.subject_id || null;
@@ -2373,7 +2391,7 @@ export async function dbAddTrackedBookTest(test) {
       }
     };
 
-    const payload = {
+    const row = {
       id: safeTestId,
       book_id: safeBookId,
       subject_id: sId ? String(sId) : null,
@@ -2382,7 +2400,7 @@ export async function dbAddTrackedBookTest(test) {
       question_count: Number(test.questionCount || test.question_count) || 20,
       answer_key: enrichedAnswerKey
     };
-    const { data, error } = await supabase.from('tracked_book_tests').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
+    const { data, error } = await supabase.from('tracked_book_tests').upsert([row], { onConflict: 'id' }).select().maybeSingle();
     if (error) throw error;
     return data;
   } catch (err) {
@@ -2409,18 +2427,27 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
 
       const rawAnsKey = t.answerKey || t.answer_key || {};
       const ansMeta = rawAnsKey.__meta || {};
-      const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
-      const isExplicitMC = t.is_open_ended === false || t.isOpenEnded === false || t.question_type === 'coktan_secmeli' || t.questionType === 'coktan_secmeli' || ansMeta.questionType === 'coktan_secmeli' || ansMeta.isOpenEnded === false || hasOptionLetters;
-
-      const isOe = !isExplicitMC && Boolean(
+      const isExplicitOE = Boolean(
         t.isOpenEnded === true ||
         t.is_open_ended === true ||
         ansMeta.isOpenEnded === true ||
         t.questionType === 'acik_uclu' ||
         t.question_type === 'acik_uclu' ||
-        ansMeta.questionType === 'acik_uclu' ||
-        (t.name && /açık\s*uçlu|acik\s*uclu/i.test(t.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(t.name))
+        ansMeta.questionType === 'acik_uclu'
       );
+      const isExplicitMC = !isExplicitOE && Boolean(
+        t.isOpenEnded === false ||
+        t.is_open_ended === false ||
+        ansMeta.isOpenEnded === false ||
+        t.questionType === 'coktan_secmeli' ||
+        t.question_type === 'coktan_secmeli' ||
+        ansMeta.questionType === 'coktan_secmeli'
+      );
+      const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+
+      const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
+        (t.name && /açık\s*uçlu|acik\s*uclu/i.test(t.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(t.name))
+      ));
       const qType = isOe ? 'acik_uclu' : (t.questionType || t.question_type || ansMeta.questionType || 'coktan_secmeli');
 
       const sId = t.subjectId || t.subject_id || null;

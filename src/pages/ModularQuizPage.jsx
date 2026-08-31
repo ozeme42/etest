@@ -545,24 +545,27 @@ export default function ModularQuizPage() {
           }
         }
 
-        const testHasKey = (Array.isArray(foundTest.answerKey) && foundTest.answerKey.length > 0) ||
-                           (typeof foundTest.answerKey === 'string' && foundTest.answerKey.trim().length > 0) ||
-                           (typeof foundTest.answerKey === 'object' && foundTest.answerKey !== null && Object.keys(foundTest.answerKey).length > 0 && foundTest.answerKey.__meta?.isOpenEnded !== true);
-        const testHasOptions = Array.isArray(foundTest.options) && foundTest.options.length > 1;
-        const isExplicitMC = foundTest.questionType === 'coktan_secmeli' || foundTest.type === 'coktan_secmeli' || testHasKey || testHasOptions;
-
-        const isFoundTestOe = !isExplicitMC && Boolean(
+        const testAnsMeta = foundTest.answerKey?.__meta || {};
+        const isFoundTestExplicitOE = Boolean(
           foundTest.isOpenEnded === true ||
           foundTest.is_open_ended === true ||
           foundTest.questionType === 'acik_uclu' ||
           foundTest.type === 'acik_uclu' ||
           foundTest.type === 'gorsel_klasik' ||
-          foundTest.answerKey?.__meta?.isOpenEnded === true ||
-          foundTest.answerKey?.__meta?.questionType === 'acik_uclu' ||
+          testAnsMeta.isOpenEnded === true ||
+          testAnsMeta.questionType === 'acik_uclu'
+        );
+        const testHasKey = (Array.isArray(foundTest.answerKey) && foundTest.answerKey.length > 0) ||
+                           (typeof foundTest.answerKey === 'string' && foundTest.answerKey.trim().length > 0) ||
+                           (typeof foundTest.answerKey === 'object' && foundTest.answerKey !== null && Object.keys(foundTest.answerKey).length > 0 && testAnsMeta.isOpenEnded !== true);
+        const testHasOptions = Array.isArray(foundTest.options) && foundTest.options.length > 1;
+        const isExplicitMC = !isFoundTestExplicitOE && (foundTest.questionType === 'coktan_secmeli' || foundTest.type === 'coktan_secmeli' || testHasKey || testHasOptions);
+
+        const isFoundTestOe = isFoundTestExplicitOE || (!isExplicitMC && Boolean(
           sections.some(s => s.isOpenEnded) ||
           (foundTest.title && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.title)) ||
           (foundTest.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(foundTest.name))
-        );
+        ));
 
         setTest({
           ...foundTest,

@@ -73,20 +73,30 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
   const qCount = test.questionCount || test.totalQuestions || (questions.length > 1 ? questions.length : 1);
   const rawAnsKey = test.answerKey || {};
-  const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
-  const isExplicitMC = test.isOpenEnded === false || test.is_open_ended === false || test.questionType === 'coktan_secmeli' || test.type === 'coktan_secmeli' || hasOptionLetters;
-
-  const isOpenEndedMode = !isExplicitMC && Boolean(
+  const ansMeta = rawAnsKey.__meta || {};
+  const isExplicitOE = Boolean(
     test.isOpenEnded === true ||
     test.is_open_ended === true ||
     test.questionType === 'acik_uclu' ||
     test.type === 'acik_uclu' ||
-    test.answerKey?.__meta?.isOpenEnded === true ||
-    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+    ansMeta.isOpenEnded === true ||
+    ansMeta.questionType === 'acik_uclu'
+  );
+  const isExplicitMC = !isExplicitOE && Boolean(
+    test.isOpenEnded === false ||
+    test.is_open_ended === false ||
+    test.questionType === 'coktan_secmeli' ||
+    test.type === 'coktan_secmeli' ||
+    ansMeta.isOpenEnded === false ||
+    ansMeta.questionType === 'coktan_secmeli'
+  );
+  const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+
+  const isOpenEndedMode = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
     (test.title && /açık\s*uçlu|acik\s*uclu/i.test(test.title) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.title)) ||
     (test.name && /açık\s*uçlu|acik\s*uclu/i.test(test.name) && !/çoktan\s*seçmeli|coktan\s*secmeli|test/i.test(test.name)) ||
     isSectionOpenEnded(test)
-  );
+  ));
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
