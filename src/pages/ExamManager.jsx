@@ -1755,19 +1755,29 @@ export default function ExamManager() {
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                                              {asg.isSolved ? (
-                                                <span style={{
-                                                  fontSize: '0.67rem',
-                                                  fontWeight: 900,
-                                                  color: '#10b981',
-                                                  background: 'rgba(16,185,129,0.12)',
-                                                  border: '1px solid rgba(16,185,129,0.3)',
-                                                  padding: '0.15rem 0.45rem',
-                                                  borderRadius: '0.4rem'
-                                                }}>
-                                                  ✅ {asg.correctCount !== null ? `${asg.correctCount}D ${asg.wrongCount || 0}Y` : 'Çözüldü'}
-                                                </span>
-                                              ) : asg.isOverdue ? (
+                                              {asg.isSolved ? (() => {
+                                                const penalty = Number(m.penaltyRatio) || 0;
+                                                const netVal = asg.correctCount !== null ? (penalty > 0 ? Number((asg.correctCount - (asg.wrongCount || 0) / penalty).toFixed(2)) : asg.correctCount) : (asg.score !== null && asg.score !== undefined ? asg.score : null);
+                                                const totalQ = Number(m.totalQuestions) || 30;
+                                                const successPct = netVal !== null ? Math.max(0, Math.min(100, Math.round((netVal / totalQ) * 100))) : null;
+                                                return (
+                                                  <span style={{
+                                                    fontSize: '0.67rem',
+                                                    fontWeight: 900,
+                                                    color: '#10b981',
+                                                    background: 'rgba(16,185,129,0.12)',
+                                                    border: '1px solid rgba(16,185,129,0.3)',
+                                                    padding: '0.15rem 0.45rem',
+                                                    borderRadius: '0.4rem',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 3
+                                                  }}>
+                                                    ✅ {asg.correctCount !== null ? `${asg.correctCount}D ${asg.wrongCount || 0}Y` : 'Çözüldü'}
+                                                    {netVal !== null && ` (${netVal} Net · %${successPct} Başarı)`}
+                                                  </span>
+                                                );
+                                              })() : asg.isOverdue ? (
                                                 <span style={{
                                                   fontSize: '0.67rem',
                                                   fontWeight: 900,
@@ -1979,19 +1989,29 @@ export default function ExamManager() {
                                       </div>
 
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                                        {asg.isSolved ? (
-                                          <span style={{
-                                            fontSize: '0.67rem',
-                                            fontWeight: 900,
-                                            color: '#10b981',
-                                            background: 'rgba(16,185,129,0.12)',
-                                            border: '1px solid rgba(16,185,129,0.3)',
-                                            padding: '0.15rem 0.4rem',
-                                            borderRadius: '0.4rem'
-                                          }}>
-                                            ✅ Çözüldü {asg.correctCount !== null ? `(${asg.correctCount}D ${asg.wrongCount || 0}Y)` : ''}
-                                          </span>
-                                        ) : asg.isOverdue ? (
+                                        {asg.isSolved ? (() => {
+                                          const penalty = Number(m.penaltyRatio) || 0;
+                                          const netVal = asg.correctCount !== null ? (penalty > 0 ? Number((asg.correctCount - (asg.wrongCount || 0) / penalty).toFixed(2)) : asg.correctCount) : (asg.score !== null && asg.score !== undefined ? asg.score : null);
+                                          const totalQ = Number(m.totalQuestions) || 30;
+                                          const successPct = netVal !== null ? Math.max(0, Math.min(100, Math.round((netVal / totalQ) * 100))) : null;
+                                          return (
+                                            <span style={{
+                                              fontSize: '0.67rem',
+                                              fontWeight: 900,
+                                              color: '#10b981',
+                                              background: 'rgba(16,185,129,0.12)',
+                                              border: '1px solid rgba(16,185,129,0.3)',
+                                              padding: '0.15rem 0.45rem',
+                                              borderRadius: '0.4rem',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 3
+                                            }}>
+                                              ✅ {asg.correctCount !== null ? `${asg.correctCount}D ${asg.wrongCount || 0}Y` : 'Çözüldü'}
+                                              {netVal !== null && ` (${netVal} Net · %${successPct} Başarı)`}
+                                            </span>
+                                          );
+                                        })() : asg.isOverdue ? (
                                           <span style={{
                                             fontSize: '0.67rem',
                                             fontWeight: 900,

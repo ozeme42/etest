@@ -1653,20 +1653,27 @@ export default function StudentExamsPage() {
                     </div>
                   )}
 
-                  {/* D/Y/B + Net */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                    {[
-                      { l: 'Doğru', v: exam.d, c: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.3)' : '#bbf7d0' },
-                      { l: 'Yanlış', v: exam.y, c: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3' },
-                      { l: 'Boş',    v: exam.b, c: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' },
-                      { l: 'Net',    v: exam.net, c: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.15)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.3)' : '#e9d5ff' },
-                    ].map((s, i) => (
-                      <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.4rem 0.3rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.6rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 900, color: s.c }}>{s.v}</div>
+                  {/* D/Y/B + Net + Başarı % */}
+                  {(() => {
+                    const totalQ = (Number(exam.d) || 0) + (Number(exam.y) || 0) + (Number(exam.b) || 0) || (exam.totalQuestions || 30);
+                    const successPct = totalQ > 0 ? Math.max(0, Math.min(100, Math.round(((Number(exam.net) || 0) / totalQ) * 100))) : 0;
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
+                        {[
+                          { l: 'Doğru', v: exam.d ?? 0, c: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.3)' : '#bbf7d0' },
+                          { l: 'Yanlış', v: exam.y ?? 0, c: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3' },
+                          { l: 'Boş',    v: exam.b ?? 0, c: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' },
+                          { l: 'Net',    v: exam.net ?? 0, c: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.15)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.3)' : '#e9d5ff' },
+                          { l: 'Başarı', v: `%${successPct}`, c: successPct >= 70 ? '#10b981' : successPct >= 50 ? '#f59e0b' : '#ef4444', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5', border: isDark ? 'rgba(16,185,129,0.25)' : '#a7f3d0' }
+                        ].map((s, i) => (
+                          <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.4rem 0.2rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.58rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
+                            <div style={{ fontSize: '0.84rem', fontWeight: 900, color: s.c }}>{s.v}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
 
                   {/* CTA */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 10 }}>

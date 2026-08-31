@@ -147,7 +147,8 @@ export default function TeacherStudentMistakesPool({
   const { books = [], bookTests = [] } = useTrackedBooks();
   const { data: curData } = useCurriculum();
 
-  // Navigation states: Book -> Subject -> Unit
+  // Navigation states: Source Type (books vs exams) -> Book -> Subject -> Unit
+  const [sourceTypeTab, setSourceTypeTab] = useState('books'); // 'books' | 'exams'
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState('all');
@@ -181,7 +182,7 @@ export default function TeacherStudentMistakesPool({
     return { subjectNameMap: sMap, topicNameMap: tMap };
   }, [books]);
 
-  // Build comprehensive, ACCURATE mistake database for this student across ALL books
+  // Build comprehensive, ACCURATE mistake database for this student across ALL books & exams
   const booksMistakesTree = useMemo(() => {
     if (!student?.id) return [];
 
@@ -239,7 +240,14 @@ export default function TeacherStudentMistakesPool({
       const getRealAnswersCount = (item) => {
         let raw = item.answers || [];
         if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch {} }
-        return Array.isArray(raw) ? raw.filter(x => x && x.type !== 'metadata' && (x.userAnswer || x.selectedOption || x.answer || x.correctAnswer || x.qNo || x.questionNo)).length : 0;
+        const ansCount = Array.isArray(raw) ? raw.filter(x => x && x.type !== 'metadata' && (x.userAnswer || x.selectedOption || x.answer || x.correctAnswer || x.qNo || x.questionNo)).length : 0;
+        let stdAnsCount = 0;
+        if (item.studentAnswers && typeof item.studentAnswers === 'object') {
+          Object.values(item.studentAnswers).forEach(arr => {
+            if (Array.isArray(arr)) stdAnsCount += arr.filter(Boolean).length;
+          });
+        }
+        return Math.max(ansCount, stdAnsCount);
       };
 
       const meta = (Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || null);
@@ -343,6 +351,184 @@ export default function TeacherStudentMistakesPool({
     };
 
     activeSubsList.forEach(s => {
+      // Check if this submission is a mock exam (fiziki / dijital deneme)
+      const isExam = Boolean(
+        isExamBook(s) ||
+        s.type === 'physicalExam' ||
+        s.contentType === 'physicalExam' ||
+        s.isPhysical === true ||
+        s.isPhysicalExam === true ||
+        (books || []).some(b => isExamBook(b) && (
+          String(b.id) === String(s.bookId) ||
+          String(b.id) === String(s.hwId) ||
+          String(b.id) === String(s.testId) ||
+          toUUID(b.id) === String(s.bookId) ||
+          toUUID(b.id) === String(s.hwId) ||
+          toUUID(b.id) === String(s.testId) ||
+          (s.title && b.title && (s.title.toLowerCase().includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(s.title.toLowerCase())))
+        ))
+      );
+
+      // ─────────────────────────────────────────────────────────────
+      // 📊 A) DENEME SINAVLARI İŞLEME (Ders Ders Ayırma & Optik Eşleme)
+      // ─────────────────────────────────────────────────────────────
+      if (isExam) {
+        const matchedExamBook = (books || []).find(b => isExamBook(b) && (
+          String(b.id) === String(s.bookId) ||
+          String(b.id) === String(s.hwId) ||
+          String(b.id) === String(s.testId) ||
+          toUUID(b.id) === String(s.bookId) ||
+          toUUID(b.id) === String(s.hwId) ||
+          toUUID(b.id) === String(s.testId) ||
+          (s.title && b.title && (s.title.toLowerCase().includes(b.title.toLowerCase()) || b.title.toLowerCase().includes(s.title.toLowerCase())))
+        )) || null;
+
+        const bId = matchedExamBook ? matchedExamBook.id : (s.bookId || s.hwId || s.testId || s.id);
+        const bTitle = matchedExamBook ? matchedExamBook.title : (s.title || s.testTitle || 'Deneme Sınavı');
+        const bPdfUrl = matchedExamBook?.pdfUrl || s.pdfUrl || null;
+
+        // Build subject answer keys from bookTests for this exam
+        const testsForExam = (bookTests || []).filter(t => {
+          if (!t) return false;
+          const tBId = String(t.bookId || t.book_id || '');
+          return tBId === String(matchedExamBook?.id) || (toUUID(matchedExamBook?.id) && tBId === toUUID(matchedExamBook?.id));
+        });
+
+        const builtExamKeys = {};
+        testsForExam.forEach(t => {
+          const subDef = (matchedExamBook?.subjects || []).find(sub => sub && String(sub.id) === String(t.subjectId || t.subject_id));
+          const subName = subDef ? subDef.name : String(t.name || 'Ders').replace(' Testi', '');
+          builtExamKeys[subName] = [];
+          if (t.answerKey && typeof t.answerKey === 'object') {
+            for (let i = 1; i <= (t.questionCount || 20); i++) {
+              builtExamKeys[subName].push(t.answerKey[i] || '');
+            }
+          }
+        });
+
+        const finalExamAnswerKey = Object.keys(builtExamKeys).length > 0 ? builtExamKeys : (matchedExamBook?.answerKey || s.answerKey || {});
+
+        // Extract subjects list of this exam
+        let examSubjectsList = [];
+        if (matchedExamBook?.subjects && Array.isArray(matchedExamBook.subjects) && matchedExamBook.subjects.length > 0) {
+          examSubjectsList = matchedExamBook.subjects.map(sub => typeof sub === 'string' ? { name: sub, count: 20 } : sub);
+        } else if (s.subjectStats && Array.isArray(s.subjectStats) && s.subjectStats.length > 0) {
+          examSubjectsList = s.subjectStats.map(st => ({ name: st.name || st.subject, count: Number(st.count) || 20 }));
+        } else if (s.studentAnswers && typeof s.studentAnswers === 'object' && Object.keys(s.studentAnswers).length > 0) {
+          examSubjectsList = Object.keys(s.studentAnswers).map(name => ({ name, count: s.studentAnswers[name]?.length || 20 }));
+        } else {
+          examSubjectsList = [{ name: 'Genel', count: 20 }];
+        }
+
+        examSubjectsList.forEach(subObj => {
+          const rawSubName = subObj.name || 'Genel';
+          const normSubName = resolveSubjectName(rawSubName);
+          const subQCount = Number(subObj.count) || Number(subObj.questionCount) || 20;
+
+          const subStudentAns = s.studentAnswers?.[rawSubName] || s.studentAnswers?.[normSubName] || [];
+          const subAnswersList = (Array.isArray(s.answers))
+            ? s.answers.filter(a => a && a.type !== 'metadata' && (a.subject === rawSubName || a.subjectName === rawSubName || a.subject === normSubName || a.subjectName === normSubName || (!a.subject && normSubName === 'Genel')))
+            : [];
+
+          const subKey = finalExamAnswerKey[rawSubName] || finalExamAnswerKey[normSubName] || [];
+
+          const subWrongList = [];
+          for (let i = 0; i < subQCount; i++) {
+            const qNo = i + 1;
+            const userAns = (subStudentAns && subStudentAns[i] !== undefined)
+              ? subStudentAns[i]
+              : (subAnswersList?.[i]?.userAnswer ?? subAnswersList?.[i]?.selectedOption ?? '');
+            const correctAns = (subKey && subKey[i] !== undefined && subKey[i] !== '')
+              ? subKey[i]
+              : (subAnswersList?.[i]?.correctAnswer ?? subAnswersList?.[i]?.correctOption ?? '—');
+
+            const isExplicitCorrect = subAnswersList?.[i]?.isCorrect === true || subAnswersList?.[i]?.evalStatus === 'correct';
+            const isMatchExact = Boolean(userAns && correctAns && correctAns !== '—' && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY');
+            const isCorrect = isExplicitCorrect || isMatchExact;
+
+            if (isCorrect) continue; // Doğru soru — telafi havuzuna eklenmez
+
+            const isBlank = (subAnswersList?.[i]?.isCorrect === null && (!userAns || userAns === 'EMPTY' || userAns === 'Boş')) || subAnswersList?.[i]?.evalStatus === 'empty' || userAns === 'EMPTY' || userAns === 'Boş' || !userAns;
+            const isWrong = subAnswersList?.[i]?.isCorrect === false || subAnswersList?.[i]?.evalStatus === 'wrong' || (!isCorrect && !isBlank && userAns && correctAns !== '—');
+
+            if (isWrong || isBlank) {
+              subWrongList.push({
+                qNo,
+                userAns: userAns || 'Boş',
+                correctAns: (correctAns && correctAns !== '—') ? correctAns : '?',
+                isWrong: Boolean(isWrong),
+                isBlank: Boolean(isBlank),
+                page: 1
+              });
+            }
+          }
+
+          if (subWrongList.length > 0) {
+            if (!bookTree.has(bId)) {
+              bookTree.set(bId, {
+                bookId: bId,
+                bookTitle: bTitle,
+                bookPdfUrl: bPdfUrl,
+                subject: 'Deneme Sınavı',
+                grade: matchedExamBook?.grade || null,
+                isExam: true,
+                totalWrong: 0,
+                totalTests: 0,
+                subjectsMap: new Map()
+              });
+            }
+            const bNode = bookTree.get(bId);
+            bNode.totalWrong += subWrongList.length;
+            bNode.totalTests += 1;
+
+            if (!bNode.subjectsMap.has(normSubName)) {
+              bNode.subjectsMap.set(normSubName, {
+                subjectName: normSubName,
+                totalWrong: 0,
+                totalTests: 0,
+                unitsMap: new Map()
+              });
+            }
+            const sNode = bNode.subjectsMap.get(normSubName);
+            sNode.totalWrong += subWrongList.length;
+            sNode.totalTests += 1;
+
+            const unitName = 'Deneme Sınavı';
+            if (!sNode.unitsMap.has(unitName)) {
+              sNode.unitsMap.set(unitName, {
+                unitName,
+                subjectName: normSubName,
+                totalWrong: 0,
+                tests: []
+              });
+            }
+            const uNode = sNode.unitsMap.get(unitName);
+            uNode.totalWrong += subWrongList.length;
+            uNode.tests.push({
+              id: `${s.id}_${normSubName}`,
+              submissionId: String(s.id),
+              supabaseId: s.supabaseId || s.id,
+              testId: String(s.testId || s.hwId || s.id),
+              hwId: String(s.hwId || s.testId || s.id),
+              name: bTitle,
+              fullTitle: `${bTitle} (${normSubName})`,
+              subjectName: normSubName,
+              unitName,
+              pdfPage: 1,
+              wrongCount: subWrongList.length,
+              wrongQuestions: subWrongList,
+              rawSubmission: s,
+              isExam: true
+            });
+          }
+        });
+
+        return; // Deneme tamamlandı, sıradakine geç
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 📚 B) KİTAP TAKİBİ & DİĞER TESTLER İŞLEME
+      // ─────────────────────────────────────────────────────────────
       const rawAnswers = s.answers || [];
       const meta = (Array.isArray(rawAnswers)) ? rawAnswers.find(a => a?.type === 'metadata') : (s.metadata || null);
       const cleanAnswers = (Array.isArray(rawAnswers)) ? rawAnswers.filter(a => a?.type !== 'metadata') : [];
@@ -426,6 +612,7 @@ export default function TeacherStudentMistakesPool({
           bookPdfUrl,
           subject: bookSubject || subjectName,
           grade: bookGrade,
+          isExam: false,
           totalWrong: 0,
           totalTests: 0,
           subjectsMap: new Map()
@@ -472,7 +659,8 @@ export default function TeacherStudentMistakesPool({
         pdfPage: meta?.page || 1,
         wrongCount: wrongList.length,
         wrongQuestions: wrongList,
-        rawSubmission: s
+        rawSubmission: s,
+        isExam: false
       });
     });
 
@@ -537,6 +725,7 @@ export default function TeacherStudentMistakesPool({
         bookPdfUrl: b.bookPdfUrl,
         subject: b.subject,
         grade: b.grade,
+        isExam: Boolean(b.isExam),
         totalWrong: b.totalWrong,
         totalTests: b.totalTests,
         subjects
@@ -556,22 +745,43 @@ export default function TeacherStudentMistakesPool({
     return bookResults;
   }, [student, submissions, books, bookTests, subjectNameMap, topicNameMap]);
 
-  // Auto-select first book with mistakes
+  // Split books and exams
+  const bookMistakes = useMemo(() => booksMistakesTree.filter(b => !b.isExam), [booksMistakesTree]);
+  const examMistakes = useMemo(() => booksMistakesTree.filter(b => b.isExam), [booksMistakesTree]);
+  const totalBookWrongs = useMemo(() => bookMistakes.reduce((acc, b) => acc + b.totalWrong, 0), [bookMistakes]);
+  const totalExamWrongs = useMemo(() => examMistakes.reduce((acc, b) => acc + b.totalWrong, 0), [examMistakes]);
+
+  // Current active list based on sourceTypeTab
+  const currentCategoryList = useMemo(() => {
+    if (sourceTypeTab === 'exams') return examMistakes;
+    return bookMistakes;
+  }, [sourceTypeTab, examMistakes, bookMistakes]);
+
+  // Auto-switch tab if one category is empty and the other has mistakes
   useEffect(() => {
-    if (booksMistakesTree.length > 0) {
-      if (!selectedBookId || !booksMistakesTree.some(b => b.bookId === selectedBookId)) {
-        setSelectedBookId(booksMistakesTree[0].bookId);
-      }
+    if (bookMistakes.length === 0 && examMistakes.length > 0 && sourceTypeTab === 'books') {
+      setSourceTypeTab('exams');
     }
-  }, [booksMistakesTree, selectedBookId]);
+  }, [bookMistakes, examMistakes, sourceTypeTab]);
 
-  // Active book object
+  // Auto-select first item in active category
+  useEffect(() => {
+    if (currentCategoryList.length > 0) {
+      if (!selectedBookId || !currentCategoryList.some(b => b.bookId === selectedBookId)) {
+        setSelectedBookId(currentCategoryList[0].bookId);
+      }
+    } else {
+      setSelectedBookId(null);
+    }
+  }, [currentCategoryList, selectedBookId]);
+
+  // Active book / exam object
   const activeBook = useMemo(() => {
-    if (!selectedBookId) return booksMistakesTree[0] || null;
-    return booksMistakesTree.find(b => b.bookId === selectedBookId) || booksMistakesTree[0] || null;
-  }, [booksMistakesTree, selectedBookId]);
+    if (!selectedBookId) return currentCategoryList[0] || null;
+    return currentCategoryList.find(b => b.bookId === selectedBookId) || currentCategoryList[0] || null;
+  }, [currentCategoryList, selectedBookId]);
 
-  // Auto-select first subject of active book
+  // Auto-select first subject of active book / exam
   useEffect(() => {
     if (activeBook && activeBook.subjects.length > 0) {
       if (!selectedSubject || !activeBook.subjects.some(s => s.subjectName === selectedSubject)) {
@@ -841,59 +1051,176 @@ export default function TeacherStudentMistakesPool({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-      {/* ── 📚 1. SEVİYE: KİTAP SEÇİM ALANI ── */}
+      {/* ── 📚 / 📊 KAYNAK TÜRÜ SEKMELERİ (KİTAP TAKİBİ vs DENEME SINAVLARI) ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        paddingBottom: 4,
+        borderBottom: '1.5px solid var(--color-border)'
+      }}>
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTypeTab('books');
+            if (bookMistakes.length > 0) {
+              setSelectedBookId(bookMistakes[0].bookId);
+              setSelectedSubject(null);
+              setSelectedUnit('all');
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            padding: '8px 16px',
+            borderRadius: 10,
+            border: sourceTypeTab === 'books' ? '2px solid #10b981' : '1px solid var(--color-border)',
+            background: sourceTypeTab === 'books' ? (isDark ? 'rgba(16,185,129,0.22)' : '#ecfdf5') : 'transparent',
+            color: sourceTypeTab === 'books' ? '#059669' : 'var(--color-text-muted)',
+            fontWeight: 900,
+            fontSize: '0.86rem',
+            cursor: 'pointer',
+            boxShadow: sourceTypeTab === 'books' ? '0 3px 10px rgba(16,185,129,0.2)' : 'none',
+            transition: 'all 0.15s'
+          }}
+        >
+          <span>📚 Kitap Takibi Yanlışları</span>
+          <span style={{
+            fontSize: '0.72rem',
+            fontWeight: 900,
+            padding: '2px 7px',
+            borderRadius: 6,
+            background: sourceTypeTab === 'books' ? '#10b981' : (isDark ? '#334155' : '#e2e8f0'),
+            color: sourceTypeTab === 'books' ? 'white' : 'var(--color-text-muted)'
+          }}>
+            {totalBookWrongs} Yanlış
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTypeTab('exams');
+            if (examMistakes.length > 0) {
+              setSelectedBookId(examMistakes[0].bookId);
+              setSelectedSubject(null);
+              setSelectedUnit('all');
+            }
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+            padding: '8px 16px',
+            borderRadius: 10,
+            border: sourceTypeTab === 'exams' ? '2px solid #6366f1' : '1px solid var(--color-border)',
+            background: sourceTypeTab === 'exams' ? (isDark ? 'rgba(99,102,241,0.22)' : '#eef2ff') : 'transparent',
+            color: sourceTypeTab === 'exams' ? '#4f46e5' : 'var(--color-text-muted)',
+            fontWeight: 900,
+            fontSize: '0.86rem',
+            cursor: 'pointer',
+            boxShadow: sourceTypeTab === 'exams' ? '0 3px 10px rgba(99,102,241,0.2)' : 'none',
+            transition: 'all 0.15s'
+          }}
+        >
+          <span>📊 Deneme Sınavları Yanlışları</span>
+          <span style={{
+            fontSize: '0.72rem',
+            fontWeight: 900,
+            padding: '2px 7px',
+            borderRadius: 6,
+            background: sourceTypeTab === 'exams' ? '#6366f1' : (isDark ? '#334155' : '#e2e8f0'),
+            color: sourceTypeTab === 'exams' ? 'white' : 'var(--color-text-muted)'
+          }}>
+            {totalExamWrongs} Yanlış
+          </span>
+        </button>
+      </div>
+
+      {/* ── 📚 / 📊 1. SEVİYE: KİTAP VEYA DENEME SEÇİM ALANI ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <BookOpen size={15} className="text-emerald-500" />
+          {sourceTypeTab === 'exams' ? (
+            <span style={{ fontSize: '1rem' }}>📊</span>
+          ) : (
+            <BookOpen size={15} className="text-emerald-500" />
+          )}
           <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
-            1. Kitap Seçin ({booksMistakesTree.length} Kitapta Yanlış Var):
+            {sourceTypeTab === 'exams'
+              ? `1. Deneme Sınavı Seçin (${examMistakes.length} Denemede Yanlış Var):`
+              : `1. Kitap Seçin (${bookMistakes.length} Kitapta Yanlış Var):`
+            }
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-          {booksMistakesTree.map(b => {
-            const isSelected = selectedBookId === b.bookId;
-            return (
-              <button
-                key={b.bookId}
-                type="button"
-                onClick={() => {
-                  setSelectedBookId(b.bookId);
-                  setSelectedSubject(null);
-                  setSelectedUnit('all');
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '0.65rem 1.1rem',
-                  borderRadius: 12,
-                  border: isSelected ? '2px solid #10b981' : '1.5px solid var(--color-border)',
-                  background: isSelected ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : 'var(--color-surface)',
-                  color: isSelected ? '#059669' : 'var(--color-text)',
-                  cursor: 'pointer',
-                  fontSize: '0.82rem',
-                  fontWeight: 900,
-                  whiteSpace: 'nowrap',
-                  boxShadow: isSelected ? '0 4px 12px rgba(16,185,129,0.18)' : 'none',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <span>📖 {b.bookTitle}</span>
-                <span style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 900,
-                  padding: '2px 7px',
-                  borderRadius: 6,
-                  background: isSelected ? '#10b981' : (isDark ? '#334155' : '#e2e8f0'),
-                  color: isSelected ? 'white' : 'var(--color-text-muted)'
-                }}>
-                  {b.totalWrong} Yanlış
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {currentCategoryList.length === 0 ? (
+          <div style={{
+            padding: '1.25rem',
+            borderRadius: 12,
+            background: isDark ? 'rgba(30,41,59,0.3)' : '#f8fafc',
+            border: '1px dashed var(--color-border)',
+            color: 'var(--color-text-muted)',
+            fontSize: '0.82rem',
+            textAlign: 'center'
+          }}>
+            {sourceTypeTab === 'exams' ? 'Bu öğrenciye ait kayıtlı deneme sınavı yanlışı bulunmamaktadır.' : 'Bu öğrenciye ait kayıtlı kitap takibi yanlışı bulunmamaktadır.'}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {currentCategoryList.map(b => {
+              const isSelected = selectedBookId === b.bookId;
+              const isExamCard = Boolean(b.isExam);
+              return (
+                <button
+                  key={b.bookId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedBookId(b.bookId);
+                    setSelectedSubject(null);
+                    setSelectedUnit('all');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '0.65rem 1.1rem',
+                    borderRadius: 12,
+                    border: isSelected
+                      ? (isExamCard ? '2px solid #6366f1' : '2px solid #10b981')
+                      : '1.5px solid var(--color-border)',
+                    background: isSelected
+                      ? (isExamCard ? (isDark ? 'rgba(99,102,241,0.22)' : '#eef2ff') : (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5'))
+                      : 'var(--color-surface)',
+                    color: isSelected
+                      ? (isExamCard ? '#4f46e5' : '#059669')
+                      : 'var(--color-text)',
+                    cursor: 'pointer',
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    boxShadow: isSelected ? (isExamCard ? '0 4px 12px rgba(99,102,241,0.2)' : '0 4px 12px rgba(16,185,129,0.18)') : 'none',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <span>{isExamCard ? '📊' : '📖'} {b.bookTitle}</span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 900,
+                    padding: '2px 7px',
+                    borderRadius: 6,
+                    background: isSelected
+                      ? (isExamCard ? '#6366f1' : '#10b981')
+                      : (isDark ? '#334155' : '#e2e8f0'),
+                    color: isSelected ? 'white' : 'var(--color-text-muted)'
+                  }}>
+                    {b.totalWrong} Yanlış
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── 📖 2. SEVİYE: DERS SEÇİM KARTLARI ── */}

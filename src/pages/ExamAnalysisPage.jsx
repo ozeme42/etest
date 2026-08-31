@@ -849,52 +849,72 @@ export default function ExamAnalysisPage() {
 
       </div>
 
-      {/* ── 4-5 LIVE KPI HERO CARDS ── */}
+      {/* ── 5 LIVE KPI HERO CARDS WITH SUCCESS STATUS & NETS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
         
         {/* Card 1: Katılımcı */}
-        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Users size={24} />
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '1rem', background: 'rgba(37,99,235,0.12)', color: '#818cf8', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Users size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{totalParticipants}</div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Toplam Katılımcı</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{totalParticipants} Öğrenci</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Toplam Katılımcı</div>
           </div>
         </div>
 
-        {/* Card 2: Genel Ortalama */}
-        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <TrendingUp size={24} />
+        {/* Card 2: Sınıf Net & Başarı Ortalama */}
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '1rem', background: overallSuccessStatus?.bg || 'rgba(16,185,129,0.12)', color: overallSuccessStatus?.color || '#34d399', border: `1px solid ${overallSuccessStatus?.border || 'rgba(16,185,129,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <TrendingUp size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{overallAvgScore.toFixed(1)} Net</div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Sınıf Net Ortalaması</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{overallAvgScore.toFixed(1)} Net</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: overallSuccessStatus?.color || '#10b981' }}>%{overallSuccessStatus?.pct}</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Ortalama Net &amp; Başarı</div>
           </div>
         </div>
 
-        {/* Card 3: Zirve Net */}
-        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Trophy size={24} />
+        {/* Card 3: Genel Başarı Durumu Rozeti */}
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '1rem', background: overallSuccessStatus?.bg || 'rgba(99,102,241,0.12)', color: overallSuccessStatus?.color || '#6366f1', border: `1px solid ${overallSuccessStatus?.border || 'rgba(99,102,241,0.25)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Activity size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1.1 }}>{maxScore.toFixed(1)} Net</div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>En Yüksek Net (Zirve)</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: overallSuccessStatus?.color || '#6366f1', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>{overallSuccessStatus?.icon}</span>
+              <span>%{overallSuccessStatus?.pct} {overallSuccessStatus?.label}</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Genel Başarı Durumu</div>
           </div>
         </div>
 
-        {/* Card 4: Kapsam / Çözülen Deneme */}
-        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '1rem', background: 'rgba(219,39,119,0.12)', color: '#f472b6', border: '1px solid rgba(219,39,119,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Award size={24} />
+        {/* Card 4: Zirve Net & Zirve Başarı */}
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '1rem', background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Trophy size={22} />
           </div>
           <div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fbbf24', lineHeight: 1.1 }}>{maxScore.toFixed(1)} Net</span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#f59e0b' }}>%{maxSuccessStatus?.pct}</span>
+            </div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>Zirve Net &amp; Başarı</div>
+          </div>
+        </div>
+
+        {/* Card 5: Kapsam / Çözülen Deneme */}
+        <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: '1.15rem', padding: '1.15rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
+          <div style={{ width: '46px', height: '46px', borderRadius: '1rem', background: 'rgba(219,39,119,0.12)', color: '#f472b6', border: '1px solid rgba(219,39,119,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Award size={22} />
+          </div>
+          <div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>
               {isAllExams ? `${totalExamsCompleted} Çözüm` : `${resolvedExam?.subjects?.length || 2} Ders`}
             </div>
-            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '0.2rem' }}>
               {isAllExams ? 'Toplam Çözülen Sınav' : 'Sınav Kapsamı'}
             </div>
           </div>
@@ -1219,9 +1239,19 @@ export default function ExamAnalysisPage() {
                       <span style={{ color: 'var(--color-text-muted)' }}>{subj.avgBlank ?? 0} B</span>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{subj['Ortalama Net']}</div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Ort. Net</div>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38bdf8' }}>{subj['Ortalama Net']} Net</div>
+                    <span style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: 99,
+                      background: subj.successStatus?.bg || 'rgba(16,185,129,0.12)',
+                      color: subj.successStatus?.color || '#10b981',
+                      border: `1px solid ${subj.successStatus?.border || 'rgba(16,185,129,0.3)'}`
+                    }}>
+                      %{subj['Başarı Oranı (%)']} {subj.successStatus?.label}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -1273,6 +1303,7 @@ export default function ExamAnalysisPage() {
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Sınıf / Şube</th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Katılımcı Sayısı</th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#10b981' }}>Ortalama Net</th>
+                    <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#6366f1' }}>Başarı Durumu</th>
                     <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#fbbf24' }}>Zirve Net</th>
                   </tr>
                 </thead>
@@ -1282,6 +1313,22 @@ export default function ExamAnalysisPage() {
                       <td style={{ padding: '0.75rem 1rem', fontWeight: 800, fontSize: '0.88rem' }}>{c.name}</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 800 }}>{c['Öğrenci Sayısı']} Öğrenci</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 900, color: '#10b981', fontSize: '0.95rem' }}>{c['Ortalama Net']} Net</td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: 99,
+                          background: c.successStatus?.bg || 'rgba(16,185,129,0.12)',
+                          color: c.successStatus?.color || '#10b981',
+                          border: `1px solid ${c.successStatus?.border || 'rgba(16,185,129,0.3)'}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          {c.successStatus?.icon} %{c['Başarı (%)']} {c.successStatus?.label}
+                        </span>
+                      </td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 900, color: '#fbbf24', fontSize: '0.95rem' }}>{c['Zirve Net']} Net</td>
                     </tr>
                   ))}
@@ -1323,6 +1370,7 @@ export default function ExamAnalysisPage() {
                     <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#f87171' }}>Ort. Y</th>
                     <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Ort. B</th>
                     <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#38bdf8' }}>Ortalama Net</th>
+                    <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#6366f1' }}>Başarı Durumu</th>
                     <th style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: '#fbbf24' }}>Zirve Net</th>
                     <th style={{ padding: '0.85rem 1rem', textAlign: 'right', fontSize: '0.75rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Karne</th>
                   </tr>
@@ -1363,7 +1411,28 @@ export default function ExamAnalysisPage() {
                         {std.totalEmpty}
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, fontSize: '1rem', color: '#38bdf8' }}>
-                        {std.avgScore.toFixed(2)}
+                        {std.avgScore.toFixed(2)} Net
+                      </td>
+                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 900,
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: 99,
+                            background: std.successStatus?.bg || 'rgba(16,185,129,0.12)',
+                            color: std.successStatus?.color || '#10b981',
+                            border: `1px solid ${std.successStatus?.border || 'rgba(16,185,129,0.3)'}`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            {std.successStatus?.icon} %{std.successStatus?.pct} {std.successStatus?.label}
+                          </span>
+                          <div style={{ width: '65px', height: 4, borderRadius: 99, background: 'var(--color-border)', overflow: 'hidden' }}>
+                            <div style={{ width: `${std.successStatus?.pct || 0}%`, height: '100%', background: std.successStatus?.color || '#10b981', borderRadius: 99 }} />
+                          </div>
+                        </div>
                       </td>
                       <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center', fontWeight: 900, fontSize: '0.92rem', color: '#fbbf24' }}>
                         {std.maxScore.toFixed(2)}
@@ -1548,7 +1617,7 @@ export default function ExamAnalysisPage() {
             <div style={{ padding: '1.5rem 1.6rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
               {/* Summary KPIs */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
                 <div style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#34d399' }}>{selectedStudent.totalCorrect}</div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase' }}>Ort. Doğru</div>
@@ -1565,26 +1634,43 @@ export default function ExamAnalysisPage() {
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#38bdf8' }}>{selectedStudent.avgScore.toFixed(2)}</div>
                   <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase' }}>Genel Net</div>
                 </div>
+                <div style={{ background: selectedStudent.successStatus?.bg || 'rgba(99,102,241,0.12)', border: `1px solid ${selectedStudent.successStatus?.border || 'rgba(99,102,241,0.25)'}`, borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: selectedStudent.successStatus?.color || '#6366f1' }}>
+                    %{selectedStudent.successStatus?.pct}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: selectedStudent.successStatus?.color || '#6366f1', textTransform: 'uppercase' }}>
+                    {selectedStudent.successStatus?.label}
+                  </div>
+                </div>
               </div>
 
               {/* Subject Breakdown */}
               {Object.keys(selectedStudent.combinedSubjectStats).length > 0 && (
                 <div>
                   <h4 style={{ margin: '0 0 0.65rem 0', fontSize: '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    Ders Bazlı Net Ortalamaları
+                    Ders Bazlı Net Ortalamaları &amp; Başarı Oranları
                   </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem' }}>
-                    {Object.entries(selectedStudent.combinedSubjectStats).map(([subjName, sObj]) => (
-                      <div key={subjName} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem 0.85rem' }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{subjName}</div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.35rem', fontSize: '0.75rem', fontWeight: 800 }}>
-                          <span style={{ color: '#34d399' }}>{sObj.correct || 0}D</span>
-                          <span style={{ color: '#f87171' }}>{sObj.wrong || 0}Y</span>
-                          <span style={{ color: 'var(--color-text-muted)' }}>{sObj.blank || 0}B</span>
-                          <span style={{ color: '#38bdf8', fontWeight: 900 }}>{sObj.net?.toFixed(2) || 0} Net</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
+                    {Object.entries(selectedStudent.combinedSubjectStats).map(([subjName, sObj]) => {
+                      const qCnt = sObj.count || 15;
+                      const subPct = qCnt > 0 ? Math.max(0, Math.min(100, Math.round(((sObj.net || 0) / qCnt) * 100))) : 0;
+                      return (
+                        <div key={subjName} style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem 0.85rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>{subjName}</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: subPct >= 70 ? '#10b981' : subPct >= 50 ? '#f59e0b' : '#ef4444' }}>
+                              %{subPct} Başarı
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.4rem', fontSize: '0.75rem', fontWeight: 800 }}>
+                            <span style={{ color: '#34d399' }}>{sObj.correct || 0}D</span>
+                            <span style={{ color: '#f87171' }}>{sObj.wrong || 0}Y</span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>{sObj.blank || 0}B</span>
+                            <span style={{ color: '#38bdf8', fontWeight: 900 }}>{sObj.net?.toFixed(2) || 0} Net</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
