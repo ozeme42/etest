@@ -5,6 +5,22 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { triggerHapticFeedback } from '../services/nativeMobileService';
 
+// Tıklamadan önce chunk'ı yükle (touchstart → preload → click → anında açılır)
+const PAGE_PRELOADS = {
+  '/student': () => import('../pages/StudentDashboard'),
+  '/goals': () => import('../pages/GoalsAndSchedulePage'),
+  '/student/books': () => import('../pages/StudentBooksPage'),
+  '/student/program': () => import('../pages/StudentProgramPage'),
+  '/my-program': () => import('../pages/StudentProgramPage'),
+  '/student-results': () => import('../pages/StudentResultsPage'),
+  '/teacher': () => import('../pages/TeacherDashboard'),
+  '/admin': () => import('../pages/AdminDashboard'),
+  '/homeworks': () => import('../pages/HomeworkManager'),
+  '/questions': () => import('../pages/QuestionBank'),
+  '/books': () => import('../pages/BookManager'),
+  '/physical-exam': () => import('../pages/PhysicalExamRunner'),
+};
+
 export default function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,6 +75,9 @@ export default function MobileBottomNav() {
   const handleTabClick = (path) => {
     triggerHapticFeedback('light');
     navigate(path);
+  };
+  const handlePreload = (path) => {
+    try { PAGE_PRELOADS[path]?.(); } catch {}
   };
 
   return (

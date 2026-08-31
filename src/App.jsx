@@ -102,6 +102,30 @@ import { isHomeworkForStudent } from './utils/testResolver';
 import { toUUID } from './services/supabaseService';
 import './App.css';
 
+// Sayfa JS dosyalarını arka planda önceden yükle → tıklayınca anında açılır
+const preloadAllPages = () => {
+  const pages = [
+    () => import('./pages/StudentDashboard'),
+    () => import('./pages/TeacherDashboard'),
+    () => import('./pages/AdminDashboard'),
+    () => import('./pages/StudentBooksPage'),
+    () => import('./pages/StudentBookDetailsPage'),
+    () => import('./pages/StudentHomeworksPage'),
+    () => import('./pages/GoalsAndSchedulePage'),
+    () => import('./pages/StudentResultsPage'),
+    () => import('./pages/StudentProgramPage'),
+    () => import('./pages/MyCoachingPage'),
+    () => import('./pages/HomeworkManager'),
+    () => import('./pages/EvaluationManager'),
+    () => import('./pages/QuestionBank'),
+    () => import('./pages/StudyRoomPage'),
+    () => import('./pages/StudentSummaryPage'),
+    () => import('./pages/StatisticsDashboard'),
+  ];
+  // Her 200ms'de bir sayfa yükle — ağı ve CPU'yu bloklama
+  pages.forEach((load, i) => setTimeout(load, 2000 + i * 200));
+};
+
 // Route guards: redirects to '/' if user is not logged in or doesn't have the required role
 function RequireAuth({ children }) {
   const { currentUser } = useAuth();
@@ -639,6 +663,8 @@ function AppContent() {
 
   useEffect(() => {
     initNativeApp(navigate);
+    // Kullanıcı giriş yaptıysa tüm sayfa JS'lerini arka planda yükle
+    if (currentUser) preloadAllPages();
 
     const handleWidgetNavigate = (e) => {
       const targetUrl = e?.detail?.url;
