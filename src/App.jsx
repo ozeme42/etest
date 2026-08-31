@@ -13,12 +13,17 @@ import CommandPalette from './components/CommandPalette';
 import { useTheme } from './context/ThemeContext';
 import { useMediaQuery } from './hooks/useMediaQuery';
 
-// Lazy Loaded Pages
-const Landing = lazy(() => import('./pages/Landing'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
-const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
-const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
+// Core Primary Pages (Direct static import = 0ms instant transition, zero Suspense delay)
+import StudentDashboard from './pages/StudentDashboard';
+import StudentBooksPage from './pages/StudentBooksPage';
+import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
+import StudentProgramPage from './pages/StudentProgramPage';
+import StudentResultsPage from './pages/StudentResultsPage';
+import TeacherDashboard from './pages/TeacherDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import Landing from './pages/Landing';
+
+// Secondary / Heavy Lazy Loaded Pages
 const StudentBookDetailsPage = lazy(() => import('./pages/StudentBookDetailsPage'));
 const HomeworkManager = lazy(() => import('./pages/HomeworkManager'));
 const RemedialTrackerPage = lazy(() => import('./pages/RemedialTrackerPage'));
@@ -32,8 +37,6 @@ const BookContentManager = lazy(() => import('./pages/BookContentManager'));
 const StudyPlanManager = lazy(() => import('./pages/StudyPlanManager'));
 const StudyPlanDetail = lazy(() => import('./pages/StudyPlanDetail'));
 const StatisticsDashboard = lazy(() => import('./pages/StatisticsDashboard'));
-const GoalsAndSchedulePage = lazy(() => import('./pages/GoalsAndSchedulePage'));
-const StudentResultsPage = lazy(() => import('./pages/StudentResultsPage'));
 const StudentExamsPage = lazy(() => import('./pages/StudentExamsPage'));
 const StudentWrongAnswersPage = lazy(() => import('./pages/StudentWrongAnswersPage'));
 const StudentStudyPlanView = lazy(() => import("./pages/StudentStudyPlanView"));
@@ -43,7 +46,6 @@ const ExamManager = lazy(() => import('./pages/ExamManager'));
 const ExamAnalysisPage = lazy(() => import('./pages/ExamAnalysisPage'));
 const PhysicalExamRunner = lazy(() => import('./pages/PhysicalExamRunner'));
 const TrackedBookQuizRunner = lazy(() => import('./pages/TrackedBookQuizRunner'));
-const StudentProgramPage = lazy(() => import('./pages/StudentProgramPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const ScalePage = lazy(() => import('./pages/ScalePage'));
 const SummaryManagerPage = lazy(() => import('./pages/SummaryManagerPage'));
