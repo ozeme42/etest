@@ -1239,23 +1239,35 @@ export default function BookContentManager() {
     const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
 
     // Test bazında tip tespiti (karma kitaplar için)
-    const hasKey = (Array.isArray(test.answerKey) && test.answerKey.length > 0) ||
-                   (typeof test.answerKey === 'string' && test.answerKey.trim().length > 0) ||
-                   (typeof test.answerKey === 'object' && test.answerKey !== null && Object.keys(test.answerKey).length > 0 && test.answerKey.__meta?.isOpenEnded !== true);
-    const isExplicitMC = test.questionType === 'coktan_secmeli' || test.question_type === 'coktan_secmeli' || hasKey;
-
-    const testIsOpenEnded = !isExplicitMC && Boolean(
+    const ansMeta = test.answerKey?.__meta || test.answer_key?.__meta || {};
+    const isExplicitOE = Boolean(
       test.isOpenEnded === true ||
       test.is_open_ended === true ||
       test.questionType === 'acik_uclu' ||
       test.question_type === 'acik_uclu' ||
-      test.answerKey?.__meta?.isOpenEnded === true ||
-      test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-      (book?.bookType === 'open_ended') ||
-      (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name))
+      ansMeta.isOpenEnded === true ||
+      ansMeta.questionType === 'acik_uclu' ||
+      (book?.bookType === 'open_ended')
     );
 
-    const testQuestionType = testIsOpenEnded ? 'acik_uclu' : (test.questionType || test.question_type || 'coktan_secmeli');
+    const isExplicitMC = !isExplicitOE && Boolean(
+      test.isOpenEnded === false ||
+      test.is_open_ended === false ||
+      test.questionType === 'coktan_secmeli' ||
+      test.question_type === 'coktan_secmeli' ||
+      ansMeta.isOpenEnded === false ||
+      ansMeta.questionType === 'coktan_secmeli'
+    );
+
+    const hasOptionLetters = Object.entries(test.answerKey || test.answer_key || {}).some(([k, v]) => 
+      k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim())
+    );
+
+    const testIsOpenEnded = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
+      (test.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(test.name))
+    ));
+
+    const testQuestionType = testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli';
 
     setTestFormData({
       name: test.name || '',
@@ -1280,6 +1292,17 @@ export default function BookContentManager() {
     const isOe = testFormData.isOpenEnded === true || testFormData.questionType === 'acik_uclu';
     const qType = isOe ? 'acik_uclu' : 'coktan_secmeli';
 
+    const rawAnsKey = testFormData.answerKey || {};
+    const ansMeta = rawAnsKey.__meta || {};
+    const enrichedAnswerKey = {
+      ...rawAnsKey,
+      __meta: {
+        ...ansMeta,
+        isOpenEnded: isOe,
+        questionType: qType
+      }
+    };
+
     const testPayload = {
       bookId: String(book.id),
       subjectId: targetSubjectId ? String(targetSubjectId) : null,
@@ -1288,29 +1311,51 @@ export default function BookContentManager() {
       questionCount: Number(testFormData.questionCount) || 20,
       pdfUrl: testFormData.pdfUrl || '',
       isOpenEnded: isOe,
+      is_open_ended: isOe,
       questionType: qType,
-      answerKey: testFormData.answerKey || {},
+      question_type: qType,
+      answerKey: enrichedAnswerKey,
+      answer_key: enrichedAnswerKey
     };
 
     try {
       if (currentTest) {
         setLocalLiveTests(prev => (prev || []).map(t => String(t.id) === String(currentTest.id) ? { ...t, ...testPayload } : t));
         await updateTrackedBookTest(currentTest.id, testPayload);
-        showToast('Test başarıyla güncellendi.', 'success');
       } else {
         const added = await addTrackedBookTest(book.id, testPayload);
         if (added) {
           setLocalLiveTests(prev => [...(prev || []), added]);
         }
-        showToast('Yeni test başarıyla eklendi.', 'success');
       }
 
-      // If test is open-ended and book was standard, automatically update book to mixed
-      if (isOe && book.bookType === 'standard') {
-        setLocalLiveBook(prev => prev ? ({ ...prev, bookType: 'mixed' }) : prev);
-        await updateTrackedBook(book.id, { bookType: 'mixed' });
-      }
+      // Also persist to embedded subjects inside the book object
+      const updatedSubjects = (book.subjects || []).map(s => {
+        const newTests = (s.tests || []).map(t => {
+          if (currentTest && (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase())) {
+            return { ...t, ...testPayload };
+          }
+          return t;
+        });
 
+        const newTopics = (s.topics || []).map(tp => {
+          const newTpTests = (tp.tests || []).map(t => {
+            if (currentTest && (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase())) {
+              return { ...t, ...testPayload };
+            }
+            return t;
+          });
+          return { ...tp, tests: newTpTests };
+        });
+
+        return { ...s, tests: newTests, topics: newTopics };
+      });
+
+      const newBookType = isOe && book.bookType === 'standard' ? 'mixed' : (book.bookType || 'mixed');
+      setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects, bookType: newBookType }) : prev);
+      await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType });
+
+      showToast(currentTest ? 'Test başarıyla güncellendi ve kaydedildi.' : 'Yeni test başarıyla eklendi.', 'success');
       setIsTestDialogOpen(false);
     } catch (err) {
       console.error(err);

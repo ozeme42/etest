@@ -337,6 +337,7 @@ export function TrackedBookProvider({ children }) {
     });
 
     // Also update embedded test in books subjects/topics
+    let bookToPersist = null;
     setBooks(prevBooks => {
       const nextBooks = prevBooks.map(b => {
         let changed = false;
@@ -366,11 +367,20 @@ export function TrackedBookProvider({ children }) {
           });
           return sChanged || newTopics !== s.topics ? { ...s, tests: newTests, topics: newTopics } : s;
         });
-        return changed ? { ...b, subjects: newSubjects } : b;
+        if (changed) {
+          const updatedBook = { ...b, subjects: newSubjects };
+          bookToPersist = updatedBook;
+          return updatedBook;
+        }
+        return b;
       });
       safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
       return nextBooks;
     });
+
+    if (bookToPersist) {
+      await dbUpdateTrackedBook(bookToPersist.id, { subjects: bookToPersist.subjects });
+    }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('tracked-book-tests-updated', { detail: { testId: id, test: updatedObj } }));
