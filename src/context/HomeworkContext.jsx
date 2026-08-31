@@ -1,4 +1,4 @@
-﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { dbGetHomeworks, dbAddHomework, dbDeleteHomework, dbClearHomeworkSubmissionsForStudent, dbDeleteBookSubmissionsForEveryone, dbDeleteSubmissionsByIds, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -98,17 +98,20 @@ export function HomeworkProvider({ children }) {
 
     if (!isSupabaseConfigured() || !supabase) return;
 
-    // Real-time synchronization: Instant update when teacher assigns or edits homework
+    // Realtime: değişiklikleri 2 saniye biriktir, tek seferde çek
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => refreshHomeworks(true), 2000);
+    };
+
     const hwChannel = supabase
       .channel('realtime_homeworks_sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'homeworks' }, () => {
-        refreshHomeworks(true);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'homeworks' }, debouncedRefresh)
       .subscribe();
 
-
-
     return () => {
+      clearTimeout(debounceTimer);
       try {
         supabase.removeChannel(hwChannel);
       } catch {}

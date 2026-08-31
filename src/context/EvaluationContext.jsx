@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
@@ -254,6 +254,12 @@ export function EvaluationProvider({ children }) {
   useEffect(() => {
     if (!isSupabaseConfigured() || !supabase) return;
 
+    let debounceTimer = null;
+    const debouncedSync = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => syncFromSupabase(false, true), 2000);
+    };
+
     const subChannel = supabase
       .channel('realtime_submissions_sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'submissions' }, (payload) => {
@@ -273,15 +279,14 @@ export function EvaluationProvider({ children }) {
             });
           }
         } else if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          // Instant real-time update when student solves test or teacher reviews test
-          syncFromSupabase(false, true);
+          // 2 saniye biriktir, tek seferde çek
+          debouncedSync();
         }
       })
       .subscribe();
 
-
-
     return () => {
+      clearTimeout(debounceTimer);
       try {
         supabase.removeChannel(subChannel);
       } catch {}

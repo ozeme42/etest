@@ -1,4 +1,4 @@
-﻿import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   dbGetTrackedBooks,
@@ -117,20 +117,21 @@ export function TrackedBookProvider({ children }) {
 
     if (!isSupabaseConfigured() || !supabase) return;
 
-    // Real-time synchronization: Instant updates when teacher edits books or tests
+    // İki tablo da aynı debounce'ı paylaşır — birden fazla değişiklik gelirse tek fetch
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => refreshTrackedBooks(true), 2000);
+    };
+
     const bookChannel = supabase
       .channel('realtime_books_sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_books' }, () => {
-        refreshTrackedBooks(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_book_tests' }, () => {
-        refreshTrackedBooks(true);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_books' }, debouncedRefresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tracked_book_tests' }, debouncedRefresh)
       .subscribe();
 
-
-
     return () => {
+      clearTimeout(debounceTimer);
       try {
         supabase.removeChannel(bookChannel);
       } catch {}
