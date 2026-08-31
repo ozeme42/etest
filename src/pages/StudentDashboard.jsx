@@ -2408,7 +2408,10 @@ export default function StudentDashboard() {
       }
     };
 
-    // HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ GÖREVLER
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ GÖREVLER
     const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
     DAYS_OF_WEEK.forEach((d, idx) => {
       if (idx < todayIdx) {
@@ -2433,8 +2436,32 @@ export default function StudentDashboard() {
       }
     });
 
+    // 2. ATANMIŞ ÖDEVLERDEN / KİTAP GÖREVLERİNDEN TARİHİ GEÇMİŞ TÜM GÖREVLER
+    (tests || []).forEach(t => {
+      const isDone = t.status === 'Sonuçlandı' || t.status === 'Tamamlandı' || t.isDone || isItemSolved(t) || isTaskDismissed(t);
+      if (!isDone) {
+        const dueDateObj = parseSafeDate(t.dueDate || t.assignedDueDate || t.testDueDate || t.date);
+        if (dueDateObj && dueDateObj < now) {
+          if (!isAlreadySeen(t)) {
+            addKeysToSeen(t);
+            const dueFormatted = dueDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short' });
+            list.push({
+              ...t,
+              id: t.id || t.testId || t.hwId,
+              title: t.title || t.testName || t.name,
+              testName: t.testName || t.name || t.title,
+              categoryType: t.categoryType || (t.isBookTask || t.sourceType === 'trackedBook' ? 'kitap' : (t.isExamTask || t.type === 'physicalExam' ? 'deneme' : 'ödev')),
+              isCatchUp: true,
+              dueDateStr: dueFormatted,
+              reason: `${dueFormatted} tarihli geciken görev`
+            });
+          }
+        }
+      }
+    });
+
     return sortItemsByBookOrder(list, books, bookTests);
-  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests]);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, tests]);
 
   // ── 📱 3 AYRI ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
   useEffect(() => {
