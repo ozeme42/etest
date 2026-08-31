@@ -2819,35 +2819,9 @@ export default function BookContentManager() {
                                 initialDates[`bt_${sClean}`] = formatted;
                               };
 
-                              // 1. From this homework
+                              // 1. From this specific homework only (isolated per student/homework)
                               const hwDates = hw.testDueDates || hw.raw_data?.testDueDates || hw.scheduleDates || hw.raw_data?.scheduleDates || {};
                               Object.entries(hwDates).forEach(([tid, d]) => addDateEntry(tid, d));
-
-                              // 2. From other homeworks matching this book
-                              (allHomeworks || []).filter(h => h.isBookAssignment && (String(h.bookId || h.book_id) === String(book?.id) || toUUID(h.bookId) === toUUID(book?.id))).forEach(h => {
-                                const hDueDates = h.testDueDates || h.raw_data?.testDueDates || h.scheduleDates || h.raw_data?.scheduleDates || {};
-                                Object.entries(hDueDates).forEach(([tid, d]) => addDateEntry(tid, d));
-                              });
-
-                              // 3. From bookTests
-                              (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(book?.id) || toUUID(bt.bookId) === toUUID(book?.id)).forEach(bt => {
-                                const d = bt.dueDate || bt.testDueDate || bt.date || bt.raw_data?.dueDate;
-                                addDateEntry(bt.id, d);
-                              });
-
-                              // 4. From book.subjects & topics
-                              (book?.subjects || []).forEach(s => {
-                                (s.tests || []).forEach(t => {
-                                  const d = t.dueDate || t.testDueDate || t.date;
-                                  addDateEntry(t.id, d);
-                                });
-                                (s.topics || []).forEach(tp => {
-                                  (tp.tests || []).forEach(t => {
-                                    const d = t.dueDate || t.testDueDate || t.date;
-                                    addDateEntry(t.id, d);
-                                  });
-                                });
-                              });
 
                               setScheduleDates(initialDates);
                               setAutoStartDate(new Date().toISOString().split('T')[0]);
@@ -4940,71 +4914,21 @@ export default function BookContentManager() {
                         }
                       });
 
-                      // 1. Update homework in HomeworkContext (and Supabase homeworks table)
-                      if (typeof updateHomework === 'function') {
-                        const matchingHws = (allHomeworks || []).filter(h => 
-                          h.id === scheduleModalHw?.id || 
-                          (scheduleModalHw?.id && toUUID(h.id) === toUUID(scheduleModalHw.id)) ||
-                          (h.isBookAssignment && (String(h.bookId) === String(book?.id) || toUUID(h.bookId) === toUUID(book?.id)))
-                        );
-                        if (matchingHws.length > 0) {
-                          for (const h of matchingHws) {
-                            await updateHomework(h.id, {
-                              test_due_dates: cleanedScheduleDates,
-                              testDueDates: cleanedScheduleDates,
-                              scheduleDates: cleanedScheduleDates
-                            });
-                          }
-                        } else if (scheduleModalHw?.id) {
-                          await updateHomework(scheduleModalHw.id, {
-                            test_due_dates: cleanedScheduleDates,
-                            testDueDates: cleanedScheduleDates,
-                            scheduleDates: cleanedScheduleDates
-                          });
-                        }
+                      // 1. Update homework in HomeworkContext (and Supabase homeworks table) - ONLY for this specific assigned homework
+                      if (typeof updateHomework === 'function' && scheduleModalHw?.id) {
+                        await updateHomework(scheduleModalHw.id, {
+                          test_due_dates: cleanedScheduleDates,
+                          testDueDates: cleanedScheduleDates,
+                          scheduleDates: cleanedScheduleDates
+                        });
                       }
 
-                      // Clear any dismissed catch-up tasks so newly planned tests are immediately visible
+                      // Clear any dismissed catch-up tasks so newly planned tests are immediately visible for this student
                       try {
                         const stdId = scheduleModalHw?.studentId || scheduleModalHw?.student_id || scheduleModalHw?.targetIds?.[0];
                         if (stdId) localStorage.removeItem(`dismissed_tasks_${stdId}`);
                         localStorage.removeItem('dismissed_tasks_default');
                       } catch {}
-
-                      // 2. Save dates directly to tracked_book_tests in TrackedBookContext (and Supabase tracked_book_tests table)
-                      if (typeof batchSaveTrackedBookTests === 'function' && Object.keys(cleanedScheduleDates).length > 0) {
-                        const testsToUpdate = tests.map(t => {
-                          const d = getScheduleDateVal(t.id);
-                          return d ? {
-                            ...t,
-                            dueDate: d,
-                            testDueDate: d,
-                            date: d
-                          } : null;
-                        }).filter(Boolean);
-                        if (testsToUpdate.length > 0) {
-                          await batchSaveTrackedBookTests(testsToUpdate);
-                        }
-                      }
-
-                      // 3. Update book.subjects tests inside the book object
-                      if (typeof updateTrackedBook === 'function' && book?.id) {
-                        const updatedSubjects = (book.subjects || []).map(s => ({
-                          ...s,
-                          tests: (s.tests || []).map(t => {
-                            const d = getScheduleDateVal(t.id);
-                            return d ? { ...t, dueDate: d, testDueDate: d } : t;
-                          }),
-                          topics: (s.topics || []).map(tp => ({
-                            ...tp,
-                            tests: (tp.tests || []).map(t => {
-                              const d = getScheduleDateVal(t.id);
-                              return d ? { ...t, dueDate: d, testDueDate: d } : t;
-                            })
-                          }))
-                        }));
-                        await updateTrackedBook(book.id, { subjects: updatedSubjects });
-                      }
 
                       showToast('Test bazlı bitirme tarihleri veritabanına başarıyla kaydedildi! 🎉');
                       setScheduleModalHw(null);

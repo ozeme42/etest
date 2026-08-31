@@ -2058,12 +2058,6 @@ export default function StudentDashboard() {
             ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
           };
 
-          // Merge dates from bookTests if matching this book
-          (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId) || toUUID(bt.bookId) === toUUID(hw.bookId)).forEach(bt => {
-            const d = bt.dueDate || bt.testDueDate || bt.date;
-            if (d && !testDueDatesMap[bt.id]) testDueDatesMap[bt.id] = d;
-          });
-
           if (isBook) {
             // Collect all genuine tests belonging to this book
             const allGenuineTests = [];
