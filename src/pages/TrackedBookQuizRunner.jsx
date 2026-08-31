@@ -15,9 +15,9 @@ import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndS
 import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
-  PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, 
+  PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
-  Flag, RotateCcw, Cloud, Save, Sun, Moon
+  Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
@@ -867,6 +867,53 @@ export default function TrackedBookQuizRunner() {
     });
   };
 
+  const inputRefs = useRef({});
+  const [activeFocusedQ, setActiveFocusedQ] = useState(null);
+
+  const scrollToQuestion = (qNum) => {
+    setTimeout(() => {
+      const el = inputRefs.current[qNum] || document.getElementById(`oe-question-box-${qNum}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
+    }, 80);
+  };
+
+  const handleInputFocus = (qNum) => {
+    setActiveFocusedQ(qNum);
+    scrollToQuestion(qNum);
+  };
+
+  const goToNextQuestion = (currentQ) => {
+    const nextQ = currentQ + 1;
+    const maxQ = questionCount || 20;
+    if (nextQ <= maxQ) {
+      setActiveFocusedQ(nextQ);
+      const nextInput = inputRefs.current[nextQ];
+      if (nextInput) {
+        nextInput.focus();
+        scrollToQuestion(nextQ);
+      }
+    } else {
+      if (inputRefs.current[currentQ]) {
+        inputRefs.current[currentQ].blur();
+      }
+      setActiveFocusedQ(null);
+    }
+  };
+
+  const goToPrevQuestion = (currentQ) => {
+    const prevQ = currentQ - 1;
+    if (prevQ >= 1) {
+      setActiveFocusedQ(prevQ);
+      const prevInput = inputRefs.current[prevQ];
+      if (prevInput) {
+        prevInput.focus();
+        scrollToQuestion(prevQ);
+      }
+    }
+  };
+
   const handleOpenEndedChange = (qNum, text) => {
     if (isSubmitted || isTeacherReviewing) return;
     setAnswers(prev => {
@@ -1605,10 +1652,12 @@ export default function TrackedBookQuizRunner() {
                 borderRadius: '1.25rem',
                 border: '1.5px solid var(--color-border)',
                 padding: isMobile ? '0.9rem' : '1.25rem',
+                paddingBottom: (isMobile && isOpenEnded && activeFocusedQ !== null && !isSubmitted) ? '14rem' : (isMobile ? '0.9rem' : '1.25rem'),
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
-                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+                boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
+                transition: 'padding-bottom 0.2s ease'
               }}>
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -1674,37 +1723,50 @@ export default function TrackedBookQuizRunner() {
                               const isOeCorrect = isOeMatch === true;
                               const isOeWrong = isOeMatch === false;
                               const isOePending = isSubmitted && !hasKey && selected;
+                              const isFocused = activeFocusedQ === qNo;
 
                               return (
-                                <div key={qNo} style={{
-                                  background: isOeCorrect ? 'rgba(22,163,74,0.08)'
-                                    : isOeWrong ? 'rgba(220,38,38,0.06)'
-                                    : isOePending ? 'rgba(245,158,11,0.08)'
-                                    : selected ? 'rgba(37,99,235,0.07)'
-                                    : 'var(--color-surface-hover)',
-                                  padding: isVeryNarrow ? '0.65rem 0.75rem' : '0.85rem 1rem',
-                                  borderRadius: '1rem',
-                                  border: isOeCorrect ? '1.5px solid #bbf7d0'
-                                    : isOeWrong ? '1.5px solid #fecaca'
-                                    : isOePending ? '1.5px solid #fde68a'
-                                    : selected ? '1.5px solid #93c5fd'
-                                    : '1.5px solid var(--color-border)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: 6,
-                                  boxSizing: 'border-box',
-                                  width: '100%',
-                                  transition: 'all 0.15s ease'
-                                }}>
+                                <div
+                                  key={qNo}
+                                  id={`oe-question-box-${qNo}`}
+                                  style={{
+                                    background: isFocused ? 'rgba(99,102,241,0.09)'
+                                      : isOeCorrect ? 'rgba(22,163,74,0.08)'
+                                      : isOeWrong ? 'rgba(220,38,38,0.06)'
+                                      : isOePending ? 'rgba(245,158,11,0.08)'
+                                      : selected ? 'rgba(37,99,235,0.07)'
+                                      : 'var(--color-surface-hover)',
+                                    padding: isVeryNarrow ? '0.65rem 0.75rem' : '0.85rem 1rem',
+                                    borderRadius: '1rem',
+                                    border: isFocused ? '2px solid #6366f1'
+                                      : isOeCorrect ? '1.5px solid #bbf7d0'
+                                      : isOeWrong ? '1.5px solid #fecaca'
+                                      : isOePending ? '1.5px solid #fde68a'
+                                      : selected ? '1.5px solid #93c5fd'
+                                      : '1.5px solid var(--color-border)',
+                                    boxShadow: isFocused ? '0 0 0 4px rgba(99,102,241,0.18)' : 'none',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 6,
+                                    boxSizing: 'border-box',
+                                    width: '100%',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
                                   {/* Soru no + durum rozeti */}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                       {flagged[qNo] && !isSubmitted && (
                                         <Flag size={12} color="#d97706" fill="#d97706" />
                                       )}
-                                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>
-                                        {qNo}.
+                                      <span style={{ fontWeight: 900, fontSize: '0.85rem', color: isFocused ? '#6366f1' : 'var(--color-text)' }}>
+                                        {qNo}. Soru
                                       </span>
+                                      {isFocused && (
+                                        <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#6366f1', background: 'rgba(99,102,241,0.15)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>
+                                          Yazılıyor ✍️
+                                        </span>
+                                      )}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                       {isOeCorrect && (
@@ -1718,6 +1780,7 @@ export default function TrackedBookQuizRunner() {
                                       )}
                                       {!isSubmitted && (
                                         <button
+                                          type="button"
                                           onClick={() => toggleFlag(qNo)}
                                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
                                           title={flagged[qNo] ? 'İşareti Kaldır' : 'Soruyu İşaretle'}
@@ -1728,29 +1791,69 @@ export default function TrackedBookQuizRunner() {
                                     </div>
                                   </div>
 
-                                  {/* Cevap input alanı */}
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    disabled={isSubmitted}
-                                    value={selected}
-                                    onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                    placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap (boş bırakılabilir)'}
-                                    style={{
-                                      width: '100%',
-                                      background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
-                                      border: `1.5px solid ${isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)'}`,
-                                      borderRadius: 8,
-                                      padding: '0.45rem 0.65rem',
-                                      color: 'var(--color-text)',
-                                      fontSize: '0.95rem',
-                                      fontWeight: 700,
-                                      fontFamily: "'JetBrains Mono', monospace",
-                                      boxSizing: 'border-box',
-                                      outline: 'none',
-                                      letterSpacing: '0.04em'
-                                    }}
-                                  />
+                                  {/* Cevap input alanı + Hızlı İleri Butonu */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <input
+                                      ref={el => { inputRefs.current[qNo] = el; }}
+                                      type="text"
+                                      inputMode="decimal"
+                                      enterKeyHint={qNo === (questionCount || 20) ? "done" : "next"}
+                                      disabled={isSubmitted || isTeacherReviewing}
+                                      value={selected}
+                                      onFocus={() => handleInputFocus(qNo)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          goToNextQuestion(qNo);
+                                        }
+                                      }}
+                                      onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                      placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap giriniz...'}
+                                      style={{
+                                        flex: 1,
+                                        width: '100%',
+                                        background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                                        border: `1.5px solid ${isFocused ? '#6366f1' : (isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)')}`,
+                                        borderRadius: 8,
+                                        padding: '0.55rem 0.75rem',
+                                        color: 'var(--color-text)',
+                                        fontSize: '1rem',
+                                        fontWeight: 800,
+                                        fontFamily: "'JetBrains Mono', monospace",
+                                        boxSizing: 'border-box',
+                                        outline: 'none',
+                                        letterSpacing: '0.04em'
+                                      }}
+                                    />
+
+                                    {!isSubmitted && (
+                                      <button
+                                        type="button"
+                                        tabIndex={-1}
+                                        onMouseDown={e => e.preventDefault()}
+                                        onClick={() => goToNextQuestion(qNo)}
+                                        style={{
+                                          padding: '0.55rem 0.75rem',
+                                          borderRadius: 8,
+                                          border: '1.5px solid #818cf8',
+                                          background: isFocused ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
+                                          color: isFocused ? 'white' : 'var(--color-text)',
+                                          fontWeight: 900,
+                                          fontSize: '0.75rem',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          flexShrink: 0,
+                                          boxShadow: isFocused ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                                        }}
+                                        title={qNo === (questionCount || 20) ? "Girişi Tamamla" : "Sonraki Soru"}
+                                      >
+                                        <span>{qNo === (questionCount || 20) ? 'Tamam' : 'İleri'}</span>
+                                        <ChevronRight size={14} />
+                                      </button>
+                                    )}
+                                  </div>
 
                                   {/* Doğru cevabı göster ve AI Çözüm butonu (gönderim sonrası) */}
                                   {isSubmitted && (
@@ -2353,6 +2456,136 @@ export default function TrackedBookQuizRunner() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE OPEN-ENDED FLOATING KEYBOARD ACCESSORY BAR ── */}
+      {isMobile && isOpenEnded && activeFocusedQ !== null && !isSubmitted && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 99999,
+          background: 'var(--color-surface)',
+          borderTop: '2px solid var(--color-border)',
+          boxShadow: '0 -8px 24px rgba(0,0,0,0.18)',
+          padding: '0.6rem 0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.5rem',
+          backdropFilter: 'blur(12px)',
+          animation: 'slideUp 0.15s ease-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => goToPrevQuestion(activeFocusedQ)}
+              disabled={activeFocusedQ <= 1}
+              style={{
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.65rem',
+                border: '1.5px solid var(--color-border-input)',
+                background: 'var(--color-surface-hover)',
+                color: activeFocusedQ <= 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: activeFocusedQ <= 1 ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                opacity: activeFocusedQ <= 1 ? 0.5 : 1
+              }}
+            >
+              <ChevronLeft size={16} />
+              <span>Geri</span>
+            </button>
+
+            <div style={{
+              padding: '0.4rem 0.7rem',
+              borderRadius: '0.65rem',
+              background: 'rgba(99,102,241,0.12)',
+              border: '1px solid #818cf8',
+              color: '#6366f1',
+              fontWeight: 900,
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5
+            }}>
+              <span>Soru {activeFocusedQ} / {questionCount || 20}</span>
+              {answers[activeFocusedQ] ? '✓' : ''}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <button
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => toggleFlag(activeFocusedQ)}
+              style={{
+                padding: '0.5rem 0.65rem',
+                borderRadius: '0.65rem',
+                border: `1.5px solid ${flagged[activeFocusedQ] ? '#f59e0b' : 'var(--color-border-input)'}`,
+                background: flagged[activeFocusedQ] ? 'rgba(245,158,11,0.15)' : 'var(--color-surface-hover)',
+                color: flagged[activeFocusedQ] ? '#d97706' : 'var(--color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Soruyu İşaretle"
+            >
+              <Flag size={15} fill={flagged[activeFocusedQ] ? '#d97706' : 'none'} />
+            </button>
+
+            {answers[activeFocusedQ] && (
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleOpenEndedChange(activeFocusedQ, '')}
+                style={{
+                  padding: '0.5rem 0.65rem',
+                  borderRadius: '0.65rem',
+                  border: '1.5px solid #fecaca',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title="Cevabı Temizle"
+              >
+                <XIcon size={15} />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => goToNextQuestion(activeFocusedQ)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '0.65rem',
+                border: 'none',
+                background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                color: 'white',
+                fontSize: '0.82rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 12px rgba(99,102,241,0.3)'
+              }}
+            >
+              <span>{activeFocusedQ === (questionCount || 20) ? 'Bitti ✓' : 'Sonraki'}</span>
+              {activeFocusedQ < (questionCount || 20) && <ChevronRight size={16} />}
+            </button>
           </div>
         </div>
       )}
