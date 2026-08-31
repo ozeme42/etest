@@ -300,12 +300,13 @@ export default function StudentBookDetailsPage() {
     const studentIdStr = String(studentId || '');
     const studentUuidStr = String(toUUID(studentId) || '');
 
-    // Gather all matching submissions from both submissions table, homeworks.submissions, and localStorage
+    // Gather all matching submissions from both submissions table and homeworks.submissions
     const allStudentSubs = (submissions || []).filter(s => {
       if (!s || isDeletedItem(s)) return false;
       const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
       const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
       if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
       return true;
     });
 
@@ -316,38 +317,18 @@ export default function StudentBookDetailsPage() {
         const sStdId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
         const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
         if (isMatchStudent && sub.status !== 'in_progress' && sub.status !== 'draft') {
-          const subId = String(sub.id || '');
-          const existing = allStudentSubs.find(x => subId && String(x.id) === subId);
-          if (!existing) {
-            allStudentSubs.push({
-              ...sub,
-              hwId: hw.id,
-              homeworkId: hw.id,
-              bookId: hw.bookId || sub.bookId,
-              tests: hw.tests,
-              testDueDates: hw.testDueDates
-            });
+          if (sub.isManual && (sub.approvalStatus === 'pending' || sub.approvalStatus === 'rejected' || sub.isApproved === false || sub.status === 'pending_approval' || sub.status === 'rejected')) return;
+          if (!allStudentSubs.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+            allStudentSubs.push(sub);
           }
         }
       });
     });
 
-    try {
-      const localSubs = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
-      if (Array.isArray(localSubs)) {
-        localSubs.forEach(ls => {
-          if (!ls || isDeletedItem(ls)) return;
-          const sStdId = String(ls.studentId || ls.student_id || ls.userId || ls.user_id || '');
-          const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
-          if (isMatchStudent && ls.status !== 'in_progress' && ls.status !== 'draft') {
-            const lsId = String(ls.id || '');
-            if (!allStudentSubs.some(x => lsId && String(x.id) === lsId)) {
-              allStudentSubs.push(ls);
-            }
-          }
-        });
-      }
-    } catch {}
+    const testsInBook = (bookTests || []).filter(bt => {
+      const btBId = String(bt.bookId || bt.book_id || '');
+      return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
+    });
 
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
@@ -406,7 +387,7 @@ export default function StudentBookDetailsPage() {
           bookTitle: book?.title
         };
 
-        const solvedSubs = allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, bookTests, books));
+        const solvedSubs = allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
 
         const isCompleted = solvedSubs.length > 0;
 
@@ -496,7 +477,7 @@ export default function StudentBookDetailsPage() {
         pct: testsWithStatus.length > 0 ? Math.round((completedCount / testsWithStatus.length) * 100) : 0
       };
     }).filter(Boolean);
-  }, [book, bookTests, assignedTestIds, submissions, studentId, homeworks]);
+  }, [book, bookTests, assignedTestIds, submissions, studentId, homeworks, allStudentIds]);
 
   const [isBulkSettingsModalOpen, setIsBulkSettingsModalOpen] = useState(false);
   const [bulkSettings, setBulkSettings] = useState({}); 
