@@ -571,18 +571,27 @@ export default function StudentDashboard() {
     };
 
     const list = (submissions || []).filter(isMatch);
+    // O(1) Set yerine O(N) list.some() — büyük veri setlerinde kritik fark
+    const seenIds = new Set(list.map(x => x.id).filter(Boolean));
+    const seenTestIds = new Set(list.map(x => x.test_id).filter(Boolean));
+
     (homeworks || []).forEach(hw => {
       const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
       (hwSubs || []).forEach(sub => {
         if (sub && isMatch(sub)) {
-          if (!list.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+          const subId = sub.id;
+          const subTestId = sub.testId || sub.bookTestId;
+          if ((!subId || !seenIds.has(subId)) && (!subTestId || !seenTestIds.has(subTestId))) {
             list.push(sub);
+            if (subId) seenIds.add(subId);
+            if (subTestId) seenTestIds.add(subTestId);
           }
         }
       });
     });
     return list;
   }, [submissions, homeworks, selectedStudent]);
+
 
   // ── Fast O(1) Solved Tests Set for Student (with comprehensive ID & Content matching) ──
   // ── Fast O(1) Solved Tests Set for Student (with precise ID & Content matching) ──
@@ -597,13 +606,20 @@ export default function StudentDashboard() {
 
     // Include submissions from both studentSubmissions and homeworks.submissions
     const allStudentSubs = [...(studentSubmissions || [])];
+    // O(1) Set - allStudentSubs.some() yerine
+    const seenSubIds = new Set(allStudentSubs.map(x => x.id).filter(Boolean));
+    const studentIdStr = String(selectedStudent?.id || '');
+    const studentUuidStr = toUUID(studentIdStr) || '';
     (homeworks || []).forEach(hw => {
       const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
       (hwSubs || []).forEach(sub => {
-        if (sub && (String(sub.studentId) === String(selectedStudent?.id) || String(sub.student_id) === String(selectedStudent?.id) || String(sub.userId) === String(selectedStudent?.id) || (toUUID(sub.studentId) && toUUID(sub.studentId) === toUUID(selectedStudent?.id)))) {
-          if (!allStudentSubs.some(x => x.id === sub.id)) {
-            allStudentSubs.push(sub);
-          }
+        if (!sub) return;
+        const sid = String(sub.studentId || sub.student_id || sub.userId || '');
+        const matches = sid === studentIdStr || sid === studentUuidStr ||
+          (studentUuidStr && toUUID(sid) === studentUuidStr);
+        if (matches && !seenSubIds.has(sub.id)) {
+          allStudentSubs.push(sub);
+          if (sub.id) seenSubIds.add(sub.id);
         }
       });
     });
