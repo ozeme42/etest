@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useDeferredValue } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   PlayCircle, Target, AlertCircle, Timer, BookOpen, Check,
@@ -379,24 +379,19 @@ export default function StudentDashboard() {
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
-  const { homeworks: rawHomeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
-  const { submissions: rawSubmissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
+  const { homeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+  const { submissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
-  const { bookTests: rawBookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
+  const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
-
-  // useDeferredValue: ilk render anında yapılır, ağır hesaplamalar (fullProcessedWeekMap) sonra gelir
-  const homeworks = useDeferredValue(rawHomeworks);
-  const submissions = useDeferredValue(rawSubmissions);
-  const bookTests = useDeferredValue(rawBookTests);
 
   // Background homework sync when opening the dashboard (only if stale)
   useEffect(() => {
-    const t = setTimeout(() => refreshHomeworks?.(false), 1500);
+    const t = setTimeout(() => refreshHomeworks?.(false), 2000);
     return () => clearTimeout(t);
   }, []);
 
@@ -418,8 +413,9 @@ export default function StudentDashboard() {
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   
-  // Synchronous, instant cache-first student initialization (0ms initial render)
+  // Synchronous, instant cache-first student initialization (0ms initial render, no re-renders)
   const [selectedStudent, setSelectedStudent] = useState(() => {
+    if (currentUser?.role === 'student') return currentUser;
     try {
       const authUserStr = localStorage.getItem('eTestAuthUser');
       if (authUserStr) {
@@ -449,7 +445,8 @@ export default function StudentDashboard() {
 
   const [dismissedTaskKeys, setDismissedTaskKeys] = useState(() => {
     try {
-      const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent?.id || 'default'}`);
+      const sid = selectedStudent?.id || currentUser?.id || 'default';
+      const stored = localStorage.getItem(`dismissed_tasks_${sid}`);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -469,30 +466,36 @@ export default function StudentDashboard() {
     return keysToCheck.some(k => dismissedTaskKeys.includes(k));
   }, [dismissedTaskKeys]);
 
+  const prevPersistedStudentIdRef = useRef(selectedStudent?.id);
   useEffect(() => {
     if (selectedStudent?.id) {
       try {
         localStorage.setItem('etest_selected_student_id', selectedStudent.id);
         localStorage.setItem('etest_selected_student_obj', JSON.stringify(selectedStudent));
-        const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent.id}`);
-        if (stored) setDismissedTaskKeys(JSON.parse(stored));
+        if (prevPersistedStudentIdRef.current !== selectedStudent.id) {
+          prevPersistedStudentIdRef.current = selectedStudent.id;
+          const stored = localStorage.getItem(`dismissed_tasks_${selectedStudent.id}`);
+          if (stored) setDismissedTaskKeys(JSON.parse(stored));
+        }
       } catch {}
     }
   }, [selectedStudent]);
 
   useEffect(() => {
     if (currentUser?.role === 'student') {
-      setSelectedStudent(currentUser);
+      if (selectedStudent?.id !== currentUser.id) {
+        setSelectedStudent(currentUser);
+      }
     } else if (studentMembers.length > 0) {
       const savedStudentId = localStorage.getItem('etest_selected_student_id');
       const found = studentMembers.find(s => String(s.id) === String(savedStudentId));
       if (found) {
-        setSelectedStudent(found);
+        if (selectedStudent?.id !== found.id) setSelectedStudent(found);
       } else if (!selectedStudent) {
         setSelectedStudent(studentMembers[0]);
       }
     }
-  }, [currentUser, studentMembers]);
+  }, [currentUser?.id, currentUser?.role, studentMembers]);
 
   const myStudyAssignments = useMemo(() => {
     return (studyAssignments || []).filter(a => String(a.studentId) === String(selectedStudent?.id));
