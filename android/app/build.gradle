@@ -17,8 +17,13 @@ android {
         }
     }
     buildTypes {
+        debug {
+            debuggable true
+        }
         release {
             minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

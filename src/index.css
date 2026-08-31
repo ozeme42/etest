@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-@layer base {
 :root, [data-theme="light"] {
   /* Color Palette - Clean Light Pastel Theme */
   --color-primary: #6366f1; /* Vibrant Indigo */
@@ -556,6 +555,5 @@ body {
 .dark .card-glass {
   background: rgba(15, 23, 42, 0.82);
   border-color: rgba(148, 163, 184, 0.15);
-}
 }
 

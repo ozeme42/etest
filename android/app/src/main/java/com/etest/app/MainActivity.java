@@ -2,12 +2,14 @@ package com.etest.app;
 
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import android.content.Intent;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 
@@ -17,7 +19,39 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetBridgePlugin.class);
         super.onCreate(savedInstanceState);
         configureFullscreen();
+        optimizePerformance();
         handleWidgetIntent(getIntent());
+    }
+
+    private void optimizePerformance() {
+        try {
+            Window window = getWindow();
+            if (window != null) {
+                window.setFlags(
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+                );
+            }
+
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                WebView webView = getBridge().getWebView();
+                webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+                WebSettings settings = webView.getSettings();
+                if (settings != null) {
+                    settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+                    settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                    settings.setDomStorageEnabled(true);
+                    settings.setDatabaseEnabled(true);
+                    settings.setAllowFileAccess(true);
+                    settings.setAllowContentAccess(true);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        settings.setOffscreenPreRaster(true);
+                    }
+                    settings.setEnableSmoothTransition(true);
+                }
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override
