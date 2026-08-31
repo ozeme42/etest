@@ -603,15 +603,9 @@ export default function StudentDashboard() {
 
 
   // ── Fast O(1) Solved Tests Set for Student (with comprehensive ID & Content matching) ──
-  // ── Fast O(1) Solved Tests Set for Student (with precise ID & Content matching) ──
   const studentSolvedSet = useMemo(() => {
     const set = new Set();
-    const normalizeKey = (str) => String(str || '')
-      .toLowerCase()
-      .replace(/[\u2010-\u2015\u2212]/g, '-')
-      .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
-      .replace(/[^a-z0-9ğüşıöç]/g, '')
-      .trim();
+    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
 
     // Include submissions from both studentSubmissions and homeworks.submissions
     const allStudentSubs = [...(studentSubmissions || [])];
@@ -1440,11 +1434,21 @@ export default function StudentDashboard() {
       if (idUuid && idUuid !== idStr) cache.set(idUuid, info);
     };
 
+    // Pre-index books Map for O(1) book lookup instead of repeated books.find()
+    const bookByIdMap = new Map();
+    (books || []).forEach(b => {
+      if (!b?.id) return;
+      const bId = String(b.id);
+      bookByIdMap.set(bId, b);
+      const bUuid = toUUID(bId);
+      if (bUuid) bookByIdMap.set(bUuid, b);
+    });
+
     // Index from bookTests array
     (bookTests || []).forEach(bt => {
       const bookId = String(bt.bookId || bt.book_id || '');
-      const currentBook = (books || []).find(b => String(b.id) === bookId || (toUUID(b.id) && toUUID(b.id) === toUUID(bookId)));
-      addToCache(bt.id, { tObj: bt, currentBook: currentBook || null, subjObj: null, topicObj: null });
+      const currentBook = bookByIdMap.get(bookId) || (toUUID(bookId) && bookByIdMap.get(toUUID(bookId))) || null;
+      addToCache(bt.id, { tObj: bt, currentBook, subjObj: null, topicObj: null });
     });
 
     // Index from books.subjects.topics.tests (deep scan, done once)
@@ -2783,9 +2787,10 @@ export default function StudentDashboard() {
       books,
       bookTests,
       mockExams: studentMockExams,
-      studySessions: []
+      studySessions: [],
+      resolvedAnalytics: { generalTrialExams, otherHomeworkSubmissions }
     });
-  }, [selectedStudent, studentSubmissions, homeworks, books, bookTests, studentMockExams]);
+  }, [selectedStudent, studentSubmissions, homeworks, books, bookTests, studentMockExams, generalTrialExams, otherHomeworkSubmissions]);
 
   const studentRank = studentGamification?.levelInfo || {
     level: 1,

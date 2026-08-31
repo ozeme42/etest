@@ -723,7 +723,8 @@ export function computeStudentGamificationData({
   books = [],
   bookTests = [],
   mockExams = [],
-  studySessions = []
+  studySessions = [],
+  resolvedAnalytics: precomputedAnalytics = null
 }) {
   const sId = String(studentId || '');
   if (!sId) {
@@ -736,19 +737,21 @@ export function computeStudentGamificationData({
     };
   }
 
-  // 1. Resolve unified analytics using testResolver (includes Homeworks, Book Tests, Standalone Submissions & Mock Exams)
-  let resolvedAnalytics = { generalTrialExams: [], otherHomeworkSubmissions: [] };
-  try {
-    resolvedAnalytics = computeStudentAnalyticsData({
-      studentId: sId,
-      submissions,
-      homeworks,
-      books,
-      bookTests,
-      studentMockExams: mockExams
-    });
-  } catch (err) {
-    console.error('Error computing student analytics for gamification:', err);
+  // 1. Resolve unified analytics using testResolver (or use precomputed analytics)
+  let resolvedAnalytics = precomputedAnalytics || { generalTrialExams: [], otherHomeworkSubmissions: [] };
+  if (!precomputedAnalytics) {
+    try {
+      resolvedAnalytics = computeStudentAnalyticsData({
+        studentId: sId,
+        submissions,
+        homeworks,
+        books,
+        bookTests,
+        studentMockExams: mockExams
+      });
+    } catch (err) {
+      console.error('Error computing student analytics for gamification:', err);
+    }
   }
 
   const allItems = [
