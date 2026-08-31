@@ -54,7 +54,7 @@ export default function PhysicalExamRunner() {
   const navigate = useNavigate();
   const location = useLocation();
   const { homeworks, submitHomework } = useHomework();
-  const { books } = useTrackedBooks();
+  const { books, bookTests } = useTrackedBooks();
   const { currentUser } = useAuth();
   const { submissions: evalSubmissions, addSubmission, updateSubmission } = useEvaluation();
   const { users } = useUser();
@@ -81,10 +81,15 @@ export default function PhysicalExamRunner() {
 
   const homework = useMemo(() => {
     const cleanId = String(hwId || '');
-    let hw = (homeworks || []).find(h => String(h.id) === cleanId || toUUID(h.id) === cleanId);
+    const matchedSub = (evalSubmissions || []).find(s => String(s.id) === cleanId || String(s.submissionId) === cleanId || (toUUID(s.id) && toUUID(s.id) === cleanId));
+    const effectiveHwId = matchedSub?.hwId || matchedSub?.bookId || matchedSub?.testId || cleanId;
+
+    let hw = (homeworks || []).find(h => String(h.id) === String(effectiveHwId) || toUUID(h.id) === String(effectiveHwId) || String(h.id) === cleanId);
     
     // Find matching book in books (e.g. physical exam created from ExamManager)
     const matchingBook = (books || []).find(b => 
+      String(b.id) === String(effectiveHwId) || 
+      toUUID(b.id) === String(effectiveHwId) || 
       String(b.id) === cleanId || 
       toUUID(b.id) === cleanId || 
       String(b.id) === String(hw?.bookId) || 
@@ -93,9 +98,35 @@ export default function PhysicalExamRunner() {
 
     const pdfUrl = hw?.pdfUrl || matchingBook?.pdfUrl || hw?.pdfPayload || '';
 
+    // Extract subjects and answerKeys from bookTests if available
+    const testsForBook = (bookTests || []).filter(t => {
+      if (!t) return false;
+      const tBId = String(t.bookId || t.book_id || '');
+      return tBId === String(matchingBook?.id) || (toUUID(matchingBook?.id) && tBId === toUUID(matchingBook?.id));
+    });
+
+    const builtAnswerKey = {};
+    const subjectArray = [];
+    if (testsForBook.length > 0) {
+      testsForBook.forEach(t => {
+        const subDef = (matchingBook?.subjects || []).find(s => s && (String(s.id) === String(t.subjectId || t.subject_id)));
+        const subName = subDef ? subDef.name : String(t.name || 'Ders').replace(' Testi', '');
+        builtAnswerKey[subName] = [];
+        if (t.answerKey && typeof t.answerKey === 'object') {
+          for (let i = 1; i <= (t.questionCount || 20); i++) {
+            builtAnswerKey[subName].push(t.answerKey[i] || '');
+          }
+        }
+        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id });
+      });
+    }
+
     if (!hw && matchingBook) {
       // Synthetic homework object from tracked book exam
-      const subs = matchingBook.subjects || [];
+      const rawSubs = Array.isArray(matchingBook.subjects) ? matchingBook.subjects : [];
+      const subs = subjectArray.length > 0 ? subjectArray : rawSubs;
+      const combinedAnsKey = Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (matchingBook.answerKey || {});
+
       return {
         id: matchingBook.id,
         title: matchingBook.title || 'Fiziki Deneme',
@@ -108,7 +139,7 @@ export default function PhysicalExamRunner() {
           name: s.name || `Ders ${idx + 1}`,
           count: Number(s.count) || Number(s.questionCount) || 20
         })),
-        answerKey: matchingBook.answerKey || {},
+        answerKey: combinedAnsKey,
         penaltyRatio: matchingBook.penaltyRatio !== undefined ? matchingBook.penaltyRatio : 3,
         totalQuestions: subs.reduce((acc, s) => acc + (Number(s.count) || Number(s.questionCount) || 20), 0) || 90,
         pdfUrl: pdfUrl
@@ -116,7 +147,10 @@ export default function PhysicalExamRunner() {
     }
 
     if (hw) {
-      const subs = hw.subjects || matchingBook?.subjects || [];
+      const rawSubs = hw.subjects || matchingBook?.subjects || [];
+      const subs = subjectArray.length > 0 ? subjectArray : rawSubs;
+      const combinedAnsKey = Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (hw.answerKey || matchingBook?.answerKey || {});
+
       return {
         ...hw,
         type: 'physicalExam',
@@ -128,14 +162,14 @@ export default function PhysicalExamRunner() {
           name: s.name || `Ders ${idx + 1}`,
           count: Number(s.count) || Number(s.questionCount) || 20
         })),
-        answerKey: hw.answerKey || matchingBook?.answerKey || {},
+        answerKey: combinedAnsKey,
         penaltyRatio: hw.penaltyRatio !== undefined ? hw.penaltyRatio : (matchingBook?.penaltyRatio !== undefined ? matchingBook.penaltyRatio : 3),
         totalQuestions: hw.totalQuestions || subs.reduce((acc, s) => acc + (Number(s.count) || Number(s.questionCount) || 20), 0) || 90
       };
     }
 
     return null;
-  }, [homeworks, books, hwId]);
+  }, [homeworks, books, bookTests, evalSubmissions, hwId]);
 
   const hasPdf = Boolean(homework?.pdfUrl);
 
@@ -361,15 +395,42 @@ export default function PhysicalExamRunner() {
     }
 
     // Check if already submitted in HomeworkContext or EvaluationContext
+    const cleanHwId = String(hwId || '');
     const hwSub = (homework.submissions || []).find(s => String(s.studentId) === String(studentId));
-    const evalSub = (evalSubmissions || []).find(s => (String(s.hwId) === String(hwId) || String(s.testId) === String(hwId)) && String(s.studentId) === String(studentId));
-    const submission = hwSub || evalSub;
+    const evalSub = (evalSubmissions || []).find(s => (
+      String(s.id) === cleanHwId ||
+      String(s.submissionId) === cleanHwId ||
+      String(s.hwId) === cleanHwId ||
+      String(s.testId) === cleanHwId ||
+      String(s.bookId) === cleanHwId ||
+      String(s.bookTestId) === cleanHwId ||
+      (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id) || String(s.bookId) === String(homework.id)))
+    ) && (!studentId || String(s.studentId) === String(studentId)));
+    const submission = location.state?.submission || evalSub || hwSub;
 
     if (submission) {
       setIsSubmitted(true);
       setShowOptikForm(true);
       
       let loadedAns = submission.studentAnswers || evalSub?.studentAnswers || hwSub?.studentAnswers;
+      if (!loadedAns || Object.keys(loadedAns).length === 0) {
+        if (Array.isArray(submission.answers) && submission.answers.length > 0) {
+          loadedAns = {};
+          homework.subjects?.forEach(sub => {
+            loadedAns[sub.name] = Array(sub.count).fill('');
+          });
+          submission.answers.forEach(a => {
+            if (!a || a.type === 'metadata') return;
+            const subName = a.subject || a.subjectName || (homework.subjects?.[0]?.name);
+            const qNum = Number(a.questionNo || a.qNum || a.questionIndex) || 1;
+            const ansVal = a.userAnswer ?? a.selectedOption ?? a.answer ?? '';
+            if (subName && loadedAns[subName] && qNum >= 1 && qNum <= loadedAns[subName].length) {
+              loadedAns[subName][qNum - 1] = (ansVal && ansVal !== 'empty' && ansVal !== 'Boş') ? ansVal : '';
+            }
+          });
+        }
+      }
+
       if (!loadedAns || Object.keys(loadedAns).length === 0) {
         const draftStr = localStorage.getItem(draftKey);
         if (draftStr) {

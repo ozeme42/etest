@@ -21,6 +21,25 @@ import { useAuth } from '../context/AuthContext';
 
 const PIE_COLORS = ['#10b981', '#ef4444', '#94a3b8', '#6366f1', '#f59e0b', '#ec4899', '#06b6d4'];
 
+export function getSuccessStatus(net, totalQuestions = 30) {
+  const safeTotal = Number(totalQuestions) > 0 ? Number(totalQuestions) : 30;
+  const pct = Math.max(0, Math.min(100, Math.round((Number(net || 0) / safeTotal) * 100)));
+  
+  if (pct >= 85) {
+    return { pct, label: 'Mükemmel', color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', icon: '🟢' };
+  }
+  if (pct >= 70) {
+    return { pct, label: 'Çok İyi', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.3)', icon: '🔵' };
+  }
+  if (pct >= 55) {
+    return { pct, label: 'Başarılı', color: '#6366f1', bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)', icon: '🟣' };
+  }
+  if (pct >= 40) {
+    return { pct, label: 'Orta', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', icon: '🟡' };
+  }
+  return { pct, label: 'Geliştirilmeli', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', icon: '🔴' };
+}
+
 export default function ExamAnalysisPage() {
   const { examId } = useParams();
   const navigate = useNavigate();
@@ -336,6 +355,7 @@ export default function ExamAnalysisPage() {
   // 4. Calculate Comprehensive Multi-Exam / Single-Exam Statistics
   const { 
     totalParticipants, overallAvgScore, maxScore, minScore, totalExamsCompleted,
+    overallSuccessStatus, maxSuccessStatus,
     studentStats, subjectChartData, classChartData, examComparisonChartData,
     mistakeReasonsChartData, scoreDistributionData, questionAnalysisMap 
   } = useMemo(() => {
@@ -426,6 +446,9 @@ export default function ExamAnalysisPage() {
         };
       });
 
+      const tExamQuestions = resolvedExam?.totalQuestions || 90;
+      const sSuccessStatus = getSuccessStatus(avgScore, tExamQuestions);
+
       return {
         studentId,
         studentName: student ? `${student.name} ${student.surname || ''}` : (sSubmissions[0]?.studentName || 'Öğrenci'),
@@ -433,6 +456,8 @@ export default function ExamAnalysisPage() {
         examCount,
         avgScore: Number(avgScore.toFixed(2)),
         maxScore: Number(maxStudentScore.toFixed(2)),
+        successStatus: sSuccessStatus,
+        successPct: sSuccessStatus.pct,
         totalScore: totalScoreSum,
         totalCorrect: Number((totalCorrectSum / examCount).toFixed(1)),
         totalWrong: Number((totalWrongSum / examCount).toFixed(1)),
@@ -449,6 +474,9 @@ export default function ExamAnalysisPage() {
     const oAvgScore = stats.length ? stats.reduce((sum, s) => sum + s.avgScore, 0) / stats.length : 0;
     const mScore = stats.length ? Math.max(...stats.map(s => s.maxScore || s.avgScore)) : 0;
     const minSc = stats.length ? Math.min(...stats.map(s => s.avgScore)) : 0;
+    const totalExamQuestions = resolvedExam?.totalQuestions || 90;
+    const overallSuccessStatus = getSuccessStatus(oAvgScore, totalExamQuestions);
+    const maxSuccessStatus = getSuccessStatus(mScore, totalExamQuestions);
     
     // Subject Averages Breakdown
     const subjMap = {};
@@ -475,10 +503,15 @@ export default function ExamAnalysisPage() {
 
     const subjChartData = Object.values(subjMap).map(s => {
       const avgNet = s.count ? s.totalNet / s.count : 0;
+      const qCount = s.questionCount || 15;
+      const subSuccess = getSuccessStatus(avgNet, qCount);
       return {
         name: s.name,
         'Ortalama Net': Number(avgNet.toFixed(2)),
-        'Soru Sayısı': s.questionCount,
+        'Soru Sayısı': qCount,
+        'Başarı Oranı (%)': subSuccess.pct,
+        avgSuccessPct: subSuccess.pct,
+        successStatus: subSuccess,
         avgCorrect: Number((s.count ? s.totalCorrect / s.count : 0).toFixed(1)),
         avgWrong: Number((s.count ? s.totalWrong / s.count : 0).toFixed(1)),
         avgBlank: Number((s.count ? s.totalBlank / s.count : 0).toFixed(1))
@@ -494,12 +527,18 @@ export default function ExamAnalysisPage() {
       cStatsMap[cid].count += 1;
       if (s.avgScore > cStatsMap[cid].maxScore) cStatsMap[cid].maxScore = s.avgScore;
     });
-    const clsChartData = Object.values(cStatsMap).map(c => ({
-      name: c.classId,
-      'Ortalama Net': Number((c.total / c.count).toFixed(2)),
-      'Zirve Net': Number(c.maxScore.toFixed(2)),
-      'Öğrenci Sayısı': c.count
-    }));
+    const clsChartData = Object.values(cStatsMap).map(c => {
+      const avgN = c.count ? c.total / c.count : 0;
+      const clsSuccess = getSuccessStatus(avgN, totalExamQuestions);
+      return {
+        name: c.classId,
+        'Ortalama Net': Number(avgN.toFixed(2)),
+        'Zirve Net': Number(c.maxScore.toFixed(2)),
+        'Başarı (%)': clsSuccess.pct,
+        successStatus: clsSuccess,
+        'Öğrenci Sayısı': c.count
+      };
+    });
 
     // Multi-Exam Comparison Breakdown (For all exams view)
     const eMap = {};
@@ -648,6 +687,8 @@ export default function ExamAnalysisPage() {
       overallAvgScore: oAvgScore,
       maxScore: mScore,
       minScore: minSc,
+      overallSuccessStatus: overallSuccessStatus || { pct: 0, label: 'Geliştirilmeli', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', icon: '🔴' },
+      maxSuccessStatus: maxSuccessStatus || { pct: 0, label: 'Geliştirilmeli', color: '#ef4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', icon: '🔴' },
       studentStats: stats,
       subjectChartData: subjChartData,
       classChartData: clsChartData,

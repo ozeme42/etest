@@ -18,7 +18,7 @@ import SingleOpenEndedReview from '../components/quiz/single/SingleOpenEndedRevi
 import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
 import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
-import { resolveTestQuestions } from '../utils/testResolver';
+import { resolveTestQuestions, isExamBook } from '../utils/testResolver';
 import { findUnifiedSubmissionOrTest, normalizeUnifiedSubmission } from '../services/unifiedResultAdapter';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 import { idbGetPayload } from '../services/indexedDbService';
@@ -548,15 +548,26 @@ export default function ModularQuizReviewPage() {
     }
 
     if (foundSubmission) {
-      // If this submission belongs to an actual tracked book test in bookTests, redirect to /book-quiz/:bookTestId
-      const isTrackedBookTest = Boolean(
-        (foundTest?.isBookAssignment === true || foundSubmission.sourceType === 'trackedBook') &&
-        (bookTests || []).some(bt => String(bt.id) === String(foundSubmission.bookTestId || foundSubmission.testId || foundTest?.id))
+      // If this submission belongs to a physical exam or deneme, redirect to /physical-exam/:hwId
+      const isPhysicalExam = Boolean(
+        foundTest?.type === 'physicalExam' ||
+        foundSubmission.type === 'physicalExam' ||
+        foundSubmission.contentType === 'physicalExam' ||
+        foundTest?.contentType === 'physicalExam' ||
+        foundSubmission.isPhysical ||
+        foundTest?.isPhysical ||
+        isExamBook(foundTest) ||
+        isExamBook(foundSubmission) ||
+        (foundSubmission.title && (foundSubmission.title.toLowerCase().includes('deneme') || foundSubmission.title.toLowerCase().includes('hazır bulunuşluk') || foundSubmission.title.toLowerCase().includes('hazir bulunusluk')))
       );
-      if (isTrackedBookTest) {
-        const bTestId = foundSubmission.bookTestId || foundSubmission.realTestId || foundSubmission.testId || foundTest?.id;
-        if (bTestId) {
-          navigate(`/book-quiz/${bTestId}?studentId=${studentId || currentUser?.id || ''}&from=${fromPath || '/student'}`, { replace: true, state: { from: fromPath || '/student' } });
+
+      if (isPhysicalExam) {
+        const physHwId = foundSubmission.hwId || foundSubmission.bookId || foundTest?.id || foundSubmission.testId || targetId;
+        if (physHwId) {
+          navigate(`/physical-exam/${physHwId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, {
+            replace: true,
+            state: { from: fromPath || '/student', submission: foundSubmission }
+          });
           return;
         }
       }

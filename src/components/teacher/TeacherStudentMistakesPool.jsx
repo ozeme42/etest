@@ -10,6 +10,7 @@ import { useEvaluation } from '../../context/EvaluationContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
 import { useCurriculum } from '../../context/CurriculumContext';
 import { toUUID, dbRecordDeletedItem } from '../../services/supabaseService';
+import { isExamBook } from '../../utils/testResolver';
 
 const SUBJECT_ICONS = {
   'Sosyal Bilgiler': '🏛️',
@@ -1289,17 +1290,25 @@ export default function TeacherStudentMistakesPool({
                     <button
                       type="button"
                       onClick={() => {
-                        const isTrackedBook = activeBook && activeBook.bookId !== 'other_tests' && books.some(b => String(b.id) === String(activeBook.bookId) || toUUID(b.id) === String(activeBook.bookId));
-                        const isVerifiedBookTest = Boolean(test.testId && (test.testId.startsWith('tbt_') || test.testId.startsWith('7462745f') || (bookTests || []).some(bt => String(bt.id) === String(test.testId))));
+                        const rawSub = test.rawSubmission;
+                        const isPhysExam = Boolean(
+                          rawSub?.type === 'physicalExam' ||
+                          rawSub?.contentType === 'physicalExam' ||
+                          rawSub?.isPhysical ||
+                          isExamBook(rawSub) ||
+                          isExamBook(activeBook) ||
+                          (test.fullTitle && (test.fullTitle.toLowerCase().includes('deneme') || test.fullTitle.toLowerCase().includes('hazır bulunuşluk') || test.fullTitle.toLowerCase().includes('hazir bulunusluk')))
+                        );
 
-                        if (isTrackedBook && isVerifiedBookTest) {
-                          navigate(`/book-quiz/${test.testId}?studentId=${student.id}`, {
-                            state: { from: '/remedials' }
+                        if (isPhysExam) {
+                          const examTargetId = rawSub?.hwId || rawSub?.bookId || test.testId || test.submissionId || test.id;
+                          navigate(`/physical-exam/${examTargetId}?studentId=${student.id}`, {
+                            state: { from: '/remedials', submission: rawSub }
                           });
                         } else {
-                          const subId = test.submissionId || test.id;
+                          const subId = test.submissionId || test.id || test.testId;
                           navigate(`/review/${subId}?studentId=${student.id}`, {
-                            state: { from: '/remedials' }
+                            state: { from: '/remedials', submission: rawSub, test: test }
                           });
                         }
                       }}
