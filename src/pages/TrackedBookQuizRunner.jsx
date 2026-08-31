@@ -398,24 +398,36 @@ export default function TrackedBookQuizRunner() {
   }, [showOptikForm, effectivePdfMode]);
 
   const questionCount = Number(resolvedTest?.questionCount) || Number(resolvedTest?.question_count) || 20;
-  const rawAnsKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+  const rawAnsKey = resolvedTest?.answerKey || resolvedTest?.answer_key || resolvedBook?.answerKey || {};
   const hasOptionLetters = Object.entries(rawAnsKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
 
-  const isOpenEnded = Boolean(
+  const ansMeta = resolvedTest?.answerKey?.__meta || resolvedTest?.answer_key?.__meta || {};
+
+  const isExplicitMC = Boolean(
+    resolvedTest?.isOpenEnded === false ||
+    resolvedTest?.is_open_ended === false ||
+    resolvedTest?.questionType === 'coktan_secmeli' ||
+    resolvedTest?.question_type === 'coktan_secmeli' ||
+    resolvedTest?.type === 'coktan_secmeli' ||
+    ansMeta.isOpenEnded === false ||
+    ansMeta.questionType === 'coktan_secmeli'
+  );
+
+  const isExplicitOE = !isExplicitMC && Boolean(
     resolvedTest?.isOpenEnded === true ||
     resolvedTest?.is_open_ended === true ||
     resolvedTest?.questionType === 'acik_uclu' ||
     resolvedTest?.question_type === 'acik_uclu' ||
     resolvedTest?.type === 'acik_uclu' ||
     resolvedTest?.type === 'gorsel_klasik' ||
-    resolvedTest?.answerKey?.__meta?.isOpenEnded === true ||
-    resolvedTest?.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    resolvedTest?.answer_key?.__meta?.isOpenEnded === true ||
-    resolvedTest?.answer_key?.__meta?.questionType === 'acik_uclu' ||
-    resolvedBook?.bookType === 'open_ended' ||
-    resolvedBook?.book_type === 'open_ended' ||
-    (resolvedTest?.name && /açık\s*uçlu|acik\s*uclu|klasik|problem/i.test(resolvedTest.name) && !hasOptionLetters)
+    ansMeta.isOpenEnded === true ||
+    ansMeta.questionType === 'acik_uclu'
   );
+
+  const isOpenEnded = isExplicitOE || (!isExplicitMC && Boolean(
+    (resolvedBook?.bookType === 'open_ended' || resolvedBook?.book_type === 'open_ended') ||
+    (resolvedTest?.name && /açık\s*uçlu|acik\s*uclu|yazılı\s*klasik/i.test(resolvedTest.name) && !hasOptionLetters)
+  ));
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
 
