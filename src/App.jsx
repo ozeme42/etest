@@ -104,16 +104,18 @@ import './App.css';
 
 // Sayfa JS dosyalarını arka planda önceden yükle → tıklayınca anında açılır
 const preloadAllPages = () => {
-  const pages = [
-    () => import('./pages/StudentDashboard'),
-    () => import('./pages/TeacherDashboard'),
-    () => import('./pages/AdminDashboard'),
+  // StudentDashboard'u hemen yükle (0ms)
+  try { import('./pages/StudentDashboard'); } catch {}
+
+  const otherPages = [
     () => import('./pages/StudentBooksPage'),
     () => import('./pages/StudentBookDetailsPage'),
-    () => import('./pages/StudentHomeworksPage'),
     () => import('./pages/GoalsAndSchedulePage'),
-    () => import('./pages/StudentResultsPage'),
     () => import('./pages/StudentProgramPage'),
+    () => import('./pages/StudentResultsPage'),
+    () => import('./pages/StudentHomeworksPage'),
+    () => import('./pages/TeacherDashboard'),
+    () => import('./pages/AdminDashboard'),
     () => import('./pages/MyCoachingPage'),
     () => import('./pages/HomeworkManager'),
     () => import('./pages/EvaluationManager'),
@@ -122,9 +124,13 @@ const preloadAllPages = () => {
     () => import('./pages/StudentSummaryPage'),
     () => import('./pages/StatisticsDashboard'),
   ];
-  // Her 200ms'de bir sayfa yükle — ağı ve CPU'yu bloklama
-  pages.forEach((load, i) => setTimeout(load, 2000 + i * 200));
+  otherPages.forEach((load, i) => setTimeout(load, 500 + i * 150));
 };
+
+// Uygulama açılır açılmaz en kritik sayfaları derhal indir
+try { import('./pages/StudentDashboard'); } catch {}
+try { import('./pages/StudentBooksPage'); } catch {}
+try { import('./pages/StudentProgramPage'); } catch {}
 
 // Route guards: redirects to '/' if user is not logged in or doesn't have the required role
 function RequireAuth({ children }) {

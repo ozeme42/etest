@@ -905,6 +905,17 @@ export default function StudentDashboard() {
       return false;
     };
 
+    const subByHwId = new Map();
+    (studentSubmissions || []).forEach(s => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return;
+      if (s.hwId) { subByHwId.set(String(s.hwId), s); subByHwId.set(String(s.hwId).replace(/^hw_/, ''), s); }
+      if (s.homeworkId) { subByHwId.set(String(s.homeworkId), s); subByHwId.set(String(s.homeworkId).replace(/^hw_/, ''), s); }
+      if (s.testId) { subByHwId.set(String(s.testId), s); subByHwId.set(String(s.testId).replace(/^q_/, ''), s); }
+      if (s.realTestId) subByHwId.set(String(s.realTestId), s);
+      if (s.bookTestId) subByHwId.set(String(s.bookTestId), s);
+      if (s.id) subByHwId.set(String(s.id), s);
+    });
+
     const hwTests = (homeworks || []).filter(hw => {
       return isHomeworkForStudent(hw, selectedStudent, gradesList);
     }).flatMap(hw => {
@@ -913,6 +924,7 @@ export default function StudentDashboard() {
 
       if (isExam) {
         const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
+          subByHwId.get(String(hw.id)) ||
           (studentSubmissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
         return [{
@@ -1230,14 +1242,18 @@ export default function StudentDashboard() {
           bookId: book.id,
           bookTitle: book.title
         };
-        const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, bookTests, books));
-        let bestSub = null;
-        if (matchingSubs.length > 0) {
-          bestSub = matchingSubs.reduce((prev, curr) => {
-            const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
-            const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
-            return pScore >= prevScore ? curr : prev;
-          }, matchingSubs[0]);
+        const tIdStr = String(t.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        let bestSub = solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId);
+        if (!bestSub) {
+          const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+          if (matchingSubs.length > 0) {
+            bestSub = matchingSubs.reduce((prev, curr) => {
+              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
+              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
+              return pScore >= prevScore ? curr : prev;
+            }, matchingSubs[0]);
+          }
         }
 
         if (bestSub) {
@@ -1647,11 +1663,8 @@ export default function StudentDashboard() {
     };
   }, [books, bookTests, bookTestInfoCache]);
 
-  /* ─── Computed Day Program — render'ı bloke etme, sonradan hesapla ─── */
-  const [fullProcessedWeekMap, setFullProcessedWeekMap] = React.useState({});
-  useEffect(() => {
-    // Paint bittikten sonra hesapla - sayfa anında görünür
-    const computeWeekMap = () => {
+  /* ─── Computed Day Program (Instant O(1) Pre-indexed Memo) ─── */
+  const fullProcessedWeekMap = useMemo(() => {
     try {
       const rawProg = coachingProfile?.weeklyProgram;
       const studentId = selectedStudent?.id;
@@ -2316,15 +2329,11 @@ export default function StudentDashboard() {
         };
       });
 
-      setFullProcessedWeekMap(resultMap);
+      return resultMap;
     } catch (err) {
       console.error('Error computing fullProcessedWeekMap:', err);
-      setFullProcessedWeekMap({});
+      return {};
     }
-    };
-    // requestAnimationFrame: tarayıcı bir frame çizdikten SONRA çalıştır
-    const raf = requestAnimationFrame(() => computeWeekMap());
-    return () => cancelAnimationFrame(raf);
   }, [coachingProfile, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
 
   const dayProgramInfo = useMemo(() => {
