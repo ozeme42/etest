@@ -131,39 +131,100 @@ export default function ExamManager() {
   const [bulkInputText, setBulkInputText] = useState('');
 
   const physicalExamsDatabase = useMemo(() => {
-    let filteredBooks = books.filter(b => b.bookType === 'exam');
-    if (currentUser?.role === 'teacher' && currentUser?.id) {
-      filteredBooks = filteredBooks.filter(b => 
-        b.createdBy === currentUser.id || 
-        b.teacherId === currentUser.id
-      );
-    }
-    return filteredBooks.map(b => {
-      const testsForBook = bookTests.filter(t => t.bookId === b.id);
+    // 1. Gather all exam books from tracked books
+    const examBooks = (books || []).filter(b => {
+      if (!b) return false;
+      const bType = String(b.bookType || b.book_type || b.raw_data?.bookType || b.type || '').toLowerCase();
+      const bPub = String(b.publisher || '').toUpperCase();
+      const isExamType = bType === 'exam' || bType === 'physical_exam' || b.isExam === true || b.id === 'tb_07kzdf_1787267196768';
+      const isPresetPub = ['LGS', 'TYT', 'AYT', 'CUSTOM'].includes(bPub);
+      return isExamType || isPresetPub;
+    });
+
+    const examMap = new Map();
+
+    examBooks.forEach(b => {
+      const bId = String(b.id);
+      const bUuid = toUUID(b.id);
+
+      const testsForBook = (bookTests || []).filter(t => {
+        if (!t) return false;
+        const tBId = String(t.bookId || t.book_id || '');
+        return tBId === bId || (bUuid && tBId === bUuid) || (toUUID(tBId) && toUUID(tBId) === bUuid);
+      });
+
       const builtAnswerKey = {};
       const subjectArray = [];
       
       testsForBook.forEach(t => {
-        const subDef = b.subjects?.find(s => s.id === t.subjectId);
-        const subName = subDef ? subDef.name : t.name.replace(' Testi', '');
+        const subDef = (b.subjects || []).find(s => s && (String(s.id) === String(t.subjectId || t.subject_id)));
+        const subName = subDef ? subDef.name : String(t.name || 'Ders').replace(' Testi', '');
         
         builtAnswerKey[subName] = [];
-        if (t.answerKey) {
-          for (let i = 1; i <= t.questionCount; i++) {
+        if (t.answerKey && typeof t.answerKey === 'object') {
+          for (let i = 1; i <= (t.questionCount || 20); i++) {
             builtAnswerKey[subName].push(t.answerKey[i] || '');
           }
         }
-        subjectArray.push({ name: subName, count: t.questionCount, testId: t.id });
+        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id });
       });
 
-      return {
+      const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
+        ? b.subjects.map(s => typeof s === 'string' ? { name: s, count: 20 } : s)
+        : [];
+
+      const effectiveSubjects = subjectArray.length > 0 ? subjectArray : rawSubjects;
+      const totalQuestions = effectiveSubjects.reduce((acc, curr) => acc + (Number(curr.count) || 20), 0);
+
+      const examObj = {
         ...b,
-        answerKey: builtAnswerKey,
-        subjects: subjectArray.length > 0 ? subjectArray : b.subjects,
-        totalQuestions: subjectArray.reduce((acc, curr) => acc + curr.count, 0)
+        bookType: 'exam',
+        answerKey: Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (b.answerKey || {}),
+        subjects: effectiveSubjects,
+        totalQuestions: totalQuestions || b.totalQuestions || 90
       };
-    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [books, bookTests, currentUser]);
+
+      examMap.set(bId, examObj);
+      if (bUuid) examMap.set(bUuid, examObj);
+    });
+
+    // 2. ALSO include any physical exams that were created as homeworks
+    (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      const isPhysHw = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical === true || hw.isPhysicalExam === true;
+      if (!isPhysHw) return;
+
+      const hwBookId = String(hw.bookId || hw.id || '');
+      const hwUuid = toUUID(hwBookId);
+
+      if (!examMap.has(hwBookId) && (!hwUuid || !examMap.has(hwUuid))) {
+        const hwSubs = Array.isArray(hw.subjects) ? hw.subjects.map(s => typeof s === 'string' ? { name: s, count: 20 } : s) : [];
+        const hwTotalQ = Number(hw.totalQuestions) || hwSubs.reduce((acc, s) => acc + (Number(s.count) || 20), 0) || 90;
+
+        const hwExam = {
+          id: hwBookId,
+          title: hw.title || 'Fiziki Deneme Sınavı',
+          publisher: hw.examType || 'LGS',
+          bookType: 'exam',
+          subjects: hwSubs,
+          totalQuestions: hwTotalQ,
+          answerKey: hw.answerKey || {},
+          penaltyRatio: hw.penaltyRatio !== undefined ? hw.penaltyRatio : 3,
+          pdfUrl: hw.pdfUrl || '',
+          createdBy: hw.assignedBy || hw.teacherId || currentUser?.id,
+          teacherId: hw.teacherId || hw.assignedBy || currentUser?.id,
+          createdAt: hw.createdAt || hw.date || new Date().toISOString()
+        };
+
+        examMap.set(hwBookId, hwExam);
+        if (hwUuid) examMap.set(hwUuid, hwExam);
+      }
+    });
+
+    // Return unique exams sorted newest first
+    const uniqueExams = Array.from(new Set(Array.from(examMap.values())));
+    return uniqueExams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }, [books, bookTests, homeworks, currentUser]);
 
   const filteredExams = useMemo(() => {
     return physicalExamsDatabase.filter(exam => {
