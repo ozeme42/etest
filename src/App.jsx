@@ -326,18 +326,18 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
         </button>
       )}
 
-      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`} style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link to="/" className="brand" onClick={closeSidebar}>
             <span className="brand-icon">✨</span>
             <span className="brand-text">E-Test</span>
           </Link>
           <button 
-            onClick={toggleCollapse}
+            onClick={isMobile ? closeSidebar : toggleCollapse}
             className="sidebar-collapse-toggle-btn"
-            title="Menüyü Gizle"
+            title={isMobile ? "Menüyü Kapat" : "Menüyü Gizle"}
           >
-            <PanelLeftClose size={18} />
+            {isMobile ? <X size={18} /> : <PanelLeftClose size={18} />}
           </button>
         </div>
 
