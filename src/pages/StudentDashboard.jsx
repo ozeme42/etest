@@ -708,7 +708,7 @@ export default function StudentDashboard() {
       // Cleaned Title Matching — subject-scoped so same name in different subjects don't collide
       const cleanedTitle = cleanTestTitle(rawTitle);
       const normTitle = normalizeKey(cleanedTitle);
-      if (normTitle && normTitle.length >= 4) {
+      if (normTitle && normTitle.length >= 10) {
         if (sName === 'genel' || sName === 'geneltestler') {
           set.add(`genel_title_${normTitle}`);
         } else if (sName) {
@@ -779,7 +779,7 @@ export default function StudentDashboard() {
     const cleanedItemTitle = cleanTestTitle(rawItemTitle);
     const normItemTitle = normalizeKey(cleanedItemTitle);
 
-    if (normItemTitle) {
+    if (normItemTitle && normItemTitle.length >= 10 && !tId && !bId) {
       if (studentSolvedSet.has(`genel_title_${normItemTitle}`)) {
         return true;
       }
@@ -1931,8 +1931,8 @@ export default function StudentDashboard() {
               return false;
             };
 
-            const isDone = (hw.submissions || []).some(isMatchHwSub) || (submissions || []).some(isMatchHwSub);
-            const sub = (hw.submissions || []).find(isMatchHwSub) || (submissions || []).find(isMatchHwSub);
+            const isDone = (hw.submissions || []).some(s => isMatchStudent(s) && isMatchHwSub(s)) || (studentSubmissions || []).some(isMatchHwSub);
+            const sub = (hw.submissions || []).find(s => isMatchStudent(s) && isMatchHwSub(s)) || (studentSubmissions || []).find(isMatchHwSub);
             const subYMD = (sub?.createdAt || sub?.submittedAt) ? extractItemYMD(sub.submittedAt || sub.createdAt) : null;
 
             let isForThisDay = false;
@@ -2170,7 +2170,7 @@ export default function StudentDashboard() {
                     return false;
                   })();
                   const isTestSolved = tidSolvedCheck ||
-                    (hw.submissions || hw.raw_data?.submissions || []).some(s => isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books)) ||
+                    (hw.submissions || hw.raw_data?.submissions || []).some(s => isMatchStudent(s) && (isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books))) ||
                     (studentSubmissions || []).some(s => isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books));
                   const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
 
@@ -2216,8 +2216,8 @@ export default function StudentDashboard() {
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
           // A.2) Genel Ödev / Kitap Teslim Tarihi
-          const sub = (hw.submissions || hw.raw_data?.submissions || []).find(s => isMatchHwSub(s, hw)) ||
-            (submissions || []).find(s => isMatchHwSub(s, hw));
+          const sub = (hw.submissions || hw.raw_data?.submissions || []).find(s => isMatchStudent(s) && isMatchHwSub(s, hw)) ||
+            (studentSubmissions || []).find(s => isMatchHwSub(s, hw));
           const isDone = !!sub;
           const subYMD = (sub?.createdAt || sub?.submittedAt) ? extractItemYMD(sub.submittedAt || sub.createdAt) : null;
 

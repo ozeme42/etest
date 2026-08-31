@@ -1,4 +1,31 @@
 /**
+ * Normalizes Turkish text with proper Unicode decomposition and Turkish locale casing.
+ */
+export function normalizeTurkishText(str) {
+  if (str === null || str === undefined) return '';
+  let s = String(str).trim();
+  if (!s) return '';
+  try {
+    s = s.normalize('NFKC');
+  } catch {}
+  return s.toLocaleLowerCase('tr-TR').trim();
+}
+
+/**
+ * Replaces Turkish specific diacritics with latin equivalents for forgiving matching.
+ */
+export function stripTurkishDiacritics(str) {
+  if (!str) return '';
+  return str
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+}
+
+/**
  * Cleans mathematical symbols, degree signs, units, and formatting
  * so that values like "30°", "30 derece", "30 cm", "30 TL", "%30", "3,5", "3.5"
  * are normalized cleanly for robust comparison.
@@ -9,51 +36,46 @@ export function cleanMathAndUnitString(str) {
   if (!s) return '';
 
   // 1. Convert Turkish special chars & lowercase
-  s = s.toLocaleLowerCase('tr-TR');
+  s = normalizeTurkishText(s);
 
-  // 2. Unicode normalization (NFKC decomposes symbols like º, ², ³, −)
-  try {
-    s = s.normalize('NFKC');
-  } catch {}
-
-  // 3. Normalize minus signs (unicode −, –, — to standard -)
+  // 2. Normalize minus signs (unicode −, –, — to standard -)
   s = s.replace(/[\u2212\u2013\u2014]/g, '-');
 
-  // 4. Replace decimal commas with dots: 3,5 -> 3.5 (only if between digits)
+  // 3. Replace decimal commas with dots: 3,5 -> 3.5 (only if between digits)
   s = s.replace(/(\d+),(\d+)/g, '$1.$2');
 
   // Strip variable prefixes like x=, y=, a=, n=, k=, cevap=, cevap:, sonuç=
   s = s.replace(/^(?:[a-z]|cevap|sonuc|alan|hacim|cevre|çevre)\s*[:=]\s*/gi, '');
 
-  // 5. Remove degree symbols and words (e.g. 30°, 30 derece, 30°C)
+  // 4. Remove degree symbols and words (e.g. 30°, 30 derece, 30°C)
   s = s.replace(/°c|°|º|deg|derece|santigrat|celcius/gi, '');
 
-  // 6. Remove percentage symbols and words (e.g. %30, 30%)
+  // 5. Remove percentage symbols and words (e.g. %30, 30%)
   s = s.replace(/%|yüzde/gi, '');
 
-  // 7. Remove currency units
+  // 6. Remove currency units
   s = s.replace(/tl|₺|lira|kuruş|kr\b/gi, '');
 
-  // 8. Remove common units of measurement
+  // 7. Remove common units of measurement
   s = s.replace(/\b(cm2|cm\^2|cm3|cm\^3|cm|m2|m\^2|m3|m\^3|m|km2|km\^2|km|mm|santimetre|santimetrekare|metre|metrekare|kilometre|milimetre)\b/gi, '');
   s = s.replace(/\b(kg|kilogram|kilo|gram|gr|g|mg|ton|miligram)\b/gi, '');
   s = s.replace(/\b(litre|lt|l|mililitre|ml)\b/gi, '');
   s = s.replace(/\b(saat|sa|dakika|dk|saniye|sn|gun|gün|hafta|ay|yıl|yil)\b/gi, '');
   s = s.replace(/\b(adet|tane|kisi|kişi|katı|kati|kat)\b/gi, '');
 
-  // 9. Remove decorative quotes, brackets, trailing punctuation
+  // 8. Remove decorative quotes, brackets, trailing punctuation
   s = s.replace(/['"`()[\]{}.,;:]+$/g, '');
   s = s.replace(/^['"`()[\]{}.,;:]+/g, '');
 
-  // 10. Remove all whitespace
+  // 9. Remove all whitespace
   s = s.replace(/\s+/g, '');
 
   return s;
 }
 
 /**
- * Compares open-ended answers flexibly, accepting matching numerical values,
- * math symbols, unit variations, fractions, and alternative answer keys.
+ * Compares open-ended answers flexibly, accepting matching textual answers (with Turkish characters),
+ * numerical values, math symbols, unit variations, fractions, and alternative answer keys.
  * 
  * @param {string|number} userAns - Answer provided by student
  * @param {string|number} correctKey - Answer key from book / teacher
@@ -70,23 +92,47 @@ export function compareOpenEndedAnswers(userAns, correctKey) {
   const rawU = String(userAns).trim();
   const rawK = String(correctKey).trim();
 
-  // 1. Direct raw equality (case-insensitive)
-  if (rawU.toLowerCase() === rawK.toLowerCase()) return true;
+  // 1. Direct Turkish lowercase text match (e.g. "İstanbul" === "istanbul", "Açık Uçlu" === "açık uçlu")
+  const normU = normalizeTurkishText(rawU);
+  const normK = normalizeTurkishText(rawK);
+  if (normU && normK && normU === normK) return true;
 
-  // 2. Cleaned unit/math normalization
+  // 2. Multiple accepted answers in answerKey separated by '/', ';', '|', 'veya', 'ya da', or ',' (when not decimal 3,5)
+  if (rawK.includes('/') || rawK.includes(';') || rawK.includes('|') || rawK.includes(' veya ') || rawK.includes(' ya da ') || (rawK.includes(',') && !/^\d+,\d+$/.test(rawK))) {
+    const splitOptions = rawK.split(/\s*(?:\/|;|\||\bveya\b|\bya da\b|,(?!\d))\s*/i);
+    if (splitOptions.length > 1) {
+      for (const opt of splitOptions) {
+        if (opt && opt.trim() && compareOpenEndedAnswers(rawU, opt.trim())) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // 3. Text match ignoring common punctuation and extra whitespace
+  const cleanTextU = normU.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'<>]/g, ' ').replace(/\s+/g, ' ').trim();
+  const cleanTextK = normK.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'<>]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (cleanTextU && cleanTextK && cleanTextU === cleanTextK) return true;
+
+  // 4. Forgiving match without Turkish diacritics (e.g. "çiçek" === "cicek", "gözlem" === "gozlem")
+  if (cleanTextU && cleanTextK && stripTurkishDiacritics(cleanTextU) === stripTurkishDiacritics(cleanTextK)) {
+    return true;
+  }
+
+  // 5. Cleaned unit/math normalization (e.g. "30 cm" === "30", "%25" === "25")
   const cleanU = cleanMathAndUnitString(rawU);
   const cleanK = cleanMathAndUnitString(rawK);
 
   if (cleanU && cleanK && cleanU === cleanK) return true;
 
-  // 3. Numeric float equality (e.g. 30.0 === 30, 3.5 === 3.50, -5 === -5)
+  // 6. Numeric float equality (e.g. 30.0 === 30, 3.5 === 3.50, -5 === -5)
   const numU = Number(cleanU);
   const numK = Number(cleanK);
   if (!isNaN(numU) && !isNaN(numK) && Math.abs(numU - numK) < 0.00001) {
     return true;
   }
 
-  // 4. Fraction vs decimal equality (e.g. 1/2 vs 0.5, 3/4 vs 0.75, 4/2 vs 2)
+  // 7. Fraction vs decimal equality (e.g. 1/2 vs 0.5, 3/4 vs 0.75, 4/2 vs 2)
   const evalFraction = (str) => {
     if (str.includes('/')) {
       const parts = str.split('/');
@@ -107,16 +153,6 @@ export function compareOpenEndedAnswers(userAns, correctKey) {
   if (fracU !== null && fracK !== null && Math.abs(fracU - fracK) < 0.00001) return true;
   if (fracU !== null && !isNaN(numK) && Math.abs(fracU - numK) < 0.00001) return true;
   if (!isNaN(numU) && fracK !== null && Math.abs(numU - fracK) < 0.00001) return true;
-
-  // 5. Multiple accepted answers in answerKey separated by '/' or ';' or '|' or 'veya'
-  if (rawK.includes('/') || rawK.includes(';') || rawK.includes('|') || rawK.includes(' veya ') || rawK.includes(' ya da ')) {
-    const splitOptions = rawK.split(/\s*(?:\/|;|\||\bveya\b|\bya da\b)\s*/i);
-    for (const opt of splitOptions) {
-      if (opt && compareOpenEndedAnswers(rawU, opt)) {
-        return true;
-      }
-    }
-  }
 
   return false;
 }

@@ -1796,10 +1796,13 @@ export default function TrackedBookQuizRunner() {
                                     <input
                                       ref={el => { inputRefs.current[qNo] = el; }}
                                       type="text"
-                                      inputMode="decimal"
+                                      inputMode="text"
+                                      autoCapitalize="sentences"
+                                      autoCorrect="on"
+                                      spellCheck="true"
                                       enterKeyHint={qNo === (questionCount || 20) ? "done" : "next"}
                                       disabled={isSubmitted || isTeacherReviewing}
-                                      value={selected}
+                                      value={selected || ''}
                                       onFocus={() => handleInputFocus(qNo)}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
@@ -1808,7 +1811,7 @@ export default function TrackedBookQuizRunner() {
                                         }
                                       }}
                                       onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                      placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap giriniz...'}
+                                      placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap giriniz (sayı veya metin)...'}
                                       style={{
                                         flex: 1,
                                         width: '100%',
@@ -1818,11 +1821,11 @@ export default function TrackedBookQuizRunner() {
                                         padding: '0.55rem 0.75rem',
                                         color: 'var(--color-text)',
                                         fontSize: '1rem',
-                                        fontWeight: 800,
-                                        fontFamily: "'JetBrains Mono', monospace",
+                                        fontWeight: 700,
+                                        fontFamily: 'inherit',
                                         boxSizing: 'border-box',
                                         outline: 'none',
-                                        letterSpacing: '0.04em'
+                                        letterSpacing: 'normal'
                                       }}
                                     />
 

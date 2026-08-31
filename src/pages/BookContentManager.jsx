@@ -3847,13 +3847,16 @@ export default function BookContentManager() {
                         <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
                         <input
                           type="text"
-                          inputMode="numeric"
+                          inputMode="text"
+                          autoCapitalize="sentences"
+                          autoCorrect="on"
+                          spellCheck="true"
                           value={val}
                           onChange={e => setTestFormData(p => ({
                             ...p,
                             answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
                           }))}
-                          placeholder="—"
+                          placeholder="Cevap..."
                           style={{
                             flex: 1,
                             minWidth: 0,
@@ -3864,7 +3867,7 @@ export default function BookContentManager() {
                             color: 'var(--color-text)',
                             fontSize: '0.85rem',
                             fontWeight: 700,
-                            fontFamily: 'monospace',
+                            fontFamily: 'inherit',
                             outline: 'none'
                           }}
                         />
