@@ -535,7 +535,9 @@ export default function RemedialTrackerPage() {
           }}
           mode="mistakes"
           studentId={slicerConfig?.studentId || activeStudent?.id}
+          initialBook={slicerConfig?.book}
           initialBookId={slicerConfig?.bookId}
+          initialPdfUrl={slicerConfig?.pdfUrl}
           initialMistakes={slicerConfig?.mistakes}
           initialSubject={slicerConfig?.subject}
           initialGrade={slicerConfig?.grade}

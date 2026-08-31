@@ -570,8 +570,31 @@ export default function PdfQuestionSlicerModal({
   const [pageJumpInput, setPageJumpInput] = useState('1');
   const [viewMode, setViewMode] = useState('scroll'); // 'scroll' (Sürekli Dikey Kaydırma) | 'single' (Tek Sayfa)
 
+  // 📚 Tüm Kitaplar ve Deneme Sınavları Birleşik Listesi (Dropdown ve Kılavuz için)
+  const allAvailableBooks = useMemo(() => {
+    const list = [...(books || [])];
+    (homeworks || []).forEach(hw => {
+      if (hw && (hw.isPhysical || hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || (hw.title && hw.title.toLowerCase().includes('deneme')) || (hw.title && hw.title.toLowerCase().includes('sınav')))) {
+        if (!list.some(b => String(b.id) === String(hw.id) || (hw.title && b.title === hw.title))) {
+          list.push({
+            id: hw.id,
+            title: hw.title || 'Deneme Sınavı',
+            pdfUrl: hw.pdfUrl,
+            subject: hw.subject || 'Deneme Sınavı',
+            grade: hw.grade,
+            isExam: true
+          });
+        }
+      }
+    });
+    if (initialBook && !list.some(b => String(b.id) === String(initialBook.id) || (initialBook.title && b.title === initialBook.title))) {
+      list.unshift(initialBook);
+    }
+    return list;
+  }, [books, homeworks, initialBook]);
+
   const [selectedBookId, setSelectedBookId] = useState(() => {
-    return initialBook?.id || initialBookId || (mode === 'mistakes' && books.length > 0 ? books[0].id : null);
+    return initialBook?.id || initialBookId || (initialMistakes && initialMistakes[0]?.testId) || (mode === 'mistakes' && allAvailableBooks.length > 0 ? allAvailableBooks[0].id : null);
   });
   const [showMistakesGuide, setShowMistakesGuide] = useState(() => mode === 'mistakes');
   const [showRightPanel, setShowRightPanel] = useState(true);
@@ -599,11 +622,31 @@ export default function PdfQuestionSlicerModal({
   const imageObjRef = useRef(null);
 
   const currentBook = useMemo(() => {
-    if (initialBook && (!selectedBookId || String(initialBook.id) === String(selectedBookId))) {
+    if (initialBook && (!selectedBookId || String(initialBook.id) === String(selectedBookId) || (selectedBookId === initialBookId))) {
       return initialBook;
     }
-    return books.find(b => String(b.id) === String(selectedBookId) || toUUID(b.id) === toUUID(selectedBookId)) || (mode === 'mistakes' ? books[0] : null);
-  }, [selectedBookId, books, initialBook, mode]);
+    if (selectedBookId) {
+      const found = allAvailableBooks.find(b => String(b.id) === String(selectedBookId) || toUUID(b.id) === toUUID(selectedBookId));
+      if (found) return found;
+    }
+    if (initialMistakes && initialMistakes.length > 0) {
+      const firstMistake = initialMistakes[0];
+      const mTitle = firstMistake.name || firstMistake.testName || firstMistake.title;
+      if (mTitle) {
+        const found = allAvailableBooks.find(b => b.title && b.title.toLowerCase().trim() === mTitle.toLowerCase().trim());
+        if (found) return found;
+        return {
+          id: selectedBookId || firstMistake.testId || 'custom_exam',
+          title: mTitle,
+          pdfUrl: initialPdfUrl || firstMistake.pdfUrl || null,
+          subject: initialSubject || firstMistake.subjectName || 'Genel',
+          grade: initialGrade || firstMistake.grade || null,
+          isExam: true
+        };
+      }
+    }
+    return mode === 'mistakes' ? (allAvailableBooks[0] || null) : null;
+  }, [selectedBookId, allAvailableBooks, initialBook, initialBookId, initialMistakes, initialPdfUrl, initialSubject, initialGrade, mode]);
 
   useEffect(() => {
     if (mode === 'mistakes' && currentBook?.title) {
@@ -1829,14 +1872,14 @@ export default function PdfQuestionSlicerModal({
                 </select>
               </div>
             ) : (
-              books.length > 0 && (
+              allAvailableBooks.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitap:</span>
                   <select
                     value={selectedBookId || ''}
                     onChange={(e) => {
                       setSelectedBookId(e.target.value);
-                      const b = books.find(item => String(item.id) === e.target.value);
+                      const b = allAvailableBooks.find(item => String(item.id) === e.target.value);
                       if (b?.pdfUrl) {
                         loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
                       }
@@ -1853,7 +1896,7 @@ export default function PdfQuestionSlicerModal({
                       cursor: 'pointer'
                     }}
                   >
-                    {books.map(b => (
+                    {allAvailableBooks.map(b => (
                       <option key={b.id} value={b.id}>
                         {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
                       </option>
@@ -1939,17 +1982,17 @@ export default function PdfQuestionSlicerModal({
               )}
 
               {/* 2. Kitap Seçimi */}
-              {books.length > 0 && (
+              {allAvailableBooks.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <BookOpen size={14} className="text-emerald-500" />
-                    <span>Kitap:</span>
+                    <span>Kitap / Sınav:</span>
                   </span>
                   <select
                     value={selectedBookId || ''}
                     onChange={(e) => {
                       setSelectedBookId(e.target.value);
-                      const b = books.find(item => String(item.id) === e.target.value);
+                      const b = allAvailableBooks.find(item => String(item.id) === e.target.value);
                       if (b?.pdfUrl) {
                         loadPdfFromUrlOrBuffer(b.pdfUrl, b.title);
                       }
@@ -1966,9 +2009,9 @@ export default function PdfQuestionSlicerModal({
                       cursor: 'pointer'
                     }}
                   >
-                    {books.map(b => (
+                    {allAvailableBooks.map(b => (
                       <option key={b.id} value={b.id}>
-                        📖 {b.title || 'İsimsiz Kitap'} {b.subject ? `(${b.subject})` : ''}
+                        {b.isExam ? '📌' : '📖'} {b.title || 'İsimsiz'} {b.subject ? `(${b.subject})` : ''}
                       </option>
                     ))}
                   </select>

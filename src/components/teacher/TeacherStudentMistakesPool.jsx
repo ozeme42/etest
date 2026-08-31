@@ -1054,6 +1054,16 @@ export default function TeacherStudentMistakesPool({
       onLaunchSlicer({
         studentId: student.id,
         bookId: activeBook.bookId,
+        bookTitle: activeBook.bookTitle,
+        pdfUrl: activeBook.bookPdfUrl,
+        book: {
+          id: activeBook.bookId,
+          title: activeBook.bookTitle,
+          pdfUrl: activeBook.bookPdfUrl,
+          subject: activeSubjectObj?.subjectName || activeBook.subject,
+          grade: activeBook.grade,
+          isExam: activeBook.isExam
+        },
         mistakes: structuredMistakes,
         scheduleMode,
         customIntervals,
