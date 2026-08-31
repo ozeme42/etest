@@ -1647,8 +1647,11 @@ export default function StudentDashboard() {
     };
   }, [books, bookTests, bookTestInfoCache]);
 
-  /* ─── Computed Day Program — only for the active day (7x faster than computing all 7) ─── */
-  const fullProcessedWeekMap = useMemo(() => {
+  /* ─── Computed Day Program — render'ı bloke etme, sonradan hesapla ─── */
+  const [fullProcessedWeekMap, setFullProcessedWeekMap] = React.useState({});
+  useEffect(() => {
+    // Paint bittikten sonra hesapla - sayfa anında görünür
+    const computeWeekMap = () => {
     try {
       const rawProg = coachingProfile?.weeklyProgram;
       const studentId = selectedStudent?.id;
@@ -2313,11 +2316,15 @@ export default function StudentDashboard() {
         };
       });
 
-      return resultMap;
+      setFullProcessedWeekMap(resultMap);
     } catch (err) {
       console.error('Error computing fullProcessedWeekMap:', err);
-      return {};
+      setFullProcessedWeekMap({});
     }
+    };
+    // requestAnimationFrame: tarayıcı bir frame çizdikten SONRA çalıştır
+    const raf = requestAnimationFrame(() => computeWeekMap());
+    return () => cancelAnimationFrame(raf);
   }, [coachingProfile, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
 
   const dayProgramInfo = useMemo(() => {
