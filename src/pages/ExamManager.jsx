@@ -4,7 +4,8 @@ import {
   BookOpen, Calculator, FileText, Check, X, RefreshCw, ChevronRight, ChevronUp, ChevronDown,
   TrendingUp, Trophy, Layers, Award, FileCode2, Copy, ArrowRight, CornerDownRight, BarChart3, Settings2,
   Eye, ArrowLeft, Calendar, FileSpreadsheet, KeyRound, Key, Edit3, Link2, Download, Search, Filter,
-  Send, Save, ExternalLink
+  Send, Save, ExternalLink, LayoutGrid, Table as TableIcon, ArrowUpDown, ArrowUp, ArrowDown, SlidersHorizontal,
+  RotateCcw, CheckCheck, Clock4, Users
 } from 'lucide-react';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -85,6 +86,56 @@ export default function ExamManager() {
   const [searchFilter, setSearchFilter] = useState('');
   const [formatFilter, setFormatFilter] = useState('ALL');
   
+  // View mode: 'table' (DEFAULT) or 'grid'
+  const [viewMode, setViewMode] = useState(() => {
+    try {
+      return localStorage.getItem('eTestExamManagerViewMode') || 'table';
+    } catch {
+      return 'table';
+    }
+  });
+  const handleSetViewMode = (mode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('eTestExamManagerViewMode', mode);
+    } catch {}
+  };
+
+  // Detailed filters & sorting
+  const [assignmentFilter, setAssignmentFilter] = useState('ALL');
+  const [pdfFilter, setPdfFilter] = useState('ALL');
+  const [questionCountFilter, setQuestionCountFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const toggleSort = (col) => {
+    if (sortBy === col) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(col);
+      setSortOrder(col === 'title' || col === 'publisher' ? 'asc' : 'desc');
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearchFilter('');
+    setFormatFilter('ALL');
+    setAssignmentFilter('ALL');
+    setPdfFilter('ALL');
+    setQuestionCountFilter('ALL');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+  };
+
+  const isAnyFilterActive = searchFilter.trim() !== '' ||
+    formatFilter !== 'ALL' ||
+    assignmentFilter !== 'ALL' ||
+    pdfFilter !== 'ALL' ||
+    questionCountFilter !== 'ALL' ||
+    sortBy !== 'createdAt' ||
+    sortOrder !== 'desc';
+
   // Edit Mode State for Existing Exams
   const [isEditingExam, setIsEditingExam] = useState(false);
   const [editingExamMeta, setEditingExamMeta] = useState({});
@@ -226,14 +277,6 @@ export default function ExamManager() {
     return uniqueExams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [books, bookTests, homeworks, currentUser]);
 
-  const filteredExams = useMemo(() => {
-    return physicalExamsDatabase.filter(exam => {
-      const matchQuery = !searchFilter || exam.title.toLowerCase().includes(searchFilter.toLowerCase()) || (exam.publisher && exam.publisher.toLowerCase().includes(searchFilter.toLowerCase()));
-      const matchFormat = formatFilter === 'ALL' || exam.publisher === formatFilter;
-      return matchQuery && matchFormat;
-    });
-  }, [physicalExamsDatabase, searchFilter, formatFilter]);
-
   const totalQuestionsInPool = useMemo(() => {
     return physicalExamsDatabase.reduce((acc, e) => acc + (e.totalQuestions || 0), 0);
   }, [physicalExamsDatabase]);
@@ -328,6 +371,90 @@ export default function ExamManager() {
 
     return map;
   }, [physicalExamsDatabase, homeworks, students, users, evalSubmissions]);
+
+  const filteredAndSortedExams = useMemo(() => {
+    let result = (physicalExamsDatabase || []).filter(exam => {
+      // 1. Text Search (title, publisher, subject names)
+      if (searchFilter.trim()) {
+        const q = searchFilter.toLowerCase().trim();
+        const titleMatch = String(exam.title || '').toLowerCase().includes(q);
+        const pubMatch = String(exam.publisher || '').toLowerCase().includes(q);
+        const subjMatch = (exam.subjects || []).some(s => String(s.name || '').toLowerCase().includes(q));
+        if (!titleMatch && !pubMatch && !subjMatch) return false;
+      }
+
+      // 2. Format / Publisher
+      if (formatFilter !== 'ALL') {
+        if (exam.publisher !== formatFilter) return false;
+      }
+
+      // 3. PDF filter
+      if (pdfFilter === 'WITH_PDF' && !exam.pdfUrl) return false;
+      if (pdfFilter === 'WITHOUT_PDF' && exam.pdfUrl) return false;
+
+      // 4. Question Count filter
+      const qCount = Number(exam.totalQuestions || 0);
+      if (questionCountFilter === '1_40' && (qCount < 1 || qCount > 40)) return false;
+      if (questionCountFilter === '41_90' && (qCount < 41 || qCount > 90)) return false;
+      if (questionCountFilter === '91_PLUS' && qCount <= 90) return false;
+
+      // 5. Assignment & Status filter
+      const asgs = examAssignmentsMap.get(exam.id) || (toUUID(exam.id) && examAssignmentsMap.get(toUUID(exam.id))) || [];
+      const assignedCount = asgs.length;
+      const solvedCount = asgs.filter(a => a.isSolved).length;
+      const pendingCount = assignedCount - solvedCount;
+
+      if (assignmentFilter === 'ASSIGNED' && assignedCount === 0) return false;
+      if (assignmentFilter === 'UNASSIGNED' && assignedCount > 0) return false;
+      if (assignmentFilter === 'SOLVED' && solvedCount === 0) return false;
+      if (assignmentFilter === 'PENDING' && pendingCount === 0) return false;
+
+      return true;
+    });
+
+    // Sort
+    result.sort((a, b) => {
+      let valA, valB;
+      const asgsA = examAssignmentsMap.get(a.id) || (toUUID(a.id) && examAssignmentsMap.get(toUUID(a.id))) || [];
+      const asgsB = examAssignmentsMap.get(b.id) || (toUUID(b.id) && examAssignmentsMap.get(toUUID(b.id))) || [];
+
+      switch (sortBy) {
+        case 'title':
+          valA = String(a.title || '').toLowerCase();
+          valB = String(b.title || '').toLowerCase();
+          return sortOrder === 'asc' ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
+        case 'publisher':
+          valA = String(a.publisher || '').toLowerCase();
+          valB = String(b.publisher || '').toLowerCase();
+          return sortOrder === 'asc' ? valA.localeCompare(valB, 'tr') : valB.localeCompare(valA, 'tr');
+        case 'totalQuestions':
+          valA = Number(a.totalQuestions || 0);
+          valB = Number(b.totalQuestions || 0);
+          break;
+        case 'assignedCount':
+          valA = asgsA.length;
+          valB = asgsB.length;
+          break;
+        case 'solvedCount':
+          valA = asgsA.filter(x => x.isSolved).length;
+          valB = asgsB.filter(x => x.isSolved).length;
+          break;
+        case 'createdAt':
+        default:
+          valA = new Date(a.createdAt || 0).getTime();
+          valB = new Date(b.createdAt || 0).getTime();
+          break;
+      }
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [physicalExamsDatabase, searchFilter, formatFilter, pdfFilter, questionCountFilter, assignmentFilter, sortBy, sortOrder, examAssignmentsMap]);
+
+  const filteredExams = filteredAndSortedExams;
 
   const handleRemoveStudentAssignment = async (hw, studentId) => {
     if (!hw) return;
@@ -938,88 +1065,767 @@ export default function ExamManager() {
           </div>
 
           {/* SEARCH & FILTER BAR */}
-          <div className="exam-filter-bar">
-            <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-              <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="Deneme adı veya yayın ile ara..."
-                value={searchFilter}
-                onChange={e => setSearchFilter(e.target.value)}
-                style={{ width: '100%', padding: '0.6rem 0.9rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
+          <div className="exam-filter-bar" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', width: '100%', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+                <Search size={16} color="var(--color-text-muted)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  placeholder="Deneme adı, yayın veya ders ara..."
+                  value={searchFilter}
+                  onChange={e => setSearchFilter(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem 2.2rem 0.6rem 2.4rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }}
+                />
+                {searchFilter && (
+                  <button
+                    onClick={() => setSearchFilter('')}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex', padding: 2 }}
+                    title="Aramayı Temizle"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-              {['ALL', 'LGS', 'TYT', 'AYT', 'CUSTOM'].map(f => (
+              {/* Format Filter Chips */}
+              <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                {['ALL', 'LGS', 'TYT', 'AYT', 'CUSTOM'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFormatFilter(f)}
+                    style={{
+                      padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
+                      border: formatFilter === f ? '1px solid #818cf8' : '1.5px solid var(--color-border-input)',
+                      background: formatFilter === f ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
+                      color: formatFilter === f ? '#ffffff' : 'var(--color-text)', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer',
+                      boxShadow: formatFilter === f ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
+                    }}
+                  >
+                    {f === 'ALL' ? 'Tüm Formatlar' : f === 'CUSTOM' ? 'Özel' : f}
+                  </button>
+                ))}
+              </div>
+
+              {/* Advanced Filter Toggle & View Switcher */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
-                  key={f}
-                  onClick={() => setFormatFilter(f)}
+                  onClick={() => setShowAdvancedFilters(prev => !prev)}
                   style={{
-                    padding: '0.5rem 0.85rem', borderRadius: '0.65rem',
-                    border: formatFilter === f ? '1px solid #818cf8' : '1.5px solid var(--color-border-input)',
-                    background: formatFilter === f ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'var(--color-surface-hover)',
-                    color: formatFilter === f ? '#ffffff' : 'var(--color-text)', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer',
-                    boxShadow: formatFilter === f ? '0 4px 12px rgba(99,102,241,0.25)' : 'none'
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '0.45rem 0.8rem', borderRadius: '0.65rem',
+                    border: showAdvancedFilters || isAnyFilterActive ? '1.5px solid #818cf8' : '1.5px solid var(--color-border-input)',
+                    background: showAdvancedFilters || isAnyFilterActive ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)',
+                    color: showAdvancedFilters || isAnyFilterActive ? '#6366f1' : 'var(--color-text)',
+                    fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer'
                   }}
                 >
-                  {f === 'ALL' ? 'Tüm Formatlar' : f === 'CUSTOM' ? 'Özel' : f}
+                  <SlidersHorizontal size={14} />
+                  <span>Filtrele &amp; Sırala</span>
+                  {isAnyFilterActive && (
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366f1' }} />
+                  )}
                 </button>
-              ))}
+
+                {/* View Mode Switcher: TABLE (Default) vs GRID */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: 'var(--color-surface-hover)',
+                  border: '1.5px solid var(--color-border-input)',
+                  borderRadius: '0.65rem',
+                  padding: '2px',
+                  gap: '2px'
+                }}>
+                  <button
+                    onClick={() => handleSetViewMode('table')}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '0.4rem 0.75rem', borderRadius: '0.5rem',
+                      border: 'none',
+                      background: viewMode === 'table' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                      color: viewMode === 'table' ? '#ffffff' : 'var(--color-text)',
+                      fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer',
+                      boxShadow: viewMode === 'table' ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                    }}
+                    title="Tablo Görünümü (Varsayılan)"
+                  >
+                    <TableIcon size={14} /> Tablo
+                  </button>
+                  <button
+                    onClick={() => handleSetViewMode('grid')}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '0.4rem 0.75rem', borderRadius: '0.5rem',
+                      border: 'none',
+                      background: viewMode === 'grid' ? 'linear-gradient(135deg,#4f46e5,#6366f1)' : 'transparent',
+                      color: viewMode === 'grid' ? '#ffffff' : 'var(--color-text)',
+                      fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer',
+                      boxShadow: viewMode === 'grid' ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                    }}
+                    title="Kart Görünümü"
+                  >
+                    <LayoutGrid size={14} /> Kartlar
+                  </button>
+                </div>
+              </div>
             </div>
+
+            {/* EXPANDABLE DETAILED FILTERS & SORTERS DRAWER */}
+            {showAdvancedFilters && (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                padding: '0.9rem',
+                background: 'var(--color-surface)',
+                borderRadius: '0.85rem',
+                border: '1px solid var(--color-border)',
+                marginTop: '0.25rem'
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                  {/* Filter 1: Atama Durumu */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>
+                      👥 Atama &amp; Çözüm Durumu
+                    </label>
+                    <select
+                      value={assignmentFilter}
+                      onChange={e => setAssignmentFilter(e.target.value)}
+                      style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.55rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                    >
+                      <option value="ALL">Tümü (Hepsi)</option>
+                      <option value="ASSIGNED">👥 Atanmış Denemeler</option>
+                      <option value="UNASSIGNED">⚪ Henüz Atanmamışlar</option>
+                      <option value="SOLVED">✅ Çözümü Yapılmışlar</option>
+                      <option value="PENDING">⏳ Bekleyen / Çözülmeyenler</option>
+                    </select>
+                  </div>
+
+                  {/* Filter 2: PDF Durumu */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>
+                      📄 PDF Doküman Durumu
+                    </label>
+                    <select
+                      value={pdfFilter}
+                      onChange={e => setPdfFilter(e.target.value)}
+                      style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.55rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                    >
+                      <option value="ALL">Tümü</option>
+                      <option value="WITH_PDF">📄 PDF Ekli Olanlar</option>
+                      <option value="WITHOUT_PDF">❌ PDF Eklenmemişler</option>
+                    </select>
+                  </div>
+
+                  {/* Filter 3: Soru Sayısı */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>
+                      ❓ Soru Sayısı Aralığı
+                    </label>
+                    <select
+                      value={questionCountFilter}
+                      onChange={e => setQuestionCountFilter(e.target.value)}
+                      style={{ width: '100%', padding: '0.45rem 0.6rem', borderRadius: '0.55rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                    >
+                      <option value="ALL">Tüm Soru Sayıları</option>
+                      <option value="1_40">1 - 40 Soru</option>
+                      <option value="41_90">41 - 90 Soru</option>
+                      <option value="91_PLUS">91+ Soru</option>
+                    </select>
+                  </div>
+
+                  {/* Sorting: Sıralama Ölçütü & Yönü */}
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', marginBottom: 4 }}>
+                      ↕️ Sıralama Kriteri &amp; Yönü
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <select
+                        value={sortBy}
+                        onChange={e => setSortBy(e.target.value)}
+                        style={{ flex: 1, padding: '0.45rem 0.6rem', borderRadius: '0.55rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 700, outline: 'none' }}
+                      >
+                        <option value="createdAt">📅 Eklenme Tarihi</option>
+                        <option value="title">🔤 Deneme Adı</option>
+                        <option value="publisher">🏷️ Format / Tür</option>
+                        <option value="totalQuestions">❓ Soru Sayısı</option>
+                        <option value="assignedCount">👥 Atanan Öğrenci</option>
+                        <option value="solvedCount">🎯 Çözülme Sayısı</option>
+                      </select>
+                      <button
+                        onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                        style={{
+                          padding: '0.45rem 0.75rem', borderRadius: '0.55rem',
+                          border: '1.5px solid var(--color-border-input)',
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text)', fontSize: '0.78rem', fontWeight: 800,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                        }}
+                        title={sortOrder === 'asc' ? 'Artan Sıralama (A-Z / Eskiden Yeniye)' : 'Azalan Sıralama (Z-A / Yeniden Eskiye)'}
+                      >
+                        {sortOrder === 'asc' ? <ArrowUp size={14} color="#6366f1" /> : <ArrowDown size={14} color="#6366f1" />}
+                        {sortOrder === 'asc' ? 'Artan' : 'Azalan'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {isAnyFilterActive && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '0.4rem', borderTop: '1px solid var(--color-border)' }}>
+                    <button
+                      onClick={handleResetFilters}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '0.35rem 0.75rem', borderRadius: '0.5rem',
+                        border: '1px solid #fecaca', background: '#fef2f2',
+                        color: '#dc2626', fontSize: '0.72rem', fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <RotateCcw size={12} /> Filtreleri &amp; Sıralamayı Sıfırla
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* EXAMS GRID */}
+          {/* EXAMS POOL CONTAINER */}
           <div className="exam-pool-container">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.85rem' }}>
-              <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Layers size={20} color="#6366f1" />
-                Fiziki Deneme Havuzu
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.85rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Layers size={20} color="#6366f1" />
+                  Fiziki Deneme Havuzu
+                </h2>
                 <span style={{ fontSize: '0.72rem', fontWeight: 900, padding: '0.2rem 0.65rem', borderRadius: 99, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1px solid #3b82f6' }}>
-                  {filteredExams.length} Deneme
+                  {filteredAndSortedExams.length} / {physicalExamsDatabase.length} Deneme
                 </span>
-              </h2>
-              <button
-                onClick={() => setShowAddForm(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
-                  background: 'linear-gradient(135deg,#059669,#10b981)',
-                  border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
-                }}
-              >
-                <Plus size={15} /> Yeni Deneme Girişi Yap
-              </button>
+                {isAnyFilterActive && (
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.15rem 0.5rem', borderRadius: 99 }}>
+                    Filtrelenmiş Sonuçlar
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '0.55rem 1.15rem', borderRadius: '0.75rem',
+                    background: 'linear-gradient(135deg,#059669,#10b981)',
+                    border: 'none', color: 'white', fontWeight: 900, fontSize: '0.8rem',
+                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
+                  }}
+                >
+                  <Plus size={15} /> Yeni Deneme Girişi Yap
+                </button>
+              </div>
             </div>
 
-            {filteredExams.length === 0 ? (
+            {filteredAndSortedExams.length === 0 ? (
               <div style={{
                 border: '1.5px dashed var(--color-border-input)',
                 borderRadius: '1.25rem', padding: '3.5rem 1.5rem', textAlign: 'center',
                 color: 'var(--color-text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem'
               }}>
                 <ClipboardCheck size={48} style={{ opacity: 0.3 }} />
-                <h3 style={{ margin: 0, color: 'var(--color-text)', fontWeight: 800, fontSize: '1.1rem' }}>Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor</h3>
+                <h3 style={{ margin: 0, color: 'var(--color-text)', fontWeight: 800, fontSize: '1.1rem' }}>
+                  {isAnyFilterActive ? 'Aramanıza veya Filtreye Uygun Deneme Bulunamadı' : 'Henüz Kaydedilmiş Fiziki Deneme Bulunmuyor'}
+                </h3>
                 <p style={{ margin: 0, fontSize: '0.82rem', maxWidth: 460 }}>
-                  Özdebir, Töder veya Kurumsal fiziki denemelerinizin cevap anahtarlarını dijital optik forma kodlayarak ilk kaydı oluşturun.
+                  {isAnyFilterActive ? 'Farklı bir filtre seçebilir veya filtreleri sıfırlayabilirsiniz.' : 'Özdebir, Töder veya Kurumsal fiziki denemelerinizin cevap anahtarlarını dijital optik forma kodlayarak ilk kaydı oluşturun.'}
                 </p>
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  style={{
-                    marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
-                    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
-                    border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
-                    cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
-                  }}
-                >
-                  <Plus size={15} /> Yeni Fiziki Deneme Kodla
-                </button>
+                {isAnyFilterActive ? (
+                  <button
+                    onClick={handleResetFilters}
+                    style={{
+                      marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '0.6rem 1.25rem', borderRadius: '0.75rem',
+                      background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                      cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
+                    }}
+                  >
+                    <RotateCcw size={14} /> Filtreleri Sıfırla
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    style={{
+                      marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '0.65rem 1.35rem', borderRadius: '0.75rem',
+                      background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+                      border: 'none', color: 'white', fontWeight: 900, fontSize: '0.82rem',
+                      cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
+                    }}
+                  >
+                    <Plus size={15} /> Yeni Fiziki Deneme Kodla
+                  </button>
+                )}
+              </div>
+            ) : viewMode === 'table' ? (
+              /* ═══════════════════════════════════════════════════
+                 TABLO GÖRÜNÜMÜ (VARSAYILAN / DEFAULT TABLE VIEW)
+                 ═══════════════════════════════════════════════════ */
+              <div className="exam-table-wrapper">
+                <table className="exam-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px', textAlign: 'center' }}>#</th>
+                      <th className="sortable" onClick={() => toggleSort('publisher')} style={{ width: '90px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Format
+                          {sortBy === 'publisher' ? (sortOrder === 'asc' ? <ArrowUp size={13} color="#6366f1" /> : <ArrowDown size={13} color="#6366f1" />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
+                        </span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort('title')}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Deneme Adı &amp; İçerik
+                          {sortBy === 'title' ? (sortOrder === 'asc' ? <ArrowUp size={13} color="#6366f1" /> : <ArrowDown size={13} color="#6366f1" />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
+                        </span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort('totalQuestions')} style={{ width: '130px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Soru &amp; Kural
+                          {sortBy === 'totalQuestions' ? (sortOrder === 'asc' ? <ArrowUp size={13} color="#6366f1" /> : <ArrowDown size={13} color="#6366f1" />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
+                        </span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort('createdAt')} style={{ width: '110px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Tarih
+                          {sortBy === 'createdAt' ? (sortOrder === 'asc' ? <ArrowUp size={13} color="#6366f1" /> : <ArrowDown size={13} color="#6366f1" />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
+                        </span>
+                      </th>
+                      <th className="sortable" onClick={() => toggleSort('assignedCount')} style={{ width: '170px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          Atama &amp; Çözüm
+                          {sortBy === 'assignedCount' ? (sortOrder === 'asc' ? <ArrowUp size={13} color="#6366f1" /> : <ArrowDown size={13} color="#6366f1" />) : <ArrowUpDown size={12} style={{ opacity: 0.4 }} />}
+                        </span>
+                      </th>
+                      <th style={{ width: '220px', textAlign: 'right' }}>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAndSortedExams.map((m, idx) => {
+                      const asgs = examAssignmentsMap.get(m.id) || (toUUID(m.id) && examAssignmentsMap.get(toUUID(m.id))) || [];
+                      const isAssignedOpen = Boolean(expandedAssignedExams[m.id]);
+                      const solvedCount = asgs.filter(a => a.isSolved).length;
+                      const solvedPct = asgs.length > 0 ? Math.round((solvedCount / asgs.length) * 100) : 0;
+
+                      const studentCounts = new Map();
+                      asgs.forEach(a => {
+                        const sid = String(a.student?.id || '');
+                        studentCounts.set(sid, (studentCounts.get(sid) || 0) + 1);
+                      });
+                      const duplicateStudentIds = new Set(
+                        Array.from(studentCounts.entries()).filter(([sid, count]) => count > 1).map(([sid]) => sid)
+                      );
+                      const hasDuplicates = duplicateStudentIds.size > 0;
+
+                      const pub = m.publisher || 'LGS';
+                      const pubColor = pub === 'LGS' ? '#3b82f6' : (pub === 'TYT' ? '#0ea5e9' : (pub === 'AYT' ? '#8b5cf6' : '#10b981'));
+
+                      return (
+                        <React.Fragment key={m.id}>
+                          <tr className={`exam-table-row ${isAssignedOpen ? 'expanded' : ''}`}>
+                            {/* 1. Sıra No */}
+                            <td style={{ textAlign: 'center', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                              {idx + 1}
+                            </td>
+
+                            {/* 2. Format Badge */}
+                            <td>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 900,
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: 99,
+                                background: `${pubColor}1a`,
+                                color: pubColor,
+                                border: `1px solid ${pubColor}44`,
+                                textTransform: 'uppercase',
+                                display: 'inline-block'
+                              }}>
+                                {pub}
+                              </span>
+                            </td>
+
+                            {/* 3. Deneme Adı, PDF & Ders Dağılımı */}
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <span
+                                    onClick={() => handleViewExamDetails(m)}
+                                    style={{ fontWeight: 900, fontSize: '0.88rem', color: 'var(--color-text)', cursor: 'pointer', lineHeight: 1.3 }}
+                                    title="Detayları ve Cevap Anahtarını Görüntüle"
+                                  >
+                                    {m.title}
+                                  </span>
+                                  {m.pdfUrl && (
+                                    <a
+                                      href={m.pdfUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 900,
+                                        padding: '0.15rem 0.45rem',
+                                        borderRadius: 99,
+                                        background: 'rgba(2,132,199,0.15)',
+                                        color: '#38bdf8',
+                                        border: '1px solid rgba(2,132,199,0.3)',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 3,
+                                        textDecoration: 'none'
+                                      }}
+                                      title="Ekli PDF Dokümanını Aç"
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      <Link2 size={10} /> PDF
+                                    </a>
+                                  )}
+                                </div>
+
+                                {/* Subject Chips */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                                  {(m.subjects || []).map((s, sIdx) => (
+                                    <span
+                                      key={sIdx}
+                                      style={{
+                                        fontSize: '0.66rem',
+                                        fontWeight: 700,
+                                        padding: '1px 6px',
+                                        borderRadius: '4px',
+                                        background: 'var(--color-surface-hover)',
+                                        color: 'var(--color-text-muted)',
+                                        border: '1px solid var(--color-border)'
+                                      }}
+                                    >
+                                      {s.name}: <strong style={{ color: 'var(--color-text)' }}>{s.count}S</strong>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* 4. Soru & Ceza */}
+                            <td>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <span style={{ fontWeight: 900, fontSize: '0.82rem', color: '#10b981' }}>
+                                  {m.totalQuestions || 0} Soru
+                                </span>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                  {m.penaltyRatio ? `${m.penaltyRatio} Yanlış = 1 Net` : 'Ceza Kuralı Yok'}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* 5. Tarih */}
+                            <td>
+                              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                {m.createdAt ? new Date(m.createdAt).toLocaleDateString('tr-TR') : '—'}
+                              </span>
+                            </td>
+
+                            {/* 6. Atama & Çözüm Durumu */}
+                            <td>
+                              {asgs.length === 0 ? (
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  color: 'var(--color-text-muted)',
+                                  background: 'var(--color-surface-hover)',
+                                  border: '1px solid var(--color-border)',
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: 99,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}>
+                                  ⚪ Atanmadı
+                                </span>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: solvedCount > 0 ? '#10b981' : 'var(--color-text)' }}>
+                                      {solvedCount}/{asgs.length} Çözüldü
+                                    </span>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: solvedCount > 0 ? '#10b981' : 'var(--color-text-muted)' }}>
+                                      %{solvedPct}
+                                    </span>
+                                  </div>
+                                  {/* Progress bar */}
+                                  <div style={{ width: '100%', height: 5, borderRadius: 99, background: 'var(--color-border)', overflow: 'hidden' }}>
+                                    <div style={{ width: `${solvedPct}%`, height: '100%', background: 'linear-gradient(90deg,#059669,#10b981)', borderRadius: 99 }} />
+                                  </div>
+                                  {hasDuplicates && (
+                                    <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', padding: '0.05rem 0.35rem', borderRadius: 99, width: 'fit-content' }}>
+                                      ⚠️ Çift Atama
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+
+                            {/* 7. Aksiyonlar */}
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={() => setAssignModalExam(m)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: '0.55rem',
+                                    background: 'linear-gradient(135deg,#059669,#10b981)',
+                                    border: 'none',
+                                    color: 'white',
+                                    fontWeight: 900,
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    boxShadow: '0 2px 6px rgba(16,185,129,0.25)'
+                                  }}
+                                  title="Öğrenci veya Sınıfa Ödev Olarak Ata"
+                                >
+                                  <Send size={11} /> Ata
+                                </button>
+
+                                <button
+                                  onClick={() => handleViewExamDetails(m)}
+                                  style={{
+                                    padding: '0.35rem 0.6rem',
+                                    borderRadius: '0.55rem',
+                                    background: 'var(--color-surface-hover)',
+                                    border: '1px solid var(--color-border)',
+                                    color: 'var(--color-text)',
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}
+                                  title="Cevap Anahtarı ve Detaylar"
+                                >
+                                  <Eye size={12} color="#6366f1" /> Detay
+                                </button>
+
+                                <button
+                                  onClick={() => navigate(`/exam-analysis/${m.id}`)}
+                                  style={{
+                                    padding: '0.35rem 0.6rem',
+                                    borderRadius: '0.55rem',
+                                    background: 'rgba(16,185,129,0.1)',
+                                    border: '1px solid rgba(16,185,129,0.3)',
+                                    color: '#10b981',
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}
+                                  title="Sonuç ve Madde Analizlerini Gör"
+                                >
+                                  <BarChart3 size={12} /> Analiz
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => toggleAssignedAccordion(m.id)}
+                                  style={{
+                                    padding: '0.35rem 0.55rem',
+                                    borderRadius: '0.55rem',
+                                    border: isAssignedOpen ? '1px solid #818cf8' : '1px solid var(--color-border)',
+                                    background: isAssignedOpen ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)',
+                                    color: isAssignedOpen ? '#6366f1' : 'var(--color-text)',
+                                    fontWeight: 800,
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}
+                                  title={isAssignedOpen ? 'Öğrenci Listesini Gizle' : 'Atanan Öğrencileri Göster'}
+                                >
+                                  <Users size={12} /> {asgs.length}
+                                  {isAssignedOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteExam(m)}
+                                  style={{
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: '0.55rem',
+                                    padding: '0.35rem 0.45rem',
+                                    cursor: 'pointer',
+                                    color: '#dc2626',
+                                    display: 'inline-flex',
+                                    alignItems: 'center'
+                                  }}
+                                  title="Denemeyi Sil"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* EXPANDABLE ACCORDION SUB-ROW */}
+                          {isAssignedOpen && (
+                            <tr>
+                              <td colSpan={7} className="exam-table-accordion-cell">
+                                <div style={{
+                                  padding: '0.75rem',
+                                  background: 'var(--color-surface)',
+                                  borderRadius: '0.75rem',
+                                  border: '1px solid var(--color-border)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.5rem'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.4rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                      <Users size={13} color="#6366f1" /> Bu Denemeye Atanan Öğrenciler ({asgs.length})
+                                    </span>
+                                    {asgs.length > 0 && (
+                                      <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#10b981' }}>
+                                        {solvedCount} / {asgs.length} Tamamlandı (%{solvedPct})
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {asgs.length === 0 ? (
+                                    <div style={{ textAlign: 'center', fontSize: '0.74rem', color: 'var(--color-text-muted)', padding: '0.6rem 0' }}>
+                                      Henüz bu denemeyi alan öğrenci yok. "Ata" butonu ile öğrencilerinize veya sınıflarınıza atayabilirsiniz.
+                                    </div>
+                                  ) : (
+                                    <div style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                                      gap: '0.5rem',
+                                      maxHeight: 250,
+                                      overflowY: 'auto'
+                                    }}>
+                                      {asgs.map((asg, aIdx) => {
+                                        const isDup = duplicateStudentIds.has(String(asg.student.id));
+                                        return (
+                                          <div
+                                            key={`${asg.homework.id}_${asg.student.id}_${aIdx}`}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              gap: '0.5rem',
+                                              padding: '0.45rem 0.65rem',
+                                              borderRadius: '0.6rem',
+                                              background: isDup ? 'rgba(245,158,11,0.08)' : 'var(--color-surface-hover)',
+                                              border: `1px solid ${isDup ? 'rgba(245,158,11,0.35)' : 'var(--color-border)'}`,
+                                              fontSize: '0.74rem'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <span style={{ fontWeight: 800, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                  👤 {asg.student.name}
+                                                </span>
+                                                {isDup && (
+                                                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: '#f59e0b', background: 'rgba(245,158,11,0.2)', padding: '0.05rem 0.3rem', borderRadius: 4 }}>
+                                                    Çift Atandı
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.67rem', color: 'var(--color-text-muted)' }}>
+                                                <span>Teslim: {asg.homework.dueDate || 'Belirtilmedi'}</span>
+                                              </div>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                              {asg.isSolved ? (
+                                                <span style={{
+                                                  fontSize: '0.67rem',
+                                                  fontWeight: 900,
+                                                  color: '#10b981',
+                                                  background: 'rgba(16,185,129,0.12)',
+                                                  border: '1px solid rgba(16,185,129,0.3)',
+                                                  padding: '0.15rem 0.45rem',
+                                                  borderRadius: '0.4rem'
+                                                }}>
+                                                  ✅ {asg.correctCount !== null ? `${asg.correctCount}D ${asg.wrongCount || 0}Y` : 'Çözüldü'}
+                                                </span>
+                                              ) : asg.isOverdue ? (
+                                                <span style={{
+                                                  fontSize: '0.67rem',
+                                                  fontWeight: 900,
+                                                  color: '#ef4444',
+                                                  background: 'rgba(239,68,68,0.12)',
+                                                  border: '1px solid rgba(239,68,68,0.3)',
+                                                  padding: '0.15rem 0.45rem',
+                                                  borderRadius: '0.4rem'
+                                                }}>
+                                                  ⚠️ Gecikti
+                                                </span>
+                                              ) : (
+                                                <span style={{
+                                                  fontSize: '0.67rem',
+                                                  fontWeight: 900,
+                                                  color: '#6366f1',
+                                                  background: 'rgba(99,102,241,0.12)',
+                                                  border: '1px solid rgba(99,102,241,0.3)',
+                                                  padding: '0.15rem 0.45rem',
+                                                  borderRadius: '0.4rem'
+                                                }}>
+                                                  ⏳ Bekliyor
+                                                </span>
+                                              )}
+
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRemoveStudentAssignment(asg.homework, asg.student.id)}
+                                                style={{
+                                                  background: '#fef2f2',
+                                                  border: '1px solid #fecaca',
+                                                  borderRadius: '0.4rem',
+                                                  padding: '0.2rem 0.4rem',
+                                                  cursor: 'pointer',
+                                                  color: '#dc2626',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: 2,
+                                                  fontSize: '0.67rem',
+                                                  fontWeight: 800
+                                                }}
+                                                title="Bu öğrencinin atamasını sil"
+                                              >
+                                                <Trash2 size={11} /> Sil
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : (
+              /* ═══════════════════════════════════════════════════
+                 KARTLAR GÖRÜNÜMÜ (GRID / CARDS VIEW)
+                 ═══════════════════════════════════════════════════ */
               <div className="exam-cards-grid">
-                {filteredExams.map(m => (
+                {filteredAndSortedExams.map(m => (
                   <div key={m.id} className="exam-card-item">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
