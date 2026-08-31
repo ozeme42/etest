@@ -103,23 +103,20 @@
 }
 
 .sd-grid-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.98fr);
-  gap: 1.75rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 100%;
+  gap: 1.25rem;
   box-sizing: border-box;
 }
 
-@media (max-width: 1100px) {
+@media screen and (min-width: 1101px) {
   .sd-grid-layout {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 100%;
-    gap: 1.25rem;
-    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.98fr);
+    gap: 1.75rem;
+    align-items: start;
   }
 }
 

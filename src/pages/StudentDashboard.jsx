@@ -403,7 +403,13 @@ export default function StudentDashboard() {
     ]);
   };
 
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Active Selected Day in Week Navigator (defaults to Today)
   const currentDayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
