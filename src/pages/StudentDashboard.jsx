@@ -760,6 +760,13 @@ export default function StudentDashboard() {
         set.add(`bid_subj_tname_${bId}_${sName}_${tName}`);
       }
 
+      // Immutable Composite Signature
+      const compKey = getSubmissionCompositeKey(s);
+      if (compKey) {
+        set.add(compKey);
+        set.add(`comp_${compKey}`);
+      }
+
       // Full specific title (preserving exact page/test numbers for unique names)
       const fullTitleStr = normalizeKey(s.title || s.testTitle || s.testName);
       if (fullTitleStr && fullTitleStr.length >= 8) {
@@ -794,39 +801,6 @@ export default function StudentDashboard() {
     }
 
     if (item.done || item.isCompleted) return true;
-    const normalizeKey = (str) => String(str || '')
-      .toLowerCase()
-      .replace(/[\u2010-\u2015\u2212]/g, '-')
-      .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
-      .replace(/[^a-z0-9ğüşıöç]/g, '')
-      .trim();
-
-    const bId = item.bookId ? String(item.bookId) : '';
-    const sName = normalizeKey(item.subject || item.subjectName);
-    const bTitle = normalizeKey(item.bookTitle);
-    const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
-    const tName = normalizeKey(item.testName || item.title);
-
-    const cleanTestTitle = (t) => {
-      if (!t) return '';
-      let str = String(t);
-      if (str.includes('—')) str = str.split('—').pop();
-      if (str.includes('›')) str = str.split('›').pop();
-      return str.trim();
-    };
-
-    const rawItemTitle = item.title || item.testName || '';
-    const cleanedItemTitle = cleanTestTitle(rawItemTitle);
-    const normItemTitle = normalizeKey(cleanedItemTitle);
-
-    if (normItemTitle && normItemTitle.length >= 10 && !tId && !bId) {
-      if (studentSolvedSet.has(`genel_title_${normItemTitle}`)) {
-        return true;
-      }
-      if (sName && studentSolvedSet.has(`subj_title_${sName}_${normItemTitle}`)) {
-        return true;
-      }
-    }
 
     // 1. Direct Test ID
     if (tId) {
@@ -842,22 +816,32 @@ export default function StudentDashboard() {
           (tidUuid && studentSolvedSet.has(`tid_${tidUuid}`))) {
         return true;
       }
-      if (sName) {
-        if (studentSolvedSet.has(`subj_tid_${sName}_${tidStr}`) ||
-            studentSolvedSet.has(`subj_tid_${sName}_${tidClean}`) ||
-            (tidUuid && studentSolvedSet.has(`subj_tid_${sName}_${tidUuid}`))) {
-          return true;
-        }
-      }
-      if (bId) {
-        if (studentSolvedSet.has(`bid_tid_${bId}_${tidStr}`) ||
-            studentSolvedSet.has(`bid_tid_${bId}_${tidClean}`)) {
-          return true;
-        }
-      }
     }
 
-    // 2. Composite matching
+    // 2. Composite Key Check
+    const itemCompKey = createCompositeTestKey(
+      item.bookTitle,
+      item.subject || item.subjectName,
+      item.unitTopic || item.topicName || item.unit,
+      item.testName || item.name || item.title
+    );
+    if (itemCompKey && (studentSolvedSet.has(itemCompKey) || studentSolvedSet.has(`comp_${itemCompKey}`))) {
+      return true;
+    }
+
+    const normalizeKey = (str) => String(str || '')
+      .toLowerCase()
+      .replace(/[\u2010-\u2015\u2212]/g, '-')
+      .replace(/[^a-z0-9ğüşıöç]/g, '')
+      .trim();
+
+    const bId = item.bookId ? String(item.bookId) : '';
+    const sName = normalizeKey(item.subject || item.subjectName);
+    const bTitle = normalizeKey(item.bookTitle);
+    const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
+    const tName = normalizeKey(item.testName || item.title);
+
+    // 3. Normalized Name matching
     if (bTitle && sName && uTopic && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
     if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
     if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
@@ -877,15 +861,8 @@ export default function StudentDashboard() {
       }
     }
 
-    // 3. Fallback using isSubmissionMatchingBookTest
-    if (Array.isArray(studentSubmissions) && studentSubmissions.length > 0) {
-      if (studentSubmissions.some(s => isSubmissionMatchingBookTest(s, item, bookTests, books))) {
-        return true;
-      }
-    }
-
     return false;
-  }, [studentSolvedSet, studentSubmissions, bookTests, books]);
+  }, [studentSolvedSet, studentSubmissions, selectedStudent?.id]);
 
   /* ─── Computed Tests Data ─── */
   const tests = useMemo(() => {
