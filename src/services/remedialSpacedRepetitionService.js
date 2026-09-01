@@ -4,9 +4,9 @@
  */
 
 export const REPETITION_PRESETS = [
-  { id: 'standard_leitner', label: 'Standart Leitner (Bugün, 1, 3, 7 Gün)', intervals: [0, 1, 3, 7], icon: '🧠' },
-  { id: 'fast_repetition', label: 'Hızlı Pekiştirme (Bugün, 1, 2, 4 Gün)', intervals: [0, 1, 2, 4], icon: '⚡' },
-  { id: 'weekly_repetition', label: 'Haftalık Tekrar (Bugün, 2, 5, 10 Gün)', intervals: [0, 2, 5, 10], icon: '📅' }
+  { id: 'standard_leitner', label: 'Standart Leitner (Bugün, 3, 7, 15 Gün)', intervals: [0, 3, 7, 15], icon: '🧠' },
+  { id: 'fast_repetition', label: 'Hızlı Pekiştirme (Bugün, 2, 4, 7 Gün)', intervals: [0, 2, 4, 7], icon: '⚡' },
+  { id: 'weekly_repetition', label: 'Haftalık Tekrar (Bugün, 5, 10, 20 Gün)', intervals: [0, 5, 10, 20], icon: '📅' }
 ];
 
 const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
@@ -17,7 +17,7 @@ const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 export function scheduleRemedialTestInProgram({
   currentWeeklyProgram = [],
   testItem,
-  intervals = [0, 1, 3, 7],
+  intervals = [0, 3, 7, 15],
   startDate = new Date(),
   studentId
 }) {

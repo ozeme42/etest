@@ -425,7 +425,7 @@ export default function StudentWrongAnswersPage() {
         subject: testItem.subject || 'Genel',
         questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1
       },
-      intervals: testItem.repetitionIntervals || [0, 1, 3, 7],
+      intervals: testItem.repetitionIntervals || [0, 3, 7, 15],
       studentId
     });
 
@@ -438,7 +438,7 @@ export default function StudentWrongAnswersPage() {
     if (addSchedule) {
       try {
         const todayIdx = (new Date().getDay() + 6) % 7;
-        const intervals = testItem.repetitionIntervals || [0, 1, 3, 7];
+        const intervals = testItem.repetitionIntervals || [0, 3, 7, 15];
         for (let i = 0; i < intervals.length; i++) {
           const iv = intervals[i];
           const targetDayKey = DAYS_LIST[(todayIdx + iv) % 7];
@@ -452,7 +452,7 @@ export default function StudentWrongAnswersPage() {
       } catch {}
     }
 
-    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (Bugün, 1, 3, 7 Gün) programınıza eklendi!`);
+    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (Bugün, 3, 7, 15 Gün) programınıza eklendi!`);
     setTimeout(() => setProgramToast(null), 4000);
     setOpenDaySelectorId(null);
   };
