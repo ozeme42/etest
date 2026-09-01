@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { isHomeworkForStudent, isSubmissionMatchingBookTest } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
@@ -330,6 +330,26 @@ export default function StudentBookDetailsPage() {
       return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
     });
 
+    const solvedSubsMap = new Map();
+    allStudentSubs.forEach(s => {
+      const matchIds = [
+        s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
+        s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
+      ];
+      if (Array.isArray(s.bookTestIds)) matchIds.push(...s.bookTestIds);
+      matchIds.forEach(id => {
+        if (!id) return;
+        const strId = String(id);
+        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '');
+        const uuid = toUUID(strId);
+        solvedSubsMap.set(strId, s);
+        solvedSubsMap.set(cleanId, s);
+        if (uuid) solvedSubsMap.set(uuid, s);
+      });
+      const compKey = getSubmissionCompositeKey(s);
+      if (compKey) solvedSubsMap.set(compKey, s);
+    });
+
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
 
@@ -387,7 +407,13 @@ export default function StudentBookDetailsPage() {
           bookTitle: book?.title
         };
 
-        const solvedSubs = allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+        const testCompKey = createCompositeTestKey(book?.title, subject.name, parentTopic?.name, t.name || t.title);
+        const directSub = solvedSubsMap.get(tIdStr) ||
+                          solvedSubsMap.get(tCleanId) ||
+                          (tUuidStr && solvedSubsMap.get(tUuidStr)) ||
+                          (testCompKey && solvedSubsMap.get(testCompKey));
+
+        const solvedSubs = directSub ? [directSub] : allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
 
         const isCompleted = solvedSubs.length > 0;
 
