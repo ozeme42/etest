@@ -4271,7 +4271,7 @@ export default function StudentWrongAnswersPage() {
             )}
 
             {/* Hata Defteri Sayfalama */}
-            {renderPagination(safeNotebookPage, totalNotebookPages, filteredNotebookErrors.length, notebookPageSize, setNotebookPageSize, setNotebookPage, 'soru')}
+            {renderPagination(safeNotebookPage, totalNotebookPages, totalNotebookCount, notebookPageSize, setNotebookPageSize, setNotebookPage, 'soru')}
           </div>
         )}
 
