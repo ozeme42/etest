@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTheme } from '../../../context/ThemeContext';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useAuth } from '../../../context/AuthContext';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -16,17 +18,22 @@ import {
   BookOpen,
   Layers,
   Check,
-  X
+  X,
+  Target,
+  Trophy,
+  Flame,
+  Award
 } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
 import QuizResultModal from '../modals/QuizResultModal';
-import { checkIsAnswerCorrect } from '../../../utils/answerEvaluation';
+import { toUUID } from '../../../services/supabaseService';
 
 /**
  * RemedialQuizRunner
  * Dedicated, ultra-clean, modern solving environment for Custom Remedial Tests ("Özel Telafi Testi").
- * Features single-question visual focus on the left and a complete optical answer sheet on the right.
+ * Features single-question visual focus on the left, complete optical answer sheet on the right,
+ * and real-time repetition tracking (%100 Mastery progress).
  */
 export default function RemedialQuizRunner({
   test = {},
@@ -38,8 +45,16 @@ export default function RemedialQuizRunner({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark } = useTheme();
+  const { currentUser } = useAuth();
+  const { submissions = [] } = useEvaluation();
 
-  // 1. Flatten and normalize questions from test/sections/questions
+  // 1. Gather all potential image sources from test & questions
+  const rawQuestionsList = test.questionsList || test.raw_data?.questionsList || test.raw?.questionsList || [];
+  const rawImageUrls = test.imageUrls || test.raw_data?.imageUrls || test.raw?.imageUrls || [];
+  const rawContentPayload = test.contentPayload || test.raw_data?.contentPayload || test.raw?.contentPayload || '';
+  const extractedPayloadImages = useMemo(() => extractImageUrls(rawContentPayload), [rawContentPayload]);
+
+  // 2. Flatten and normalize questions with robust multi-source image resolution
   const normalizedQuestions = useMemo(() => {
     const list = [];
     if (Array.isArray(questions) && questions.length > 0) {
@@ -68,10 +83,14 @@ export default function RemedialQuizRunner({
           list.push({ ...q, originalIndex: idx });
         }
       });
+    } else if (Array.isArray(rawQuestionsList) && rawQuestionsList.length > 0) {
+      rawQuestionsList.forEach((q, idx) => {
+        list.push({ ...q, originalIndex: idx });
+      });
     }
 
     if (list.length === 0) {
-      const fallbackCount = test.totalQuestions || test.qCount || 1;
+      const fallbackCount = test.totalQuestions || test.qCount || rawImageUrls.length || extractedPayloadImages.length || 1;
       for (let i = 1; i <= fallbackCount; i++) {
         list.push({
           id: `q_${i}`,
@@ -85,19 +104,34 @@ export default function RemedialQuizRunner({
 
     return list.map((q, idx) => {
       const qNo = idx + 1;
-      // Extract images
+      const subQ = rawQuestionsList[idx] || {};
+
+      // Multi-layer image extraction:
       const imgList = [];
-      if (Array.isArray(q.imageUrls)) imgList.push(...q.imageUrls);
-      if (Array.isArray(q.images)) imgList.push(...q.images);
       if (q.imageUrl && isValidImageUrl(q.imageUrl)) imgList.push(q.imageUrl);
       if (q.image && isValidImageUrl(q.image)) imgList.push(q.image);
+      if (Array.isArray(q.imageUrls)) imgList.push(...q.imageUrls);
+      if (Array.isArray(q.images)) imgList.push(...q.images);
       if (q.contentPayload && isValidImageUrl(q.contentPayload)) imgList.push(...extractImageUrls(q.contentPayload));
       if (q.documentPayload && isValidImageUrl(q.documentPayload)) imgList.push(...extractImageUrls(q.documentPayload));
+
+      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) imgList.push(subQ.imageUrl);
+      if (subQ.image && isValidImageUrl(subQ.image)) imgList.push(subQ.image);
+      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) imgList.push(...extractImageUrls(subQ.contentPayload));
+
+      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) imgList.push(rawImageUrls[idx]);
+      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) imgList.push(extractedPayloadImages[idx]);
+
+      // If single image test and only 1 question
+      if (imgList.length === 0 && list.length === 1) {
+        if (test.imageUrl && isValidImageUrl(test.imageUrl)) imgList.push(test.imageUrl);
+        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) imgList.push(test.raw_data.imageUrl);
+      }
 
       const cleanImgs = Array.from(new Set(imgList.filter(isValidImageUrl)));
 
       // Correct answer resolution
-      let cAns = q.correctAnswer ?? q.correctAnswerLetter ?? q.answer ?? q.correctOption;
+      let cAns = q.correctAnswer ?? q.correctAnswerLetter ?? subQ.correctAnswer ?? subQ.correctAnswerLetter ?? q.answer ?? q.correctOption ?? test.answerKey?.[qNo] ?? test.raw_data?.answerKey?.[qNo];
       if (typeof cAns === 'string' && /^[A-E]$/i.test(cAns.trim())) {
         cAns = cAns.trim().toUpperCase().charCodeAt(0) - 65;
       } else if (typeof cAns === 'string' && !isNaN(Number(cAns))) {
@@ -110,14 +144,59 @@ export default function RemedialQuizRunner({
         displayQNo: qNo,
         images: cleanImgs,
         resolvedCorrectAnswer: typeof cAns === 'number' ? cAns : null,
-        optCount: Number(q.optionsCount || q.optionCount || 4)
+        optCount: Number(q.optionsCount || q.optionCount || subQ.optionCount || 4),
+        unitName: q.unitName || subQ.unitName || '',
+        testName: q.testName || subQ.testName || q.title || '',
+        originalQNo: q.originalQuestionNo || q.originalQNo || subQ.originalQuestionNo || subQ.originalQNo || q.qNo
       };
     });
-  }, [test, questions]);
+  }, [test, questions, rawQuestionsList, rawImageUrls, extractedPayloadImages]);
 
   const totalQuestions = normalizedQuestions.length;
 
-  // 2. Answer State Management
+  // 3. Attempt Number & Historical Mastery Tracking
+  const { attemptNumber, previousBest, previousCorrect, previousTotal, previousMasteryPct } = useMemo(() => {
+    const studentIdStr = String(currentUser?.id || '').trim();
+    const studentUuid = String(toUUID(currentUser?.id) || '').trim();
+    const currentTestId = String(test.id || test.testId || '').trim();
+    const currentTestUuid = String(toUUID(currentTestId) || '').trim();
+    const currentTitle = String(test.title || test.name || '').toLowerCase().trim();
+
+    const pastSubs = (submissions || []).filter(s => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+      const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+      const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || toUUID(sId) === studentUuid;
+      if (!isStudentMatch) return false;
+
+      const sTestId = String(s.testId || s.hwId || s.bookTestId || s.id || '');
+      const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || toUUID(sTestId) === currentTestUuid);
+      const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle;
+
+      return isIdMatch || isTitleMatch;
+    }).sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));
+
+    const attemptCount = pastSubs.length + 1;
+    let prevCorr = 0;
+    let prevTot = totalQuestions;
+
+    if (pastSubs.length > 0) {
+      const last = pastSubs[pastSubs.length - 1];
+      prevCorr = Number(last.correctCount ?? last.correct ?? 0);
+      prevTot = Number(last.totalQuestions ?? last.total ?? totalQuestions);
+    }
+
+    const prevPct = prevTot > 0 ? Math.round((prevCorr / prevTot) * 100) : 0;
+
+    return {
+      attemptNumber: attemptCount,
+      previousBest: pastSubs.length > 0 ? pastSubs[pastSubs.length - 1] : null,
+      previousCorrect: prevCorr,
+      previousTotal: prevTot,
+      previousMasteryPct: prevPct
+    };
+  }, [submissions, currentUser, test, totalQuestions]);
+
+  // 4. Answer State Management
   const [answers, setAnswers] = useState(() => {
     const initial = {};
     if (draftAnswers) {
@@ -254,8 +333,8 @@ export default function RemedialQuizRunner({
         imageUrls: q.images,
         imageUrl: q.images?.[0] || null,
         metadata: {
-          bookTitle: q.bookTitle,
-          testName: q.testName,
+          bookTitle: q.bookTitle || test.bookTitle,
+          testName: q.testName || test.title,
           unitName: q.unitName,
           originalQNo: q.originalQNo || q.qNo
         }
@@ -271,7 +350,9 @@ export default function RemedialQuizRunner({
       blank,
       total: totalQuestions,
       score,
-      net
+      net,
+      attemptNumber,
+      previousMasteryPct
     });
     setFormattedSubmission(submissionPayload);
     setShowResultModal(true);
@@ -304,7 +385,7 @@ export default function RemedialQuizRunner({
     }}>
       {/* ── 🌟 TOP MODERN HEADER ── */}
       <header style={{
-        height: '62px',
+        height: '66px',
         padding: isMobile ? '0 0.75rem' : '0 1.5rem',
         background: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-border)',
@@ -315,7 +396,7 @@ export default function RemedialQuizRunner({
         zIndex: 40,
         boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
       }}>
-        {/* Left: Exit button & Title */}
+        {/* Left: Exit button & Title & Attempt Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
           <button
             type="button"
@@ -352,24 +433,44 @@ export default function RemedialQuizRunner({
                 {test.title || test.name || 'Özel Telafi Testi'}
               </h1>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
+
+            {/* Badges: Attempt + Mastery Tracking */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '3px', flexWrap: 'wrap' }}>
               <span style={{
                 fontSize: '0.68rem',
                 fontWeight: 900,
-                background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.1))',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(79,70,229,0.12))',
                 color: '#4f46e5',
-                padding: '0.1rem 0.45rem',
-                borderRadius: '0.35rem',
+                padding: '0.12rem 0.5rem',
+                borderRadius: '0.4rem',
                 border: '1px solid rgba(99,102,241,0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.25rem'
               }}>
-                <Sparkles size={11} /> Özel Telafi & Pekiştirme
+                <RotateCcw size={11} /> {attemptNumber}. Tekrar Çözümü
               </span>
+
+              {previousBest && (
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5',
+                  color: '#15803d',
+                  padding: '0.12rem 0.5rem',
+                  borderRadius: '0.4rem',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}>
+                  <Award size={11} /> Önceki: {previousCorrect}/{previousTotal} Doğru (%{previousMasteryPct})
+                </span>
+              )}
+
               {!isMobile && (
                 <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                  • {totalQuestions} Yanlış Sorudan Oluşturuldu
+                  • Hedef: %100 Ustalık
                 </span>
               )}
             </div>

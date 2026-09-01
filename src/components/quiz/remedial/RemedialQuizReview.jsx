@@ -13,9 +13,12 @@ import {
   BookOpen,
   Trophy,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  Award,
+  Check,
+  X
 } from 'lucide-react';
-import ImageLightbox from '../common/ImageLightbox';
+import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
 
 /**
  * RemedialQuizReview
@@ -31,25 +34,34 @@ export default function RemedialQuizReview({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark } = useTheme();
 
-  // Normalize questions & answers from submission
+  // 1. Gather raw structures
+  const rawQuestionsList = test.questionsList || test.raw_data?.questionsList || test.raw?.questionsList || [];
+  const rawImageUrls = test.imageUrls || test.raw_data?.imageUrls || test.raw?.imageUrls || [];
+  const rawContentPayload = test.contentPayload || test.raw_data?.contentPayload || test.raw?.contentPayload || '';
+  const extractedPayloadImages = useMemo(() => extractImageUrls(rawContentPayload), [rawContentPayload]);
+
+  // 2. Normalize questions & answers from submission and test
   const reviewQuestions = useMemo(() => {
     const rawSubAnswers = submission.answers || submission.raw_data?.answers || [];
     const cleanSubAns = Array.isArray(rawSubAnswers) ? rawSubAnswers.filter(a => a && a.type !== 'metadata') : [];
 
     const baseQuestions = (Array.isArray(questions) && questions.length > 0)
       ? questions
-      : (Array.isArray(test.questions) && test.questions.length > 0 ? test.questions : cleanSubAns);
+      : (Array.isArray(test.questions) && test.questions.length > 0
+          ? test.questions
+          : (rawQuestionsList.length > 0 ? rawQuestionsList : cleanSubAns));
 
     return baseQuestions.map((q, idx) => {
       const qNo = idx + 1;
       const subAns = cleanSubAns.find(a => (a.questionNo === qNo || a.questionNoInSection === qNo)) || cleanSubAns[idx] || {};
+      const subQ = rawQuestionsList[idx] || {};
 
       let uAnsLetter = subAns.userAnswer ?? subAns.selectedOption ?? q.userAnswer ?? null;
       if (typeof uAnsLetter === 'number') {
         uAnsLetter = String.fromCharCode(65 + uAnsLetter);
       }
 
-      let cAnsLetter = subAns.correctAnswer ?? subAns.correctAnswerLetter ?? q.correctAnswer ?? q.correctAnswerLetter ?? q.answer ?? q.correctOption ?? null;
+      let cAnsLetter = subAns.correctAnswer ?? subAns.correctAnswerLetter ?? subQ.correctAnswer ?? subQ.correctAnswerLetter ?? q.correctAnswer ?? q.correctAnswerLetter ?? q.answer ?? q.correctOption ?? test.answerKey?.[qNo] ?? test.raw_data?.answerKey?.[qNo] ?? null;
       if (typeof cAnsLetter === 'number') {
         cAnsLetter = String.fromCharCode(65 + cAnsLetter);
       }
@@ -64,14 +76,28 @@ export default function RemedialQuizReview({
         }
       }
 
-      // Images
+      // Robust multi-layer image extraction:
       const imgList = [];
-      if (Array.isArray(subAns.imageUrls)) imgList.push(...subAns.imageUrls);
-      if (subAns.imageUrl) imgList.push(subAns.imageUrl);
+      if (q.imageUrl && isValidImageUrl(q.imageUrl)) imgList.push(q.imageUrl);
+      if (q.image && isValidImageUrl(q.image)) imgList.push(q.image);
       if (Array.isArray(q.imageUrls)) imgList.push(...q.imageUrls);
       if (Array.isArray(q.images)) imgList.push(...q.images);
-      if (q.imageUrl) imgList.push(q.imageUrl);
-      if (q.image) imgList.push(q.image);
+      if (q.contentPayload && isValidImageUrl(q.contentPayload)) imgList.push(...extractImageUrls(q.contentPayload));
+
+      if (subAns.imageUrl && isValidImageUrl(subAns.imageUrl)) imgList.push(subAns.imageUrl);
+      if (Array.isArray(subAns.imageUrls)) imgList.push(...subAns.imageUrls);
+
+      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) imgList.push(subQ.imageUrl);
+      if (subQ.image && isValidImageUrl(subQ.image)) imgList.push(subQ.image);
+      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) imgList.push(...extractImageUrls(subQ.contentPayload));
+
+      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) imgList.push(rawImageUrls[idx]);
+      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) imgList.push(extractedPayloadImages[idx]);
+
+      if (imgList.length === 0 && baseQuestions.length === 1) {
+        if (test.imageUrl && isValidImageUrl(test.imageUrl)) imgList.push(test.imageUrl);
+        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) imgList.push(test.raw_data.imageUrl);
+      }
 
       return {
         ...q,
@@ -81,14 +107,14 @@ export default function RemedialQuizReview({
         correctAnsLetter: cAnsLetter ? String(cAnsLetter).toUpperCase() : '—',
         isCorrect: Boolean(isCorrect),
         isBlank: Boolean(isBlank),
-        images: Array.from(new Set(imgList.filter(Boolean))),
-        unitName: subAns.metadata?.unitName || q.unitName || '',
-        testName: subAns.metadata?.testName || q.testName || '',
-        originalQNo: subAns.metadata?.originalQNo || q.originalQNo || q.qNo,
-        optCount: Number(q.optionsCount || 4)
+        images: Array.from(new Set(imgList.filter(isValidImageUrl))),
+        unitName: subAns.metadata?.unitName || q.unitName || subQ.unitName || '',
+        testName: subAns.metadata?.testName || q.testName || subQ.testName || '',
+        originalQNo: subAns.metadata?.originalQNo || q.originalQuestionNo || q.originalQNo || subQ.originalQuestionNo || subQ.originalQNo || q.qNo,
+        optCount: Number(q.optionsCount || q.optionCount || subQ.optionCount || 4)
       };
     });
-  }, [test, questions, submission]);
+  }, [test, questions, submission, rawQuestionsList, rawImageUrls, extractedPayloadImages]);
 
   const totalCount = reviewQuestions.length;
   const [activeQIdx, setActiveQIdx] = useState(0);
@@ -126,7 +152,7 @@ export default function RemedialQuizReview({
     }}>
       {/* ── 🌟 TOP HEADER ── */}
       <header style={{
-        height: '62px',
+        height: '66px',
         padding: isMobile ? '0 0.75rem' : '0 1.5rem',
         background: 'var(--color-surface)',
         borderBottom: '1px solid var(--color-border)',
@@ -172,18 +198,23 @@ export default function RemedialQuizReview({
             }}>
               {test.title || test.name || 'Özel Telafi Testi'}
             </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '3px' }}>
               <span style={{
                 fontSize: '0.68rem',
                 fontWeight: 900,
                 background: 'rgba(99,102,241,0.12)',
                 color: '#4f46e5',
-                padding: '0.1rem 0.45rem',
-                borderRadius: '0.35rem',
+                padding: '0.12rem 0.5rem',
+                borderRadius: '0.4rem',
                 border: '1px solid rgba(99,102,241,0.3)'
               }}>
                 🔍 Telafi Sınavı İnceleme & Analiz
               </span>
+              {!isMobile && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                  • Ustalık Oranı: %{stats.pct}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -194,14 +225,15 @@ export default function RemedialQuizReview({
             display: 'flex',
             alignItems: 'center',
             gap: '0.35rem',
-            padding: '0.3rem 0.65rem',
-            borderRadius: '0.55rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '0.6rem',
             background: stats.pct >= 70 ? '#dcfce7' : (stats.pct >= 40 ? '#fef3c7' : '#fee2e2'),
             color: stats.pct >= 70 ? '#15803d' : (stats.pct >= 40 ? '#b45309' : '#b91c1c'),
             fontWeight: 900,
-            fontSize: '0.82rem'
+            fontSize: '0.84rem',
+            border: `1px solid ${stats.pct >= 70 ? '#86efac' : (stats.pct >= 40 ? '#fde68a' : '#fca5a5')}`
           }}>
-            <Trophy size={14} />
+            <Trophy size={15} />
             <span>%{stats.pct} Başarı</span>
           </div>
 
@@ -221,18 +253,18 @@ export default function RemedialQuizReview({
             type="button"
             onClick={onClose}
             style={{
-              padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1rem',
+              padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1.15rem',
               borderRadius: '0.65rem',
               border: 'none',
               background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
               color: '#ffffff',
-              fontSize: '0.82rem',
+              fontSize: '0.84rem',
               fontWeight: 900,
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(79,70,229,0.3)'
             }}
           >
-            Tamamla
+            Kapat
           </button>
         </div>
       </header>
