@@ -308,27 +308,36 @@ export default function RemedialQuizRunner({
       } else {
         updated[qNo] = nextVal;
       }
-
-      if (onAutoSave) {
-        try {
-          const autoSaveArr = normalizedQuestions.map((q, idx) => {
-            const questionNumber = idx + 1;
-            const userVal = updated[questionNumber];
-            return {
-              questionNo: questionNumber,
-              questionId: q.id || `remedial_q_${questionNumber}`,
-              userAnswer: userVal !== undefined && userVal !== null ? String.fromCharCode(65 + userVal) : null,
-              userAnswerIndex: userVal !== undefined && userVal !== null ? userVal : null
-            };
-          });
-          onAutoSave(autoSaveArr);
-        } catch (e) {
-          console.warn('Remedial onAutoSave error:', e);
-        }
-      }
       return updated;
     });
   };
+
+  const isInitialMountRef = useRef(true);
+  useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    if (!onAutoSave) return;
+    const timer = setTimeout(() => {
+      try {
+        const autoSaveArr = normalizedQuestions.map((q, idx) => {
+          const questionNumber = idx + 1;
+          const userVal = answers[questionNumber];
+          return {
+            questionNo: questionNumber,
+            questionId: q.id || `remedial_q_${questionNumber}`,
+            userAnswer: userVal !== undefined && userVal !== null ? String.fromCharCode(65 + userVal) : null,
+            userAnswerIndex: userVal !== undefined && userVal !== null ? userVal : null
+          };
+        });
+        onAutoSave(autoSaveArr);
+      } catch (e) {
+        console.warn('Remedial onAutoSave error:', e);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [answers, onAutoSave, normalizedQuestions]);
 
   // Finish exam
   const handleFinishExam = () => {
