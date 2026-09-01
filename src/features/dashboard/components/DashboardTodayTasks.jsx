@@ -270,10 +270,14 @@ export default memo(function DashboardTodayTasks({
                                 <span>{currentTheme.icon}</span>
                                 <span>
                                   {syncAttemptNumber > 1
-                                    ? `${syncAttemptNumber}. Çözüm ${detectedStage ? `(${detectedStage}. Tekrar)` : ''}`
+                                    ? `${syncAttemptNumber}. Çözüm (${detectedStage || (syncAttemptNumber - 1)}. Tekrar)`
                                     : '1. Çözüm (İlk Çözüm)'}
                                 </span>
-                                {detectedInterval && <span style={{ opacity: 0.85, fontSize: '0.6rem' }}>• {detectedInterval}g</span>}
+                                {detectedInterval !== null && detectedInterval !== undefined && (
+                                  <span style={{ opacity: 0.85, fontSize: '0.6rem' }}>
+                                    • {detectedInterval === 0 ? 'Bugün' : `${detectedInterval}g`}
+                                  </span>
+                                )}
                               </span>
                             )}
                             {pageBadge && (

@@ -2365,6 +2365,7 @@ export default function StudentDashboard() {
           const currentTestId = String(item.testId || item.realTestId || item.hwId || item.id || '').trim();
           const currentTestUuid = String(toUUID(currentTestId) || '').trim();
           const currentTitle = String(item.title || item.testName || '').toLowerCase().trim();
+          const itemSubject = String(item.subject || '').toLowerCase().trim();
           const studentIdStr = String(studentId || '').trim();
           const studentUuid = String(toUUID(studentId) || '').trim();
 
@@ -2376,19 +2377,46 @@ export default function StudentDashboard() {
 
             const sTestId = String(s.testId || s.hwId || s.bookTestId || s.id || '');
             const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || (toUUID(sTestId) && toUUID(sTestId) === currentTestUuid));
-            const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle;
+
+            const sSubject = String(s.subject || '').toLowerCase().trim();
+            const isSubjectMatch = !itemSubject || !sSubject || itemSubject === sSubject || itemSubject.includes(sSubject) || sSubject.includes(itemSubject);
+
+            const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle && isSubjectMatch;
             return isIdMatch || isTitleMatch;
           });
 
           const pastCount = matchingSubs.length;
-          const attemptNum = pastCount + 1;
+
+          // Parse stage number for spaced repetition item
+          const stageMatch = (item.text || item.title || item.topic || '').match(/\[(\d+)\.\s*Tekrar(?:\s*[-–(]\s*(\d+)g\s*[)]?)?/i);
+          const detectedStage = item.stage || (stageMatch ? parseInt(stageMatch[1], 10) : null);
+          const isRemedial = Boolean(item.isRemedial || item.isRemedialTest || item.type === 'remedialTest' || item.taskType === 'remedialTest' || item.isTeacherRemedial || item.isSpacedRepetition || detectedStage);
+
+          // Dedicated target attempt for this repetition stage:
+          // Stage 1 (1. Tekrar) requires 2 total submissions (1 initial + 1 repetition) to be completed.
+          // Stage 2 (2. Tekrar) requires 3 total submissions to be completed.
+          // Stage 3 (3. Tekrar) requires 4 total submissions to be completed.
+          let isItemDone = Boolean(item.done);
+          let targetAttemptNumber = pastCount + 1;
+
+          if (isRemedial && detectedStage) {
+            targetAttemptNumber = detectedStage + 1; // Stage 1 -> 2. Çözüm, Stage 2 -> 3. Çözüm
+            const requiredSubmissionsCount = detectedStage + 1;
+            if (pastCount >= requiredSubmissionsCount) {
+              isItemDone = true;
+            }
+          } else if (pastCount > 0) {
+            isItemDone = true;
+          }
 
           return {
             ...item,
+            done: isItemDone,
             hasPastAttempt: isAttempted || pastCount > 0,
             isRetake: isAttempted || pastCount > 0,
             pastAttemptCount: pastCount,
-            attemptNumber: attemptNum,
+            stage: detectedStage || item.stage,
+            attemptNumber: targetAttemptNumber,
             pastSubmissionsCount: pastCount
           };
         });
