@@ -791,7 +791,7 @@ export default function StudentDashboard() {
   const isItemSolved = useCallback((item) => {
     if (!item) return false;
 
-    const tId = item.testId || item.bookTestId || item.realTestId || item.hwId;
+    const tId = item.testId || item.bookTestId || item.realTestId || item.hwId || item.homeworkId || item.id || item.assignmentId;
 
     // CASE 0: REMEDIAL TEST WITH SPACED REPETITION / STAGES / %100 MASTERY
     const isRemedial = Boolean(
@@ -2496,36 +2496,85 @@ export default function StudentDashboard() {
     const list = [];
     const seen = new Set();
 
-    const isAlreadySeen = (it) => {
-      if (!it) return false;
-      const bTitle = String(it.bookTitle || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
-      const sTitle = String(it.subject || '').toLocaleLowerCase('tr').trim();
-      const uTopic = String(it.unitTopic || '').toLocaleLowerCase('tr').trim();
-      const tName = String(it.testName || it.title || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+    const extractKeys = (it) => {
+      if (!it) return [];
+      const keys = [];
 
-      if (it.id && seen.has(String(it.id))) return true;
-      if (it.uniqueKey && seen.has(String(it.uniqueKey))) return true;
-      if (tName && tName.length > 2) {
-        const cleanK = `${bTitle}_${sTitle}_${uTopic}_${tName}`;
-        if (seen.has(cleanK)) return true;
+      const rawIds = [
+        it.id,
+        it.testId,
+        it.hwId,
+        it.homeworkId,
+        it.realTestId,
+        it.bookTestId,
+        it.sourceTestId,
+        it.sourceId,
+        it.questionId,
+        it.roadmapAssignmentId,
+        it.assignmentId,
+        it.uniqueKey
+      ];
+
+      rawIds.forEach(id => {
+        if (!id) return;
+        const s = String(id).trim();
+        if (!s) return;
+        keys.push(`id:${s}`);
+        const clean = s.replace(/^hw_|^test_|^bt_|^tbt_|^q_|^item_/, '');
+        if (clean && clean !== s) keys.push(`cleanId:${clean}`);
+        const u = toUUID(s);
+        if (u) keys.push(`uuid:${u}`);
+      });
+
+      const tName = String(it.testName || it.title || it.name || '')
+        .toLocaleLowerCase('tr')
+        .replace(/\s*\(tüm kitap görevi\)/gi, '')
+        .replace(/\s*\(tüm kitap\)/gi, '')
+        .replace(/\s*\(kendi eklediğim\)/gi, '')
+        .replace(/\s*\(görev\)/gi, '')
+        .trim();
+
+      const bTitle = String(it.bookTitle || '')
+        .toLocaleLowerCase('tr')
+        .replace(/\s*\(tüm kitap görevi\)/gi, '')
+        .replace(/\s*\(tüm kitap\)/gi, '')
+        .trim();
+
+      const uTopic = String(it.unitTopic || '')
+        .toLocaleLowerCase('tr')
+        .trim();
+
+      const normT = tName.replace(/[^a-z0-9ğüşıöç]/gi, '');
+      const normB = bTitle.replace(/[^a-z0-9ğüşıöç]/gi, '');
+      const normU = uTopic.replace(/[^a-z0-9ğüşıöç]/gi, '');
+
+      // Check if it's an exam / deneme
+      const isExam = it.isExamTask || it.categoryType === 'deneme' || it.type === 'physicalExam' || /deneme/i.test(tName);
+      if (isExam && normT.length >= 3) {
+        keys.push(`exam:${normT}`);
+        keys.push(`title:${normT}`);
       }
-      return false;
+
+      if (normT.length >= 3) {
+        if (normB) {
+          keys.push(`book_test:${normB}_${normT}`);
+          if (normU) keys.push(`book_unit_test:${normB}_${normU}_${normT}`);
+        } else {
+          keys.push(`title:${normT}`);
+        }
+      }
+
+      return keys;
+    };
+
+    const isAlreadySeen = (it) => {
+      const keys = extractKeys(it);
+      return keys.some(k => seen.has(k));
     };
 
     const addKeysToSeen = (it) => {
-      if (!it) return;
-      if (it.id) seen.add(String(it.id));
-      if (it.uniqueKey) seen.add(String(it.uniqueKey));
-
-      const bTitle = String(it.bookTitle || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
-      const sTitle = String(it.subject || '').toLocaleLowerCase('tr').trim();
-      const uTopic = String(it.unitTopic || '').toLocaleLowerCase('tr').trim();
-      const tName = String(it.testName || it.title || '').toLocaleLowerCase('tr').replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
-
-      if (tName && tName.length > 2) {
-        const cleanK = `${bTitle}_${sTitle}_${uTopic}_${tName}`;
-        seen.add(cleanK);
-      }
+      const keys = extractKeys(it);
+      keys.forEach(k => seen.add(k));
     };
 
     const now = new Date();

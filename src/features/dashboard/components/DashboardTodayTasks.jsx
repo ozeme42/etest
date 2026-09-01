@@ -724,7 +724,7 @@ export default memo(function DashboardTodayTasks({
                             )}
                             {task.questionCount && (
                               <span style={{ background: 'var(--color-surface-hover)', padding: '1px 5px', borderRadius: 4, border: '1px solid var(--color-border)' }}>
-                                {task.questionCount} Soru
+                                {String(task.questionCount).replace(/\s*soru\s*$/i, '')} Soru
                               </span>
                             )}
                             {(task.time || task.dueDateStr) && (
