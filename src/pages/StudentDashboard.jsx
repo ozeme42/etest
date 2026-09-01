@@ -23,7 +23,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook, createCompositeTestKey, getSubmissionCompositeKey } from '../utils/testResolver';
 import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
@@ -391,21 +391,30 @@ export default function StudentDashboard() {
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent, refreshCoaching } = useCoaching();
 
-  // Background sync when opening the dashboard
+  // Background sync when opening the dashboard (runs strictly ONCE on mount)
   useEffect(() => {
     refreshHomeworks?.(false);
     refreshTrackedBooks?.(true);
     syncFromSupabase?.(false, true);
     refreshCoaching?.(true);
     refreshSchedules?.(true);
+  }, []);
 
+  // Listen to remote submission updates with debouncing
+  useEffect(() => {
+    let timer = null;
     const onSubUpdated = () => {
-      refreshTrackedBooks?.(true);
-      refreshHomeworks?.(false);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        refreshTrackedBooks?.(true);
+      }, 500);
     };
     window.addEventListener('etest-submissions-updated', onSubUpdated);
-    return () => window.removeEventListener('etest-submissions-updated', onSubUpdated);
-  }, [refreshTrackedBooks, refreshHomeworks, syncFromSupabase, refreshCoaching, refreshSchedules]);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('etest-submissions-updated', onSubUpdated);
+    };
+  }, []);
 
   const handleDashboardRefresh = async () => {
     await Promise.all([
@@ -1226,6 +1235,16 @@ export default function StudentDashboard() {
 
     const solvedSubsMap = new Map();
     allMatchingSubs.forEach(s => {
+      const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+      const compKey = getSubmissionCompositeKey(s);
+      if (compKey) {
+        const existing = solvedSubsMap.get(compKey);
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(compKey, s);
+        }
+      }
+
       const matchIds = [
         s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
         s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
@@ -1238,7 +1257,6 @@ export default function StudentDashboard() {
         const uuid = toUUID(strId);
         
         const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
-        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
         const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
         if (!existing || score >= exScore) {
           solvedSubsMap.set(strId, s);
@@ -1298,10 +1316,13 @@ export default function StudentDashboard() {
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         const tUuid = toUUID(tIdStr);
         const tCleanUuid = toUUID(tCleanId);
+        const tCompKey = createCompositeTestKey(book.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
+
         let bestSub = solvedSubsMap.get(tIdStr) || 
                       solvedSubsMap.get(tCleanId) ||
                       (tUuid && solvedSubsMap.get(tUuid)) ||
-                      (tCleanUuid && solvedSubsMap.get(tCleanUuid));
+                      (tCleanUuid && solvedSubsMap.get(tCleanUuid)) ||
+                      (tCompKey && solvedSubsMap.get(tCompKey));
         if (!bestSub) {
           const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
           if (matchingSubs.length > 0) {
