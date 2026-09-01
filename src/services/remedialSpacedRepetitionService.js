@@ -4,9 +4,9 @@
  */
 
 export const REPETITION_PRESETS = [
-  { id: 'standard_leitner', label: 'Standart Leitner (1, 3, 7, 15 Gün)', intervals: [1, 3, 7, 15], icon: '🧠' },
-  { id: 'fast_repetition', label: 'Hızlı Pekiştirme (1, 2, 4, 7 Gün)', intervals: [1, 2, 4, 7], icon: '⚡' },
-  { id: 'weekly_repetition', label: 'Haftalık Tekrar (2, 5, 10, 20 Gün)', intervals: [2, 5, 10, 20], icon: '📅' }
+  { id: 'standard_leitner', label: 'Standart Leitner (Bugün, 1, 3, 7 Gün)', intervals: [0, 1, 3, 7], icon: '🧠' },
+  { id: 'fast_repetition', label: 'Hızlı Pekiştirme (Bugün, 1, 2, 4 Gün)', intervals: [0, 1, 2, 4], icon: '⚡' },
+  { id: 'weekly_repetition', label: 'Haftalık Tekrar (Bugün, 2, 5, 10 Gün)', intervals: [0, 2, 5, 10], icon: '📅' }
 ];
 
 const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
@@ -17,7 +17,7 @@ const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
 export function scheduleRemedialTestInProgram({
   currentWeeklyProgram = [],
   testItem,
-  intervals = [1, 3, 7, 15],
+  intervals = [0, 1, 3, 7],
   startDate = new Date(),
   studentId
 }) {
@@ -30,14 +30,14 @@ export function scheduleRemedialTestInProgram({
 
   intervals.forEach((intervalDays, idx) => {
     const stageNum = idx + 1;
-    const targetDate = new Date(startDate.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+    const targetDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + intervalDays, 12, 0, 0);
     const targetDayIdx = (todayIdx + intervalDays) % 7;
     const targetDayKey = DAYS_LIST[targetDayIdx];
-    const dateStr = targetDate.toISOString().split('T')[0];
+    const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
     const newItem = {
       id: `remedial_stage_${testItem.id}_${stageNum}_${Date.now()}`,
-      text: `👨‍🏫 [${stageNum}. Tekrar (${intervalDays}g)] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+      text: `👨‍🏫 [${stageNum}. Tekrar (${intervalDays === 0 ? 'Bugün' : intervalDays + 'g'})] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
       title: testItem.title || testItem.name || 'Özel Telafi Testi',
       topic: `[${stageNum}. Tekrar] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
       subject: testItem.subject || 'Genel',

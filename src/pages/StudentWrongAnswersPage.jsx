@@ -425,7 +425,7 @@ export default function StudentWrongAnswersPage() {
         subject: testItem.subject || 'Genel',
         questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1
       },
-      intervals: testItem.repetitionIntervals || [1, 3, 7, 15],
+      intervals: testItem.repetitionIntervals || [0, 1, 3, 7],
       studentId
     });
 
@@ -438,21 +438,21 @@ export default function StudentWrongAnswersPage() {
     if (addSchedule) {
       try {
         const todayIdx = (new Date().getDay() + 6) % 7;
-        const intervals = testItem.repetitionIntervals || [1, 3, 7, 15];
+        const intervals = testItem.repetitionIntervals || [0, 1, 3, 7];
         for (let i = 0; i < intervals.length; i++) {
           const iv = intervals[i];
           const targetDayKey = DAYS_LIST[(todayIdx + iv) % 7];
           await addSchedule({
             studentId,
             day: targetDayKey,
-            title: `[${i + 1}. Tekrar - ${iv}g] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+            title: `[${i + 1}. Tekrar - ${iv === 0 ? 'Bugün' : iv + 'g'}] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
             done: false
           });
         }
       } catch {}
     }
 
-    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (1, 3, 7, 15 Gün) programınıza eklendi!`);
+    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (Bugün, 1, 3, 7 Gün) programınıza eklendi!`);
     setTimeout(() => setProgramToast(null), 4000);
     setOpenDaySelectorId(null);
   };
