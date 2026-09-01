@@ -667,7 +667,7 @@ function AppContent() {
   const isLoginPage = location.pathname === '/login' || location.pathname === '/landing';
   const isQuizRoute = hideSidebarRoutes.some(route => location.pathname.startsWith(route));
   const shouldHideSidebar = !currentUser || isLandingPage || isLoginPage || isQuizRoute;
-  const shouldShowBottomNav = Boolean(currentUser && !isLoginPage && !isLandingPage);
+  const shouldShowBottomNav = Boolean(currentUser && !isLoginPage && !isLandingPage && !isQuizRoute);
 
   useEffect(() => {
     initNativeApp(navigate);
