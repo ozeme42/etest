@@ -652,7 +652,7 @@ export default function StudentExamsPage() {
               name: sName,
               d: 0,
               y: 0,
-              b: qCount,
+              b: 0,
               net: 0,
               totalQ: qCount
             };
@@ -678,7 +678,9 @@ export default function StudentExamsPage() {
   const overallStats = useMemo(() => {
     let totalD = 0, totalY = 0, totalB = 0, totalNet = 0, maxNet = 0;
     const subMap = {};
-    allExamsList.forEach(exam => {
+    const completedExams = allExamsList.filter(e => e.isCompleted || (e.d > 0 || e.y > 0));
+
+    completedExams.forEach(exam => {
       totalD += exam.d || 0;
       totalY += exam.y || 0;
       totalB += exam.b || 0;
@@ -688,6 +690,7 @@ export default function StudentExamsPage() {
 
       const examSubs = getExamSubjectScores(exam);
       Object.entries(examSubs).forEach(([sName, sc]) => {
+        if (!sc || (sc.totalQ === 0 && sc.d === 0 && sc.y === 0 && sc.b === 0)) return;
         if (!subMap[sName]) subMap[sName] = { name: sName, net: 0, count: 0, d: 0, y: 0, b: 0, totalQ: 0 };
         subMap[sName].net += sc.net || 0;
         subMap[sName].d += sc.d || 0;
@@ -698,21 +701,21 @@ export default function StudentExamsPage() {
       });
     });
     const total = allExamsList.length;
+    const completedCount = completedExams.length;
     const totalQ = totalD + totalY + totalB;
     const successRate = totalQ > 0 ? Math.round((totalD / totalQ) * 100) : 0;
-    const completedCount = allExamsList.filter(e => e.isCompleted).length;
 
     return {
       total,
       completedCount,
-      avgNet: total > 0 ? (totalNet / total).toFixed(1) : '0',
+      avgNet: completedCount > 0 ? (totalNet / completedCount).toFixed(1) : '0',
       maxNet: maxNet.toFixed(1),
       successRate,
       totalD,
       totalY,
       totalB,
       totalQ,
-      lastDate: total > 0 ? allExamsList[0].date : '—',
+      lastDate: completedCount > 0 ? completedExams[0].date : '—',
       subjects: Object.values(subMap).sort((a, b) => b.net - a.net),
       bookCount: assignedBooks.length,
       mockCount: studentMockExams.length
@@ -754,10 +757,12 @@ export default function StudentExamsPage() {
   /* ── Exam Subject Chart Data (Derslere Göre) ─── */
   const examSubjectChartData = useMemo(() => {
     const subMap = {};
+    const completedExams = allExamsList.filter(e => e.isCompleted || (e.d > 0 || e.y > 0));
 
-    allExamsList.forEach(exam => {
+    completedExams.forEach(exam => {
       const examSubs = getExamSubjectScores(exam);
       Object.entries(examSubs).forEach(([sName, sc]) => {
+        if (!sc || (sc.totalQ === 0 && sc.d === 0 && sc.y === 0 && sc.b === 0)) return;
         if (!subMap[sName]) {
           subMap[sName] = {
             name: sName,
@@ -804,7 +809,8 @@ export default function StudentExamsPage() {
   }, [allExamsList, activeSection, searchQuery]);
 
   const trendData = useMemo(() => {
-    return [...allExamsList].reverse().map(exam => {
+    const completedExams = allExamsList.filter(e => e.isCompleted || (e.d > 0 || e.y > 0));
+    return [...completedExams].reverse().map(exam => {
       let net = exam.net;
       if (chartMetric !== 'Toplam Net') {
         const examSubs = getExamSubjectScores(exam);
@@ -1841,7 +1847,7 @@ export default function StudentExamsPage() {
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                📊 Ders Dağılımı & Netler
+                                {exam.isCompleted ? '📊 Ders Dağılımı & Netler' : '📖 Sınav Ders İçeriği'}
                               </span>
                               <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6366f1' }}>
                                 {entries.length} Ders
@@ -1868,14 +1874,22 @@ export default function StudentExamsPage() {
                                       <span style={{ fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
                                         {sName}
                                       </span>
-                                      <span style={{ fontWeight: 900, color: sc.net >= 10 ? '#10b981' : sc.net >= 5 ? '#8b5cf6' : '#f59e0b', fontSize: '0.74rem' }}>
-                                        {sc.net}N
-                                      </span>
+                                      {exam.isCompleted ? (
+                                        <span style={{ fontWeight: 900, color: sc.net >= 10 ? '#10b981' : sc.net >= 5 ? '#8b5cf6' : '#f59e0b', fontSize: '0.74rem' }}>
+                                          {sc.net}N
+                                        </span>
+                                      ) : (
+                                        <span style={{ fontWeight: 800, color: 'var(--color-text-muted)', fontSize: '0.68rem' }}>
+                                          {sc.totalQ} Soru
+                                        </span>
+                                      )}
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                                      <span>{sc.d}D · {sc.y}Y</span>
-                                      <span style={{ fontWeight: 800, color: subRate >= 70 ? '#10b981' : subRate >= 50 ? '#f59e0b' : '#ef4444' }}>%{subRate}</span>
-                                    </div>
+                                    {exam.isCompleted && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                        <span>{sc.d}D · {sc.y}Y</span>
+                                        <span style={{ fontWeight: 800, color: subRate >= 70 ? '#10b981' : subRate >= 50 ? '#f59e0b' : '#ef4444' }}>%{subRate}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -1957,7 +1971,7 @@ export default function StudentExamsPage() {
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                                   {entries.map(([sn, sc]) => (
                                     <span key={sn} style={{ fontSize: '0.66rem', fontWeight: 800, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '2px 6px', borderRadius: 6, color: 'var(--color-text-muted)' }}>
-                                      <strong style={{ color: 'var(--color-text)' }}>{sn}:</strong> <span style={{ color: '#8b5cf6', fontWeight: 900 }}>{sc.net}N</span> <span style={{ fontSize: '0.6rem' }}>({sc.d}D {sc.y}Y)</span>
+                                      <strong style={{ color: 'var(--color-text)' }}>{sn}:</strong> {exam.isCompleted ? <span style={{ color: '#8b5cf6', fontWeight: 900 }}>{sc.net}N</span> : <span>{sc.totalQ} Soru</span>} {exam.isCompleted && <span style={{ fontSize: '0.6rem' }}>({sc.d}D {sc.y}Y)</span>}
                                     </span>
                                   ))}
                                 </div>
