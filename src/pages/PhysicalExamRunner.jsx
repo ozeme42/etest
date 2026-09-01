@@ -1077,7 +1077,7 @@ export default function PhysicalExamRunner() {
   const currentAnswers = answers[activeSubject?.name] || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : '100vh', minHeight: isMobile ? '100vh' : '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: isMobile ? 'visible' : 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', maxHeight: '100dvh', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       
       {/* Save Feedback Toast */}
       {savedFeedbackToast && (
@@ -1613,8 +1613,9 @@ export default function PhysicalExamRunner() {
           display: 'flex',
           flexDirection: (effectivePdfMode === 'top' || isMobile) ? 'column' : 'row',
           flex: 1,
-          overflow: isMobile ? 'visible' : 'hidden',
+          overflow: 'hidden',
           minHeight: 0,
+          height: '100%'
         }}
       >
         {/* LEFT/TOP: PDF panel */}
@@ -1641,11 +1642,11 @@ export default function PhysicalExamRunner() {
             style={{ 
               flex: 1, 
               width: '100%',
-              overflowY: isMobile ? 'visible' : 'auto', 
+              overflowY: 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
               minWidth: 0, 
-              height: isMobile ? 'auto' : '100%',
+              height: '100%',
               background: 'var(--color-bg)',
               outline: 'none',
               overscrollBehavior: 'contain',
@@ -1657,10 +1658,10 @@ export default function PhysicalExamRunner() {
               maxWidth: !isSidePdf ? 680 : undefined, 
               width: '100%', 
               margin: !isSidePdf ? '0 auto' : undefined, 
-              padding: isMobile ? '0.5rem 0.5rem 1.25rem 0.5rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 
+              padding: isMobile ? '0.35rem 0.45rem 1rem 0.45rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: isSidePdf ? '0.45rem' : '1rem', 
+              gap: isMobile ? '0.35rem' : isSidePdf ? '0.45rem' : '1rem', 
               boxSizing: 'border-box' 
             }}>
               
@@ -1736,9 +1737,9 @@ export default function PhysicalExamRunner() {
               <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: isMobile ? 6 : isSidePdf ? 4 : 6, 
+                gap: isMobile ? 4 : isSidePdf ? 4 : 6, 
                 overflowX: 'auto', 
-                padding: isMobile ? '0.2rem 0.1rem 0.4rem 0.1rem' : '0 0 2px 0',
+                padding: isMobile ? '0.1rem 0.1rem 0.25rem 0.1rem' : '0 0 2px 0',
                 scrollbarWidth: 'none',
                 WebkitOverflowScrolling: 'touch'
               }}>
@@ -1753,18 +1754,18 @@ export default function PhysicalExamRunner() {
                       key={idx}
                       onClick={() => setActiveSubjectIndex(idx)}
                       style={{
-                        padding: isMobile ? '0.4rem 0.75rem' : isSidePdf ? '0.28rem 0.55rem' : '0.6rem 1.15rem',
-                        borderRadius: isMobile ? '0.75rem' : isSidePdf ? '0.65rem' : '0.9rem',
+                        padding: isMobile ? '0.22rem 0.5rem' : isSidePdf ? '0.28rem 0.55rem' : '0.6rem 1.15rem',
+                        borderRadius: isMobile ? '0.55rem' : isSidePdf ? '0.65rem' : '0.9rem',
                         border: isActive ? '2px solid #2563eb' : '1.5px solid var(--color-border)',
                         background: isActive ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'var(--color-surface)',
                         color: isActive ? '#ffffff' : 'var(--color-text)',
                         fontWeight: 800,
-                        fontSize: isMobile ? '0.76rem' : isSidePdf ? '0.72rem' : '0.86rem',
+                        fontSize: isMobile ? '0.7rem' : isSidePdf ? '0.72rem' : '0.86rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: isMobile ? '0.45rem' : isSidePdf ? '0.35rem' : '0.5rem',
-                        boxShadow: isActive ? '0 3px 10px rgba(37,99,235,0.25)' : '0 1px 3px rgba(0,0,0,0.02)',
+                        gap: isMobile ? '0.3rem' : isSidePdf ? '0.35rem' : '0.5rem',
+                        boxShadow: isActive ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
                         transition: 'all 0.15s ease',
                         whiteSpace: 'nowrap',
                         flexShrink: 0
@@ -1772,8 +1773,8 @@ export default function PhysicalExamRunner() {
                     >
                       <span>{sub.name}</span>
                       <span style={{
-                        fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.64rem' : '0.68rem',
-                        padding: isMobile ? '0.12rem 0.4rem' : isSidePdf ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
+                        fontSize: isMobile ? '0.62rem' : isSidePdf ? '0.64rem' : '0.68rem',
+                        padding: isMobile ? '0.08rem 0.35rem' : isSidePdf ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
                         borderRadius: 99,
                         background: isActive ? 'rgba(255,255,255,0.22)' : isDone ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)',
                         color: isActive ? '#ffffff' : isDone ? '#10b981' : 'var(--color-text-muted)',
@@ -1790,28 +1791,28 @@ export default function PhysicalExamRunner() {
               {activeSubject && (
                 <div style={{
                   background: 'var(--color-surface)',
-                  borderRadius: isMobile ? '1rem' : isSidePdf ? '0.9rem' : '1.25rem',
+                  borderRadius: isMobile ? '0.75rem' : isSidePdf ? '0.9rem' : '1.25rem',
                   border: '1.5px solid var(--color-border)',
-                  padding: isMobile ? '0.65rem 0.75rem' : isSidePdf ? '0.5rem 0.6rem' : '1.25rem',
+                  padding: isMobile ? '0.35rem 0.45rem' : isSidePdf ? '0.5rem 0.6rem' : '1.25rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: isMobile ? '0.6rem' : isSidePdf ? '0.45rem' : '1rem',
+                  gap: isMobile ? '0.35rem' : isSidePdf ? '0.45rem' : '1rem',
                   boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
                 }}>
                   {/* Subject Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: isMobile ? '0.45rem' : isSidePdf ? '0.35rem' : '0.75rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb' }} />
-                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.88rem' : isSidePdf ? '0.82rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: isMobile ? '0.25rem' : isSidePdf ? '0.35rem' : '0.75rem', flexWrap: 'wrap', gap: '0.3rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2563eb' }} />
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.78rem' : isSidePdf ? '0.82rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
                         {activeSubject.name}
                       </h3>
-                      <span style={{ fontSize: isMobile ? '0.7rem' : isSidePdf ? '0.7rem' : '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                      <span style={{ fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.7rem' : '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
                         ({activeSubject.count} Soru)
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: isMobile ? '0.7rem' : isSidePdf ? '0.68rem' : '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: isMobile ? '0.15rem 0.5rem' : isSidePdf ? '0.15rem 0.45rem' : '0.2rem 0.6rem', borderRadius: 99 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.68rem' : '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: isMobile ? '0.1rem 0.4rem' : isSidePdf ? '0.15rem 0.45rem' : '0.2rem 0.6rem', borderRadius: 99 }}>
                         {(answers[activeSubject.name] || []).filter(Boolean).length}/{activeSubject.count} Kodlandı
                       </span>
                     </div>
@@ -1907,19 +1908,19 @@ export default function PhysicalExamRunner() {
                   {(() => {
                     const isVeryNarrow = isMobile || containerWidth < 460;
                     const isCompact = isSidePdf || containerWidth < 680;
-                    const bubbleSize = isSidePdf ? 26 : isMobile ? 32 : isVeryNarrow ? 28 : isCompact ? 32 : (questionColumns.length === 1 ? 40 : 36);
-                    const bubbleFontSize = isSidePdf ? '0.74rem' : isMobile ? '0.84rem' : isVeryNarrow ? '0.76rem' : isCompact ? '0.84rem' : '0.95rem';
+                    const bubbleSize = isMobile ? 26 : isSidePdf ? 26 : isVeryNarrow ? 28 : isCompact ? 32 : (questionColumns.length === 1 ? 40 : 36);
+                    const bubbleFontSize = isMobile ? '0.74rem' : isSidePdf ? '0.74rem' : isVeryNarrow ? '0.76rem' : isCompact ? '0.84rem' : '0.95rem';
 
                     return (
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: questionColumns.length === 1 ? '1fr' : `repeat(${questionColumns.length}, minmax(0, 1fr))`,
-                        gap: isSidePdf ? '0.35rem' : isMobile ? '0.45rem' : isCompact ? '0.55rem' : '1rem',
+                        gap: isSidePdf ? '0.35rem' : isMobile ? '0.25rem' : isCompact ? '0.55rem' : '1rem',
                         alignItems: 'start',
                         width: '100%'
                       }}>
                         {questionColumns.map((col, colIdx) => (
-                          <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.3rem' : isMobile ? '0.4rem' : isCompact ? '0.45rem' : '0.75rem', width: '100%', minWidth: 0 }}>
+                          <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.3rem' : isMobile ? '0.25rem' : isCompact ? '0.45rem' : '0.75rem', width: '100%', minWidth: 0 }}>
                             {col.map(qNo => {
                               const qIdx = qNo - 1;
                               const currentAnswers = answers[activeSubject.name] || [];
@@ -1952,8 +1953,8 @@ export default function PhysicalExamRunner() {
                                       : selected 
                                         ? 'rgba(37,99,235,0.12)' 
                                         : 'var(--color-surface-hover)',
-                                    padding: isSidePdf ? '0.22rem 0.4rem' : isMobile ? '0.32rem 0.5rem' : isVeryNarrow ? '0.4rem 0.55rem' : isCompact ? '0.5rem 0.7rem' : '0.65rem 1rem',
-                                    borderRadius: isSidePdf ? '0.55rem' : isMobile ? '0.75rem' : '0.85rem',
+                                    padding: isSidePdf ? '0.22rem 0.4rem' : isMobile ? '0.2rem 0.35rem' : isVeryNarrow ? '0.4rem 0.55rem' : isCompact ? '0.5rem 0.7rem' : '0.65rem 1rem',
+                                    borderRadius: isSidePdf ? '0.55rem' : isMobile ? '0.5rem' : '0.85rem',
                                     border: isCorrect 
                                       ? '1.5px solid #bbf7d0' 
                                       : isWrong 
@@ -1965,7 +1966,7 @@ export default function PhysicalExamRunner() {
                                       : '1.5px solid var(--color-border)',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: isSidePdf ? '0.2rem' : isMobile ? '0.22rem' : '0.45rem',
+                                    gap: isSidePdf ? '0.2rem' : isMobile ? '0.1rem' : '0.45rem',
                                     transition: 'all 0.15s ease',
                                     boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.08)' : 'none',
                                     boxSizing: 'border-box',
@@ -1973,20 +1974,20 @@ export default function PhysicalExamRunner() {
                                   }}
                                 >
                                   {/* Top Question Row */}
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isSidePdf ? '0.25rem' : isMobile ? '0.4rem' : '0.65rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isSidePdf ? '0.25rem' : isMobile ? '0.35rem' : '0.65rem' }}>
                                     {/* Question Number Badge & Flag */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: isSidePdf ? 2 : isMobile ? 3 : 4, minWidth: isSidePdf ? 34 : isMobile ? 44 : 52, flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: isSidePdf ? 2 : isMobile ? 2 : 4, minWidth: isSidePdf ? 34 : isMobile ? 36 : 52, flexShrink: 0 }}>
                                       <div style={{
-                                        width: isSidePdf ? 22 : isMobile ? 26 : isVeryNarrow ? 24 : 30,
-                                        height: isSidePdf ? 22 : isMobile ? 26 : isVeryNarrow ? 24 : 30,
-                                        borderRadius: isSidePdf ? '0.4rem' : isMobile ? '0.45rem' : '0.5rem',
+                                        width: isSidePdf ? 22 : isMobile ? 22 : isVeryNarrow ? 24 : 30,
+                                        height: isSidePdf ? 22 : isMobile ? 22 : isVeryNarrow ? 24 : 30,
+                                        borderRadius: isSidePdf ? '0.4rem' : isMobile ? '0.4rem' : '0.5rem',
                                         background: selected ? '#2563eb' : 'var(--color-surface)',
                                         color: selected ? '#ffffff' : 'var(--color-text)',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         fontWeight: 900,
-                                        fontSize: isSidePdf ? '0.7rem' : isMobile ? '0.78rem' : isVeryNarrow ? '0.74rem' : '0.84rem',
+                                        fontSize: isSidePdf ? '0.7rem' : isMobile ? '0.72rem' : isVeryNarrow ? '0.74rem' : '0.84rem',
                                         border: selected ? 'none' : '1.5px solid var(--color-border-input)',
                                         boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
                                       }}>
@@ -2002,7 +2003,7 @@ export default function PhysicalExamRunner() {
                                             background: isFlagged ? '#fffbeb' : 'transparent',
                                             border: isFlagged ? '1px solid #fde68a' : 'none',
                                             borderRadius: '0.4rem',
-                                            padding: isSidePdf ? '1px' : '2px',
+                                            padding: '1px',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -2010,19 +2011,19 @@ export default function PhysicalExamRunner() {
                                             color: isFlagged ? '#d97706' : '#94a3b8'
                                           }}
                                         >
-                                          <Flag size={isSidePdf ? 10 : isMobile ? 12 : isVeryNarrow ? 11 : 13} fill={isFlagged ? '#d97706' : 'none'} />
+                                          <Flag size={isSidePdf ? 10 : isMobile ? 11 : 13} fill={isFlagged ? '#d97706' : 'none'} />
                                         </button>
                                       )}
 
                                       {isSubmitted && (
-                                        <span style={{ fontSize: isSidePdf ? '0.62rem' : isMobile ? '0.68rem' : isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                                        <span style={{ fontSize: isSidePdf ? '0.62rem' : isMobile ? '0.64rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
                                           {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
                                         </span>
                                       )}
                                     </div>
 
                                     {/* Option Bubbles (CENTERED) */}
-                                    <div style={{ display: 'flex', gap: isSidePdf ? '4px' : isMobile ? '8px' : '8px', flex: 1, justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                    <div style={{ display: 'flex', gap: isSidePdf ? '4px' : isMobile ? '5px' : '8px', flex: 1, justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap' }}>
                                       {optionsList.map((opt) => {
                                         const isSelected = selected === opt;
                                         const isThisOptCorrect = isSubmitted && correctKey === opt;
@@ -2085,7 +2086,7 @@ export default function PhysicalExamRunner() {
                                     </div>
 
                                     {/* Clear Button / Right Anchor for Perfect Centering */}
-                                    <div style={{ minWidth: isSidePdf ? 34 : isMobile ? 44 : 52, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 0 }}>
+                                    <div style={{ minWidth: isSidePdf ? 34 : isMobile ? 36 : 52, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 0 }}>
                                       {!isSubmitted && (
                                         <button
                                           type="button"
@@ -2093,8 +2094,8 @@ export default function PhysicalExamRunner() {
                                           disabled={!selected}
                                           title="İşareti Kaldır"
                                           style={{
-                                            width: isVeryNarrow ? 20 : 24,
-                                            height: isVeryNarrow ? 20 : 24,
+                                            width: 20,
+                                            height: 20,
                                             borderRadius: '50%',
                                             background: selected ? '#fef2f2' : 'transparent',
                                             border: selected ? '1px solid #fecaca' : 'none',
@@ -2109,7 +2110,7 @@ export default function PhysicalExamRunner() {
                                             flexShrink: 0
                                           }}
                                         >
-                                          <XIcon size={isVeryNarrow ? 10 : 12} />
+                                          <XIcon size={10} />
                                         </button>
                                       )}
                                     </div>
