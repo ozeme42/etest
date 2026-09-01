@@ -1972,9 +1972,9 @@ export default function PhysicalExamRunner() {
                                   }}
                                 >
                                   {/* Top Question Row */}
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isSidePdf ? '0.25rem' : isMobile ? '0.4rem' : isVeryNarrow ? '0.35rem' : '0.65rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isSidePdf ? '0.25rem' : isMobile ? '0.4rem' : '0.65rem' }}>
                                     {/* Question Number Badge & Flag */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: isSidePdf ? 2 : isMobile ? 3 : 4, minWidth: isSidePdf ? 36 : isMobile ? 40 : isVeryNarrow ? 44 : 64, flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: isSidePdf ? 2 : isMobile ? 3 : 4, minWidth: isSidePdf ? 34 : isMobile ? 44 : 52, flexShrink: 0 }}>
                                       <div style={{
                                         width: isSidePdf ? 22 : isMobile ? 26 : isVeryNarrow ? 24 : 30,
                                         height: isSidePdf ? 22 : isMobile ? 26 : isVeryNarrow ? 24 : 30,
@@ -2020,8 +2020,8 @@ export default function PhysicalExamRunner() {
                                       )}
                                     </div>
 
-                                    {/* Option Bubbles */}
-                                    <div style={{ display: 'flex', gap: isSidePdf ? '3px' : isMobile ? '6px' : isVeryNarrow ? '0.2rem' : isCompact ? '0.35rem' : '0.45rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                    {/* Option Bubbles (CENTERED) */}
+                                    <div style={{ display: 'flex', gap: isSidePdf ? '4px' : isMobile ? '8px' : '8px', flex: 1, justifyContent: 'center', alignItems: 'center', flexWrap: 'nowrap' }}>
                                       {optionsList.map((opt) => {
                                         const isSelected = selected === opt;
                                         const isThisOptCorrect = isSubmitted && correctKey === opt;
@@ -2081,7 +2081,10 @@ export default function PhysicalExamRunner() {
                                           </button>
                                         );
                                       })}
+                                    </div>
 
+                                    {/* Clear Button / Right Anchor for Perfect Centering */}
+                                    <div style={{ minWidth: isSidePdf ? 34 : isMobile ? 44 : 52, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', flexShrink: 0 }}>
                                       {!isSubmitted && (
                                         <button
                                           type="button"
@@ -2090,7 +2093,7 @@ export default function PhysicalExamRunner() {
                                           title="İşareti Kaldır"
                                           style={{
                                             width: isVeryNarrow ? 20 : 24,
-                                            height: isVeryNarrow ? 24 : 24,
+                                            height: isVeryNarrow ? 20 : 24,
                                             borderRadius: '50%',
                                             background: selected ? '#fef2f2' : 'transparent',
                                             border: selected ? '1px solid #fecaca' : 'none',
@@ -2101,7 +2104,6 @@ export default function PhysicalExamRunner() {
                                             justifyContent: 'center',
                                             pointerEvents: selected ? 'auto' : 'none',
                                             transition: 'all 0.12s ease',
-                                            marginLeft: 1,
                                             padding: 0,
                                             flexShrink: 0
                                           }}
