@@ -1016,6 +1016,130 @@ export default function StudentExamsPage() {
           </div>
         )}
 
+        {/* ── DERS BAZINDA DENEME KARNESİ (DEEP MATRIX) ── */}
+        {!isEmpty && overallStats.subjects.length > 0 && (
+          <div style={{
+            background: 'var(--color-surface)',
+            borderRadius: 20,
+            border: '1.5px solid var(--color-border)',
+            padding: '1.3rem 1.5rem',
+            marginBottom: 22,
+            boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(99,102,241,0.25)'
+                }}>
+                  <Award size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    🎓 Ders Bazında Deneme Başarı Karnesi
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    Tüm denemelerdeki ders performanslarınız, ortalama netleriniz ve başarı durumunuz
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, fontSize: '0.72rem', fontWeight: 800 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5', color: '#10b981', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid rgba(16,185,129,0.3)' }}>
+                  🏆 Zirve (%80+)
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb', color: '#f59e0b', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid rgba(245,158,11,0.3)' }}>
+                  📈 Gelişiyor (%60-%80)
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', color: '#ef4444', padding: '0.2rem 0.55rem', borderRadius: 6, border: '1px solid rgba(239,68,68,0.3)' }}>
+                  ⚠️ Odaklan (&lt;%60)
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              {overallStats.subjects.map(s => {
+                const totalQ = s.totalQ || (s.d + s.y + s.b);
+                const sRate = totalQ > 0 ? Math.round((s.d / totalQ) * 100) : 0;
+                const avgNet = s.count > 0 ? (s.net / s.count).toFixed(1) : (s.net || 0);
+                const statusBadge = sRate >= 80
+                  ? { label: '🏆 Güçlü Alan', color: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5', border: 'rgba(16,185,129,0.3)' }
+                  : sRate >= 60
+                  ? { label: '📈 Gelişiyor', color: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb', border: 'rgba(245,158,11,0.3)' }
+                  : { label: '⚠️ Odaklanılmalı', color: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2', border: 'rgba(239,68,68,0.3)' };
+
+                return (
+                  <div
+                    key={s.name}
+                    style={{
+                      background: 'var(--color-surface-hover)',
+                      borderRadius: 16,
+                      border: '1.5px solid var(--color-border)',
+                      padding: '1.1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>{s.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{s.count} denemede çözüldü</div>
+                      </div>
+                      <span style={{
+                        background: statusBadge.bg,
+                        color: statusBadge.color,
+                        border: `1px solid ${statusBadge.border}`,
+                        borderRadius: 6,
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.68rem',
+                        fontWeight: 900
+                      }}>
+                        {statusBadge.label}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, textAlign: 'center' }}>
+                      <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: '0.4rem 0.2rem', border: '1px solid var(--color-border)' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>ORT. NET</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: '#8b5cf6' }}>{avgNet}</div>
+                      </div>
+                      <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: '0.4rem 0.2rem', border: '1px solid var(--color-border)' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>BAŞARI</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 900, color: statusBadge.color }}>%{sRate}</div>
+                      </div>
+                      <div style={{ background: 'var(--color-surface)', borderRadius: 10, padding: '0.4rem 0.2rem', border: '1px solid var(--color-border)' }}>
+                        <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>D / Y / B</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          <span style={{ color: '#10b981' }}>{s.d}</span>/<span style={{ color: '#ef4444' }}>{s.y}</span>/<span style={{ color: 'var(--color-text-muted)' }}>{s.b}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+                        <span>Doğruluk Oranı</span>
+                        <span style={{ color: statusBadge.color }}>%{sRate}</span>
+                      </div>
+                      <div style={{ width: '100%', height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{ width: `${sRate}%`, height: '100%', background: statusBadge.color, borderRadius: 99, transition: 'width 0.6s ease' }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── CHART PANEL (KİTAPLARIM STİLİ) ── */}
         {!isEmpty && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
@@ -1684,21 +1808,81 @@ export default function StudentExamsPage() {
                   {(() => {
                     const totalQ = (Number(exam.d) || 0) + (Number(exam.y) || 0) + (Number(exam.b) || 0) || (exam.totalQuestions || 30);
                     const successPct = totalQ > 0 ? Math.max(0, Math.min(100, Math.round(((Number(exam.d) || 0) / totalQ) * 100))) : 0;
+                    const subjScores = getExamSubjectScores(exam);
+                    const entries = Object.entries(subjScores);
+
                     return (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
-                        {[
-                          { l: 'Doğru', v: exam.d ?? 0, c: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.3)' : '#bbf7d0' },
-                          { l: 'Yanlış', v: exam.y ?? 0, c: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3' },
-                          { l: 'Boş',    v: exam.b ?? 0, c: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' },
-                          { l: 'Net',    v: exam.net ?? 0, c: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.15)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.3)' : '#e9d5ff' },
-                          { l: 'Başarı', v: `%${successPct}`, c: successPct >= 70 ? '#10b981' : successPct >= 50 ? '#f59e0b' : '#ef4444', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5', border: isDark ? 'rgba(16,185,129,0.25)' : '#a7f3d0' }
-                        ].map((s, i) => (
-                          <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.4rem 0.2rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.58rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
-                            <div style={{ fontSize: '0.84rem', fontWeight: 900, color: s.c }}>{s.v}</div>
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
+                          {[
+                            { l: 'Doğru', v: exam.d ?? 0, c: '#10b981', bg: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? 'rgba(16,185,129,0.3)' : '#bbf7d0' },
+                            { l: 'Yanlış', v: exam.y ?? 0, c: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.15)' : '#fff1f2', border: isDark ? 'rgba(239,68,68,0.3)' : '#fecdd3' },
+                            { l: 'Boş',    v: exam.b ?? 0, c: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' },
+                            { l: 'Net',    v: exam.net ?? 0, c: '#8b5cf6', bg: isDark ? 'rgba(139,92,246,0.15)' : '#faf5ff', border: isDark ? 'rgba(139,92,246,0.3)' : '#e9d5ff' },
+                            { l: 'Başarı', v: `%${successPct}`, c: successPct >= 70 ? '#10b981' : successPct >= 50 ? '#f59e0b' : '#ef4444', bg: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5', border: isDark ? 'rgba(16,185,129,0.25)' : '#a7f3d0' }
+                          ].map((s, i) => (
+                            <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.4rem 0.2rem', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.58rem', color: s.c, fontWeight: 900, textTransform: 'uppercase' }}>{s.l}</div>
+                              <div style={{ fontSize: '0.84rem', fontWeight: 900, color: s.c }}>{s.v}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Subject Breakdown Pills */}
+                        {entries.length > 0 && (
+                          <div style={{
+                            background: 'var(--color-surface-hover)',
+                            borderRadius: 12,
+                            padding: '0.65rem 0.85rem',
+                            border: '1px solid var(--color-border)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 6
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                📊 Ders Dağılımı & Netler
+                              </span>
+                              <span style={{ fontSize: '0.66rem', fontWeight: 800, color: '#6366f1' }}>
+                                {entries.length} Ders
+                              </span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                              {entries.map(([sName, sc]) => {
+                                const subRate = sc.totalQ > 0 ? Math.round((sc.d / sc.totalQ) * 100) : 0;
+                                return (
+                                  <div
+                                    key={sName}
+                                    style={{
+                                      background: 'var(--color-surface)',
+                                      border: '1px solid var(--color-border)',
+                                      borderRadius: 8,
+                                      padding: '0.35rem 0.55rem',
+                                      fontSize: '0.72rem',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: 2
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>
+                                        {sName}
+                                      </span>
+                                      <span style={{ fontWeight: 900, color: sc.net >= 10 ? '#10b981' : sc.net >= 5 ? '#8b5cf6' : '#f59e0b', fontSize: '0.74rem' }}>
+                                        {sc.net}N
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                      <span>{sc.d}D · {sc.y}Y</span>
+                                      <span style={{ fontWeight: 800, color: subRate >= 70 ? '#10b981' : subRate >= 50 ? '#f59e0b' : '#ef4444' }}>%{subRate}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     );
                   })()}
 
@@ -1747,23 +1931,40 @@ export default function StudentExamsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760, fontSize: '0.82rem' }}>
                 <thead>
                   <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)' }}>
-                    {['DENEME ADI', 'TARİH', 'TÜR', 'DOĞRU', 'YANLIŞ', 'BOŞ', 'NET', 'İŞLEM'].map(h => (
+                    {['DENEME ADI & DERS DAĞILIMI', 'TARİH', 'TÜR', 'DOĞRU', 'YANLIŞ', 'BOŞ', 'NET', 'İŞLEM'].map(h => (
                       <th key={h} style={{ padding: '0.9rem 1rem', fontWeight: 900, fontSize: '0.7rem', color: 'var(--color-text-muted)', textAlign: h === 'İŞLEM' ? 'right' : 'left', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedExams.map((exam, idx) => (
-                    <tr key={`${exam.type}-${exam.id}`}
-                      style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.15s', cursor: 'pointer' }}
-                      onClick={() => handleOpenExam(exam)}
-                    >
-                      <td style={{ padding: '0.8rem 1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: 'var(--color-text)' }}>
-                          {exam.type === 'mock' ? <ClipboardList size={16} color="#818cf8" /> : <BookOpen size={16} color={exam.isCompleted ? '#10b981' : '#3b82f6'} />}
-                          <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exam.title}</span>
-                        </div>
-                      </td>
+                  {displayedExams.map((exam, idx) => {
+                    const subjScores = getExamSubjectScores(exam);
+                    const entries = Object.entries(subjScores);
+
+                    return (
+                      <tr key={`${exam.type}-${exam.id}`}
+                        style={{ borderBottom: '1px solid var(--color-border)', background: idx % 2 === 1 ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.15s', cursor: 'pointer' }}
+                        onClick={() => handleOpenExam(exam)}
+                      >
+                        <td style={{ padding: '0.8rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{ marginTop: 2 }}>
+                              {exam.type === 'mock' ? <ClipboardList size={18} color="#818cf8" /> : <BookOpen size={18} color={exam.isCompleted ? '#10b981' : '#3b82f6'} />}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.88rem' }}>{exam.title}</div>
+                              {entries.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                  {entries.map(([sn, sc]) => (
+                                    <span key={sn} style={{ fontSize: '0.66rem', fontWeight: 800, background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '2px 6px', borderRadius: 6, color: 'var(--color-text-muted)' }}>
+                                      <strong style={{ color: 'var(--color-text)' }}>{sn}:</strong> <span style={{ color: '#8b5cf6', fontWeight: 900 }}>{sc.net}N</span> <span style={{ fontSize: '0.6rem' }}>({sc.d}D {sc.y}Y)</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
                       <td style={{ padding: '0.8rem 1rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{exam.date}</td>
                       <td style={{ padding: '0.8rem 1rem' }}>
                         <span style={{ background: exam.type === 'mock' ? (isDark ? 'rgba(139,92,246,0.2)' : '#faf5ff') : exam.isCompleted ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(37,99,235,0.2)' : '#eff6ff'), color: exam.type === 'mock' ? '#8b5cf6' : exam.isCompleted ? '#10b981' : '#3b82f6', border: `1px solid ${exam.type === 'mock' ? (isDark ? 'rgba(139,92,246,0.4)' : '#e9d5ff') : exam.isCompleted ? (isDark ? 'rgba(16,185,129,0.4)' : '#a7f3d0') : (isDark ? 'rgba(37,99,235,0.4)' : '#bfdbfe')}`, borderRadius: 6, padding: '0.22rem 0.65rem', fontSize: '0.72rem', fontWeight: 900 }}>
@@ -1801,7 +2002,8 @@ export default function StudentExamsPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {displayedExams.length === 0 && (
                     <tr><td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sonuç bulunamadı</td></tr>
                   )}
