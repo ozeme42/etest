@@ -1098,6 +1098,8 @@ export default function ModularQuizPage() {
   };
 
   const handleAutoSave = (formattedAnswers) => {
+    if (!formattedAnswers) return;
+
     const isAcikUclu = isSectionOpenEnded(effectiveTest) || isSectionOpenEnded(test) || Boolean(
       test.questionType === 'acik_uclu' ||
       test.type === 'acik_uclu' ||
@@ -1106,8 +1108,34 @@ export default function ModularQuizPage() {
       test.is_open_ended === true
     );
 
+    let answersList = [];
+    if (Array.isArray(formattedAnswers)) {
+      answersList = formattedAnswers;
+    } else if (typeof formattedAnswers === 'object') {
+      const qList = questions && questions.length > 0 ? questions : (test.questions || []);
+      if (qList.length > 0) {
+        answersList = qList.map((q, idx) => {
+          const qNo = q.questionNo || (idx + 1);
+          const val = formattedAnswers[qNo] ?? formattedAnswers[String(qNo)] ?? formattedAnswers[idx];
+          return {
+            questionNo: qNo,
+            userAnswer: val !== undefined && val !== null ? (typeof val === 'number' ? String.fromCharCode(65 + val) : String(val)) : null,
+            userAnswerIndex: typeof val === 'number' ? val : null,
+            userAnswerText: typeof val === 'string' && val.length > 1 ? val : null
+          };
+        });
+      } else {
+        answersList = Object.entries(formattedAnswers).map(([k, val], idx) => ({
+          questionNo: Number(k) || (idx + 1),
+          userAnswer: val !== undefined && val !== null ? (typeof val === 'number' ? String.fromCharCode(65 + val) : String(val)) : null,
+          userAnswerIndex: typeof val === 'number' ? val : null,
+          userAnswerText: typeof val === 'string' && val.length > 1 ? val : null
+        }));
+      }
+    }
+
     const derivedOpenEndedText = {};
-    const evaluatedAnswers = formattedAnswers.map((ans, idx) => {
+    const evaluatedAnswers = answersList.map((ans, idx) => {
       const qObj = questions[idx] || {};
       const userAns = ans.userAnswer;
       const textVal = ans.userAnswerText;

@@ -310,7 +310,21 @@ export default function RemedialQuizRunner({
       }
 
       if (onAutoSave) {
-        onAutoSave(updated);
+        try {
+          const autoSaveArr = normalizedQuestions.map((q, idx) => {
+            const questionNumber = idx + 1;
+            const userVal = updated[questionNumber];
+            return {
+              questionNo: questionNumber,
+              questionId: q.id || `remedial_q_${questionNumber}`,
+              userAnswer: userVal !== undefined && userVal !== null ? String.fromCharCode(65 + userVal) : null,
+              userAnswerIndex: userVal !== undefined && userVal !== null ? userVal : null
+            };
+          });
+          onAutoSave(autoSaveArr);
+        } catch (e) {
+          console.warn('Remedial onAutoSave error:', e);
+        }
       }
       return updated;
     });
