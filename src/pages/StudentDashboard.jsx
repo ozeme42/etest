@@ -2563,67 +2563,6 @@ export default function StudentDashboard() {
       }
     });
 
-    // 3. KİTAPLARDAKİ TARİHİ GEÇMİŞ ÇÖZÜLMEMİŞ TÜM TESTLER
-    const bookMapById = new Map();
-    (books || []).forEach(b => {
-      bookMapById.set(String(b.id), b);
-      const u = toUUID(b.id);
-      if (u) bookMapById.set(u, b);
-    });
-
-    const hwDueDatesByTestId = new Map();
-    (homeworks || []).forEach(hw => {
-      if (isHomeworkForStudent(hw, selectedStudent, curData?.grades)) {
-        const hwDueMap = hw.testDueDates || hw.raw_data?.testDueDates || {};
-        Object.entries(hwDueMap).forEach(([tId, d]) => {
-          if (d && (!hwDueDatesByTestId.has(tId) || new Date(d) < new Date(hwDueDatesByTestId.get(tId)))) {
-            hwDueDatesByTestId.set(tId, d);
-            hwDueDatesByTestId.set(toUUID(tId), d);
-            hwDueDatesByTestId.set(String(tId).replace(/^bt_/, '').replace(/^q_/, ''), d);
-          }
-        });
-      }
-    });
-
-    (bookTests || []).forEach(bt => {
-      if (isItemSolved(bt) || isTaskDismissed(bt)) return;
-
-      let dueDateVal = bt.answer_key?.__meta?.dueDate || bt.dueDate || bt.assignedDueDate ||
-                       hwDueDatesByTestId.get(String(bt.id)) ||
-                       hwDueDatesByTestId.get(toUUID(bt.id)) ||
-                       hwDueDatesByTestId.get(String(bt.id).replace(/^bt_/, '').replace(/^q_/, ''));
-
-      if (dueDateVal) {
-        const dueDateObj = parseSafeDate(dueDateVal);
-        if (dueDateObj && dueDateObj < now) {
-          if (!isAlreadySeen(bt)) {
-            addKeysToSeen(bt);
-            const b = bookMapById.get(String(bt.bookId || bt.book_id)) || bookMapById.get(toUUID(bt.bookId || bt.book_id));
-            const parentSubj = b ? (b.subjects || []).find(s => String(s.id) === String(bt.subject_id || bt.subjectId)) : null;
-            const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(bt.topic_id || bt.topicId)) : null;
-            const dueFormatted = dueDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short' });
-            
-            list.push({
-              ...bt,
-              id: bt.id,
-              testId: bt.id,
-              bookId: b?.id || bt.bookId,
-              bookTitle: b?.title || bt.bookTitle || 'Kitap',
-              subject: parentSubj?.name || bt.subject || bt.subjectName || '',
-              unitTopic: parentTopic?.name || bt.unit || bt.unitName || '',
-              title: `${b?.title ? b.title + ' — ' : ''}${parentSubj?.name ? parentSubj.name + ' › ' : ''}${bt.name}`,
-              testName: bt.name,
-              categoryType: 'kitap',
-              isBookTask: true,
-              isCatchUp: true,
-              dueDateStr: dueFormatted,
-              reason: `${dueFormatted} tarihli geciken kitap testi`
-            });
-          }
-        }
-      }
-    });
-
     return sortItemsByBookOrder(list, books, bookTests);
   }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, tests, homeworks, curData]);
 
