@@ -959,15 +959,6 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       if (!sub || isDeletedItem(sub)) return;
       if (sub.status === 'in_progress' || sub.status === 'draft') return;
 
-      // Skip orphaned homework submissions if the homework itself was deleted
-      const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a?.type === 'metadata') : (sub.metadata || {});
-      const subHwId = sub.homework_id || sub.hwId || meta?.hwId;
-      const candidateHwId = subHwId || (String(sub.test_id || sub.testId || '').startsWith('hw_') ? (sub.test_id || sub.testId) : null) || (meta?.realTestId && String(meta.realTestId).startsWith('hw_') ? meta.realTestId : null);
-      if (candidateHwId) {
-        const hwExists = (homeworks || []).some(h => String(h.id) === String(candidateHwId) || String(h.raw_data?.id) === String(candidateHwId) || (toUUID(h.id) && toUUID(h.id) === String(toUUID(candidateHwId))));
-        if (!hwExists) return; // Homework was deleted, skip orphaned submission!
-      }
-
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (normalized && !isDeletedItem(normalized)) {
         registerTestKeys(sub, normalized);

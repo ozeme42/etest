@@ -155,16 +155,9 @@ export function EvaluationProvider({ children }) {
           const sId = String(s.id || '');
           const suId = String(s.supabaseId || '');
           const sTestId = String(s.test_id || s.testId || '');
-          const sHwId = String(s.homework_id || s.hwId || '');
-          const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
-          const metaHwId = String(meta?.hwId || '');
-          const metaRealTestId = String(meta?.realTestId || '');
 
           if (currentDeletedIds.has(sId) || (suId && currentDeletedIds.has(suId))) return false;
           if (sTestId && currentDeletedIds.has(sTestId)) return false;
-          if (sHwId && currentDeletedIds.has(sHwId)) return false;
-          if (metaHwId && currentDeletedIds.has(metaHwId)) return false;
-          if (metaRealTestId && currentDeletedIds.has(metaRealTestId)) return false;
           return true;
         });
 
