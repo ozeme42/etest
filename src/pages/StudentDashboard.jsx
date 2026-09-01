@@ -1276,7 +1276,12 @@ export default function StudentDashboard() {
         };
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        let bestSub = solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId);
+        const tUuid = toUUID(tIdStr);
+        const tCleanUuid = toUUID(tCleanId);
+        let bestSub = solvedSubsMap.get(tIdStr) || 
+                      solvedSubsMap.get(tCleanId) ||
+                      (tUuid && solvedSubsMap.get(tUuid)) ||
+                      (tCleanUuid && solvedSubsMap.get(tCleanUuid));
         if (!bestSub) {
           const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
           if (matchingSubs.length > 0) {
