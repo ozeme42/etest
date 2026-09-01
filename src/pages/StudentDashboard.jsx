@@ -1816,8 +1816,8 @@ export default function StudentDashboard() {
           if (found && Array.isArray(found.items)) {
             found.items.forEach(item => {
               if (!item) return;
-              // Remedial tests scheduled by teacher should always show on their assigned day column
-              if (item.isTeacherRemedial || item.type === 'remedialTest') {
+              // Remedial tests scheduled by teacher/student should always show on their assigned day column
+              if (item.isTeacherRemedial || item.type === 'remedialTest' || item.isRemedial || item.isRemedialTest || item.isSpacedRepetition) {
                 dayManualItems.push({ ...item, isWeeklyProgItem: true });
                 return;
               }
@@ -1858,6 +1858,9 @@ export default function StudentDashboard() {
 
         // Filter out manual/program items referencing deleted homeworks, book tests, or deleted study plans/roadmaps using fast O(1) Sets
         dayManualItems = dayManualItems.filter(item => {
+          if (item.type === 'remedialTest' || item.isRemedial || item.isRemedialTest || item.isTeacherRemedial || item.isSpacedRepetition) {
+            return true;
+          }
           if (item.hwId && !validHwIdSet.has(String(item.hwId))) return false;
           if (item.testId && !item.hwId && item.type !== 'remedialTest' && !item.isRemedial && !item.isTeacherRemedial && !item.isSpacedRepetition) {
             if (!validBtIdSet.has(String(item.testId)) && !validQIdSet.has(String(item.testId))) return false;

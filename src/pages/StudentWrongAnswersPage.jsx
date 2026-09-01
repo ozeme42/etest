@@ -361,14 +361,16 @@ export default function StudentWrongAnswersPage() {
       isRemedialTest: true,
       stage: 1,
       done: false,
-      date: new Date().toISOString().split('T')[0]
+      targetDayKey
     };
 
     const updatedProg = rawProg.map(dObj => {
       if (dObj.day === targetDayKey) {
+        const existing = dObj.items || [];
+        const alreadyHas = existing.some(it => String(it.testId || it.realTestId || it.hwId || it.id) === String(testItem.id));
         return {
           ...dObj,
-          items: [...(dObj.items || []), newItem]
+          items: alreadyHas ? existing : [...existing, newItem]
         };
       }
       return dObj;
