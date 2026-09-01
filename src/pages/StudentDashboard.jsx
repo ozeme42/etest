@@ -2397,15 +2397,15 @@ export default function StudentDashboard() {
           const isRemedial = Boolean(item.isRemedial || item.isRemedialTest || item.type === 'remedialTest' || item.taskType === 'remedialTest' || item.isTeacherRemedial || item.isSpacedRepetition || detectedStage);
 
           // Dedicated target attempt for this repetition stage:
-          // Stage 1 (1. Tekrar) requires 2 total submissions (1 initial + 1 repetition) to be completed.
-          // Stage 2 (2. Tekrar) requires 3 total submissions to be completed.
-          // Stage 3 (3. Tekrar) requires 4 total submissions to be completed.
+          // Stage 1 (1. Tekrar) requires at least 1 submission of the remedial test (pastCount >= 1).
+          // Stage 2 (2. Tekrar) requires at least 2 submissions of the remedial test (pastCount >= 2).
+          // Stage 3 (3. Tekrar) requires at least 3 submissions of the remedial test (pastCount >= 3).
           let isItemDone = Boolean(item.done);
-          let targetAttemptNumber = pastCount + 1;
+          let targetAttemptNumber = detectedStage || (pastCount + 1);
 
           if (isRemedial && detectedStage) {
-            targetAttemptNumber = detectedStage + 1; // Stage 1 -> 2. Çözüm, Stage 2 -> 3. Çözüm
-            const requiredSubmissionsCount = detectedStage + 1;
+            targetAttemptNumber = detectedStage;
+            const requiredSubmissionsCount = detectedStage;
             if (pastCount >= requiredSubmissionsCount) {
               isItemDone = true;
             }

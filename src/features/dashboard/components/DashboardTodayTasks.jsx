@@ -176,7 +176,7 @@ export default memo(function DashboardTodayTasks({
                   const isRemedialTask = Boolean(task.isRemedial || task.isRemedialTest || task.type === 'remedialTest' || task.taskType === 'remedialTest' || task.isTeacherRemedial || task.isSpacedRepetition || detectedStage);
 
                   // Exact attempt count synchronized 1:1 with Quiz Runner
-                  const syncAttemptNumber = task.attemptNumber || (task.pastAttemptCount != null ? task.pastAttemptCount + 1 : (detectedStage ? detectedStage + 1 : (task.isRetake ? 2 : 1)));
+                  const syncAttemptNumber = task.attemptNumber || (detectedStage ? detectedStage : (task.pastAttemptCount != null ? task.pastAttemptCount + 1 : 1));
 
                   const STAGE_THEMES = {
                     1: { icon: '🌱', label: '1. Çözüm (İlk Çözüm)', bg: 'rgba(16, 185, 129, 0.12)', text: '#059669', border: 'rgba(16, 185, 129, 0.35)' },
