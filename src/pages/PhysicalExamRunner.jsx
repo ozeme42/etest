@@ -1624,7 +1624,8 @@ export default function PhysicalExamRunner() {
             title={homework.title}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
-            defaultWidth="78%"
+            defaultWidth="82%"
+            defaultHeight="72%"
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}

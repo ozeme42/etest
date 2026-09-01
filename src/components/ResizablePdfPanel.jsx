@@ -25,7 +25,8 @@ export default function ResizablePdfPanel({
   title = 'Kitap PDF',
   mode = 'side',
   onModeChange,
-  defaultWidth = '78%',
+  defaultWidth = '82%',
+  defaultHeight = '72%',
   isFullScreen = false,
   onToggleDrawing,
   isDrawingOpen = false
@@ -38,7 +39,7 @@ export default function ResizablePdfPanel({
 
   // ── Dock dimensions (side and bottom mode) ────────────────────
   const [dockWidth, setDockWidth] = useState(defaultWidth);
-  const [dockHeight, setDockHeight] = useState('50%');
+  const [dockHeight, setDockHeight] = useState(defaultHeight);
 
   // ── Drag state (floating move) ────────────────────────────────
   const dragRef = useRef(null);
