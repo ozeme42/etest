@@ -1697,15 +1697,27 @@ export default function StudentWrongAnswersPage() {
     }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .wa-section-card {
+          background: var(--color-surface);
+          border: 1.5px solid var(--color-border);
+          border-radius: 18px;
+          padding: 1.25rem 1.4rem;
+          margin-bottom: 1.25rem;
+          box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03);
+          transition: all 0.2s ease;
+        }
         .wa-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .wa-card:hover { transform: translateY(-2px); border-color: var(--color-primary, #6366f1) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important; }
+        .wa-card:hover { transform: translateY(-2px); border-color: #6366f1 !important; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12) !important; }
         .wa-pill { transition: all 0.15s ease; }
-        .wa-pill:hover { opacity: 0.95; transform: scale(1.02); }
-        .wa-scroll-x::-webkit-scrollbar { height: 4px; }
+        .wa-pill:hover { transform: translateY(-1px); }
+        .wa-scroll-x::-webkit-scrollbar { height: 5px; }
+        .wa-scroll-x::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); borderRadius: 99px; }
         .th-sort { cursor: pointer; user-select: none; transition: background 0.15s; }
         .th-sort:hover { background: var(--color-surface-hover) !important; color: var(--color-text) !important; }
         .wa-table-row { transition: background 0.15s ease; }
         .wa-table-row:hover { background: var(--color-surface-hover) !important; }
+        .wa-q-badge { transition: all 0.12s ease; }
+        .wa-q-badge:hover { transform: scale(1.08); filter: brightness(0.95); }
 
         .wa-mistake-grid {
           display: grid;
@@ -2214,34 +2226,58 @@ export default function StudentWrongAnswersPage() {
           {/* 5 Box Level Strip */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
             gap: '0.75rem'
           }}>
             {LEITNER_BOX_CONFIG.map(box => {
               const count = leitnerOverview.boxCounts[box.level] || 0;
+              const hasItems = count > 0;
               return (
                 <div
                   key={box.level}
                   style={{
-                    background: box.bg,
-                    border: `1.5px solid ${box.border}`,
+                    background: hasItems ? box.bg : (isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'),
+                    border: hasItems ? `1.5px solid ${box.border}` : '1.5px solid var(--color-border)',
                     borderRadius: 14,
-                    padding: '0.75rem 0.95rem',
+                    padding: '0.75rem 1rem',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: 8
+                    gap: 10,
+                    transition: 'all 0.15s ease'
                   }}
                 >
-                  <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: box.color, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span>{box.icon}</span> {box.label}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      fontSize: '1.2rem',
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      background: hasItems ? 'rgba(255,255,255,0.7)' : 'var(--color-surface)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+                    }}>
+                      {box.icon}
                     </div>
-                    <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                      {box.level === 5 ? 'Kazanıldı' : `${box.intervalDays} gün aralık`}
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 900, color: hasItems ? box.color : 'var(--color-text)' }}>
+                        {box.label}
+                      </div>
+                      <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>
+                        {box.level === 5 ? '🏆 Ustalaşıldı' : `⏱️ ${box.intervalDays} gün aralık`}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: box.color }}>
+                  <div style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 900,
+                    color: hasItems ? box.color : 'var(--color-text-muted)',
+                    background: hasItems ? 'var(--color-surface)' : 'transparent',
+                    padding: '2px 8px',
+                    borderRadius: 8
+                  }}>
                     {count}
                   </div>
                 </div>
@@ -2463,11 +2499,11 @@ export default function StudentWrongAnswersPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: 820 }}>
                 <thead>
                   <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.74rem' }}>
-                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DERS & TEST BİLGİSİ</th>
-                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>HAZIRLAYAN</th>
-                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>BAŞARI / SONUÇ</th>
-                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>PROGRAM DURUMU</th>
-                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, textAlign: 'right' }}>İŞLEMLER</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>DERS & TEST BİLGİSİ</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>HAZIRLAYAN</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>BAŞARI / SONUÇ</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '0.04em' }}>PROGRAM DURUMU</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '0.04em', textAlign: 'right' }}>İŞLEMLER</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -4149,7 +4185,8 @@ export default function StudentWrongAnswersPage() {
                                   <button
                                     key={q.qNum}
                                     onClick={(e) => handleOpenReview(sub.id, e)}
-                                    style={{ background: isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.4)' : '1px solid #fecaca', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 900, fontSize: '0.7rem', cursor: 'pointer' }}
+                                    className="wa-q-badge"
+                                    style={{ background: isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.4)' : '1px solid #fecaca', padding: '0.15rem 0.45rem', borderRadius: 6, fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer' }}
                                   >
                                     S.{q.qNum}
                                   </button>
