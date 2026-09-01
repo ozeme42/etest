@@ -2419,6 +2419,34 @@ export default function StudentWrongAnswersPage() {
                 const scorePct = sub ? (sub.scorePercentage ?? (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0)) : 0;
                 const isDaySelectorOpen = openDaySelectorId === test.id;
                 const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
+                const studentProfile = (coachingProfiles || []).find(p => {
+                  if (!p) return false;
+                  const pSid = String(p.studentId || p.userId || p.id || '');
+                  const curSid = String(currentStudentId || '');
+                  return pSid === curSid || (curSid && toUUID(curSid) === toUUID(pSid));
+                });
+                const progDaysWithTest = [];
+                let isScheduledWithTeacherTag = false;
+                if (studentProfile && Array.isArray(studentProfile.weeklyProgram)) {
+                  studentProfile.weeklyProgram.forEach(dObj => {
+                    if (!dObj || !Array.isArray(dObj.items)) return;
+                    const hasTest = dObj.items.some(item => {
+                      if (!item) return false;
+                      const itId = String(item.testId || item.realTestId || item.hwId || item.id || '');
+                      const tId = String(test.id || '');
+                      const isMatch = (itId && tId && itId === tId) || (tId && toUUID(tId) && toUUID(itId) === toUUID(tId));
+                      if (isMatch && (item.isTeacherRemedial || item.teacherAssigned || String(item.text || item.title || '').includes('👨‍🏫'))) {
+                        isScheduledWithTeacherTag = true;
+                      }
+                      return isMatch;
+                    });
+                    if (hasTest && dObj.day && !progDaysWithTest.includes(dObj.day)) {
+                      progDaysWithTest.push(dObj.day);
+                    }
+                  });
+                }
+                const isInProgram = progDaysWithTest.length > 0;
+
                 const raw = test?.raw_data || {};
                 const combinedTest = { ...raw, ...test };
                 const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
@@ -2429,44 +2457,21 @@ export default function StudentWrongAnswersPage() {
                 const isHwCreatedByStudent = Boolean(hwCreatorId && (allStudentIds.has(hwCreatorId) || (toUUID(hwCreatorId) && allStudentIds.has(toUUID(hwCreatorId)))));
 
                 let isTeacherAssigned = false;
-                if (combinedTest.isSelfCreated === true || combinedTest.created_by_student === true || combinedTest.createdByRole === 'student') {
+                if (isScheduledWithTeacherTag) {
+                  isTeacherAssigned = true;
+                } else if (combinedTest.isSelfCreated === true || combinedTest.created_by_student === true || combinedTest.createdByRole === 'student') {
                   isTeacherAssigned = false;
-                } else if (combinedTest.createdByRole === 'teacher' || combinedTest.assignedBy === 'teacher' || combinedTest.teacherAssigned === true) {
+                } else if (combinedTest.createdByRole === 'teacher' || combinedTest.assignedBy === 'teacher' || combinedTest.teacherAssigned === true || combinedTest.isTeacherRemedial === true) {
                   isTeacherAssigned = true;
                 } else if (creatorId && !isCreatedByThisStudent && creatorId !== 'undefined' && creatorId !== 'null') {
                   isTeacherAssigned = true;
-                } else if (matchedHw && hwCreatorId && !isHwCreatedByStudent) {
+                } else if (matchedHw && hwCreatorId && !isHwCreatedByStudent && hwCreatorId !== 'undefined') {
                   isTeacherAssigned = true;
                 } else if (isCreatedByThisStudent || isHwCreatedByStudent) {
                   isTeacherAssigned = false;
-                } else if (combinedTest.teacherId || combinedTest.assignedTeacherId) {
-                  isTeacherAssigned = true;
                 } else {
                   isTeacherAssigned = false;
                 }
-
-                const studentProfile = (coachingProfiles || []).find(p => {
-                  if (!p) return false;
-                  const pSid = String(p.studentId || p.userId || p.id || '');
-                  const curSid = String(currentStudentId || '');
-                  return pSid === curSid || (curSid && toUUID(curSid) === toUUID(pSid));
-                });
-                const progDaysWithTest = [];
-                if (studentProfile && Array.isArray(studentProfile.weeklyProgram)) {
-                  studentProfile.weeklyProgram.forEach(dObj => {
-                    if (!dObj || !Array.isArray(dObj.items)) return;
-                    const hasTest = dObj.items.some(item => {
-                      if (!item) return false;
-                      const itId = String(item.testId || item.realTestId || item.hwId || item.id || '');
-                      const tId = String(test.id || '');
-                      return (itId && tId && itId === tId) || (tId && toUUID(tId) && toUUID(itId) === toUUID(tId));
-                    });
-                    if (hasTest && dObj.day && !progDaysWithTest.includes(dObj.day)) {
-                      progDaysWithTest.push(dObj.day);
-                    }
-                  });
-                }
-                const isInProgram = progDaysWithTest.length > 0;
 
                 return (
                   <div
