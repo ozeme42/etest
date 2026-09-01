@@ -111,11 +111,28 @@ export default memo(function DashboardTodayTasks({
 
                 const rawTitle = task.title || task.testName || task.topic || 'Ders Çalışması';
                 const rawBook = task.bookTitle || '';
-                let displayTitle = rawTitle;
+                let displayTitle = rawTitle
+                  .replace(/^👨‍🏫\s*/, '')
+                  .replace(/^\[\d+\.\s*Tekrar[^\]]*\]\s*/i, '')
+                  .trim();
                 if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
                   displayTitle = displayTitle.replace(rawBook, '').replace(/^[\s\—\-\:\/]+/, '').trim();
                   if (!displayTitle) displayTitle = task.testName || rawTitle;
                 }
+
+                // 🎯 Remedial Repetition / Attempt Count Parsing
+                const stageMatch = (task.text || task.title || task.topic || '').match(/\[(\d+)\.\s*Tekrar(?:\s*[-–(]\s*(\d+)g\s*[)]?)?/i);
+                const detectedStage = task.stage || (stageMatch ? parseInt(stageMatch[1], 10) : null);
+                const detectedInterval = task.intervalDays || (stageMatch && stageMatch[2] ? parseInt(stageMatch[2], 10) : null);
+                const isRemedialTask = Boolean(task.isRemedial || task.isRemedialTest || task.type === 'remedialTest' || task.taskType === 'remedialTest' || task.isTeacherRemedial || task.isSpacedRepetition || detectedStage);
+
+                const STAGE_THEMES = {
+                  1: { icon: '🌱', label: '1. Çözüm (1. Tekrar)', bg: 'rgba(16, 185, 129, 0.12)', text: '#059669', border: 'rgba(16, 185, 129, 0.35)' },
+                  2: { icon: '🌿', label: '2. Çözüm (2. Tekrar)', bg: 'rgba(59, 130, 246, 0.12)', text: '#2563eb', border: 'rgba(59, 130, 246, 0.35)' },
+                  3: { icon: '🌳', label: '3. Çözüm (3. Tekrar)', bg: 'rgba(168, 85, 247, 0.12)', text: '#7c3aed', border: 'rgba(168, 85, 247, 0.35)' },
+                  4: { icon: '⚡', label: '4. Çözüm (4. Tekrar)', bg: 'rgba(245, 158, 11, 0.12)', text: '#d97706', border: 'rgba(245, 158, 11, 0.35)' },
+                  5: { icon: '🏆', label: '5. Çözüm (Ustalaşıldı)', bg: 'rgba(239, 68, 68, 0.12)', text: '#dc2626', border: 'rgba(239, 68, 68, 0.35)' }
+                };
 
                 return (
                   <div
@@ -180,6 +197,25 @@ export default memo(function DashboardTodayTasks({
                               {task.subject}
                             </span>
                           )}
+                          {isRemedialTask && (
+                            <span style={{
+                              fontSize: '0.64rem',
+                              fontWeight: 900,
+                              color: (STAGE_THEMES[detectedStage || 1] || STAGE_THEMES[1]).text,
+                              background: (STAGE_THEMES[detectedStage || 1] || STAGE_THEMES[1]).bg,
+                              border: `1px solid ${(STAGE_THEMES[detectedStage || 1] || STAGE_THEMES[1]).border}`,
+                              padding: '1px 7px',
+                              borderRadius: 6,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              flexShrink: 0
+                            }}>
+                              <span>{(STAGE_THEMES[detectedStage || 1] || STAGE_THEMES[1]).icon}</span>
+                              <span>{detectedStage ? `${detectedStage}. Kez Çözülecek (${detectedStage}. Tekrar)` : 'Telafi Çözümü'}</span>
+                              {detectedInterval && <span style={{ opacity: 0.85, fontSize: '0.6rem' }}>• {detectedInterval}g</span>}
+                            </span>
+                          )}
                           <span style={{
                             fontSize: isMobile ? '0.84rem' : '0.9rem',
                             fontWeight: 800,
@@ -224,7 +260,7 @@ export default memo(function DashboardTodayTasks({
                         whiteSpace: 'nowrap',
                         flexShrink: 0
                       }}>
-                        ✓ Tamamlandı
+                        ✓ Tamam
                       </span>
                     ) : isQuizTask ? (
                       <button
@@ -235,8 +271,8 @@ export default memo(function DashboardTodayTasks({
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: 8,
-                          padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
-                          fontSize: isMobile ? '0.74rem' : '0.78rem',
+                          padding: isMobile ? '0.35rem 0.75rem' : '0.4rem 0.9rem',
+                          fontSize: isMobile ? '0.75rem' : '0.8rem',
                           fontWeight: 900,
                           cursor: 'pointer',
                           display: 'flex',
@@ -246,7 +282,7 @@ export default memo(function DashboardTodayTasks({
                           boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
                         }}
                       >
-                        <PlayCircle size={13} /> Çöz
+                        <PlayCircle size={14} /> {detectedStage ? `${detectedStage}. Kez Çöz` : 'Çöz'}
                       </button>
                     ) : (
                       <button
