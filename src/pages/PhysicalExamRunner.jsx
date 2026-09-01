@@ -1409,23 +1409,22 @@ export default function PhysicalExamRunner() {
             title={homework.title}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
-            defaultWidth="76%"
+            defaultWidth="78%"
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
           />
         )}
 
-        {/* RIGHT/BOTTOM: Optical Form Area (Ultra Compact Strip when PDF is Side-by-Side) */}
+        {/* RIGHT/BOTTOM: Optical Form Area (Clean edge-to-edge compact strip) */}
         {showOptikForm && (
           <div 
             ref={opticalContainerRef}
             data-optical-panel
             tabIndex={0}
             style={{ 
-              flex: isSidePdf && !isMobile ? '0 0 auto' : 1, 
-              width: isSidePdf && !isMobile ? 'clamp(270px, 24vw, 320px)' : (isMobile ? '100%' : undefined),
-              maxWidth: !isSidePdf ? 750 : undefined,
+              flex: 1, 
+              width: '100%',
               overflowY: isMobile ? 'visible' : 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
@@ -1439,7 +1438,7 @@ export default function PhysicalExamRunner() {
             }}
           >
             <div style={{ 
-              maxWidth: !isSidePdf ? 750 : undefined, 
+              maxWidth: !isSidePdf ? 680 : undefined, 
               width: '100%', 
               margin: !isSidePdf ? '0 auto' : undefined, 
               padding: isMobile ? '0.5rem 0.5rem 1.25rem 0.5rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 
