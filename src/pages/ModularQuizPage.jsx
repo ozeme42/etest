@@ -18,6 +18,7 @@ import PhysicalQuizRunner from '../components/quiz/runner/PhysicalQuizRunner';
 import SingleMultipleChoiceRunner from '../components/quiz/single/SingleMultipleChoiceRunner';
 import SingleOpenEndedRunner from '../components/quiz/single/SingleOpenEndedRunner';
 import CompositeHomeworkRunner from '../components/quiz/composite/CompositeHomeworkRunner';
+import RemedialQuizRunner from '../components/quiz/remedial/RemedialQuizRunner';
 import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions, hasMeaningfulOptions } from '../utils/testResolver';
@@ -1230,9 +1231,29 @@ export default function ModularQuizPage() {
     test.isComposite
   ));
 
-  const isSingleOE = !isMultiSection && !isPdf && !isHtml && !isImageTest && (isWritten || isSectionOpenEnded(effectiveTest) || test.isOpenEnded === true || test.questionType === 'acik_uclu' || test.type === 'acik_uclu');
+  const isRemedial = Boolean(
+    test.isRemedial === true ||
+    test.isRemedialTest === true ||
+    test.sourceType === 'pdfSlicerRemedial' ||
+    /özel\s*telafi|telafi\s*testi/i.test(test.title || '') ||
+    /özel\s*telafi|telafi\s*testi/i.test(test.name || '')
+  );
 
   const renderRunner = () => {
+    // 0. Dedicated Remedial Quiz Runner for custom remedial tests
+    if (isRemedial) {
+      return (
+        <RemedialQuizRunner
+          test={effectiveTest}
+          questions={questions}
+          onSubmit={handleSubmit}
+          onAutoSave={handleAutoSave}
+          draftAnswers={draftSubmission?.answers}
+          onExit={handleGoBack}
+        />
+      );
+    }
+
     // 1. Composite / Multi-Section Homework
     if (isMultiSection) {
       return (

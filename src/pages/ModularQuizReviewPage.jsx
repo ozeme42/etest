@@ -16,6 +16,7 @@ import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
 import SingleMultipleChoiceReview from '../components/quiz/single/SingleMultipleChoiceReview';
 import SingleOpenEndedReview from '../components/quiz/single/SingleOpenEndedReview';
 import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
+import RemedialQuizReview from '../components/quiz/remedial/RemedialQuizReview';
 import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
 import { resolveTestQuestions, isExamBook } from '../utils/testResolver';
@@ -900,6 +901,30 @@ export default function ModularQuizReviewPage() {
   };
 
   // ── Render the correct review component based on test type ──────────────────
+  const isRemedial = Boolean(
+    test?.isRemedial === true ||
+    test?.isRemedialTest === true ||
+    test?.sourceType === 'pdfSlicerRemedial' ||
+    submission?.isRemedial === true ||
+    submission?.isRemedialTest === true ||
+    /özel\s*telafi|telafi\s*testi/i.test(test?.title || '') ||
+    /özel\s*telafi|telafi\s*testi/i.test(test?.name || '') ||
+    /özel\s*telafi|telafi\s*testi/i.test(submission?.title || '') ||
+    /özel\s*telafi|telafi\s*testi/i.test(submission?.testTitle || '')
+  );
+
+  // 0. Dedicated Remedial Test Review
+  if (isRemedial) {
+    return (
+      <RemedialQuizReview
+        test={test}
+        questions={questions}
+        submission={submission}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
   // 1. Multi-section composite homework
   if (isMultiSection) {
     return (
