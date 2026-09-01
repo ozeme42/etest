@@ -1300,16 +1300,6 @@ export default function StudentDashboard() {
                       (tUuid && solvedSubsMap.get(tUuid)) ||
                       (tCleanUuid && solvedSubsMap.get(tCleanUuid)) ||
                       (tCompKey && solvedSubsMap.get(tCompKey));
-        if (!bestSub) {
-          const matchingSubs = allMatchingSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
-          if (matchingSubs.length > 0) {
-            bestSub = matchingSubs.reduce((prev, curr) => {
-              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
-              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
-              return pScore >= prevScore ? curr : prev;
-            }, matchingSubs[0]);
-          }
-        }
 
         if (bestSub) {
           totalSolvedTests++;
@@ -2225,9 +2215,7 @@ export default function StudentDashboard() {
                     }
                     return false;
                   })();
-                  const isTestSolved = tidSolvedCheck ||
-                    (hw.submissions || hw.raw_data?.submissions || []).some(s => isMatchStudent(s) && (isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books))) ||
-                    (studentSubmissions || []).some(s => isMatchHwSub(s, hw, testItem.id) || isSubmissionMatchingBookTest(s, testItemObj, bookTests, books));
+                  const isTestSolved = tidSolvedCheck || isItemSolved(testItemObj);
                   const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
 
                   const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
@@ -2677,74 +2665,20 @@ export default function StudentDashboard() {
       }));
 
       // 2. Active Books Progress with exact D, Y, B, Net, Success %, Progress % and subjects breakdown
-      const booksProgress = (books || []).filter(b => b && b.title && b.bookType !== 'exam').map(b => {
-        const bId = String(b.id);
-        const bUuid = String(toUUID(b.id) || '');
-        const rawSubjects = (b.subjects && b.subjects.length > 0) ? b.subjects : (b.raw_data?.subjects || []);
-        const testsInBook = (bookTests || []).filter(bt => {
-          const btBId = String(bt.bookId || bt.book_id || '');
-          return btBId === bId || (bUuid && btBId === bUuid);
-        });
-        const total = testsInBook.length > 0 ? testsInBook.length : (b.totalTests || b.total_tests || 20);
-        let solved = 0;
-        let totalCorrect = 0;
-        let totalWrong = 0;
-        let totalBlank = 0;
-
-        const subjStats = [];
-        rawSubjects.forEach(s => {
-          if (!s?.name) return;
-          const sTests = testsInBook.filter(t => String(t.subject_id || t.subjectId) === String(s.id));
-          let sSolved = 0;
-          sTests.forEach(t => {
-            const isSolved = studentSubmissions.some(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books));
-            if (isSolved) {
-              sSolved++;
-            }
-          });
-          if (sTests.length > 0) {
-            subjStats.push(`${s.name}: ${sSolved}/${sTests.length}`);
-          }
-        });
-
-        testsInBook.forEach(t => {
-          const matchingSubs = studentSubmissions.filter(sub => isSubmissionMatchingBookTest(sub, { ...t, bookId: b.id, bookTitle: b.title }, testsInBook, books));
-          if (matchingSubs.length > 0) {
-            const best = matchingSubs.reduce((prev, curr) => {
-              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
-              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
-              return pScore >= prevScore ? curr : prev;
-            }, matchingSubs[0]);
-
-            solved++;
-            totalCorrect += Number(best.correct_count ?? best.correctCount ?? best.correct ?? 0);
-            totalWrong += Number(best.wrong_count ?? best.wrongCount ?? best.wrong ?? 0);
-            totalBlank += Number(best.empty_count ?? best.blankCount ?? best.blank ?? 0);
-          }
-        });
-
-        const totalQ = totalCorrect + totalWrong + totalBlank;
-        const successRate = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
-        const pRatio = Number(b.penaltyRatio) >= 0 ? Number(b.penaltyRatio) : 3;
-        const rawNet = totalCorrect - (pRatio > 0 ? totalWrong / pRatio : 0);
-        const net = Math.max(0, Number(rawNet.toFixed(1)));
-        const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
-
-        return {
-          id: b.id,
-          title: b.title,
-          publisher: b.publisher || 'Özel / MEB Yayınları',
-          solvedTests: solved,
-          totalTests: total,
-          percent: pct,
-          totalCorrect,
-          totalWrong,
-          totalBlank,
-          net,
-          successRate,
-          subjectsBreakdown: subjStats.join(' • ')
-        };
-      });
+      const booksProgress = (assignedBooksList || []).map(b => ({
+        id: b.id,
+        title: b.title,
+        publisher: b.publisher || 'Özel / MEB Yayınları',
+        solvedTests: b.totalSolvedTests || 0,
+        totalTests: b.totalBookTests || 0,
+        percent: b.progressPct || 0,
+        totalCorrect: b.totalCorrect || 0,
+        totalWrong: b.totalWrong || 0,
+        totalBlank: b.totalBlank || 0,
+        net: Math.max(0, Number(((b.totalCorrect || 0) - ((b.totalWrong || 0) / 4)).toFixed(1))),
+        successRate: b.successRate || 0,
+        subjectsBreakdown: ''
+      }));
 
       syncWidgetData({
         studentName: selectedStudent?.name || 'Öğrenci',

@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { isHomeworkForStudent, isSubmissionMatchingBookTest, isExamBook, isStandardOrMixedBook } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest, isExamBook, isStandardOrMixedBook, createCompositeTestKey, getSubmissionCompositeKey } from '../utils/testResolver';
 import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
@@ -289,6 +289,16 @@ export default function StudentBooksPage() {
     // Pre-index student submissions for O(1) lookup
     const solvedSubsMap = new Map();
     (studentSubmissions || []).forEach(s => {
+      const compKey = getSubmissionCompositeKey(s);
+      const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+      if (compKey) {
+        const existing = solvedSubsMap.get(compKey);
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(compKey, s);
+        }
+      }
+
       const matchIds = [
         s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
         s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
@@ -301,7 +311,6 @@ export default function StudentBooksPage() {
         const uuid = toUUID(strId);
         
         const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
-        const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
         const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
         if (!existing || score >= exScore) {
           solvedSubsMap.set(strId, s);
@@ -361,20 +370,13 @@ export default function StudentBooksPage() {
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         const tUuid = toUUID(tIdStr);
         const tCleanUuid = toUUID(tCleanId);
-        let bestSub = solvedSubsMap.get(tIdStr) || 
-                      solvedSubsMap.get(tCleanId) ||
-                      (tUuid && solvedSubsMap.get(tUuid)) ||
-                      (tCleanUuid && solvedSubsMap.get(tCleanUuid));
-        if (!bestSub) {
-          const matchingSubs = studentSubmissions.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
-          if (matchingSubs.length > 0) {
-            bestSub = matchingSubs.reduce((prev, curr) => {
-              const pScore = Number(curr.score || (curr.correct_count ?? curr.correctCount ?? 0));
-              const prevScore = Number(prev.score || (prev.correct_count ?? prev.correctCount ?? 0));
-              return pScore >= prevScore ? curr : prev;
-            }, matchingSubs[0]);
-          }
-        }
+        const tCompKey = createCompositeTestKey(b.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
+
+        const bestSub = solvedSubsMap.get(tIdStr) || 
+                        solvedSubsMap.get(tCleanId) ||
+                        (tUuid && solvedSubsMap.get(tUuid)) ||
+                        (tCleanUuid && solvedSubsMap.get(tCleanUuid)) ||
+                        (tCompKey && solvedSubsMap.get(tCompKey));
 
         if (bestSub) {
           totalSolvedTests++;
