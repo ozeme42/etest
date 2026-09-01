@@ -270,9 +270,12 @@ export default function StudentWrongAnswersPage() {
         return;
       }
 
-      const qIdStr = String(q.id || q.testId);
-      if (!seenIds.has(qIdStr)) {
+      const qIdStr = String(q.id || q.testId || '');
+      if (qIdStr && !seenIds.has(qIdStr)) {
         seenIds.add(qIdStr);
+        if (toUUID(qIdStr)) seenIds.add(String(toUUID(qIdStr)));
+        if (q.testId) seenIds.add(String(q.testId));
+        if (q.realTestId) seenIds.add(String(q.realTestId));
         result.push(q);
       }
     });
@@ -286,9 +289,10 @@ export default function StudentWrongAnswersPage() {
 
       const isRem = s.isRemedial === true || s.isRemedialTest === true || s.sourceType === 'pdfSlicerRemedial' || s.type === 'remedialTest' || String(s.testTitle || s.title || '').toLowerCase().includes('telafi');
       if (isRem) {
-        const sTestId = String(s.testId || s.hwId || s.id || '');
+        const sTestId = String(s.testId || s.hwId || s.metadata?.realTestId || '');
         if (sTestId && !seenIds.has(sTestId) && (!toUUID(sTestId) || !seenIds.has(toUUID(sTestId)))) {
           seenIds.add(sTestId);
+          if (toUUID(sTestId)) seenIds.add(String(toUUID(sTestId)));
           result.push({
             id: sTestId,
             title: s.testTitle || s.title || 'Özel Telafi Testi',
@@ -1237,18 +1241,22 @@ export default function StudentWrongAnswersPage() {
     const allEnrichedTests = [];
 
     (remedialTests || []).forEach(test => {
-      // Find all submissions for this test sorted chronologically
+      // Find all submissions for this test sorted chronologically (STRICT TEST ID MATCH ONLY)
       const testSubs = (submissions || []).filter(s => {
         if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
         const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
         const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
         if (!isMatchStudent) return false;
 
-        return String(s.testId) === String(test.id) ||
-               String(s.id) === String(test.id) ||
-               (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
-               (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id)) ||
-               (test.title && s.testTitle && s.testTitle.toLowerCase().trim() === test.title.toLowerCase().trim());
+        const sTestId = String(s.testId || s.hwId || s.metadata?.realTestId || '');
+        const tId = String(test.id || test.testId || '');
+
+        return Boolean(
+          sTestId && (
+            sTestId === tId ||
+            (toUUID(tId) && toUUID(sTestId) === toUUID(tId))
+          )
+        );
       }).sort((a, b) => new Date(a.submittedAt || a.createdAt || 0) - new Date(b.submittedAt || b.createdAt || 0));
 
       const totalQ = Number(test.questionCount || test.totalQuestions || test.questionsList?.length || 1);
@@ -2613,10 +2621,14 @@ export default function StudentWrongAnswersPage() {
                         const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
                         const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
                         if (!isMatchStudent) return false;
-                        return String(s.testId) === String(test.id) ||
-                          String(s.id) === String(test.id) ||
-                          (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
-                          (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id));
+                        const sTestId = String(s.testId || s.hwId || s.metadata?.realTestId || '');
+                        const tId = String(test.id || test.testId || '');
+                        return Boolean(
+                          sTestId && (
+                            sTestId === tId ||
+                            (toUUID(tId) && toUUID(sTestId) === toUUID(tId))
+                          )
+                        );
                       });
                       const isSolved = Boolean(sub);
                       const totalQ = test.questionCount || test.totalQuestions || test.questionsList?.length || 1;
@@ -3054,10 +3066,14 @@ export default function StudentWrongAnswersPage() {
                     const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
                     const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
                     if (!isMatchStudent) return false;
-                    return String(s.testId) === String(test.id) ||
-                      String(s.id) === String(test.id) ||
-                      (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
-                      (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id));
+                    const sTestId = String(s.testId || s.hwId || s.metadata?.realTestId || '');
+                    const tId = String(test.id || test.testId || '');
+                    return Boolean(
+                      sTestId && (
+                        sTestId === tId ||
+                        (toUUID(tId) && toUUID(sTestId) === toUUID(tId))
+                      )
+                    );
                   });
                   const isSolved = Boolean(sub);
                   const totalQ = test.questionCount || test.totalQuestions || test.questionsList?.length || 1;
