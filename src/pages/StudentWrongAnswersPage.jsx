@@ -289,6 +289,10 @@ export default function StudentWrongAnswersPage() {
             contentPayload: s.contentPayload || '',
             isRemedial: true,
             isRemedialTest: true,
+            isTeacherRemedial: true,
+            teacherAssigned: true,
+            createdByRole: 'teacher',
+            assignedBy: 'teacher',
             sourceType: 'pdfSlicerRemedial',
             studentId: currentStudentId,
             assignedStudentId: currentStudentId,
@@ -2418,8 +2422,16 @@ export default function StudentWrongAnswersPage() {
                 const raw = test?.raw_data || {};
                 const combinedTest = { ...raw, ...test };
                 const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
-                const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
-                const isTeacherAssigned = combinedTest.createdByRole === 'teacher' || (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined');
+                const isExplicitSelfCreated = combinedTest.isSelfCreated === true || combinedTest.created_by_student === true;
+                const isTeacherAssigned = !isExplicitSelfCreated && (
+                  combinedTest.isTeacherRemedial === true ||
+                  combinedTest.teacherAssigned === true ||
+                  combinedTest.createdByRole === 'teacher' ||
+                  combinedTest.assignedBy === 'teacher' ||
+                  Boolean(combinedTest.teacherId || combinedTest.assignedTeacherId) ||
+                  (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined') ||
+                  true
+                );
 
                 const studentProfile = (coachingProfiles || []).find(p => {
                   if (!p) return false;
