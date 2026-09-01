@@ -30,6 +30,7 @@ import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvalu
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
+import { checkHasItemBeenAttempted } from '../components/ProgramCenter';
 import ManualTestModal from '../components/ManualTestModal';
 import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardWeeklyCalendar';
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
@@ -2343,7 +2344,14 @@ export default function StudentDashboard() {
             seenIds.set(key, item);
           }
         });
-        const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests);
+        const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests).map(item => {
+          const isAttempted = checkHasItemBeenAttempted(item, studentId, studentSubmissions || submissions, homeworks);
+          return {
+            ...item,
+            hasPastAttempt: isAttempted,
+            isRetake: isAttempted
+          };
+        });
         const completedItems = allItems.filter(i => i.done);
 
         resultMap[dayMeta.key] = {

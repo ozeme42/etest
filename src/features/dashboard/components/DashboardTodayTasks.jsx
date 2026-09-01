@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar } from 'lucide-react';
+import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar } from 'lucide-react';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -315,7 +315,9 @@ export default memo(function DashboardTodayTasks({
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                           style={{
-                            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                            background: (task.hasPastAttempt || task.isRetake || task.isSolved || task.pastAttemptCount > 0 || (task.stage && task.stage > 1))
+                              ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                              : 'linear-gradient(135deg, #4f46e5, #6366f1)',
                             color: '#ffffff',
                             border: 'none',
                             borderRadius: 8,
@@ -330,7 +332,15 @@ export default memo(function DashboardTodayTasks({
                             boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
                           }}
                         >
-                          <PlayCircle size={14} /> Çöz
+                          {(task.hasPastAttempt || task.isRetake || task.isSolved || task.pastAttemptCount > 0 || (task.stage && task.stage > 1)) ? (
+                            <>
+                              <RotateCcw size={14} /> Tekrar Çöz
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle size={14} /> Çöz
+                            </>
+                          )}
                         </button>
                       ) : (
                         <button

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, ArrowRight, Search } from 'lucide-react';
+import { Plus, Trash2, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -166,6 +166,87 @@ export function normalizeWeeklyProgram(raw) {
     if (Array.isArray(found.items)) return { day: d.key, items: found.items };
     return { day: d.key, items: [] };
   });
+}
+
+
+export function checkHasItemBeenAttempted(item, studentId, submissions, allHomeworks) {
+  if (!item) return false;
+
+  const studentIdStr = String(studentId || '').trim();
+  const studentUuidStr = String(toUUID(studentId) || '').trim();
+
+  const isMatchStudent = (s) => {
+    if (!s) return false;
+    const subStudentId = String(s.studentId ?? s.student_id ?? s.userId ?? s.user_id ?? '');
+    return !studentIdStr || subStudentId === studentIdStr || subStudentId === studentUuidStr || toUUID(subStudentId) === studentUuidStr;
+  };
+
+  const targetIds = [
+    item.submissionId,
+    item.realTestId,
+    item.testId,
+    item.bookTestId,
+    item.hwId,
+    item.id
+  ].filter(Boolean).map(String);
+
+  const isRemedial = Boolean(
+    item.type === 'remedialTest' ||
+    item.taskType === 'remedialTest' ||
+    item.isTeacherRemedial ||
+    item.isRemedial ||
+    item.isRemedialTest ||
+    item.stage !== undefined ||
+    /telafi/i.test(item.text || item.title || '') ||
+    /tekrar/i.test(item.text || item.title || '')
+  );
+
+  // 1. Check in global submissions
+  const matchInSubs = (submissions || []).some(s => {
+    if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+    if (!isMatchStudent(s)) return false;
+
+    const sIds = [
+      s.id,
+      s.submissionId,
+      s.testId,
+      s.realTestId,
+      s.hwId,
+      s.bookTestId,
+      s.metadata?.realTestId,
+      s.metadata?.bookTestId
+    ].filter(Boolean).map(String);
+
+    const hasIdMatch = targetIds.some(tId => sIds.some(sId => sId === tId || toUUID(sId) === toUUID(tId)));
+    if (hasIdMatch) return true;
+
+    if (isRemedial) {
+      const itemTitle = String(item.title || item.testTitle || item.text || '').toLowerCase().trim();
+      const subTitle = String(s.title || s.testTitle || '').toLowerCase().trim();
+      if (itemTitle && subTitle && (itemTitle.includes(subTitle) || subTitle.includes(itemTitle))) return true;
+    }
+
+    return false;
+  });
+
+  if (matchInSubs) return true;
+
+  // 2. Check in allHomeworks embedded submissions
+  if (allHomeworks && Array.isArray(allHomeworks)) {
+    const matchInHws = allHomeworks.some(hw => {
+      if (!hw || !Array.isArray(hw.submissions)) return false;
+      const isTargetHw = targetIds.some(tId => String(hw.id) === tId || toUUID(hw.id) === toUUID(tId));
+      if (!isTargetHw) return false;
+
+      return hw.submissions.some(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        return isMatchStudent(s);
+      });
+    });
+    if (matchInHws) return true;
+  }
+
+  return false;
 }
 
 export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null, bookTests = [], books = []) {
@@ -3235,7 +3316,7 @@ export function MonthlyListPanel({
                                             whiteSpace: 'nowrap'
                                           }}
                                         >
-                                          <PlayCircle size={12} /> Çöz
+                                          {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={12} /> : <PlayCircle size={12} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
                                         </button>
                                       )}
                                     </>
@@ -5664,7 +5745,7 @@ export default function ProgramCenter({
                                                           whiteSpace: 'nowrap'
                                                         }}
                                                       >
-                                                        <PlayCircle size={13} /> Çöz
+                                                        {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={13} /> : <PlayCircle size={13} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
                                                       </button>
                                                     )}
                                                   </>
