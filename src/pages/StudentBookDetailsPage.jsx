@@ -332,6 +332,16 @@ export default function StudentBookDetailsPage() {
 
     const solvedSubsMap = new Map();
     allStudentSubs.forEach(s => {
+      const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
+      const compKey = getSubmissionCompositeKey(s);
+      if (compKey) {
+        const existing = solvedSubsMap.get(compKey);
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(compKey, s);
+        }
+      }
+
       const matchIds = [
         s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
         s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
@@ -342,12 +352,15 @@ export default function StudentBookDetailsPage() {
         const strId = String(id);
         const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '');
         const uuid = toUUID(strId);
-        solvedSubsMap.set(strId, s);
-        solvedSubsMap.set(cleanId, s);
-        if (uuid) solvedSubsMap.set(uuid, s);
+        
+        const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(strId, s);
+          solvedSubsMap.set(cleanId, s);
+          if (uuid) solvedSubsMap.set(uuid, s);
+        }
       });
-      const compKey = getSubmissionCompositeKey(s);
-      if (compKey) solvedSubsMap.set(compKey, s);
     });
 
     return rawSubjects.map(subject => {
