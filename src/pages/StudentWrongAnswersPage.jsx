@@ -2422,16 +2422,28 @@ export default function StudentWrongAnswersPage() {
                 const raw = test?.raw_data || {};
                 const combinedTest = { ...raw, ...test };
                 const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
-                const isExplicitSelfCreated = combinedTest.isSelfCreated === true || combinedTest.created_by_student === true;
-                const isTeacherAssigned = !isExplicitSelfCreated && (
-                  combinedTest.isTeacherRemedial === true ||
-                  combinedTest.teacherAssigned === true ||
-                  combinedTest.createdByRole === 'teacher' ||
-                  combinedTest.assignedBy === 'teacher' ||
-                  Boolean(combinedTest.teacherId || combinedTest.assignedTeacherId) ||
-                  (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined') ||
-                  true
-                );
+                const isCreatedByThisStudent = Boolean(creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId)))));
+
+                const matchedHw = (homeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
+                const hwCreatorId = matchedHw ? String(matchedHw.createdBy || matchedHw.created_by || '') : '';
+                const isHwCreatedByStudent = Boolean(hwCreatorId && (allStudentIds.has(hwCreatorId) || (toUUID(hwCreatorId) && allStudentIds.has(toUUID(hwCreatorId)))));
+
+                let isTeacherAssigned = false;
+                if (combinedTest.isSelfCreated === true || combinedTest.created_by_student === true || combinedTest.createdByRole === 'student') {
+                  isTeacherAssigned = false;
+                } else if (combinedTest.createdByRole === 'teacher' || combinedTest.assignedBy === 'teacher' || combinedTest.teacherAssigned === true) {
+                  isTeacherAssigned = true;
+                } else if (creatorId && !isCreatedByThisStudent && creatorId !== 'undefined' && creatorId !== 'null') {
+                  isTeacherAssigned = true;
+                } else if (matchedHw && hwCreatorId && !isHwCreatedByStudent) {
+                  isTeacherAssigned = true;
+                } else if (isCreatedByThisStudent || isHwCreatedByStudent) {
+                  isTeacherAssigned = false;
+                } else if (combinedTest.teacherId || combinedTest.assignedTeacherId) {
+                  isTeacherAssigned = true;
+                } else {
+                  isTeacherAssigned = false;
+                }
 
                 const studentProfile = (coachingProfiles || []).find(p => {
                   if (!p) return false;
