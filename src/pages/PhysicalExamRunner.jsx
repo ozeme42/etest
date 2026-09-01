@@ -19,6 +19,13 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
+export function formatExamType(type) {
+  if (!type) return 'Özel Deneme';
+  const u = String(type).trim().toUpperCase();
+  if (u === 'CUSTOM' || u === 'OZEL' || u === 'ÖZEL') return 'Özel';
+  return type;
+}
+
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
   if (totalCount <= 0) return [[]];
   // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
@@ -169,7 +176,7 @@ export default function PhysicalExamRunner() {
       return {
         id: matchingBook.id,
         title: matchingBook.title || 'Fiziki Deneme',
-        examType: matchingBook.publisher || 'LGS / YKS',
+        examType: formatExamType(matchingBook.publisher || 'Özel'),
         type: 'physicalExam',
         optionCount: matchingBook.optionCount || (matchingBook.publisher === 'LGS' ? 4 : 5),
         timePerQuestion: Number(matchingBook.timePerQuestion) || 2,
@@ -190,6 +197,7 @@ export default function PhysicalExamRunner() {
 
       return {
         ...hw,
+        examType: formatExamType(hw.examType || matchingBook?.publisher || 'Özel'),
         type: 'physicalExam',
         pdfUrl: pdfUrl,
         optionCount: hw.optionCount || matchingBook?.optionCount || (hw.examType === 'LGS' ? 4 : 5),
@@ -873,7 +881,7 @@ export default function PhysicalExamRunner() {
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 <span style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.04em' }}>
-                  {homework.examType || 'GENEL DENEME'}
+                  {formatExamType(homework.examType)}
                 </span>
                 <span style={{ background: '#10b981', color: 'white', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.75rem', fontWeight: 900 }}>
                   HAZIR
@@ -1170,7 +1178,7 @@ export default function PhysicalExamRunner() {
                   </h2>
                 </div>
                 <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {homework.examType || 'LGS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
+                  {formatExamType(homework.examType)} • {homework.totalQuestions} Soru ({subjects.length} Ders)
                 </div>
               </div>
             </div>
@@ -1357,7 +1365,7 @@ export default function PhysicalExamRunner() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
               <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>
-                {homework.examType || 'LGS / YKS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
+                {formatExamType(homework.examType)} • {homework.totalQuestions} Soru ({subjects.length} Ders)
               </span>
               {!isSubmitted && (
                 <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 800 }}>

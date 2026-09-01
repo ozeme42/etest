@@ -59,9 +59,9 @@ const EXAM_PRESETS = {
 EXAM_PRESETS.CUSTOM = EXAM_PRESETS.ÖZEL;
 
 export function formatPublisherName(pub) {
-  if (!pub) return 'ÖZEL';
+  if (!pub) return 'Özel';
   const u = String(pub).toUpperCase().trim();
-  if (u === 'CUSTOM' || u === 'OZEL') return 'ÖZEL';
+  if (u === 'CUSTOM' || u === 'OZEL' || u === 'ÖZEL') return 'Özel';
   return pub;
 }
 
