@@ -2209,26 +2209,59 @@ export default function PhysicalExamRunner() {
       {/* ── FINISH CONFIRMATION MODAL ── */}
       {showFinishModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay, rgba(15, 23, 42, 0.75))', backdropFilter: 'blur(8px)' }}>
-          <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center', padding: '2rem', background: 'var(--color-surface, #ffffff)', borderRadius: '1.5rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text, #0f172a)', margin: '1rem' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', border: '2px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
-              <CheckCircle2 size={30} />
+          <div style={{ width: '100%', maxWidth: '440px', textAlign: 'center', padding: '1.75rem', background: 'var(--color-surface, #ffffff)', borderRadius: '1.5rem', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--color-text, #0f172a)', margin: '1rem' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(16, 185, 129, 0.12)', border: '2px solid rgba(16, 185, 129, 0.3)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <CheckCircle2 size={28} />
             </div>
-            <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>Sınavı Bitiriyorsunuz</h3>
-            <p style={{ margin: 0, color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              Tüm cevaplarınızı optik forma doğru geçirdiğinizden emin misiniz? Gönderdikten sonra optik form kilitlenecektir.
+            
+            <h3 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+              Sınavı Bitirmek İstiyor Musunuz?
+            </h3>
+            
+            {/* Quick Stats in Modal */}
+            {(() => {
+              const totalFilled = subjects.reduce((acc, sub) => acc + (answers[sub.name] || []).filter(Boolean).length, 0);
+              const totalQ = homework.totalQuestions || subjects.reduce((acc, sub) => acc + (sub.count || 0), 0);
+              const totalBlank = Math.max(0, totalQ - totalFilled);
+
+              return (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.5rem',
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  padding: '0.75rem',
+                  borderRadius: '1rem',
+                  border: '1px solid var(--color-border, #e2e8f0)'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>✍️ Kodlanan</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: '#2563eb' }}>{totalFilled} / {totalQ}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>⚠️ Boş Bırakılan</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 900, color: totalBlank > 0 ? '#d97706' : '#10b981' }}>{totalBlank} Soru</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <p style={{ margin: 0, color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+              Cevaplarınız anlık olarak kaydedilmiştir. Gönderdiğinizde optik form kilitlenecek ve sınav sonuçlarınız hesaplanacaktır.
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '0.25rem' }}>
               <button 
                 onClick={() => setShowFinishModal(false)}
-                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #475569)', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #475569)', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
               >
-                Kontrole Dön
+                Geri Dön &amp; Kontrol Et
               </button>
               <button 
                 onClick={() => handleSubmit(true)}
-                style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
+                style={{ flex: 1, padding: '0.75rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
               >
-                Gönder
+                Evet, Bitir ve Gönder
               </button>
             </div>
           </div>
