@@ -2361,10 +2361,35 @@ export default function StudentDashboard() {
         });
         const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests).map(item => {
           const isAttempted = checkHasItemBeenAttempted(item, studentId, studentSubmissions || submissions, homeworks);
+
+          const currentTestId = String(item.testId || item.realTestId || item.hwId || item.id || '').trim();
+          const currentTestUuid = String(toUUID(currentTestId) || '').trim();
+          const currentTitle = String(item.title || item.testName || '').toLowerCase().trim();
+          const studentIdStr = String(studentId || '').trim();
+          const studentUuid = String(toUUID(studentId) || '').trim();
+
+          const matchingSubs = (studentSubmissions || submissions || []).filter(s => {
+            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+            const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+            const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || (toUUID(sId) && toUUID(sId) === studentUuid);
+            if (!isStudentMatch) return false;
+
+            const sTestId = String(s.testId || s.hwId || s.bookTestId || s.id || '');
+            const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || (toUUID(sTestId) && toUUID(sTestId) === currentTestUuid));
+            const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle;
+            return isIdMatch || isTitleMatch;
+          });
+
+          const pastCount = matchingSubs.length;
+          const attemptNum = pastCount + 1;
+
           return {
             ...item,
-            hasPastAttempt: isAttempted,
-            isRetake: isAttempted
+            hasPastAttempt: isAttempted || pastCount > 0,
+            isRetake: isAttempted || pastCount > 0,
+            pastAttemptCount: pastCount,
+            attemptNumber: attemptNum,
+            pastSubmissionsCount: pastCount
           };
         });
         const completedItems = allItems.filter(i => i.done);
