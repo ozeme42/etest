@@ -1231,10 +1231,42 @@ export function computeStudentAnalyticsData({
     });
   });
 
-  trials.sort((a, b) => new Date(b.date) - new Date(a.date));
-  homeworksOnly.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const seenTrialKeys = new Set();
+  const uniqueTrials = [];
+  trials.forEach(item => {
+    const rawT = String(item.title || item.testTitle || '').toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim();
+    const cleanT = rawT.replace(/[^a-z0-9ğüşıöç]/g, '');
+    const dateStr = String(item.date || '').slice(0, 10);
+    const scoreSig = `${item.correctCount || item.totalCorrect || 0}_${item.wrongCount || item.totalWrong || 0}_${item.totalNet || item.net || 0}`;
+    const sig = `${cleanT}___${dateStr}___${scoreSig}`;
+    
+    const idKey = String(item.id || item.submissionId || '');
+    const testIdKey = String(item.testId || item.realTestId || item.originalSubmissionId || '');
 
-  return { generalTrialExams: trials, otherHomeworkSubmissions: homeworksOnly };
+    if (idKey && seenTrialKeys.has(`id_${idKey}`)) return;
+    if (testIdKey && seenTrialKeys.has(`tid_${testIdKey}`)) return;
+    if (sig && seenTrialKeys.has(`sig_${sig}`)) return;
+
+    if (idKey) seenTrialKeys.add(`id_${idKey}`);
+    if (testIdKey) seenTrialKeys.add(`tid_${testIdKey}`);
+    if (sig) seenTrialKeys.add(`sig_${sig}`);
+
+    uniqueTrials.push(item);
+  });
+
+  const seenHwKeys = new Set();
+  const uniqueHws = [];
+  homeworksOnly.forEach(item => {
+    const idKey = String(item.id || item.submissionId || '');
+    if (idKey && seenHwKeys.has(idKey)) return;
+    if (idKey) seenHwKeys.add(idKey);
+    uniqueHws.push(item);
+  });
+
+  uniqueTrials.sort((a, b) => new Date(b.date) - new Date(a.date));
+  uniqueHws.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  return { generalTrialExams: uniqueTrials, otherHomeworkSubmissions: uniqueHws };
 }
 
 /**

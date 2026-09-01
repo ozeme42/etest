@@ -897,11 +897,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         if (u) processedTestKeys.add(String(u));
       });
 
-      const titleStr = normalized?.testTitle || normalized?.testName || sub.title || sub.testTitle || sub.test_name || sub.name || '';
-      const dateStr = normalized?.date || sub.created_at || sub.submittedAt || sub.date || '';
+      const titleStr = normalized?.testTitle || normalized?.fullTitle || normalized?.testName || sub.title || sub.testTitle || sub.test_name || sub.name || '';
+      const dateStr = String(normalized?.date || sub.created_at || sub.submittedAt || sub.date || '').slice(0, 10);
       const dCount = normalized?.correctCount ?? sub.correct_count ?? sub.correctCount ?? 0;
       const yCount = normalized?.wrongCount ?? sub.wrong_count ?? sub.wrongCount ?? 0;
-      const sig = `${titleStr}_${dateStr}_${dCount}_${yCount}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanTitle = String(titleStr).toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+      const sig = `${cleanTitle}_${dateStr}_${dCount}_${yCount}`;
       if (sig) processedAttemptSigs.add(sig);
     };
 
@@ -935,10 +936,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
                             (hsUuid && processedTestKeys.has(String(hsUuid)));
 
         const titleStr = hs.testTitle || hs.title || hs.test_name || hs.name || hw.title || '';
-        const dateStr = hs.created_at || hs.submittedAt || hs.date || '';
+        const cleanTitle = String(titleStr).toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const dateStr = String(hs.created_at || hs.submittedAt || hs.date || '').slice(0, 10);
         const dCount = hs.correct_count ?? hs.correctCount ?? 0;
         const yCount = hs.wrong_count ?? hs.wrongCount ?? 0;
-        const sig = `${titleStr}_${dateStr}_${dCount}_${yCount}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const sig = `${cleanTitle}_${dateStr}_${dCount}_${yCount}`;
         const isSigMatch = sig && processedAttemptSigs.has(sig);
 
         if (isAlreadyIn || isSigMatch) return;
@@ -975,7 +977,24 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       return timeB - timeA;
     });
 
-    return results;
+    // Final deduplication pass
+    const finalSeen = new Set();
+    const finalResults = [];
+    results.forEach(item => {
+      const cleanTitle = String(item.fullTitle || item.testTitle || item.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+      const dateStr = String(item.date || item.submittedAt || '').slice(0, 10);
+      const sig = `${cleanTitle}_${dateStr}_${item.correctCount || 0}_${item.wrongCount || 0}`;
+      const idStr = String(item.id || item.submissionId || '');
+
+      if (idStr && finalSeen.has(`id_${idStr}`)) return;
+      if (sig && finalSeen.has(`sig_${sig}`)) return;
+
+      if (idStr) finalSeen.add(`id_${idStr}`);
+      if (sig) finalSeen.add(`sig_${sig}`);
+      finalResults.push(item);
+    });
+
+    return finalResults;
   }
 
 /**
