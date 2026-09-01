@@ -32,7 +32,6 @@ export default function ModularQuizPage() {
   const { currentUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
-  const studentId = searchParams.get('studentId') || currentUser?.id;
   const navigate = useNavigate();
 
   const { homeworks, updateHomeworkSubmission, isLoading: hwLoading } = useHomework();
@@ -40,6 +39,32 @@ export default function ModularQuizPage() {
   const { submissions, addSubmission, updateSubmission, isSyncing } = useEvaluation();
   const { questions: allBankQuestions, isLoading: qbLoading } = useQuestionBank();
   const { bookTests, books, isLoading: booksLoading } = useTrackedBooks();
+
+  // Find associated homework object if any
+  const activeHomework = useMemo(() => {
+    if (!homeworks || homeworks.length === 0) return null;
+    return homeworks.find(h => {
+      if (String(h.id) === String(testId) || String(h.id).replace('hw_', '') === String(testId)) return true;
+      const match = h.tests && h.tests.some(t => String(t) === String(testId) || (toUUID(t) && toUUID(t) === toUUID(testId)));
+      return Boolean(match);
+    });
+  }, [homeworks, testId]);
+
+  const studentId = useMemo(() => {
+    const paramId = searchParams.get('studentId');
+    if (paramId) return paramId;
+    if (activeHomework) {
+      if (activeHomework.targetStudentId) return activeHomework.targetStudentId;
+      if (activeHomework.assignedStudentId) return activeHomework.assignedStudentId;
+      if (Array.isArray(activeHomework.target_ids) && activeHomework.target_ids.length === 1) {
+        return activeHomework.target_ids[0];
+      }
+      if (Array.isArray(activeHomework.targetIds) && activeHomework.targetIds.length === 1) {
+        return activeHomework.targetIds[0];
+      }
+    }
+    return currentUser?.id;
+  }, [searchParams, activeHomework, currentUser]);
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -78,16 +103,6 @@ export default function ModularQuizPage() {
   }, [navigate, returnUrl]);
 
   const isRetake = searchParams.get('retake') === 'true' || searchParams.get('mode') === 'solve' || Boolean(location?.state?.retake);
-
-  // Find associated homework object if any
-  const activeHomework = useMemo(() => {
-    if (!homeworks || homeworks.length === 0) return null;
-    return homeworks.find(h => {
-      if (String(h.id) === String(testId) || String(h.id).replace('hw_', '') === String(testId)) return true;
-      const match = h.tests && h.tests.some(t => String(t) === String(testId) || (toUUID(t) && toUUID(t) === toUUID(testId)));
-      return Boolean(match);
-    });
-  }, [homeworks, testId]);
 
   // If this is an explicit re-take of a test, clear old draft keys so student gets a fresh blank test
   useEffect(() => {
