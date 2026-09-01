@@ -491,6 +491,7 @@ export default function StudentWrongAnswersPage() {
 
   // View Mode: 'cards' | 'table' (Varsayılan: table)
   const [viewMode, setViewMode] = useState('table');
+  const [remedialViewMode, setRemedialViewMode] = useState('table'); // 'table' | 'cards' (Varsayılan: table)
   const [searchQuery, setSearchQuery] = useState('');
   const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
   const [isLeitnerModalOpen, setIsLeitnerModalOpen] = useState(false);
@@ -2330,30 +2331,86 @@ export default function StudentWrongAnswersPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsSlicerModalOpen(true)}
-              style={{
-                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 10,
-                padding: '0.5rem 1rem',
-                fontSize: '0.78rem',
-                fontWeight: 900,
-                cursor: 'pointer',
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Tablo / Kartlar Görünüm Toggle */}
+              <div style={{
                 display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
-                transition: 'all 0.15s'
-              }}
-            >
-              <Plus size={14} /> <span>Yeni Telafi Testi Kırp</span>
-            </button>
+                background: 'var(--color-surface)',
+                padding: '3px',
+                borderRadius: '10px',
+                border: '1px solid var(--color-border)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setRemedialViewMode('table')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '7px',
+                    fontSize: '0.74rem',
+                    fontWeight: remedialViewMode === 'table' ? 900 : 600,
+                    border: 'none',
+                    background: remedialViewMode === 'table' ? (isDark ? 'rgba(99,102,241,0.25)' : '#ede9fe') : 'transparent',
+                    color: remedialViewMode === 'table' ? '#6366f1' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  title="Tablo Görünümü"
+                >
+                  <Table size={13} />
+                  <span>Tablo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRemedialViewMode('cards')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '7px',
+                    fontSize: '0.74rem',
+                    fontWeight: remedialViewMode === 'cards' ? 900 : 600,
+                    border: 'none',
+                    background: remedialViewMode === 'cards' ? (isDark ? 'rgba(99,102,241,0.25)' : '#ede9fe') : 'transparent',
+                    color: remedialViewMode === 'cards' ? '#6366f1' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  title="Kart Görünümü"
+                >
+                  <List size={13} />
+                  <span>Kartlar</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSlicerModalOpen(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 10,
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 12px rgba(99,102,241,0.3)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <Plus size={14} /> <span>Yeni Telafi Testi Kırp</span>
+              </button>
+            </div>
           </div>
 
-          {/* Test Cards List */}
+          {/* Test List (Empty / Table / Cards) */}
           {remedialTests.length === 0 ? (
             <div style={{
               background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
@@ -2394,7 +2451,462 @@ export default function StudentWrongAnswersPage() {
                 <Scissors size={14} /> <span>İlk Telafi Testini Oluştur</span>
               </button>
             </div>
+          ) : remedialViewMode === 'table' ? (
+            /* ─── TABLO GÖRÜNÜMÜ (VARSAYILAN) ─── */
+            <div style={{
+              background: 'var(--color-surface)',
+              borderRadius: '16px',
+              border: '1.5px solid var(--color-border)',
+              overflowX: 'auto',
+              boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left', minWidth: 820 }}>
+                <thead>
+                  <tr style={{ background: 'var(--color-surface-hover)', borderBottom: '1.5px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: '0.74rem' }}>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>DERS & TEST BİLGİSİ</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>HAZIRLAYAN</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>BAŞARI / SONUÇ</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900 }}>PROGRAM DURUMU</th>
+                    <th style={{ padding: '0.85rem 1rem', fontWeight: 900, textAlign: 'right' }}>İŞLEMLER</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {remedialTests.map((test, idx) => {
+                    const sub = (submissions || []).find(s => {
+                      if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+                      const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+                      const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+                      if (!isMatchStudent) return false;
+                      return String(s.testId) === String(test.id) ||
+                        String(s.id) === String(test.id) ||
+                        (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
+                        (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id));
+                    });
+                    const isSolved = Boolean(sub);
+                    const totalQ = test.questionCount || test.totalQuestions || test.questionsList?.length || 1;
+                    const correctCount = sub ? Number(sub.correct_count ?? sub.correctCount ?? sub.correct ?? 0) : 0;
+                    const wrongCount = sub ? Number(sub.wrong_count ?? sub.wrongCount ?? sub.wrong ?? 0) : 0;
+                    const blankCount = sub ? Number(sub.empty_count ?? sub.blankCount ?? sub.blank ?? Math.max(0, totalQ - correctCount - wrongCount)) : 0;
+                    const scorePct = sub ? (sub.scorePercentage ?? (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0)) : 0;
+                    const isDaySelectorOpen = openDaySelectorId === test.id;
+                    const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
+                    const studentProfile = (coachingProfiles || []).find(p => {
+                      if (!p) return false;
+                      const pSid = String(p.studentId || p.userId || p.id || '');
+                      const curSid = String(currentStudentId || '');
+                      return pSid === curSid || (curSid && toUUID(curSid) === toUUID(pSid));
+                    });
+                    const progDaysWithTest = [];
+                    let isScheduledWithTeacherTag = false;
+                    if (studentProfile && Array.isArray(studentProfile.weeklyProgram)) {
+                      studentProfile.weeklyProgram.forEach(dObj => {
+                        if (!dObj || !Array.isArray(dObj.items)) return;
+                        const hasTest = dObj.items.some(item => {
+                          if (!item) return false;
+                          const itId = String(item.testId || item.realTestId || item.hwId || item.id || '');
+                          const tId = String(test.id || '');
+                          const isMatch = (itId && tId && itId === tId) || (tId && toUUID(tId) && toUUID(itId) === toUUID(tId));
+                          if (isMatch && (item.isTeacherRemedial || item.teacherAssigned || String(item.text || item.title || '').includes('👨‍🏫'))) {
+                            isScheduledWithTeacherTag = true;
+                          }
+                          return isMatch;
+                        });
+                        if (hasTest && dObj.day && !progDaysWithTest.includes(dObj.day)) {
+                          progDaysWithTest.push(dObj.day);
+                        }
+                      });
+                    }
+                    const isInProgram = progDaysWithTest.length > 0;
+
+                    const raw = test?.raw_data || {};
+                    const combinedTest = { ...raw, ...test };
+                    const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
+                    const isCreatedByThisStudent = Boolean(creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId)))));
+
+                    const matchedHw = (homeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
+                    const hwCreatorId = matchedHw ? String(matchedHw.createdBy || matchedHw.created_by || '') : '';
+                    const isHwCreatedByStudent = Boolean(hwCreatorId && (allStudentIds.has(hwCreatorId) || (toUUID(hwCreatorId) && allStudentIds.has(toUUID(hwCreatorId)))));
+
+                    let isTeacherAssigned = false;
+                    if (isScheduledWithTeacherTag) {
+                      isTeacherAssigned = true;
+                    } else if (combinedTest.isSelfCreated === true || combinedTest.created_by_student === true || combinedTest.createdByRole === 'student') {
+                      isTeacherAssigned = false;
+                    } else if (combinedTest.createdByRole === 'teacher' || combinedTest.assignedBy === 'teacher' || combinedTest.teacherAssigned === true || combinedTest.isTeacherRemedial === true) {
+                      isTeacherAssigned = true;
+                    } else if (creatorId && !isCreatedByThisStudent && creatorId !== 'undefined' && creatorId !== 'null') {
+                      isTeacherAssigned = true;
+                    } else if (matchedHw && hwCreatorId && !isHwCreatedByStudent && hwCreatorId !== 'undefined') {
+                      isTeacherAssigned = true;
+                    } else if (isCreatedByThisStudent || isHwCreatedByStudent) {
+                      isTeacherAssigned = false;
+                    } else {
+                      isTeacherAssigned = false;
+                    }
+
+                    return (
+                      <tr
+                        key={test.id || idx}
+                        style={{
+                          borderBottom: '1px solid var(--color-border)',
+                          background: idx % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-hover)'
+                        }}
+                      >
+                        {/* 1. DERS & TEST BİLGİSİ */}
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 900,
+                              padding: '2px 7px',
+                              borderRadius: 6,
+                              background: sStyle.bg,
+                              color: sStyle.color,
+                              border: `1px solid ${sStyle.border}`
+                            }}>
+                              {test.subject || 'Genel'}
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              📝 {totalQ} Soru
+                            </span>
+                          </div>
+                          <div style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.88rem', lineHeight: 1.3 }}>
+                            {test.title || test.name || 'Özel Telafi Testi'}
+                          </div>
+                          {test.bookTitle && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2, fontWeight: 600 }}>
+                              📚 {test.bookTitle}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 2. HAZIRLAYAN */}
+                        <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                          {isTeacherAssigned ? (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              background: isDark ? 'rgba(59,130,246,0.15)' : '#eff6ff',
+                              color: '#2563eb',
+                              border: '1px solid rgba(59,130,246,0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              👨‍🏫 Öğretmen Atadı
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              background: isDark ? 'rgba(139,92,246,0.15)' : '#f5f3ff',
+                              color: '#7c3aed',
+                              border: '1px solid rgba(139,92,246,0.3)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}>
+                              👤 Kendi Hazırladığım
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 3. BAŞARI / SONUÇ */}
+                        <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                          {isSolved ? (
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 900,
+                                  padding: '2px 7px',
+                                  borderRadius: 6,
+                                  background: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5',
+                                  color: '#059669',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}>
+                                  <CheckCircle2 size={11} /> %{scorePct} Başarı
+                                </span>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#059669' }}>
+                                  Net: {(correctCount - (wrongCount / 3)).toFixed(2)}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', gap: 6 }}>
+                                <span style={{ color: '#16a34a' }}>✓ {correctCount} D</span>
+                                <span style={{ color: '#dc2626' }}>✗ {wrongCount} Y</span>
+                                <span style={{ color: 'var(--color-text-muted)' }}>— {blankCount} B</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              background: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7',
+                              color: '#d97706'
+                            }}>
+                              ⏳ Çözülmedi
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 4. PROGRAM DURUMU */}
+                        <td style={{ padding: '0.85rem 1rem' }}>
+                          <div style={{ position: 'relative' }}>
+                            <button
+                              type="button"
+                              onClick={() => setOpenDaySelectorId(isDaySelectorOpen ? null : test.id)}
+                              style={{
+                                padding: '4px 8px',
+                                borderRadius: 7,
+                                background: isInProgram
+                                  ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5')
+                                  : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'),
+                                border: isInProgram
+                                  ? '1px solid rgba(16,185,129,0.4)'
+                                  : '1px solid var(--color-border)',
+                                color: isInProgram ? '#059669' : 'var(--color-text-muted)',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {isInProgram ? (
+                                <>
+                                  <CheckCircle2 size={12} className="text-emerald-500" />
+                                  <span>✓ Programda ({progDaysWithTest.join(', ')})</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Calendar size={12} className="text-indigo-500" />
+                                  <span>{isDaySelectorOpen ? '▲ Kapat' : '📅 Programa Ekle'}</span>
+                                </>
+                              )}
+                            </button>
+
+                            {isDaySelectorOpen && (
+                              <div style={{
+                                position: 'absolute',
+                                top: '100%',
+                                left: 0,
+                                zIndex: 50,
+                                marginTop: 4,
+                                padding: '8px',
+                                borderRadius: 10,
+                                background: isDark ? '#1e293b' : '#ffffff',
+                                border: '1px solid var(--color-border)',
+                                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 6,
+                                minWidth: 210
+                              }}>
+                                <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                                  Hangi günün programına eklensin?
+                                </span>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                  {[
+                                    { key: 'Pzt', label: 'Pzt' },
+                                    { key: 'Sal', label: 'Sal' },
+                                    { key: 'Çrş', label: 'Çrş' },
+                                    { key: 'Prş', label: 'Prş' },
+                                    { key: 'Cum', label: 'Cum' },
+                                    { key: 'Cts', label: 'Cts' },
+                                    { key: 'Paz', label: 'Paz' }
+                                  ].map(d => (
+                                    <button
+                                      key={d.key}
+                                      type="button"
+                                      onClick={() => handleAddTestToProgram(test, d.key)}
+                                      style={{
+                                        padding: '3px 6px',
+                                        borderRadius: 6,
+                                        border: '1px solid var(--color-border)',
+                                        background: 'var(--color-surface)',
+                                        color: 'var(--color-text)',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      {d.label}
+                                    </button>
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddSpacedRepetitionPlan(test)}
+                                  style={{
+                                    width: '100%',
+                                    marginTop: 2,
+                                    padding: '4px 6px',
+                                    borderRadius: 6,
+                                    background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                                    border: '1px dashed #6366f1',
+                                    color: '#6366f1',
+                                    fontSize: '0.66rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 4
+                                  }}
+                                  title="1. Gün, 3. Gün ve 7. Gün için otomatik tekrar görevleri ekler"
+                                >
+                                  <Sparkles size={11} />
+                                  <span>⚡ 1, 3 ve 7 Günlük Aralıklı Tekrar Planı</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. İŞLEMLER */}
+                        <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {isSolved ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const stId = selectedStudent?.id || currentUser?.id;
+                                    navigate(`/quiz/${test.id}?studentId=${stId}&retake=true&mode=solve`, { state: { from: '/student/wrong-answers', retake: true, mode: 'solve' } });
+                                  }}
+                                  style={{
+                                    padding: '5px 9px',
+                                    borderRadius: 7,
+                                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title="Testi Baştan Tekrar Çöz"
+                                >
+                                  <RotateCcw size={12} /> <span>Tekrar Çöz</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const stId = selectedStudent?.id || currentUser?.id;
+                                    navigate(`/quiz-review/${test.id}?studentId=${stId}&submissionId=${sub.id}`, { state: { from: '/student/wrong-answers' } });
+                                  }}
+                                  style={{
+                                    padding: '5px 8px',
+                                    borderRadius: 7,
+                                    background: 'var(--color-surface)',
+                                    border: '1px solid var(--color-border)',
+                                    color: 'var(--color-text)',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                  title="Cevapları ve Çözümleri İncele"
+                                >
+                                  <Eye size={12} /> <span>İncele</span>
+                                </button>
+
+                                {(wrongCount > 0 || blankCount > 0) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePracticeTestMistakes(test, sub)}
+                                    style={{
+                                      padding: '5px 8px',
+                                      borderRadius: 7,
+                                      background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 900,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title="Sadece Yanlışları Tekrarla"
+                                  >
+                                    <Zap size={12} fill="currentColor" /> <span>Yanlışları Tekrarla ({wrongCount + blankCount})</span>
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const stId = selectedStudent?.id || currentUser?.id;
+                                  navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
+                                }}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: 7,
+                                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                <Play size={12} fill="currentColor" /> <span>Testi Çöz</span>
+                              </button>
+                            )}
+
+                            {/* Delete Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteRemedialTest(test.id, test.title || test.name, e)}
+                              style={{
+                                padding: '5px 7px',
+                                borderRadius: 7,
+                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#dc2626',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="Bu Telafi Testini Sil"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           ) : (
+            /* ─── KARTLAR GÖRÜNÜMÜ ─── */
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
