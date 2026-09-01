@@ -1626,7 +1626,7 @@ export default function PhysicalExamRunner() {
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
             defaultWidth={isMobile ? '100%' : '80%'}
-            defaultHeight={isMobile ? '48%' : '70%'}
+            defaultHeight={isMobile ? '72%' : '70%'}
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}

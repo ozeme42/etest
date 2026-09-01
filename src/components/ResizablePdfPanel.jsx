@@ -26,7 +26,7 @@ export default function ResizablePdfPanel({
   mode = 'side',
   onModeChange,
   defaultWidth = '80%',
-  defaultHeight = '48%',
+  defaultHeight = '72%',
   isFullScreen = false,
   onToggleDrawing,
   isDrawingOpen = false

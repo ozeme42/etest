@@ -702,7 +702,7 @@ function AppContent() {
   }, [navigate]);
 
   return (
-    <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div className={`app-container ${shouldHideSidebar ? 'no-sidebar' : ''} ${shouldShowBottomNav ? 'has-bottom-nav' : 'no-bottom-nav'} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {!shouldHideSidebar && (
         <Sidebar 
           isCollapsed={isSidebarCollapsed} 

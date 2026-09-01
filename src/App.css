@@ -30,6 +30,11 @@
   transition: background-color 0.25s ease;
 }
 
+.app-container.no-sidebar .main-content,
+.app-container.no-bottom-nav .main-content {
+  padding-bottom: 0 !important;
+}
+
 /* --- Mobile Header (Default: Visible on mobile, hidden on desktop) --- */
 .mobile-header {
   display: flex;
