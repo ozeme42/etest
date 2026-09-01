@@ -389,7 +389,7 @@ export default function StudentDashboard() {
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
   const { currentUser } = useAuth();
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
-  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
 
   // Background homework sync when opening the dashboard (only if stale)
   useEffect(() => {
@@ -1705,8 +1705,13 @@ export default function StudentDashboard() {
   /* ─── Computed Day Program (Instant O(1) Pre-indexed Memo) ─── */
   const fullProcessedWeekMap = useMemo(() => {
     try {
-      const rawProg = coachingProfile?.weeklyProgram;
       const studentId = selectedStudent?.id;
+      const sUuid = toUUID(studentId);
+      const rawProg = coachingProfile?.weeklyProgram || (coachingProfiles || []).find(p => {
+        if (!p) return false;
+        const pSid = String(p.studentId || p.userId || p.id || '');
+        return pSid === String(studentId) || (sUuid && (pSid === sUuid || toUUID(pSid) === sUuid));
+      })?.weeklyProgram;
       const gradesList = curData?.grades || [];
 
       const studentHomeworks = (homeworks || []).filter(hw => {
@@ -1876,12 +1881,16 @@ export default function StudentDashboard() {
 
         const scheduleItems = (schedules || []).filter(s => {
           if (!s || !studentId) return false;
-          if (String(s.studentId) !== String(studentId)) return false;
+          const sSid = String(s.studentId || s.student_id || '');
+          if (sSid !== String(studentId) && (!sUuid || (toUUID(sSid) !== sUuid && toUUID(sSid) !== toUUID(studentId)))) return false;
           const sYMD = extractItemYMD(s);
           if (sYMD) {
             return sYMD === dayYMD;
           }
-          return s.day === dayMeta.key || s.dayOfWeek === dayMeta.key || s.dayName === dayMeta.name || s.day === dayMeta.name;
+          const sDay = String(s.day || s.dayOfWeek || s.dayName || '').toLowerCase().trim();
+          const dKey = String(dayMeta.key || '').toLowerCase().trim();
+          const dName = String(dayMeta.name || '').toLowerCase().trim();
+          return sDay === dKey || sDay === dName || sDay.startsWith(dKey) || dName.startsWith(sDay);
         }).map(s => ({
           id: s.id,
           title: s.title || s.subject || 'Ders Çalışması',
@@ -2377,7 +2386,7 @@ export default function StudentDashboard() {
       console.error('Error computing fullProcessedWeekMap:', err);
       return {};
     }
-  }, [coachingProfile, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
+  }, [coachingProfile, coachingProfiles, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
 
   const dayProgramInfo = useMemo(() => {
     return fullProcessedWeekMap[activeDayKey] || {
