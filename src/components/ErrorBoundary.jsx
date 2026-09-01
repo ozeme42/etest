@@ -122,6 +122,29 @@ export default class ErrorBoundary extends React.Component {
                 <Home size={16} /> Ana Sayfa
               </a>
             </div>
+
+            {this.state.error && (
+              <div style={{
+                marginTop: '1.5rem',
+                textAlign: 'left',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '0.75rem',
+                padding: '0.85rem 1rem',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace',
+                color: '#dc2626',
+                overflowX: 'auto',
+                maxHeight: '180px'
+              }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                  {String(this.state.error?.message || this.state.error || 'Bilinmeyen Hata')}
+                </div>
+                <div style={{ color: '#64748b', fontSize: '0.7rem', whiteSpace: 'pre-wrap' }}>
+                  {String(this.state.error?.stack || '')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       );

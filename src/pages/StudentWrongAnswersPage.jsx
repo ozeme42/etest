@@ -142,7 +142,7 @@ export default function StudentWrongAnswersPage() {
 
   const SUBJECT_CONFIG = useMemo(() => getSubjectConfig(isDark), [isDark]);
 
-  const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
+  const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
   useEffect(() => {
@@ -4503,7 +4503,7 @@ export default function StudentWrongAnswersPage() {
             setIsLeitnerModalOpen(false);
             setLeitnerPracticeQuestions([]);
           }}
-          practiceQuestions={leitnerPracticeQuestions}
+          questions={leitnerPracticeQuestions}
           studentId={currentStudentId}
         />
       )}
@@ -4779,9 +4779,8 @@ export default function StudentWrongAnswersPage() {
                       return;
                     }
                     try {
-                      await addStudentError({
+                      await addStudentError(currentStudentId, {
                         ...newErrorForm,
-                        studentId: currentStudentId,
                         isResolved: false
                       });
                       setShowAddModal(false);
@@ -4944,7 +4943,7 @@ export default function StudentWrongAnswersPage() {
                 type="button"
                 onClick={async () => {
                   try {
-                    await updateStudentError(viewingErrorModal.id, {
+                    await updateStudentError(currentStudentId, viewingErrorModal.id, {
                       isResolved: !viewingErrorModal.isResolved
                     });
                     setViewingErrorModal(p => p ? ({ ...p, isResolved: !p.isResolved }) : null);
@@ -4978,7 +4977,7 @@ export default function StudentWrongAnswersPage() {
                 onClick={async () => {
                   if (window.confirm('Bu soruyu hata defterinden silmek istediğinize emin misiniz?')) {
                     try {
-                      await deleteStudentError(viewingErrorModal.id);
+                      await deleteStudentError(currentStudentId, viewingErrorModal.id);
                       setViewingErrorModal(null);
                     } catch (err) {
                       console.error('Soru silinemedi:', err);
