@@ -385,7 +385,6 @@ const TAB_DEFS = [
   { key: 'overview',  label: '🏠 Genel Bakış',                 shortLabel: '🏠 Genel',        icon: Home },
   { key: 'periodic',  label: '📊 Günlük / Aylık Soru Analizi', shortLabel: '📊 Soru Analizi', icon: BarChart3 },
   { key: 'subjects',  label: '📚 Ders & Konu',                  shortLabel: '📚 Dersler',       icon: BookOpen },
-  { key: 'bytype',    label: '📝 Ödev & Deneme',                shortLabel: '📝 Ödev/Deneme',  icon: FileText },
   { key: 'trend',     label: '📈 Zaman Trendi',                 shortLabel: '📈 Trend',        icon: TrendingUp },
   { key: 'all',       label: '📋 Tüm Sonuçlar',                shortLabel: '📋 Tüm Liste',     icon: Table },
 ];
@@ -1321,7 +1320,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       {selectedStudent ? `${selectedStudent.name} — Gelişim & Karne` : 'Gelişim Merkezi & Karne'}
                     </h1>
                     <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                      Ders bazlı · Konu bazlı · Ödev & Deneme ayrıntılı karne analizi
+                      Ders bazlı · Konu bazlı · Ayrıntılı karne analizi
                     </p>
                   </div>
                 </div>
@@ -2373,167 +2372,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
           </div>
         )}
 
-        {/* ── TAB: BY TYPE ── */}
-        {activeTab === 'bytype' && (
-          <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
-            {/* Sub-tabs */}
-            <div style={{
-              display: 'flex',
-              gap: 4,
-              background: 'var(--color-surface)',
-              padding: 4,
-              borderRadius: 12,
-              border: '1.5px solid var(--color-border)',
-              overflowX: 'auto',
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch'
-            }}>
-              {[
-                { key: 'homework',     label: '📝 Ödevler',            count: byTypeSubs.homework.length },
-                { key: 'book',         label: '📚 Kitap',              count: byTypeSubs.book.length },
-                { key: 'physicalExam', label: '📋 Denemeler',          count: byTypeSubs.physicalExam.length },
-                { key: 'individual',   label: '⚡ Bireysel',           count: byTypeSubs.individual.length },
-              ].map(bt => (
-                <button
-                  key={bt.key}
-                  onClick={() => setByTypeTab(bt.key)}
-                  style={{
-                    flex: isMobile ? '0 0 auto' : 1,
-                    padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1.1rem',
-                    borderRadius: 8,
-                    border: 'none',
-                    fontWeight: byTypeTab === bt.key ? 900 : 700,
-                    fontSize: isMobile ? '0.74rem' : '0.82rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                    background: byTypeTab === bt.key ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
-                    color: byTypeTab === bt.key ? 'white' : 'var(--color-text-muted)',
-                    boxShadow: byTypeTab === bt.key ? '0 4px 14px rgba(99,102,241,0.25)' : 'none',
-                    transition: 'all 0.15s',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {bt.label} <span style={{ opacity: 0.85, fontSize: '0.68rem' }}>({bt.count})</span>
-                </button>
-              ))}
-            </div>
 
-            {/* List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(byTypeSubs[byTypeTab] || []).map((s, i) => {
-                const th = theme(s.subjectKey);
-                const SubIcon = th.icon;
-                return (
-                  <div
-                    key={i}
-                    className="sr-card-hover"
-                    style={{
-                      background: 'var(--color-surface)',
-                      borderRadius: 14,
-                      padding: isMobile ? '0.75rem 0.85rem' : '1rem 1.25rem',
-                      border: '1.5px solid var(--color-border)',
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      alignItems: isMobile ? 'stretch' : 'center',
-                      gap: isMobile ? 8 : 12,
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 10, background: th.bg, border: `1.5px solid ${th.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                        <SubIcon size={18} color={th.color} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', lineHeight: 1.3, wordBreak: 'break-word' }}>
-                          {s.bookTitle ? (
-                            <>
-                              <span style={{ color: '#6366f1', fontWeight: 900 }}>{s.bookTitle}</span>
-                              <span style={{ color: 'var(--color-text-muted)', margin: '0 4px' }}>—</span>
-                              <span>{s.subjectName || s.subjectKey}</span>
-                              {s.topicName && <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}> › {s.topicName}</span>}
-                              <span style={{ color: 'var(--color-text)', fontWeight: 900 }}> ({s.testName})</span>
-                            </>
-                          ) : (
-                            s.testTitle
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
-                          </span>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>•</span>
-                          <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            {s.totalQuestions} Soru
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: isMobile ? 'space-between' : 'flex-end',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                      borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
-                      paddingTop: isMobile ? 6 : 0
-                    }}>
-                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        {s.isPendingEval ? (
-                          <span style={{ background: isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff', color: '#7c3aed', border: isDark ? '1px solid rgba(124,58,237,0.35)' : '1px solid #ddd6fe', borderRadius: 6, padding: '0.15rem 0.5rem', fontSize: '0.7rem', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            ⏳ Değerlendirmede
-                          </span>
-                        ) : (
-                          <>
-                            <span style={{ background: isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #bbf7d0', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✓ {s.correctCount}</span>
-                            <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>✗ {s.wrongCount}</span>
-                            <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.15rem 0.45rem', fontSize: '0.7rem', fontWeight: 900 }}>— {s.blankCount}</span>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <ScoreBadge score={s.computedScore} net={s.netScore ?? s.totalNet ?? s.net} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
-
-                        <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
-                          <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
-                        </button>
-                        {!isStudentRole && (
-                          <button
-                            onClick={(e) => handleDeleteResult(s, e)}
-                            title="Bu Sınavı Kalıcı Olarak Sil"
-                            style={{
-                              background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2',
-                              color: '#ef4444',
-                              border: isDark ? '1px solid rgba(239,68,68,0.35)' : '1px solid #fecaca',
-                              borderRadius: 8,
-                              padding: '0.35rem 0.5rem',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              transition: 'all 0.15s'
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {(byTypeSubs[byTypeTab] || []).length === 0 && (
-                <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '2.5rem', textAlign: 'center', color: 'var(--color-text-muted)', fontWeight: 700, border: '1.5px solid var(--color-border)' }}>
-                  Bu kategoride henüz sonuç bulunamadı
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* ── TAB: TREND ── */}
         {activeTab === 'trend' && (
