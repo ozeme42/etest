@@ -739,25 +739,33 @@ export default function StudentDashboard() {
         }
       }
 
-      // Composite Keys
-      if (sName && tName) {
-        set.add(`subj_test_${sName}_${tName}`);
-        set.add(`title_${sName}_${tName}`);
-      }
-      if (bTitle && tName) {
-        set.add(`book_test_${bTitle}_${tName}`);
-      }
-      if (bTitle && sName && tName) {
-        set.add(`full_${bTitle}_${sName}_${tName}`);
-      }
+      const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(tName);
+
       if (bTitle && sName && uTopic && tName) {
         set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
       }
-      if (bId && tName) {
-        set.add(`bid_tname_${bId}_${tName}`);
+      if (bId && sName && uTopic && tName) {
+        set.add(`bid_subj_topic_tname_${bId}_${sName}_${uTopic}_${tName}`);
       }
-      if (bId && sName && tName) {
-        set.add(`bid_subj_tname_${bId}_${sName}_${tName}`);
+
+      // ONLY add unit-less test matches if the test name is NOT a generic repeating name (like Test-13 or Yeni Nesil 14)
+      if (!isGeneric) {
+        if (sName && tName) {
+          set.add(`subj_test_${sName}_${tName}`);
+          set.add(`title_${sName}_${tName}`);
+        }
+        if (bTitle && tName) {
+          set.add(`book_test_${bTitle}_${tName}`);
+        }
+        if (bTitle && sName && tName) {
+          set.add(`full_${bTitle}_${sName}_${tName}`);
+        }
+        if (bId && tName) {
+          set.add(`bid_tname_${bId}_${tName}`);
+        }
+        if (bId && sName && tName) {
+          set.add(`bid_subj_tname_${bId}_${sName}_${tName}`);
+        }
       }
 
       // Immutable Composite Signature
@@ -841,17 +849,22 @@ export default function StudentDashboard() {
     const uTopic = normalizeKey(item.unitTopic || item.topicName || item.topic);
     const tName = normalizeKey(item.testName || item.title);
 
-    // 3. Normalized Name matching
+    // 3. Normalized Name matching (with unit topic)
     if (bTitle && sName && uTopic && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
-    if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
-    if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
-    if (bTitle && tName && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
-    if (bId && tName && studentSolvedSet.has(`bid_tname_${bId}_${tName}`)) return true;
-    if (bId && sName && tName && studentSolvedSet.has(`bid_subj_tname_${bId}_${sName}_${tName}`)) return true;
-    if (sName && tName && studentSolvedSet.has(`title_${sName}_${tName}`)) return true;
+    if (bId && sName && uTopic && tName && studentSolvedSet.has(`bid_subj_topic_tname_${bId}_${sName}_${uTopic}_${tName}`)) return true;
+
+    // Only allow unit-less matching for non-generic test titles (e.g. "93-94. Sayfa Problem Sayfası")
+    const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(tName);
+    if (!isGeneric) {
+      if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
+      if (bTitle && tName && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
+      if (bId && sName && tName && studentSolvedSet.has(`bid_subj_tname_${bId}_${sName}_${tName}`)) return true;
+      if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
+      if (sName && tName && studentSolvedSet.has(`title_${sName}_${tName}`)) return true;
+    }
 
     const itemFullNorm = normalizeKey(item.title || item.testName);
-    if (itemFullNorm && itemFullNorm.length >= 8) {
+    if (!isGeneric && itemFullNorm && itemFullNorm.length >= 8) {
       if (sName) {
         if (studentSolvedSet.has(`title_${sName}_${itemFullNorm}`)) return true;
         if (studentSolvedSet.has(`title_genel_${itemFullNorm}`)) return true;
@@ -2202,13 +2215,13 @@ export default function StudentDashboard() {
                     if (sNameNorm) {
                       if (studentSolvedSet.has(`subj_tid_${sNameNorm}_${str}`) || studentSolvedSet.has(`subj_tid_${sNameNorm}_${clean}`)) return true;
                     }
-                    // Subject + test name fallback — handles ID format mismatch between books
-                    // (e.g. submission saved with UUID test_id but bookTest uses tbt_ prefix id)
+                    // Subject + test name fallback — only for non-generic test names!
                     if (sNameNorm && info.testName) {
                       const normKey = (s) => String(s || '').toLowerCase()
                         .replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[^\p{L}\p{N}]/gu, '').trim();
                       const normTestName = normKey(info.testName);
-                      if (normTestName && normTestName.length >= 3) {
+                      const isGen = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(normTestName);
+                      if (!isGen && normTestName && normTestName.length >= 6) {
                         if (studentSolvedSet.has(`subj_title_${sNameNorm}_${normTestName}`)) return true;
                         if (studentSolvedSet.has(`subj_test_${sNameNorm}_${normTestName}`)) return true;
                       }
@@ -2377,10 +2390,11 @@ export default function StudentDashboard() {
         const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests).map(item => {
           const isAttempted = checkHasItemBeenAttempted(item, studentId, studentSubmissions || submissions, homeworks);
 
-          const currentTestId = String(item.testId || item.realTestId || item.hwId || item.id || '').trim();
+          const currentTestId = String(item.testId || item.bookTestId || item.realTestId || '').trim();
           const currentTestUuid = String(toUUID(currentTestId) || '').trim();
           const currentTitle = String(item.title || item.testName || '').toLowerCase().trim();
-          const itemSubject = String(item.subject || '').toLowerCase().trim();
+          const itemSubject = String(item.subject || item.subjectName || '').toLowerCase().trim();
+          const itemTopic = String(item.unit || item.unitName || item.unitTopic || item.topic || item.topicName || '').toLowerCase().trim();
           const studentIdStr = String(studentId || '').trim();
           const studentUuid = String(toUUID(studentId) || '').trim();
 
@@ -2390,13 +2404,16 @@ export default function StudentDashboard() {
             const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || (toUUID(sId) && toUUID(sId) === studentUuid);
             if (!isStudentMatch) return false;
 
-            const sTestId = String(s.testId || s.hwId || s.bookTestId || s.id || '');
+            const sTestId = String(s.testId || s.bookTestId || s.realTestId || s.id || '');
             const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || (toUUID(sTestId) && toUUID(sTestId) === currentTestUuid));
 
-            const sSubject = String(s.subject || '').toLowerCase().trim();
+            const sSubject = String(s.subject || s.subjectName || '').toLowerCase().trim();
             const isSubjectMatch = !itemSubject || !sSubject || itemSubject === sSubject || itemSubject.includes(sSubject) || sSubject.includes(itemSubject);
 
-            const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle && isSubjectMatch;
+            const sTopic = String(s.topicName || s.unitTopic || '').toLowerCase().trim();
+            const isTopicMatch = !itemTopic || !sTopic || itemTopic === sTopic || itemTopic.includes(sTopic) || sTopic.includes(itemTopic);
+
+            const isTitleMatch = currentTitle && String(s.title || s.testTitle || s.testName || '').toLowerCase().trim() === currentTitle && isSubjectMatch && isTopicMatch;
             return isIdMatch || isTitleMatch;
           });
 
