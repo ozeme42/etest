@@ -237,6 +237,10 @@ export default function CompositeHomeworkRunner({
         ) : (
           <CompositeMultipleChoiceSection
             section={{ ...activeSec, resolvedQuestions: activeSec.questions }}
+            sections={rawSections}
+            activeSecIdx={activeSecIdx}
+            onSelectSection={setActiveSecIdx}
+            allSectionAnswers={sectionAnswers}
             payload={activePayload || activeSec.documentPayload}
             answers={sectionAnswers[activeSec.id]?.answers || {}}
             onSelectOption={handleSelectOption}

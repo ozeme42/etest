@@ -13,6 +13,10 @@ import { extractImageUrls, isValidImageUrl } from '../../common/ImageLightbox';
  */
 export default memo(function CompositeMultipleChoiceSection({
   section = {},
+  sections = [],
+  activeSecIdx = 0,
+  onSelectSection = null,
+  allSectionAnswers = {},
   payload = null,
   answers = {},
   onSelectOption,
@@ -98,6 +102,25 @@ export default memo(function CompositeMultipleChoiceSection({
 
   const activeQuestion = questions[activeQIdx] || questions[0] || {};
   const activeQImages = getQuestionImages(activeQuestion, activeQIdx);
+
+  const handleNavigateToQuestion = (secIdx, qIdx) => {
+    if (onSelectSection && secIdx !== undefined && secIdx !== activeSecIdx) {
+      onSelectSection(secIdx);
+    }
+    setActiveQIdx(qIdx || 0);
+  };
+
+  const handleSelectSectionOption = (targetSecId, targetSecIdx, qNo, optIdx) => {
+    if (onSelectSection && targetSecIdx !== undefined && targetSecIdx !== activeSecIdx) {
+      onSelectSection(targetSecIdx);
+    }
+    if (targetSecId === section.id) {
+      setActiveQIdx(qNo - 1);
+    }
+    if (onSelectOption) {
+      onSelectOption(targetSecId, qNo, optIdx);
+    }
+  };
 
   return (
     <QuizPanelLayout
@@ -329,6 +352,13 @@ export default memo(function CompositeMultipleChoiceSection({
             onSelectOption(section.id, qNo, optIdx);
           }}
           resolvedQuestions={questions}
+          sections={sections}
+          allAnswers={allSectionAnswers}
+          activeSectionId={section.id}
+          activeSecIdx={activeSecIdx}
+          activeQuestionIndex={activeQIdx}
+          onNavigateToQuestion={handleNavigateToQuestion}
+          onSelectSectionOption={handleSelectSectionOption}
         />
       }
     />

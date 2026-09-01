@@ -567,6 +567,8 @@ export default function SingleMultipleChoiceRunner({
             <OpticalBubblePanel
               qCount={totalQuestions}
               answers={answers}
+              activeQuestionIndex={activeQIdx}
+              onNavigateToQuestion={(_, qIdx) => setActiveQIdx(qIdx)}
               onSelectOption={(qNo, optIdx) => {
                 setActiveQIdx(qNo - 1);
                 handleSelectOption(qNo, optIdx);
