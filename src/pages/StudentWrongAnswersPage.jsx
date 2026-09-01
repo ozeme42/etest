@@ -328,7 +328,13 @@ export default function StudentWrongAnswersPage() {
     if (!studentId) return;
 
     const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
-    const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+    const sUuid = toUUID(studentId);
+    const currentProfile = getCoachingProfileForStudent(studentId) || (coachingProfiles || []).find(p => {
+      if (!p) return false;
+      const pSid = String(p.studentId || p.userId || p.id || '');
+      return pSid === String(studentId) || (sUuid && (pSid === sUuid || toUUID(pSid) === sUuid));
+    }) || {
+      id: `cp_${studentId}`,
       studentId,
       weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
     };
@@ -384,7 +390,13 @@ export default function StudentWrongAnswersPage() {
     if (!studentId) return;
 
     const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
-    const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+    const sUuid = toUUID(studentId);
+    const currentProfile = getCoachingProfileForStudent(studentId) || (coachingProfiles || []).find(p => {
+      if (!p) return false;
+      const pSid = String(p.studentId || p.userId || p.id || '');
+      return pSid === String(studentId) || (sUuid && (pSid === sUuid || toUUID(pSid) === sUuid));
+    }) || {
+      id: `cp_${studentId}`,
       studentId,
       weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
     };

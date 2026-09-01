@@ -2752,44 +2752,96 @@ export async function dbGetCoachingProfiles() {
 export async function dbSaveCoachingProfile(profile) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const payloadWithData = {
-      id: String(profile.id || `cp_${profile.studentId}`),
-      student_id: String(profile.studentId),
-      target_school: profile.targetSchool || '',
-      target_net: profile.targetNet || 0,
-      learning_style: profile.learningStyle || 'Görsel',
-      parent_name: profile.parentName || '',
-      parent_phone: profile.parentPhone || '',
-      parent_notes: profile.parentNotes || '',
-      strengths: profile.strengths || '',
-      hobbies: profile.hobbies || '',
-      extra_data: JSON.stringify(profile)
+    const rawStudentId = String(profile.studentId || profile.student_id || profile.userId || profile.id || '');
+    const uuidStudentId = toUUID(rawStudentId) || rawStudentId;
+    const profileId = String(profile.id || `cp_${rawStudentId}`);
+    const uuidProfileId = toUUID(profileId) || profileId;
+
+    // Full profile data stored in extra_data
+    const fullProfileData = {
+      ...profile,
+      studentId: rawStudentId,
+      id: profileId,
+      updatedAt: new Date().toISOString()
     };
-    
-    // First try with extra_data
-    const { data, error } = await supabase.from('coaching_profiles').upsert([payloadWithData], { onConflict: 'id' }).select().single();
-    
+
+    // 1. Primary Upsert with existing Supabase schema
+    const payload = {
+      id: profileId,
+      student_id: rawStudentId,
+      teacher_id: profile.teacherId || profile.teacher_id || null,
+      extra_data: fullProfileData
+    };
+
+    let { data, error } = await supabase.from('coaching_profiles').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
+
     if (error) {
-      console.warn('[Supabase] dbSaveCoachingProfile extra_data failed, trying data column fallback:', error.message);
-      // Fallback to data column if extra_data doesn't exist
-      const fallbackPayload = { ...payloadWithData, data: payloadWithData.extra_data };
-      delete fallbackPayload.extra_data;
-      
-      const { data: fallbackData, error: fallbackError } = await supabase.from('coaching_profiles').upsert([fallbackPayload], { onConflict: 'id' }).select().single();
-      
-      if (fallbackError) {
-        console.warn('[Supabase] dbSaveCoachingProfile fallback failed:', fallbackError.message);
-        
-        // Final fallback: just save the raw columns without JSON
-        const rawPayload = { ...payloadWithData };
-        delete rawPayload.extra_data;
-        const { data: rawData } = await supabase.from('coaching_profiles').upsert([rawPayload], { onConflict: 'id' }).select().single();
-        return rawData;
+      // Fallback 1: UUID payload
+      const uuidPayload = {
+        id: uuidProfileId,
+        student_id: uuidStudentId,
+        teacher_id: profile.teacherId ? (toUUID(profile.teacherId) || profile.teacherId) : null,
+        extra_data: fullProfileData
+      };
+      const uuidRes = await supabase.from('coaching_profiles').upsert([uuidPayload], { onConflict: 'id' }).select().maybeSingle();
+      if (!uuidRes.error) {
+        data = uuidRes.data;
+        error = null;
+      } else {
+        // Fallback 2: student_id as primary key
+        const studentKeyPayload = {
+          id: rawStudentId,
+          student_id: rawStudentId,
+          extra_data: fullProfileData
+        };
+        const stRes = await supabase.from('coaching_profiles').upsert([studentKeyPayload], { onConflict: 'id' }).select().maybeSingle();
+        if (!stRes.error) {
+          data = stRes.data;
+          error = null;
+        }
       }
-      return fallbackData;
     }
-    
-    return data;
+
+    // 2. Also sync individual remedial items to remedial_spaced_repetition table
+    if (Array.isArray(profile.weeklyProgram)) {
+      try {
+        const remedialItems = [];
+        profile.weeklyProgram.forEach(dObj => {
+          (dObj.items || []).forEach(it => {
+            if (it && (it.isRemedial || it.isRemedialTest || it.type === 'remedialTest' || it.taskType === 'remedialTest')) {
+              remedialItems.push({
+                day: dObj.day,
+                item: it
+              });
+            }
+          });
+        });
+
+        for (const r of remedialItems) {
+          const it = r.item;
+          const repId = String(it.id || `rep_${it.testId}_${it.stage || 1}`);
+          const safeRepId = toUUID(repId) || repId;
+          const repPayload = {
+            id: safeRepId,
+            student_id: uuidStudentId,
+            test_id: String(it.testId || it.realTestId || it.hwId || ''),
+            homework_id: String(it.hwId || it.testId || ''),
+            stage: Number(it.stage || 1),
+            total_stages: Number(it.totalStages || 4),
+            interval_days: Number(it.intervalDays || 1),
+            target_date: it.scheduledDate || it.date || new Date().toISOString().split('T')[0],
+            is_completed: Boolean(it.done),
+            raw_data: it,
+            updated_at: new Date().toISOString()
+          };
+          await supabase.from('remedial_spaced_repetition').upsert([repPayload], { onConflict: 'id' });
+        }
+      } catch (repErr) {
+        console.warn('[Supabase] remedial_spaced_repetition save info:', repErr.message);
+      }
+    }
+
+    return data || payload;
   } catch (err) {
     console.warn('[Supabase] dbSaveCoachingProfile catch:', err.message);
     return null;
