@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, toUUID } from '../services/supabaseService';
+import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, dbGetDeletedItems, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 import { purgeTestCache } from '../services/unifiedResultAdapter';
@@ -137,22 +137,40 @@ export function EvaluationProvider({ children }) {
     if (showLoading) setIsSyncing(true);
 
     try {
-      const dbSubsList = await dbGetSubmissions();
+      const [dbSubsList, dbDeletedItems] = await Promise.all([
+        dbGetSubmissions(),
+        dbGetDeletedItems()
+      ]);
+
+      if (dbDeletedItems && Array.isArray(dbDeletedItems) && dbDeletedItems.length > 0) {
+        markIdsAsDeleted(dbDeletedItems);
+      }
+
       if (dbSubsList && Array.isArray(dbSubsList)) {
         touchCache('submissions');
 
-        // 🛡️ Supabase veritabanı tek ve mutlak gerçeklik kaynağıdır.
-        // Veritabanında olan bir kayıt, tabletteki eski yerel silinmişler listesi tarafından engellenemez!
-        const validDbSubs = dbSubsList;
-        validDbSubs.forEach(s => {
-          if (s?.id) unmarkIdAsDeleted(s.id);
-          if (s?.supabaseId) unmarkIdAsDeleted(s.supabaseId);
+        const currentDeletedIds = getDeletedIds();
+        const validDbSubs = dbSubsList.filter(s => {
+          if (!s) return false;
+          const sId = String(s.id || '');
+          const suId = String(s.supabaseId || '');
+          const sTestId = String(s.test_id || s.testId || '');
+          const sHwId = String(s.homework_id || s.hwId || '');
+          const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
+          const metaHwId = String(meta?.hwId || '');
+          const metaRealTestId = String(meta?.realTestId || '');
+
+          if (currentDeletedIds.has(sId) || (suId && currentDeletedIds.has(suId))) return false;
+          if (sTestId && currentDeletedIds.has(sTestId)) return false;
+          if (sHwId && currentDeletedIds.has(sHwId)) return false;
+          if (metaHwId && currentDeletedIds.has(metaHwId)) return false;
+          if (metaRealTestId && currentDeletedIds.has(metaRealTestId)) return false;
+          return true;
         });
 
         const updatedSubs = validDbSubs;
 
         setSubmissions(prev => {
-          const currentDeletedIds = getDeletedIds();
           const dbIds = new Set();
           (updatedSubs || []).forEach(s => {
             if (s?.id) dbIds.add(String(s.id));

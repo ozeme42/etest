@@ -922,34 +922,6 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       return sIds.some(sid => targetIds.has(sid) || (toUUID(sid) && targetIds.has(String(toUUID(sid)))));
     };
 
-    let deletedIds = new Set();
-    try {
-      const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
-      if (savedDeleted) {
-        const parsed = JSON.parse(savedDeleted);
-        if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
-      }
-    } catch {}
-
-    const isDeletedItem = (s) => {
-      if (!s) return true;
-      const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
-      const candidates = [
-        s.id,
-        s.submissionId,
-        s.supabaseId,
-        s.originalSubmissionId,
-        meta?.realId,
-        meta?.submissionId
-      ];
-      return candidates.some(c => {
-        if (!c) return false;
-        const str = String(c);
-        const u = toUUID(str);
-        return deletedIds.has(str) || (u && deletedIds.has(String(u)));
-      });
-    };
-
     const results = [];
     const processedTestKeys = new Set();
     const processedAttemptSigs = new Set();
@@ -986,6 +958,15 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     (submissions || []).filter(isMatchStudent).forEach(sub => {
       if (!sub || isDeletedItem(sub)) return;
       if (sub.status === 'in_progress' || sub.status === 'draft') return;
+
+      // Skip orphaned homework submissions if the homework itself was deleted
+      const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a?.type === 'metadata') : (sub.metadata || {});
+      const subHwId = sub.homework_id || sub.hwId || meta?.hwId;
+      const candidateHwId = subHwId || (String(sub.test_id || sub.testId || '').startsWith('hw_') ? (sub.test_id || sub.testId) : null) || (meta?.realTestId && String(meta.realTestId).startsWith('hw_') ? meta.realTestId : null);
+      if (candidateHwId) {
+        const hwExists = (homeworks || []).some(h => String(h.id) === String(candidateHwId) || String(h.raw_data?.id) === String(candidateHwId) || (toUUID(h.id) && toUUID(h.id) === String(toUUID(candidateHwId))));
+        if (!hwExists) return; // Homework was deleted, skip orphaned submission!
+      }
 
       const normalized = normalizeUnifiedSubmission(sub, { books, bookTests, homeworks });
       if (normalized && !isDeletedItem(normalized)) {
