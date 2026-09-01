@@ -806,10 +806,10 @@ export default function RemedialQuizReview({
                       <Bot size={18} />
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      <h4 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.08rem', fontWeight: 900, color: 'var(--color-text)' }}>
                         Yapay Zeka Soru Çözücü
                       </h4>
-                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                      <p style={{ margin: '2px 0 0 0', fontSize: isMobile ? '0.78rem' : '0.84rem', color: 'var(--color-text-muted)' }}>
                         Sorunun görseli üzerinden adım adım çözüm ve çeldirici analizi
                       </p>
                     </div>
@@ -823,15 +823,15 @@ export default function RemedialQuizReview({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
-                      padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
+                      gap: '0.45rem',
+                      padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.25rem',
                       borderRadius: '0.75rem',
                       border: 'none',
                       background: currentSolution
                         ? 'var(--color-surface-hover)'
                         : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                       color: currentSolution ? 'var(--color-text)' : '#ffffff',
-                      fontSize: isMobile ? '0.76rem' : '0.84rem',
+                      fontSize: isMobile ? '0.82rem' : '0.9rem',
                       fontWeight: 900,
                       cursor: aiLoading ? 'not-allowed' : 'pointer',
                       boxShadow: currentSolution ? 'none' : '0 4px 14px rgba(79,70,229,0.3)',
@@ -840,17 +840,17 @@ export default function RemedialQuizReview({
                   >
                     {aiLoading ? (
                       <>
-                        <Loader2 size={16} className="spin-animation" />
-                        <span>Analiz Ediliyor...</span>
+                        <Loader2 size={18} className="spin-animation" />
+                        <span>Görsel Analiz Ediliyor...</span>
                       </>
                     ) : currentSolution ? (
                       <>
-                        <RefreshCw size={15} />
+                        <RefreshCw size={16} />
                         <span>Yeniden Çözdür</span>
                       </>
                     ) : (
                       <>
-                        <Sparkles size={16} />
+                        <Sparkles size={18} />
                         <span>Adım Adım Çözüm Oluştur</span>
                       </>
                     )}
@@ -860,12 +860,12 @@ export default function RemedialQuizReview({
                 {/* AI Error message */}
                 {aiError && (
                   <div style={{
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '0.6rem',
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '0.65rem',
                     background: 'rgba(239,68,68,0.1)',
                     border: '1px solid rgba(239,68,68,0.3)',
                     color: '#dc2626',
-                    fontSize: '0.75rem',
+                    fontSize: '0.84rem',
                     fontWeight: 700
                   }}>
                     ⚠️ {aiError}
@@ -878,26 +878,26 @@ export default function RemedialQuizReview({
                     background: isDark ? '#18181b' : '#ffffff',
                     border: '1px solid var(--color-border)',
                     borderRadius: '1rem',
-                    padding: isMobile ? '0.85rem' : '1.25rem',
+                    padding: isMobile ? '1rem 0.95rem' : '1.35rem 1.5rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.85rem',
+                    gap: '1rem',
                     textAlign: 'left',
                     animation: 'fadeIn 0.25s ease-out'
                   }}>
                     {/* Summary */}
                     {currentSolution.summary && (
                       <div style={{
-                        padding: '0.65rem 0.85rem',
-                        borderRadius: '0.75rem',
+                        padding: '0.85rem 1.1rem',
+                        borderRadius: '0.85rem',
                         background: 'rgba(99, 102, 241, 0.08)',
                         border: '1px solid rgba(99, 102, 241, 0.25)',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: '0.45rem'
+                        gap: '0.6rem'
                       }}>
-                        <Info size={16} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div style={{ fontSize: '0.8rem', color: isDark ? '#c7d2fe' : '#3730a3', lineHeight: 1.45, fontWeight: 700 }}>
+                        <Info size={20} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: isMobile ? '0.92rem' : '1.02rem', color: isDark ? '#c7d2fe' : '#312e81', lineHeight: 1.6, fontWeight: 700 }}>
                           {cleanAiMathText(currentSolution.summary)}
                         </div>
                       </div>
@@ -905,24 +905,25 @@ export default function RemedialQuizReview({
 
                     {/* Solution Steps */}
                     {normalizedSteps.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <Sparkles size={14} /> ÇÖZÜM ADIMLARI
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ fontSize: isMobile ? '0.86rem' : '0.95rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.4rem', letterSpacing: '0.02em' }}>
+                          <Sparkles size={16} /> ÇÖZÜM ADIMLARI
                         </div>
                         {normalizedSteps.map((step, sIdx) => (
                           <div
                             key={sIdx}
                             style={{
-                              padding: '0.65rem 0.85rem',
-                              borderRadius: '0.75rem',
+                              padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                              borderRadius: '0.85rem',
                               background: isDark ? '#27272a' : '#f8fafc',
-                              border: isDark ? '1px solid #3f3f46' : '1px solid #e2e8f0'
+                              border: isDark ? '1px solid #3f3f46' : '1px solid #e2e8f0',
+                              boxShadow: isDark ? 'none' : '0 2px 6px rgba(0,0,0,0.02)'
                             }}
                           >
-                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.25rem' }}>
+                            <div style={{ fontSize: isMobile ? '0.92rem' : '1.02rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.35rem' }}>
                               {step.title}
                             </div>
-                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                            <div style={{ fontSize: isMobile ? '0.95rem' : '1.06rem', color: 'var(--color-text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-line' }}>
                               {step.content}
                             </div>
                           </div>
@@ -933,17 +934,17 @@ export default function RemedialQuizReview({
                     {/* Key Concept / Tip */}
                     {(currentSolution.goldenRule || currentSolution.keyConcept || currentSolution.tips) && (
                       <div style={{
-                        padding: '0.65rem 0.85rem',
-                        borderRadius: '0.75rem',
-                        background: 'rgba(16, 185, 129, 0.08)',
+                        padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                        borderRadius: '0.85rem',
+                        background: 'rgba(16, 185, 129, 0.09)',
                         border: '1px solid rgba(16, 185, 129, 0.3)',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: '0.45rem'
+                        gap: '0.6rem'
                       }}>
-                        <Lightbulb size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div style={{ fontSize: '0.78rem', color: isDark ? '#86efac' : '#15803d', lineHeight: 1.45 }}>
-                          <b>Altın Kural & İpucu:</b> {cleanAiMathText(currentSolution.goldenRule || currentSolution.keyConcept || currentSolution.tips)}
+                        <Lightbulb size={20} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: isMobile ? '0.92rem' : '1.02rem', color: isDark ? '#86efac' : '#14532d', lineHeight: 1.6 }}>
+                          <b style={{ color: isDark ? '#a7f3d0' : '#15803d' }}>Altın Kural & İpucu:</b> {cleanAiMathText(currentSolution.goldenRule || currentSolution.keyConcept || currentSolution.tips)}
                         </div>
                       </div>
                     )}
@@ -951,17 +952,17 @@ export default function RemedialQuizReview({
                     {/* Common Misconception / Mistake Analysis */}
                     {(currentSolution.mistakeAdvice || currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed) && (
                       <div style={{
-                        padding: '0.65rem 0.85rem',
-                        borderRadius: '0.75rem',
-                        background: 'rgba(239, 68, 68, 0.08)',
+                        padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem',
+                        borderRadius: '0.85rem',
+                        background: 'rgba(239, 68, 68, 0.09)',
                         border: '1px solid rgba(239, 68, 68, 0.3)',
                         display: 'flex',
                         alignItems: 'flex-start',
-                        gap: '0.45rem'
+                        gap: '0.6rem'
                       }}>
-                        <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div style={{ fontSize: '0.78rem', color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.45 }}>
-                          <b>Yanlış Analizi:</b> {cleanAiMathText(currentSolution.mistakeAdvice || currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed)}
+                        <AlertTriangle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: isMobile ? '0.92rem' : '1.02rem', color: isDark ? '#fca5a5' : '#7f1d1d', lineHeight: 1.6 }}>
+                          <b style={{ color: isDark ? '#fecaca' : '#b91c1c' }}>Yanlış Analizi:</b> {cleanAiMathText(currentSolution.mistakeAdvice || currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed)}
                         </div>
                       </div>
                     )}
