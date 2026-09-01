@@ -509,6 +509,7 @@ export default function StudentWrongAnswersPage() {
   const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
   const [isLeitnerModalOpen, setIsLeitnerModalOpen] = useState(false);
   const [leitnerPracticeQuestions, setLeitnerPracticeQuestions] = useState([]);
+  const [selectedLeitnerBoxLevel, setSelectedLeitnerBoxLevel] = useState(1);
 
   // Hata Defteri Modals & States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1016,11 +1017,12 @@ export default function StudentWrongAnswersPage() {
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
   const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
 
-  // Spaced Repetition (Leitner) Flat Questions & Overview (STRICTLY ONLY Soru Bankası & Telafi Testleri)
+  // Spaced Repetition (Leitner) Flat Questions & Overview (Tüm Çözülen Testler & Telafi Testleri)
   const allFlatWrongQuestions = useMemo(() => {
     const list = [];
+    const seenQuestionKeys = new Set();
 
-    // Create quick lookup maps for remedial and question bank tests
+    // 1. Create quick lookup maps for remedial and question bank tests
     const remedialMap = new Map();
     (remedialTests || []).forEach(rt => {
       if (rt?.id) {
@@ -1037,45 +1039,18 @@ export default function StudentWrongAnswersPage() {
       }
     });
 
-    testGroupedSubmissions.forEach(sub => {
+    // 2. Scan all submissions for wrong and blank questions
+    (testGroupedSubmissions || []).forEach(sub => {
       const subIdStr = String(sub.testId || sub.hwId || sub.id || '');
-      const subTitle = String(sub.testTitle || sub.title || '');
+      const subTitle = String(sub.testTitle || sub.title || 'Test');
 
-      // 1. Check if it's a Remedial Test
-      const matchedRemedial = remedialMap.get(subIdStr) || (sub.metadata?.realTestId ? remedialMap.get(String(sub.metadata.realTestId)) : null);
-      const isRemedial = Boolean(
-        matchedRemedial ||
-        sub.isRemedialTest === true ||
-        sub.sourceType === 'pdfSlicer' ||
-        sub.type === 'remedial' ||
-        subTitle.includes('Telafi') ||
-        subTitle.includes('Kırpılmış')
-      );
+      const matchedRemedial = remedialMap.get(subIdStr) ||
+                              (sub.metadata?.realTestId ? remedialMap.get(String(sub.metadata.realTestId)) : null) ||
+                              (sub.testId ? remedialMap.get(String(sub.testId)) : null) ||
+                              (sub.hwId ? remedialMap.get(String(sub.hwId)) : null);
 
-      // 2. Check if it's a Question Bank Test
       const matchedBank = bankMap.get(subIdStr) || (sub.metadata?.realTestId ? bankMap.get(String(sub.metadata.realTestId)) : null);
-      const isQuestionBank = Boolean(
-        matchedBank ||
-        sub.sourceType === 'questionBank' ||
-        sub.sourceType === 'bank' ||
-        sub.type === 'soru_bankasi' ||
-        sub.testType === 'bank'
-      ) && (
-        !sub.isManual &&
-        sub.sourceType !== 'trackedBook' &&
-        sub.sourceType !== 'bookTest' &&
-        sub.sourceType !== 'optik' &&
-        sub.sourceType !== 'book' &&
-        !subTitle.includes('(Tüm Kitap Görevi)') &&
-        !subTitle.includes('(Tüm Kitap)')
-      );
 
-      // EXCLUDE all other types (paper books, optical forms, manual forms, curriculum tests without digital content)
-      if (!isRemedial && !isQuestionBank) {
-        return;
-      }
-
-      // Resolve questions list if available
       const testSourceObj = matchedRemedial || matchedBank || null;
       let resolvedQuestions = [];
       if (testSourceObj) {
@@ -1084,11 +1059,18 @@ export default function StudentWrongAnswersPage() {
           : resolveTestQuestions(testSourceObj, bankQuestions || []);
       }
 
-      (sub.wrongQuestions || []).forEach(wq => {
-        const qIdx = (typeof wq.qNum === 'number' ? wq.qNum - 1 : 0);
+      // Both wrong questions and blank questions
+      const mistakeItems = [...(sub.wrongQuestions || [])];
+
+      mistakeItems.forEach(wq => {
+        const qNum = wq.qNum || 1;
+        const qIdx = (typeof qNum === 'number' ? qNum - 1 : 0);
         const resolvedQ = resolvedQuestions[qIdx] || {};
 
-        // Resolve best image URL
+        const qKey = `${sub.id || subIdStr}_${qNum}`;
+        if (seenQuestionKeys.has(qKey)) return;
+        seenQuestionKeys.add(qKey);
+
         const qImage = resolvedQ.imageUrl ||
                        wq.imageUrl ||
                        (Array.isArray(testSourceObj?.imageUrls) ? testSourceObj.imageUrls[qIdx] : null) ||
@@ -1099,7 +1081,7 @@ export default function StudentWrongAnswersPage() {
                       resolvedQ.text ||
                       resolvedQ.title ||
                       wq.questionText ||
-                      `${subTitle} — Soru ${wq.qNum}`;
+                      `${subTitle} — Soru ${qNum}`;
 
         const qOptions = resolvedQ.options || wq.options || ['A', 'B', 'C', 'D', 'E'];
         const qCorrect = resolvedQ.correctAnswer !== undefined
@@ -1109,19 +1091,20 @@ export default function StudentWrongAnswersPage() {
               : (wq.correctAnswer ?? 0));
 
         list.push({
-          id: `${sub.id}_${wq.qNum}`,
-          testId: sub.id,
+          id: qKey,
+          questionId: wq.questionId || qKey,
+          testId: sub.id || subIdStr,
           testTitle: sub.testTitle || subTitle,
           subject: sub.subject || resolvedQ.subject || 'Ders',
-          questionNo: wq.qNum,
+          questionNo: qNum,
           questionText: qText,
           options: qOptions,
           optionCount: resolvedQ.optionCount || (qOptions ? qOptions.length : 5),
           correctAnswer: qCorrect,
           correctAnswerLetter: resolvedQ.correctAnswerLetter || String.fromCharCode(65 + qCorrect),
           imageUrl: qImage,
-          isRemedialTest: isRemedial,
-          isQuestionBank: isQuestionBank
+          isRemedialTest: Boolean(matchedRemedial || sub.isRemedialTest || sub.isRemedial),
+          isQuestionBank: Boolean(matchedBank || sub.sourceType === 'questionBank')
         });
       });
     });
@@ -3945,23 +3928,28 @@ export default function StudentWrongAnswersPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '0.75rem',
-              marginBottom: '1rem'
+              marginBottom: '1.25rem'
             }}>
               {LEITNER_BOX_CONFIG.map(box => {
                 const count = leitnerOverview.boxCounts[box.level] || 0;
                 const hasItems = count > 0;
+                const isSelected = selectedLeitnerBoxLevel === box.level;
                 return (
                   <div
                     key={box.level}
+                    onClick={() => setSelectedLeitnerBoxLevel(box.level)}
                     style={{
                       background: hasItems ? box.bg : (isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'),
-                      border: hasItems ? `1.5px solid ${box.border}` : '1.5px solid var(--color-border)',
+                      border: isSelected ? `2.5px solid ${box.color}` : (hasItems ? `1.5px solid ${box.border}` : '1.5px solid var(--color-border)'),
                       borderRadius: 14,
                       padding: '0.85rem 1rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 10,
+                      cursor: 'pointer',
+                      transform: isSelected ? 'scale(1.02)' : 'none',
+                      boxShadow: isSelected ? `0 6px 18px ${box.color}25` : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -4002,6 +3990,137 @@ export default function StudentWrongAnswersPage() {
                 );
               })}
             </div>
+
+            {/* Seçili Aşamadaki Sorular Paneli */}
+            {(() => {
+              const currentBoxCfg = LEITNER_BOX_CONFIG.find(b => b.level === selectedLeitnerBoxLevel) || LEITNER_BOX_CONFIG[0];
+              const questionsInBox = (leitnerOverview.categorizedQuestions && leitnerOverview.categorizedQuestions[selectedLeitnerBoxLevel]) || [];
+
+              return (
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: 16,
+                  padding: '1.1rem 1.25rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: '1.2rem' }}>{currentBoxCfg.icon}</span>
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {currentBoxCfg.label} Soruları ({questionsInBox.length} Soru)
+                      </h4>
+                    </div>
+
+                    {questionsInBox.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLeitnerPracticeQuestions(questionsInBox);
+                          setIsLeitnerModalOpen(true);
+                        }}
+                        style={{
+                          background: currentBoxCfg.color,
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: 10,
+                          padding: '0.45rem 0.95rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: `0 3px 10px ${currentBoxCfg.color}35`
+                        }}
+                      >
+                        <Zap size={14} /> Bu Aşamayı Çöz ({questionsInBox.length} Soru)
+                      </button>
+                    )}
+                  </div>
+
+                  {questionsInBox.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
+                      {questionsInBox.map((qItem, qIdx) => {
+                        const sStyle = (SUBJECT_CONFIG && (SUBJECT_CONFIG[qItem.subject] || SUBJECT_CONFIG['Tümü'])) || { bg: 'transparent', color: '#6366f1' };
+                        return (
+                          <div
+                            key={qItem.id || qIdx}
+                            style={{
+                              background: 'var(--color-surface, #ffffff)',
+                              border: '1.5px solid var(--color-border)',
+                              borderRadius: 12,
+                              padding: '0.75rem 1rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: 10
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
+                              <span style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 900,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                background: sStyle.bg,
+                                color: sStyle.color
+                              }}>
+                                {qItem.subject}
+                              </span>
+                              <div>
+                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                                  {qItem.testTitle} — <span style={{ color: currentBoxCfg.color }}>Soru {qItem.questionNo}</span>
+                                </div>
+                                {qItem.leitnerInfo?.nextReviewDate && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                                    Sonraki Tekrar: {new Date(qItem.leitnerInfo.nextReviewDate).toLocaleDateString('tr-TR')}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLeitnerPracticeQuestions([qItem]);
+                                setIsLeitnerModalOpen(true);
+                              }}
+                              style={{
+                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '0.35rem 0.8rem',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Play size={12} fill="#ffffff" /> Tekrar Çöz
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '1.75rem 1rem',
+                      color: 'var(--color-text-muted)',
+                      fontSize: '0.82rem',
+                      fontWeight: 700
+                    }}>
+                      Bu aşamada henüz bekleyen soru bulunmuyor.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Bilgilendirici İpucu */}
             <div style={{
