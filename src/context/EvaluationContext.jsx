@@ -149,49 +149,7 @@ export function EvaluationProvider({ children }) {
           if (s?.supabaseId) unmarkIdAsDeleted(s.supabaseId);
         });
 
-        // Auto-sync any local mistake reasons into submissions and Supabase (strict key matching)
-        const updatedSubs = validDbSubs.map(sub => {
-          const testId = String(sub.testId || sub.realTestId || sub.bookTestId || '');
-          const studentId = String(sub.studentId || '');
-          if (!testId || !studentId || testId.length < 2) return sub;
-
-          const cleanTId = testId.replace(/^bt_/, '').replace(/^q_/, '');
-          let subMistakeReasons = (sub.mistakeReasons && typeof sub.mistakeReasons === 'object') ? { ...sub.mistakeReasons } : {};
-          let changed = false;
-
-          const targetKeys = [
-            `mistake_reasons_${testId}_${studentId}`,
-            `mistake_reasons_bt_${testId}_${studentId}`,
-            `mistake_reasons_${cleanTId}_${studentId}`,
-            `mistake_reasons_bt_${cleanTId}_${studentId}`
-          ];
-
-          try {
-            targetKeys.forEach(k => {
-              const raw = localStorage.getItem(k);
-              if (raw) {
-                try {
-                  const parsed = JSON.parse(raw);
-                  if (parsed && typeof parsed === 'object') {
-                    Object.entries(parsed).forEach(([qNo, r]) => {
-                      if (r && subMistakeReasons[qNo] !== r) {
-                        subMistakeReasons[qNo] = r;
-                        changed = true;
-                      }
-                    });
-                  }
-                } catch {}
-              }
-            });
-          } catch {}
-
-          if (changed && Object.keys(subMistakeReasons).length > 0) {
-            const updated = { ...sub, mistakeReasons: subMistakeReasons };
-            dbSaveSubmission(updated);
-            return updated;
-          }
-          return sub;
-        });
+        const updatedSubs = validDbSubs;
 
         setSubmissions(prev => {
           const currentDeletedIds = getDeletedIds();
@@ -348,16 +306,14 @@ export function EvaluationProvider({ children }) {
       if (!hasU1) return prev; // Referansı değiştirme, gereksiz re-render/effect tetikleme
 
       didMigrateU1Ref.current = true;
-
       const updated = prev.map(s => s.studentId === 'u1' ? { ...s, studentId: user.id } : s);
 
       try {
         localStorage.setItem('eTestSubmissions', JSON.stringify(updated));
-        updated
-          .filter(s => s.studentId === user.id && s.id && !s.id.startsWith('sub_sample'))
-          .forEach(s => {
-            dbSaveSubmission(s).catch(() => {});
-          });
+        const changedFromU1 = prev.filter(s => s.studentId === 'u1');
+        changedFromU1.forEach(s => {
+          dbSaveSubmission({ ...s, studentId: user.id }).catch(() => {});
+        });
       } catch (e) {}
 
       return updated;
