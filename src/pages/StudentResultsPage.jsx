@@ -247,10 +247,10 @@ const getSubjectTheme = (subjKey, isDark) => {
 
 const getTypeConfig = (isDark) => ({
   physicalExam: {
-    label: '📋 Deneme',
-    bg: isDark ? 'rgba(99,102,241,0.18)' : '#f5f3ff',
-    color: '#818cf8',
-    border: isDark ? 'rgba(99,102,241,0.35)' : '#ddd6fe'
+    label: '📊 Deneme Sınavı',
+    bg: isDark ? 'rgba(124,58,237,0.18)' : '#faf5ff',
+    color: '#7c3aed',
+    border: isDark ? 'rgba(124,58,237,0.35)' : '#e9d5ff'
   },
   homework: {
     label: '📝 Ödev',
@@ -3179,68 +3179,91 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                                   <SubIcon size={16} color={th.color} />
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-                                  {s.bookTitle ? (
-                                    <>
-                                      {/* 1. Satır: Kitap Adı */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                        <span style={{
-                                          color: isDark ? '#a5b4fc' : '#4338ca',
-                                          fontWeight: 900,
-                                          fontSize: '0.82rem',
-                                          letterSpacing: '-0.01em',
-                                          lineHeight: 1.3
-                                        }}>
-                                          📖 {s.bookTitle}
-                                        </span>
-                                      </div>
-
-                                      {/* 2. Satır: Ders › Ünite/Konu › Test Adı (Açık ve Seçik) */}
-                                      <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        flexWrap: 'wrap',
-                                        fontSize: '0.76rem',
-                                        lineHeight: 1.4
-                                      }}>
-                                        <span style={{
-                                          fontWeight: 800,
-                                          color: isDark ? '#38bdf8' : '#0284c7',
-                                          background: isDark ? 'rgba(56,189,248,0.12)' : '#e0f2fe',
-                                          padding: '1px 7px',
-                                          borderRadius: 5
-                                        }}>
-                                          {s.subjectName || s.subjectKey}
-                                        </span>
-
-                                        {s.topicName && (
+                                    {s.typeKey === 'physicalExam' || s.isTrial || s.isExam ? (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                           <span style={{
-                                            color: 'var(--color-text-muted)',
-                                            fontWeight: 700,
+                                            color: isDark ? '#c084fc' : '#7c3aed',
+                                            fontWeight: 900,
+                                            fontSize: '0.88rem',
+                                            letterSpacing: '-0.01em',
+                                            lineHeight: 1.3
+                                          }}>
+                                            📊 {s.testTitle || s.title || s.fullTitle || s.bookTitle}
+                                          </span>
+                                        </div>
+                                        {s.scores && Object.keys(s.scores).length > 0 && (
+                                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                            {Object.entries(s.scores).map(([sbName, sc], sIdx) => (
+                                              <span key={`${sbName}_${sIdx}`} style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                                                {sbName}: <b style={{ color: isDark ? '#f8fafc' : '#0f172a' }}>{Number(sc.net || 0).toFixed(1)} Net</b>
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : s.bookTitle ? (
+                                      <>
+                                        {/* 1. Satır: Kitap Adı */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                          <span style={{
+                                            color: isDark ? '#a5b4fc' : '#4338ca',
+                                            fontWeight: 900,
+                                            fontSize: '0.82rem',
+                                            letterSpacing: '-0.01em',
+                                            lineHeight: 1.3
+                                          }}>
+                                            📖 {s.bookTitle}
+                                          </span>
+                                        </div>
+
+                                        {/* 2. Satır: Ders › Ünite/Konu › Test Adı (Açık ve Seçik) */}
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 6,
+                                          flexWrap: 'wrap',
+                                          fontSize: '0.76rem',
+                                          lineHeight: 1.4
+                                        }}>
+                                          <span style={{
+                                            fontWeight: 800,
+                                            color: isDark ? '#38bdf8' : '#0284c7',
+                                            background: isDark ? 'rgba(56,189,248,0.12)' : '#e0f2fe',
+                                            padding: '1px 7px',
+                                            borderRadius: 5
+                                          }}>
+                                            {s.subjectName || s.subjectKey}
+                                          </span>
+
+                                          {s.topicName && (
+                                            <span style={{
+                                              color: 'var(--color-text-muted)',
+                                              fontWeight: 700,
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 4
+                                            }}>
+                                              <span style={{ opacity: 0.4 }}>›</span>
+                                              <span>{s.topicName}</span>
+                                            </span>
+                                          )}
+
+                                          <span style={{
+                                            fontWeight: 900,
+                                            color: isDark ? '#f8fafc' : '#0f172a',
+                                            background: isDark ? 'rgba(255,255,255,0.09)' : '#f1f5f9',
+                                            border: '1px solid var(--color-border)',
+                                            padding: '1px 8px',
+                                            borderRadius: 6,
                                             display: 'inline-flex',
                                             alignItems: 'center',
                                             gap: 4
                                           }}>
                                             <span style={{ opacity: 0.4 }}>›</span>
-                                            <span>{s.topicName}</span>
+                                            <span>{s.testName || 'Test'}</span>
                                           </span>
-                                        )}
-
-                                        <span style={{
-                                          fontWeight: 900,
-                                          color: isDark ? '#f8fafc' : '#0f172a',
-                                          background: isDark ? 'rgba(255,255,255,0.09)' : '#f1f5f9',
-                                          border: '1px solid var(--color-border)',
-                                          padding: '1px 8px',
-                                          borderRadius: 6,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: 4
-                                        }}>
-                                          <span style={{ opacity: 0.4 }}>›</span>
-                                          <span>{s.testName || 'Test'}</span>
-                                        </span>
-                                      </div>
+                                        </div>
                                     </>
                                   ) : (
                                     <span style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.84rem', lineHeight: 1.35 }}>

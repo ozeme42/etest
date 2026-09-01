@@ -1,5 +1,6 @@
 import { toUUID } from './supabaseService';
 import { getTurkeyYMD, extractItemDate } from '../utils/dateHelpers';
+import { isExamBook } from '../utils/testResolver';
 
 /**
  * 🛡️ UNIFIED RESULT ADAPTER (Single Source of Truth)
@@ -705,10 +706,16 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   const isPhysicalExam = Boolean(
     rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
     raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
-    String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_')
+    rawSub.isExam || raw.isExam ||
+    matchedHw?.type === 'physicalExam' || matchedHw?.contentType === 'physicalExam' || matchedHw?.isPhysical === true ||
+    (matchedHw && isExamBook(matchedHw)) ||
+    (matchedBook && isExamBook(matchedBook)) ||
+    matchedBook?.bookType === 'exam' ||
+    String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_') ||
+    String(rawSub.hwId || '').startsWith('me_')
   );
 
-  const isBookTest = Boolean(
+  const isBookTest = !isPhysicalExam && Boolean(
     matchedBook ||
     matchedBookTest ||
     rawSub.bookId ||
