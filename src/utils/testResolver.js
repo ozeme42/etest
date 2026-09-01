@@ -1251,6 +1251,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     const isDirectIdMatch = (sTestId && (sTestId === specId || sClean === specClean || (specUuid && sUuid === specUuid))) ||
                             (sRealTestId && (sRealTestId === specId || sRealClean === specClean || (specUuid && toUUID(sRealClean) === specUuid))) ||
                             (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid))) ||
+                            (s.id && (String(s.id).includes(specClean) || String(s.id).includes(specId) || (specUuid && String(s.id).includes(specUuid)))) ||
                             (s.metadata?.testId && String(s.metadata.testId) === specId) ||
                             (s.metadata?.realTestId && String(s.metadata.realTestId) === specId) ||
                             (s.metadata?.bookTestId && String(s.metadata.bookTestId) === specId) ||
