@@ -2726,23 +2726,61 @@ export async function dbGetCoachingProfiles() {
   try {
     const { data, error } = await supabase.from('coaching_profiles').select('*');
     if (error) throw error;
-    return (data || []).map(p => {
+
+    // Group and merge profiles by studentId / UUID to prevent duplicate/split records
+    const profileMap = new Map();
+
+    (data || []).forEach(p => {
+      if (!p) return;
       const extraData = p.data || (p.extra_data ? (typeof p.extra_data === 'string' ? JSON.parse(p.extra_data) : p.extra_data) : {});
-      return {
+      const sid = String(p.student_id || extraData.studentId || p.id || '');
+      const sUuid = toUUID(sid) || sid;
+      const mapKey = sUuid || sid;
+
+      const profileObj = {
         id: String(p.id),
-        studentId: String(p.student_id),
-        targetSchool: p.target_school || '',
-        targetNet: p.target_net || 0,
-        learningStyle: p.learning_style || 'Görsel',
-        parentName: p.parent_name || '',
-        parentPhone: p.parent_phone || '',
-        parentNotes: p.parent_notes || '',
-        strengths: p.strengths || '',
-        hobbies: p.hobbies || '',
+        studentId: sid,
+        targetSchool: p.target_school || extraData.targetSchool || '',
+        targetNet: p.target_net || extraData.targetNet || 0,
+        learningStyle: p.learning_style || extraData.learningStyle || 'Görsel',
+        parentName: p.parent_name || extraData.parentName || '',
+        parentPhone: p.parent_phone || extraData.parentPhone || '',
+        parentNotes: p.parent_notes || extraData.parentNotes || '',
+        strengths: p.strengths || extraData.strengths || '',
+        hobbies: p.hobbies || extraData.hobbies || '',
         createdAt: p.created_at,
         ...extraData
       };
+
+      if (!profileMap.has(mapKey)) {
+        profileMap.set(mapKey, profileObj);
+      } else {
+        // Merge profiles: combine weeklyProgram, goals, notes
+        const existing = profileMap.get(mapKey);
+        const existingProg = Array.isArray(existing.weeklyProgram) ? existing.weeklyProgram : [];
+        const incomingProg = Array.isArray(profileObj.weeklyProgram) ? profileObj.weeklyProgram : [];
+
+        const mergedProg = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'].map(d => {
+          const exDay = existingProg.find(x => x.day === d) || { day: d, items: [] };
+          const inDay = incomingProg.find(x => x.day === d) || { day: d, items: [] };
+          const combinedItems = [...(exDay.items || [])];
+          (inDay.items || []).forEach(it => {
+            if (it && !combinedItems.some(c => c.id === it.id)) {
+              combinedItems.push(it);
+            }
+          });
+          return { day: d, items: combinedItems };
+        });
+
+        profileMap.set(mapKey, {
+          ...existing,
+          ...profileObj,
+          weeklyProgram: mergedProg
+        });
+      }
     });
+
+    return Array.from(profileMap.values());
   } catch (err) {
     console.warn('[Supabase] dbGetCoachingProfiles info:', err.message);
     return null;
@@ -2765,44 +2803,25 @@ export async function dbSaveCoachingProfile(profile) {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. Primary Upsert with existing Supabase schema
-    const payload = {
-      id: profileId,
+    // 1. Primary Upsert (studentId as id)
+    const payload1 = {
+      id: rawStudentId,
       student_id: rawStudentId,
       teacher_id: profile.teacherId || profile.teacher_id || null,
       extra_data: fullProfileData
     };
+    await supabase.from('coaching_profiles').upsert([payload1], { onConflict: 'id' });
 
-    let { data, error } = await supabase.from('coaching_profiles').upsert([payload], { onConflict: 'id' }).select().maybeSingle();
+    // 2. Secondary Upsert (cp_ prefix for compatibility)
+    const payload2 = {
+      id: profileId.startsWith('cp_') ? profileId : `cp_${rawStudentId}`,
+      student_id: rawStudentId,
+      teacher_id: profile.teacherId || profile.teacher_id || null,
+      extra_data: fullProfileData
+    };
+    await supabase.from('coaching_profiles').upsert([payload2], { onConflict: 'id' });
 
-    if (error) {
-      // Fallback 1: UUID payload
-      const uuidPayload = {
-        id: uuidProfileId,
-        student_id: uuidStudentId,
-        teacher_id: profile.teacherId ? (toUUID(profile.teacherId) || profile.teacherId) : null,
-        extra_data: fullProfileData
-      };
-      const uuidRes = await supabase.from('coaching_profiles').upsert([uuidPayload], { onConflict: 'id' }).select().maybeSingle();
-      if (!uuidRes.error) {
-        data = uuidRes.data;
-        error = null;
-      } else {
-        // Fallback 2: student_id as primary key
-        const studentKeyPayload = {
-          id: rawStudentId,
-          student_id: rawStudentId,
-          extra_data: fullProfileData
-        };
-        const stRes = await supabase.from('coaching_profiles').upsert([studentKeyPayload], { onConflict: 'id' }).select().maybeSingle();
-        if (!stRes.error) {
-          data = stRes.data;
-          error = null;
-        }
-      }
-    }
-
-    // 2. Also sync individual remedial items to remedial_spaced_repetition table
+    // 3. Also sync individual remedial items to remedial_spaced_repetition table
     if (Array.isArray(profile.weeklyProgram)) {
       try {
         const remedialItems = [];
@@ -2841,7 +2860,7 @@ export async function dbSaveCoachingProfile(profile) {
       }
     }
 
-    return data || payload;
+    return payload1;
   } catch (err) {
     console.warn('[Supabase] dbSaveCoachingProfile catch:', err.message);
     return null;
