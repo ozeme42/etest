@@ -24,6 +24,18 @@ import { resolveTestQuestions } from '../utils/testResolver';
 import { scheduleRemedialTestInProgram } from '../services/remedialSpacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from 'recharts';
 
 const getSubjectConfig = (isDark) => ({
   'Tümü': {
@@ -1444,6 +1456,19 @@ export default function StudentWrongAnswersPage() {
       questionsList
     };
   }, [allSubmissions, studentErrors, currentWrongCount, currentBlankCount, selectedStudent, currentUser, isDark]);
+
+  const mistakeChartData = useMemo(() => {
+    if (!overallMistakeStats?.reasonDefs) return [];
+    return Object.values(overallMistakeStats.reasonDefs).map(r => ({
+      name: r.key,
+      shortName: r.key.replace(/^[^\w\s\u00C0-\u017F]*\s*/, ''),
+      count: r.count,
+      percentage: overallMistakeStats.totalClassified > 0 ? Math.round((r.count / overallMistakeStats.totalClassified) * 100) : 0,
+      color: r.color,
+      bg: r.bg,
+      border: r.border
+    }));
+  }, [overallMistakeStats]);
 
   const totalNotebookCount = filteredStudentErrors.length;
   const totalNotebookPages = notebookPageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalNotebookCount / (Number(notebookPageSize) || 12)));
@@ -4347,6 +4372,205 @@ export default function StudentWrongAnswersPage() {
                       />
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Interaktif Grafikler: Hata Dağılım Pastası & Soru Sayısı Karşılaştırması */}
+            {overallMistakeStats.totalClassified > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.25rem'
+              }}>
+                {/* 1. Hata Sebepleri Dağılımı (Donut Pasta Grafiği) */}
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: 16,
+                  padding: '1.1rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🍩</span> Hata Sebepleri Dağılımı
+                    </h4>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                      %{overallMistakeStats.totalClassified > 0 ? 100 : 0} Dağılım
+                    </span>
+                  </div>
+
+                  <div style={{ width: '100%', height: 210, position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const d = payload[0].payload;
+                              return (
+                                <div style={{
+                                  background: isDark ? '#1e293b' : '#ffffff',
+                                  border: `1.5px solid ${d.color || '#cbd5e1'}`,
+                                  borderRadius: 10,
+                                  padding: '8px 12px',
+                                  boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+                                  fontSize: '0.78rem',
+                                  color: isDark ? '#f8fafc' : '#0f172a'
+                                }}>
+                                  <div style={{ fontWeight: 800, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color }} />
+                                    {d.name}
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                                    <span>Soru Sayısı:</span>
+                                    <strong style={{ color: 'var(--color-text)' }}>{d.count} soru</strong>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                                    <span>Oran:</span>
+                                    <strong style={{ color: d.color }}>%{d.percentage}</strong>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Pie
+                          data={mistakeChartData.filter(d => d.count > 0)}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={52}
+                          outerRadius={80}
+                          paddingAngle={4}
+                          dataKey="count"
+                        >
+                          {mistakeChartData.filter(d => d.count > 0).map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--color-surface, #ffffff)" strokeWidth={2} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {/* Ortadaki Özet Sayaç */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                      pointerEvents: 'none'
+                    }}>
+                      <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1 }}>
+                        {overallMistakeStats.totalClassified}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        Soru
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mini Legend Listesi */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 4 }}>
+                    {mistakeChartData.filter(d => d.count > 0).map(d => (
+                      <div
+                        key={d.name}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          background: d.bg,
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: d.color
+                        }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: d.color }} />
+                        {d.shortName}: %{d.percentage} ({d.count})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Hata Sebeplerine Göre Soru Sayısı (Bar Çubuk Grafiği) */}
+                <div style={{
+                  background: 'var(--color-surface-hover, #f8fafc)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: 16,
+                  padding: '1.1rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>📊</span> Hata Sayısı Karşılaştırması
+                    </h4>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                      Soru Adedi
+                    </span>
+                  </div>
+
+                  <div style={{ width: '100%', height: 250 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={mistakeChartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'} vertical={false} />
+                        <XAxis
+                          dataKey="shortName"
+                          interval={0}
+                          angle={-20}
+                          textAnchor="end"
+                          tick={{ fontSize: 11, fill: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}
+                          tickLine={false}
+                          axisLine={{ stroke: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}
+                        />
+                        <YAxis
+                          allowDecimals={false}
+                          tick={{ fontSize: 11, fill: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <RechartsTooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const d = payload[0].payload;
+                              return (
+                                <div style={{
+                                  background: isDark ? '#1e293b' : '#ffffff',
+                                  border: `1.5px solid ${d.color || '#cbd5e1'}`,
+                                  borderRadius: 10,
+                                  padding: '8px 12px',
+                                  boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+                                  fontSize: '0.78rem',
+                                  color: isDark ? '#f8fafc' : '#0f172a'
+                                }}>
+                                  <div style={{ fontWeight: 800, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color }} />
+                                    {d.name}
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                                    <span>Soru Sayısı:</span>
+                                    <strong style={{ color: 'var(--color-text)' }}>{d.count} soru</strong>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                                    <span>Oran:</span>
+                                    <strong style={{ color: d.color }}>%{d.percentage}</strong>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                          {mistakeChartData.map((entry, index) => (
+                            <Cell key={`bar-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
             )}
