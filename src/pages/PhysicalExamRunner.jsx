@@ -1069,7 +1069,7 @@ export default function PhysicalExamRunner() {
   const currentAnswers = answers[activeSubject?.name] || [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'auto' : '100vh', minHeight: isMobile ? '100vh' : '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: isMobile ? 'visible' : 'hidden' }}>
       
       {/* Save Feedback Toast */}
       {savedFeedbackToast && (
@@ -1372,6 +1372,23 @@ export default function PhysicalExamRunner() {
             flex-direction: column !important;
           }
         }
+        [data-optical-panel] {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+        }
+        [data-optical-panel]::-webkit-scrollbar {
+          width: 7px;
+        }
+        [data-optical-panel]::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        [data-optical-panel]::-webkit-scrollbar-thumb {
+          background: rgba(148, 163, 184, 0.4);
+          border-radius: 99px;
+        }
+        [data-optical-panel]::-webkit-scrollbar-thumb:hover {
+          background: rgba(100, 116, 139, 0.7);
+        }
       `}</style>
 
       {/* ── MAIN WORKSPACE: PDF (side/top) + OPTICAL AREA (scrollable) ── */}
@@ -1392,7 +1409,7 @@ export default function PhysicalExamRunner() {
             title={homework.title}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
-            defaultWidth="72%"
+            defaultWidth="58%"
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
@@ -1403,14 +1420,19 @@ export default function PhysicalExamRunner() {
         {showOptikForm && (
           <div 
             ref={opticalContainerRef}
+            data-optical-panel
+            tabIndex={0}
             style={{ 
               flex: 1, 
               overflowY: isMobile ? 'visible' : 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
               minWidth: 0, 
+              height: isMobile ? 'auto' : '100%',
               background: 'var(--color-bg)',
-              transition: 'all 0.15s ease'
+              outline: 'none',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch'
             }}
           >
             <div style={{ 

@@ -34,33 +34,34 @@ export default function DrawingCanvas({ isOpen, onClose }) {
     return () => window.removeEventListener('resize', handleResize);
   }, [isOpen]);
 
-  // Prevent mobile browser scrolling whenever DrawingCanvas is open and active
+  // Prevent scrolling ONLY on the canvas itself when DrawingCanvas is open and active
   useEffect(() => {
-    if (!isOpen || isMinimized) return;
+    if (!isOpen || isMinimized) {
+      document.body.classList.remove('global-draw-lock');
+      return;
+    }
     const canvas = canvasRef.current;
 
-    const preventScroll = (e) => {
-      if (e.cancelable) {
-        e.preventDefault();
+    const preventCanvasScroll = (e) => {
+      if (e.target === canvas || canvas?.contains(e.target)) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
       }
     };
 
     if (canvas) {
-      canvas.addEventListener('touchstart', preventScroll, { passive: false });
-      canvas.addEventListener('touchmove', preventScroll, { passive: false });
+      canvas.addEventListener('touchstart', preventCanvasScroll, { passive: false });
+      canvas.addEventListener('touchmove', preventCanvasScroll, { passive: false });
+      canvas.addEventListener('wheel', preventCanvasScroll, { passive: false });
     }
-
-    window.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
-    window.addEventListener('wheel', preventScroll, { passive: false, capture: true });
-    document.body.classList.add('global-draw-lock');
 
     return () => {
       if (canvas) {
-        canvas.removeEventListener('touchstart', preventScroll);
-        canvas.removeEventListener('touchmove', preventScroll);
+        canvas.removeEventListener('touchstart', preventCanvasScroll);
+        canvas.removeEventListener('touchmove', preventCanvasScroll);
+        canvas.removeEventListener('wheel', preventCanvasScroll);
       }
-      window.removeEventListener('touchmove', preventScroll, { capture: true });
-      window.removeEventListener('wheel', preventScroll, { capture: true });
       document.body.classList.remove('global-draw-lock');
     };
   }, [isOpen, isMinimized]);

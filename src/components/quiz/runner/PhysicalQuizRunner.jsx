@@ -546,7 +546,22 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
 
         {/* RIGHT/BOTTOM: Form — scrollable */}
         {showOptikForm && (
-          <div style={{ flex: 1, overflowY: isMobile ? 'visible' : 'auto', display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--color-bg)' }}>
+          <div 
+            data-optical-panel
+            tabIndex={0}
+            style={{ 
+              flex: 1, 
+              overflowY: isMobile ? 'visible' : 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              minWidth: 0, 
+              height: isMobile ? 'auto' : '100%',
+              background: 'var(--color-bg)',
+              outline: 'none',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             <div style={{ maxWidth: pdfMode === 'hidden' ? 900 : undefined, width: '100%', margin: pdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxSizing: 'border-box' }}>
               <div style={{ background: isOpenEndedMode ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : 'linear-gradient(135deg, #059669, #047857)', borderRadius: '1.25rem', padding: '1.25rem 1.5rem', color: 'white', boxShadow: isOpenEndedMode ? '0 8px 24px rgba(124,58,237,0.2)' : '0 8px 24px rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '1rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
