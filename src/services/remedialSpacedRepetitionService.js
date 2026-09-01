@@ -38,23 +38,28 @@ export function scheduleRemedialTestInProgram({
     const newItem = {
       id: `remedial_stage_${testItem.id}_${stageNum}_${Date.now()}`,
       text: `👨‍🏫 [${stageNum}. Tekrar (${intervalDays}g)] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+      title: testItem.title || testItem.name || 'Özel Telafi Testi',
       topic: `[${stageNum}. Tekrar] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
       subject: testItem.subject || 'Genel',
       qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       testId: testItem.id,
+      realTestId: testItem.id,
       hwId: testItem.hwId || testItem.id,
       type: 'remedialTest',
       taskType: 'remedialTest',
       isTeacherRemedial: true,
       isRemedial: true,
+      isRemedialTest: true,
       stage: stageNum,
       totalStages: intervals.length,
       intervalDays,
       done: false,
       targetDayKey,
       scheduledDate: dateStr,
+      singleDate: dateStr,
+      specificDate: dateStr,
       date: dateStr
     };
 
@@ -75,6 +80,63 @@ export function scheduleRemedialTestInProgram({
   });
 
   return updatedProg;
+}
+
+/**
+ * Determines if a specific remedial test repetition stage is completed.
+ * Rule:
+ * 1. If student reached 100% correct (0 mistakes), isMastered = true and ALL stages are done.
+ * 2. Otherwise, Stage N is completed only if total valid attempts >= N.
+ */
+export function isRemedialStageDone(item, submissions = [], studentId = null) {
+  if (!item) return false;
+  const specificTestId = item.testId || item.realTestId || item.bookTestId || item.hwId || item.id;
+  if (!specificTestId) return false;
+
+  const tIdStr = String(specificTestId);
+  const studentIdStr = studentId ? String(studentId) : '';
+
+  const matchingSubs = (submissions || []).filter(s => {
+    if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+    if (studentIdStr) {
+      const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      if (sId && sId !== studentIdStr) return false;
+    }
+
+    const subFields = [
+      s.testId,
+      s.test_id,
+      s.hwId,
+      s.realTestId,
+      s.bookTestId,
+      s.id,
+      s.metadata?.realTestId,
+      s.metadata?.bookTestId,
+      s.metadata?.realId,
+      s.metadata?.testId
+    ].filter(Boolean).map(String);
+
+    return subFields.some(sf => sf && (
+      sf === tIdStr ||
+      sf === tIdStr.replace(/^bt_|^q_|^hw_/, '') ||
+      (item.title && s.testTitle && s.testTitle.toLowerCase().trim() === String(item.title).toLowerCase().trim())
+    ));
+  });
+
+  const targetStage = Number(item.stage || 1);
+  const solveCount = matchingSubs.length;
+
+  if (solveCount === 0) return false;
+
+  // Check 100% Mastery
+  const isMastered = matchingSubs.some(s => {
+    const corr = Number(s.correctCount ?? s.correct ?? 0);
+    const tot = Number(s.totalQuestions ?? s.total ?? 0);
+    return tot > 0 && corr === tot;
+  });
+
+  if (isMastered) return true;
+  return solveCount >= targetStage;
 }
 
 /**

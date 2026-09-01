@@ -11,6 +11,7 @@ import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import { isRemedialStageDone } from '../services/remedialSpacedRepetitionService';
 
 /* ─── Constants ─── */
 export const DAYS = [
@@ -169,7 +170,6 @@ export function normalizeWeeklyProgram(raw) {
 
 export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null, bookTests = [], books = []) {
   if (!item) return false;
-  if (item.done || item.isCompleted) return true;
 
   const studentIdStr = String(studentId || '');
   const studentUuidStr = String(toUUID(studentId) || '');
@@ -180,7 +180,24 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
     return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
   };
 
-  const specificTestId = item.testId || item.realTestId || item.bookTestId || null;
+  const specificTestId = item.testId || item.realTestId || item.bookTestId || item.hwId || null;
+
+  // CASE 0: REMEDIAL TEST WITH SPACED REPETITION / STAGES / %100 MASTERY
+  const isRemedial = Boolean(
+    item.type === 'remedialTest' ||
+    item.taskType === 'remedialTest' ||
+    item.isTeacherRemedial ||
+    item.isRemedial ||
+    item.isRemedialTest ||
+    item.stage !== undefined ||
+    String(item.text || item.title || '').includes('Tekrar')
+  );
+
+  if (isRemedial && specificTestId) {
+    return isRemedialStageDone(item, submissions, studentId);
+  }
+
+  if (item.done || item.isCompleted) return true;
 
   // CASE 1: SPECIFIC TEST / QUIZ TASK (MUST match the exact test ID)
   if (specificTestId) {

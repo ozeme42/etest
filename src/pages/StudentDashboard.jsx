@@ -42,6 +42,7 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { syncWidgetData } from '../services/widgetSyncService';
+import { isRemedialStageDone } from '../services/remedialSpacedRepetitionService';
 
 // Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
@@ -752,6 +753,24 @@ export default function StudentDashboard() {
 
   const isItemSolved = useCallback((item) => {
     if (!item) return false;
+
+    const tId = item.testId || item.bookTestId || item.realTestId || item.hwId;
+
+    // CASE 0: REMEDIAL TEST WITH SPACED REPETITION / STAGES / %100 MASTERY
+    const isRemedial = Boolean(
+      item.type === 'remedialTest' ||
+      item.taskType === 'remedialTest' ||
+      item.isTeacherRemedial ||
+      item.isRemedial ||
+      item.isRemedialTest ||
+      item.stage !== undefined ||
+      String(item.text || item.title || '').includes('Tekrar')
+    );
+
+    if (isRemedial && tId) {
+      return isRemedialStageDone(item, studentSubmissions, selectedStudent?.id);
+    }
+
     if (item.done || item.isCompleted) return true;
     const normalizeKey = (str) => String(str || '')
       .toLowerCase()
@@ -760,7 +779,6 @@ export default function StudentDashboard() {
       .replace(/[^a-z0-9ğüşıöç]/g, '')
       .trim();
 
-    const tId = item.testId || item.bookTestId || item.realTestId;
     const bId = item.bookId ? String(item.bookId) : '';
     const sName = normalizeKey(item.subject || item.subjectName);
     const bTitle = normalizeKey(item.bookTitle);
