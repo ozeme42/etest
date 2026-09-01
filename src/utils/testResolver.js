@@ -1148,7 +1148,10 @@ export function computeStudentAnalyticsData({
   const homeworksOnly = [];
 
   unifiedSubs.forEach(s => {
-    const isTrial = Boolean(
+    // 🛡️ Explicit Exam / Trial Check — Tracked books are standard books and MUST NOT be in trials!
+    const isStandardBookSub = s.bookId && books.some(b => (String(b.id) === String(s.bookId) || toUUID(b.id) === toUUID(s.bookId)) && isStandardOrMixedBook(b));
+
+    const isTrial = !isStandardBookSub && Boolean(
       s.typeKey === 'physicalExam' ||
       s.sourceType === 'physicalExam' ||
       s.isTrial ||
@@ -1157,7 +1160,6 @@ export function computeStudentAnalyticsData({
       s.isTrialExam ||
       String(s.id || '').startsWith('me_') ||
       String(s.testId || '').startsWith('me_') ||
-      /deneme|lgs|bursluluk|kds|tarama/i.test(String(s.fullTitle || s.testTitle || s.title || '')) ||
       (s.bookId && books.some(b => (String(b.id) === String(s.bookId) || toUUID(b.id) === toUUID(s.bookId)) && isExamBook(b))) ||
       (s.hwId && homeworks.some(h => (String(h.id) === String(s.hwId) || toUUID(h.id) === toUUID(s.hwId)) && isExamBook(h)))
     );
