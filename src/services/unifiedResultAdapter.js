@@ -745,6 +745,17 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const isPendingEvaluation = isSubWritten && !isEvaluated;
 
+  let subjectStats = rawSub.subjectStats || rawSub.metadata?.subjectStats;
+  if (!subjectStats && matchedHw?.submissions) {
+    const hwSub = matchedHw.submissions.find(s => {
+      const sSid = String(s.studentId || s.student_id || '');
+      return sSid === String(studentId) || (toUUID(sSid) && toUUID(sSid) === String(studentId));
+    });
+    if (hwSub?.subjectStats) {
+      subjectStats = hwSub.subjectStats;
+    }
+  }
+
   // Extract per-subject breakdown for multi-subject or single-subject tests
   const scores = {};
   if (rawSub.scores && typeof rawSub.scores === 'object') {
@@ -755,15 +766,15 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const net = v.net !== undefined ? Number(v.net) : parseFloat((d - y / 4).toFixed(2));
       scores[k] = { d, y, b, correct: d, wrong: y, empty: b, blank: b, net };
     });
-  } else if (rawSub.subjectStats && typeof rawSub.subjectStats === 'object') {
-    const rawList = Array.isArray(rawSub.subjectStats) ? rawSub.subjectStats : Object.values(rawSub.subjectStats);
+  } else if (subjectStats) {
+    const rawList = Array.isArray(subjectStats) ? subjectStats : (Array.isArray(subjectStats.subjectStats) ? subjectStats.subjectStats : Object.values(subjectStats));
     rawList.forEach(item => {
       if (item && item.name) {
         const d = Number(item.correct ?? item.d ?? 0);
         const y = Number(item.wrong ?? item.y ?? 0);
         const b = Number(item.blank ?? item.b ?? item.empty ?? 0);
         const net = item.net !== undefined ? Number(item.net) : parseFloat((d - y / 4).toFixed(2));
-        scores[item.name] = { d, y, b, correct: d, wrong: y, empty: b, blank: b, net };
+        scores[item.name] = { d, y, b, correct: d, wrong: y, empty: b, blank: b, net, totalQ: item.count || (d + y + b) };
       }
     });
   }
@@ -782,6 +793,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     };
   }
 
+  const isMultiSubjectExam = Object.keys(scores).length > 1 || (isPhysicalExam && (matchedHw?.title || cleanBookTitle));
+  const finalDisplayTitle = isMultiSubjectExam ? (matchedHw?.title || cleanBookTitle || rawSub.title || testName) : fullTitle;
+  const finalSubjectName = isMultiSubjectExam ? 'Genel' : subjectName;
+
   return {
     id: uniqueId,
     submissionId: uniqueId,
@@ -793,15 +808,15 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     testId: realTestId,
     bookTestId: realTestId,
     realTestId,
-    testName,
-    testTitle: fullTitle,
-    title: testName,
-    fullTitle,
+    testName: isMultiSubjectExam ? finalDisplayTitle : testName,
+    testTitle: finalDisplayTitle,
+    title: isMultiSubjectExam ? finalDisplayTitle : testName,
+    fullTitle: finalDisplayTitle,
     bookId: bookId || null,
     bookTitle: cleanBookTitle,
-    subjectId: matchedSubject?.id || null,
-    subjectName,
-    subject: subjectName,
+    subjectId: isMultiSubjectExam ? null : (matchedSubject?.id || null),
+    subjectName: finalSubjectName,
+    subject: finalSubjectName,
     subjectKey: calculatedSubjectKey,
     topicId: matchedTopic?.id || null,
     topicName,

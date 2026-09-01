@@ -250,9 +250,15 @@ export default function StudentCoachingPage() {
   });
   const [quoteIdx, setQuoteIdx] = useState(0);
   const [chartMetric, setChartMetric] = useState('Toplam Net');
-  const [dailyQuestDone, setDailyQuestDone] = useState(() => {
+  const [expandedExams, setExpandedExams] = useState({});
+
+  const toggleExamExpand = (id) => {
+    setExpandedExams(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const dailyQuestDone = (() => {
     return localStorage.getItem('dailyQuestDone_' + today()) === 'true';
-  });
+  })();
 
   const handleGroupProgressSubmit = (unitKey, amountVal) => {
     const amount = parseFloat(amountVal) || 0;
@@ -3505,48 +3511,128 @@ export default function StudentCoachingPage() {
 
                 {/* Deneme Listesi */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {generalTrialExams.map((s, i) => (
-                    <div key={s.id || i} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0.85rem 1rem', background: i === 0 ? '#f5f3ff' : '#f8fafc', borderRadius: '0.85rem', border: i === 0 ? '1.5px solid #ddd6fe' : '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: i === 0 ? '#7c3aed' : '#e2e8f0', color: i === 0 ? 'white' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.75rem', flexShrink: 0 }}>{i + 1}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{s.title}</span>
-                            {s.sourceType === 'online' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.45rem', borderRadius: 4 }}>⚡ Online Sınav</span>
-                            )}
-                            {s.sourceType === 'optik' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
-                            )}
-                            {s.sourceType === 'manual' && (
-                              <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>Tarih: {s.date}</div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#7c3aed' }}>{s.totalNet}</span>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>net</span>
-                          <button type="button" onClick={() => s.sourceType === 'online' ? deleteSubmission(s.id) : deleteMockExam(s.id)} title="Denemeyi Sil" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}>
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
+                  {generalTrialExams.map((s, i) => {
+                    const examKey = s.id || i;
+                    const isExpanded = Boolean(expandedExams[examKey]);
+                    const subEntries = Object.entries(s.scores || {});
+                    const subCount = subEntries.length;
 
-                      {/* Ders bazlı fiziki deneme detayları */}
-                      {s.scores && Object.keys(s.scores).length > 0 && (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, pt: 4, borderTop: '1px border-dashed #e2e8f0' }}>
-                          {Object.entries(s.scores).map(([subName, sc], idx) => (
-                            <div key={`${subName}_${idx}`} style={{ fontSize: '0.7rem', fontWeight: 700, background: 'white', border: '1px solid #e2e8f0', color: '#334155', padding: '0.2rem 0.5rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <span style={{ color: '#64748b', fontWeight: 800 }}>{subName}:</span>
-                              <span style={{ color: '#7c3aed', fontWeight: 900 }}>{sc.net} Net</span>
-                              <span style={{ color: '#94a3b8', fontSize: '0.65rem' }}>({sc.correct || 0}D {sc.wrong || 0}Y {sc.empty || 0}B)</span>
+                    return (
+                      <div 
+                        key={examKey} 
+                        style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          background: isExpanded ? 'white' : (i === 0 ? '#f5f3ff' : '#f8fafc'), 
+                          borderRadius: '0.85rem', 
+                          border: isExpanded ? '1.5px solid #7c3aed' : (i === 0 ? '1.5px solid #ddd6fe' : '1px solid #e2e8f0'),
+                          overflow: 'hidden',
+                          boxShadow: isExpanded ? '0 6px 16px -2px rgba(124,58,237,0.15)' : 'none',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div 
+                          onClick={() => toggleExamExpand(examKey)}
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between',
+                            padding: '0.85rem 1rem', 
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            background: isExpanded ? 'rgba(124, 58, 237, 0.04)' : 'transparent'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              background: isExpanded ? '#7c3aed' : (i === 0 ? '#7c3aed' : '#e2e8f0'),
+                              color: isExpanded || i === 0 ? 'white' : '#64748b',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontWeight: 900, fontSize: '0.75rem', flexShrink: 0
+                            }}>
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                             </div>
-                          ))}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{s.title}</span>
+                                {s.sourceType === 'online' && (
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#e0f2fe', color: '#0369a1', padding: '0.15rem 0.45rem', borderRadius: 4 }}>⚡ Online Sınav</span>
+                                )}
+                                {s.sourceType === 'optik' && (
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '0.15rem 0.45rem', borderRadius: 4 }}>🎯 Optik Form Deneme</span>
+                                )}
+                                {s.sourceType === 'manual' && (
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '0.15rem 0.45rem', borderRadius: 4 }}>📋 Fiziki Deneme</span>
+                                )}
+                                {subCount > 0 && (
+                                  <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.65rem' }}>
+                                    📚 {subCount} Ders {isExpanded ? '(Açık)' : '(Dersleri Gör)'}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>📅 {s.date}</div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <span style={{ fontWeight: 900, fontSize: '1.15rem', color: '#7c3aed' }}>{s.totalNet}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, marginLeft: 2 }}>Net</span>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`"${s.title}" denemesini silmek istediğinize emin misiniz?`)) {
+                                  s.sourceType === 'online' ? deleteSubmission(s.id) : deleteMockExam(s.id);
+                                }
+                              }} 
+                              title="Denemeyi Sil" 
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, marginLeft: 4 }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Ders bazlı deneme detayları (Sadece açılınca görünür) */}
+                        {isExpanded && subCount > 0 && (
+                          <div style={{ padding: '0 1rem 0.85rem' }}>
+                            <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '0.65rem' }}>
+                              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '0.4rem' }}>
+                                📑 Ders Bazlı Sınav Sonuçları:
+                              </div>
+                              <table style={{ width: '100%', fontSize: '0.75rem', borderCollapse: 'collapse', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                <thead>
+                                  <tr style={{ color: '#64748b', textAlign: 'left', background: 'rgba(0,0,0,0.03)' }}>
+                                    <th style={{ padding: '0.5rem 0.6rem', borderBottom: '1.5px solid #e2e8f0' }}>Ders</th>
+                                    <th style={{ padding: '0.5rem 0.4rem', borderBottom: '1.5px solid #e2e8f0', textAlign: 'center' }}>D</th>
+                                    <th style={{ padding: '0.5rem 0.4rem', borderBottom: '1.5px solid #e2e8f0', textAlign: 'center' }}>Y</th>
+                                    <th style={{ padding: '0.5rem 0.4rem', borderBottom: '1.5px solid #e2e8f0', textAlign: 'center' }}>B</th>
+                                    <th style={{ padding: '0.5rem 0.6rem', borderBottom: '1.5px solid #e2e8f0', textAlign: 'center' }}>Net</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {subEntries.map(([subName, sc], idx) => (
+                                    <tr key={`${subName}_${idx}`} style={{ background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.6)', borderBottom: '1px solid #e2e8f0' }}>
+                                      <td style={{ padding: '0.5rem 0.6rem', fontWeight: 800, color: '#334155' }}>{subName}</td>
+                                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#10b981', fontWeight: 800 }}>{sc.d ?? sc.correct ?? 0}</td>
+                                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#ef4444', fontWeight: 800 }}>{sc.y ?? sc.wrong ?? 0}</td>
+                                      <td style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: '#94a3b8', fontWeight: 800 }}>{sc.b ?? sc.empty ?? sc.blank ?? 0}</td>
+                                      <td style={{ padding: '0.5rem 0.6rem', textAlign: 'center', color: '#7c3aed', fontWeight: 900, fontSize: '0.82rem' }}>{Number(sc.net || 0).toFixed(2)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

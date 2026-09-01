@@ -4023,77 +4023,128 @@ export default function MyCoachingPage() {
 
                 {/* Deneme Listesi */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {generalTrialExams.map((s, i) => (
-                    <div key={s.id || i} style={{ background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', backdropFilter: 'blur(12px)', borderRadius: '1rem', border: i === 0 ? '1.5px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border, rgba(255,255,255,1))', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>{s.title}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <span>📅 {s.date}</span>
-                            {s.sourceType === 'manual' ? (
-                              <span style={{ background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Fiziki Giriş</span>
-                            ) : (
-                              <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Optik / Online</span>
+                  {generalTrialExams.map((s, i) => {
+                    const examKey = s.id || i;
+                    const isExpanded = Boolean(expandedExams[examKey]);
+                    const subEntries = Object.entries(s.scores || {});
+                    const subCount = subEntries.length;
+
+                    return (
+                      <div 
+                        key={examKey} 
+                        style={{ 
+                          background: 'var(--color-surface, rgba(255, 255, 255, 0.7))', 
+                          backdropFilter: 'blur(12px)', 
+                          borderRadius: '1rem', 
+                          border: isExpanded ? '1.5px solid #7c3aed' : (i === 0 ? '1.5px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border, rgba(255,255,255,1))'), 
+                          overflow: 'hidden', 
+                          boxShadow: isExpanded ? '0 8px 20px -4px rgba(124,58,237,0.15)' : '0 2px 8px rgba(0,0,0,0.03)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div 
+                          onClick={() => toggleExamExpand(examKey)}
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '1rem 1.25rem', 
+                            flexWrap: 'wrap', 
+                            gap: '0.75rem',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            background: isExpanded ? 'rgba(124, 58, 237, 0.04)' : 'transparent'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 32, height: 32, borderRadius: 8,
+                              background: isExpanded ? '#7c3aed' : 'rgba(124, 58, 237, 0.1)',
+                              color: isExpanded ? 'white' : '#7c3aed',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}>
+                              {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--color-text, #1e293b)' }}>{s.title}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                <span>📅 {s.date}</span>
+                                {s.sourceType === 'manual' ? (
+                                  <span style={{ background: 'rgba(124, 58, 237, 0.1)', color: '#7c3aed', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Fiziki Giriş</span>
+                                ) : (
+                                  <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#059669', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>Optik / Online</span>
+                                )}
+                                {subCount > 0 && (
+                                  <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', padding: '1px 6px', borderRadius: 4, fontWeight: 700, fontSize: '0.7rem' }}>
+                                    📚 {subCount} Ders {isExpanded ? '(Açık)' : '(Dersleri Gör)'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#7c3aed' }}>{s.totalNet} Net</div>
+                              {s.totalQuestions > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)' }}>{s.totalQuestions} Soru</div>}
+                            </div>
+
+                            {s.sourceType === 'manual' && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`"${s.title}" denemesini silmek istediğinize emin misiniz?`)) {
+                                    deleteMockExam(s.id);
+                                  }
+                                }}
+                                title="Denemeyi Sil"
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #94a3b8)', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #94a3b8)'}
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             )}
                           </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#7c3aed' }}>{s.totalNet} Net</div>
-                            {s.totalQuestions > 0 && <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)' }}>{s.totalQuestions} Soru</div>}
-                          </div>
-
-                          {s.sourceType === 'manual' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm(`"${s.title}" denemesini silmek istediğinize emin misiniz?`)) {
-                                  deleteMockExam(s.id);
-                                }
-                              }}
-                              title="Denemeyi Sil"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted, #94a3b8)', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                              onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted, #94a3b8)'}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Score breakdown per subject */}
-                      {s.scores && Object.keys(s.scores).length > 0 && (
-                        <div style={{ padding: '0 1.25rem 1rem' }}>
-                          <div style={{ borderTop: '1px dashed var(--color-border, #e2e8f0)', paddingTop: '0.75rem' }}>
-                            <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse' }}>
-                              <thead>
-                                <tr style={{ color: 'var(--color-text-muted, #64748b)', textAlign: 'left' }}>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)' }}>Ders</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Doğru (D)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Yanlış (Y)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Boş (B)</th>
-                                  <th style={{ padding: '0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Net</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {Object.entries(s.scores).map(([subName, sc], idx) => (
-                                  <tr key={`${subName}_${idx}`} style={{ background: idx % 2 === 0 ? 'var(--color-surface-hover, rgba(255,255,255,0.4))' : 'transparent', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
-                                    <td style={{ padding: '0.5rem', fontWeight: 700, color: 'var(--color-text, #334155)' }}>{subName}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>{sc.d || 0}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#ef4444', fontWeight: 700 }}>{sc.y || 0}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 700 }}>{sc.b || 0}</td>
-                                    <td style={{ padding: '0.5rem', textAlign: 'center', color: '#a855f7', fontWeight: 900 }}>{Number(sc.net || 0).toFixed(2)}</td>
+                        {/* Score breakdown per subject (Visible only when expanded) */}
+                        {isExpanded && subCount > 0 && (
+                          <div style={{ padding: '0 1.25rem 1.25rem' }}>
+                            <div style={{ borderTop: '1px dashed var(--color-border, #e2e8f0)', paddingTop: '0.85rem' }}>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: '0.5rem' }}>
+                                📑 Ders Bazlı Sınav Sonuçları:
+                              </div>
+                              <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                <thead>
+                                  <tr style={{ color: 'var(--color-text-muted, #64748b)', textAlign: 'left', background: 'var(--color-surface-hover, rgba(0,0,0,0.03))' }}>
+                                    <th style={{ padding: '0.6rem 0.75rem', borderBottom: '2px solid var(--color-border, #e2e8f0)' }}>Ders</th>
+                                    <th style={{ padding: '0.6rem 0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Doğru (D)</th>
+                                    <th style={{ padding: '0.6rem 0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Yanlış (Y)</th>
+                                    <th style={{ padding: '0.6rem 0.5rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Boş (B)</th>
+                                    <th style={{ padding: '0.6rem 0.75rem', borderBottom: '2px solid var(--color-border, #e2e8f0)', textAlign: 'center' }}>Net</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {subEntries.map(([subName, sc], idx) => (
+                                    <tr key={`${subName}_${idx}`} style={{ background: idx % 2 === 0 ? 'transparent' : 'var(--color-surface-hover, rgba(255,255,255,0.4))', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+                                      <td style={{ padding: '0.6rem 0.75rem', fontWeight: 800, color: 'var(--color-text, #334155)' }}>{subName}</td>
+                                      <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#10b981', fontWeight: 800 }}>{sc.d ?? sc.correct ?? 0}</td>
+                                      <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#ef4444', fontWeight: 800 }}>{sc.y ?? sc.wrong ?? 0}</td>
+                                      <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: 'var(--color-text-muted, #94a3b8)', fontWeight: 800 }}>{sc.b ?? sc.empty ?? sc.blank ?? 0}</td>
+                                      <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', color: '#7c3aed', fontWeight: 900, fontSize: '0.85rem' }}>{Number(sc.net || 0).toFixed(2)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
