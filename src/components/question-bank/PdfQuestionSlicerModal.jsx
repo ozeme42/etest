@@ -914,11 +914,22 @@ export default function PdfQuestionSlicerModal({
     // 2. For each canonical test, find mistakes using strict submission matching
     const list = [];
 
-    const getCorrectLetter = (q, ak) => {
+    const getCorrectAnswerValue = (q, ak) => {
+      if (!ak) return '';
       const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
-      if (typeof val === 'string' && /^[A-Ea-e]$/.test(val.trim())) return val.trim().toUpperCase();
-      if (typeof val === 'number' && val >= 0 && val <= 4) return String.fromCharCode(65 + val);
-      return null;
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (/^[A-Ea-e]$/.test(trimmed)) return trimmed.toUpperCase();
+        return trimmed;
+      }
+      if (typeof val === 'number') {
+        if (val >= 0 && val <= 4 && Number.isInteger(val)) {
+          return String.fromCharCode(65 + val);
+        }
+        return String(val);
+      }
+      return String(val);
     };
 
     canonicalTests.forEach(testObj => {
@@ -982,8 +993,8 @@ export default function PdfQuestionSlicerModal({
       const wrongList = Array.from(wrongQNos).sort((a, b) => a - b);
       const akMap = {};
       wrongList.forEach(q => {
-        const letter = getCorrectLetter(q, testObj.answerKey);
-        if (letter) akMap[q] = letter;
+        const val = getCorrectAnswerValue(q, testObj.answerKey);
+        if (val) akMap[q] = val;
       });
 
       list.push({
@@ -1120,13 +1131,16 @@ export default function PdfQuestionSlicerModal({
         sortedTests.forEach(t => {
           const sortedWrongQNos = [...(t.wrongQuestions || [])].sort((a, b) => Number(a) - Number(b));
           sortedWrongQNos.forEach(qNo => {
+            const rawAns = (t.answerKeyMap && t.answerKeyMap[qNo]) !== undefined ? t.answerKeyMap[qNo] : '';
+            const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
             list.push({
               testId: t.testId,
               testName: t.testName || t.name || t.title,
               unitName: t.unitName,
               subjectName: t.subjectName,
               qNo: qNo,
-              correctAnswer: (t.answerKeyMap && t.answerKeyMap[qNo]) || 'A'
+              correctAnswer: rawAns,
+              isOpenEnded: isOe
             });
           });
         });
@@ -1181,13 +1195,16 @@ export default function PdfQuestionSlicerModal({
       const firstTest = bookMistakesList[0];
       if (firstTest && firstTest.wrongQuestions.length > 0) {
         const qNo = firstTest.wrongQuestions[0];
+        const rawAns = (firstTest.answerKeyMap && firstTest.answerKeyMap[qNo]) !== undefined ? firstTest.answerKeyMap[qNo] : '';
+        const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
         setActiveTargetQuestion({
           testId: firstTest.testId,
           testName: firstTest.testName,
           unitName: firstTest.unitName,
           subjectName: firstTest.subjectName,
           qNo: qNo,
-          correctAnswer: firstTest.answerKeyMap[qNo] || 'A'
+          correctAnswer: rawAns,
+          isOpenEnded: isOe
         });
       }
     }
@@ -1512,17 +1529,23 @@ export default function PdfQuestionSlicerModal({
   const handleSliceQuestionOnPage = ({ rect, page, image, sizeKb }) => {
     const nextQNo = slicedQuestions.length + 1;
     let assignedTitle = `${nextQNo}. Soru`;
-    let assignedAnswer = 'A';
+    let assignedAnswer = '';
     let assignedTestId = null;
     let originalQNo = null;
+    let isOe = false;
 
     if (activeTargetQuestion) {
       const sPrefix = activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : '';
       const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
       assignedTitle = `${sPrefix}${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
-      assignedAnswer = activeTargetQuestion.correctAnswer || 'A';
+      assignedAnswer = activeTargetQuestion.correctAnswer !== undefined && activeTargetQuestion.correctAnswer !== null ? String(activeTargetQuestion.correctAnswer).trim() : '';
       assignedTestId = activeTargetQuestion.testId;
       originalQNo = activeTargetQuestion.qNo;
+      isOe = Boolean(activeTargetQuestion.isOpenEnded || (assignedAnswer && !/^[A-Ea-e]$/.test(assignedAnswer)));
+    }
+
+    if (!assignedAnswer && !isOe) {
+      assignedAnswer = 'A';
     }
 
     const newQuestion = {
@@ -1531,8 +1554,11 @@ export default function PdfQuestionSlicerModal({
       title: assignedTitle,
       image: image,
       sizeKb: sizeKb || 50,
+      type: isOe ? 'acik_uclu' : 'coktan_secmeli',
+      questionType: isOe ? 'acik_uclu' : 'coktan_secmeli',
+      isOpenEnded: isOe,
       correctAnswer: assignedAnswer,
-      optionCount: defaultOptionCount,
+      optionCount: isOe ? null : defaultOptionCount,
       subject: activeTargetQuestion?.subjectName || selectedSubject,
       grade: selectedGrade,
       page: page,
@@ -1549,13 +1575,16 @@ export default function PdfQuestionSlicerModal({
         for (const q of t.wrongQuestions) {
           const isAlreadyDone = [...slicedQuestions, newQuestion].some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === q);
           if (!isAlreadyDone) {
+            const rawAns = (t.answerKeyMap && t.answerKeyMap[q]) !== undefined ? t.answerKeyMap[q] : '';
+            const targetOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
             setActiveTargetQuestion({
               testId: t.testId,
               testName: t.testName,
               unitName: t.unitName,
               subjectName: t.subjectName,
               qNo: q,
-              correctAnswer: t.answerKeyMap[q] || 'A'
+              correctAnswer: rawAns,
+              isOpenEnded: targetOe
             });
             foundNext = true;
             break;
@@ -1611,6 +1640,23 @@ export default function PdfQuestionSlicerModal({
     setSlicedQuestions(prev => prev.map(q => q.id === id ? { ...q, correctAnswer: ans } : q));
   };
 
+  const handleToggleQuestionType = (id) => {
+    setSlicedQuestions(prev => prev.map(q => {
+      if (q.id !== id) return q;
+      const willBeOe = !q.isOpenEnded && q.type !== 'acik_uclu';
+      return {
+        ...q,
+        isOpenEnded: willBeOe,
+        type: willBeOe ? 'acik_uclu' : 'coktan_secmeli',
+        questionType: willBeOe ? 'acik_uclu' : 'coktan_secmeli',
+        optionCount: willBeOe ? null : (q.optionCount || defaultOptionCount),
+        correctAnswer: willBeOe
+          ? (q.correctAnswer || '')
+          : (q.correctAnswer && /^[A-Ea-e]$/.test(String(q.correctAnswer).trim()) ? q.correctAnswer : 'A')
+      };
+    }));
+  };
+
   const handleUpdateOptionCount = (id, count) => {
     setSlicedQuestions(prev => prev.map(q => q.id === id ? { ...q, optionCount: count, correctAnswer: (q.correctAnswer && q.correctAnswer.charCodeAt(0) - 65 >= count) ? 'A' : q.correctAnswer } : q));
   };
@@ -1634,11 +1680,13 @@ export default function PdfQuestionSlicerModal({
       const imageAnswersObj = {};
 
       const subQuestions = slicedQuestions.map((s, idx) => {
+        const isOe = Boolean(s.isOpenEnded || s.type === 'acik_uclu' || (s.correctAnswer && !/^[A-Ea-e]$/.test(String(s.correctAnswer).trim())));
         const optCount = Math.max(2, Math.min(5, Number(s.optionCount) || defaultOptionCount));
         const letters = Array.from({ length: optCount }, (_, i) => String.fromCharCode(65 + i));
-        const ansLetter = s.correctAnswer || 'A';
-        answerKeyObj[idx + 1] = ansLetter;
-        imageAnswersObj[idx] = ansLetter.charCodeAt(0) - 65;
+        const ansVal = s.correctAnswer !== undefined && s.correctAnswer !== null ? String(s.correctAnswer).trim() : (isOe ? '' : 'A');
+        
+        answerKeyObj[idx + 1] = ansVal;
+        imageAnswersObj[idx] = isOe ? ansVal : (ansVal.charCodeAt(0) - 65);
 
         return {
           id: `subq_${idx}_${Date.now()}`,
@@ -1648,16 +1696,20 @@ export default function PdfQuestionSlicerModal({
           contentType: 'gorsel',
           contentPayload: s.image,
           imageUrl: s.image,
-          type: 'coktan_secmeli',
-          optionCount: optCount,
-          optionsCount: optCount,
-          options: letters,
-          correctAnswer: ansLetter,
+          type: isOe ? 'acik_uclu' : 'coktan_secmeli',
+          questionType: isOe ? 'acik_uclu' : 'coktan_secmeli',
+          isOpenEnded: isOe,
+          formatType: isOe ? 'open_ended' : 'multiple_choice',
+          optionCount: isOe ? null : optCount,
+          optionsCount: isOe ? null : optCount,
+          options: isOe ? [] : letters,
+          correctAnswer: ansVal,
           sourceTestId: s.sourceTestId || null,
           originalQuestionNo: s.originalQuestionNo || null
         };
       });
 
+      const hasAnyOe = subQuestions.some(sq => sq.isOpenEnded || sq.type === 'acik_uclu');
       const finalTitle = testTitle.trim() || `Kırpılmış Telafi Testi (${slicedQuestions.length} Soru)`;
 
       const isRemedial = mode === 'mistakes';
@@ -1676,7 +1728,9 @@ export default function PdfQuestionSlicerModal({
           gradeId: selectedGrade.replace(/[^0-9]/g, '') || '8',
           grade: selectedGrade,
           contentType: 'gorsel',
-          type: 'coktan_secmeli',
+          type: hasAnyOe ? 'acik_uclu' : 'coktan_secmeli',
+          questionType: hasAnyOe ? 'acik_uclu' : 'coktan_secmeli',
+          isOpenEnded: hasAnyOe,
           isBundle: true,
           questionCount: slicedQuestions.length,
           totalQuestions: slicedQuestions.length,
@@ -1715,6 +1769,9 @@ export default function PdfQuestionSlicerModal({
           questionIds: subQuestions.map(sq => sq.id),
           answerKey: answerKeyObj,
           imageAnswers: imageAnswersObj,
+          type: hasAnyOe ? 'acik_uclu' : 'coktan_secmeli',
+          questionType: hasAnyOe ? 'acik_uclu' : 'coktan_secmeli',
+          isOpenEnded: hasAnyOe,
           contentPayload: base64List.join('\n\n'),
           imageUrl: base64List[0] || '',
           imageUrls: base64List,
@@ -2284,13 +2341,16 @@ export default function PdfQuestionSlicerModal({
                           const firstUnitTest = s.units?.[0]?.tests?.[0];
                           if (firstUnitTest && firstUnitTest.wrongQuestions?.length > 0) {
                             const qNo = firstUnitTest.wrongQuestions[0];
+                            const rawAns = (firstUnitTest.answerKeyMap && firstUnitTest.answerKeyMap[qNo]) !== undefined ? firstUnitTest.answerKeyMap[qNo] : '';
+                            const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
                             setActiveTargetQuestion({
                               testId: firstUnitTest.testId,
                               testName: firstUnitTest.testName,
                               unitName: firstUnitTest.unitName,
                               subjectName: firstUnitTest.subjectName,
                               qNo: qNo,
-                              correctAnswer: firstUnitTest.answerKeyMap[qNo] || 'A'
+                              correctAnswer: rawAns,
+                              isOpenEnded: isOe
                             });
                           }
                         }}
@@ -2341,13 +2401,16 @@ export default function PdfQuestionSlicerModal({
                       const firstUnitTest = currentSubjectGroup?.units?.[0]?.tests?.[0];
                       if (firstUnitTest && firstUnitTest.wrongQuestions?.length > 0) {
                         const qNo = firstUnitTest.wrongQuestions[0];
+                        const rawAns = (firstUnitTest.answerKeyMap && firstUnitTest.answerKeyMap[qNo]) !== undefined ? firstUnitTest.answerKeyMap[qNo] : '';
+                        const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
                         setActiveTargetQuestion({
                           testId: firstUnitTest.testId,
                           testName: firstUnitTest.testName,
                           unitName: firstUnitTest.unitName,
                           subjectName: firstUnitTest.subjectName,
                           qNo: qNo,
-                          correctAnswer: firstUnitTest.answerKeyMap[qNo] || 'A'
+                          correctAnswer: rawAns,
+                          isOpenEnded: isOe
                         });
                       }
                     }}
@@ -2377,13 +2440,16 @@ export default function PdfQuestionSlicerModal({
                           const firstTest = u.tests?.[0];
                           if (firstTest && firstTest.wrongQuestions?.length > 0) {
                             const qNo = firstTest.wrongQuestions[0];
+                            const rawAns = (firstTest.answerKeyMap && firstTest.answerKeyMap[qNo]) !== undefined ? firstTest.answerKeyMap[qNo] : '';
+                            const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
                             setActiveTargetQuestion({
                               testId: firstTest.testId,
                               testName: firstTest.testName,
                               unitName: firstTest.unitName,
                               subjectName: firstTest.subjectName,
                               qNo: qNo,
-                              correctAnswer: firstTest.answerKeyMap[qNo] || 'A'
+                              correctAnswer: rawAns,
+                              isOpenEnded: isOe
                             });
                           }
                         }}
@@ -2439,7 +2505,7 @@ export default function PdfQuestionSlicerModal({
                     ◀ Önceki
                   </button>
                   <div style={{ textAlign: 'center', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                    🎯 <strong>{activeTargetQuestion.subjectName} › {activeTargetQuestion.testName} › S.{activeTargetQuestion.qNo}</strong> ({activeTargetQuestion.correctAnswer})
+                    🎯 <strong>{activeTargetQuestion.subjectName} › {activeTargetQuestion.testName} › S.{activeTargetQuestion.qNo}</strong> {activeTargetQuestion.correctAnswer ? `(${activeTargetQuestion.correctAnswer})` : ''}
                   </div>
                   <button
                     type="button"
@@ -2496,7 +2562,8 @@ export default function PdfQuestionSlicerModal({
                         {(t.wrongQuestions || []).map(qNo => {
                           const isDone = slicedQuestions.some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === qNo);
                           const isActive = activeTargetQuestion?.testId === t.testId && activeTargetQuestion?.qNo === qNo;
-                          const cAns = t.answerKeyMap ? (t.answerKeyMap[qNo] || '') : '';
+                          const cAns = (t.answerKeyMap && t.answerKeyMap[qNo]) !== undefined ? t.answerKeyMap[qNo] : '';
+                          const isOe = cAns ? !/^[A-Ea-e]$/.test(String(cAns).trim()) : false;
 
                           return (
                             <button
@@ -2509,7 +2576,8 @@ export default function PdfQuestionSlicerModal({
                                   unitName: t.unitName,
                                   subjectName: t.subjectName,
                                   qNo: qNo,
-                                  correctAnswer: cAns || 'A'
+                                  correctAnswer: cAns,
+                                  isOpenEnded: isOe
                                 });
                                 if (isMobile) setMobileActiveTab('pdf');
                               }}
@@ -3083,48 +3151,115 @@ export default function PdfQuestionSlicerModal({
                         <img src={q.image} alt={`Soru ${q.qNo}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Cevap:</span>
-                          {letters.map(opt => (
-                            <button
-                              key={opt}
-                              onClick={() => handleUpdateAnswer(q.id, opt)}
+                      {/* Answer configuration for Question */}
+                      {q.isOpenEnded || q.type === 'acik_uclu' || (q.correctAnswer && !/^[A-Ea-e]$/.test(String(q.correctAnswer).trim())) ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#8b5cf6', whiteSpace: 'nowrap' }}>
+                              ✍️ Cevap:
+                            </span>
+                            <input
+                              type="text"
+                              value={q.correctAnswer || ''}
+                              onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                              placeholder="Kayıtlı cevap (örn: 12/64, 25)"
                               style={{
-                                width: 24,
-                                height: 24,
+                                flex: 1,
+                                minWidth: 0,
+                                padding: '3px 7px',
                                 borderRadius: 6,
-                                border: q.correctAnswer === opt ? 'none' : '1px solid var(--color-border)',
-                                background: q.correctAnswer === opt ? '#6366f1' : 'transparent',
-                                color: q.correctAnswer === opt ? 'white' : 'var(--color-text)',
-                                fontWeight: 900,
-                                fontSize: '0.72rem',
-                                cursor: 'pointer'
+                                border: '1.5px solid #8b5cf6',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                background: isDark ? 'rgba(139,92,246,0.1)' : '#f5f3ff',
+                                color: 'var(--color-text)',
+                                outline: 'none'
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleQuestionType(q.id)}
+                            style={{
+                              padding: '3px 6px',
+                              borderRadius: 6,
+                              border: '1px solid var(--color-border)',
+                              background: 'var(--color-surface-hover)',
+                              color: 'var(--color-text-muted)',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title="Çoktan seçmeli şıklı soruya dönüştür"
+                          >
+                            Şıklı Yap
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Cevap:</span>
+                            {letters.map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => handleUpdateAnswer(q.id, opt)}
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 6,
+                                  border: q.correctAnswer === opt ? 'none' : '1px solid var(--color-border)',
+                                  background: q.correctAnswer === opt ? '#6366f1' : 'transparent',
+                                  color: q.correctAnswer === opt ? 'white' : 'var(--color-text)',
+                                  fontWeight: 900,
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleQuestionType(q.id)}
+                              style={{
+                                padding: '2px 5px',
+                                borderRadius: 5,
+                                border: '1px solid #c4b5fd',
+                                background: isDark ? 'rgba(139,92,246,0.15)' : '#ede9fe',
+                                color: '#7c3aed',
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title="Açık uçlu metin/sayı cevabına dönüştür"
+                            >
+                              ✍️ Açık Uçlu
+                            </button>
+                            <select
+                              value={optCount}
+                              onChange={(e) => handleUpdateOptionCount(q.id, Number(e.target.value))}
+                              style={{
+                                padding: '2px 4px',
+                                borderRadius: 4,
+                                border: '1px solid var(--color-border)',
+                                fontSize: '0.68rem',
+                                background: 'transparent',
+                                color: 'var(--color-text)'
                               }}
                             >
-                              {opt}
-                            </button>
-                          ))}
+                              <option value={2}>2 Şık</option>
+                              <option value={3}>3 Şık</option>
+                              <option value={4}>4 Şık</option>
+                              <option value={5}>5 Şık</option>
+                            </select>
+                          </div>
                         </div>
-
-                        <select
-                          value={optCount}
-                          onChange={(e) => handleUpdateOptionCount(q.id, Number(e.target.value))}
-                          style={{
-                            padding: '2px 4px',
-                            borderRadius: 4,
-                            border: '1px solid var(--color-border)',
-                            fontSize: '0.68rem',
-                            background: 'transparent',
-                            color: 'var(--color-text)'
-                          }}
-                        >
-                          <option value={2}>2 Şık</option>
-                          <option value={3}>3 Şık</option>
-                          <option value={4}>4 Şık</option>
-                          <option value={5}>5 Şık</option>
-                        </select>
-                      </div>
+                      )}
                     </div>
                   );
                 })

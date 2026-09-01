@@ -8,7 +8,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap, Sun, Moon } from 'lucide-react';
-import { checkIsAnswerCorrect } from '../utils/answerEvaluation';
+import { checkIsAnswerCorrect, compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
@@ -954,7 +954,12 @@ export default function ModularQuizPage() {
 
       let isCorrect = ans.isCorrect;
       if (isQExplicitOE) {
-        isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar pending kalır
+        const correctKey = qObj.correctAnswer || (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)]) : null);
+        if (correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '') {
+          isCorrect = compareOpenEndedAnswers(textVal || userAns, correctKey);
+        } else {
+          isCorrect = null; // Açık uçlu sorular kayıtlı cevap anahtarı yoksa öğretmen puanlayana kadar pending kalır
+        }
       } else if (isCorrect === undefined || isCorrect === null) {
         const testCtx = {
           ...test,
@@ -973,9 +978,9 @@ export default function ModularQuizPage() {
       }
 
       if (isCorrect === true) correctCount++;
-      else if (isCorrect === false && (userAns !== null && userAns !== undefined && userAns !== '')) wrongCount++;
+      else if (isCorrect === false && ((userAns !== null && userAns !== undefined && userAns !== '') || hasTextVal)) wrongCount++;
       else if (isQExplicitOE) {
-        if (hasTextVal) {
+        if (hasTextVal && isCorrect === null) {
           pendingCount++;
         } else {
           blankCount++;

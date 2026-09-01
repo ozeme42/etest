@@ -8,6 +8,7 @@ import DrawingCanvas from '../common/DrawingCanvas';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { Clock, CheckCircle2, ChevronRight, ChevronLeft, Sun, Moon, Pencil, ArrowLeft } from 'lucide-react';
 import { isSectionOpenEnded } from '../utils/quizTypeDetector';
+import { checkIsAnswerCorrect, compareOpenEndedAnswers } from '../../../utils/answerEvaluation';
 
 export default function ImageQuizRunner({ test, questions: initialQuestions, onAutoSave, onSubmit, studentId, onExit }) {
   const { isDark, toggleTheme } = useTheme();
@@ -132,9 +133,10 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
     return 1;
   }, [questions, test, allImageUrls.length]);
 
+  const currentQ = questions[currentIndex] || {};
   const isOpenEndedMode = useMemo(() => {
-    return isSectionOpenEnded(test);
-  }, [test]);
+    return isSectionOpenEnded(test) || isSectionOpenEnded(currentQ) || currentQ.type === 'acik_uclu' || currentQ.questionType === 'acik_uclu' || currentQ.isOpenEnded;
+  }, [test, currentQ]);
 
   const perQuestionMins = Number(test.timePerQuestion || test.time_per_question || test.durationPerQuestion) || 2;
   const totalSeconds = useMemo(() => (qCount * perQuestionMins * 60) || 1200, [qCount, perQuestionMins]);
@@ -338,12 +340,16 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
       const userAnsObj = answers[qNo];
       const userAns = typeof userAnsObj === 'object' ? userAnsObj?.userAnswer : userAnsObj;
       const textAns = openEndedText[qNo];
+      const isOe = isSectionOpenEnded(test) || isSectionOpenEnded(qObj) || qObj.type === 'acik_uclu' || qObj.questionType === 'acik_uclu' || qObj.isOpenEnded;
 
       let isCorrect = null;
-      if (userAns !== undefined && userAns !== null) {
-        if (qObj.correctAnswer !== undefined && qObj.correctAnswer !== null) {
-          isCorrect = Number(userAns) === Number(qObj.correctAnswer);
+      if (isOe) {
+        const correctKey = qObj.correctAnswer || (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)]) : null);
+        if (correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '') {
+          isCorrect = compareOpenEndedAnswers(textAns || userAns, correctKey);
         }
+      } else if (userAns !== undefined && userAns !== null && userAns !== '') {
+        isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
       }
 
       formatted.push({
@@ -352,7 +358,7 @@ export default function ImageQuizRunner({ test, questions: initialQuestions, onA
         userAnswer: userAns !== undefined ? userAns : null,
         userAnswerText: textAns || null,
         isCorrect,
-        correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : null
+        correctAnswer: qObj.correctAnswer !== undefined ? qObj.correctAnswer : (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)]) : null)
       });
     }
 
