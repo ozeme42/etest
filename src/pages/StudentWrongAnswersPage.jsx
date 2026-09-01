@@ -97,10 +97,1603 @@ const isSubjectName = (str) => {
   if (!str) return false;
   const lower = String(str).toLowerCase().trim();
   return (
+    lower === 'matematik' || lower === 'fen bilimleri' || lower === 'fen' ||
+    lower === 'türkçe' || lower === 'turkce' || lower === 'sosyal bilgiler' ||
+    lower === 'sosyal' || lower === 'ingilizce' || lower === 'din kültürü' ||
+    lower === 'din kulturu' || lower === 'din' || lower === 'genel testler' ||
+    lower === 'fizik' || lower === 'kimya' || lower === 'biyoloji' ||
+    lower === 'tarih' || lower === 'coğrafya' || lower === 'cografya' ||
+    lower === 'edebiyat' || lower === 'geometri'
+  );
+};
+
+const checkSubjectName = (str) => {
+  if (!str) return '';
+  const lower = String(str).toLowerCase();
+  if (lower.includes('mat') || lower.includes('geometri')) return 'Matematik';
+  if (lower.includes('fen') || lower.includes('fizik') || lower.includes('kimya') || lower.includes('biyo')) return 'Fen Bilimleri';
+  if (lower.includes('türk') || lower.includes('turk') || lower.includes('paragraf') || lower.includes('edebiyat')) return 'Türkçe';
+  if (lower.includes('sosyal') || lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('tarih') || lower.includes('coğrafya')) return 'Sosyal Bilgiler';
+  if (lower.includes('ing') || lower.includes('english')) return 'İngilizce';
+  if (lower.includes('din')) return 'Din Kültürü';
+  if (lower.includes('deneme') || lower.includes('lgs') || lower.includes('yks') || lower.includes('tyt') || lower.includes('ayt')) return 'Genel Testler';
+  return '';
+};
+
+export default function StudentWrongAnswersPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isDark } = useTheme();
+  const { currentUser } = useAuth();
+  const { submissions } = useEvaluation();
+  const { users } = useUser();
+  const { questions: bankQuestions = [], deleteQuestion } = useQuestionBank();
+  const { data: curData } = useCurriculum();
+  const { homeworks = [] } = useHomework();
+  const { books = [], bookTests = [] } = useTrackedBooks();
+  const {
+    getCoachingProfileForStudent,
+    coachingProfiles = [],
+    saveCoachingProfile,
+    addStudentError,
+    updateStudentError,
+    deleteStudentError
+  } = useCoaching();
+
+  const SUBJECT_CONFIG = useMemo(() => getSubjectConfig(isDark), [isDark]);
+
+  const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+
+  useEffect(() => {
+    if (!selectedStudent) {
+      if (currentUser?.role === 'student') {
+        setSelectedStudent(currentUser);
+      } else if (studentMembers.length > 0) {
+        setSelectedStudent(studentMembers[0]);
+      }
+    }
+  }, [currentUser, studentMembers, selectedStudent]);
+
+  // Main Tabs: 'unreviewed' (⏳ Kontrol Edilmeyenler) vs 'reviewed' (✅ Kontrol Edilenler) vs 'error_notebook' (📸 Görsel Hata Defterim)
+  const [activeMainTab, setActiveMainTab] = useState('remedial'); // 'remedial' | 'submissions' | 'leitner' | 'notebook' | 'analytics'
+  const [reviewFilter, setReviewFilter] = useState('unreviewed'); // 'unreviewed' | 'reviewed'
+
+  // Selected Subject Filter (null or subject name)
+  const [selectedSubject, setSelectedSubject] = useState('Tümü');
+
+  // Date & Metric Sort State: 'date_desc' | 'date_asc' | 'wrong_desc' | 'name_asc'
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
+  const [programToast, setProgramToast] = useState(null);
+  const [openDaySelectorId, setOpenDaySelectorId] = useState(null);
+
+  const currentStudentId = selectedStudent?.id || currentUser?.id;
+
+  const allStudentIds = useMemo(() => {
+    const sId = currentStudentId;
+    const sObj = selectedStudent || currentUser;
+    const ids = new Set();
+    if (sId) {
+      ids.add(String(sId));
+      if (toUUID(sId)) ids.add(String(toUUID(sId)));
+    }
+    if (sObj?.student_id) ids.add(String(sObj.student_id));
+    if (sObj?.studentId) ids.add(String(sObj.studentId));
+    if (sObj?.email) {
+      (users || []).forEach(u => {
+        if (u.email && u.email.toLowerCase() === sObj.email.toLowerCase()) {
+          ids.add(String(u.id));
+          if (u.student_id) ids.add(String(u.student_id));
+          if (u.studentId) ids.add(String(u.studentId));
+        }
+      });
+    }
+    ids.delete('');
+    ids.delete('undefined');
+    ids.delete('null');
+    return ids;
+  }, [currentStudentId, selectedStudent, currentUser, users]);
+
+  const studentGradeName = useMemo(() => {
+    const sObj = selectedStudent || currentUser;
+    if (!sObj) return '';
+    if (sObj.grade) return String(sObj.grade);
+    const gId = String(sObj.grade_id || sObj.gradeId || '');
+    if (gId) {
+      const gradesList = curData?.grades || [];
+      const matched = gradesList.find(g => String(g.id) === gId || toUUID(g.id) === toUUID(gId));
+      if (matched?.name) return String(matched.name);
+    }
+    return '';
+  }, [selectedStudent, currentUser, curData?.grades]);
+
+  const remedialTests = useMemo(() => {
+    const rawAll = [...(bankQuestions || []), ...(homeworks || [])];
+    const seenIds = new Set();
+    const result = [];
+
+    // 1. Check in bankQuestions and homeworks
+    rawAll.forEach(item => {
+      if (!item) return;
+      const raw = item.raw_data || {};
+      const q = { ...raw, ...item };
+
+      // Must be explicitly created as a remedial / sliced test
+      const isExplicitRemedial = q.isRemedialTest === true || q.isRemedial === true || q.isTeacherRemedial === true || q.sourceType === 'pdfSlicer' || q.sourceType === 'pdfSlicerRemedial' || q.type === 'remedial' || q.type === 'remedialTest';
+      const titleLower = (q.title || q.name || '').toLowerCase();
+      const isRemedialTitle = titleLower.includes('telafi') || titleLower.includes('kırpılmış');
+
+      if (!isExplicitRemedial && !isRemedialTitle) {
+        return;
+      }
+
+      // Check all possible student targets
+      const testStudentId = String(q.studentId || q.student_id || q.targetStudentId || q.assignedStudentId || q.targetStudent || '');
+      const rawTargetIds = [
+        ...(Array.isArray(q.targetIds) ? q.targetIds : []),
+        ...(Array.isArray(q.target_ids) ? q.target_ids : []),
+        ...(Array.isArray(q.targetStudentIds) ? q.targetStudentIds : []),
+        ...(Array.isArray(q.assignedTo) ? q.assignedTo : []),
+        ...(Array.isArray(q.studentIds) ? q.studentIds : []),
+        ...(testStudentId && testStudentId !== 'undefined' ? [testStudentId] : [])
+      ].filter(Boolean).map(String);
+
+      const isDirectTarget = rawTargetIds.some(tid => allStudentIds.has(tid) || (toUUID(tid) && allStudentIds.has(toUUID(tid))));
+
+      const creatorId = String(q.createdBy || q.created_by || q.authorId || q.author || '');
+      const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
+
+      // Check if student has solved this test
+      const hasSolvedSub = (submissions || []).some(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        const sSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        const isMatchSt = allStudentIds.has(sSid) || (toUUID(sSid) && allStudentIds.has(toUUID(sSid)));
+        if (!isMatchSt) return false;
+        const sTestId = String(s.testId || s.hwId || s.id || '');
+        return sTestId === String(q.id) || (toUUID(q.id) && toUUID(sTestId) === toUUID(q.id));
+      });
+
+      if (!isDirectTarget && !isCreatedByThisStudent && !hasSolvedSub) {
+        return;
+      }
+
+      const qIdStr = String(q.id || q.testId);
+      if (!seenIds.has(qIdStr)) {
+        seenIds.add(qIdStr);
+        result.push(q);
+      }
+    });
+
+    // 2. Also extract any remedial test from submissions that wasn't in bankQuestions or homeworks
+    (submissions || []).forEach(s => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return;
+      const sSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      const isMatchSt = allStudentIds.has(sSid) || (toUUID(sSid) && allStudentIds.has(toUUID(sSid)));
+      if (!isMatchSt) return false;
+
+      const isRem = s.isRemedial === true || s.isRemedialTest === true || s.sourceType === 'pdfSlicerRemedial' || s.type === 'remedialTest' || String(s.testTitle || s.title || '').toLowerCase().includes('telafi');
+      if (isRem) {
+        const sTestId = String(s.testId || s.hwId || s.id || '');
+        if (sTestId && !seenIds.has(sTestId) && (!toUUID(sTestId) || !seenIds.has(toUUID(sTestId)))) {
+          seenIds.add(sTestId);
+          result.push({
+            id: sTestId,
+            title: s.testTitle || s.title || 'Özel Telafi Testi',
+            subject: s.subject || 'Genel',
+            grade: s.grade || '',
+            questionCount: s.totalQuestions || s.questionsList?.length || 1,
+            totalQuestions: s.totalQuestions || s.questionsList?.length || 1,
+            questionsList: s.questionsList || [],
+            imageUrls: s.imageUrls || [],
+            imageUrl: s.imageUrl || (s.imageUrls && s.imageUrls[0]) || '',
+            contentPayload: s.contentPayload || '',
+            isRemedial: true,
+            isRemedialTest: true,
+            isTeacherRemedial: true,
+            teacherAssigned: true,
+            createdByRole: 'teacher',
+            assignedBy: 'teacher',
+            sourceType: 'pdfSlicerRemedial',
+            studentId: currentStudentId,
+            assignedStudentId: currentStudentId,
+            repetitionIntervals: s.repetitionIntervals || [1, 3, 7, 15],
+            createdAt: s.createdAt || s.created_at || new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    return result;
+  }, [bankQuestions, homeworks, submissions, allStudentIds, currentStudentId]);
+
+  const handleAddTestToProgram = async (testItem, targetDayKey) => {
+    const studentId = selectedStudent?.id || currentUser?.id;
+    if (!studentId) return;
+
+    const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+    const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+      studentId,
+      weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
+    };
+
+    const rawProg = Array.isArray(currentProfile.weeklyProgram)
+      ? currentProfile.weeklyProgram
+      : DAYS_LIST.map(d => ({ day: d, items: [] }));
+
+    const newItem = {
+      id: `remedial_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      text: testItem.title || testItem.name || `${testItem.subject || 'Ders'} Telafi Testi`,
+      title: testItem.title || testItem.name || `${testItem.subject || 'Ders'} Telafi Testi`,
+      subject: testItem.subject || 'Genel',
+      qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+      targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+      questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+      testId: testItem.id,
+      realTestId: testItem.id,
+      hwId: testItem.hwId || testItem.id,
+      type: 'remedialTest',
+      taskType: 'remedialTest',
+      isTeacherRemedial: true,
+      isRemedial: true,
+      isRemedialTest: true,
+      stage: 1,
+      done: false,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    const updatedProg = rawProg.map(dObj => {
+      if (dObj.day === targetDayKey) {
+        return {
+          ...dObj,
+          items: [...(dObj.items || []), newItem]
+        };
+      }
+      return dObj;
+    });
+
+    await saveCoachingProfile({
+      ...currentProfile,
+      studentId,
+      weeklyProgram: updatedProg
+    });
+
+    setProgramToast(`✓ "${testItem.title || 'Test'}" ${targetDayKey} gününün çalışma programına eklendi!`);
+    setTimeout(() => setProgramToast(null), 3500);
+    setOpenDaySelectorId(null);
+  };
+
+  const handleAddSpacedRepetitionPlan = async (testItem) => {
+    const studentId = selectedStudent?.id || currentUser?.id;
+    if (!studentId) return;
+
+    const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+    const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(studentId)) || {
+      studentId,
+      weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
+    };
+
+    const updatedProg = scheduleRemedialTestInProgram({
+      currentWeeklyProgram: currentProfile.weeklyProgram || [],
+      testItem: {
+        id: testItem.id,
+        hwId: testItem.hwId || testItem.id,
+        title: testItem.title || testItem.name || 'Özel Telafi Testi',
+        subject: testItem.subject || 'Genel',
+        questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1
+      },
+      intervals: testItem.repetitionIntervals || [1, 3, 7, 15],
+      studentId
+    });
+
+    await saveCoachingProfile({
+      ...currentProfile,
+      studentId,
+      weeklyProgram: updatedProg
+    });
+
+    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (1, 3, 7, 15 Gün) programınıza eklendi!`);
+    setTimeout(() => setProgramToast(null), 4000);
+    setOpenDaySelectorId(null);
+  };
+
+  const handlePracticeTestMistakes = (testItem, subItem) => {
+    const studentId = selectedStudent?.id || currentUser?.id;
+    if (!testItem || !subItem) return;
+
+    const resolvedQuestions = (testItem.questionsList && testItem.questionsList.length > 0)
+      ? testItem.questionsList
+      : resolveTestQuestions(testItem, bankQuestions || []);
+
+    const answers = subItem.answers || subItem.formattedAnswers || [];
+
+    const mistakeQuestions = [];
+    resolvedQuestions.forEach((q, idx) => {
+      const qNo = idx + 1;
+      const ans = (Array.isArray(answers) ? answers.find(a => (
+        Number(a.questionNo || a.questionNoInSection || a.number || a.qNo) === qNo ||
+        String(a.questionId || a.id).includes(`_${qNo}`)
+      )) : null) || answers[idx];
+
+      const isRight = ans ? (ans.isCorrect === true || ans.evalStatus === 'correct') : false;
+      if (!isRight) {
+        mistakeQuestions.push({
+          ...q,
+          id: q.id ? `${testItem.id}_${q.id}` : `${testItem.id}_q${qNo}`,
+          testId: testItem.id,
+          questionNo: qNo,
+          subject: testItem.subject || q.subject || 'Telafi',
+          topic: testItem.topic || q.topic || '',
+          unit: testItem.unit || q.unit || '',
+          imageUrl: q.imageUrl || (Array.isArray(testItem.imageUrls) ? testItem.imageUrls[idx] : (testItem.imageUrl && idx === 0 ? testItem.imageUrl : null)),
+          correctAnswer: q.correctAnswer !== undefined ? q.correctAnswer : (typeof q.correctAnswerLetter === 'string' ? (q.correctAnswerLetter.toUpperCase().charCodeAt(0) - 65) : 0)
+        });
+      }
+    });
+
+    if (mistakeQuestions.length === 0) {
+      alert('Bu testte tüm soruları doğru çözmüşsünüz! Tebrikler! 🎉');
+      return;
+    }
+
+    setLeitnerPracticeQuestions(mistakeQuestions);
+    setIsLeitnerModalOpen(true);
+  };
+
+  const handleDeleteRemedialTest = async (testId, testTitle, e) => {
+    if (e) e.stopPropagation();
+    if (window.confirm(`"${testTitle || 'Bu telafi testini'}" silmek istediğinize emin misiniz?`)) {
+      try {
+        await deleteQuestion(testId);
+      } catch (err) {
+        console.error('Test silinirken hata:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (location.state?.subject !== undefined) {
+      setSelectedSubject(location.state.subject || 'Tümü');
+    }
+  }, [location.state]);
+
+  // Persistent Whole-Test Review State in localStorage
+  const [reviewedSubSet, setReviewedSubSet] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eTestReviewedSubmissions');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch (e) {
+      return new Set();
+    }
+  });
+
+  const toggleSubmissionReviewed = (subId, e) => {
+    if (e) e.stopPropagation();
+    setReviewedSubSet(prev => {
+      const next = new Set(prev);
+      if (next.has(subId)) {
+        next.delete(subId);
+      } else {
+        next.add(subId);
+      }
+      try {
+        localStorage.setItem('eTestReviewedSubmissions', JSON.stringify(Array.from(next)));
+      } catch (err) {}
+      return next;
+    });
+  };
+
+  const handleOpenReview = (subId, e) => {
+    if (e) e.stopPropagation();
+    navigate(`/review/${subId}`, {
+      state: { from: '/wrong-answers', subject: selectedSubject }
+    });
+  };
+
+  // View Mode: 'cards' | 'table' (Varsayılan: table)
+  const [viewMode, setViewMode] = useState('table');
+  const [remedialViewMode, setRemedialViewMode] = useState('table'); // 'table' | 'cards' (Varsayılan: table)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
+  const [isLeitnerModalOpen, setIsLeitnerModalOpen] = useState(false);
+  const [leitnerPracticeQuestions, setLeitnerPracticeQuestions] = useState([]);
+
+  // Hata Defteri Modals & States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [viewingErrorModal, setViewingErrorModal] = useState(null);
+  const [notebookStatusFilter, setNotebookStatusFilter] = useState('all'); // 'all', 'active', 'resolved'
+  const [notebookSearchQuery, setNotebookSearchQuery] = useState('');
+
+  const [newErrorForm, setNewErrorForm] = useState({
+    homeworkId: '',
+    testTitle: '',
+    subject: 'Matematik',
+    topic: '',
+    questionNo: '',
+    imageUrl: '',
+    reason: '⚡ İşlem Hatası',
+    note: '',
+    solutionNote: ''
+  });
+
+  const activeStudent = useMemo(() => {
+    return selectedStudent || (currentUser?.role === 'student' ? currentUser : studentMembers[0]) || { id: 'u1', name: 'Öğrenci' };
+  }, [selectedStudent, currentUser, studentMembers]);
+
+  const currentProfile = useMemo(() => {
+    if (!activeStudent?.id) return null;
+    return getCoachingProfileForStudent(activeStudent.id);
+  }, [getCoachingProfileForStudent, activeStudent]);
+
+  const studentErrors = useMemo(() => {
+    return currentProfile?.errors || [];
+  }, [currentProfile]);
+
+  // Curriculum map with Unit and Topic extraction
+  const allCurTestsMap = useMemo(() => {
+    const map = new Map();
+    if (!curData) return map;
+    (curData.tests || []).forEach(t => {
+      if (t.id) {
+        const u = t.unitName || t.unit || '';
+        const top = t.topicName || t.topic || '';
+        const info = { 
+          title: t.title || t.name, 
+          subject: t.subjectName || t.subject, 
+          unit: isSubjectName(u) ? '' : u, 
+          topic: top 
+        };
+        map.set(String(t.id), info);
+        const uuid = toUUID(t.id);
+        if (uuid) map.set(String(uuid), info);
+      }
+    });
+    (curData.grades || []).forEach(g => {
+      (g.subjects || []).forEach(s => {
+        (s.units || []).forEach(u => {
+          (u.topics || []).forEach(top => {
+            (top.tests || []).forEach(t => {
+              if (t.id) {
+                const uName = u.name || u.title || '';
+                const topName = top.name || top.title || '';
+                const info = { 
+                  title: t.title || t.name, 
+                  subject: s.name, 
+                  unit: isSubjectName(uName) ? '' : uName, 
+                  topic: topName 
+                };
+                map.set(String(t.id), info);
+                const uuid = toUUID(t.id);
+                if (uuid) map.set(String(uuid), info);
+              }
+            });
+          });
+        });
+      });
+    });
+    return map;
+  }, [curData]);
+
+  // Tracked Books & BookTests map with thorough Unit and Topic extraction from book hierarchy
+  const allBookTestsMap = useMemo(() => {
+    const map = new Map();
+    (books || []).forEach(b => {
+      const bTests = (bookTests || []).filter(bt => 
+        String(bt.bookId) === String(b.id) || 
+        (toUUID(bt.bookId) && String(toUUID(bt.bookId)) === String(toUUID(b.id)))
+      );
+
+      bTests.forEach((bt, idx) => {
+        let parentSubject = (b.subjects || []).find(s => 
+          String(s.id) === String(bt.subjectId) || 
+          (s.topics && s.topics.some(tp => String(tp.id) === String(bt.topicId) || (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id)))))) ||
+          (s.tests && s.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id))))
+        );
+
+        let parentTopic = parentSubject?.topics?.find(tp => 
+          String(tp.id) === String(bt.topicId) || 
+          (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id))))
+        );
+
+        if (!parentTopic && Array.isArray(b.subjects)) {
+          for (const s of b.subjects) {
+            const tp = s.topics?.find(tp => String(tp.id) === String(bt.topicId) || (tp.tests && tp.tests.some(tId => String(tId) === String(bt.id) || (toUUID(tId) && toUUID(tId) === toUUID(bt.id)))));
+            if (tp) {
+              parentTopic = tp;
+              if (!parentSubject) parentSubject = s;
+              break;
+            }
+          }
+        }
+
+        let subName = b.subject || b.subjectName || '';
+        if (!subName && parentSubject?.name && isSubjectName(parentSubject.name)) {
+          subName = parentSubject.name;
+        }
+        if (!subName) {
+          subName = checkSubjectName(b.title || '') || 'Matematik';
+        }
+
+        let unitName = bt.unit || bt.unitName || '';
+        let topicName = bt.topic || bt.topicName || '';
+
+        if (parentSubject?.name) {
+          if (isSubjectName(parentSubject.name)) {
+            if (!unitName && parentTopic?.name) {
+              unitName = parentTopic.name;
+            }
+          } else {
+            if (!unitName) {
+              unitName = parentSubject.name;
+            }
+            if (!topicName && parentTopic?.name) {
+              topicName = parentTopic.name;
+            }
+          }
+        } else if (parentTopic?.name) {
+          if (!unitName) unitName = parentTopic.name;
+        }
+
+        if (!unitName) {
+          unitName = b.unit || b.unitName || '';
+        }
+
+        const info = {
+          testName: bt.name || 'Test',
+          bookTitle: b.title || 'Kitap',
+          subject: subName,
+          unit: isSubjectName(unitName) ? '' : unitName,
+          topic: (topicName && topicName !== unitName && !isSubjectName(topicName)) ? topicName : '',
+          bookId: b.id,
+          testId: bt.id,
+          orderIndex: Number(bt.order ?? bt.order_index ?? idx + 1)
+        };
+
+        map.set(String(bt.id), info);
+        const uuid = toUUID(bt.id);
+        if (uuid) map.set(String(uuid), info);
+      });
+    });
+    return map;
+  }, [books, bookTests]);
+
+  // Submissions for activeStudent
+  const allSubmissions = useMemo(() => {
+    if (!activeStudent?.id) return [];
+    const studentIdStr = String(activeStudent.id).trim();
+    const studentUuidStr = String(toUUID(studentIdStr) || '').trim();
+
+    const isMatchStudent = (sid) => {
+      if (!sid) return false;
+      const str = String(sid).trim();
+      if (str === studentIdStr || str.toLowerCase() === studentIdStr.toLowerCase()) return true;
+      if (studentUuidStr && (str === studentUuidStr || String(toUUID(str)) === studentUuidStr)) return true;
+      return false;
+    };
+
+    const baseSubs = (submissions || []).filter(s => {
+      if (!s) return false;
+      const sid = s.studentId || s.student_id || s.userId || s.user_id || (s.raw_data && (s.raw_data.studentId || s.raw_data.student_id));
+      if (!isMatchStudent(sid)) return false;
+
+      const subIdStr = String(s.id || '');
+      if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return false;
+      if (s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isSubmitted === false) return false;
+      if (s.raw_data && (s.raw_data.status === 'draft' || s.raw_data.status === 'in_progress')) return false;
+
+      const c = s.correctCount ?? s.correct ?? 0;
+      const w = s.wrongCount ?? s.wrong ?? 0;
+      const e = s.emptyCount ?? s.blankCount ?? s.empty ?? 0;
+      if (c === 0 && w === 0 && e === 0 && (!s.answers || s.answers.length === 0)) return false;
+
+      const bTestId = String(s.bookTestId || s.testId || '');
+      const matchedBookTest = allBookTestsMap.get(bTestId);
+      const matchedCurTest = allCurTestsMap.get(String(s.testId));
+      const parentHw = (homeworks || []).find(h =>
+        String(h.id) === String(s.hwId) ||
+        String(h.id) === String(s.testId) ||
+        String(h.id) === String(s.id) ||
+        (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(s.hwId || s.testId || s.id)))
+      );
+
+      const isHwSub = Boolean(s.hwId || s.isHomework || (s.testId && !matchedBookTest && !matchedCurTest));
+      if (isHwSub && !parentHw) {
+        return false;
+      }
+
+      if (s.bookTestId && !matchedBookTest) {
+        return false;
+      }
+
+      return true;
+    });
+
+    const hwSubs = [];
+    (homeworks || []).forEach(hw => {
+      if (!hw) return;
+      (hw.submissions || []).forEach(sub => {
+        const sid = sub.studentId || sub.student_id || sub.userId || sub.user_id;
+        if (isMatchStudent(sid)) {
+          const subIdStr = String(sub.id || '');
+          if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
+          if (sub.isSubmitted === false) return;
+
+          const alreadyExists = baseSubs.some(s =>
+            String(s.hwId || s.testId || s.id) === String(hw.id) ||
+            (toUUID(s.hwId || s.testId || s.id) && String(toUUID(s.hwId || s.testId || s.id)) === String(toUUID(hw.id)))
+          );
+
+          if (!alreadyExists) {
+            hwSubs.push({
+              id: `hw_sub_${hw.id}_${studentIdStr}`,
+              hwId: hw.id,
+              testId: hw.id,
+              testTitle: hw.title,
+              subject: hw.subject,
+              unit: hw.unit || hw.unitName || '',
+              topic: hw.topic || hw.topicName || '',
+              studentId: studentIdStr,
+              score: sub.score,
+              submittedAt: sub.completedAt || sub.submittedAt || sub.createdAt || new Date().toISOString(),
+              isHomework: true,
+              type: hw.type || 'homework',
+              totalQuestions: hw.totalQuestions || sub.totalQuestions || 0,
+              correctCount: sub.correctCount,
+              wrongCount: sub.wrongCount,
+              blankCount: sub.blankCount,
+              answers: sub.answers || sub.studentAnswers || []
+            });
+          }
+        }
+      });
+    });
+
+    return [...baseSubs, ...hwSubs];
+  }, [submissions, homeworks, activeStudent, allBookTestsMap, allCurTestsMap]);
+
+  // Grouped Submissions with robust Subject, Unit and Topic Resolution
+  const testGroupedSubmissions = useMemo(() => {
+    const parsedSubs = allSubmissions.map(sub => {
+      const wrongQuestions = [];
+      const blankQuestions = [];
+      let correctCount = 0;
+
+      const rawAnswers = sub.answers || sub.studentAnswers || [];
+
+      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+        rawAnswers.forEach((ans, idx) => {
+          const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : (ans.questionNo || idx + 1);
+          if (ans.isCorrect === true) {
+            correctCount++;
+          } else if (ans.isCorrect === false) {
+            const isBlank = ans.userAnswer === null || ans.userAnswer === undefined || ans.userAnswer === '' || (typeof ans.userAnswer === 'string' && ans.userAnswer.trim() === '');
+            if (isBlank) {
+              blankQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
+            } else {
+              wrongQuestions.push({ qNum, questionId: ans.questionId, subIndex: ans.subIndex });
+            }
+          }
+        });
+      } else {
+        const wCount = sub.wrongCount !== undefined ? sub.wrongCount : (sub.wrong_count || 0);
+        const eCount = sub.emptyCount !== undefined ? sub.emptyCount : (sub.empty_count || sub.blankCount || 0);
+        correctCount = sub.correctCount !== undefined ? sub.correctCount : (sub.correct_count || 0);
+
+        for (let i = 1; i <= wCount; i++) wrongQuestions.push({ qNum: i });
+        for (let j = 1; j <= eCount; j++) blankQuestions.push({ qNum: wCount + j });
+      }
+
+      const matchedBookTest = allBookTestsMap.get(String(sub.testId)) || 
+                              allBookTestsMap.get(String(sub.bookTestId)) ||
+                              allBookTestsMap.get(String(sub.hwId)) ||
+                              (sub.metadata?.realTestId ? allBookTestsMap.get(String(sub.metadata.realTestId)) : null);
+
+      const matchedHw = (homeworks || []).find(h =>
+        String(h.id) === String(sub.hwId) ||
+        String(h.id) === String(sub.testId) ||
+        String(h.id) === String(sub.id) ||
+        (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(sub.hwId || sub.testId || sub.id)))
+      );
+
+      const matchedCurTest = allCurTestsMap.get(String(sub.testId)) || allCurTestsMap.get(String(sub.hwId));
+
+      let resolvedTitle = sub.testTitle || sub.title;
+      const isGeneric = !resolvedTitle ||
+        resolvedTitle.trim().toLowerCase() === 'test sınavı' ||
+        resolvedTitle.trim().toLowerCase() === 'test sinavi' ||
+        resolvedTitle.trim().toLowerCase() === 'test';
+
+      if (matchedBookTest) {
+        const cleanBook = (matchedBookTest.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+        resolvedTitle = cleanBook ? `${cleanBook} — ${matchedBookTest.testName}` : matchedBookTest.testName;
+      } else if (matchedHw?.title) {
+        resolvedTitle = matchedHw.title;
+      } else if (matchedCurTest?.title) {
+        resolvedTitle = matchedCurTest.title;
+      } else if (isGeneric) {
+        if (matchedHw?.subject) resolvedTitle = `${matchedHw.subject} Ödevi`;
+        else resolvedTitle = 'Sınav Testi';
+      }
+
+      let subject = '';
+
+      if (matchedBookTest?.subject) {
+        subject = matchedBookTest.subject;
+      } else if (matchedHw?.subject) {
+        subject = matchedHw.subject;
+      } else if (matchedCurTest?.subject) {
+        subject = matchedCurTest.subject;
+      } else if (sub.subject && sub.subject !== 'Genel') {
+        subject = sub.subject;
+      }
+
+      const directMatched = checkSubjectName(subject);
+      if (directMatched) {
+        subject = directMatched;
+      } else {
+        const titleMatched = checkSubjectName(resolvedTitle + ' ' + (matchedHw?.title || '') + ' ' + (sub.topic || ''));
+        subject = titleMatched || (SUBJECT_CONFIG[subject] ? subject : 'Matematik');
+      }
+
+      let unit = sub.unit || sub.unitName || matchedBookTest?.unit || matchedHw?.unit || matchedHw?.unitName || matchedCurTest?.unit || '';
+      let topic = sub.topic || sub.topicName || matchedBookTest?.topic || matchedHw?.topic || matchedHw?.topicName || matchedCurTest?.topic || '';
+
+      if (unit && (isSubjectName(unit) || unit.toLowerCase().trim() === subject.toLowerCase().trim())) {
+        if (topic) {
+          unit = topic;
+          topic = '';
+        } else {
+          unit = '';
+        }
+      }
+
+      if (topic && (topic.toLowerCase().includes('ünite') || topic.toLowerCase().includes('unite') || !unit)) {
+        if (!unit || topic.toLowerCase().includes('ünite') || topic.toLowerCase().includes('unite')) {
+          unit = topic;
+          topic = '';
+        }
+      }
+
+      if (!unit && Array.isArray(sub.answers) && sub.answers.length > 0) {
+        for (const ans of sub.answers) {
+          const uCandidate = ans.unit || ans.unitName;
+          if (uCandidate && !isSubjectName(uCandidate)) {
+            unit = uCandidate;
+            break;
+          }
+          if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
+            const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
+            const bqCandidate = bq?.unit || bq?.unitName;
+            if (bqCandidate && !isSubjectName(bqCandidate)) {
+              unit = bqCandidate;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!topic && Array.isArray(sub.answers) && sub.answers.length > 0) {
+        for (const ans of sub.answers) {
+          const tCandidate = ans.topic || ans.topicName;
+          if (tCandidate && tCandidate !== unit && !isSubjectName(tCandidate)) {
+            topic = tCandidate;
+            break;
+          }
+          if (ans.questionId && bankQuestions && bankQuestions.length > 0) {
+            const bq = bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)));
+            const bqTopic = bq?.topic || bq?.topicName;
+            if (bqTopic && bqTopic !== unit && !isSubjectName(bqTopic)) {
+              topic = bqTopic;
+              break;
+            }
+          }
+        }
+      }
+
+      if (topic && (topic.toLowerCase().trim() === unit.toLowerCase().trim() || isSubjectName(topic))) {
+        topic = '';
+      }
+
+      const isReviewed = reviewedSubSet.has(sub.id);
+      const dateStr = sub.submittedAt || sub.createdAt || sub.created_at || new Date().toISOString();
+      const totQ = sub.totalQuestions || rawAnswers.length || (wrongQuestions.length + blankQuestions.length + correctCount) || 10;
+
+      return {
+        ...sub,
+        testTitle: resolvedTitle,
+        subject,
+        unit,
+        topic,
+        orderIndex: matchedBookTest?.orderIndex ?? matchedCurTest?.orderIndex ?? (parseInt((resolvedTitle || '').replace(/\D/g, ''), 10) || 9999),
+        submittedAt: dateStr,
+        wrongQuestions,
+        blankQuestions,
+        correctCount: correctCount || Math.max(0, totQ - wrongQuestions.length - blankQuestions.length),
+        totalQuestions: totQ,
+        isReviewed,
+        hasErrors: wrongQuestions.length > 0 || blankQuestions.length > 0
+      };
+    });
+
+    return parsedSubs;
+  }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet, SUBJECT_CONFIG]);
+
+  // Split Submissions into Unreviewed vs Reviewed
+  const unreviewedSubmissions = useMemo(() => {
+    return testGroupedSubmissions.filter(s => !s.isReviewed);
+  }, [testGroupedSubmissions]);
+
+  const reviewedSubmissions = useMemo(() => {
+    return testGroupedSubmissions.filter(s => s.isReviewed);
+  }, [testGroupedSubmissions]);
+
+  // Current active list depending on selected review sub-tab
+  const currentTabBaseList = useMemo(() => {
+    if (reviewFilter === 'reviewed') return reviewedSubmissions;
+    return unreviewedSubmissions;
+  }, [reviewFilter, unreviewedSubmissions, reviewedSubmissions]);
+
+  // Filtered & Sorted Test Submissions for the active tab
+  const filteredTestSubmissions = useMemo(() => {
+    const list = currentTabBaseList.filter(sub => {
+      const textMatch =
+        !searchQuery.trim() ||
+        (sub.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (sub.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (sub.unit || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (sub.topic || '').toLowerCase().includes(searchQuery.toLowerCase());
+
+      const subjectMatch = !selectedSubject || selectedSubject === 'Tümü' || sub.subject === selectedSubject;
+      const wrongMatch = !wrongOnlyFilter || sub.wrongQuestions.length > 0;
+
+      return textMatch && subjectMatch && wrongMatch;
+    });
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'book_order') {
+        const orderA = a.orderIndex ?? (parseInt((a.testTitle || '').replace(/\D/g, ''), 10) || 9999);
+        const orderB = b.orderIndex ?? (parseInt((b.testTitle || '').replace(/\D/g, ''), 10) || 9999);
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr', { numeric: true });
+      }
+      if (sortBy === 'date_asc') {
+        return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
+      }
+      if (sortBy === 'wrong_desc') {
+        return b.wrongQuestions.length - a.wrongQuestions.length;
+      }
+      if (sortBy === 'name_asc') {
+        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr');
+      }
+      return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
+    });
+  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter, sortBy]);
+
+  // Pagination for Test Submissions
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // 10, 20, 50, 'all'
+
+  // Pagination for Görsel Hata Defterim
+  const [notebookPage, setNotebookPage] = useState(1);
+  const [notebookPageSize, setNotebookPageSize] = useState(12);
+
+  // Reset page when filters or tab change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedSubject, wrongOnlyFilter, sortBy, activeMainTab, reviewFilter, pageSize]);
+
+  useEffect(() => {
+    setNotebookPage(1);
+  }, [notebookStatusFilter, notebookSearchQuery, selectedSubject, notebookPageSize]);
+
+  const totalSubmissionsCount = filteredTestSubmissions.length;
+  const totalSubmissionsPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalSubmissionsCount / (Number(pageSize) || 10)));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalSubmissionsPages);
+
+  const paginatedSubmissions = useMemo(() => {
+    if (pageSize === 'all') return filteredTestSubmissions;
+    const numSize = Number(pageSize) || 10;
+    const startIdx = (safeCurrentPage - 1) * numSize;
+    return filteredTestSubmissions.slice(startIdx, startIdx + numSize);
+  }, [filteredTestSubmissions, safeCurrentPage, pageSize]);
+
+  // Global and Tab-Specific Counts
+  const totalWrongQuestionsCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [testGroupedSubmissions]);
+  const totalBlankQuestionsCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
+  const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
+  const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
+
+  // Spaced Repetition (Leitner) Flat Questions & Overview (STRICTLY ONLY Soru Bankası & Telafi Testleri)
+  const allFlatWrongQuestions = useMemo(() => {
+    const list = [];
+
+    // Create quick lookup maps for remedial and question bank tests
+    const remedialMap = new Map();
+    (remedialTests || []).forEach(rt => {
+      if (rt?.id) {
+        remedialMap.set(String(rt.id), rt);
+        if (toUUID(rt.id)) remedialMap.set(String(toUUID(rt.id)), rt);
+      }
+    });
+
+    const bankMap = new Map();
+    (bankQuestions || []).forEach(bq => {
+      if (bq?.id) {
+        bankMap.set(String(bq.id), bq);
+        if (toUUID(bq.id)) bankMap.set(String(toUUID(bq.id)), bq);
+      }
+    });
+
+    testGroupedSubmissions.forEach(sub => {
+      const subIdStr = String(sub.testId || sub.hwId || sub.id || '');
+      const subTitle = String(sub.testTitle || sub.title || '');
+
+      // 1. Check if it's a Remedial Test
+      const matchedRemedial = remedialMap.get(subIdStr) || (sub.metadata?.realTestId ? remedialMap.get(String(sub.metadata.realTestId)) : null);
+      const isRemedial = Boolean(
+        matchedRemedial ||
+        sub.isRemedialTest === true ||
+        sub.sourceType === 'pdfSlicer' ||
+        sub.type === 'remedial' ||
+        subTitle.includes('Telafi') ||
+        subTitle.includes('Kırpılmış')
+      );
+
+      // 2. Check if it's a Question Bank Test
+      const matchedBank = bankMap.get(subIdStr) || (sub.metadata?.realTestId ? bankMap.get(String(sub.metadata.realTestId)) : null);
+      const isQuestionBank = Boolean(
+        matchedBank ||
+        sub.sourceType === 'questionBank' ||
+        sub.sourceType === 'bank' ||
+        sub.type === 'soru_bankasi' ||
+        sub.testType === 'bank'
+      ) && (
+        !sub.isManual &&
+        sub.sourceType !== 'trackedBook' &&
+        sub.sourceType !== 'bookTest' &&
+        sub.sourceType !== 'optik' &&
+        sub.sourceType !== 'book' &&
+        !subTitle.includes('(Tüm Kitap Görevi)') &&
+        !subTitle.includes('(Tüm Kitap)')
+      );
+
+      // EXCLUDE all other types (paper books, optical forms, manual forms, curriculum tests without digital content)
+      if (!isRemedial && !isQuestionBank) {
+        return;
+      }
+
+      // Resolve questions list if available
+      const testSourceObj = matchedRemedial || matchedBank || null;
+      let resolvedQuestions = [];
+      if (testSourceObj) {
+        resolvedQuestions = (testSourceObj.questionsList && testSourceObj.questionsList.length > 0)
+          ? testSourceObj.questionsList
+          : resolveTestQuestions(testSourceObj, bankQuestions || []);
+      }
+
+      (sub.wrongQuestions || []).forEach(wq => {
+        const qIdx = (typeof wq.qNum === 'number' ? wq.qNum - 1 : 0);
+        const resolvedQ = resolvedQuestions[qIdx] || {};
+
+        // Resolve best image URL
+        const qImage = resolvedQ.imageUrl ||
+                       wq.imageUrl ||
+                       (Array.isArray(testSourceObj?.imageUrls) ? testSourceObj.imageUrls[qIdx] : null) ||
+                       (testSourceObj?.imageUrl && qIdx === 0 ? testSourceObj.imageUrl : null) ||
+                       null;
+
+        const qText = resolvedQ.questionText ||
+                      resolvedQ.text ||
+                      resolvedQ.title ||
+                      wq.questionText ||
+                      `${subTitle} — Soru ${wq.qNum}`;
+
+        const qOptions = resolvedQ.options || wq.options || ['A', 'B', 'C', 'D', 'E'];
+        const qCorrect = resolvedQ.correctAnswer !== undefined
+          ? resolvedQ.correctAnswer
+          : (typeof resolvedQ.correctAnswerLetter === 'string'
+              ? (resolvedQ.correctAnswerLetter.toUpperCase().charCodeAt(0) - 65)
+              : (wq.correctAnswer ?? 0));
+
+        list.push({
+          id: `${sub.id}_${wq.qNum}`,
+          testId: sub.id,
+          testTitle: sub.testTitle || subTitle,
+          subject: sub.subject || resolvedQ.subject || 'Ders',
+          questionNo: wq.qNum,
+          questionText: qText,
+          options: qOptions,
+          optionCount: resolvedQ.optionCount || (qOptions ? qOptions.length : 5),
+          correctAnswer: qCorrect,
+          correctAnswerLetter: resolvedQ.correctAnswerLetter || String.fromCharCode(65 + qCorrect),
+          imageUrl: qImage,
+          isRemedialTest: isRemedial,
+          isQuestionBank: isQuestionBank
+        });
+      });
+    });
+
+    return list;
+  }, [testGroupedSubmissions, remedialTests, bankQuestions]);
+
+  const leitnerOverview = useMemo(() => {
+    const sId = selectedStudent?.id || currentUser?.id || 'default_student';
+    return getLeitnerOverview(sId, allFlatWrongQuestions);
+  }, [selectedStudent, currentUser, allFlatWrongQuestions]);
+
+  // Available Homework options for Add Modal
+  const availableHomeworkOptions = useMemo(() => {
+    if (!selectedStudent) return [];
+    const map = new Map();
+
+    testGroupedSubmissions.forEach(sub => {
+      map.set(sub.id, {
+        id: sub.id,
+        title: sub.testTitle || 'Sınav / Ödev',
+        subject: sub.subject || 'Matematik',
+        unit: sub.unit || '',
+        topic: sub.topic || '',
+        wrongCount: sub.wrongQuestions.length,
+        blankCount: sub.blankQuestions.length,
+        date: sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : ''
+      });
+    });
+
+    homeworks.filter(hw => hw.studentId === selectedStudent.id || (hw.targetIds && hw.targetIds.includes(selectedStudent.id)))
+      .forEach(hw => {
+        if (!map.has(hw.id)) {
+          map.set(hw.id, {
+            id: hw.id,
+            title: hw.title || 'Ödev',
+            subject: hw.subject || 'Matematik',
+            unit: hw.unit || hw.unitName || '',
+            topic: hw.topic || hw.topicName || '',
+            wrongCount: 0,
+            blankCount: 0,
+            date: hw.dueDate ? new Date(hw.dueDate).toLocaleDateString('tr-TR') : ''
+          });
+        }
+      });
+
+    return Array.from(map.values());
+  }, [testGroupedSubmissions, homeworks, selectedStudent]);
+
+  const handleOpenAddModal = (defaultSub = null) => {
+    let initialHwId = defaultSub?.id || '';
+    let initialTitle = defaultSub?.testTitle || defaultSub?.title || '';
+    let initialSubject = defaultSub?.subject || 'Matematik';
+    let initialTopic = defaultSub?.topic || (defaultSub?.unit ? `Ünite: ${defaultSub.unit}` : '');
+
+    if (!defaultSub && availableHomeworkOptions.length > 0) {
+      const topOpt = availableHomeworkOptions[0];
+      initialHwId = topOpt.id;
+      initialTitle = topOpt.title;
+      initialSubject = topOpt.subject || 'Matematik';
+      initialTopic = topOpt.topic || (topOpt.unit ? `Ünite: ${topOpt.unit}` : '');
+    }
+
+    setNewErrorForm({
+      homeworkId: initialHwId,
+      testTitle: initialTitle,
+      subject: initialSubject,
+      topic: initialTopic,
+      questionNo: '',
+      imageUrl: '',
+      reason: '⚡ İşlem Hatası',
+      note: '',
+      solutionNote: ''
+    });
+    setShowAddModal(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const compressed = await compressImageToWebP(file, 1400, 0.82);
+        setNewErrorForm(prev => ({ ...prev, imageUrl: compressed.dataUrl }));
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewErrorForm(prev => ({ ...prev, imageUrl: reader.result }));
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const handleSaveNewError = async (e) => {
+    e.preventDefault();
+    if (!newErrorForm.imageUrl) {
+      alert('Lütfen sorunun fotoğrafını yükleyin.');
+      return;
+    }
+    if (!selectedStudent) return;
+
+    await addStudentError(selectedStudent.id, {
+      homeworkId: newErrorForm.homeworkId,
+      testTitle: newErrorForm.testTitle || 'Ödev / Deneme Sorusu',
+      subject: newErrorForm.subject || 'Matematik',
+      topic: newErrorForm.topic.trim(),
+      questionNo: newErrorForm.questionNo.trim(),
+      imageUrl: newErrorForm.imageUrl,
+      reason: newErrorForm.reason,
+      note: newErrorForm.note.trim(),
+      solutionNote: newErrorForm.solutionNote.trim(),
+      status: 'active'
+    });
+
+    setShowAddModal(false);
+  };
+
+  const handleToggleStatus = async (errId, currentStatus, e) => {
+    if (e) e.stopPropagation();
+    if (!selectedStudent) return;
+    const nextStatus = currentStatus === 'resolved' ? 'active' : 'resolved';
+    await updateStudentError(selectedStudent.id, errId, { status: nextStatus });
+
+    if (viewingErrorModal && viewingErrorModal.id === errId) {
+      setViewingErrorModal(prev => prev ? { ...prev, status: nextStatus } : null);
+    }
+  };
+
+  const handleDeleteErrorRecord = async (errId, e) => {
+    if (e) e.stopPropagation();
+    if (!selectedStudent) return;
+    if (window.confirm('Bu soru görselini hata defterinizden silmek istediğinize emin misiniz?')) {
+      await deleteStudentError(selectedStudent.id, errId);
+      if (viewingErrorModal && viewingErrorModal.id === errId) {
+        setViewingErrorModal(null);
+      }
+    }
+  };
+
+  const filteredStudentErrors = useMemo(() => {
+    const list = studentErrors.filter(err => {
+      const matchSubject = selectedSubject === 'Tümü' || err.subject === selectedSubject;
+      const matchStatus = notebookStatusFilter === 'all' || err.status === notebookStatusFilter;
+      const matchQuery = !notebookSearchQuery.trim() ||
+        (err.testTitle || '').toLowerCase().includes(notebookSearchQuery.toLowerCase()) ||
+        (err.topic || '').toLowerCase().includes(notebookSearchQuery.toLowerCase()) ||
+        (err.note || '').toLowerCase().includes(notebookSearchQuery.toLowerCase()) ||
+        (err.reason || '').toLowerCase().includes(notebookSearchQuery.toLowerCase());
+
+      return matchSubject && matchStatus && matchQuery;
+    });
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'date_asc') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+  }, [studentErrors, selectedSubject, notebookStatusFilter, notebookSearchQuery, sortBy]);
+
+  const [showClassifiedQuestions, setShowClassifiedQuestions] = useState(false);
+
+  const overallMistakeStats = useMemo(() => {
+    const studentIdStr = String(selectedStudent?.id || currentUser?.id || '');
+    const studentUuidStr = String(toUUID(studentIdStr) || '');
+
+    const reasonDefs = {
+      '⚡ İşlem Hatası': { key: '⚡ İşlem Hatası', color: '#d97706', bg: isDark ? 'rgba(217,119,6,0.15)' : '#fffbeb', border: isDark ? 'rgba(217,119,6,0.35)' : '#fde68a', count: 0 },
+      '⚠️ Dikkat Kaybı': { key: '⚠️ Dikkat Kaybı', color: '#e11d48', bg: isDark ? 'rgba(225,29,72,0.15)' : '#fff1f2', border: isDark ? 'rgba(225,29,72,0.35)' : '#fecdd3', count: 0 },
+      '📖 Formül / Bilgi': { key: '📖 Formül / Bilgi', color: '#0284c7', bg: isDark ? 'rgba(2,132,199,0.15)' : '#f0f9ff', border: isDark ? 'rgba(2,132,199,0.35)' : '#bae6fd', count: 0 },
+      '🧠 Konu Eksiği': { key: '🧠 Konu Eksiği', color: '#7c3aed', bg: isDark ? 'rgba(124,58,237,0.15)' : '#faf5ff', border: isDark ? 'rgba(124,58,237,0.35)' : '#e9d5ff', count: 0 },
+      '⏱️ Zaman Yetmedi': { key: '⏱️ Zaman Yetmedi', color: '#db2777', bg: isDark ? 'rgba(219,39,119,0.15)' : '#fdf2f8', border: isDark ? 'rgba(219,39,119,0.35)' : '#fbcfe8', count: 0 }
+    };
+
+    const questionsList = [];
+    const countedKeys = new Set();
+
+    // 1. Scan LocalStorage for all mistake reason keys
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || (!k.startsWith('mistake_reasons_') && !k.startsWith('book_mistake_reasons_') && !k.startsWith('eval_mistake_'))) continue;
+        const valStr = localStorage.getItem(k);
+        if (!valStr) continue;
+        try {
+          const parsed = JSON.parse(valStr);
+          if (parsed && typeof parsed === 'object') {
+            Object.entries(parsed).forEach(([subKey, reason]) => {
+              if (!reason || typeof reason !== 'string') return;
+              const dedupeKey = `${k}_${subKey}`;
+              if (countedKeys.has(dedupeKey)) return;
+              countedKeys.add(dedupeKey);
+
+              const matchedKey = Object.keys(reasonDefs).find(rk =>
+                reason.includes(rk) || rk.includes(reason) ||
+                (reason.includes('İşlem') && rk.includes('İşlem')) ||
+                (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+                (reason.includes('Formül') && rk.includes('Formül')) ||
+                (reason.includes('Konu') && rk.includes('Konu')) ||
+                (reason.includes('Zaman') && rk.includes('Zaman'))
+              );
+              if (matchedKey) {
+                reasonDefs[matchedKey].count++;
+                questionsList.push({
+                  id: dedupeKey,
+                  testTitle: 'Test / Deneme',
+                  subject: subKey.includes('_') ? subKey.split('_')[0] : 'Soru',
+                  qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+                  reason: matchedKey,
+                  def: reasonDefs[matchedKey]
+                });
+              }
+            });
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // 2. Scan allSubmissions in EvaluationContext
+    (allSubmissions || []).forEach(sub => {
+      const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
+      if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
+      if (!sub.mistakeReasons || typeof sub.mistakeReasons !== 'object') return;
+
+      Object.entries(sub.mistakeReasons).forEach(([subKey, reason]) => {
+        if (!reason || typeof reason !== 'string') return;
+        const dedupeKey = `sub_${sub.id || sub.testId}_${subKey}`;
+        if (countedKeys.has(dedupeKey)) return;
+        countedKeys.add(dedupeKey);
+
+        const matchedKey = Object.keys(reasonDefs).find(rk =>
+          reason.includes(rk) || rk.includes(reason) ||
+          (reason.includes('İşlem') && rk.includes('İşlem')) ||
+          (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+          (reason.includes('Formül') && rk.includes('Formül')) ||
+          (reason.includes('Konu') && rk.includes('Konu')) ||
+          (reason.includes('Zaman') && rk.includes('Zaman'))
+        );
+        if (matchedKey) {
+          reasonDefs[matchedKey].count++;
+          questionsList.push({
+            id: dedupeKey,
+            testTitle: sub.testTitle || sub.title || 'Sınav / Kitap',
+            subject: sub.subject || (subKey.includes('_') ? subKey.split('_')[0] : 'Soru'),
+            qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+            reason: matchedKey,
+            def: reasonDefs[matchedKey]
+          });
+        }
+      });
+    });
+
+    // 2.5. Scan homeworks in HomeworkContext
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(hs => {
+        const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
+        if (!isMatch) return;
+        if (!hs.mistakeReasons || typeof hs.mistakeReasons !== 'object') return;
+
+        Object.entries(hs.mistakeReasons).forEach(([subKey, reason]) => {
+          if (!reason || typeof reason !== 'string') return;
+          const dedupeKey = `hw_${hw.id}_${subKey}`;
+          if (countedKeys.has(dedupeKey)) return;
+          countedKeys.add(dedupeKey);
+
+          const matchedKey = Object.keys(reasonDefs).find(rk =>
+            reason.includes(rk) || rk.includes(reason) ||
+            (reason.includes('İşlem') && rk.includes('İşlem')) ||
+            (reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+            (reason.includes('Formül') && rk.includes('Formül')) ||
+            (reason.includes('Konu') && rk.includes('Konu')) ||
+            (reason.includes('Zaman') && rk.includes('Zaman'))
+          );
+          if (matchedKey) {
+            reasonDefs[matchedKey].count++;
+            questionsList.push({
+              id: dedupeKey,
+              testTitle: hw.title || 'Ödev / Test',
+              subject: subKey.includes('_') ? subKey.split('_')[0] : (hw.subject || 'Soru'),
+              qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
+              reason: matchedKey,
+              def: reasonDefs[matchedKey]
+            });
+          }
+        });
+      });
+    });
+
+    // 3. Scan studentErrors (Görsel Hata Defteri)
+    (studentErrors || []).forEach(err => {
+      if (!err.reason) return;
+      const dedupeKey = `err_${err.id}`;
+      if (countedKeys.has(dedupeKey)) return;
+      countedKeys.add(dedupeKey);
+
+      const matchedKey = Object.keys(reasonDefs).find(rk =>
+        err.reason.includes(rk) || rk.includes(err.reason) ||
+        (err.reason.includes('İşlem') && rk.includes('İşlem')) ||
+        (err.reason.includes('Dikkat') && rk.includes('Dikkat')) ||
+        (err.reason.includes('Formül') && rk.includes('Formül')) ||
+        (err.reason.includes('Konu') && rk.includes('Konu')) ||
+        (err.reason.includes('Zaman') && rk.includes('Zaman'))
+      );
+      if (matchedKey) {
+        reasonDefs[matchedKey].count++;
+        questionsList.push({
+          id: dedupeKey,
+          testTitle: err.testTitle || 'Hata Defteri',
+          subject: err.subject || 'Soru',
+          qNo: err.questionNo || '—',
+          reason: matchedKey,
+          def: reasonDefs[matchedKey]
+        });
+      }
+    });
+
+    const totalWrongAndBlank = currentWrongCount + currentBlankCount;
+    const totalClassified = Object.values(reasonDefs).reduce((acc, r) => acc + r.count, 0);
+    const unclassifiedCount = Math.max(0, totalWrongAndBlank - totalClassified);
+
+    const sortedReasons = Object.values(reasonDefs).sort((a, b) => b.count - a.count);
+    const topReason = sortedReasons[0]?.count > 0 ? sortedReasons[0] : null;
+
+    return {
+      reasonDefs,
+      totalWrongAndBlank,
+      totalClassified,
+      unclassifiedCount,
+      topReason,
+      sortedReasons,
+      questionsList
+    };
+  }, [allSubmissions, studentErrors, currentWrongCount, currentBlankCount, selectedStudent, currentUser, isDark]);
+
+  const totalNotebookCount = filteredStudentErrors.length;
+  const totalNotebookPages = notebookPageSize === 'all' ? 1 : Math.max(1, Math.ceil(totalNotebookCount / (Number(notebookPageSize) || 12)));
+  const safeNotebookPage = Math.min(Math.max(1, notebookPage), totalNotebookPages);
+
+  const paginatedNotebookErrors = useMemo(() => {
+    if (notebookPageSize === 'all') return filteredStudentErrors;
+    const numSize = Number(notebookPageSize) || 12;
+    const startIdx = (safeNotebookPage - 1) * numSize;
+    return filteredStudentErrors.slice(startIdx, startIdx + numSize);
+  }, [filteredStudentErrors, safeNotebookPage, notebookPageSize]);
+
+  // Reusable Pagination Renderer
+  const renderPagination = (current, total, totalCount, size, setSize, setPage, label = 'test') => {
+    if (totalCount === 0) return null;
+    const numSize = size === 'all' ? totalCount : Number(size);
+    const startIdx = size === 'all' ? 1 : (current - 1) * numSize + 1;
+    const endIdx = size === 'all' ? totalCount : Math.min(current * numSize, totalCount);
+
+    const getPageNumbers = () => {
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      if (current <= 4) {
+        return [1, 2, 3, 4, 5, '...', total];
+      }
+      if (current >= total - 3) {
+        return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      }
+      return [1, '...', current - 1, current, current + 1, '...', total];
+    };
+
+    const pages = getPageNumbers();
+
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '0.85rem',
+        padding: '0.85rem 1.1rem',
+        background: 'var(--color-surface)',
+        border: '1.5px solid var(--color-border)',
+        borderRadius: '14px',
+        marginTop: '1.25rem',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+      }}>
+        {/* Sol: Özet Bilgi */}
+        <div style={{
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          color: 'var(--color-text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <span>Toplam <strong style={{ color: 'var(--color-text)', fontWeight: 900 }}>{totalCount}</strong> {label}ten</span>
+          <span style={{
+            background: isDark ? 'rgba(99,102,241,0.2)' : '#ede9fe',
+            color: '#6366f1',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontWeight: 900,
+            fontSize: '0.76rem'
+          }}>
+            {startIdx} - {endIdx}
+          </span>
+          <span>arası listeleniyor</span>
+        </div>
+
+        {/* Sağ: Sayfa Başına Sayı ve Sayfa Geçiş Butonları */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Sayfa Başına:</span>
+            <select
+              value={size}
+              onChange={e => setSize(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+              style={{
+                padding: '0.35rem 0.6rem',
+                borderRadius: 8,
+                border: '1.5px solid var(--color-border-input)',
+                background: 'var(--color-surface-hover)',
+                color: 'var(--color-text)',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value={10}>10 {label}</option>
+              <option value={20}>20 {label}</option>
+              <option value={50}>50 {label}</option>
+              <option value="all">Tümü ({totalCount})</option>
+            </select>
+          </div>
+
+          {total > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                disabled={current === 1}
+                title="İlk Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === 1 ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === 1 ? 'not-allowed' : 'pointer',
+                  opacity: current === 1 ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronsLeft size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={current === 1}
+                title="Önceki Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === 1 ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === 1 ? 'not-allowed' : 'pointer',
+                  opacity: current === 1 ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              {pages.map((p, pIdx) => {
+                if (p === '...') {
+                  return (
+                    <span
+                      key={`dot_${pIdx}`}
+                      style={{
+                        padding: '0 4px',
+                        color: 'var(--color-text-muted)',
+                        fontSize: '0.8rem',
+                        fontWeight: 800
+                      }}
+                    >
+                      …
+                    </span>
+                  );
+                }
+
+                const isCurrent = p === current;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    style={{
+                      minWidth: 32,
+                      height: 32,
+                      padding: '0 6px',
+                      borderRadius: 8,
+                      border: isCurrent ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                      background: isCurrent ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface-hover)',
+                      color: isCurrent ? '#ffffff' : 'var(--color-text)',
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      boxShadow: isCurrent ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(total, p + 1))}
+                disabled={current === total}
+                title="Sonraki Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === total ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === total ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === total ? 'not-allowed' : 'pointer',
+                  opacity: current === total ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronRight size={15} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPage(total)}
+                disabled={current === total}
+                title="Son Sayfa"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: '1.5px solid var(--color-border)',
+                  background: current === total ? 'transparent' : 'var(--color-surface-hover)',
+                  color: current === total ? 'var(--color-text-muted)' : 'var(--color-text)',
+                  cursor: current === total ? 'not-allowed' : 'pointer',
+                  opacity: current === total ? 0.45 : 1,
+                  fontSize: '0.78rem',
+                  fontWeight: 800
+                }}
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
     <div style={{
-      padding: isMobile ? '0.75rem 0.5rem' : '1.5rem',
       minHeight: '100vh',
       background: 'var(--color-bg)',
+      padding: '1.25rem 1.25rem',
+      fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       color: 'var(--color-text)',
       boxSizing: 'border-box'
     }}>
@@ -350,7 +1943,7 @@ const isSubjectName = (str) => {
               borderRadius: 99,
               fontWeight: 900
             }}>
-              {currentWrongCount}
+              {totalWrongQuestionsCount}
             </span>
           </button>
 
@@ -496,7 +2089,7 @@ const isSubjectName = (str) => {
                 Toplam Yanlış Soru
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
-                {currentWrongCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Soru</span>
+                {totalWrongQuestionsCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Soru</span>
               </div>
             </div>
           </div>
@@ -531,7 +2124,7 @@ const isSubjectName = (str) => {
                 Toplam Boş Soru
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
-                {currentBlankCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Soru</span>
+                {totalBlankQuestionsCount} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Soru</span>
               </div>
             </div>
           </div>
