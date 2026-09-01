@@ -1017,12 +1017,12 @@ export default function StudentWrongAnswersPage() {
   const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
   const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
 
-  // Spaced Repetition (Leitner) Flat Questions & Overview (Tüm Çözülen Testler & Telafi Testleri)
+  // Spaced Repetition (Leitner) Flat Questions & Overview (SADECE Özel & Atanan Telafi Testleri)
   const allFlatWrongQuestions = useMemo(() => {
     const list = [];
     const seenQuestionKeys = new Set();
 
-    // 1. Create quick lookup maps for remedial and question bank tests
+    // 1. Create quick lookup map for remedial tests
     const remedialMap = new Map();
     (remedialTests || []).forEach(rt => {
       if (rt?.id) {
@@ -1031,27 +1031,39 @@ export default function StudentWrongAnswersPage() {
       }
     });
 
-    const bankMap = new Map();
-    (bankQuestions || []).forEach(bq => {
-      if (bq?.id) {
-        bankMap.set(String(bq.id), bq);
-        if (toUUID(bq.id)) bankMap.set(String(toUUID(bq.id)), bq);
-      }
-    });
-
-    // 2. Scan all submissions for wrong and blank questions
+    // 2. Scan submissions strictly for remedial tests only
     (testGroupedSubmissions || []).forEach(sub => {
       const subIdStr = String(sub.testId || sub.hwId || sub.id || '');
       const subTitle = String(sub.testTitle || sub.title || 'Test');
+      const titleLower = subTitle.toLowerCase();
 
       const matchedRemedial = remedialMap.get(subIdStr) ||
                               (sub.metadata?.realTestId ? remedialMap.get(String(sub.metadata.realTestId)) : null) ||
                               (sub.testId ? remedialMap.get(String(sub.testId)) : null) ||
                               (sub.hwId ? remedialMap.get(String(sub.hwId)) : null);
 
-      const matchedBank = bankMap.get(subIdStr) || (sub.metadata?.realTestId ? bankMap.get(String(sub.metadata.realTestId)) : null);
+      const isRemedial = Boolean(
+        matchedRemedial ||
+        sub.isRemedialTest === true ||
+        sub.isRemedial === true ||
+        sub.isTeacherRemedial === true ||
+        sub.teacherAssigned === true ||
+        sub.sourceType === 'pdfSlicerRemedial' ||
+        sub.sourceType === 'pdfSlicer' ||
+        sub.type === 'remedial' ||
+        sub.type === 'remedialTest' ||
+        sub.taskType === 'remedialTest' ||
+        titleLower.includes('telafi') ||
+        titleLower.includes('kırpılmış') ||
+        titleLower.includes('kirpilmis')
+      );
 
-      const testSourceObj = matchedRemedial || matchedBank || null;
+      // SADECE TELAFİ TESTLERİ
+      if (!isRemedial) {
+        return;
+      }
+
+      const testSourceObj = matchedRemedial || null;
       let resolvedQuestions = [];
       if (testSourceObj) {
         resolvedQuestions = (testSourceObj.questionsList && testSourceObj.questionsList.length > 0)
@@ -1103,8 +1115,8 @@ export default function StudentWrongAnswersPage() {
           correctAnswer: qCorrect,
           correctAnswerLetter: resolvedQ.correctAnswerLetter || String.fromCharCode(65 + qCorrect),
           imageUrl: qImage,
-          isRemedialTest: Boolean(matchedRemedial || sub.isRemedialTest || sub.isRemedial),
-          isQuestionBank: Boolean(matchedBank || sub.sourceType === 'questionBank')
+          isRemedialTest: true,
+          isQuestionBank: false
         });
       });
     });
@@ -3879,7 +3891,7 @@ export default function StudentWrongAnswersPage() {
                     Aralıklı Tekrar (Leitner 5-Kutu) Sistemi
                   </h3>
                   <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    Soru bankası ve özel telafi testlerinizdeki yanlışları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
+                    Özel telafi testlerinizdeki yanlış ve boş soruları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
                   </p>
                 </div>
               </div>
