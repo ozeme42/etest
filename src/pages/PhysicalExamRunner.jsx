@@ -123,9 +123,13 @@ export default function PhysicalExamRunner() {
     }
 
     // Determine teacher's intended subjects list (source of truth for ordering)
-    const teacherSubs = Array.isArray(hw?.subjects) && hw.subjects.length > 0 
-      ? hw.subjects 
-      : (Array.isArray(matchingBook?.subjects) && matchingBook.subjects.length > 0 ? matchingBook.subjects : []);
+    const validBookSubs = (Array.isArray(matchingBook?.subjects) ? matchingBook.subjects : [])
+      .filter(s => s && s.id !== '__book_meta__' && s.__meta !== true && (s.name || typeof s === 'string'));
+
+    const rawTeacherSubs = (Array.isArray(hw?.subjects) && hw.subjects.length > 0 ? hw.subjects : validBookSubs)
+      .filter(s => s && s.id !== '__book_meta__' && s.__meta !== true && (s.name || typeof s === 'string'));
+
+    const teacherSubs = sortSubjectsByTeacherOrder(rawTeacherSubs, validBookSubs);
 
     let subs = [];
     if (teacherSubs.length > 0) {
