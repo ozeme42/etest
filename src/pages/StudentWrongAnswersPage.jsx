@@ -509,7 +509,7 @@ export default function StudentWrongAnswersPage() {
   const [wrongOnlyFilter, setWrongOnlyFilter] = useState(false);
   const [isLeitnerModalOpen, setIsLeitnerModalOpen] = useState(false);
   const [leitnerPracticeQuestions, setLeitnerPracticeQuestions] = useState([]);
-  const [selectedLeitnerBoxLevel, setSelectedLeitnerBoxLevel] = useState(1);
+  const [selectedLeitnerBoxLevel, setSelectedLeitnerBoxLevel] = useState('all'); // 'all' | 1 | 2 | 3 | 4 | 5
 
   // Hata Defteri Modals & States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1229,6 +1229,98 @@ export default function StudentWrongAnswersPage() {
     const sId = selectedStudent?.id || currentUser?.id || 'default_student';
     return getLeitnerOverview(sId, allFlatWrongQuestions);
   }, [selectedStudent, currentUser, allFlatWrongQuestions]);
+
+  // Test-Based Leitner Spaced Repetition Data (Özel Telafi Testleri Aşamaları & Sonuçları)
+  const remedialTestsLeitnerData = useMemo(() => {
+    const boxCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const categorizedTests = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    const allEnrichedTests = [];
+
+    (remedialTests || []).forEach(test => {
+      // Find all submissions for this test sorted chronologically
+      const testSubs = (submissions || []).filter(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+        if (!isMatchStudent) return false;
+
+        return String(s.testId) === String(test.id) ||
+               String(s.id) === String(test.id) ||
+               (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
+               (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id)) ||
+               (test.title && s.testTitle && s.testTitle.toLowerCase().trim() === test.title.toLowerCase().trim());
+      }).sort((a, b) => new Date(a.submittedAt || a.createdAt || 0) - new Date(b.submittedAt || b.createdAt || 0));
+
+      const totalQ = Number(test.questionCount || test.totalQuestions || test.questionsList?.length || 1);
+      const solveCount = testSubs.length;
+
+      // Extract stage-by-stage results (1 to 5)
+      const stageResults = [1, 2, 3, 4, 5].map(stgNum => {
+        const subForStage = testSubs[stgNum - 1] || null;
+        if (!subForStage) return null;
+        const c = subForStage.correctCount ?? subForStage.correct_count ?? subForStage.correct ?? 0;
+        const w = subForStage.wrongCount ?? subForStage.wrong_count ?? subForStage.wrong ?? 0;
+        const e = subForStage.emptyCount ?? subForStage.blankCount ?? subForStage.empty ?? Math.max(0, totalQ - c - w);
+        const net = subForStage.net ?? subForStage.netScore ?? Number(Math.max(0, c - (w / 3)).toFixed(2));
+        const pct = subForStage.scorePercentage ?? (totalQ > 0 ? Math.round((c / totalQ) * 100) : 0);
+        return {
+          stage: stgNum,
+          submissionId: subForStage.id,
+          correct: c,
+          wrong: w,
+          blank: e,
+          net,
+          scorePercentage: pct,
+          date: subForStage.submittedAt || subForStage.createdAt,
+          subObj: subForStage
+        };
+      });
+
+      const latestSub = testSubs.length > 0 ? testSubs[testSubs.length - 1] : null;
+      const latestStageResult = latestSub ? stageResults[testSubs.length - 1] : null;
+      const isMastered = latestStageResult?.scorePercentage === 100 || (latestStageResult && latestStageResult.wrong === 0 && latestStageResult.blank === 0);
+
+      // Active Box Level:
+      let activeBoxLevel = 1;
+      if (isMastered) {
+        activeBoxLevel = 5;
+      } else if (solveCount === 0) {
+        activeBoxLevel = 1;
+      } else if (solveCount === 1) {
+        activeBoxLevel = 2;
+      } else if (solveCount === 2) {
+        activeBoxLevel = 3;
+      } else if (solveCount === 3) {
+        activeBoxLevel = 4;
+      } else {
+        activeBoxLevel = 5;
+      }
+
+      const enrichedItem = {
+        ...test,
+        solveCount,
+        isSolved: solveCount > 0,
+        isMastered,
+        activeBoxLevel,
+        totalQuestions: totalQ,
+        stageResults,
+        latestStageResult,
+        submissions: testSubs,
+        latestSub
+      };
+
+      allEnrichedTests.push(enrichedItem);
+      boxCounts[activeBoxLevel] = (boxCounts[activeBoxLevel] || 0) + 1;
+      categorizedTests[activeBoxLevel].push(enrichedItem);
+    });
+
+    return {
+      boxCounts,
+      categorizedTests,
+      allEnrichedTests,
+      totalTests: allEnrichedTests.length
+    };
+  }, [remedialTests, submissions, allStudentIds]);
 
   // Available Homework options for Add Modal
   const availableHomeworkOptions = useMemo(() => {
@@ -3968,7 +4060,7 @@ export default function StudentWrongAnswersPage() {
           </div>
         )}
 
-        {/* ─── SEKME 3: ARALIKLI TEKRAR (LEITNER KUTULARI) ─── */}
+        {/* ─── SEKME 3: ARALIKLI TEKRAR (LEITNER 5-KUTU) TEST BAZLI SİSTEM ─── */}
         {activeMainTab === 'leitner' && (
           <div className="wa-section-card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
@@ -3992,48 +4084,26 @@ export default function StudentWrongAnswersPage() {
                     Aralıklı Tekrar (Leitner 5-Kutu) Sistemi
                   </h3>
                   <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    Özel telafi testlerinizdeki yanlış ve boş soruları hafızaya kazımak için 1, 3, 7 ve 15 gün aralıklarla otomatik telafi pratiği yapın.
+                    Özel telafi testlerinizdeki aşama aşama başarı ve pekiştirme sonuçlarını (1, 3, 7 ve 15 gün aralıklarla) takip edin.
                   </p>
                 </div>
               </div>
 
-              {leitnerOverview.dueTodayCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLeitnerPracticeQuestions(leitnerOverview.dueQuestions);
-                    setIsLeitnerModalOpen(true);
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: 12,
-                    padding: '0.55rem 1.15rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
-                  }}
-                >
-                  <Zap size={15} /> 🎯 Bugünün Telafi Pratiğini Başlat ({leitnerOverview.dueTodayCount} Soru)
-                </button>
-              ) : (
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  color: '#10b981',
-                  background: 'rgba(16,185,129,0.12)',
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: 99,
-                  border: '1px solid rgba(16,185,129,0.3)'
-                }}>
-                  🎉 Bugün bekleyen telafi sorunuz yok!
-                </span>
-              )}
+              <div style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#6366f1',
+                background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                padding: '0.35rem 0.85rem',
+                borderRadius: 99,
+                border: '1px solid rgba(99,102,241,0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                <BookOpen size={13} />
+                <span>Toplam {remedialTestsLeitnerData.totalTests} Telafi Testi</span>
+              </div>
             </div>
 
             {/* 5 Box Level Strip */}
@@ -4044,13 +4114,13 @@ export default function StudentWrongAnswersPage() {
               marginBottom: '1.25rem'
             }}>
               {LEITNER_BOX_CONFIG.map(box => {
-                const count = leitnerOverview.boxCounts[box.level] || 0;
+                const count = remedialTestsLeitnerData.boxCounts[box.level] || 0;
                 const hasItems = count > 0;
                 const isSelected = selectedLeitnerBoxLevel === box.level;
                 return (
                   <div
                     key={box.level}
-                    onClick={() => setSelectedLeitnerBoxLevel(box.level)}
+                    onClick={() => setSelectedLeitnerBoxLevel(isSelected ? 'all' : box.level)}
                     style={{
                       background: hasItems ? box.bg : (isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc'),
                       border: isSelected ? `2.5px solid ${box.color}` : (hasItems ? `1.5px solid ${box.border}` : '1.5px solid var(--color-border)'),
@@ -4090,147 +4160,385 @@ export default function StudentWrongAnswersPage() {
                       </div>
                     </div>
                     <div style={{
-                      fontSize: '1.3rem',
+                      fontSize: '1.25rem',
                       fontWeight: 900,
                       color: hasItems ? box.color : 'var(--color-text-muted)',
                       background: hasItems ? 'var(--color-surface)' : 'transparent',
                       padding: '2px 8px',
                       borderRadius: 8
                     }}>
-                      {count}
+                      {count} Test
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Seçili Aşamadaki Sorular Paneli */}
+            {/* Aşama Filtre Butonları */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flexWrap: 'wrap',
+              marginBottom: '1rem',
+              padding: '4px',
+              background: 'var(--color-surface-hover)',
+              borderRadius: 12,
+              border: '1px solid var(--color-border)'
+            }}>
+              <button
+                type="button"
+                onClick={() => setSelectedLeitnerBoxLevel('all')}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: selectedLeitnerBoxLevel === 'all' ? '#6366f1' : 'transparent',
+                  color: selectedLeitnerBoxLevel === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Tüm Telafi Testleri ({remedialTestsLeitnerData.totalTests})
+              </button>
+
+              {LEITNER_BOX_CONFIG.map(box => {
+                const count = remedialTestsLeitnerData.boxCounts[box.level] || 0;
+                const isActive = selectedLeitnerBoxLevel === box.level;
+                return (
+                  <button
+                    key={box.level}
+                    type="button"
+                    onClick={() => setSelectedLeitnerBoxLevel(box.level)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: isActive ? box.color : 'transparent',
+                      color: isActive ? '#ffffff' : 'var(--color-text-muted)',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{box.icon}</span>
+                    <span>{box.label} ({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Telafi Test Kartları Listesi */}
             {(() => {
-              const currentBoxCfg = LEITNER_BOX_CONFIG.find(b => b.level === selectedLeitnerBoxLevel) || LEITNER_BOX_CONFIG[0];
-              const questionsInBox = (leitnerOverview.categorizedQuestions && leitnerOverview.categorizedQuestions[selectedLeitnerBoxLevel]) || [];
+              const displayedTests = (remedialTestsLeitnerData.allEnrichedTests || []).filter(test => {
+                if (selectedLeitnerBoxLevel === 'all') return true;
+                return test.activeBoxLevel === selectedLeitnerBoxLevel || (test.stageResults && test.stageResults[selectedLeitnerBoxLevel - 1] !== null);
+              });
+
+              if (displayedTests.length === 0) {
+                return (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '2.5rem 1rem',
+                    background: 'var(--color-surface)',
+                    borderRadius: 16,
+                    border: '1.5px solid var(--color-border)',
+                    color: 'var(--color-text-muted)',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{ fontSize: '2rem', marginBottom: 6 }}>🌱</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                      Bu Aşamada Henüz Telafi Testiniz Bulunmuyor
+                    </div>
+                    <div style={{ fontSize: '0.75rem', marginTop: 4 }}>
+                      Yukarıdaki filtreden diğer aşamalara veya Tüm Testler seçeneğine göz atabilirsiniz.
+                    </div>
+                  </div>
+                );
+              }
 
               return (
-                <div style={{
-                  background: 'var(--color-surface-hover, #f8fafc)',
-                  border: '1.5px solid var(--color-border, #e2e8f0)',
-                  borderRadius: 16,
-                  padding: '1.1rem 1.25rem',
-                  marginBottom: '1.25rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: '1.2rem' }}>{currentBoxCfg.icon}</span>
-                      <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                        {currentBoxCfg.label} Soruları ({questionsInBox.length} Soru)
-                      </h4>
-                    </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '1.25rem' }}>
+                  {displayedTests.map((test, tIdx) => {
+                    const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
+                    const isTeacherAssigned = test.teacherAssigned || test.createdByRole === 'teacher' || test.assignedBy === 'teacher' || test.assignedTeacherId;
+                    const studentProfile = (coachingProfiles || []).find(p => {
+                      if (!p) return false;
+                      const pSid = String(p.studentId || p.userId || p.id || '');
+                      const curSid = String(currentStudentId || '');
+                      return pSid === curSid || (curSid && toUUID(curSid) === toUUID(pSid));
+                    });
+                    const weeklyProg = studentProfile?.weeklyProgram || [];
+                    const progDaysWithTest = [];
+                    (weeklyProg || []).forEach(dayObj => {
+                      if (dayObj && Array.isArray(dayObj.items)) {
+                        const hasTest = dayObj.items.some(it =>
+                          String(it.testId || it.realTestId || it.hwId || it.id) === String(test.id) ||
+                          (test.title && it.title && it.title.toLowerCase().trim() === test.title.toLowerCase().trim())
+                        );
+                        if (hasTest) progDaysWithTest.push(dayObj.day);
+                      }
+                    });
+                    const isInProgram = progDaysWithTest.length > 0;
+                    const latestResult = test.latestStageResult;
+                    const latestWrong = latestResult?.wrong || 0;
+                    const latestBlank = latestResult?.blank || 0;
 
-                    {questionsInBox.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLeitnerPracticeQuestions(questionsInBox);
-                          setIsLeitnerModalOpen(true);
-                        }}
+                    return (
+                      <div
+                        key={test.id || tIdx}
                         style={{
-                          background: currentBoxCfg.color,
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: 10,
-                          padding: '0.45rem 0.95rem',
-                          fontSize: '0.78rem',
-                          fontWeight: 900,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          boxShadow: `0 3px 10px ${currentBoxCfg.color}35`
+                          background: 'var(--color-surface)',
+                          border: '1.5px solid var(--color-border)',
+                          borderRadius: 16,
+                          padding: '1.1rem 1.25rem',
+                          boxShadow: '0 4px 14px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12
                         }}
                       >
-                        <Zap size={14} /> Bu Aşamayı Çöz ({questionsInBox.length} Soru)
-                      </button>
-                    )}
-                  </div>
-
-                  {questionsInBox.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-                      {questionsInBox.map((qItem, qIdx) => {
-                        const sStyle = (SUBJECT_CONFIG && (SUBJECT_CONFIG[qItem.subject] || SUBJECT_CONFIG['Tümü'])) || { bg: 'transparent', color: '#6366f1' };
-                        return (
-                          <div
-                            key={qItem.id || qIdx}
-                            style={{
-                              background: 'var(--color-surface, #ffffff)',
-                              border: '1.5px solid var(--color-border)',
-                              borderRadius: 12,
-                              padding: '0.75rem 1rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              flexWrap: 'wrap',
-                              gap: 10
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 220 }}>
+                        {/* 1. Üst Başlık & Bilgi Satırı */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+                          <div style={{ flex: 1, minWidth: 260 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                               <span style={{
-                                fontSize: '0.7rem',
+                                fontSize: '0.68rem',
                                 fontWeight: 900,
-                                padding: '2px 8px',
+                                padding: '2px 7px',
                                 borderRadius: 6,
                                 background: sStyle.bg,
-                                color: sStyle.color
+                                color: sStyle.color,
+                                border: `1px solid ${sStyle.border}`
                               }}>
-                                {qItem.subject}
+                                {test.subject || 'Genel'}
                               </span>
-                              <div>
-                                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                                  {qItem.testTitle} — <span style={{ color: currentBoxCfg.color }}>Soru {qItem.questionNo}</span>
-                                </div>
-                                {qItem.leitnerInfo?.nextReviewDate && (
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                                    Sonraki Tekrar: {new Date(qItem.leitnerInfo.nextReviewDate).toLocaleDateString('tr-TR')}
-                                  </div>
-                                )}
-                              </div>
+
+                              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                📝 {test.totalQuestions} Soru
+                              </span>
+
+                              {isTeacherAssigned ? (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  background: isDark ? 'rgba(59,130,246,0.15)' : '#eff6ff',
+                                  color: '#2563eb',
+                                  border: '1px solid rgba(59,130,246,0.3)'
+                                }}>
+                                  👨‍🏫 Öğretmen Atadı
+                                </span>
+                              ) : (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 800,
+                                  padding: '2px 6px',
+                                  borderRadius: 6,
+                                  background: isDark ? 'rgba(139,92,246,0.15)' : '#f5f3ff',
+                                  color: '#7c3aed',
+                                  border: '1px solid rgba(139,92,246,0.3)'
+                                }}>
+                                  👤 Kendi Hazırladığım
+                                </span>
+                              )}
+
+                              {test.isMastered && (
+                                <span style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 900,
+                                  padding: '2px 7px',
+                                  borderRadius: 6,
+                                  background: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5',
+                                  color: '#059669',
+                                  border: '1px solid rgba(16,185,129,0.4)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}>
+                                  🏆 %100 Ustalaşıldı
+                                </span>
+                              )}
                             </div>
 
+                            <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                              {test.title || test.name || 'Özel Telafi Testi'}
+                            </h4>
+
+                            {test.bookTitle && (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2, fontWeight: 600 }}>
+                                📚 {test.bookTitle}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Sağ: Hızlı İşlem Butonları */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <button
                               type="button"
                               onClick={() => {
-                                setLeitnerPracticeQuestions([qItem]);
-                                setIsLeitnerModalOpen(true);
+                                const stId = selectedStudent?.id || currentUser?.id;
+                                navigate(`/quiz/${test.id}?studentId=${stId}&retake=true&mode=solve`, { state: { from: '/student/wrong-answers', retake: true, mode: 'solve' } });
                               }}
                               style={{
+                                padding: '6px 12px',
+                                borderRadius: 8,
                                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                                 color: '#ffffff',
                                 border: 'none',
-                                borderRadius: 8,
-                                padding: '0.35rem 0.8rem',
-                                fontSize: '0.74rem',
-                                fontWeight: 800,
+                                fontSize: '0.76rem',
+                                fontWeight: 900,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4
+                                gap: 4,
+                                boxShadow: '0 3px 8px rgba(99,102,241,0.3)'
                               }}
                             >
-                              <Play size={12} fill="#ffffff" /> Tekrar Çöz
+                              <RotateCcw size={13} /> <span>Testi Tekrar Çöz</span>
                             </button>
+
+                            {latestResult && (latestWrong > 0 || latestBlank > 0) && (
+                              <button
+                                type="button"
+                                onClick={() => handlePracticeTestMistakes(test, test.latestSub)}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: 8,
+                                  background: 'linear-gradient(135deg, #ec4899, #8b5cf6)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 900,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                <Zap size={13} /> <span>Yanlışları Tekrarla ({latestWrong})</span>
+                              </button>
+                            )}
+
+                            {test.isSolved && test.latestSub && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const stId = selectedStudent?.id || currentUser?.id;
+                                  navigate(`/quiz-review/${test.id}?studentId=${stId}&submissionId=${test.latestSub.id}`, { state: { from: '/student/wrong-answers' } });
+                                }}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: 8,
+                                  background: 'var(--color-surface)',
+                                  border: '1px solid var(--color-border)',
+                                  color: 'var(--color-text)',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3
+                                }}
+                              >
+                                <Eye size={13} /> <span>İncele</span>
+                              </button>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '1.75rem 1rem',
-                      color: 'var(--color-text-muted)',
-                      fontSize: '0.82rem',
-                      fontWeight: 700
-                    }}>
-                      Bu aşamada henüz bekleyen soru bulunmuyor.
-                    </div>
-                  )}
+                        </div>
+
+                        {/* 2. AŞAMA AŞAMA SONUÇ ŞERİDİ (1. Aşama Sonucu, 2. Aşama Sonucu...) */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                          gap: 8,
+                          background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                          padding: '10px',
+                          borderRadius: 12,
+                          border: '1px solid var(--color-border)'
+                        }}>
+                          {LEITNER_BOX_CONFIG.map(box => {
+                            const stageIndex = box.level - 1;
+                            const result = test.stageResults ? test.stageResults[stageIndex] : null;
+                            const isCurrentTarget = test.activeBoxLevel === box.level && !result;
+                            const isLocked = box.level > test.activeBoxLevel && !result;
+
+                            return (
+                              <div
+                                key={box.level}
+                                style={{
+                                  background: result
+                                    ? (isDark ? 'rgba(16,185,129,0.12)' : '#f0fdf4')
+                                    : (isCurrentTarget
+                                        ? (isDark ? 'rgba(245,158,11,0.12)' : '#fffbeb')
+                                        : 'var(--color-surface)'),
+                                  border: result
+                                    ? '1.5px solid rgba(16,185,129,0.35)'
+                                    : (isCurrentTarget
+                                        ? '1.5px solid rgba(245,158,11,0.45)'
+                                        : '1px solid var(--color-border)'),
+                                  borderRadius: 10,
+                                  padding: '8px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 3,
+                                  opacity: isLocked ? 0.6 : 1
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: box.color }}>
+                                    {box.icon} {box.label.split(' ')[0]} {box.label.split(' ')[1]}
+                                  </span>
+                                  <span style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                    {box.intervalDays}g aralık
+                                  </span>
+                                </div>
+
+                                {result ? (
+                                  <div>
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 900, color: '#059669', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <CheckCircle2 size={12} /> %{result.scorePercentage} Başarı
+                                    </div>
+                                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 1 }}>
+                                      <span style={{ color: '#16a34a' }}>✓{result.correct}</span>{' '}
+                                      <span style={{ color: '#dc2626' }}>✗{result.wrong}</span>{' '}
+                                      <span style={{ color: 'var(--color-text-muted)' }}>—{result.blank}</span>{' '}
+                                      • Net: {result.net}
+                                    </div>
+                                    {result.date && (
+                                      <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', marginTop: 2, fontWeight: 600 }}>
+                                        {new Date(result.date).toLocaleDateString('tr-TR')}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : isCurrentTarget ? (
+                                  <div>
+                                    <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3 }}>
+                                      <Clock size={11} /> {box.level === 1 ? '1. Çözüm Bekleniyor' : `${box.level}. Tekrar Hedefi`}
+                                    </div>
+                                    <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', marginTop: 1, fontWeight: 700 }}>
+                                      {box.intervalDays} gün aralıklı tekrar
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 4 }}>
+                                    🔒 {box.level === 5 ? '100% Başarıda Açılır' : `${box.level - 1}. Aşama Sonrası`}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -4249,7 +4557,7 @@ export default function StudentWrongAnswersPage() {
             }}>
               <Sparkles size={16} color="#6366f1" />
               <div>
-                <strong>Aralıklı Tekrar Nasıl Çalışır?</strong> Yanlış yaptığınız bir soru 1. Aşamadan başlar. Doğru çözdükçe 3 gün, 7 gün ve 15 gün sonraya ötelenir. 5. Aşamaya ulaşan sorular kalıcı hafızaya aktarılmış kabul edilir.
+                <strong>Aralıklı Tekrar Nasıl Çalışır?</strong> Çözdüğünüz bir telafi testinin ilk sonucu <strong>1. Aşama</strong> kutusunda kaydedilir. Ardından 3 gün, 7 gün ve 15 gün aralıklarla test tekrar çözüldükçe yeni aşamalardaki başarı sonuçlarınız adım adım güncellenir ve %100 nete ulaştığında <strong>🏆 Ustalaşıldı</strong> kutusuna aktarılır.
               </div>
             </div>
           </div>
