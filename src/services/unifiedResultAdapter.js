@@ -9,19 +9,31 @@ import { getTurkeyYMD, extractItemDate } from '../utils/dateHelpers';
  * serbest kitap testleri veya deneme sınavları) tek bir standart modele dönüştürülür.
  */
 
-export function isDeletedItem(s) {
-  if (!s) return true;
-  let deletedIds = new Set();
+let cachedDeletedIds = null;
+let lastDeletedFetch = 0;
+
+export function getCachedDeletedIds() {
+  const now = Date.now();
+  if (cachedDeletedIds && now - lastDeletedFetch < 3000) {
+    return cachedDeletedIds;
+  }
+  cachedDeletedIds = new Set();
   try {
     const raw = localStorage.getItem('eTestDeletedSubmissions');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+      if (Array.isArray(parsed)) cachedDeletedIds = new Set(parsed.map(String));
     }
   } catch {}
+  lastDeletedFetch = now;
+  return cachedDeletedIds;
+}
 
-  // 🛡️ SADECE tekil yanıt/sınav oturumu ID'leri kontrol edilir.
-  // Test tanım ID'leri (tbt_..., bt_...) ASLA deleted kabul edilmez çünkü öğrenci testi baştan çözebilir!
+export function isDeletedItem(s) {
+  if (!s) return true;
+  const deletedIds = getCachedDeletedIds();
+  if (deletedIds.size === 0) return false;
+
   const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
   const candidates = [
     s.id,
@@ -33,9 +45,7 @@ export function isDeletedItem(s) {
   ];
   return candidates.some(c => {
     if (!c) return false;
-    const str = String(c);
-    const u = toUUID(str);
-    return deletedIds.has(str) || (u && deletedIds.has(String(u)));
+    return deletedIds.has(String(c));
   });
 }
 
@@ -382,46 +392,17 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  // Check generated book tests pattern if still not found
+  // Fast extraction if still not found
   if (!matchedBookTest && books && Array.isArray(books)) {
-    for (const b of books) {
-      const bId = String(b.id || '');
-      const rawSubjs = b.subjects || b.raw_data?.subjects || [];
-      for (let sIdx = 0; sIdx < rawSubjs.length; sIdx++) {
-        const s = rawSubjs[sIdx];
-        const sId = String(s.id || `subj_${sIdx}`);
-        const topics = s.topics || [{ id: `top_${sId}_1`, name: '1. Ünite' }];
-        for (let tpIdx = 0; tpIdx < topics.length; tpIdx++) {
-          const tp = topics[tpIdx];
-          const tpId = String(tp.id || `tp_${tpIdx}`);
-          const uName = tp.name || tp.title || `${tpIdx + 1}. Ünite`;
-          for (let i = 1; i <= 20; i++) {
-            const genId = `tbt_${bId}_${sId}_${tpId}_${i}`;
-            const genUuid = toUUID(genId).toLowerCase();
-            const candLower = testIdCandidate.toLowerCase();
-            const genName = i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`);
-            if (genId === testIdCandidate || cleanCandidate.endsWith(`_${tpId}_${i}`) || testIdCandidate.includes(`_${sId}_${tpId}_${i}`) || testIdCandidate.includes(`_${tpId}_${i}`) || (genUuid && candLower === genUuid)) {
-              matchedBookTest = {
-                id: genId,
-                bookId: b.id,
-                subjectId: s.id,
-                topicId: tp.id,
-                name: genName,
-                topicName: uName,
-                subjectName: s.name || b.subject
-              };
-              matchedBook = b;
-              matchedSubject = s;
-              matchedTopic = tp;
-              break;
-            }
-          }
-          if (matchedBookTest) break;
-        }
-        if (matchedBookTest) break;
-      }
-      if (matchedBookTest) break;
-    }
+    const rawSubTitle = String(rawSub.testTitle || rawSub.title || meta.testTitle || meta.testName || '').trim();
+    const candMatch = testIdCandidate.match(/_(\d+)$/);
+    const i = candMatch ? parseInt(candMatch[1], 10) : 1;
+    const genName = (!isNaN(i) && i >= 1) ? (i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`)) : (rawSubTitle || 'Test-1');
+    matchedBookTest = {
+      id: testIdCandidate,
+      name: rawSubTitle || genName,
+      subjectName: rawSub.subject || 'Genel'
+    };
   }
 
   // Gather all identifier strings for deep parsing
