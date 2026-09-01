@@ -1095,113 +1095,327 @@ export default function PhysicalExamRunner() {
         </div>
       )}
 
-      {/* ── HEADER ── */}
-      <header style={{ 
-        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.25rem', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        background: 'var(--color-surface)', 
-        borderBottom: '1.5px solid var(--color-border)',
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 10,
-        flexShrink: 0,
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-      }}>
-        {/* Left: Back + Title & Badge */}
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button 
-              onClick={() => {
-                if (window.history.length > 1) navigate(-1);
-                else navigate('/');
-              }}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title="Geri Dön"
-            >
-              <ArrowLeft size={isMobile ? 18 : 22} />
-            </button>
-            <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              FİZİKİ DENEME
-            </span>
-            <h2 style={{ 
-              color: 'var(--color-text)', 
-              fontSize: isMobile ? '0.9rem' : '1.1rem', 
-              fontWeight: 800, 
-              margin: 0, 
-              whiteSpace: 'nowrap', 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis' 
-            }}>
-              {homework.title}
-            </h2>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700 }}>
-              {homework.examType || 'LGS / YKS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
-            </span>
-            {!isSubmitted && (
-              <span style={{ color: '#16a34a', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800 }}>
-                • Kodlanan: {totalAnsweredCount}/{totalQuestionsCount}
-              </span>
-            )}
-          </div>
-        </div>
+      {/* ── HEADER (MOBILE vs DESKTOP) ── */}
+      {isMobile ? (
+        <header style={{ 
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 40, 
+          background: 'var(--color-surface)', 
+          borderBottom: '1.5px solid var(--color-border)', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0
+        }}>
+          {/* Top Row: Navigation + Title + Timer + Finish */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.45rem 0.65rem',
+            gap: 8
+          }}>
+            {/* Left: Back Arrow + Title & Meta */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+              <button
+                onClick={() => {
+                  if (window.history.length > 1) navigate(-1);
+                  else navigate('/');
+                }}
+                style={{
+                  background: 'var(--color-surface-hover)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  width: 30,
+                  height: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-text)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  padding: 0
+                }}
+                title="Geri Dön"
+              >
+                <ArrowLeft size={16} />
+              </button>
 
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          
-          {/* Autosave Status Indicator */}
-          {!isSubmitted && !isTeacherReviewing && (
-            <div 
-              style={{
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{
+                    fontSize: '0.55rem',
+                    fontWeight: 900,
+                    background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                    color: 'white',
+                    padding: '1px 4px',
+                    borderRadius: 4,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                    flexShrink: 0
+                  }}>
+                    DENEME
+                  </span>
+                  <h2 style={{
+                    margin: 0,
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    color: 'var(--color-text)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {homework.title}
+                  </h2>
+                </div>
+                <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {homework.examType || 'LGS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Timer + Finish Button */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {!isSubmitted && !isTeacherReviewing && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  background: timeLeft < 300 ? '#fef2f2' : 'var(--color-surface-hover)',
+                  border: `1px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border)'}`,
+                  color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: 8,
+                  fontSize: '0.72rem',
+                  fontWeight: 900
+                }}>
+                  <Clock size={12} color={timeLeft < 300 ? '#dc2626' : '#10b981'} />
+                  <span>{formatTime(timeLeft)}</span>
+                </div>
+              )}
+
+              {!isSubmitted && !isTeacherReviewing ? (
+                <button
+                  onClick={() => handleSubmit(false)}
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: 8,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    color: 'white',
+                    fontWeight: 900,
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
+                  }}
+                >
+                  <CheckCircle2 size={13} />
+                  <span>Bitir</span>
+                </button>
+              ) : (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.25rem 0.5rem', borderRadius: 8, fontSize: '0.68rem', fontWeight: 900 }}>
+                  <CheckCircle2 size={12} /> Bitti
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Control Bar: Progress + Auto-save + Quick Actions */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.25rem 0.65rem',
+            background: 'var(--color-bg)',
+            borderTop: '1px solid var(--color-border)',
+            fontSize: '0.68rem',
+            fontWeight: 800,
+            gap: 6
+          }}>
+            {/* Progress & Autosave */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+              {!isSubmitted && (
+                <span style={{
+                  color: '#15803d',
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  padding: '1px 6px',
+                  borderRadius: 6,
+                  whiteSpace: 'nowrap',
+                  fontSize: '0.64rem',
+                  fontWeight: 900
+                }}>
+                  ✍️ {totalAnsweredCount}/{totalQuestionsCount}
+                </span>
+              )}
+
+              {!isSubmitted && !isTeacherReviewing && (
+                <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.62rem', whiteSpace: 'nowrap' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                  Kaydedildi
+                </span>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {/* Optik Toggle Button */}
+              <button
+                onClick={() => {
+                  const nextState = !showOptikForm;
+                  setShowOptikForm(nextState);
+                  if (nextState) setPdfMode('top');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: 6,
+                  background: showOptikForm ? '#eff6ff' : 'var(--color-surface)',
+                  border: `1px solid ${showOptikForm ? '#bfdbfe' : 'var(--color-border)'}`,
+                  color: showOptikForm ? '#1d4ed8' : 'var(--color-text)',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {showOptikForm ? <EyeOff size={11} /> : <Eye size={11} />}
+                <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
+              </button>
+
+              {/* Drawing Button */}
+              <button
+                onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  padding: '0.25rem 0.45rem',
+                  borderRadius: 6,
+                  background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
+                  border: `1px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
+                  color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Çizim Aracı"
+              >
+                <Pencil size={11} />
+                <span>Çizim</span>
+              </button>
+            </div>
+          </div>
+        </header>
+      ) : (
+        <header style={{ 
+          padding: '0.65rem 1.25rem', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          background: 'var(--color-surface)', 
+          borderBottom: '1.5px solid var(--color-border)',
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 10,
+          flexShrink: 0,
+          gap: '0.5rem',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        }}>
+          {/* Left: Back + Title & Badge */}
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button 
+                onClick={() => {
+                  if (window.history.length > 1) navigate(-1);
+                  else navigate('/');
+                }}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Geri Dön"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'linear-gradient(135deg, #4f46e5, #4338ca)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                FİZİKİ DENEME
+              </span>
+              <h2 style={{ 
+                color: 'var(--color-text)', 
+                fontSize: '1.1rem', 
+                fontWeight: 800, 
+                margin: 0, 
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis' 
+              }}>
+                {homework.title}
+              </h2>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 700 }}>
+                {homework.examType || 'LGS / YKS'} • {homework.totalQuestions} Soru ({subjects.length} Ders)
+              </span>
+              {!isSubmitted && (
+                <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 800 }}>
+                  • Kodlanan: {totalAnsweredCount}/{totalQuestionsCount}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            
+            {/* Autosave Status Indicator */}
+            {!isSubmitted && !isTeacherReviewing && (
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  color: '#059669',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #bbf7d0',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '0.65rem',
+                  boxShadow: '0 2px 6px rgba(16,185,129,0.1)'
+                }} 
+                title="İşaretlediğiniz tüm cevaplar anlık olarak otomatik kaydedilir"
+              >
+                <Cloud size={14} color="#10b981" />
+                <span>Anlık Kaydediliyor</span>
+              </div>
+            )}
+
+            {/* Timer */}
+            {!isSubmitted && !isTeacherReviewing && (
+              <div style={{
+                padding: '0.4rem 0.85rem',
+                borderRadius: '0.65rem',
+                background: timeLeft < 300 ? '#fef2f2' : 'var(--color-surface)',
+                border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border)'}`,
+                color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
+                fontWeight: 900,
+                fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
-                fontSize: isMobile ? '0.68rem' : '0.74rem',
-                fontWeight: 800,
-                color: '#059669',
-                background: '#f0fdf4',
-                border: '1.5px solid #bbf7d0',
-                padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.75rem',
-                borderRadius: '0.65rem',
-                boxShadow: '0 2px 6px rgba(16,185,129,0.1)'
-              }} 
-              title="İşaretlediğiniz tüm cevaplar anlık olarak otomatik kaydedilir"
-            >
-              <Cloud size={isMobile ? 12 : 14} color="#10b981" />
-              <span>Anlık Kaydediliyor</span>
-            </div>
-          )}
+                gap: '0.4rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+              }}>
+                <Clock size={16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
+                <span>{formatTime(timeLeft)}</span>
+              </div>
+            )}
 
-          {/* Timer */}
-          {!isSubmitted && !isTeacherReviewing && (
-            <div style={{
-              padding: isMobile ? '0.35rem 0.6rem' : '0.4rem 0.85rem',
-              borderRadius: '0.65rem',
-              background: timeLeft < 300 ? '#fef2f2' : 'var(--color-surface)',
-              border: `1.5px solid ${timeLeft < 300 ? '#fecaca' : 'var(--color-border)'}`,
-              color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.75rem' : '0.85rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-            }}>
-              <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
-          )}
-
-          {/* PDF Mode Selector Buttons */}
-          {hasPdf && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              {/* Sol Panel (Desktop only) */}
-              {!isMobile && (
+            {/* PDF Mode Selector Buttons */}
+            {hasPdf && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <button
                   onClick={() => setPdfMode('side')}
                   title="Sol panele sabitle"
@@ -1217,141 +1431,134 @@ export default function PhysicalExamRunner() {
                   <PanelLeft size={14} />
                   Sol Panel
                 </button>
-              )}
-              {/* Üst Panel */}
-              <button
-                onClick={() => setPdfMode('top')}
-                title="Üst panele sabitle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#2563eb' : '#cbd5e1'}`,
-                  background: pdfMode === 'top' ? '#eff6ff' : '#ffffff',
-                  color: pdfMode === 'top' ? '#1d4ed8' : '#475569',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
-                }}
-              >
-                <PanelTop size={isMobile ? 13 : 14} />
-                {!isMobile && 'Üst Panel'}
-              </button>
-              {/* Yüzen Pencere */}
-              <button
-                onClick={() => setPdfMode('float')}
-                title="Yüzen pencere"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#2563eb' : '#cbd5e1'}`,
-                  background: pdfMode === 'float' ? '#eff6ff' : '#ffffff',
-                  color: pdfMode === 'float' ? '#1d4ed8' : '#475569',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
-                }}
-              >
-                <Maximize2 size={isMobile ? 13 : 14} />
-                {!isMobile && 'Pencere'}
-              </button>
-              {/* Gizle */}
-              <button
-                onClick={() => setPdfMode('hidden')}
-                title="PDF'yi Gizle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
-                  background: pdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
-                  color: pdfMode === 'hidden' ? '#dc2626' : '#64748b',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
-                }}
-              >
-                <XIcon size={isMobile ? 13 : 14} />
-                {!isMobile && 'Gizle'}
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={() => setPdfMode('top')}
+                  title="Üst panele sabitle"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'top' ? '#2563eb' : '#cbd5e1'}`,
+                    background: pdfMode === 'top' ? '#eff6ff' : '#ffffff',
+                    color: pdfMode === 'top' ? '#1d4ed8' : '#475569',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <PanelTop size={14} />
+                  Üst Panel
+                </button>
+                <button
+                  onClick={() => setPdfMode('float')}
+                  title="Yüzen pencere"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'float' ? '#2563eb' : '#cbd5e1'}`,
+                    background: pdfMode === 'float' ? '#eff6ff' : '#ffffff',
+                    color: pdfMode === 'float' ? '#1d4ed8' : '#475569',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <Maximize2 size={14} />
+                  Pencere
+                </button>
+                <button
+                  onClick={() => setPdfMode('hidden')}
+                  title="PDF'yi Gizle"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${pdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
+                    background: pdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
+                    color: pdfMode === 'hidden' ? '#dc2626' : '#64748b',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  <XIcon size={14} />
+                  Gizle
+                </button>
+              </div>
+            )}
 
-          {/* Optik Göster / Gizle Button */}
-          <button
-            onClick={() => {
-              const nextState = !showOptikForm;
-              setShowOptikForm(nextState);
-              if (nextState && isMobile) {
-                setPdfMode('top');
-              }
-            }}
-            style={{
-              padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
-              borderRadius: '0.7rem',
-              background: showOptikForm ? '#eff6ff' : '#ffffff',
-              border: `1.5px solid ${showOptikForm ? '#bfdbfe' : '#cbd5e1'}`,
-              color: showOptikForm ? '#1d4ed8' : '#475569',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-            title={showOptikForm ? "Optik Alanı Gizle (PDF'yi Tam Ekran Yap)" : "Optik Alanı Göster"}
-          >
-            {showOptikForm ? <EyeOff size={isMobile ? 13 : 15} /> : <Eye size={isMobile ? 13 : 15} />}
-            <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
-          </button>
-
-          {/* Drawing Tool Button */}
-          <button
-            onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-            style={{
-              padding: isMobile ? '0.4rem 0.5rem' : '0.45rem 0.85rem',
-              borderRadius: '0.7rem',
-              background: isDrawingOpen ? '#fffbeb' : '#ffffff',
-              border: `1.5px solid ${isDrawingOpen ? '#fde68a' : '#cbd5e1'}`,
-              color: isDrawingOpen ? '#b45309' : '#475569',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-            title="Çizim Aracı"
-          >
-            <Pencil size={isMobile ? 13 : 15} /> 
-            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı")}
-          </button>
-
-          {/* Submit / Finish button */}
-          {!isSubmitted && !isTeacherReviewing && (
+            {/* Optik Göster / Gizle Button */}
             <button
-              onClick={() => handleSubmit(false)}
+              onClick={() => {
+                const nextState = !showOptikForm;
+                setShowOptikForm(nextState);
+              }}
               style={{
-                padding: isMobile ? '0.4rem 0.65rem' : '0.45rem 1.1rem',
+                padding: '0.45rem 0.85rem',
                 borderRadius: '0.7rem',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                background: showOptikForm ? '#eff6ff' : '#ffffff',
+                border: `1.5px solid ${showOptikForm ? '#bfdbfe' : '#cbd5e1'}`,
+                color: showOptikForm ? '#1d4ed8' : '#475569',
+                fontWeight: 800,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                gap: '0.4rem'
               }}
+              title={showOptikForm ? "Optik Alanı Gizle (PDF'yi Tam Ekran Yap)" : "Optik Alanı Göster"}
             >
-              <CheckCircle2 size={isMobile ? 14 : 16} /> 
-              {!isMobile && "Sınavı Bitir ve Gönder"}
-              {isMobile && "Bitir"}
+              {showOptikForm ? <EyeOff size={15} /> : <Eye size={15} />}
+              <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
             </button>
-          )}
 
-          {isSubmitted && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
-              <CheckCircle2 size={14} /> Sınav Tamamlandı
-            </div>
-          )}
+            {/* Drawing Tool Button */}
+            <button
+              onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0.7rem',
+                background: isDrawingOpen ? '#fffbeb' : '#ffffff',
+                border: `1.5px solid ${isDrawingOpen ? '#fde68a' : '#cbd5e1'}`,
+                color: isDrawingOpen ? '#b45309' : '#475569',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+              title="Çizim Aracı"
+            >
+              <Pencil size={15} /> 
+              <span>{isDrawingOpen ? "Çizimi Kapat" : "Çizim Aracı"}</span>
+            </button>
 
-        </div>
-      </header>
+            {/* Submit / Finish button */}
+            {!isSubmitted && !isTeacherReviewing && (
+              <button
+                onClick={() => handleSubmit(false)}
+                style={{
+                  padding: '0.45rem 1.1rem',
+                  borderRadius: '0.7rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                }}
+              >
+                <CheckCircle2 size={16} /> 
+                <span>Sınavı Bitir ve Gönder</span>
+              </button>
+            )}
+
+            {isSubmitted && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
+                <CheckCircle2 size={14} /> Sınav Tamamlandı
+              </div>
+            )}
+
+          </div>
+        </header>
+      )}
 
       {/* ── TEACHER BANNER (IF REVIEWING) ── */}
       {isTeacherReviewing && currentViewingStudent && (
