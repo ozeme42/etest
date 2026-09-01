@@ -24,7 +24,8 @@ import {
   Lightbulb,
   AlertTriangle,
   RefreshCw,
-  Key
+  Key,
+  Info
 } from 'lucide-react';
 import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
 import { solveQuestionWithAi, cleanAiMathText, resolveImageToBase64 } from '../../../services/aiSolutionService';
@@ -34,7 +35,7 @@ import { solveQuestionWithAi, cleanAiMathText, resolveImageToBase64 } from '../.
  * Dedicated, ultra-clean review and deep mistake analysis screen for Custom Remedial Tests ("Özel Telafi Testi").
  * Features:
  * - Single deduplicated question crop image display
- * - Interactive AI Step-by-Step Question Solver with common misconception analysis
+ * - Robust AI Step-by-Step Question Solver with common misconception analysis
  * - Centered luxury option evaluation
  * - Full mobile responsiveness with slide-up optical evaluation drawer
  */
@@ -189,7 +190,7 @@ export default function RemedialQuizReview({
         options: defaultOptions.slice(0, activeQuestion.optCount || 4),
         studentAnswer: activeQuestion.userAnsLetter !== 'Boş' ? activeQuestion.userAnsLetter : '',
         correctAnswer: activeQuestion.correctAnsLetter !== '—' ? activeQuestion.correctAnsLetter : '',
-        mistakeReason: !activeQuestion.isCorrect ? `Öğrenci bu soruyu yanlış yaptı (Seçtiği: ${activeQuestion.userAnsLetter}, Doğru: ${activeQuestion.correctAnsLetter}). Lütfen nerede hata yaptığını açıkla.` : '',
+        mistakeReason: !activeQuestion.isCorrect ? `Öğrencinin Yanıtı: ${activeQuestion.userAnsLetter}, Doğru Cevap: ${activeQuestion.correctAnsLetter}` : '',
         subject: test.subject || activeQuestion.subject || 'Genel',
         grade: test.grade || '',
         topic: activeQuestion.unitName || test.topic || '',
@@ -221,6 +222,36 @@ export default function RemedialQuizReview({
   };
 
   const currentSolution = aiSolutions[activeQIdx + 1];
+
+  // Normalized Steps for current solution
+  const normalizedSteps = useMemo(() => {
+    if (!currentSolution) return [];
+    if (Array.isArray(currentSolution.steps) && currentSolution.steps.length > 0) {
+      return currentSolution.steps.map((st, i) => {
+        if (typeof st === 'string') {
+          return {
+            title: `${i + 1}. Adım`,
+            content: cleanAiMathText(st)
+          };
+        }
+        if (typeof st === 'object' && st !== null) {
+          const detail = st.detail || st.explanation || st.text || st.description || st.content || st.step || '';
+          const title = st.title && st.title !== detail ? st.title : `${i + 1}. Adım`;
+          return {
+            title,
+            content: cleanAiMathText(detail || st.title || '')
+          };
+        }
+        return { title: `${i + 1}. Adım`, content: String(st) };
+      });
+    } else if (currentSolution.explanation) {
+      return [{
+        title: 'Detaylı Çözüm',
+        content: cleanAiMathText(currentSolution.explanation)
+      }];
+    }
+    return [];
+  }, [currentSolution]);
 
   // Optical Evaluation Rows Render Helper
   const renderOpticalEvaluationContent = () => (
@@ -858,27 +889,45 @@ export default function RemedialQuizReview({
                     textAlign: 'left',
                     animation: 'fadeIn 0.25s ease-out'
                   }}>
+                    {/* Summary */}
+                    {currentSolution.summary && (
+                      <div style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        background: 'rgba(99, 102, 241, 0.08)',
+                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.45rem'
+                      }}>
+                        <Info size={16} color="#6366f1" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: '0.8rem', color: isDark ? '#c7d2fe' : '#3730a3', lineHeight: 1.45, fontWeight: 700 }}>
+                          {cleanAiMathText(currentSolution.summary)}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Solution Steps */}
-                    {Array.isArray(currentSolution.steps) && currentSolution.steps.length > 0 && (
+                    {normalizedSteps.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                         <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <Sparkles size={14} /> ÇÖZÜM ADIMLARI
                         </div>
-                        {currentSolution.steps.map((step, sIdx) => (
+                        {normalizedSteps.map((step, sIdx) => (
                           <div
                             key={sIdx}
                             style={{
-                              padding: '0.6rem 0.85rem',
+                              padding: '0.65rem 0.85rem',
                               borderRadius: '0.75rem',
                               background: isDark ? '#27272a' : '#f8fafc',
                               border: isDark ? '1px solid #3f3f46' : '1px solid #e2e8f0'
                             }}
                           >
-                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.2rem' }}>
-                              {sIdx + 1}. {step.title || `Adım ${sIdx + 1}`}
+                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.25rem' }}>
+                              {step.title}
                             </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
-                              {cleanAiMathText(step.detail || step.text || step.explanation || '')}
+                            <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                              {step.content}
                             </div>
                           </div>
                         ))}
@@ -886,7 +935,7 @@ export default function RemedialQuizReview({
                     )}
 
                     {/* Key Concept / Tip */}
-                    {(currentSolution.keyConcept || currentSolution.tips) && (
+                    {(currentSolution.goldenRule || currentSolution.keyConcept || currentSolution.tips) && (
                       <div style={{
                         padding: '0.65rem 0.85rem',
                         borderRadius: '0.75rem',
@@ -898,13 +947,13 @@ export default function RemedialQuizReview({
                       }}>
                         <Lightbulb size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
                         <div style={{ fontSize: '0.78rem', color: isDark ? '#86efac' : '#15803d', lineHeight: 1.45 }}>
-                          <b>Kritik Kazanım:</b> {cleanAiMathText(currentSolution.keyConcept || currentSolution.tips)}
+                          <b>Altın Kural & İpucu:</b> {cleanAiMathText(currentSolution.goldenRule || currentSolution.keyConcept || currentSolution.tips)}
                         </div>
                       </div>
                     )}
 
                     {/* Common Misconception / Mistake Analysis */}
-                    {(currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed) && (
+                    {(currentSolution.mistakeAdvice || currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed) && (
                       <div style={{
                         padding: '0.65rem 0.85rem',
                         borderRadius: '0.75rem',
@@ -916,7 +965,7 @@ export default function RemedialQuizReview({
                       }}>
                         <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
                         <div style={{ fontSize: '0.78rem', color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.45 }}>
-                          <b>Yanlış Analizi & Çeldirici:</b> {cleanAiMathText(currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed)}
+                          <b>Yanlış Analizi:</b> {cleanAiMathText(currentSolution.mistakeAdvice || currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed)}
                         </div>
                       </div>
                     )}
