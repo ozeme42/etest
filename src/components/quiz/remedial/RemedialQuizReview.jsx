@@ -27,7 +27,7 @@ import {
   Key,
   Info
 } from 'lucide-react';
-import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
+import ImageLightbox, { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import { solveQuestionWithAi, cleanAiMathText, resolveImageToBase64 } from '../../../services/aiSolutionService';
 
 /**
@@ -126,8 +126,8 @@ export default function RemedialQuizReview({
         if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) rawImgs.push(test.raw_data.imageUrl);
       }
 
-      // Exact deduplication
-      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => String(s).trim())));
+      // Exact deduplication and normalization
+      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => normalizeImageUrl(String(s).trim())).filter(Boolean)));
       const primaryImage = cleanImgs[0] || null;
 
       return {

@@ -211,8 +211,18 @@ export default function ModularQuizPage() {
     }) || null;
   }, [submissions, testId, test?.id, studentId, activeHomework, isRetake]);
 
-  // Auto-redirect to Review page if this test is already completed (unless explicit retake was requested)
+  // Auto-redirect to Review page if this test is already completed (unless explicit retake was requested or test is a repeatable remedial test)
   useEffect(() => {
+    const isRemTest = Boolean(
+      test?.isRemedial ||
+      test?.isRemedialTest ||
+      test?.isTeacherRemedial ||
+      test?.sourceType === 'pdfSlicerRemedial' ||
+      /telafi/i.test(test?.title || '') ||
+      /telafi/i.test(test?.name || '')
+    );
+    if (isRemTest || isRetake) return;
+
     if (completedSub && !isRetake && !submittedResult) {
       const targetSubId = completedSub.id || completedSub.testId || testId;
       navigate(`/review/${targetSubId}?studentId=${studentId || ''}`, {
@@ -220,7 +230,7 @@ export default function ModularQuizPage() {
         state: { from: returnUrl || '/student' }
       });
     }
-  }, [completedSub, isRetake, submittedResult, studentId, testId, returnUrl, navigate]);
+  }, [completedSub, isRetake, submittedResult, studentId, testId, returnUrl, navigate, test]);
 
   const bookForTest = useMemo(() => {
     if (!test) return null;
@@ -380,6 +390,32 @@ export default function ModularQuizPage() {
             totalQuestions: testsForBook.reduce((acc, t) => acc + (t.questionCount || 20), 0)
           };
         }
+      }
+    }
+
+    // 7. Search in submissions for remedial/custom test payload if not found elsewhere
+    if (!foundTest && submissions && Array.isArray(submissions)) {
+      const matchSub = submissions.find(s => {
+        if (!s) return false;
+        const sTestId = String(s.testId || s.hwId || s.id || '');
+        return testCandidates.some(cand => sTestId === cand || (toUUID(sTestId) && toUUID(sTestId) === cand) || (cand && toUUID(cand) && toUUID(sTestId) === toUUID(cand)));
+      });
+      if (matchSub && (matchSub.questionsList || matchSub.imageUrls || matchSub.contentPayload)) {
+        foundTest = {
+          id: matchSub.testId || matchSub.id || cleanTestId,
+          title: matchSub.testTitle || matchSub.title || 'Özel Telafi Testi',
+          subject: matchSub.subject || 'Genel',
+          questionCount: matchSub.totalQuestions || matchSub.questionsList?.length || 1,
+          totalQuestions: matchSub.totalQuestions || matchSub.questionsList?.length || 1,
+          questionsList: matchSub.questionsList || [],
+          imageUrls: matchSub.imageUrls || [],
+          imageUrl: matchSub.imageUrl || (matchSub.imageUrls && matchSub.imageUrls[0]) || '',
+          contentPayload: matchSub.contentPayload || '',
+          isRemedial: true,
+          isRemedialTest: true,
+          sourceType: 'pdfSlicerRemedial',
+          answerKey: matchSub.answers ? Object.fromEntries(matchSub.answers.map((a, i) => [i + 1, a.correctAnswer])) : {}
+        };
       }
     }
 

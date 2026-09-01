@@ -3446,6 +3446,23 @@ export default function ProgramCenter({
       return;
     }
 
+    // 0. Dedicated Remedial Spaced Repetition Test Handling (Always opens solving screen in retake mode)
+    const isRemedial = Boolean(
+      item.type === 'remedialTest' ||
+      item.isTeacherRemedial ||
+      item.isRemedial ||
+      item.isRemedialTest ||
+      /telafi/i.test(item.text || item.title || '')
+    );
+
+    if (isRemedial) {
+      const remedialTargetId = item.realTestId || item.testId || item.hwId || item.id;
+      navigate(`/quiz/${remedialTargetId}${sId ? `?studentId=${sId}` : ''}&retake=true&mode=solve`, {
+        state: { from: fromPath, retake: true, mode: 'solve' }
+      });
+      return;
+    }
+
     // 1. Check explicit submissionId
     if (item.submissionId) {
       navigate(`/review/${item.submissionId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });

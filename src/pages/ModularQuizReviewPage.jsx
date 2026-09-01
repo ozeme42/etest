@@ -356,9 +356,15 @@ export default function ModularQuizReviewPage() {
         title: foundSubmission.testTitle || foundSubmission.title || 'Ödev / Test İnceleme',
         sections: sectionsArr || [],
         questions: foundSubmission.questions || foundSubmission.answers || [],
+        questionsList: foundSubmission.questionsList || [],
+        imageUrl: foundSubmission.imageUrl || (foundSubmission.imageUrls && foundSubmission.imageUrls[0]) || '',
+        imageUrls: foundSubmission.imageUrls || [],
+        contentPayload: foundSubmission.contentPayload || '',
         questionCount: foundSubmission.totalQuestions || (foundSubmission.answers?.length) || 1,
         sourceFormat: foundSubmission.sourceFormat || 'digital',
-        sourceType: foundSubmission.sourceType || 'questionBank'
+        sourceType: foundSubmission.sourceType || 'questionBank',
+        isRemedial: foundSubmission.isRemedial || false,
+        isRemedialTest: foundSubmission.isRemedialTest || false
       };
     }
 

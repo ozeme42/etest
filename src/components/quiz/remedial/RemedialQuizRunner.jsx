@@ -26,7 +26,7 @@ import {
   ListOrdered
 } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
-import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
+import ImageLightbox, { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import QuizResultModal from '../modals/QuizResultModal';
 import { toUUID } from '../../../services/supabaseService';
 
@@ -130,8 +130,8 @@ export default function RemedialQuizRunner({
         if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) rawImgs.push(test.raw_data.imageUrl);
       }
 
-      // Exact deduplication
-      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => String(s).trim())));
+      // Exact deduplication and normalization
+      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => normalizeImageUrl(String(s).trim())).filter(Boolean)));
       const primaryImage = cleanImgs[0] || null;
 
       // Correct answer resolution
@@ -157,17 +157,17 @@ export default function RemedialQuizRunner({
     });
   }, [test, questions, rawQuestionsList, rawImageUrls, extractedPayloadImages]);
 
-  const totalQuestions = normalizedQuestions.length;
+  const fullTestTotalQuestions = normalizedQuestions.length;
 
-  // 3. Attempt Number & Historical Mastery Tracking
-  const { attemptNumber, previousBest, previousCorrect, previousTotal, previousMasteryPct } = useMemo(() => {
+  // 3. Attempt Number & Historical Mastery Tracking & Previously Correctly Solved Questions
+  const { attemptNumber, previousBest, previousCorrect, previousTotal, previousMasteryPct, pastSubs, correctlySolvedQNos } = useMemo(() => {
     const studentIdStr = String(currentUser?.id || '').trim();
     const studentUuid = String(toUUID(currentUser?.id) || '').trim();
     const currentTestId = String(test.id || test.testId || '').trim();
     const currentTestUuid = String(toUUID(currentTestId) || '').trim();
     const currentTitle = String(test.title || test.name || '').toLowerCase().trim();
 
-    const pastSubs = (submissions || []).filter(s => {
+    const pSubs = (submissions || []).filter(s => {
       if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
       const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
       const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || toUUID(sId) === studentUuid;
@@ -180,28 +180,54 @@ export default function RemedialQuizRunner({
       return isIdMatch || isTitleMatch;
     }).sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));
 
-    const attemptCount = pastSubs.length + 1;
+    const attemptCount = pSubs.length + 1;
     let prevCorr = 0;
-    let prevTot = totalQuestions;
+    let prevTot = normalizedQuestions.length;
+    const solvedSet = new Set();
 
-    if (pastSubs.length > 0) {
-      const last = pastSubs[pastSubs.length - 1];
+    if (pSubs.length > 0) {
+      const last = pSubs[pSubs.length - 1];
       prevCorr = Number(last.correctCount ?? last.correct ?? 0);
-      prevTot = Number(last.totalQuestions ?? last.total ?? totalQuestions);
+      prevTot = Number(last.totalQuestions ?? last.total ?? normalizedQuestions.length);
+
+      pSubs.forEach(sub => {
+        const answersArr = Array.isArray(sub.answers) ? sub.answers : [];
+        answersArr.forEach((ans, aIdx) => {
+          const qNo = ans.questionNo || ans.questionNoInSection || (aIdx + 1);
+          if (ans.isCorrect === true) {
+            solvedSet.add(qNo);
+          }
+        });
+      });
     }
 
     const prevPct = prevTot > 0 ? Math.round((prevCorr / prevTot) * 100) : 0;
 
     return {
       attemptNumber: attemptCount,
-      previousBest: pastSubs.length > 0 ? pastSubs[pastSubs.length - 1] : null,
+      previousBest: pSubs.length > 0 ? pSubs[pSubs.length - 1] : null,
       previousCorrect: prevCorr,
       previousTotal: prevTot,
-      previousMasteryPct: prevPct
+      previousMasteryPct: prevPct,
+      pastSubs: pSubs,
+      correctlySolvedQNos: solvedSet
     };
-  }, [submissions, currentUser, test, totalQuestions]);
+  }, [submissions, currentUser, test, normalizedQuestions.length]);
 
-  // 4. Answer State Management
+  // 4. Active Questions for this solving session (Eliminate already correct questions in retake mode)
+  const isRetakeMode = pastSubs.length > 0 && correctlySolvedQNos.size > 0 && correctlySolvedQNos.size < fullTestTotalQuestions;
+
+  const activeQuestions = useMemo(() => {
+    if (!isRetakeMode) {
+      return normalizedQuestions;
+    }
+    const remaining = normalizedQuestions.filter(q => !correctlySolvedQNos.has(q.displayQNo));
+    return remaining.length > 0 ? remaining : normalizedQuestions;
+  }, [normalizedQuestions, isRetakeMode, correctlySolvedQNos]);
+
+  const totalQuestions = activeQuestions.length;
+
+  // 5. Answer State Management
   const [answers, setAnswers] = useState(() => {
     const initial = {};
     if (draftAnswers) {
@@ -266,10 +292,10 @@ export default function RemedialQuizRunner({
   };
 
   const answeredCount = useMemo(() => {
-    return Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
-  }, [answers]);
+    return activeQuestions.filter(q => answers[q.displayQNo] !== undefined && answers[q.displayQNo] !== null).length;
+  }, [answers, activeQuestions]);
 
-  const activeQuestion = normalizedQuestions[activeQIdx] || normalizedQuestions[0] || {};
+  const activeQuestion = activeQuestions[activeQIdx] || activeQuestions[0] || {};
 
   // Handle Option Click
   const handleSelectOption = (qNo, optIdx) => {
@@ -292,13 +318,47 @@ export default function RemedialQuizRunner({
 
   // Finish exam
   const handleFinishExam = () => {
-    let correct = 0;
-    let wrong = 0;
-    let blank = 0;
+    let activeCorrect = 0;
+    let activeWrong = 0;
+    let activeBlank = 0;
     const submissionPayload = [];
+
+    const latestPastSub = pastSubs.length > 0 ? pastSubs[pastSubs.length - 1] : null;
+    const pastAnswers = Array.isArray(latestPastSub?.answers) ? latestPastSub.answers : [];
 
     normalizedQuestions.forEach((q, idx) => {
       const qNo = idx + 1;
+      const isEliminatedCorrect = isRetakeMode && correctlySolvedQNos.has(qNo) && !activeQuestions.some(aq => aq.displayQNo === qNo);
+
+      if (isEliminatedCorrect) {
+        const prevAnsObj = pastAnswers.find(a => (a.questionNo === qNo || a.questionNoInSection === qNo)) || pastAnswers[idx] || {};
+        let correctAnsLetter = (q.resolvedCorrectAnswer !== null && q.resolvedCorrectAnswer !== undefined)
+          ? String.fromCharCode(65 + q.resolvedCorrectAnswer)
+          : (q.correctAnswer || 'A');
+
+        submissionPayload.push({
+          questionId: q.id || `remedial_q_${qNo}`,
+          questionNo: qNo,
+          questionNoInSection: qNo,
+          sectionId: q.sectionId || 'remedial_sec',
+          sectionTitle: q.sectionTitle || 'Telafi Soruları',
+          userAnswer: prevAnsObj.userAnswer || correctAnsLetter,
+          userAnswerIndex: prevAnsObj.userAnswerIndex ?? (q.resolvedCorrectAnswer ?? 0),
+          isCorrect: true,
+          correctAnswer: correctAnsLetter,
+          imageUrls: q.primaryImage ? [q.primaryImage] : [],
+          imageUrl: q.primaryImage || null,
+          metadata: {
+            bookTitle: q.bookTitle || test.bookTitle,
+            testName: q.testName || test.title,
+            unitName: q.unitName,
+            originalQNo: q.originalQNo || q.qNo,
+            previouslyMastered: true
+          }
+        });
+        return;
+      }
+
       const userAnsIdx = answers[qNo];
       const hasAns = userAnsIdx !== undefined && userAnsIdx !== null;
       const userAnsLetter = hasAns ? String.fromCharCode(65 + userAnsIdx) : null;
@@ -319,10 +379,10 @@ export default function RemedialQuizRunner({
       }
 
       if (hasAns) {
-        if (isCorrect === true) correct++;
-        else wrong++;
+        if (isCorrect === true) activeCorrect++;
+        else activeWrong++;
       } else {
-        blank++;
+        activeBlank++;
       }
 
       submissionPayload.push({
@@ -346,18 +406,25 @@ export default function RemedialQuizRunner({
       });
     });
 
-    const score = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
-    const net = Math.max(0, correct - (wrong * 0.25));
+    const masteredFromPast = isRetakeMode ? correctlySolvedQNos.size : 0;
+    const totalCorrect = activeCorrect + masteredFromPast;
+    const totalWrong = activeWrong;
+    const totalBlank = activeBlank;
+    const score = fullTestTotalQuestions > 0 ? Math.round((totalCorrect / fullTestTotalQuestions) * 100) : 0;
+    const net = Math.max(0, totalCorrect - (totalWrong * 0.25));
 
     setOverallResultStats({
-      correct,
-      wrong,
-      blank,
-      total: totalQuestions,
+      correct: totalCorrect,
+      wrong: totalWrong,
+      blank: totalBlank,
+      total: fullTestTotalQuestions,
       score,
       net,
       attemptNumber,
-      previousMasteryPct
+      previousMasteryPct,
+      isRetakeMode,
+      activeCorrect,
+      eliminatedCorrect: masteredFromPast
     });
     setFormattedSubmission(submissionPayload);
     setShowResultModal(true);
@@ -385,8 +452,27 @@ export default function RemedialQuizRunner({
       flexDirection: 'column',
       gap: '0.45rem'
     }}>
-      {normalizedQuestions.map((q, idx) => {
-        const qNo = idx + 1;
+      {isRetakeMode && (
+        <div style={{
+          padding: '6px 8px',
+          borderRadius: 8,
+          background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+          border: '1px solid rgba(99,102,241,0.3)',
+          color: '#6366f1',
+          fontSize: '0.7rem',
+          fontWeight: 800,
+          marginBottom: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <span>🎯 Kalan {activeQuestions.length} Yanlış</span>
+          <span style={{ fontSize: '0.66rem', color: '#16a34a' }}>✓ {correctlySolvedQNos.size} Doğru Elendi</span>
+        </div>
+      )}
+
+      {activeQuestions.map((q, idx) => {
+        const qNo = q.displayQNo || (idx + 1);
         const isCurrent = activeQIdx === idx;
         const userAns = answers[qNo];
         const hasAns = userAns !== undefined && userAns !== null;
@@ -718,8 +804,8 @@ export default function RemedialQuizRunner({
               flex: 1,
               justifyContent: isMobile ? 'flex-start' : 'center'
             }}>
-              {normalizedQuestions.map((q, idx) => {
-                const qNo = idx + 1;
+              {activeQuestions.map((q, idx) => {
+                const qNo = q.displayQNo || (idx + 1);
                 const isCurrent = activeQIdx === idx;
                 const isAnswered = answers[qNo] !== undefined && answers[qNo] !== null;
 
@@ -785,6 +871,31 @@ export default function RemedialQuizRunner({
               flexDirection: 'column',
               gap: '0.85rem'
             }}>
+              {/* Aralıklı Tekrar Bilgi Bannerı */}
+              {isRetakeMode && (
+                <div style={{
+                  padding: '7px 12px',
+                  borderRadius: '0.75rem',
+                  background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                  border: '1px solid rgba(99,102,241,0.3)',
+                  color: '#6366f1',
+                  fontSize: '0.76rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Zap size={14} className="text-amber-500" fill="currentColor" />
+                    <span>🎯 Aralıklı Tekrar Modu: Daha önce doğru çözülen {correctlySolvedQNos.size} soru elendi. Sadece kalan yanlışları çözüyorsunuz.</span>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                    ✓ {correctlySolvedQNos.size} Doğru Cepte
+                  </span>
+                </div>
+              )}
+
               {/* Question Header Pill */}
               <div style={{
                 display: 'flex',
@@ -806,7 +917,7 @@ export default function RemedialQuizRunner({
                     fontSize: '0.78rem',
                     fontWeight: 900
                   }}>
-                    SORU {activeQIdx + 1}
+                    SORU {activeQuestion.displayQNo || (activeQIdx + 1)}
                   </span>
                   {activeQuestion.unitName && (
                     <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-secondary)' }}>
@@ -820,7 +931,7 @@ export default function RemedialQuizRunner({
                   )}
                 </div>
 
-                {answers[activeQIdx + 1] !== undefined && answers[activeQIdx + 1] !== null ? (
+                {answers[activeQuestion.displayQNo || (activeQIdx + 1)] !== undefined && answers[activeQuestion.displayQNo || (activeQIdx + 1)] !== null ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <span style={{
                       fontSize: '0.72rem',
@@ -831,11 +942,11 @@ export default function RemedialQuizRunner({
                       borderRadius: '0.4rem',
                       border: '1px solid rgba(22, 163, 74, 0.3)'
                     }}>
-                      ✓ Cevaplandı ({String.fromCharCode(65 + answers[activeQIdx + 1])})
+                      ✓ Cevaplandı ({String.fromCharCode(65 + answers[activeQuestion.displayQNo || (activeQIdx + 1)])})
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleSelectOption(activeQIdx + 1, answers[activeQIdx + 1])}
+                      onClick={() => handleSelectOption(activeQuestion.displayQNo || (activeQIdx + 1), answers[activeQuestion.displayQNo || (activeQIdx + 1)])}
                       style={{
                         padding: '0.15rem 0.45rem',
                         borderRadius: '0.4rem',
@@ -875,7 +986,7 @@ export default function RemedialQuizRunner({
                   <div style={{ position: 'relative', maxWidth: '100%' }}>
                     <img
                       src={activeQuestion.primaryImage}
-                      alt={`Soru ${activeQIdx + 1}`}
+                      alt={`Soru ${activeQuestion.displayQNo || (activeQIdx + 1)}`}
                       style={{
                         maxWidth: '100%',
                         maxHeight: isMobile ? '340px' : '460px',
@@ -914,7 +1025,7 @@ export default function RemedialQuizRunner({
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                     <BookOpen size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
-                      {activeQuestion.questionText || `Soru ${activeQIdx + 1}`}
+                      {activeQuestion.questionText || `Soru ${activeQuestion.displayQNo || (activeQIdx + 1)}`}
                     </p>
                   </div>
                 )}
@@ -961,13 +1072,14 @@ export default function RemedialQuizRunner({
                   width: '100%'
                 }}>
                   {defaultOptionLetters.slice(0, activeQuestion.optCount || 4).map((letter, optIdx) => {
-                    const isSelected = answers[activeQIdx + 1] === optIdx;
+                    const curQNo = activeQuestion.displayQNo || (activeQIdx + 1);
+                    const isSelected = answers[curQNo] === optIdx;
 
                     return (
                       <button
                         key={letter}
                         type="button"
-                        onClick={() => handleSelectOption(activeQIdx + 1, optIdx)}
+                        onClick={() => handleSelectOption(curQNo, optIdx)}
                         style={{
                           width: isMobile ? '52px' : '64px',
                           height: isMobile ? '52px' : '64px',

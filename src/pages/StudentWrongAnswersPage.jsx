@@ -2615,7 +2615,7 @@ export default function StudentWrongAnswersPage() {
                               type="button"
                               onClick={() => {
                                 const stId = selectedStudent?.id || currentUser?.id;
-                                navigate(`/quiz/${test.id}?studentId=${stId}&retake=true`, { state: { from: '/student/wrong-answers' } });
+                                navigate(`/quiz/${test.id}?studentId=${stId}&retake=true&mode=solve`, { state: { from: '/student/wrong-answers', retake: true, mode: 'solve' } });
                               }}
                               style={{
                                 flex: 1,
@@ -2667,7 +2667,7 @@ export default function StudentWrongAnswersPage() {
                             type="button"
                             onClick={() => {
                               const stId = selectedStudent?.id || currentUser?.id;
-                              navigate(`/quiz/${test.id}?studentId=${stId}`, { state: { from: '/student/wrong-answers' } });
+                              navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
                             }}
                             style={{
                               flex: 1,

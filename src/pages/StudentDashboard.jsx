@@ -3600,8 +3600,8 @@ export default function StudentDashboard() {
                     return;
                   }
                   
-                  if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial) {
-                    navigate(`/quiz/${task.testId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
+                  if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial || task.isTeacherRemedial) {
+                    navigate(`/quiz/${task.testId || task.realTestId || task.id}?studentId=${selectedStudent.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });
                     return;
                   }
 
