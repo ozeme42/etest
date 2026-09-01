@@ -129,6 +129,7 @@ export default function StudentExamsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newBook, setNewBook] = useState({ title: '', publisher: '', subjects: [{ id: 'sub_1', name: '', testCount: 20, questionsPerTest: 20 }] });
 
+  const [activeMainTab, setActiveMainTab] = useState('exams'); // 'exams' | 'charts' | 'mistakes'
   const [chartMetric, setChartMetric] = useState('Toplam Net');
   const [examChartViewMode, setExamChartViewMode] = useState('exams'); // 'exams' | 'subjects'
   const [examChartMetric, setExamChartMetric] = useState('grouped'); // 'grouped' | 'net' | 'rate'
@@ -847,11 +848,43 @@ export default function StudentExamsPage() {
     const questionsList = [];
     const countedKeys = new Set();
 
-    // 1. Scan LocalStorage for mistake reasons of all denemes
+    // Valid exam IDs set to avoid pulling in general homework/book mistakes
+    const validExamIdSet = new Set();
+    allExamsList.forEach(e => {
+      if (e.id) {
+        validExamIdSet.add(String(e.id));
+        const u = toUUID(e.id);
+        if (u) validExamIdSet.add(String(u));
+      }
+      if (e.hwId) {
+        validExamIdSet.add(String(e.hwId));
+        const u = toUUID(e.hwId);
+        if (u) validExamIdSet.add(String(u));
+      }
+      (e.assignedHomeworks || []).forEach(ah => {
+        if (ah.id) {
+          validExamIdSet.add(String(ah.id));
+          const u = toUUID(ah.id);
+          if (u) validExamIdSet.add(String(u));
+        }
+      });
+    });
+
+    const isKeyForExam = (k) => {
+      if (!k) return false;
+      const lower = k.toLowerCase();
+      if (lower.includes('deneme') || lower.includes('hazir_bulunusluk') || lower.includes('hazır')) return true;
+      for (const id of validExamIdSet) {
+        if (id && k.includes(id)) return true;
+      }
+      return false;
+    };
+
+    // 1. Scan LocalStorage for mistake reasons of denemes ONLY
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (!k || !k.startsWith('mistake_reasons_')) continue;
+        if (!k || !k.startsWith('mistake_reasons_') || !isKeyForExam(k)) continue;
         const valStr = localStorage.getItem(k);
         if (!valStr) continue;
         try {
@@ -887,12 +920,12 @@ export default function StudentExamsPage() {
       }
     } catch {}
 
-    // 2. Scan Submissions
+    // 2. Scan Submissions for denemes ONLY
     (submissions || []).forEach(sub => {
       const isMatch = String(sub.studentId) === studentIdStr || (studentUuidStr && String(sub.studentId) === studentUuidStr);
       if (!isMatch || sub.status === 'in_progress' || sub.status === 'draft') return;
-      const isExam = sub.type === 'physicalExam' || sub.contentType === 'physicalExam' || sub.isPhysical || allExamsList.some(e => String(e.id) === String(sub.testId) || String(e.id) === String(sub.hwId));
-      if (!isExam && !sub.mistakeReasons) return;
+      const isExam = sub.type === 'physicalExam' || sub.contentType === 'physicalExam' || sub.isPhysical || validExamIdSet.has(String(sub.testId)) || validExamIdSet.has(String(sub.hwId)) || validExamIdSet.has(String(sub.id));
+      if (!isExam || !sub.mistakeReasons) return;
 
       if (sub.mistakeReasons && typeof sub.mistakeReasons === 'object') {
         Object.entries(sub.mistakeReasons).forEach(([subKey, reason]) => {
@@ -913,7 +946,7 @@ export default function StudentExamsPage() {
             reasonDefs[matchedKey].count++;
             questionsList.push({
               id: dedupeKey,
-              examTitle: sub.testTitle || 'Deneme',
+              examTitle: sub.testTitle || sub.title || 'Deneme',
               subject: subKey.includes('_') ? subKey.split('_')[0] : 'Deneme',
               qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
               reason: matchedKey,
@@ -924,8 +957,9 @@ export default function StudentExamsPage() {
       }
     });
 
-    // 3. Scan Homeworks
+    // 3. Scan Homeworks for denemes ONLY
     (homeworks || []).forEach(hw => {
+      if (!validExamIdSet.has(String(hw.id)) && hw.type !== 'physicalExam') return;
       (hw.submissions || []).forEach(hs => {
         const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
         if (!isMatch) return;
@@ -949,7 +983,7 @@ export default function StudentExamsPage() {
             reasonDefs[matchedKey].count++;
             questionsList.push({
               id: dedupeKey,
-              examTitle: hw.title || 'Deneme / Ödev',
+              examTitle: hw.title || 'Deneme',
               subject: subKey.includes('_') ? subKey.split('_')[0] : (hw.subject || 'Deneme'),
               qNo: subKey.includes('_') ? subKey.split('_')[1] : subKey,
               reason: matchedKey,
@@ -974,7 +1008,7 @@ export default function StudentExamsPage() {
       topReason,
       questionsList
     };
-  }, [studentId, submissions, allExamsList, overallStats]);
+  }, [studentId, submissions, homeworks, allExamsList, overallStats]);
 
   const isEmpty = assignedBooks.length === 0 && studentMockExams.length === 0;
 
@@ -1010,6 +1044,43 @@ export default function StudentExamsPage() {
           </div>
         </div>
 
+        {/* ── MAIN NAVIGATION TABS ── */}
+        {!isEmpty && (
+          <div style={{ display: 'flex', gap: 8, background: 'var(--color-surface)', padding: 6, borderRadius: 16, border: '1.5px solid var(--color-border)', marginBottom: 20, flexWrap: 'wrap' }}>
+            {[
+              { key: 'exams', label: '🏆 Denemelerim & Başarı Karnesi', icon: <FileBarChart2 size={16} /> },
+              { key: 'charts', label: '📊 Detaylı Grafikler & Trend', icon: <TrendingUp size={16} /> },
+              { key: 'mistakes', label: `🤔 Hata & Yanlış Analizi (${examMistakeStats.totalClassified || examMistakeStats.totalWrongAndBlank} Soru)`, icon: <Zap size={16} /> }
+            ].map(tab => {
+              const isActive = activeMainTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveMainTab(tab.key)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: 12,
+                    border: 'none',
+                    fontWeight: 900,
+                    fontSize: '0.84rem',
+                    cursor: 'pointer',
+                    background: isActive ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'transparent',
+                    color: isActive ? '#ffffff' : 'var(--color-text-muted)',
+                    boxShadow: isActive ? '0 4px 14px rgba(99,102,241,0.3)' : 'none',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* ── STAT CARDS ── */}
         {!isEmpty && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
@@ -1023,7 +1094,7 @@ export default function StudentExamsPage() {
         )}
 
         {/* ── DERS BAZINDA DENEME KARNESİ (DEEP MATRIX) ── */}
-        {!isEmpty && overallStats.subjects.length > 0 && (
+        {!isEmpty && activeMainTab === 'exams' && overallStats.subjects.length > 0 && (
           <div style={{
             background: 'var(--color-surface)',
             borderRadius: 20,
@@ -1146,8 +1217,69 @@ export default function StudentExamsPage() {
           </div>
         )}
 
+        {/* Quick helper banner in exams tab */}
+        {!isEmpty && activeMainTab === 'exams' && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'var(--color-surface)',
+            border: '1.5px dashed var(--color-border)',
+            borderRadius: 16,
+            padding: '0.85rem 1.25rem',
+            marginBottom: 20,
+            flexWrap: 'wrap',
+            gap: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', color: 'var(--color-text)' }}>
+              <span style={{ fontSize: '1.1rem' }}>💡</span>
+              <span style={{ fontWeight: 600 }}>
+                Deneme net gelişim grafiklerini ve soru hata nedenlerinizi detaylı incelemek için:
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setActiveMainTab('charts')}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: 10,
+                  border: '1.5px solid var(--color-border-input)',
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <TrendingUp size={14} color="#818cf8" /> Grafikleri Aç
+              </button>
+              <button
+                onClick={() => setActiveMainTab('mistakes')}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: 10,
+                  border: '1.5px solid var(--color-border-input)',
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text)',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Zap size={14} color="#f59e0b" /> Hata Analizi ({examMistakeStats.totalClassified || examMistakeStats.totalWrongAndBlank})
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── CHART PANEL (KİTAPLARIM STİLİ) ── */}
-        {!isEmpty && (
+        {!isEmpty && activeMainTab === 'charts' && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
             <div
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
@@ -1398,7 +1530,7 @@ export default function StudentExamsPage() {
         )}
 
         {/* ── NET GELİŞİM TRENDİ (AREA CHART) ── */}
-        {allExamsList.length > 1 && (
+        {activeMainTab === 'charts' && allExamsList.length > 1 && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', padding: '1.4rem 1.6rem', marginBottom: 22, boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '0.95rem', color: 'var(--color-text)' }}>
@@ -1465,7 +1597,7 @@ export default function StudentExamsPage() {
         `}</style>
 
         {/* 🤔 DENEME HATA & YANLIŞ SEBEPLERİ ANALİZİ WIDGET */}
-        {!isEmpty && (
+        {!isEmpty && activeMainTab === 'mistakes' && (
           <div style={{
             background: 'var(--color-surface)',
             border: '1.5px solid var(--color-border)',
@@ -1683,7 +1815,8 @@ export default function StudentExamsPage() {
           </div>
         )}
 
-        {!isEmpty && (
+        {/* ── EXAM FILTERS & CARDS/TABLE (EXAMS TAB) ── */}
+        {!isEmpty && activeMainTab === 'exams' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1.5px solid var(--color-border)' }}>
               {[
@@ -1717,15 +1850,14 @@ export default function StudentExamsPage() {
           booksLoading ? (
             <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
               <div style={{ width: 44, height: 44, border: '4px solid var(--color-border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
-              <div style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>Denemeler yükleniyor…</div>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <div style={{ color: 'var(--color-text-muted)', fontWeight: 700, fontSize: '0.9rem' }}>Denemeler yükleniyor…</div>
             </div>
           ) : (
-            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ width: 90, height: 90, background: isDark ? 'rgba(37,99,235,0.15)' : '#eff6ff', border: isDark ? '1.5px solid rgba(59,130,246,0.35)' : '1.5px solid #bfdbfe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <FileBarChart2 size={40} color="#3b82f6" />
+            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(99,102,241,0.1)', color: '#818cf8', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <FileBarChart2 size={32} />
               </div>
-              <h2 style={{ margin: '0 0 8px', color: 'var(--color-text)', fontWeight: 900 }}>Henüz Deneme Yok</h2>
+              <h3 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>Henüz Deneme Bulunmuyor</h3>
               <p style={{ color: 'var(--color-text-muted)', margin: '0 0 24px', fontSize: '0.9rem' }}>Fiziki deneme sınavları atandığında veya manuel sonuç eklediğinde burada görünecek.</p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={() => handleOpenMockModal()} style={{ padding: '0.7rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
@@ -1737,7 +1869,7 @@ export default function StudentExamsPage() {
         )}
 
         {/* ── CARDS VIEW ── */}
-        {!isEmpty && viewMode === 'cards' && (
+        {!isEmpty && activeMainTab === 'exams' && viewMode === 'cards' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {displayedExams.map((exam, idx) => {
               const p = pal(idx);
@@ -1939,7 +2071,7 @@ export default function StudentExamsPage() {
         )}
 
         {/* ── TABLE VIEW ── */}
-        {!isEmpty && viewMode === 'table' && (
+        {!isEmpty && activeMainTab === 'exams' && viewMode === 'table' && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 18, border: '1.5px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760, fontSize: '0.82rem' }}>
