@@ -1148,6 +1148,20 @@ export function computeStudentAnalyticsData({
   const homeworksOnly = [];
 
   unifiedSubs.forEach(s => {
+    const isTrial = Boolean(
+      s.typeKey === 'physicalExam' ||
+      s.sourceType === 'physicalExam' ||
+      s.isTrial ||
+      s.isExam ||
+      s.isMockExam ||
+      s.isTrialExam ||
+      String(s.id || '').startsWith('me_') ||
+      String(s.testId || '').startsWith('me_') ||
+      /deneme|lgs|bursluluk|kds|tarama/i.test(String(s.fullTitle || s.testTitle || s.title || '')) ||
+      (s.bookId && books.some(b => (String(b.id) === String(s.bookId) || toUUID(b.id) === toUUID(s.bookId)) && isExamBook(b))) ||
+      (s.hwId && homeworks.some(h => (String(h.id) === String(s.hwId) || toUUID(h.id) === toUUID(s.hwId)) && isExamBook(h)))
+    );
+
     const item = {
       id: s.id,
       submissionId: s.submissionId || s.id,
@@ -1169,12 +1183,12 @@ export function computeStudentAnalyticsData({
       totalQuestions: s.totalQuestions || 0,
       sourceType: s.sourceType,
       approvalStatus: 'approved',
-      isTrial: s.typeKey === 'physicalExam',
+      isTrial: isTrial,
       parentBookId: s.bookId,
       scores: s.scores || {}
     };
 
-    if (s.typeKey === 'physicalExam' || s.sourceType === 'physicalExam') {
+    if (isTrial) {
       item.totalCorrect = item.correctCount;
       item.totalWrong = item.wrongCount;
       item.totalEmpty = item.emptyCount;

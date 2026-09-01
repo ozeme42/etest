@@ -251,7 +251,14 @@ export function CoachingProvider({ children }) {
   }, [coachingProfiles]);
 
   const getMockExamsForStudent = useCallback((studentId) => {
-    return mockExams.filter(m => String(m.studentId) === String(studentId));
+    if (!studentId) return [];
+    const sId = String(studentId || '');
+    const sUuid = toUUID(sId);
+    return mockExams.filter(m => {
+      if (!m) return false;
+      const mSid = String(m.studentId || m.student_id || m.userId || '');
+      return mSid === sId || (sUuid && (mSid === sUuid || toUUID(mSid) === sUuid)) || (sId && toUUID(sId) === mSid);
+    });
   }, [mockExams]);
 
   const getMeetingsForStudent = useCallback((studentId) => {
