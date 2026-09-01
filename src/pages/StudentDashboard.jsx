@@ -2570,8 +2570,59 @@ export default function StudentDashboard() {
       }
     });
 
+    // 3. KİTAPLARDAKİ TARİHİ GEÇMİŞ ÇÖZÜLMEMİŞ TÜM TESTLER
+    (books || []).forEach(b => {
+      const bTests = (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(b.id) || (toUUID(bt.bookId || bt.book_id) && toUUID(bt.bookId || bt.book_id) === toUUID(b.id)));
+      const hwForBook = (homeworks || []).filter(hw => (String(hw.bookId) === String(b.id) || toUUID(hw.bookId) === toUUID(b.id)) && isHomeworkForStudent(hw, selectedStudent, curData?.grades));
+
+      bTests.forEach(bt => {
+        if (isItemSolved(bt) || isTaskDismissed(bt)) return;
+
+        // Check if test has a due date from homeworks or test meta
+        let dueDateVal = bt.answer_key?.__meta?.dueDate || bt.dueDate || bt.assignedDueDate;
+        if (!dueDateVal) {
+          hwForBook.forEach(hw => {
+            const hwDueMap = hw.testDueDates || hw.raw_data?.testDueDates || {};
+            const d = hwDueMap[bt.id] || hwDueMap[toUUID(bt.id)] || hwDueMap[String(bt.id).replace(/^bt_/, '').replace(/^q_/, '')];
+            if (d && (!dueDateVal || new Date(d) < new Date(dueDateVal))) {
+              dueDateVal = d;
+            }
+          });
+        }
+
+        if (dueDateVal) {
+          const dueDateObj = parseSafeDate(dueDateVal);
+          if (dueDateObj && dueDateObj < now) {
+            if (!isAlreadySeen(bt)) {
+              addKeysToSeen(bt);
+              const parentSubj = (b.subjects || []).find(s => String(s.id) === String(bt.subject_id || bt.subjectId));
+              const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(bt.topic_id || bt.topicId)) : null;
+              const dueFormatted = dueDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short' });
+              
+              list.push({
+                ...bt,
+                id: bt.id,
+                testId: bt.id,
+                bookId: b.id,
+                bookTitle: b.title,
+                subject: parentSubj?.name || bt.subject || bt.subjectName || '',
+                unitTopic: parentTopic?.name || bt.unit || bt.unitName || '',
+                title: `${b.title} — ${parentSubj?.name ? parentSubj.name + ' › ' : ''}${bt.name}`,
+                testName: bt.name,
+                categoryType: 'kitap',
+                isBookTask: true,
+                isCatchUp: true,
+                dueDateStr: dueFormatted,
+                reason: `${dueFormatted} tarihli geciken kitap testi`
+              });
+            }
+          }
+        }
+      });
+    });
+
     return sortItemsByBookOrder(list, books, bookTests);
-  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, tests]);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, tests, homeworks, curData]);
 
   // ── 📱 3 AYRI ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
   useEffect(() => {
