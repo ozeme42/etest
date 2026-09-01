@@ -35,7 +35,8 @@ export default function QuestionBank() {
   const questions = useMemo(() => {
     const rawList = (allQuestions || []).filter(q => {
       if (!q) return false;
-      return !q.isRemedialTest && q.type !== 'remedial' && q.sourceType !== 'pdfSlicerRemedial';
+      const isRem = q.isRemedialTest || q.isRemedial || q.isTeacherRemedial || q.type === 'remedial' || q.type === 'remedialTest' || q.sourceType === 'pdfSlicerRemedial' || /telafi/i.test(q.title || q.name || '');
+      return !isRem;
     });
     if (currentUser?.role === 'admin') return rawList;
     return rawList.filter(q => q.createdBy === currentUser?.id);

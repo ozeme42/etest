@@ -1668,7 +1668,7 @@ export default function PdfQuestionSlicerModal({
         : [];
 
       let savedTest = null;
-      if (addQuestion) {
+      if (!isRemedial && addQuestion) {
         savedTest = await addQuestion({
           title: finalTitle,
           testTitle: finalTitle,
@@ -1688,17 +1688,12 @@ export default function PdfQuestionSlicerModal({
           imageAnswers: imageAnswersObj,
           bookId: currentBook?.id || null,
           bookTitle: currentBook?.title || null,
-          isRemedialTest: isRemedial,
-          isRemedial: isRemedial,
-          isTeacherRemedial: Boolean(finalStudentId),
-          sourceType: isRemedial ? 'pdfSlicerRemedial' : 'pdfSlicerGeneral',
-          studentId: finalStudentId,
-          assignedStudentId: finalStudentId,
-          createdBy: finalStudentId || currentUser?.id || 'teacher',
-          teacherAssigned: Boolean(finalStudentId),
-          repetitionScheduleMode: isRemedial ? scheduleMode : 'none',
-          repetitionIntervals,
-          targetMasteryPct: (isRemedial && keepMasteryTracking) ? 100 : null
+          isRemedialTest: false,
+          isRemedial: false,
+          isTeacherRemedial: false,
+          sourceType: 'pdfSlicerGeneral',
+          createdBy: currentUser?.id || 'teacher',
+          repetitionScheduleMode: 'none'
         });
       }
 

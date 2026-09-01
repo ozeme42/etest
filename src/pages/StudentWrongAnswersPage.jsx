@@ -2419,7 +2419,21 @@ export default function StudentWrongAnswersPage() {
                 const combinedTest = { ...raw, ...test };
                 const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
                 const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
-                const isTeacherAssigned = combinedTest.createdByRole === 'teacher' || (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined');
+                const studentProfile = (coachingProfiles || []).find(p => String(p.studentId) === String(currentStudentId) || (toUUID(currentStudentId) && toUUID(p.studentId) === toUUID(currentStudentId)));
+                const progDaysWithTest = [];
+                if (studentProfile && Array.isArray(studentProfile.weeklyProgram)) {
+                  studentProfile.weeklyProgram.forEach(dObj => {
+                    const hasTest = (dObj.items || []).some(item => {
+                      const itId = String(item.testId || item.realTestId || item.hwId || item.id || '');
+                      const tId = String(test.id || '');
+                      return itId === tId || (toUUID(tId) && toUUID(itId) === toUUID(tId));
+                    });
+                    if (hasTest && !progDaysWithTest.includes(dObj.day)) {
+                      progDaysWithTest.push(dObj.day);
+                    }
+                  });
+                }
+                const isInProgram = progDaysWithTest.length > 0;
 
                 return (
                   <div
@@ -2452,18 +2466,6 @@ export default function StudentWrongAnswersPage() {
                           }}>
                             {test.subject || 'Genel'}
                           </span>
-                          {test.grade && (
-                            <span style={{
-                              fontSize: '0.66rem',
-                              fontWeight: 800,
-                              padding: '2px 6px',
-                              borderRadius: 6,
-                              background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                              color: 'var(--color-text-muted)'
-                            }}>
-                              {test.grade}
-                            </span>
-                          )}
                           {isTeacherAssigned ? (
                             <span style={{
                               fontSize: '0.64rem',
@@ -2708,22 +2710,36 @@ export default function StudentWrongAnswersPage() {
                           onClick={() => setOpenDaySelectorId(isDaySelectorOpen ? null : test.id)}
                           style={{
                             width: '100%',
-                            padding: '5px 8px',
+                            padding: '6px 10px',
                             borderRadius: 8,
-                            background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                            border: '1px solid var(--color-border)',
-                            color: 'var(--color-text-muted)',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
+                            background: isInProgram
+                              ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5')
+                              : (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc'),
+                            border: isInProgram
+                              ? '1px solid rgba(16,185,129,0.4)'
+                              : '1px solid var(--color-border)',
+                            color: isInProgram ? '#059669' : 'var(--color-text-muted)',
+                            fontSize: '0.74rem',
+                            fontWeight: 900,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 5
+                            gap: 5,
+                            transition: 'all 0.15s'
                           }}
                         >
-                          <Calendar size={13} className="text-indigo-500" />
-                          <span>{isDaySelectorOpen ? '▲ Gün Seçimini Kapat' : '📅 Çalışma Programıma Ekle'}</span>
+                          {isInProgram ? (
+                            <>
+                              <CheckCircle2 size={13} className="text-emerald-500" />
+                              <span>✓ Programda ({progDaysWithTest.join(', ')})</span>
+                            </>
+                          ) : (
+                            <>
+                              <Calendar size={13} className="text-indigo-500" />
+                              <span>{isDaySelectorOpen ? '▲ Gün Seçimini Kapat' : '📅 Çalışma Programıma Ekle'}</span>
+                            </>
+                          )}
                         </button>
 
                         {/* Day Selector Chips */}
