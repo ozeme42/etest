@@ -167,15 +167,20 @@ export default function RemedialQuizRunner({
     const currentTestUuid = String(toUUID(currentTestId) || '').trim();
     const currentTitle = String(test.title || test.name || '').toLowerCase().trim();
 
+    const currentSubject = String(test.subject || '').toLowerCase().trim();
     const pSubs = (submissions || []).filter(s => {
-      if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+      if (!s || s.status === 'in_progress' || s.status === 'draft' || String(s.id || '').startsWith('draft_') || String(s.id || '').startsWith('64726166')) return false;
       const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
       const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || toUUID(sId) === studentUuid;
       if (!isStudentMatch) return false;
 
       const sTestId = String(s.testId || s.hwId || s.bookTestId || s.id || '');
       const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || toUUID(sTestId) === currentTestUuid);
-      const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle;
+
+      const sSubject = String(s.subject || '').toLowerCase().trim();
+      const isSubjectMatch = !currentSubject || !sSubject || currentSubject === sSubject || currentSubject.includes(sSubject) || sSubject.includes(currentSubject);
+
+      const isTitleMatch = currentTitle && String(s.title || s.testTitle || '').toLowerCase().trim() === currentTitle && isSubjectMatch;
 
       return isIdMatch || isTitleMatch;
     }).sort((a, b) => new Date(a.created_at || a.createdAt || 0) - new Date(b.created_at || b.createdAt || 0));

@@ -2374,7 +2374,7 @@ export default function StudentDashboard() {
           const studentUuid = String(toUUID(studentId) || '').trim();
 
           const matchingSubs = (studentSubmissions || submissions || []).filter(s => {
-            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+            if (!s || s.status === 'in_progress' || s.status === 'draft' || String(s.id || '').startsWith('draft_') || String(s.id || '').startsWith('64726166')) return false;
             const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
             const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || (toUUID(sId) && toUUID(sId) === studentUuid);
             if (!isStudentMatch) return false;
