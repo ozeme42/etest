@@ -176,16 +176,12 @@ export default function RemedialQuizReview({
     setAiError(null);
 
     try {
-      let imgBase64 = null;
-      if (activeQuestion.primaryImage) {
-        imgBase64 = await resolveImageToBase64(activeQuestion.primaryImage);
-      }
-
-      const qText = activeQuestion.questionText || activeQuestion.title || `Soru ${qNo}`;
+      const isGenericTitle = !activeQuestion.questionText || /^soru\s*\d+/i.test(activeQuestion.questionText.trim());
+      const qText = isGenericTitle ? '' : activeQuestion.questionText;
 
       const res = await solveQuestionWithAi({
         userId: currentUser?.id,
-        imageBase64: imgBase64,
+        imageBase64: activeQuestion.primaryImage,
         questionText: qText,
         options: defaultOptions.slice(0, activeQuestion.optCount || 4),
         studentAnswer: activeQuestion.userAnsLetter !== 'Boş' ? activeQuestion.userAnsLetter : '',

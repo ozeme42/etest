@@ -139,7 +139,11 @@ export function cleanAiMathText(str) {
 }
 
 export async function resolveImageToBase64(imgSrc) {
-  if (!imgSrc || typeof imgSrc !== 'string') return null;
+  if (!imgSrc) return null;
+  if (typeof imgSrc === 'object' && imgSrc.data) {
+    return imgSrc;
+  }
+  if (typeof imgSrc !== 'string') return null;
   const trimmed = imgSrc.trim();
 
   // If already base64 data URL
@@ -494,8 +498,14 @@ Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım 
   // 4. Prepare Parts (Multimodal Image + Text)
   const parts = [];
 
-  if (imageBase64 && typeof imageBase64 === 'string') {
-    const resolvedImg = await resolveImageToBase64(imageBase64);
+  if (imageBase64) {
+    let resolvedImg = null;
+    if (typeof imageBase64 === 'object' && imageBase64.data) {
+      resolvedImg = imageBase64;
+    } else if (typeof imageBase64 === 'string') {
+      resolvedImg = await resolveImageToBase64(imageBase64);
+    }
+
     if (resolvedImg && resolvedImg.data) {
       parts.push({
         inlineData: {
