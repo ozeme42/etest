@@ -3778,8 +3778,7 @@ export default function ProgramCenter({
       const dayInfo = dayDateMap[dayObj.day];
       if (!dayInfo) return dayObj;
 
-      const rawManualItems = dayObj.items || [];
-      let manualItems = rawManualItems.filter(item => {
+      let manualItems = (dayObj.items || []).filter(item => {
         if (item.createdYMD && dayInfo.ymd < item.createdYMD) return false;
         if (item.repeatEndDate && dayInfo.ymd > item.repeatEndDate) return false;
         if (item.repeatType === 'none' || item.isRecurring === false) {

@@ -21,6 +21,7 @@ import { toUUID } from '../services/supabaseService';
 import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
 import { resolveTestQuestions } from '../utils/testResolver';
+import { scheduleRemedialTestInProgram } from '../services/remedialSpacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 
@@ -207,17 +208,23 @@ export default function StudentWrongAnswersPage() {
   }, [selectedStudent, currentUser, curData?.grades]);
 
   const remedialTests = useMemo(() => {
-    return (bankQuestions || []).filter(item => {
+    const rawAll = [...(bankQuestions || []), ...(homeworks || [])];
+    const seenIds = new Set();
+    const result = [];
+
+    // 1. Check in bankQuestions and homeworks
+    rawAll.forEach(item => {
+      if (!item) return;
       const raw = item.raw_data || {};
       const q = { ...raw, ...item };
 
       // Must be explicitly created as a remedial / sliced test
       const isExplicitRemedial = q.isRemedialTest === true || q.isRemedial === true || q.isTeacherRemedial === true || q.sourceType === 'pdfSlicer' || q.sourceType === 'pdfSlicerRemedial' || q.type === 'remedial' || q.type === 'remedialTest';
       const titleLower = (q.title || q.name || '').toLowerCase();
-      const isRemedialTitle = titleLower.includes('telafi testi') || titleLower.includes('kırpılmış');
+      const isRemedialTitle = titleLower.includes('telafi') || titleLower.includes('kırpılmış');
 
       if (!isExplicitRemedial && !isRemedialTitle) {
-        return false;
+        return;
       }
 
       // Check all possible student targets
@@ -225,6 +232,7 @@ export default function StudentWrongAnswersPage() {
       const rawTargetIds = [
         ...(Array.isArray(q.targetIds) ? q.targetIds : []),
         ...(Array.isArray(q.target_ids) ? q.target_ids : []),
+        ...(Array.isArray(q.targetStudentIds) ? q.targetStudentIds : []),
         ...(Array.isArray(q.assignedTo) ? q.assignedTo : []),
         ...(Array.isArray(q.studentIds) ? q.studentIds : []),
         ...(testStudentId && testStudentId !== 'undefined' ? [testStudentId] : [])
@@ -235,14 +243,64 @@ export default function StudentWrongAnswersPage() {
       const creatorId = String(q.createdBy || q.created_by || q.authorId || q.author || '');
       const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
 
-      // A remedial test MUST be strictly assigned to this student OR created by this student
-      if (!isDirectTarget && !isCreatedByThisStudent) {
-        return false;
+      // Check if student has solved this test
+      const hasSolvedSub = (submissions || []).some(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        const sSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        const isMatchSt = allStudentIds.has(sSid) || (toUUID(sSid) && allStudentIds.has(toUUID(sSid)));
+        if (!isMatchSt) return false;
+        const sTestId = String(s.testId || s.hwId || s.id || '');
+        return sTestId === String(q.id) || (toUUID(q.id) && toUUID(sTestId) === toUUID(q.id));
+      });
+
+      if (!isDirectTarget && !isCreatedByThisStudent && !hasSolvedSub) {
+        return;
       }
 
-      return true;
+      const qIdStr = String(q.id || q.testId);
+      if (!seenIds.has(qIdStr)) {
+        seenIds.add(qIdStr);
+        result.push(q);
+      }
     });
-  }, [bankQuestions, allStudentIds]);
+
+    // 2. Also extract any remedial test from submissions that wasn't in bankQuestions or homeworks
+    (submissions || []).forEach(s => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return;
+      const sSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      const isMatchSt = allStudentIds.has(sSid) || (toUUID(sSid) && allStudentIds.has(toUUID(sSid)));
+      if (!isMatchSt) return false;
+
+      const isRem = s.isRemedial === true || s.isRemedialTest === true || s.sourceType === 'pdfSlicerRemedial' || s.type === 'remedialTest' || String(s.testTitle || s.title || '').toLowerCase().includes('telafi');
+      if (isRem) {
+        const sTestId = String(s.testId || s.hwId || s.id || '');
+        if (sTestId && !seenIds.has(sTestId) && (!toUUID(sTestId) || !seenIds.has(toUUID(sTestId)))) {
+          seenIds.add(sTestId);
+          result.push({
+            id: sTestId,
+            title: s.testTitle || s.title || 'Özel Telafi Testi',
+            subject: s.subject || 'Genel',
+            grade: s.grade || '',
+            questionCount: s.totalQuestions || s.questionsList?.length || 1,
+            totalQuestions: s.totalQuestions || s.questionsList?.length || 1,
+            questionsList: s.questionsList || [],
+            imageUrls: s.imageUrls || [],
+            imageUrl: s.imageUrl || (s.imageUrls && s.imageUrls[0]) || '',
+            contentPayload: s.contentPayload || '',
+            isRemedial: true,
+            isRemedialTest: true,
+            sourceType: 'pdfSlicerRemedial',
+            studentId: currentStudentId,
+            assignedStudentId: currentStudentId,
+            repetitionIntervals: s.repetitionIntervals || [1, 3, 7, 15],
+            createdAt: s.createdAt || s.created_at || new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    return result;
+  }, [bankQuestions, homeworks, submissions, allStudentIds, currentStudentId]);
 
   const handleAddTestToProgram = async (testItem, targetDayKey) => {
     const studentId = selectedStudent?.id || currentUser?.id;
@@ -259,13 +317,22 @@ export default function StudentWrongAnswersPage() {
       : DAYS_LIST.map(d => ({ day: d, items: [] }));
 
     const newItem = {
-      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: `remedial_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       text: testItem.title || testItem.name || `${testItem.subject || 'Ders'} Telafi Testi`,
+      title: testItem.title || testItem.name || `${testItem.subject || 'Ders'} Telafi Testi`,
       subject: testItem.subject || 'Genel',
       qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
+      questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
       testId: testItem.id,
+      realTestId: testItem.id,
+      hwId: testItem.hwId || testItem.id,
       type: 'remedialTest',
+      taskType: 'remedialTest',
+      isTeacherRemedial: true,
+      isRemedial: true,
+      isRemedialTest: true,
+      stage: 1,
       done: false,
       date: new Date().toISOString().split('T')[0]
     };
@@ -301,49 +368,17 @@ export default function StudentWrongAnswersPage() {
       weeklyProgram: DAYS_LIST.map(d => ({ day: d, items: [] }))
     };
 
-    const rawProg = Array.isArray(currentProfile.weeklyProgram)
-      ? currentProfile.weeklyProgram
-      : DAYS_LIST.map(d => ({ day: d, items: [] }));
-
-    const todayIdx = (new Date().getDay() + 6) % 7; // 0 for Pzt, 6 for Paz
-    const repetitionOffsets = [
-      { offset: 1, label: '1. Gün Tekrarı' },
-      { offset: 3, label: '3. Gün Tekrarı' },
-      { offset: 7, label: '7. Gün Tekrarı' }
-    ];
-
-    let updatedProg = [...rawProg];
-
-    repetitionOffsets.forEach(({ offset, label }) => {
-      const targetDayIdx = (todayIdx + offset) % 7;
-      const targetDayKey = DAYS_LIST[targetDayIdx];
-
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + offset);
-      const dateStr = targetDate.toISOString().split('T')[0];
-
-      const newItem = {
-        id: `leitner_${Date.now()}_${offset}_${Math.random().toString(36).substr(2, 4)}`,
-        text: `🧠 [${label}] ${testItem.title || testItem.name || 'Telafi Testi'}`,
+    const updatedProg = scheduleRemedialTestInProgram({
+      currentWeeklyProgram: currentProfile.weeklyProgram || [],
+      testItem: {
+        id: testItem.id,
+        hwId: testItem.hwId || testItem.id,
+        title: testItem.title || testItem.name || 'Özel Telafi Testi',
         subject: testItem.subject || 'Genel',
-        qCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
-        targetCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1,
-        testId: testItem.id,
-        type: 'remedialTest',
-        isSpacedRepetition: true,
-        done: false,
-        date: dateStr
-      };
-
-      updatedProg = updatedProg.map(dObj => {
-        if (dObj.day === targetDayKey) {
-          return {
-            ...dObj,
-            items: [...(dObj.items || []), newItem]
-          };
-        }
-        return dObj;
-      });
+        questionCount: testItem.questionCount || testItem.totalQuestions || testItem.questionsList?.length || 1
+      },
+      intervals: testItem.repetitionIntervals || [1, 3, 7, 15],
+      studentId
     });
 
     await saveCoachingProfile({
@@ -352,7 +387,7 @@ export default function StudentWrongAnswersPage() {
       weeklyProgram: updatedProg
     });
 
-    setProgramToast(`🎯 "${testItem.title || 'Test'}" için 1., 3. ve 7. gün aralıklı tekrar görevleri programınıza eklendi!`);
+    setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (1, 3, 7, 15 Gün) programınıza eklendi!`);
     setTimeout(() => setProgramToast(null), 4000);
     setOpenDaySelectorId(null);
   };
