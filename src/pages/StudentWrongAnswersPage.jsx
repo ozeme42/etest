@@ -2415,20 +2415,29 @@ export default function StudentWrongAnswersPage() {
                 const scorePct = sub ? (sub.scorePercentage ?? (totalQ > 0 ? Math.round((correctCount / totalQ) * 100) : 0)) : 0;
                 const isDaySelectorOpen = openDaySelectorId === test.id;
                 const sStyle = SUBJECT_CONFIG[test.subject] || SUBJECT_CONFIG['Tümü'];
-                const raw = test.raw_data || {};
+                const raw = test?.raw_data || {};
                 const combinedTest = { ...raw, ...test };
                 const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
                 const isCreatedByThisStudent = creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId))));
-                const studentProfile = (coachingProfiles || []).find(p => String(p.studentId) === String(currentStudentId) || (toUUID(currentStudentId) && toUUID(p.studentId) === toUUID(currentStudentId)));
+                const isTeacherAssigned = combinedTest.createdByRole === 'teacher' || (!isCreatedByThisStudent && creatorId && creatorId !== 'undefined');
+
+                const studentProfile = (coachingProfiles || []).find(p => {
+                  if (!p) return false;
+                  const pSid = String(p.studentId || p.userId || p.id || '');
+                  const curSid = String(currentStudentId || '');
+                  return pSid === curSid || (curSid && toUUID(curSid) === toUUID(pSid));
+                });
                 const progDaysWithTest = [];
                 if (studentProfile && Array.isArray(studentProfile.weeklyProgram)) {
                   studentProfile.weeklyProgram.forEach(dObj => {
-                    const hasTest = (dObj.items || []).some(item => {
+                    if (!dObj || !Array.isArray(dObj.items)) return;
+                    const hasTest = dObj.items.some(item => {
+                      if (!item) return false;
                       const itId = String(item.testId || item.realTestId || item.hwId || item.id || '');
                       const tId = String(test.id || '');
-                      return itId === tId || (toUUID(tId) && toUUID(itId) === toUUID(tId));
+                      return (itId && tId && itId === tId) || (tId && toUUID(tId) && toUUID(itId) === toUUID(tId));
                     });
-                    if (hasTest && !progDaysWithTest.includes(dObj.day)) {
+                    if (hasTest && dObj.day && !progDaysWithTest.includes(dObj.day)) {
                       progDaysWithTest.push(dObj.day);
                     }
                   });
