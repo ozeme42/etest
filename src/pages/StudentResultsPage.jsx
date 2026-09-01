@@ -33,7 +33,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import ManualTestModal from '../components/ManualTestModal';
-import StudentPerformanceReportModal from '../components/reports/StudentPerformanceReportModal';
+import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
 import { extractItemDate, getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange, formatTurkishDate } from '../utils/dateHelpers';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 
@@ -489,7 +489,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const { data: curData } = useCurriculum();
   const { books, bookTests } = useTrackedBooks();
   const { questions: allBankQuestions } = useQuestionBank();
-  const { getMockExamsForStudent } = useCoaching();
+  const { getMockExamsForStudent, coachedIds, toggleCoachedStudent } = useCoaching();
 
   const { currentUser } = useAuth();
   const isStudentRole = currentUser?.role === 'student';
@@ -3565,12 +3565,20 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       />
 
       {/* Gelişim & Performans Karnesi Modalı */}
-      <StudentPerformanceReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        student={selectedStudent || currentUser || {}}
-        submissions={studentSubmissions || []}
-      />
+      {isReportModalOpen && (
+        <TeacherStudentQuickReportModal
+          student={selectedStudent || currentUser || {}}
+          submissions={submissions || []}
+          homeworks={homeworks || []}
+          books={books || []}
+          bookTests={bookTests || []}
+          grades={curData?.grades || []}
+          teacherName={currentUser?.role === 'student' ? 'Sınıf Rehber Öğretmeni' : (currentUser?.name || 'Öğretmeniniz')}
+          isCoached={Boolean(coachedIds?.includes?.((selectedStudent || currentUser)?.id))}
+          onToggleCoaching={() => (selectedStudent || currentUser)?.id && toggleCoachedStudent?.(currentUser?.id || 'teacher_1', (selectedStudent || currentUser)?.id)}
+          onClose={() => setIsReportModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
