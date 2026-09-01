@@ -394,6 +394,8 @@ export default function StudentDashboard() {
   // Background sync when opening the dashboard
   useEffect(() => {
     refreshHomeworks?.(false);
+    refreshTrackedBooks?.(true);
+    syncFromSupabase?.(false, true);
     refreshCoaching?.(true);
     refreshSchedules?.(true);
   }, []);
@@ -1248,10 +1250,21 @@ export default function StudentDashboard() {
       const rawSubjects = (book.subjects && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []);
       const subjects = rawSubjects.filter(s => s && s.name);
 
-      const testsInBook = (bookTests || []).filter(bt => {
+      // Deduplicate tests in book
+      const deduplicatedMap = new Map();
+      (bookTests || []).filter(bt => {
         const btBId = String(bt.bookId || bt.book_id || '');
         return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
+      }).forEach(t => {
+        const nameKey = String(t.name || t.title || '').trim().toLowerCase();
+        const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
+        const sId = String(t.subjectId || t.subject_id || 'direct').trim().toLowerCase();
+        const key = `${sId}___${topKey}___${nameKey}`;
+        if (!deduplicatedMap.has(key)) {
+          deduplicatedMap.set(key, t);
+        }
       });
+      const testsInBook = Array.from(deduplicatedMap.values());
 
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (book.totalTests || 1);
 
