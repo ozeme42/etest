@@ -57,7 +57,7 @@ export default function RemedialQuizRunner({
   const rawContentPayload = test.contentPayload || test.raw_data?.contentPayload || test.raw?.contentPayload || '';
   const extractedPayloadImages = useMemo(() => extractImageUrls(rawContentPayload), [rawContentPayload]);
 
-  // 2. Flatten and normalize questions with robust multi-source image resolution
+  // 2. Flatten and normalize questions with robust multi-source image resolution & exact deduplication
   const normalizedQuestions = useMemo(() => {
     const list = [];
     if (Array.isArray(questions) && questions.length > 0) {
@@ -110,27 +110,29 @@ export default function RemedialQuizRunner({
       const subQ = rawQuestionsList[idx] || {};
 
       // Multi-layer image extraction:
-      const imgList = [];
-      if (q.imageUrl && isValidImageUrl(q.imageUrl)) imgList.push(q.imageUrl);
-      if (q.image && isValidImageUrl(q.image)) imgList.push(q.image);
-      if (Array.isArray(q.imageUrls)) imgList.push(...q.imageUrls);
-      if (Array.isArray(q.images)) imgList.push(...q.images);
-      if (q.contentPayload && isValidImageUrl(q.contentPayload)) imgList.push(...extractImageUrls(q.contentPayload));
-      if (q.documentPayload && isValidImageUrl(q.documentPayload)) imgList.push(...extractImageUrls(q.documentPayload));
+      const rawImgs = [];
+      if (q.imageUrl && isValidImageUrl(q.imageUrl)) rawImgs.push(q.imageUrl);
+      if (q.image && isValidImageUrl(q.image)) rawImgs.push(q.image);
+      if (Array.isArray(q.imageUrls)) rawImgs.push(...q.imageUrls);
+      if (Array.isArray(q.images)) rawImgs.push(...q.images);
+      if (q.contentPayload && isValidImageUrl(q.contentPayload)) rawImgs.push(...extractImageUrls(q.contentPayload));
+      if (q.documentPayload && isValidImageUrl(q.documentPayload)) rawImgs.push(...extractImageUrls(q.documentPayload));
 
-      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) imgList.push(subQ.imageUrl);
-      if (subQ.image && isValidImageUrl(subQ.image)) imgList.push(subQ.image);
-      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) imgList.push(...extractImageUrls(subQ.contentPayload));
+      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) rawImgs.push(subQ.imageUrl);
+      if (subQ.image && isValidImageUrl(subQ.image)) rawImgs.push(subQ.image);
+      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) rawImgs.push(...extractImageUrls(subQ.contentPayload));
 
-      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) imgList.push(rawImageUrls[idx]);
-      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) imgList.push(extractedPayloadImages[idx]);
+      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) rawImgs.push(rawImageUrls[idx]);
+      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) rawImgs.push(extractedPayloadImages[idx]);
 
-      if (imgList.length === 0 && list.length === 1) {
-        if (test.imageUrl && isValidImageUrl(test.imageUrl)) imgList.push(test.imageUrl);
-        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) imgList.push(test.raw_data.imageUrl);
+      if (rawImgs.length === 0 && list.length === 1) {
+        if (test.imageUrl && isValidImageUrl(test.imageUrl)) rawImgs.push(test.imageUrl);
+        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) rawImgs.push(test.raw_data.imageUrl);
       }
 
-      const cleanImgs = Array.from(new Set(imgList.filter(isValidImageUrl)));
+      // Exact deduplication
+      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => String(s).trim())));
+      const primaryImage = cleanImgs[0] || null;
 
       // Correct answer resolution
       let cAns = q.correctAnswer ?? q.correctAnswerLetter ?? subQ.correctAnswer ?? subQ.correctAnswerLetter ?? q.answer ?? q.correctOption ?? test.answerKey?.[qNo] ?? test.raw_data?.answerKey?.[qNo];
@@ -144,7 +146,8 @@ export default function RemedialQuizRunner({
         ...q,
         globalIndex: idx,
         displayQNo: qNo,
-        images: cleanImgs,
+        primaryImage,
+        images: primaryImage ? [primaryImage] : [],
         resolvedCorrectAnswer: typeof cAns === 'number' ? cAns : null,
         optCount: Number(q.optionsCount || q.optionCount || subQ.optionCount || 4),
         unitName: q.unitName || subQ.unitName || '',
@@ -332,8 +335,8 @@ export default function RemedialQuizRunner({
         userAnswerIndex: userAnsIdx,
         isCorrect,
         correctAnswer: correctAnsLetter,
-        imageUrls: q.images,
-        imageUrl: q.images?.[0] || null,
+        imageUrls: q.primaryImage ? [q.primaryImage] : [],
+        imageUrl: q.primaryImage || null,
         metadata: {
           bookTitle: q.bookTitle || test.bookTitle,
           testName: q.testName || test.title,
@@ -855,7 +858,7 @@ export default function RemedialQuizRunner({
                 )}
               </div>
 
-              {/* 1. Question Image Box */}
+              {/* 1. Soru Görseli (Deduplicated Single Image) */}
               <div style={{
                 position: 'relative',
                 background: isDark ? '#18181b' : '#ffffff',
@@ -868,54 +871,50 @@ export default function RemedialQuizRunner({
                 minHeight: isMobile ? '200px' : '280px',
                 boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.04)'
               }}>
-                {activeQuestion.images && activeQuestion.images.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignItems: 'center' }}>
-                    {activeQuestion.images.map((imgUrl, i) => (
-                      <div key={i} style={{ position: 'relative', maxWidth: '100%' }}>
-                        <img
-                          src={imgUrl}
-                          alt={`Soru ${activeQIdx + 1}`}
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: isMobile ? '340px' : '460px',
-                            objectFit: 'contain',
-                            borderRadius: '0.5rem',
-                            display: 'block',
-                            margin: '0 auto',
-                            cursor: 'zoom-in'
-                          }}
-                          onClick={() => setLightboxImg(imgUrl)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setLightboxImg(imgUrl)}
-                          style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '0.5rem',
-                            background: 'rgba(0,0,0,0.65)',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Büyüt"
-                        >
-                          <Maximize2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                {activeQuestion.primaryImage ? (
+                  <div style={{ position: 'relative', maxWidth: '100%' }}>
+                    <img
+                      src={activeQuestion.primaryImage}
+                      alt={`Soru ${activeQIdx + 1}`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: isMobile ? '340px' : '460px',
+                        objectFit: 'contain',
+                        borderRadius: '0.5rem',
+                        display: 'block',
+                        margin: '0 auto',
+                        cursor: 'zoom-in'
+                      }}
+                      onClick={() => setLightboxImg(activeQuestion.primaryImage)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImg(activeQuestion.primaryImage)}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '0.5rem',
+                        background: 'rgba(0,0,0,0.65)',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Büyüt"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
                   </div>
                 ) : (
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                     <BookOpen size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
-                      {activeQuestion.questionText || activeQuestion.title || `Soru ${activeQIdx + 1} İçeriği`}
+                      {activeQuestion.questionText || `Soru ${activeQIdx + 1}`}
                     </p>
                   </div>
                 )}

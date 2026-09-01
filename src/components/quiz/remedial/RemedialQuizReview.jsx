@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTheme } from '../../../context/ThemeContext';
+import { useAuth } from '../../../context/AuthContext';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -17,15 +18,25 @@ import {
   Award,
   Check,
   X,
-  ListOrdered
+  ListOrdered,
+  Bot,
+  Loader2,
+  Lightbulb,
+  AlertTriangle,
+  RefreshCw,
+  Key
 } from 'lucide-react';
 import ImageLightbox, { extractImageUrls, isValidImageUrl } from '../common/ImageLightbox';
+import { solveQuestionWithAi, cleanAiMathText, resolveImageToBase64 } from '../../../services/aiSolutionService';
 
 /**
  * RemedialQuizReview
  * Dedicated, ultra-clean review and deep mistake analysis screen for Custom Remedial Tests ("Özel Telafi Testi").
- * Features centered luxury option evaluation, mobile bottom bar with slide-up optical drawer,
- * and high clarity analysis.
+ * Features:
+ * - Single deduplicated question crop image display
+ * - Interactive AI Step-by-Step Question Solver with common misconception analysis
+ * - Centered luxury option evaluation
+ * - Full mobile responsiveness with slide-up optical evaluation drawer
  */
 export default function RemedialQuizReview({
   test = {},
@@ -36,7 +47,18 @@ export default function RemedialQuizReview({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark } = useTheme();
+  const { currentUser } = useAuth();
+
   const [isMobileOpticalOpen, setIsMobileOpticalOpen] = useState(false);
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [lightboxImg, setLightboxImg] = useState(null);
+
+  // AI Solution State: mapped by qNo
+  const [aiSolutions, setAiSolutions] = useState({});
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState('');
 
   // 1. Gather raw structures
   const rawQuestionsList = test.questionsList || test.raw_data?.questionsList || test.raw?.questionsList || [];
@@ -81,27 +103,31 @@ export default function RemedialQuizReview({
       }
 
       // Robust multi-layer image extraction:
-      const imgList = [];
-      if (q.imageUrl && isValidImageUrl(q.imageUrl)) imgList.push(q.imageUrl);
-      if (q.image && isValidImageUrl(q.image)) imgList.push(q.image);
-      if (Array.isArray(q.imageUrls)) imgList.push(...q.imageUrls);
-      if (Array.isArray(q.images)) imgList.push(...q.images);
-      if (q.contentPayload && isValidImageUrl(q.contentPayload)) imgList.push(...extractImageUrls(q.contentPayload));
+      const rawImgs = [];
+      if (q.imageUrl && isValidImageUrl(q.imageUrl)) rawImgs.push(q.imageUrl);
+      if (q.image && isValidImageUrl(q.image)) rawImgs.push(q.image);
+      if (Array.isArray(q.imageUrls)) rawImgs.push(...q.imageUrls);
+      if (Array.isArray(q.images)) rawImgs.push(...q.images);
+      if (q.contentPayload && isValidImageUrl(q.contentPayload)) rawImgs.push(...extractImageUrls(q.contentPayload));
 
-      if (subAns.imageUrl && isValidImageUrl(subAns.imageUrl)) imgList.push(subAns.imageUrl);
-      if (Array.isArray(subAns.imageUrls)) imgList.push(...subAns.imageUrls);
+      if (subAns.imageUrl && isValidImageUrl(subAns.imageUrl)) rawImgs.push(subAns.imageUrl);
+      if (Array.isArray(subAns.imageUrls)) rawImgs.push(...subAns.imageUrls);
 
-      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) imgList.push(subQ.imageUrl);
-      if (subQ.image && isValidImageUrl(subQ.image)) imgList.push(subQ.image);
-      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) imgList.push(...extractImageUrls(subQ.contentPayload));
+      if (subQ.imageUrl && isValidImageUrl(subQ.imageUrl)) rawImgs.push(subQ.imageUrl);
+      if (subQ.image && isValidImageUrl(subQ.image)) rawImgs.push(subQ.image);
+      if (subQ.contentPayload && isValidImageUrl(subQ.contentPayload)) rawImgs.push(...extractImageUrls(subQ.contentPayload));
 
-      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) imgList.push(rawImageUrls[idx]);
-      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) imgList.push(extractedPayloadImages[idx]);
+      if (rawImageUrls[idx] && isValidImageUrl(rawImageUrls[idx])) rawImgs.push(rawImageUrls[idx]);
+      if (extractedPayloadImages[idx] && isValidImageUrl(extractedPayloadImages[idx])) rawImgs.push(extractedPayloadImages[idx]);
 
-      if (imgList.length === 0 && baseQuestions.length === 1) {
-        if (test.imageUrl && isValidImageUrl(test.imageUrl)) imgList.push(test.imageUrl);
-        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) imgList.push(test.raw_data.imageUrl);
+      if (rawImgs.length === 0 && baseQuestions.length === 1) {
+        if (test.imageUrl && isValidImageUrl(test.imageUrl)) rawImgs.push(test.imageUrl);
+        if (test.raw_data?.imageUrl && isValidImageUrl(test.raw_data.imageUrl)) rawImgs.push(test.raw_data.imageUrl);
       }
+
+      // Exact deduplication
+      const cleanImgs = Array.from(new Set(rawImgs.filter(isValidImageUrl).map(s => String(s).trim())));
+      const primaryImage = cleanImgs[0] || null;
 
       return {
         ...q,
@@ -111,7 +137,8 @@ export default function RemedialQuizReview({
         correctAnsLetter: cAnsLetter ? String(cAnsLetter).toUpperCase() : '—',
         isCorrect: Boolean(isCorrect),
         isBlank: Boolean(isBlank),
-        images: Array.from(new Set(imgList.filter(isValidImageUrl))),
+        primaryImage,
+        images: primaryImage ? [primaryImage] : [],
         unitName: subAns.metadata?.unitName || q.unitName || subQ.unitName || '',
         testName: subAns.metadata?.testName || q.testName || subQ.testName || '',
         originalQNo: subAns.metadata?.originalQNo || q.originalQuestionNo || q.originalQNo || subQ.originalQuestionNo || subQ.originalQNo || q.qNo,
@@ -121,8 +148,8 @@ export default function RemedialQuizReview({
   }, [test, questions, submission, rawQuestionsList, rawImageUrls, extractedPayloadImages]);
 
   const totalCount = reviewQuestions.length;
-  const [activeQIdx, setActiveQIdx] = useState(0);
-  const [lightboxImg, setLightboxImg] = useState(null);
+  const activeQuestion = reviewQuestions[activeQIdx] || reviewQuestions[0] || {};
+  const defaultOptions = ['A', 'B', 'C', 'D', 'E'];
 
   // Overall Stats
   const stats = useMemo(() => {
@@ -139,8 +166,61 @@ export default function RemedialQuizReview({
     return { d, y, b, pct, net };
   }, [reviewQuestions, totalCount]);
 
-  const activeQuestion = reviewQuestions[activeQIdx] || reviewQuestions[0] || {};
-  const defaultOptions = ['A', 'B', 'C', 'D', 'E'];
+  // AI Solver Handler
+  const handleSolveWithAi = async (forceRefresh = false) => {
+    const qNo = activeQIdx + 1;
+    if (!forceRefresh && aiSolutions[qNo]) return;
+
+    setAiLoading(true);
+    setAiError(null);
+
+    try {
+      let imgBase64 = null;
+      if (activeQuestion.primaryImage) {
+        imgBase64 = await resolveImageToBase64(activeQuestion.primaryImage);
+      }
+
+      const qText = activeQuestion.questionText || activeQuestion.title || `Soru ${qNo}`;
+
+      const res = await solveQuestionWithAi({
+        userId: currentUser?.id,
+        imageBase64: imgBase64,
+        questionText: qText,
+        options: defaultOptions.slice(0, activeQuestion.optCount || 4),
+        studentAnswer: activeQuestion.userAnsLetter !== 'Boş' ? activeQuestion.userAnsLetter : '',
+        correctAnswer: activeQuestion.correctAnsLetter !== '—' ? activeQuestion.correctAnsLetter : '',
+        mistakeReason: !activeQuestion.isCorrect ? `Öğrenci bu soruyu yanlış yaptı (Seçtiği: ${activeQuestion.userAnsLetter}, Doğru: ${activeQuestion.correctAnsLetter}). Lütfen nerede hata yaptığını açıkla.` : '',
+        subject: test.subject || activeQuestion.subject || 'Genel',
+        grade: test.grade || '',
+        topic: activeQuestion.unitName || test.topic || '',
+        questionNo: qNo,
+        forceRefresh
+      });
+
+      setAiSolutions(prev => ({
+        ...prev,
+        [qNo]: res
+      }));
+    } catch (err) {
+      if (err.message === 'API_KEY_REQUIRED') {
+        setShowApiKeyModal(true);
+      } else {
+        setAiError(err.message || 'Yapay zeka çözümü üretilirken bir hata oluştu.');
+      }
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSaveApiKey = () => {
+    if (tempApiKey.trim()) {
+      localStorage.setItem('gemini_api_key', tempApiKey.trim());
+      setShowApiKeyModal(false);
+      handleSolveWithAi(true);
+    }
+  };
+
+  const currentSolution = aiSolutions[activeQIdx + 1];
 
   // Optical Evaluation Rows Render Helper
   const renderOpticalEvaluationContent = () => (
@@ -236,7 +316,7 @@ export default function RemedialQuizReview({
                     btnColor = '#ffffff';
                   }
                 } else if (isCorrectAnswer && !q.isCorrect) {
-                  btnBg = isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7';
+                  btnBg = isDark ? 'rgba(16,185,129,0.25)' : '#dcfce7';
                   btnBorder = '2px solid #16a34a';
                   btnColor = '#15803d';
                 }
@@ -346,7 +426,7 @@ export default function RemedialQuizReview({
                 borderRadius: '0.35rem',
                 border: '1px solid rgba(99,102,241,0.3)'
               }}>
-                🔍 İnceleme & Analiz
+                🔍 İnceleme & AI Çözüm
               </span>
             </div>
           </div>
@@ -411,7 +491,7 @@ export default function RemedialQuizReview({
         overflow: 'hidden',
         position: 'relative'
       }}>
-        {/* ── SOLVING AREA ── */}
+        {/* ── SOLVING & REVIEW AREA ── */}
         <div style={{
           flex: isMobile ? '1 1 100%' : '1 1 68%',
           width: isMobile ? '100%' : 'auto',
@@ -586,7 +666,7 @@ export default function RemedialQuizReview({
                     alignItems: 'center',
                     gap: '0.25rem'
                   }}>
-                    <CheckCircle2 size={13} /> Doğru Cevap ({activeQuestion.userAnsLetter})
+                    <CheckCircle2 size={13} /> Doğru ({activeQuestion.userAnsLetter})
                   </span>
                 ) : (
                   <span style={{
@@ -606,7 +686,7 @@ export default function RemedialQuizReview({
                 )}
               </div>
 
-              {/* Question Image Box */}
+              {/* 1. Soru Görseli (Deduplicated Single Image) */}
               <div style={{
                 position: 'relative',
                 background: isDark ? '#18181b' : '#ffffff',
@@ -619,60 +699,232 @@ export default function RemedialQuizReview({
                 minHeight: isMobile ? '200px' : '280px',
                 boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.04)'
               }}>
-                {activeQuestion.images && activeQuestion.images.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', alignItems: 'center' }}>
-                    {activeQuestion.images.map((imgUrl, i) => (
-                      <div key={i} style={{ position: 'relative', maxWidth: '100%' }}>
-                        <img
-                          src={imgUrl}
-                          alt={`Soru ${activeQIdx + 1}`}
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: isMobile ? '340px' : '460px',
-                            objectFit: 'contain',
-                            borderRadius: '0.5rem',
-                            display: 'block',
-                            margin: '0 auto',
-                            cursor: 'zoom-in'
-                          }}
-                          onClick={() => setLightboxImg(imgUrl)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setLightboxImg(imgUrl)}
-                          style={{
-                            position: 'absolute',
-                            top: '8px',
-                            right: '8px',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '0.5rem',
-                            background: 'rgba(0,0,0,0.65)',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Büyüt"
-                        >
-                          <Maximize2 size={16} />
-                        </button>
-                      </div>
-                    ))}
+                {activeQuestion.primaryImage ? (
+                  <div style={{ position: 'relative', maxWidth: '100%' }}>
+                    <img
+                      src={activeQuestion.primaryImage}
+                      alt={`Soru ${activeQIdx + 1}`}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: isMobile ? '340px' : '460px',
+                        objectFit: 'contain',
+                        borderRadius: '0.5rem',
+                        display: 'block',
+                        margin: '0 auto',
+                        cursor: 'zoom-in'
+                      }}
+                      onClick={() => setLightboxImg(activeQuestion.primaryImage)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLightboxImg(activeQuestion.primaryImage)}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '0.5rem',
+                        background: 'rgba(0,0,0,0.65)',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Büyüt"
+                    >
+                      <Maximize2 size={16} />
+                    </button>
                   </div>
                 ) : (
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
                     <BookOpen size={36} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
                     <p style={{ margin: 0, fontWeight: 700, fontSize: '0.9rem' }}>
-                      {activeQuestion.questionText || activeQuestion.title || `Soru ${activeQIdx + 1}`}
+                      {activeQuestion.questionText || `Soru ${activeQIdx + 1}`}
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* 🌟 CENTERED OPTION EVALUATION BOX ── */}
+              {/* 2. 🌟 AI STEP-BY-STEP QUESTION SOLVER ACTION BAR ── */}
+              <div style={{
+                background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(124,58,237,0.08))' : 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                border: '1.5px solid rgba(99,102,241,0.3)',
+                borderRadius: '1.2rem',
+                padding: isMobile ? '0.75rem 0.85rem' : '1rem 1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '0.6rem',
+                      background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Bot size={18} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        Yapay Zeka Soru Çözücü
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                        Sorunun görseli üzerinden adım adım çözüm ve çeldirici analizi
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Solve Trigger Button */}
+                  <button
+                    type="button"
+                    disabled={aiLoading}
+                    onClick={() => handleSolveWithAi(Boolean(currentSolution))}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: currentSolution
+                        ? 'var(--color-surface-hover)'
+                        : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                      color: currentSolution ? 'var(--color-text)' : '#ffffff',
+                      fontSize: isMobile ? '0.76rem' : '0.84rem',
+                      fontWeight: 900,
+                      cursor: aiLoading ? 'not-allowed' : 'pointer',
+                      boxShadow: currentSolution ? 'none' : '0 4px 14px rgba(79,70,229,0.3)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {aiLoading ? (
+                      <>
+                        <Loader2 size={16} className="spin-animation" />
+                        <span>Analiz Ediliyor...</span>
+                      </>
+                    ) : currentSolution ? (
+                      <>
+                        <RefreshCw size={15} />
+                        <span>Yeniden Çözdür</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        <span>Adım Adım Çözüm Oluştur</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* AI Error message */}
+                {aiError && (
+                  <div style={{
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.6rem',
+                    background: 'rgba(239,68,68,0.1)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    color: '#dc2626',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    ⚠️ {aiError}
+                  </div>
+                )}
+
+                {/* AI Solution Render Card */}
+                {currentSolution && (
+                  <div style={{
+                    background: isDark ? '#18181b' : '#ffffff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '1rem',
+                    padding: isMobile ? '0.85rem' : '1.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.85rem',
+                    textAlign: 'left',
+                    animation: 'fadeIn 0.25s ease-out'
+                  }}>
+                    {/* Solution Steps */}
+                    {Array.isArray(currentSolution.steps) && currentSolution.steps.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <Sparkles size={14} /> ÇÖZÜM ADIMLARI
+                        </div>
+                        {currentSolution.steps.map((step, sIdx) => (
+                          <div
+                            key={sIdx}
+                            style={{
+                              padding: '0.6rem 0.85rem',
+                              borderRadius: '0.75rem',
+                              background: isDark ? '#27272a' : '#f8fafc',
+                              border: isDark ? '1px solid #3f3f46' : '1px solid #e2e8f0'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.2rem' }}>
+                              {sIdx + 1}. {step.title || `Adım ${sIdx + 1}`}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                              {cleanAiMathText(step.detail || step.text || step.explanation || '')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Key Concept / Tip */}
+                    {(currentSolution.keyConcept || currentSolution.tips) && (
+                      <div style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        background: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.3)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.45rem'
+                      }}>
+                        <Lightbulb size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: '0.78rem', color: isDark ? '#86efac' : '#15803d', lineHeight: 1.45 }}>
+                          <b>Kritik Kazanım:</b> {cleanAiMathText(currentSolution.keyConcept || currentSolution.tips)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Common Misconception / Mistake Analysis */}
+                    {(currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed) && (
+                      <div style={{
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.45rem'
+                      }}>
+                        <AlertTriangle size={16} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div style={{ fontSize: '0.78rem', color: isDark ? '#fca5a5' : '#b91c1c', lineHeight: 1.45 }}>
+                          <b>Yanlış Analizi & Çeldirici:</b> {cleanAiMathText(currentSolution.mistakeAnalysis || currentSolution.whyStudentFailed)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 3. 🌟 CENTERED OPTION EVALUATION BOX ── */}
               <div style={{
                 background: isDark
                   ? 'linear-gradient(180deg, rgba(30,30,36,0.9), rgba(24,24,28,0.95))'
@@ -1047,6 +1299,93 @@ export default function RemedialQuizReview({
           imageUrl={lightboxImg}
           onClose={() => setLightboxImg(null)}
         />
+      )}
+
+      {/* API Key Modal */}
+      {showApiKeyModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 100000,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{
+            background: 'var(--color-surface)',
+            borderRadius: '1.25rem',
+            maxWidth: '420px',
+            width: '100%',
+            padding: '1.5rem',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+            textAlign: 'left'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#4f46e5' }}>
+              <Key size={20} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                Gemini API Anahtarı Gerekli
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
+              Yapay zeka ile anında adım adım soru çözümü ve görsel analizi yapabilmek için lütfen Google Gemini API anahtarınızı giriniz:
+            </p>
+            <input
+              type="password"
+              placeholder="AIzaSy..."
+              value={tempApiKey}
+              onChange={(e) => setTempApiKey(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '0.65rem',
+                border: '1.5px solid var(--color-border-input)',
+                background: 'var(--color-bg)',
+                color: 'var(--color-text)',
+                fontSize: '0.88rem',
+                boxSizing: 'border-box',
+                marginBottom: '1rem'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowApiKeyModal(false)}
+                style={{
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '0.6rem',
+                  border: '1px solid var(--color-border)',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text)',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                İptal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.6rem',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 900,
+                  cursor: 'pointer'
+                }}
+              >
+                Kaydet & Çöz
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
