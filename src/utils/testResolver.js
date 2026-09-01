@@ -1222,6 +1222,75 @@ export function computeStudentAnalyticsData({
 }
 
 /**
+ * Generates an immutable collision-free composite key for a book test:
+ * [Normalized Book Title]___[Subject]___[Unit Number]___[Category + Number]
+ */
+export function createCompositeTestKey(bookTitle, subjectName, unitName, testName) {
+  const norm = (str) => String(str || '')
+    .toLowerCase()
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, '')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/\s*\(tüm kitap görevi\)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const b = norm(bookTitle);
+  const s = norm(subjectName);
+  const uMatch = norm(unitName).match(/(\d+)/);
+  const u = uMatch ? uMatch[1] : norm(unitName);
+  
+  const t = norm(testName);
+  const numMatch = t.match(/\d+/g);
+  const num = numMatch ? numMatch[numMatch.length - 1] : '';
+  let cat = 'test';
+  if (t.includes('ünite değerlendirme') || t.includes('ü. değ') || t.includes('ü.değ') || t.includes('ü değ') || t.includes('udeg')) {
+    cat = 'udeg';
+  } else if (t.includes('yeni nesil') || t.includes('yeninesil') || t.includes('yn')) {
+    cat = 'yeninesil';
+  } else if (t.includes('paragraf')) {
+    cat = 'paragraf';
+  } else if (t.includes('problem')) {
+    cat = 'problem';
+  }
+
+  return `${b}___${s}___u${u}___${cat}_${num}`;
+}
+
+export function getSubmissionCompositeKey(s) {
+  if (!s) return '';
+  const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
+  if (meta?.compositeKey) return meta.compositeKey;
+  if (s.compositeKey) return s.compositeKey;
+
+  const rawTitle = String(s.title || s.testTitle || s.test_title || meta?.testTitle || '').trim();
+  let book = String(s.bookTitle || meta?.bookTitle || '').trim();
+  let subj = String(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '').trim();
+  let unit = String(s.unit || s.unitName || meta?.unitTopic || meta?.topicName || '').trim();
+  let test = String(s.testName || meta?.testName || '').trim();
+
+  let subStr = rawTitle;
+  if (subStr.includes('—')) {
+    const parts = subStr.split('—');
+    if (!book) book = parts[0].trim();
+    subStr = parts.slice(1).join('—').trim();
+  }
+  if (subStr.includes('›') || subStr.includes('>')) {
+    const parts = subStr.split(/[›>]/);
+    if (!subj) subj = parts[0].trim();
+    subStr = parts.slice(1).join('›').trim();
+  }
+  const parenMatch = subStr.match(/\((.*?)\)/);
+  if (parenMatch) {
+    if (!test) test = parenMatch[1].trim();
+    if (!unit) unit = subStr.replace(/\(.*?\)/, '').trim();
+  } else if (!test) {
+    test = subStr.trim();
+  }
+
+  return createCompositeTestKey(book, subj, unit, test);
+}
+
+/**
  * Accurately checks if a submission matches a specific book test without falsely matching generic names or cross-subject tests.
  */
 export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], books = []) {
@@ -1231,6 +1300,23 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   let targetTest = typeof targetTestOrId === 'object'
     ? targetTestOrId
     : (bookTests || []).find(bt => String(bt.id) === String(targetTestOrId) || (toUUID(bt.id) && String(toUUID(bt.id)) === String(targetTestOrId)));
+
+  // 🛡️ 0. COMPOSITE SIGNATURE MATCHING (Pillar 1: Guaranteed Cross-Disciplinary Safety)
+  if (targetTest) {
+    const targetBook = books.find(b => String(b.id) === String(targetTest.bookId || targetTest.book_id) || (toUUID(b.id) && toUUID(b.id) === toUUID(targetTest.bookId || targetTest.book_id)));
+    const tBookTitle = targetTest.bookTitle || targetBook?.title || '';
+    const tSubjName = targetTest.subject || targetTest.subjectName || targetTest.parentSubjectName || '';
+    const tUnitName = targetTest.unit || targetTest.unitName || targetTest.unitTopic || targetTest.topicName || '';
+    const tTestName = targetTest.name || targetTest.title || targetTest.testName || '';
+
+    if (tBookTitle && tSubjName && tTestName) {
+      const targetSig = createCompositeTestKey(tBookTitle, tSubjName, tUnitName, tTestName);
+      const subSig = getSubmissionCompositeKey(s);
+      if (targetSig && subSig && targetSig === subSig) {
+        return true;
+      }
+    }
+  }
 
   const specId = typeof targetTestOrId === 'object' ? String(targetTestOrId.id || targetTestOrId.testId || targetTestOrId.bookTestId || '') : String(targetTestOrId);
   const specClean = specId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');

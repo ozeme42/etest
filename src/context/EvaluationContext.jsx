@@ -232,6 +232,9 @@ export function EvaluationProvider({ children }) {
             localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
             localStorage.setItem('etest_submissions', JSON.stringify(mergedList));
           } catch {}
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { count: mergedList.length } }));
+          }
           return mergedList;
         });
       }
@@ -419,6 +422,9 @@ export function EvaluationProvider({ children }) {
       return nextSubs;
     });
     await dbSaveSubmission(newSub);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { newSubId: newSub.id } }));
+    }
     return newSub.id;
   };
 

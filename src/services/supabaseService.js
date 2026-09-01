@@ -779,6 +779,7 @@ export async function dbSaveSubmission(sub) {
           approvedAt: sub.approvedAt || null,
           rejectedReason: sub.rejectedReason || null,
           mistakeReasons: rawMistakeReasons,
+          compositeKey: sub.compositeKey || (sub.bookTitle && sub.subject ? `${String(sub.bookTitle).toLowerCase().trim()}___${String(sub.subject).toLowerCase().trim()}___u${String(sub.unitTopic || '').match(/(\d+)/)?.[1] || '1'}___${String(sub.title || sub.testTitle || '').toLowerCase().trim()}` : null),
           status: sub.status || (isApproved ? 'completed' : 'pending_approval')
         }
       ],

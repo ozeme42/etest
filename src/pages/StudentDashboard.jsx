@@ -398,7 +398,14 @@ export default function StudentDashboard() {
     syncFromSupabase?.(false, true);
     refreshCoaching?.(true);
     refreshSchedules?.(true);
-  }, []);
+
+    const onSubUpdated = () => {
+      refreshTrackedBooks?.(true);
+      refreshHomeworks?.(false);
+    };
+    window.addEventListener('etest-submissions-updated', onSubUpdated);
+    return () => window.removeEventListener('etest-submissions-updated', onSubUpdated);
+  }, [refreshTrackedBooks, refreshHomeworks, syncFromSupabase, refreshCoaching, refreshSchedules]);
 
   const handleDashboardRefresh = async () => {
     await Promise.all([
