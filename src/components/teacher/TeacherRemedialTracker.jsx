@@ -19,7 +19,7 @@ import {
   REPETITION_PRESETS
 } from '../../services/remedialSpacedRepetitionService';
 import { toUUID, dbSaveRemedialRepetition, dbRecordDeletedItem } from '../../services/supabaseService';
-import { idbGetPayload } from '../../services/indexedDbService';
+import { idbGetPayload, idbDeletePayload } from '../../services/indexedDbService';
 
 const SUBJECT_OPTIONS = [
   'Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler',
@@ -216,7 +216,7 @@ function EditRemedialModal({
 
     try {
       const raw = testItem.rawTest || {};
-      const targetStudent = studentId || testItem.studentId || null;
+      const targetStudent = studentId && studentId.trim() !== '' ? studentId.trim() : null;
 
       // Update question list if present
       const updatedQuestionsList = questionsList.map((q, idx) => ({
@@ -243,7 +243,7 @@ function EditRemedialModal({
         imageUrls: updatedQuestionsList.map(q => q.imageUrl || q.contentPayload).filter(Boolean),
         isRemedial: true,
         isRemedialTest: true,
-        isTeacherRemedial: true,
+        isTeacherRemedial: Boolean(targetStudent),
         keepMasteryTracking,
         targetMasteryPct: keepMasteryTracking ? 100 : null
       };
@@ -270,7 +270,19 @@ function EditRemedialModal({
         });
       }
 
-      // 4. Sync to student's weekly study program
+      // 4. Clean up previous student weekly program if student changed
+      if (testItem.studentId && String(testItem.studentId) !== String(targetStudent) && saveCoachingProfile && Array.isArray(coachingProfiles)) {
+        const oldProfile = coachingProfiles.find(p => String(p.studentId) === String(testItem.studentId));
+        if (oldProfile && Array.isArray(oldProfile.weeklyProgram)) {
+          const cleanedOldProg = oldProfile.weeklyProgram.map(dObj => ({
+            ...dObj,
+            items: (dObj.items || []).filter(it => it.testId !== testItem.testId && it.hwId !== testItem.testId && it.id !== testItem.testId)
+          }));
+          await saveCoachingProfile({ ...oldProfile, weeklyProgram: cleanedOldProg });
+        }
+      }
+
+      // 5. Sync to student's weekly study program if target student specified
       if (syncToProgram && targetStudent && saveCoachingProfile) {
         const DAYS_LIST = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
         const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(targetStudent)) || {
@@ -281,7 +293,7 @@ function EditRemedialModal({
         // Clean previous instances of this test
         const cleanedProg = (currentProfile.weeklyProgram || []).map(dObj => ({
           ...dObj,
-          items: (dObj.items || []).filter(it => it.testId !== testItem.testId && it.hwId !== testItem.testId)
+          items: (dObj.items || []).filter(it => it.testId !== testItem.testId && it.hwId !== testItem.testId && it.id !== testItem.testId)
         }));
 
         const updatedProg = scheduleRemedialTestInProgram({
@@ -1059,6 +1071,35 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
   const [editingTest, setEditingTest] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
+  const [deletedIdsSet, setDeletedIdsSet] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eTestDeletedRemedialTests');
+      const parsed = saved ? JSON.parse(saved) : [];
+      return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const allDeletedIdentifiers = useMemo(() => {
+    const combined = new Set(deletedIdsSet);
+    try {
+      const hwDel = localStorage.getItem('eTestDeletedHomeworks');
+      if (hwDel) {
+        const parsed = JSON.parse(hwDel);
+        if (Array.isArray(parsed)) parsed.forEach(id => combined.add(String(id)));
+      }
+    } catch {}
+    try {
+      const qDel = localStorage.getItem('eTestDeletedQuestions');
+      if (qDel) {
+        const parsed = JSON.parse(qDel);
+        if (Array.isArray(parsed)) parsed.forEach(id => combined.add(String(id)));
+      }
+    } catch {}
+    return combined;
+  }, [deletedIdsSet]);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
@@ -1069,6 +1110,20 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
     const allItems = [...tests, ...questions, ...homeworks];
     const candidateTests = allItems.filter(t => {
       if (!t) return false;
+      const tId = String(t.id || '');
+      const tUuid = String(toUUID(t.id) || '');
+      const tClean = tId.replace(/^hw_/, '').replace(/^q_/, '');
+      const tTitleKey = `title_${(t.title || '').trim().toLowerCase()}`;
+
+      if (
+        allDeletedIdentifiers.has(tId) ||
+        (tUuid && allDeletedIdentifiers.has(tUuid)) ||
+        (tClean && allDeletedIdentifiers.has(tClean)) ||
+        allDeletedIdentifiers.has(tTitleKey)
+      ) {
+        return false;
+      }
+
       return t.isRemedialTest === true ||
              t.isRemedial === true ||
              t.isTeacherRemedial === true ||
@@ -1079,8 +1134,38 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
              (t.title && (t.title.includes('Telafi') || t.title.includes('Kırpılmış')));
     });
 
-    // Deduplicate by ID
-    const uniqueTests = Array.from(new Map(candidateTests.map(t => [String(t.id), t])).values());
+    // Deduplicate: Merge matching questions and homeworks of the same remedial test
+    const mergedMap = new Map();
+    candidateTests.forEach(t => {
+      const cleanTitle = (t.title || t.name || '').trim().toLowerCase();
+      const cleanSubj = (t.subject || '').trim().toLowerCase();
+      const groupKey = cleanTitle ? `${cleanTitle}__${cleanSubj}` : String(t.id);
+
+      if (!mergedMap.has(groupKey)) {
+        mergedMap.set(groupKey, {
+          ...t,
+          allIds: [String(t.id), t.hwId, t.testId, t.questionId, t.supabaseId].filter(Boolean)
+        });
+      } else {
+        const existing = mergedMap.get(groupKey);
+        const combinedIds = Array.from(new Set([...(existing.allIds || []), String(t.id), t.hwId, t.testId, t.questionId, t.supabaseId].filter(Boolean)));
+        mergedMap.set(groupKey, {
+          ...existing,
+          ...t,
+          id: existing.id || t.id,
+          hwId: existing.hwId || t.hwId || (String(existing.id).startsWith('hw_') ? existing.id : (String(t.id).startsWith('hw_') ? t.id : null)),
+          questionId: existing.questionId || t.questionId || (String(existing.id).startsWith('q_') ? existing.id : (String(t.id).startsWith('q_') ? t.id : null)),
+          targetStudentId: existing.targetStudentId || t.targetStudentId || existing.studentId || t.studentId,
+          studentId: existing.studentId || t.studentId || existing.targetStudentId || t.targetStudentId,
+          questionsList: (existing.questionsList && existing.questionsList.length > 0) ? existing.questionsList : t.questionsList,
+          imageUrls: (existing.imageUrls && existing.imageUrls.length > 0) ? existing.imageUrls : t.imageUrls,
+          allIds: combinedIds,
+          rawTest: t
+        });
+      }
+    });
+
+    const uniqueTests = Array.from(mergedMap.values());
     const rows = [];
 
     uniqueTests.forEach(t => {
@@ -1098,7 +1183,10 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       // Also check submissions for this test
       const testSubs = (submissions || []).filter(s => {
         if (!s) return false;
-        return String(s.testId) === String(t.id) || String(s.realTestId) === String(t.id) || String(s.hwId) === String(t.id);
+        const subMatch = (t.allIds || [t.id]).some(id => 
+          String(s.testId) === String(id) || String(s.realTestId) === String(id) || String(s.hwId) === String(id)
+        );
+        return subMatch || (t.title && s.testTitle && s.testTitle.toLowerCase().trim() === t.title.toLowerCase().trim());
       });
       testSubs.forEach(s => {
         const sid = s.studentId || s.userId || s.student_id;
@@ -1117,6 +1205,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
             studentId: sid,
             studentName,
             studentObj,
+            allIds: t.allIds || [t.id],
             rawTest: t
           });
         });
@@ -1127,13 +1216,14 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
           studentId: null,
           studentName: '🏢 Genel Telafi Havuzu',
           studentObj: null,
+          allIds: t.allIds || [t.id],
           rawTest: t
         });
       }
     });
 
     return rows;
-  }, [tests, questions, homeworks, submissions, users, students]);
+  }, [tests, questions, homeworks, submissions, users, students, allDeletedIdentifiers]);
 
   // Filtered List
   const scopedList = useMemo(() => {
@@ -1254,31 +1344,121 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
     }
   };
 
-  // Delete remedial test
+  // Delete remedial test completely
   const handleDeleteTest = async (item) => {
-    if (!window.confirm(`"${item.title}" telafi testini silmek istediğinize emin misiniz?`)) return;
+    const testTitle = item.title || item.rawTest?.title || 'Bu telafi testini';
+    if (!window.confirm(`"${testTitle}" telafi testini ve ilişkili tüm kayıtları tamamen silmek istediğinize emin misiniz?`)) return;
 
     try {
-      if (deleteHomework) await deleteHomework(item.testId);
-      if (deleteQuestion) await deleteQuestion(item.testId);
-      await dbRecordDeletedItem(item.testId, 'remedial_test');
+      const idsToDelete = new Set();
+      if (item.testId) idsToDelete.add(String(item.testId));
+      if (item.id) idsToDelete.add(String(item.id));
+      if (item.hwId) idsToDelete.add(String(item.hwId));
+      if (item.questionId) idsToDelete.add(String(item.questionId));
+      if (item.rawTest?.id) idsToDelete.add(String(item.rawTest.id));
+      if (item.rawTest?.hwId) idsToDelete.add(String(item.rawTest.hwId));
+      if (item.rawTest?.testId) idsToDelete.add(String(item.rawTest.testId));
+      if (item.rawTest?.supabaseId) idsToDelete.add(String(item.rawTest.supabaseId));
+      if (item.rawTest?.questionId) idsToDelete.add(String(item.rawTest.questionId));
+      if (Array.isArray(item.allIds)) item.allIds.forEach(id => id && idsToDelete.add(String(id)));
 
-      // Remove from coaching profile
-      if (item.studentId && saveCoachingProfile) {
-        const currentProfile = coachingProfiles.find(p => String(p.studentId) === String(item.studentId));
-        if (currentProfile && Array.isArray(currentProfile.weeklyProgram)) {
-          const updatedProg = currentProfile.weeklyProgram.map(dObj => ({
-            ...dObj,
-            items: (dObj.items || []).filter(it => it.testId !== item.testId && it.hwId !== item.testId)
-          }));
-          await saveCoachingProfile({ ...currentProfile, weeklyProgram: updatedProg });
+      const normTitle = (item.title || item.rawTest?.title || '').trim().toLowerCase();
+
+      // Find by matching title in homeworks, questions, tests
+      if (normTitle) {
+        (homeworks || []).forEach(h => {
+          if (h && h.title && h.title.trim().toLowerCase() === normTitle) {
+            idsToDelete.add(String(h.id));
+            if (h.supabaseId) idsToDelete.add(String(h.supabaseId));
+          }
+        });
+        (questions || []).forEach(q => {
+          if (q && q.title && q.title.trim().toLowerCase() === normTitle) {
+            idsToDelete.add(String(q.id));
+            if (q.supabaseId) idsToDelete.add(String(q.supabaseId));
+          }
+        });
+        (tests || []).forEach(t => {
+          if (t && t.title && t.title.trim().toLowerCase() === normTitle) {
+            idsToDelete.add(String(t.id));
+            if (t.supabaseId) idsToDelete.add(String(t.supabaseId));
+          }
+        });
+      }
+
+      // Expand UUIDs and stripped prefixes
+      const arrayIds = Array.from(idsToDelete);
+      arrayIds.forEach(id => {
+        const u = toUUID(id);
+        if (u) idsToDelete.add(String(u));
+        const clean = id.replace(/^hw_/, '').replace(/^q_/, '');
+        if (clean) idsToDelete.add(clean);
+      });
+
+      // 1. Instantly update deleted state so the card vanishes immediately
+      setDeletedIdsSet(prev => {
+        const next = new Set(prev);
+        idsToDelete.forEach(id => next.add(id));
+        if (normTitle) next.add(`title_${normTitle}`);
+        try {
+          localStorage.setItem('eTestDeletedRemedialTests', JSON.stringify(Array.from(next)));
+        } catch {}
+        return next;
+      });
+
+      // 2. Add to eTestDeletedHomeworks & eTestDeletedQuestions
+      try {
+        const hwDelSaved = localStorage.getItem('eTestDeletedHomeworks');
+        const hwDel = new Set(hwDelSaved ? JSON.parse(hwDelSaved) : []);
+        idsToDelete.forEach(id => hwDel.add(id));
+        localStorage.setItem('eTestDeletedHomeworks', JSON.stringify(Array.from(hwDel)));
+      } catch {}
+
+      try {
+        const qDelSaved = localStorage.getItem('eTestDeletedQuestions');
+        const qDel = new Set(qDelSaved ? JSON.parse(qDelSaved) : []);
+        idsToDelete.forEach(id => qDel.add(id));
+        localStorage.setItem('eTestDeletedQuestions', JSON.stringify(Array.from(qDel)));
+      } catch {}
+
+      // 3. Delete from HomeworkContext & QuestionBankContext & IndexedDB & Supabase
+      for (const id of idsToDelete) {
+        try { if (deleteHomework) await deleteHomework(id); } catch (e) { console.warn('deleteHomework:', e); }
+        try { if (deleteQuestion) await deleteQuestion(id); } catch (e) { console.warn('deleteQuestion:', e); }
+        try { await idbDeletePayload(id); } catch (e) {}
+        try { await dbRecordDeletedItem(id, 'remedial_test'); } catch (e) {}
+      }
+
+      // 4. Clean up from all coaching profiles
+      if (saveCoachingProfile && Array.isArray(coachingProfiles)) {
+        for (const prof of coachingProfiles) {
+          if (prof && Array.isArray(prof.weeklyProgram)) {
+            const hasMatch = prof.weeklyProgram.some(d => (d.items || []).some(it => 
+              idsToDelete.has(String(it.testId)) || 
+              idsToDelete.has(String(it.hwId)) || 
+              idsToDelete.has(String(it.id)) ||
+              (normTitle && ((it.text && it.text.toLowerCase().includes(normTitle)) || (it.topic && it.topic.toLowerCase().includes(normTitle))))
+            ));
+            if (hasMatch) {
+              const updatedProg = prof.weeklyProgram.map(dObj => ({
+                ...dObj,
+                items: (dObj.items || []).filter(it => 
+                  !idsToDelete.has(String(it.testId)) && 
+                  !idsToDelete.has(String(it.hwId)) && 
+                  !idsToDelete.has(String(it.id)) &&
+                  !(normTitle && ((it.text && it.text.toLowerCase().includes(normTitle)) || (it.topic && it.topic.toLowerCase().includes(normTitle))))
+                )
+              }));
+              await saveCoachingProfile({ ...prof, weeklyProgram: updatedProg });
+            }
+          }
         }
       }
 
-      showToast(`✓ "${item.title}" başarıyla silindi.`);
+      showToast(`✓ "${testTitle}" başarıyla silindi.`);
     } catch (err) {
       console.error('Silme hatası:', err);
-      showToast(`❌ Test silinirken hata oluştu.`);
+      showToast(`❌ Test silinirken bir hata oluştu.`);
     }
   };
 

@@ -650,10 +650,10 @@ export default function PdfQuestionSlicerModal({
   const [customIntervals, setCustomIntervals] = useState([1, 3, 7, 15]);
 
   useEffect(() => {
-    if (!targetStudentId && currentUser?.role !== 'student' && studentList.length > 0) {
-      setTargetStudentId(studentList[0].id);
+    if (studentId) {
+      setTargetStudentId(studentId);
     }
-  }, [targetStudentId, currentUser, studentList]);
+  }, [studentId]);
 
   const effectiveStudentId = targetStudentId || studentId || (currentUser?.role === 'student' ? currentUser?.id : '');
 
