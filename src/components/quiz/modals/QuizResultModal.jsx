@@ -1,12 +1,13 @@
 import React from 'react';
-import { Award, CheckCircle2, XCircle, Clock, Eye, X, Layers } from 'lucide-react';
+import { Award, CheckCircle2, XCircle, Clock, Eye, X, Layers, Trophy, Sparkles, Flame, HelpCircle, ArrowRight, RotateCcw, Target } from 'lucide-react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useTheme } from '../../../context/ThemeContext';
 import { isSectionOpenEnded, isMultipleChoice } from '../utils/quizTypeDetector';
 
 /**
  * QuizResultModal
- * Single, unified, beautifully styled exam result modal.
- * Supports both Single Assignments and Composite Multi-Section Assignments.
+ * Ultra-modern, premium glassmorphism exam result card.
+ * Supports Single Assignments, Remedial/Mistake Tests, and Composite Multi-Section Exams.
  */
 export default function QuizResultModal({
   isOpen,
@@ -22,6 +23,8 @@ export default function QuizResultModal({
   onConfirmReview
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const { isDark } = useTheme();
+
   if (!isOpen) return null;
 
   const handleClose = onConfirmClose || onClose;
@@ -55,40 +58,93 @@ export default function QuizResultModal({
     (stats.pending > 0 && stats.correct === 0 && stats.wrong === 0)
   );
 
+  const scoreNum = Number(stats.score ?? submission?.score ?? 0);
+  const correctNum = Number(stats.correct ?? 0);
+  const wrongNum = Number(stats.wrong ?? 0);
+  const blankNum = Number(stats.blank ?? submission?.blankCount ?? 0);
+  const totalQuestions = stats.total || (correctNum + wrongNum + blankNum) || 1;
+  const netScore = stats.net !== undefined ? stats.net : Math.max(0, correctNum - (wrongNum * 0.25));
+
+  // Determine achievement mood
+  let moodConfig = {
+    badge: '👏 İYİ ÇABA!',
+    message: 'Sonuçların kaydedildi. Yanlışlarını inceleyerek tam ustalığa ulaşabilirsin.',
+    color: '#6366f1',
+    bgGradient: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(79,70,229,0.05))',
+    borderColor: 'rgba(99,102,241,0.3)',
+    icon: <Sparkles size={28} color="#6366f1" />
+  };
+
+  if (scoreNum >= 80) {
+    moodConfig = {
+      badge: '🏆 HARİKA BAŞARI!',
+      message: 'Tebrikler! Konuyu yüksek başarıyla tamamladın.',
+      color: '#16a34a',
+      bgGradient: 'linear-gradient(135deg, rgba(22,163,74,0.15), rgba(16,185,129,0.05))',
+      borderColor: 'rgba(22,163,74,0.35)',
+      icon: <Trophy size={30} color="#16a34a" />
+    };
+  } else if (scoreNum >= 50) {
+    moodConfig = {
+      badge: '📈 GELİŞİYOR!',
+      message: 'Güzel bir ilerleme kaydettin. Kalan eksiklerini kapatmaya çok yakınsın.',
+      color: '#0284c7',
+      bgGradient: 'linear-gradient(135deg, rgba(2,132,199,0.15), rgba(56,189,248,0.05))',
+      borderColor: 'rgba(2,132,199,0.35)',
+      icon: <Target size={28} color="#0284c7" />
+    };
+  } else if (scoreNum < 50 && !isPureOpenEnded) {
+    moodConfig = {
+      badge: '💪 PEKİŞTİRME FIRSATI!',
+      message: 'Yanlış yaptığın soruları inceleyerek bir sonraki tekrarda ustalığını %100 yapabilirsin!',
+      color: '#f59e0b',
+      bgGradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(217,119,6,0.05))',
+      borderColor: 'rgba(245,158,11,0.35)',
+      icon: <Flame size={28} color="#f59e0b" />
+    };
+  }
+
+  const isRemedial = Boolean(
+    test?.isRemedial || test?.isRemedialTest || test?.sourceType === 'pdfSlicerRemedial' ||
+    /özel\s*telafi|telafi\s*testi/i.test(title)
+  );
+
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(8px)',
+      background: 'rgba(10, 15, 30, 0.78)',
+      backdropFilter: 'blur(12px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 99999,
-      padding: isMobile ? '0.75rem' : '1.25rem'
+      padding: isMobile ? '0.75rem' : '1.25rem',
+      animation: 'fadeIn 0.2s ease-out'
     }}>
       <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: isMobile ? '1.25rem' : '1.5rem',
-        maxWidth: isMultiSection ? '560px' : '480px',
+        background: isDark ? 'linear-gradient(180deg, #18181b 0%, #121215 100%)' : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        borderRadius: isMobile ? '1.5rem' : '1.75rem',
+        maxWidth: isMultiSection ? '580px' : '500px',
         width: '100%',
         maxHeight: '92vh',
         overflowY: 'auto',
-        padding: isMobile ? '1.5rem 1.25rem' : '2rem',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+        padding: isMobile ? '1.5rem 1.15rem' : '2.25rem 2rem',
+        boxShadow: isDark
+          ? '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.08)'
+          : '0 25px 60px rgba(15,23,42,0.18), 0 0 0 1px rgba(0,0,0,0.06)',
         textAlign: 'center',
-        position: 'relative',
-        border: '1.5px solid var(--color-border)'
+        position: 'relative'
       }}>
         {/* Close Button */}
         <button
           onClick={handleClose}
           style={{
             position: 'absolute',
-            top: '1rem',
-            right: '1rem',
-            background: 'var(--color-surface-hover)',
-            border: '1px solid var(--color-border)',
+            top: '1.1rem',
+            right: '1.1rem',
+            background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            border: 'none',
             borderRadius: '50%',
             width: '34px',
             height: '34px',
@@ -96,118 +152,211 @@ export default function QuizResultModal({
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            color: 'var(--color-text)'
+            color: 'var(--color-text-secondary)',
+            transition: 'all 0.15s ease'
           }}
+          title="Kapat"
         >
-          <X size={17} />
+          <X size={18} />
         </button>
 
-        {/* Icon */}
+        {/* Hero Top Icon with Halo Glow */}
         <div style={{
-          width: '64px',
-          height: '64px',
+          width: isMobile ? '62px' : '72px',
+          height: isMobile ? '62px' : '72px',
           borderRadius: '50%',
-          background: isPureOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(99,102,241,0.15)',
-          color: isPureOpenEnded ? '#a78bfa' : '#6366f1',
-          border: `2px solid ${isPureOpenEnded ? 'rgba(167,139,250,0.4)' : 'rgba(99,102,241,0.4)'}`,
+          background: isPureOpenEnded ? 'rgba(124,58,237,0.15)' : moodConfig.bgGradient,
+          border: `2px solid ${isPureOpenEnded ? 'rgba(167,139,250,0.4)' : moodConfig.borderColor}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1rem',
-          fontSize: '1.75rem'
+          margin: '0 auto 0.85rem',
+          boxShadow: isPureOpenEnded ? '0 10px 25px rgba(124,58,237,0.2)' : `0 10px 25px ${moodConfig.borderColor}`,
+          transform: 'scale(1)',
+          animation: 'bounceSubtle 0.5s ease-out'
         }}>
-          {isPureOpenEnded ? '⏳' : <Award size={32} />}
+          {isPureOpenEnded ? <Clock size={32} color="#a78bfa" /> : moodConfig.icon}
         </div>
+
+        {/* Motivational Pill Badge */}
+        {!isPureOpenEnded && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '9999px',
+            background: moodConfig.bgGradient,
+            border: `1px solid ${moodConfig.borderColor}`,
+            color: moodConfig.color,
+            fontSize: '0.74rem',
+            fontWeight: 900,
+            letterSpacing: '0.04em',
+            marginBottom: '0.45rem'
+          }}>
+            {moodConfig.badge}
+          </div>
+        )}
 
         {/* Title & Subtitle */}
-        <h2 style={{ fontSize: isMobile ? '1.25rem' : '1.4rem', fontWeight: 900, color: 'var(--color-text)', margin: '0 0 0.35rem' }}>
+        <h2 style={{
+          fontSize: isMobile ? '1.2rem' : '1.4rem',
+          fontWeight: 900,
+          color: 'var(--color-text)',
+          margin: '0 0 0.35rem',
+          lineHeight: 1.3
+        }}>
           {isPureOpenEnded ? 'Değerlendirmeye Gönderildi!' : title}
         </h2>
-        <p style={{ fontSize: '0.86rem', color: 'var(--color-text-muted)', margin: '0 0 1.25rem', lineHeight: 1.45 }}>
+        <p style={{
+          fontSize: isMobile ? '0.82rem' : '0.88rem',
+          color: 'var(--color-text-muted)',
+          margin: '0 0 1.35rem',
+          lineHeight: 1.45,
+          padding: '0 0.5rem'
+        }}>
           {isPureOpenEnded
             ? 'Cevaplarınız başarıyla kaydedildi ve öğretmen değerlendirmesine iletildi.'
-            : 'Sınavınızı başarıyla tamamladınız. İşte detaylı karneniz:'}
+            : moodConfig.message}
         </p>
 
-        {/* Score & Key Metrics Banner */}
+        {/* ── 🌟 4 LUXURY STATS GRID (Doğru, Yanlış, Boş, Başarı) ── */}
         <div style={{
-          background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-          borderRadius: '1.15rem',
-          padding: '1.25rem',
-          color: '#ffffff',
-          marginBottom: '1.25rem',
-          boxShadow: '0 6px 20px rgba(15,23,42,0.25)',
-          border: '1px solid rgba(255,255,255,0.08)'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: isMobile ? '0.45rem' : '0.65rem',
+          marginBottom: '1.25rem'
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.35rem', textAlign: 'center', alignItems: 'center' }}>
-            <div>
-              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>DOĞRU</span>
-              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#4ade80' }}>
-                {isPureOpenEnded ? '-' : (stats.correct ?? 0)}
-              </span>
+          {/* DOĞRU */}
+          <div style={{
+            background: isDark ? 'rgba(22, 163, 74, 0.1)' : '#f0fdf4',
+            border: isDark ? '1.5px solid rgba(22, 163, 74, 0.3)' : '1.5px solid #bbf7d0',
+            borderRadius: '1rem',
+            padding: isMobile ? '0.75rem 0.35rem' : '0.95rem 0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#16a34a', fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 900 }}>
+              <CheckCircle2 size={13} />
+              <span>DOĞRU</span>
             </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>YANLIŞ</span>
-              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#f87171' }}>
-                {isPureOpenEnded ? '-' : (stats.wrong ?? 0)}
-              </span>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>BOŞ</span>
-              <span style={{ fontSize: isMobile ? '1.2rem' : '1.35rem', fontWeight: 900, color: '#cbd5e1' }}>
-                {stats.blank ?? submission?.blankCount ?? 0}
-              </span>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.68rem', color: '#94a3b8', display: 'block', fontWeight: 800, textTransform: 'uppercase' }}>BAŞARI</span>
-              <span style={{
-                fontSize: isPureOpenEnded ? '0.75rem' : (isMobile ? '1.2rem' : '1.35rem'),
-                fontWeight: 900,
-                color: isPureOpenEnded ? '#c084fc' : '#60a5fa',
-                display: 'block',
-                lineHeight: 1.2
-              }}>
-                {isPureOpenEnded ? 'Değerlendirmede' : `%${stats.score ?? submission?.score ?? 0}`}
-              </span>
-            </div>
+            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: '#16a34a', lineHeight: 1 }}>
+              {isPureOpenEnded ? '-' : correctNum}
+            </span>
           </div>
 
-          {/* Pending Open-Ended badge in mixed exams */}
-          {!isPureOpenEnded && stats.pending > 0 && (
-            <div style={{
-              marginTop: '0.75rem',
-              paddingTop: '0.65rem',
-              borderTop: '1px solid rgba(255,255,255,0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              fontSize: '0.74rem',
-              fontWeight: 800,
-              color: '#d8b4fe'
-            }}>
-              <Clock size={13} />
-              <span>{stats.pending} Açık Uçlu Soru Öğretmen Değerlendirmesinde</span>
+          {/* YANLIŞ */}
+          <div style={{
+            background: isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2',
+            border: isDark ? '1.5px solid rgba(220, 38, 38, 0.3)' : '1.5px solid #fecaca',
+            borderRadius: '1rem',
+            padding: isMobile ? '0.75rem 0.35rem' : '0.95rem 0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#dc2626', fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 900 }}>
+              <XCircle size={13} />
+              <span>YANLIŞ</span>
             </div>
-          )}
+            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: '#dc2626', lineHeight: 1 }}>
+              {isPureOpenEnded ? '-' : wrongNum}
+            </span>
+          </div>
+
+          {/* BOŞ */}
+          <div style={{
+            background: isDark ? 'rgba(113, 113, 122, 0.1)' : '#f8fafc',
+            border: isDark ? '1.5px solid rgba(113, 113, 122, 0.3)' : '1.5px solid #e2e8f0',
+            borderRadius: '1rem',
+            padding: isMobile ? '0.75rem 0.35rem' : '0.95rem 0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--color-text-muted)', fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 900 }}>
+              <HelpCircle size={13} />
+              <span>BOŞ</span>
+            </div>
+            <span style={{ fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: 'var(--color-text-secondary)', lineHeight: 1 }}>
+              {blankNum}
+            </span>
+          </div>
+
+          {/* BAŞARI */}
+          <div style={{
+            background: isDark ? 'rgba(99, 102, 241, 0.12)' : '#eef2ff',
+            border: isDark ? '1.5px solid rgba(99, 102, 241, 0.35)' : '1.5px solid #c7d2fe',
+            borderRadius: '1rem',
+            padding: isMobile ? '0.75rem 0.35rem' : '0.95rem 0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.2rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#4f46e5', fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 900 }}>
+              <Trophy size={13} />
+              <span>BAŞARI</span>
+            </div>
+            <span style={{
+              fontSize: isPureOpenEnded ? '0.75rem' : (isMobile ? '1.35rem' : '1.65rem'),
+              fontWeight: 900,
+              color: '#4f46e5',
+              lineHeight: 1
+            }}>
+              {isPureOpenEnded ? 'Bekliyor' : `%${scoreNum}`}
+            </span>
+          </div>
         </div>
 
-        {/* If pure open ended, also show informative note */}
-        {isPureOpenEnded && (
+        {/* ── 🌟 PROGRESS & MASTERY BAR ── */}
+        {!isPureOpenEnded && (
           <div style={{
-            background: 'rgba(124, 58, 237, 0.08)',
-            border: '1.5px solid rgba(167, 139, 250, 0.35)',
+            background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
             borderRadius: '1rem',
-            padding: '0.9rem 1.1rem',
-            marginBottom: '1.25rem',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.35rem',
+            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)',
             textAlign: 'left'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#a78bfa', fontWeight: 900, fontSize: '0.88rem' }}>
-              <Clock size={16} /> Öğretmen Değerlendirmesi Bekleniyor
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem', fontSize: '0.76rem', fontWeight: 800 }}>
+              <span style={{ color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Target size={14} color="#6366f1" />
+                {isRemedial ? 'Pekiştirme & Ustalık İlerlemesi' : 'Toplam Başarı Oranı'}
+              </span>
+              <span style={{ color: moodConfig.color, fontWeight: 900 }}>
+                {correctNum} / {totalQuestions} Soru (%{scoreNum})
+              </span>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '0.35rem 0 0', lineHeight: 1.5 }}>
-              Yazılı açık uçlu sınavınız başarıyla sisteme iletildi. Öğretmeniniz yanıtlarınızı inceleyip notlandırdıktan sonra nihai karneniz ve başarı yüzdeniz güncellenecektir.
-            </p>
+
+            {/* Visual Bar */}
+            <div style={{
+              width: '100%',
+              height: '8px',
+              borderRadius: '9999px',
+              background: isDark ? '#27272a' : '#e2e8f0',
+              overflow: 'hidden',
+              display: 'flex'
+            }}>
+              <div style={{
+                width: `${Math.min(100, Math.max(0, scoreNum))}%`,
+                background: scoreNum >= 80
+                  ? 'linear-gradient(90deg, #10b981, #16a34a)'
+                  : (scoreNum >= 50 ? 'linear-gradient(90deg, #3b82f6, #6366f1)' : 'linear-gradient(90deg, #f59e0b, #ef4444)'),
+                borderRadius: '9999px',
+                transition: 'width 0.6s ease-out'
+              }} />
+            </div>
+
+            {isRemedial && wrongNum > 0 && (
+              <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                💡 Kalan <b style={{ color: '#dc2626' }}>{wrongNum} yanlışı</b> sonraki aralıklı tekrarda tekrar çözerek %100 ustalığa ulaşabilirsin.
+              </div>
+            )}
           </div>
         )}
 
@@ -261,47 +410,52 @@ export default function QuizResultModal({
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+        {/* ── 🌟 LUXURY ACTION BUTTONS ── */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             onClick={handleClose}
             style={{
               flex: 1,
               minWidth: '120px',
-              padding: '0.85rem',
-              borderRadius: '0.85rem',
-              border: '1.5px solid var(--color-border-input)',
-              background: 'var(--color-surface)',
+              padding: isMobile ? '0.75rem' : '0.85rem',
+              borderRadius: '0.9rem',
+              border: isDark ? '1.5px solid #3f3f46' : '1.5px solid #cbd5e1',
+              background: isDark ? '#27272a' : '#ffffff',
               color: 'var(--color-text)',
               fontWeight: 800,
-              fontSize: '0.88rem',
-              cursor: 'pointer'
+              fontSize: isMobile ? '0.82rem' : '0.88rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
           >
             Kapat & Çık
           </button>
+
           {handleReview && (
             <button
               onClick={handleReview}
               style={{
-                flex: 1.2,
-                minWidth: '150px',
-                padding: '0.85rem',
-                borderRadius: '0.85rem',
+                flex: 1.3,
+                minWidth: '160px',
+                padding: isMobile ? '0.75rem' : '0.85rem',
+                borderRadius: '0.9rem',
                 border: 'none',
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
                 color: '#ffffff',
                 fontWeight: 900,
-                fontSize: '0.88rem',
+                fontSize: isMobile ? '0.84rem' : '0.9rem',
                 cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(79,70,229,0.3)',
+                boxShadow: '0 6px 20px rgba(79,70,229,0.35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.4rem'
+                gap: '0.45rem',
+                transition: 'all 0.15s ease'
               }}
             >
-              <Eye size={16} /> Sınavı İncele
+              <Eye size={17} />
+              <span>Sınavı & Yanıtları İncele</span>
+              <ArrowRight size={15} />
             </button>
           )}
         </div>
