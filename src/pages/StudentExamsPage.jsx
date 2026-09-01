@@ -384,12 +384,14 @@ export default function StudentExamsPage() {
         b.remainingDays = Math.max(0, Math.ceil(diff / 86400000));
       }
 
-      const bestSubsByKey = {};
+      const bestSubsByHwOrTest = new Map();
+
       // 1. Direct submissions in HomeworkContext
       b.assignedHomeworks.forEach(hw => {
         const hwSub = (hw.submissions || []).find(s => String(s.studentId) === String(studentId));
         if (hwSub) {
-          bestSubsByKey[`hw_${hw.id}`] = {
+          const key = String(hw.id);
+          bestSubsByHwOrTest.set(key, {
             id: `hw_${hw.id}`,
             hwId: hw.id,
             testId: hw.id,
@@ -397,53 +399,78 @@ export default function StudentExamsPage() {
             wrongCount: hwSub.wrongCount ?? hwSub.subjectStats?.totalWrong ?? 0,
             blankCount: hwSub.blankCount ?? hwSub.subjectStats?.totalBlank ?? 0,
             score: hwSub.score ?? hwSub.subjectStats?.totalNet ?? 0,
+            totalNet: hwSub.score ?? hwSub.subjectStats?.totalNet ?? null,
             subjectStats: hwSub.subjectStats,
             studentAnswers: hwSub.studentAnswers,
             submittedAt: hwSub.submittedAt
-          };
+          });
         }
       });
 
       // 2. Submissions in EvaluationContext
       studentSubmissions.forEach(s => {
-        const candidates = [s.testId, s.bookTestId, s.homeworkId, s.hwId];
+        const candidates = [s.testId, s.bookTestId, s.homeworkId, s.hwId, s.realTestId, s.id, s.metadata?.realTestId, s.metadata?.hwId];
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) candidates.push(...s.bookTestIds);
+        
         let belongs = false;
+        let matchedHwId = null;
         candidates.forEach(field => {
           if (!field) return;
-          if (b.allAssignedTestIds.has(String(field))) belongs = true;
+          const strF = String(field);
+          if (b.allAssignedTestIds.has(strF)) belongs = true;
           b.assignedHomeworks.forEach(hw => {
-            if (String(hw.id) === String(field) || String(toUUID(hw.id)) === String(field)) belongs = true;
+            if (String(hw.id) === strF || String(toUUID(hw.id)) === strF || String(hw.id) === String(toUUID(strF))) {
+              belongs = true;
+              matchedHwId = String(hw.id);
+            }
           });
         });
+
         if (belongs) {
-          const key = String(s.testId || s.bookTestId || s.id);
-          const ex = bestSubsByKey[key];
-          if (!ex || s.score > ex.score || (s.score === ex.score && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) {
-            bestSubsByKey[key] = s;
+          const key = matchedHwId || String(s.realTestId || s.testId || s.bookTestId || b.id);
+          const ex = bestSubsByHwOrTest.get(key);
+          const sScore = Number(s.score ?? s.computedScore ?? (s.correctCount || 0));
+          const exScore = Number(ex?.score ?? ex?.computedScore ?? (ex?.correctCount || 0));
+          
+          if (!ex || sScore > exScore || (sScore === exScore && new Date(s.submittedAt || 0) > new Date(ex.submittedAt || 0))) {
+            bestSubsByHwOrTest.set(key, s);
           }
         }
       });
 
       let totalCorrect = 0, totalWrong = 0, totalBlank = 0;
-      Object.values(bestSubsByKey).forEach(sub => {
-        totalCorrect += sub.correctCount || 0;
-        totalWrong += sub.wrongCount || 0;
-        totalBlank += sub.blankCount || 0;
+      let totalNetSum = 0;
+      let hasExplicitNet = false;
+
+      bestSubsByHwOrTest.forEach(sub => {
+        totalCorrect += (sub.correctCount ?? sub.correct_count ?? 0);
+        totalWrong += (sub.wrongCount ?? sub.wrong_count ?? 0);
+        totalBlank += (sub.blankCount ?? sub.empty_count ?? 0);
+        if (sub.subjectStats?.totalNet !== undefined && sub.subjectStats.totalNet !== null) {
+          totalNetSum += Number(sub.subjectStats.totalNet);
+          hasExplicitNet = true;
+        } else if (sub.totalNet !== undefined && sub.totalNet !== null) {
+          totalNetSum += Number(sub.totalNet);
+          hasExplicitNet = true;
+        } else if (typeof sub.score === 'number' && sub.score <= 100) {
+          totalNetSum += sub.score;
+          hasExplicitNet = true;
+        }
       });
+
       b.totalCorrect = totalCorrect;
       b.totalWrong = totalWrong;
       b.totalBlank = totalBlank;
-      b.bestSubsByKey = bestSubsByKey;
+      b.bestSubsByKey = Object.fromEntries(bestSubsByHwOrTest);
 
       const hasDirectHwSub = b.assignedHomeworks.some(hw => (hw.submissions || []).some(s => String(s.studentId) === String(studentId)));
-      const hasEvalSub = Object.keys(bestSubsByKey).length > 0 && (totalCorrect > 0 || totalWrong > 0 || totalBlank > 0);
+      const hasEvalSub = bestSubsByHwOrTest.size > 0 && (totalCorrect > 0 || totalWrong > 0 || totalBlank > 0);
       const isCompleted = hasDirectHwSub || hasEvalSub || (b.totalAssignedTests > 0 && b.allSolvedTestIds.size >= b.totalAssignedTests);
 
       b.progressPct = isCompleted ? 100 : (b.totalAssignedTests > 0 ? Math.round((b.totalSolvedTests / b.totalAssignedTests) * 100) : 0);
       b.isCompleted = isCompleted;
       b.penaltyRatio = /lgs|bursluluk/i.test(b.title) ? 3 : 4;
-      b.net = parseFloat((totalCorrect - totalWrong / b.penaltyRatio).toFixed(2));
+      b.net = hasExplicitNet ? parseFloat(totalNetSum.toFixed(2)) : parseFloat((totalCorrect - totalWrong / b.penaltyRatio).toFixed(2));
     });
 
     return Object.values(bookMap);
@@ -1656,7 +1683,7 @@ export default function StudentExamsPage() {
                   {/* D/Y/B + Net + Başarı % */}
                   {(() => {
                     const totalQ = (Number(exam.d) || 0) + (Number(exam.y) || 0) + (Number(exam.b) || 0) || (exam.totalQuestions || 30);
-                    const successPct = totalQ > 0 ? Math.max(0, Math.min(100, Math.round(((Number(exam.net) || 0) / totalQ) * 100))) : 0;
+                    const successPct = totalQ > 0 ? Math.max(0, Math.min(100, Math.round(((Number(exam.d) || 0) / totalQ) * 100))) : 0;
                     return (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 5 }}>
                         {[
