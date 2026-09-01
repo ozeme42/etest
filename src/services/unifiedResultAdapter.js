@@ -548,20 +548,25 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
           testName = testNum <= 12 ? `Test-${testNum}` : (testNum <= 16 ? `Yeni Nesil ${testNum - 12}` : `Ü. Değ. ${testNum - 16}`);
         } else if (rawSub.testTitle && !rawSub.testTitle.includes('(Tüm Kitap Görevi)') && !rawSub.testTitle.includes('Tüm Kitap')) {
           testName = rawSub.testTitle;
+        } else if (rawSub.title && !rawSub.title.includes('(Tüm Kitap Görevi)') && !rawSub.title.includes('Tüm Kitap')) {
+          testName = rawSub.title;
         } else {
-          testName = 'Test-1';
+          testName = rawSub.title || rawSub.testTitle || 'Test';
         }
       } else {
-        testName = 'Test-1';
+        testName = rawSub.title || rawSub.testTitle || 'Test';
       }
     }
   }
 
-  const rawBookTitle = matchedBook?.title || rawSub.bookTitle || (books && books[0] ? books[0].title : '');
-  const cleanBookTitle = (rawBookTitle || 'Ünite Ünite Yeni Nesil Soru Bankası').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+  let rawBookTitle = matchedBook?.title || rawSub.bookTitle || meta.bookTitle || matchedHw?.bookTitle || '';
+  if (!rawBookTitle && rawSub.title && rawSub.title.includes('—')) {
+    rawBookTitle = rawSub.title.split('—')[0].trim();
+  }
+  const cleanBookTitle = (rawBookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
   const fullTitle = cleanBookTitle
     ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
-    : (topicName ? `${subjectName} › ${topicName} (${testName})` : testName);
+    : (topicName ? `${subjectName} › ${topicName} (${testName})` : (rawSub.title || testName));
 
   // 3. Question Count & Answer Key
   const rawAnswerKey = matchedBookTest?.answer_key || matchedBookTest?.answerKey || rawSub.answerKey || rawSub.answer_key || matchedHw?.answerKey || {};

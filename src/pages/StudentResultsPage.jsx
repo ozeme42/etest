@@ -291,7 +291,7 @@ function getSubjectKey(s) {
   return 'Genel Testler';
 }
 
-function ScoreBadge({ score, type, isPendingEval, isPendingApproval, isRejected, size = 'md', isDark = false }) {
+function ScoreBadge({ score, net, type, isPendingEval, isPendingApproval, isRejected, size = 'md', isDark = false }) {
   if (isPendingApproval) {
     return (
       <span style={{
@@ -349,23 +349,28 @@ function ScoreBadge({ score, type, isPendingEval, isPendingApproval, isRejected,
       </span>
     );
   }
+  const numScore = Number(score || 0);
   const fontSize = size === 'lg' ? '1.35rem' : size === 'sm' ? '0.8rem' : '0.95rem';
   const pad = size === 'sm' ? '0.2rem 0.55rem' : '0.25rem 0.75rem';
-  const color = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
-  const bg = score >= 80
+  const color = numScore >= 80 ? '#10b981' : numScore >= 60 ? '#f59e0b' : '#ef4444';
+  const bg = numScore >= 80
     ? (isDark ? 'rgba(16,185,129,0.18)' : '#f0fdf4')
-    : score >= 60
+    : numScore >= 60
     ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb')
     : (isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2');
-  const border = score >= 80
+  const border = numScore >= 80
     ? (isDark ? 'rgba(16,185,129,0.35)' : '#bbf7d0')
-    : score >= 60
+    : numScore >= 60
     ? (isDark ? 'rgba(245,158,11,0.35)' : '#fde68a')
     : (isDark ? 'rgba(239,68,68,0.35)' : '#fecaca');
 
+  const displayVal = (type === 'physicalExam' && net !== undefined && net !== null)
+    ? `${net} Net`
+    : `%${numScore}`;
+
   return (
     <span style={{ fontSize, fontWeight: 900, background: bg, color, border: `1.5px solid ${border}`, borderRadius: 10, padding: pad, display: 'inline-block', whiteSpace: 'nowrap' }}>
-      {type === 'physicalExam' ? `${score} Net` : `%${score}`}
+      {displayVal}
     </span>
   );
 }
@@ -1854,7 +1859,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+                          <ScoreBadge score={s.computedScore} net={s.netScore ?? s.totalNet ?? s.net} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
 
                           <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                             <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
@@ -2491,7 +2496,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+                        <ScoreBadge score={s.computedScore} net={s.netScore ?? s.totalNet ?? s.net} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
 
                         <button onClick={() => handleOpenReview(s)} style={{ background: s.type === 'physicalExam' ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', borderRadius: 8, padding: '0.38rem 0.75rem', fontWeight: 900, fontSize: '0.72rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}>
                           <Eye size={12} /> {s.type === 'physicalExam' ? 'Karne' : 'İncele'}
@@ -3298,7 +3303,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                               )}
                             </td>
                             <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
-                              <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
+                              <ScoreBadge score={s.computedScore} net={s.netScore ?? s.totalNet ?? s.net} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} size="sm" isDark={isDark} />
                             </td>
                             <td style={{ padding: '0.75rem 0.85rem', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -3510,7 +3515,7 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: 6 }}>
                         <div>
-                          <ScoreBadge score={s.computedScore} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
+                          <ScoreBadge score={s.computedScore} net={s.netScore ?? s.totalNet ?? s.net} type={s.type} isPendingEval={s.isPendingEval} isPendingApproval={s.isPendingApproval} isRejected={s.isRejected} isDark={isDark} size="sm" />
                           <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}</div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
