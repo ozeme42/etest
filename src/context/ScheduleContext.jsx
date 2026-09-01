@@ -16,18 +16,19 @@ export function ScheduleProvider({ children }) {
     return saved ? JSON.parse(saved) : INITIAL_SCHEDULE;
   });
 
-  useEffect(() => {
-    async function syncFromSupabase() {
-      if (isCacheValid('schedules', 30) && schedules.length > 0) return;
-      const dbSchedules = await dbGetSchedules();
-      if (dbSchedules && Array.isArray(dbSchedules)) {
-        touchCache('schedules');
-        if (dbSchedules.length > 0) {
-          setSchedules(dbSchedules);
-        }
+  const refreshSchedules = async (force = false) => {
+    if (!force && isCacheValid('schedules', 15) && schedules.length > 0) return;
+    const dbSchedules = await dbGetSchedules();
+    if (dbSchedules && Array.isArray(dbSchedules)) {
+      touchCache('schedules');
+      if (dbSchedules.length > 0) {
+        setSchedules(dbSchedules);
       }
     }
-    syncFromSupabase();
+  };
+
+  useEffect(() => {
+    refreshSchedules(false);
   }, []);
 
   useEffect(() => {
@@ -80,7 +81,8 @@ export function ScheduleProvider({ children }) {
     addSchedule,
     toggleScheduleDone,
     deleteSchedule,
-    resetDoneForStudent
+    resetDoneForStudent,
+    refreshSchedules
   }), [schedules]);
 
   return (

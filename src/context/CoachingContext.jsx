@@ -48,12 +48,12 @@ export function CoachingProvider({ children }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  useEffect(() => {
-    async function syncCoachingFromSupabase() {
-      if (!isSupabaseConfigured()) return;
-      if (isCacheValid('coaching', 30) && coachingProfiles.length > 0) {
-        return;
-      }
+  const refreshCoaching = useCallback(async (force = false) => {
+    if (!isSupabaseConfigured()) return;
+    if (!force && isCacheValid('coaching', 15) && coachingProfiles.length > 0) {
+      return;
+    }
+    try {
       const res = await dbGetCoachingData();
       if (res) {
         if (res.links) setCoachingLinks(res.links);
@@ -75,11 +75,17 @@ export function CoachingProvider({ children }) {
       if (dbProfiles && Array.isArray(dbProfiles)) {
         setCoachingProfiles(dbProfiles);
         safeSetItem('eTestCoachingProfiles', JSON.stringify(dbProfiles));
+        safeSetItem('etest_coaching_profiles', JSON.stringify(dbProfiles));
       }
       touchCache('coaching');
+    } catch (err) {
+      console.warn('refreshCoaching error:', err);
     }
-    syncCoachingFromSupabase();
-  }, []);
+  }, [coachingProfiles.length]);
+
+  useEffect(() => {
+    refreshCoaching(false);
+  }, [refreshCoaching]);
 
   useEffect(() => {
     safeSetItem('eTestCoachingLinks', JSON.stringify(coachingLinks));
@@ -308,10 +314,11 @@ export function CoachingProvider({ children }) {
     getCoachingProfileForStudent,
     getMockExamsForStudent,
     getMeetingsForStudent,
+    refreshCoaching,
     addStudentError,
     updateStudentError,
     deleteStudentError
-  }), [coachingLinks, coachingNotes, mockExams, coachingMeetings, coachingProfiles]);
+  }), [coachingLinks, coachingNotes, mockExams, coachingMeetings, coachingProfiles, refreshCoaching]);
 
   return (
     <CoachingContext.Provider value={value}>

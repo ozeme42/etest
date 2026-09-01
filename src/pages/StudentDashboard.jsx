@@ -386,22 +386,25 @@ export default function StudentDashboard() {
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const { goals, addGoal, updateGoalProgress, deleteGoal } = useGoal();
-  const { schedules, addSchedule, toggleScheduleDone, deleteSchedule } = useSchedule();
+  const { schedules, addSchedule, toggleScheduleDone, deleteSchedule, refreshSchedules } = useSchedule();
   const { currentUser } = useAuth();
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
-  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent } = useCoaching();
+  const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent, refreshCoaching } = useCoaching();
 
-  // Background homework sync when opening the dashboard (only if stale)
+  // Background sync when opening the dashboard
   useEffect(() => {
-    const t = setTimeout(() => refreshHomeworks?.(false), 2000);
-    return () => clearTimeout(t);
+    refreshHomeworks?.(false);
+    refreshCoaching?.(true);
+    refreshSchedules?.(true);
   }, []);
 
   const handleDashboardRefresh = async () => {
     await Promise.all([
       refreshHomeworks?.(true),
       refreshTrackedBooks?.(true),
-      syncFromSupabase?.(false, true)
+      syncFromSupabase?.(false, true),
+      refreshCoaching?.(true),
+      refreshSchedules?.(true)
     ]);
   };
 
