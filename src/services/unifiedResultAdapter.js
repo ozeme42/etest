@@ -19,13 +19,22 @@ export function getCachedDeletedIds() {
     return cachedDeletedIds;
   }
   cachedDeletedIds = new Set();
-  try {
-    const raw = localStorage.getItem('eTestDeletedSubmissions');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) cachedDeletedIds = new Set(parsed.map(String));
-    }
-  } catch {}
+  const keys = [
+    'eTestDeletedSubmissions',
+    'eTestDeletedRecords',
+    'deletedHomeworks',
+    'deletedExams',
+    'deletedSubmissions'
+  ];
+  keys.forEach(k => {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) parsed.forEach(id => id && cachedDeletedIds.add(String(id)));
+      }
+    } catch {}
+  });
   lastDeletedFetch = now;
   return cachedDeletedIds;
 }
@@ -41,12 +50,19 @@ export function isDeletedItem(s) {
     s.submissionId,
     s.supabaseId,
     s.originalSubmissionId,
+    s.testId,
+    s.test_id,
+    s.hwId,
+    s.homework_id,
     meta?.realId,
-    meta?.submissionId
+    meta?.submissionId,
+    meta?.hwId,
+    meta?.realTestId
   ];
   return candidates.some(c => {
     if (!c) return false;
-    return deletedIds.has(String(c));
+    const strC = String(c);
+    return deletedIds.has(strC) || (toUUID(strC) && deletedIds.has(String(toUUID(strC))));
   });
 }
 
