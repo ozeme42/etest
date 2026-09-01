@@ -511,3 +511,63 @@ export function resolveQuestionCorrectAnswer(qNo, qObj = {}, ansObj = {}, testOb
   return null;
 }
 
+export const CANONICAL_SUBJECT_ORDER = [
+  'türkçe', 'turkce',
+  'matematik', 'geometri',
+  'fen bilimleri', 'fen bilgisi', 'fen', 'fizik', 'kimya', 'biyoloji',
+  'sosyal bilgiler', 'sosyal', 't.c. inkılap tarihi ve atatürkçülük', 't.c. inkılap tarihi', 'inkılap tarihi', 'inkılap', 'tarih', 'coğrafya', 'cografya',
+  'din kültürü ve ahlak bilgisi', 'din kültürü', 'din', 'felsefe', 'mantık',
+  'yabancı dil', 'ingilizce', 'almanca', 'fransızca'
+];
+
+/**
+ * Sorts subjects strictly by teacher's intended reference subjects array if provided,
+ * or by canonical curriculum subject order.
+ */
+export function sortSubjectsByTeacherOrder(subjectsList = [], referenceSubjects = []) {
+  if (!Array.isArray(subjectsList) || subjectsList.length === 0) return [];
+
+  // 1. If teacher's configured reference subjects exist, use their exact order
+  if (Array.isArray(referenceSubjects) && referenceSubjects.length > 0) {
+    const refMap = new Map();
+    referenceSubjects.forEach((ref, idx) => {
+      const name = typeof ref === 'string' ? ref : (ref.name || '');
+      const id = typeof ref === 'object' ? ref.id : null;
+      if (name) {
+        const norm = name.toLocaleLowerCase('tr').trim();
+        if (!refMap.has(norm)) refMap.set(norm, idx);
+      }
+      if (id) {
+        if (!refMap.has(String(id))) refMap.set(String(id), idx);
+      }
+    });
+
+    return [...subjectsList].sort((a, b) => {
+      const aName = (a.name || '').toLocaleLowerCase('tr').trim();
+      const bName = (b.name || '').toLocaleLowerCase('tr').trim();
+      const aId = a.id ? String(a.id) : (a.subjectId ? String(a.subjectId) : '');
+      const bId = b.id ? String(b.id) : (b.subjectId ? String(b.subjectId) : '');
+
+      const aOrder = a.order !== undefined ? Number(a.order) : (refMap.get(aName) ?? refMap.get(aId) ?? 999);
+      const bOrder = b.order !== undefined ? Number(b.order) : (refMap.get(bName) ?? refMap.get(bId) ?? 999);
+
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return 0;
+    });
+  }
+
+  // 2. Default: canonical curriculum order
+  return [...subjectsList].sort((a, b) => {
+    const aName = (a.name || '').toLocaleLowerCase('tr').trim();
+    const bName = (b.name || '').toLocaleLowerCase('tr').trim();
+
+    let aIdx = CANONICAL_SUBJECT_ORDER.findIndex(c => aName === c || aName.startsWith(c) || c.startsWith(aName));
+    let bIdx = CANONICAL_SUBJECT_ORDER.findIndex(c => bName === c || bName.startsWith(c) || c.startsWith(bName));
+    if (aIdx === -1) aIdx = 999;
+    if (bIdx === -1) bIdx = 999;
+
+    if (aIdx !== bIdx) return aIdx - bIdx;
+    return (a.order || 0) - (b.order || 0);
+  });
+}
+

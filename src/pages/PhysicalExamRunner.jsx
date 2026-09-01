@@ -7,6 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { toUUID } from '../services/supabaseService';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { sortSubjectsByTeacherOrder } from '../utils/answerEvaluation';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
 import { 
@@ -117,15 +118,49 @@ export default function PhysicalExamRunner() {
             builtAnswerKey[subName].push(t.answerKey[i] || '');
           }
         }
-        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id });
+        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id, subjectId: t.subjectId || t.subject_id });
       });
+    }
+
+    // Determine teacher's intended subjects list (source of truth for ordering)
+    const teacherSubs = Array.isArray(hw?.subjects) && hw.subjects.length > 0 
+      ? hw.subjects 
+      : (Array.isArray(matchingBook?.subjects) && matchingBook.subjects.length > 0 ? matchingBook.subjects : []);
+
+    let subs = [];
+    if (teacherSubs.length > 0) {
+      // Use teacher's explicit order
+      subs = teacherSubs.map((s, idx) => {
+        const sName = typeof s === 'string' ? s : (s.name || `Ders ${idx + 1}`);
+        const sId = typeof s === 'object' ? String(s.id || '') : '';
+        const matchedTest = testsForBook.find(t => {
+          if (sId && String(t.subjectId || t.subject_id) === sId) return true;
+          const tSubName = String(t.name || '').replace(' Testi', '').trim();
+          return tSubName.toLowerCase() === sName.toLowerCase() || String(t.name || '').toLowerCase().includes(sName.toLowerCase());
+        });
+        const count = Number((typeof s === 'object' ? (s.count || s.questionCount) : null) || matchedTest?.questionCount || 20);
+        return {
+          ...(typeof s === 'object' ? s : {}),
+          name: sName,
+          count: count,
+          testId: matchedTest?.id || (typeof s === 'object' ? s.testId : null)
+        };
+      });
+    } else if (subjectArray.length > 0) {
+      // If no teacher-defined subjects array, sort subjectArray by canonical curriculum order
+      subs = sortSubjectsByTeacherOrder(subjectArray, []);
+    } else {
+      subs = [
+        { name: 'Türkçe', count: 20 },
+        { name: 'Matematik', count: 20 },
+        { name: 'Fen Bilimleri', count: 20 },
+        { name: 'Sosyal Bilgiler', count: 20 }
+      ];
     }
 
     if (!hw && matchingBook) {
       // Synthetic homework object from tracked book exam
-      const rawSubs = Array.isArray(matchingBook.subjects) ? matchingBook.subjects : [];
-      const subs = subjectArray.length > 0 ? subjectArray : rawSubs;
-      const combinedAnsKey = Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (matchingBook.answerKey || {});
+      const combinedAnsKey = { ...(matchingBook.answerKey || {}), ...builtAnswerKey };
 
       return {
         id: matchingBook.id,
@@ -147,9 +182,7 @@ export default function PhysicalExamRunner() {
     }
 
     if (hw) {
-      const rawSubs = hw.subjects || matchingBook?.subjects || [];
-      const subs = subjectArray.length > 0 ? subjectArray : rawSubs;
-      const combinedAnsKey = Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (hw.answerKey || matchingBook?.answerKey || {});
+      const combinedAnsKey = { ...(matchingBook?.answerKey || {}), ...(hw.answerKey || {}), ...builtAnswerKey };
 
       return {
         ...hw,

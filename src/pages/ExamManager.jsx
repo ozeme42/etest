@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { toUUID } from '../services/supabaseService';
+import { sortSubjectsByTeacherOrder } from '../utils/answerEvaluation';
 import { useNavigate } from 'react-router-dom';
 import './ExamManager.css';
 
@@ -225,14 +226,34 @@ export default function ExamManager() {
             builtAnswerKey[subName].push(t.answerKey[i] || '');
           }
         }
-        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id });
+        subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id, subjectId: t.subjectId || t.subject_id });
       });
 
       const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
         ? b.subjects.map(s => typeof s === 'string' ? { name: s, count: 20 } : s)
         : [];
 
-      const effectiveSubjects = subjectArray.length > 0 ? subjectArray : rawSubjects;
+      let effectiveSubjects = [];
+      if (rawSubjects.length > 0) {
+        effectiveSubjects = rawSubjects.map((s, idx) => {
+          const sName = s.name || `Ders ${idx + 1}`;
+          const sId = String(s.id || '');
+          const matchedTest = testsForBook.find(t => {
+            if (sId && String(t.subjectId || t.subject_id) === sId) return true;
+            const tSubName = String(t.name || '').replace(' Testi', '').trim();
+            return tSubName.toLowerCase() === sName.toLowerCase() || String(t.name || '').toLowerCase().includes(sName.toLowerCase());
+          });
+          return {
+            ...s,
+            name: sName,
+            count: Number(s.count || s.questionCount || matchedTest?.questionCount || 20),
+            testId: matchedTest?.id || s.testId
+          };
+        });
+      } else if (subjectArray.length > 0) {
+        effectiveSubjects = sortSubjectsByTeacherOrder(subjectArray, []);
+      }
+
       const totalQuestions = effectiveSubjects.reduce((acc, curr) => acc + (Number(curr.count) || 20), 0);
 
       const examObj = {
