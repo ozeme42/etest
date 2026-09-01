@@ -710,6 +710,27 @@ export default function StudentWrongAnswersPage() {
         (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(s.hwId || s.testId || s.id)))
       );
 
+      const isRemedial = Boolean(
+        s.isRemedial === true ||
+        s.isRemedialTest === true ||
+        s.isTeacherRemedial === true ||
+        s.teacherAssigned === true ||
+        s.sourceType === 'pdfSlicerRemedial' ||
+        s.sourceType === 'pdfSlicer' ||
+        s.sourceType === 'questionBank' ||
+        s.sourceType === 'bank' ||
+        s.type === 'remedial' ||
+        s.type === 'remedialTest' ||
+        String(s.testTitle || s.title || '').toLowerCase().includes('telafi') ||
+        String(s.testTitle || s.title || '').toLowerCase().includes('kırpılmış') ||
+        String(s.testTitle || s.title || '').toLowerCase().includes('kirpilmis')
+      );
+
+      // If it's a remedial test or question bank test, ALWAYS keep it
+      if (isRemedial) {
+        return true;
+      }
+
       const isHwSub = Boolean(s.hwId || s.isHomework || (s.testId && !matchedBookTest && !matchedCurTest));
       if (isHwSub && !parentHw) {
         return false;
@@ -1031,7 +1052,7 @@ export default function StudentWrongAnswersPage() {
       }
     });
 
-    // 2. Scan submissions strictly for remedial tests only
+    // 2. Scan testGroupedSubmissions strictly for remedial tests only
     (testGroupedSubmissions || []).forEach(sub => {
       const subIdStr = String(sub.testId || sub.hwId || sub.id || '');
       const subTitle = String(sub.testTitle || sub.title || 'Test');
@@ -1063,7 +1084,7 @@ export default function StudentWrongAnswersPage() {
         return;
       }
 
-      const testSourceObj = matchedRemedial || null;
+      const testSourceObj = matchedRemedial || sub || null;
       let resolvedQuestions = [];
       if (testSourceObj) {
         resolvedQuestions = (testSourceObj.questionsList && testSourceObj.questionsList.length > 0)
@@ -1121,8 +1142,88 @@ export default function StudentWrongAnswersPage() {
       });
     });
 
+    // 3. ALSO scan remedialTests array directly with submissions (for 100% guarantee)
+    (remedialTests || []).forEach(test => {
+      const sub = (submissions || []).find(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+        const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        const isMatchStudent = allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+        if (!isMatchStudent) return false;
+        return String(s.testId) === String(test.id) ||
+          String(s.id) === String(test.id) ||
+          (toUUID(test.id) && toUUID(s.testId) === toUUID(test.id)) ||
+          (s.metadata?.realTestId && String(s.metadata.realTestId) === String(test.id));
+      });
+
+      if (!sub) return;
+
+      const rawAnswers = sub.answers || sub.studentAnswers || [];
+      const resolvedQuestions = (test.questionsList && test.questionsList.length > 0)
+        ? test.questionsList
+        : resolveTestQuestions(test, bankQuestions || []);
+
+      const wrongList = [];
+      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+        rawAnswers.forEach((ans, idx) => {
+          const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : (ans.questionNo || idx + 1);
+          if (ans.isCorrect === false) {
+            wrongList.push({ qNum, questionId: ans.questionId, ...ans });
+          }
+        });
+      } else {
+        const wCount = sub.wrongCount !== undefined ? sub.wrongCount : (sub.wrong_count || 0);
+        for (let i = 1; i <= wCount; i++) wrongList.push({ qNum: i });
+      }
+
+      wrongList.forEach(wq => {
+        const qNum = wq.qNum || 1;
+        const qIdx = (typeof qNum === 'number' ? qNum - 1 : 0);
+        const resolvedQ = resolvedQuestions[qIdx] || {};
+
+        const qKey = `${test.id}_${qNum}`;
+        if (seenQuestionKeys.has(qKey)) return;
+        seenQuestionKeys.add(qKey);
+
+        const qImage = resolvedQ.imageUrl ||
+                       wq.imageUrl ||
+                       (Array.isArray(test.imageUrls) ? test.imageUrls[qIdx] : null) ||
+                       (test.imageUrl && qIdx === 0 ? test.imageUrl : null) ||
+                       null;
+
+        const qText = resolvedQ.questionText ||
+                      resolvedQ.text ||
+                      resolvedQ.title ||
+                      wq.questionText ||
+                      `${test.title || test.name || 'Telafi Testi'} — Soru ${qNum}`;
+
+        const qOptions = resolvedQ.options || wq.options || ['A', 'B', 'C', 'D', 'E'];
+        const qCorrect = resolvedQ.correctAnswer !== undefined
+          ? resolvedQ.correctAnswer
+          : (typeof resolvedQ.correctAnswerLetter === 'string'
+              ? (resolvedQ.correctAnswerLetter.toUpperCase().charCodeAt(0) - 65)
+              : (wq.correctAnswer ?? 0));
+
+        list.push({
+          id: qKey,
+          questionId: wq.questionId || qKey,
+          testId: test.id,
+          testTitle: test.title || test.name || 'Özel Telafi Testi',
+          subject: test.subject || resolvedQ.subject || 'Ders',
+          questionNo: qNum,
+          questionText: qText,
+          options: qOptions,
+          optionCount: resolvedQ.optionCount || (qOptions ? qOptions.length : 5),
+          correctAnswer: qCorrect,
+          correctAnswerLetter: resolvedQ.correctAnswerLetter || String.fromCharCode(65 + qCorrect),
+          imageUrl: qImage,
+          isRemedialTest: true,
+          isQuestionBank: false
+        });
+      });
+    });
+
     return list;
-  }, [testGroupedSubmissions, remedialTests, bankQuestions]);
+  }, [testGroupedSubmissions, remedialTests, submissions, allStudentIds, bankQuestions]);
 
   const leitnerOverview = useMemo(() => {
     const sId = selectedStudent?.id || currentUser?.id || 'default_student';
