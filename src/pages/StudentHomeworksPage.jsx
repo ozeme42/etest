@@ -559,7 +559,8 @@ export default function StudentHomeworksPage() {
       handleReviewTask(task);
       return;
     }
-    if (task.type === 'physicalExam' || task.isPhysical) {
+    const isPhysical = task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || (task.title && (task.title.toLowerCase().includes('deneme') || task.title.toLowerCase().includes('hazır bulunuşluk') || task.title.toLowerCase().includes('hazir bulunusluk')));
+    if (isPhysical) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     } else if (task.isBookAssignment || task.sourceType === 'trackedBook') {
       navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
@@ -570,6 +571,11 @@ export default function StudentHomeworksPage() {
 
   const handleReviewTask = (task) => {
     const sId = selectedStudent?.id || '';
+    const isPhysical = task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || (task.title && (task.title.toLowerCase().includes('deneme') || task.title.toLowerCase().includes('hazır bulunuşluk') || task.title.toLowerCase().includes('hazir bulunusluk')));
+    if (isPhysical) {
+      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${sId}`, { state: { from: '/student/homeworks', isReview: true } });
+      return;
+    }
     if (task.submissionId) {
       navigate(`/review/${task.submissionId}?studentId=${sId}`);
     } else if (task.bookTestId || task.realTestId || task.hwId || task.id) {
