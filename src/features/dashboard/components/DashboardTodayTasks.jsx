@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar } from 'lucide-react';
+import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye } from 'lucide-react';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -345,19 +345,27 @@ export default memo(function DashboardTodayTasks({
 
                       {/* Right Action */}
                       {task.done ? (
-                        <span style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 900,
-                          color: '#10b981',
-                          background: 'rgba(16, 185, 129, 0.12)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          padding: '0.25rem 0.6rem',
-                          borderRadius: 8,
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0
-                        }}>
-                          ✓ Tamam
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 900,
+                            color: '#10b981',
+                            background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem',
+                            borderRadius: 8,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Eye size={13} /> ✓ Tamamlandı • İncele
+                        </button>
                       ) : isQuizTask ? (
                         <button
                           type="button"

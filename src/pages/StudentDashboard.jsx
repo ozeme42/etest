@@ -3677,8 +3677,21 @@ export default function StudentDashboard() {
                   }
                   
                   if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial || task.isTeacherRemedial) {
-                    navigate(`/quiz/${task.testId || task.realTestId || task.id}?studentId=${selectedStudent.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });
+                    const testTargetId = task.testId || task.realTestId || task.id;
+                    if (task.done) {
+                      navigate(`/quiz-review/${testTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
+                      return;
+                    }
+                    navigate(`/quiz/${testTargetId}?studentId=${selectedStudent.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });
                     return;
+                  }
+
+                  if (task.done) {
+                    const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId || task.id;
+                    if (reviewTargetId) {
+                      navigate(`/quiz-review/${reviewTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
+                      return;
+                    }
                   }
 
                   const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
