@@ -51,7 +51,7 @@ export function CoachingProvider({ children }) {
   useEffect(() => {
     async function syncCoachingFromSupabase() {
       if (!isSupabaseConfigured()) return;
-      if (isCacheValid('coaching', 30)) {
+      if (isCacheValid('coaching', 30) && coachingProfiles.length > 0) {
         return;
       }
       const res = await dbGetCoachingData();

@@ -15,6 +15,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useSchedule } from '../context/ScheduleContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
@@ -151,6 +152,7 @@ export default function StudentWrongAnswersPage() {
     updateStudentError,
     deleteStudentError
   } = useCoaching();
+  const { addSchedule } = useSchedule();
 
   const SUBJECT_CONFIG = useMemo(() => getSubjectConfig(isDark), [isDark]);
 
@@ -382,6 +384,17 @@ export default function StudentWrongAnswersPage() {
       weeklyProgram: updatedProg
     });
 
+    if (addSchedule) {
+      try {
+        await addSchedule({
+          studentId,
+          day: targetDayKey,
+          title: `[Telafi] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+          done: false
+        });
+      } catch {}
+    }
+
     setProgramToast(`✓ "${testItem.title || 'Test'}" ${targetDayKey} gününün çalışma programına eklendi!`);
     setTimeout(() => setProgramToast(null), 3500);
     setOpenDaySelectorId(null);
@@ -421,6 +434,23 @@ export default function StudentWrongAnswersPage() {
       studentId,
       weeklyProgram: updatedProg
     });
+
+    if (addSchedule) {
+      try {
+        const todayIdx = (new Date().getDay() + 6) % 7;
+        const intervals = testItem.repetitionIntervals || [1, 3, 7, 15];
+        for (let i = 0; i < intervals.length; i++) {
+          const iv = intervals[i];
+          const targetDayKey = DAYS_LIST[(todayIdx + iv) % 7];
+          await addSchedule({
+            studentId,
+            day: targetDayKey,
+            title: `[${i + 1}. Tekrar - ${iv}g] ${testItem.title || testItem.name || 'Özel Telafi Testi'}`,
+            done: false
+          });
+        }
+      } catch {}
+    }
 
     setProgramToast(`🎯 "${testItem.title || 'Test'}" için aralıklı tekrar planı (1, 3, 7, 15 Gün) programınıza eklendi!`);
     setTimeout(() => setProgramToast(null), 4000);
