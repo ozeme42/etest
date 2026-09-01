@@ -406,13 +406,16 @@ export default function PhysicalExamRunner() {
       String(s.bookTestId) === cleanHwId ||
       (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id) || String(s.bookId) === String(homework.id)))
     ) && (!studentId || String(s.studentId) === String(studentId)));
-    const submission = location.state?.submission || evalSub || hwSub;
+    const submission = location.state?.submission || hwSub || evalSub;
 
     if (submission) {
       setIsSubmitted(true);
       setShowOptikForm(true);
       
-      let loadedAns = submission.studentAnswers || evalSub?.studentAnswers || hwSub?.studentAnswers;
+      const subMeta = (submission?.answers && Array.isArray(submission.answers)) ? submission.answers.find(a => a?.type === 'metadata') : {};
+      const evalMeta = (evalSub?.answers && Array.isArray(evalSub.answers)) ? evalSub.answers.find(a => a?.type === 'metadata') : {};
+
+      let loadedAns = submission.studentAnswers || hwSub?.studentAnswers || evalSub?.studentAnswers || subMeta?.studentAnswers || evalMeta?.studentAnswers;
       if (!loadedAns || Object.keys(loadedAns).length === 0) {
         if (Array.isArray(submission.answers) && submission.answers.length > 0) {
           loadedAns = {};
@@ -451,15 +454,16 @@ export default function PhysicalExamRunner() {
       setAnswers(loadedAns);
       let calc = calculateResults(loadedAns);
 
-      if (submission.subjectStats && submission.subjectStats.subjectStats) {
-        calc = submission.subjectStats;
-      } else if (submission.subjectStats && Array.isArray(submission.subjectStats)) {
+      const rawStats = submission.subjectStats || hwSub?.subjectStats || evalSub?.subjectStats || subMeta?.subjectStats || evalMeta?.subjectStats;
+      if (rawStats && rawStats.subjectStats) {
+        calc = rawStats;
+      } else if (rawStats && Array.isArray(rawStats)) {
         calc = {
-          subjectStats: submission.subjectStats,
-          totalNet: submission.score || calc?.totalNet || 0,
-          totalCorrect: submission.correctCount || calc?.totalCorrect || 0,
-          totalWrong: submission.wrongCount || calc?.totalWrong || 0,
-          totalBlank: submission.blankCount || calc?.totalBlank || 0
+          subjectStats: rawStats,
+          totalNet: submission.score || hwSub?.score || calc?.totalNet || 0,
+          totalCorrect: submission.correctCount || hwSub?.correctCount || calc?.totalCorrect || 0,
+          totalWrong: submission.wrongCount || hwSub?.wrongCount || calc?.totalWrong || 0,
+          totalBlank: submission.blankCount ?? hwSub?.blankCount ?? calc?.totalBlank ?? 0
         };
       }
 
