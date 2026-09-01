@@ -25,8 +25,8 @@ export default function ResizablePdfPanel({
   title = 'Kitap PDF',
   mode = 'side',
   onModeChange,
-  defaultWidth = '82%',
-  defaultHeight = '72%',
+  defaultWidth = '80%',
+  defaultHeight = '48%',
   isFullScreen = false,
   onToggleDrawing,
   isDrawingOpen = false

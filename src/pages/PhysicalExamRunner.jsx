@@ -1625,8 +1625,8 @@ export default function PhysicalExamRunner() {
             title={homework.title}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
-            defaultWidth="82%"
-            defaultHeight="72%"
+            defaultWidth={isMobile ? '100%' : '80%'}
+            defaultHeight={isMobile ? '48%' : '70%'}
             isFullScreen={!showOptikForm}
             onToggleDrawing={() => setIsDrawingOpen(p => !p)}
             isDrawingOpen={isDrawingOpen}
@@ -1658,10 +1658,10 @@ export default function PhysicalExamRunner() {
               maxWidth: !isSidePdf ? 680 : undefined, 
               width: '100%', 
               margin: !isSidePdf ? '0 auto' : undefined, 
-              padding: isMobile ? '0.35rem 0.45rem 1rem 0.45rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 
+              padding: isMobile ? '0.45rem 0.55rem calc(env(safe-area-inset-bottom, 0px) + 3.5rem) 0.55rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: isMobile ? '0.35rem' : isSidePdf ? '0.45rem' : '1rem', 
+              gap: isMobile ? '0.45rem' : isSidePdf ? '0.45rem' : '1rem', 
               boxSizing: 'border-box' 
             }}>
               
