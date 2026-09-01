@@ -745,9 +745,47 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const isPendingEvaluation = isSubWritten && !isEvaluated;
 
+  // Extract per-subject breakdown for multi-subject or single-subject tests
+  const scores = {};
+  if (rawSub.scores && typeof rawSub.scores === 'object') {
+    Object.entries(rawSub.scores).forEach(([k, v]) => {
+      const d = Number(v.d ?? v.correct ?? 0);
+      const y = Number(v.y ?? v.wrong ?? 0);
+      const b = Number(v.b ?? v.empty ?? v.blank ?? 0);
+      const net = v.net !== undefined ? Number(v.net) : parseFloat((d - y / 4).toFixed(2));
+      scores[k] = { d, y, b, correct: d, wrong: y, empty: b, blank: b, net };
+    });
+  } else if (rawSub.subjectStats && typeof rawSub.subjectStats === 'object') {
+    const rawList = Array.isArray(rawSub.subjectStats) ? rawSub.subjectStats : Object.values(rawSub.subjectStats);
+    rawList.forEach(item => {
+      if (item && item.name) {
+        const d = Number(item.correct ?? item.d ?? 0);
+        const y = Number(item.wrong ?? item.y ?? 0);
+        const b = Number(item.blank ?? item.b ?? item.empty ?? 0);
+        const net = item.net !== undefined ? Number(item.net) : parseFloat((d - y / 4).toFixed(2));
+        scores[item.name] = { d, y, b, correct: d, wrong: y, empty: b, blank: b, net };
+      }
+    });
+  }
+
+  // If no multi-subject breakdown, use the primary subject of the test
+  if (Object.keys(scores).length === 0 && subjectName && subjectName !== 'Genel') {
+    scores[subjectName] = {
+      d: correctCount,
+      y: wrongCount,
+      b: blankCount,
+      correct: correctCount,
+      wrong: wrongCount,
+      empty: blankCount,
+      blank: blankCount,
+      net: netScore
+    };
+  }
+
   return {
     id: uniqueId,
     submissionId: uniqueId,
+    scores,
     supabaseId: rawSub.supabaseId || (toUUID(rawSub.id) ? rawSub.id : null),
     sourceType: matchedHw ? 'homework' : (matchedBook ? 'book' : 'submission'),
     typeKey,

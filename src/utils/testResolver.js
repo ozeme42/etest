@@ -1187,7 +1187,17 @@ export function computeStudentAnalyticsData({
       approvalStatus: 'approved',
       isTrial: isTrial,
       parentBookId: s.bookId,
-      scores: s.scores || {}
+      scores: (s.scores && Object.keys(s.scores).length > 0) ? s.scores : {
+        [s.subjectName || s.subject || 'Genel']: {
+          d: s.correctCount || 0,
+          y: s.wrongCount || 0,
+          b: s.blankCount ?? s.emptyCount ?? 0,
+          correct: s.correctCount || 0,
+          wrong: s.wrongCount || 0,
+          empty: s.blankCount ?? s.emptyCount ?? 0,
+          net: s.netScore ?? s.totalNet ?? 0
+        }
+      }
     };
 
     if (isTrial) {

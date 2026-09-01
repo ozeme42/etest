@@ -24,6 +24,9 @@ import { getTurkeyToday, getTurkeyYMD } from '../utils/dateHelpers';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -246,7 +249,7 @@ export default function StudentCoachingPage() {
     coachNotes: ''
   });
   const [quoteIdx, setQuoteIdx] = useState(0);
-  const [selectedQuoteCategory, setSelectedQuoteCategory] = useState('Tümü');
+  const [chartMetric, setChartMetric] = useState('Toplam Net');
   const [dailyQuestDone, setDailyQuestDone] = useState(() => {
     return localStorage.getItem('dailyQuestDone_' + today()) === 'true';
   });
@@ -3335,9 +3338,155 @@ export default function StudentCoachingPage() {
 
             {generalTrialExams.length > 0 && (
               <div style={{ marginBottom: '2rem' }}>
-                <div style={{ fontWeight: 900, fontSize: '1rem', color: '#0f172a', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>🏆</span> Genel Testler ({generalTrialExams.length})
-                </div>
+                {/* Gelişim Grafiği */}
+                {(() => {
+                  const subjectColors = {
+                    'Toplam Net': '#7c3aed',
+                    'Türkçe': '#ef4444',
+                    'Matematik': '#2563eb',
+                    'Fen Bilimleri': '#10b981',
+                    'Sosyal Bilgiler': '#f59e0b',
+                    'Sosyal Bilgiler/İnkılap Tarihi': '#f59e0b',
+                    'İnkılap Tarihi': '#f59e0b',
+                    'T.C. İnkılap Tarihi ve Atatürkçülük': '#f59e0b',
+                    'İngilizce': '#6366f1',
+                    'Yabancı Dil': '#6366f1',
+                    'Din Kültürü ve Ahlak Bilgisi': '#06b6d4',
+                    'Din Kültürü': '#06b6d4'
+                  };
+
+                  const availableSubjects = Array.from(new Set(
+                    generalTrialExams.flatMap(e => Object.keys(e.scores || {}).filter(k => k && !['totalNet', 'totalCorrect', 'totalWrong', 'totalEmpty', 'totalBlank'].includes(k)))
+                  ));
+
+                  const activeColor = subjectColors[chartMetric] || '#7c3aed';
+
+                  return (
+                    <div style={{ background: '#f8fafc', borderRadius: '1rem', padding: '1.25rem', marginBottom: '1.25rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <TrendingUp size={18} style={{ color: activeColor }} /> Net Gelişim Grafiği
+                        </div>
+                        <select 
+                          value={chartMetric} 
+                          onChange={(e) => setChartMetric(e.target.value)}
+                          style={{ padding: '0.4rem 0.75rem', borderRadius: '0.5rem', border: '1.5px solid #cbd5e1', fontSize: '0.85rem', fontWeight: 800, color: '#334155', background: 'white', cursor: 'pointer', outline: 'none' }}
+                        >
+                          <option value="Toplam Net">📊 Genel (Toplam Net)</option>
+                          {availableSubjects.map((s, idx) => (
+                            <option key={`${s}_${idx}`} value={s}>📚 {s} Net</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Hızlı Ders Seçim Butonları */}
+                      {availableSubjects.length > 0 && (
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '1rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setChartMetric('Toplam Net')}
+                            style={{
+                              padding: '0.3rem 0.75rem',
+                              borderRadius: '2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: chartMetric === 'Toplam Net' ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
+                              background: chartMetric === 'Toplam Net' ? 'rgba(124, 58, 237, 0.12)' : 'white',
+                              color: chartMetric === 'Toplam Net' ? '#7c3aed' : '#64748b',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            📊 Genel (Toplam Net)
+                          </button>
+                          {availableSubjects.map(subj => {
+                            const isAct = chartMetric === subj;
+                            const c = subjectColors[subj] || '#3b82f6';
+                            return (
+                              <button
+                                key={subj}
+                                type="button"
+                                onClick={() => setChartMetric(subj)}
+                                style={{
+                                  padding: '0.3rem 0.75rem',
+                                  borderRadius: '2rem',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  border: isAct ? `1.5px solid ${c}` : '1px solid #e2e8f0',
+                                  background: isAct ? `${c}18` : 'white',
+                                  color: isAct ? c : '#64748b',
+                                  transition: 'all 0.15s ease'
+                                }}
+                              >
+                                {subj}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div style={{ width: '100%', height: 220 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={[...generalTrialExams].reverse().map((s, i) => {
+                             let net = 0;
+                             let dCount = 0, yCount = 0, bCount = 0;
+                             if (chartMetric === 'Toplam Net') {
+                                net = s.totalNet;
+                                dCount = s.totalCorrect || s.correctCount || 0;
+                                yCount = s.totalWrong || s.wrongCount || 0;
+                                bCount = s.totalEmpty || s.emptyCount || 0;
+                             } else {
+                                if (s.scores && s.scores[chartMetric]) {
+                                   const sc = s.scores[chartMetric];
+                                   net = sc.net !== undefined ? parseFloat(sc.net) : 0;
+                                   dCount = sc.d ?? sc.correct ?? 0;
+                                   yCount = sc.y ?? sc.wrong ?? 0;
+                                   bCount = sc.b ?? sc.empty ?? sc.blank ?? 0;
+                                }
+                             }
+                             return {
+                                name: s.title ? (s.title.length > 12 ? s.title.substring(0, 10) + '..' : s.title) : `Deneme ${i+1}`,
+                                [chartMetric === 'Toplam Net' ? 'Toplam Net' : `${chartMetric} Net`]: parseFloat(Number(net).toFixed(2)),
+                                net: parseFloat(Number(net).toFixed(2)),
+                                fullTitle: s.title || `Deneme ${i+1}`,
+                                date: s.date,
+                                d: dCount,
+                                y: yCount,
+                                b: bCount,
+                                metricName: chartMetric === 'Toplam Net' ? 'Toplam Net' : `${chartMetric} Net`
+                             };
+                          })}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(226, 232, 240, 0.6)" />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} />
+                            <YAxis domain={[0, 'dataMax + 5']} tick={{ fontSize: 11, fill: '#64748b' }} />
+                            <Tooltip 
+                              content={({ active, payload }) => {
+                                if (!active || !payload?.length) return null;
+                                const data = payload[0].payload;
+                                return (
+                                  <div style={{ background: '#0f172a', color: 'white', padding: '0.65rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.78rem', boxShadow: '0 4px 12px rgba(0,0,0,0.25)', border: '1px solid #334155' }}>
+                                    <div style={{ fontWeight: 800, color: '#f8fafc', marginBottom: 3 }}>{data.fullTitle}</div>
+                                    <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: 4 }}>📅 {data.date}</div>
+                                    <div style={{ color: activeColor, fontWeight: 900, fontSize: '0.92rem' }}>
+                                      {data.metricName}: {data.net} Net
+                                    </div>
+                                    {(data.d > 0 || data.y > 0 || data.b > 0) && (
+                                      <div style={{ color: '#cbd5e1', fontSize: '0.72rem', marginTop: 3 }}>
+                                        {data.d} Doğru • {data.y} Yanlış • {data.b} Boş
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }}
+                            />
+                            <Line type="monotone" dataKey="net" stroke={activeColor} strokeWidth={3} dot={{ fill: activeColor, r: 4 }} activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Özet istatistik */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
