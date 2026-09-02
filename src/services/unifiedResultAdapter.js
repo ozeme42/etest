@@ -1,6 +1,6 @@
 import { toUUID } from './supabaseService';
 import { getTurkeyYMD, extractItemDate } from '../utils/dateHelpers';
-import { isExamBook } from '../utils/testResolver';
+import { isExamBook, isStandardOrMixedBook } from '../utils/testResolver';
 
 /**
  * 🛡️ UNIFIED RESULT ADAPTER (Single Source of Truth)
