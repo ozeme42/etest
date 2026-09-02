@@ -3353,7 +3353,7 @@ export function MonthlyListPanel({
                                                 whiteSpace: 'nowrap'
                                               }}
                                             >
-                                              {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={12} /> : <PlayCircle size={12} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
+                                              {item.isRemedial && item.stage > 1 ? <RotateCcw size={12} /> : <PlayCircle size={12} />} {item.isRemedial && item.stage > 1 ? `${item.stage}. Çözüm` : 'Çöz'}
                                             </button>
                                           );
                                         })()
@@ -5784,7 +5784,7 @@ export default function ProgramCenter({
                                                           whiteSpace: 'nowrap'
                                                         }}
                                                       >
-                                                        {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={13} /> : <PlayCircle size={13} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
+                                                        {item.isRemedial && item.stage > 1 ? <RotateCcw size={13} /> : <PlayCircle size={13} />} {item.isRemedial && item.stage > 1 ? `${item.stage}. Çözüm` : 'Çöz'}
                                                       </button>
                                                     )}
                                                   </>

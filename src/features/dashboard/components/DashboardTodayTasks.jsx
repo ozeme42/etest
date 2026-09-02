@@ -403,7 +403,7 @@ export default memo(function DashboardTodayTasks({
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                           style={{
-                            background: (task.hasPastAttempt || task.isRetake || task.isSolved || task.pastAttemptCount > 0 || syncAttemptNumber > 1)
+                            background: (isRemedialTask && syncAttemptNumber > 1)
                               ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
                               : 'linear-gradient(135deg, #4f46e5, #6366f1)',
                             color: '#ffffff',
@@ -420,9 +420,9 @@ export default memo(function DashboardTodayTasks({
                             boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
                           }}
                         >
-                          {(task.hasPastAttempt || task.isRetake || task.isSolved || task.pastAttemptCount > 0 || syncAttemptNumber > 1) ? (
+                          {isRemedialTask && syncAttemptNumber > 1 ? (
                             <>
-                              <RotateCcw size={14} /> {syncAttemptNumber > 1 ? `${syncAttemptNumber}. Çözümü Yap` : 'Tekrar Çöz'}
+                              <RotateCcw size={14} /> {`${syncAttemptNumber}. Çözümü Yap`}
                             </>
                           ) : (
                             <>
