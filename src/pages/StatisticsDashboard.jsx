@@ -901,17 +901,7 @@ export default function StatisticsDashboard() {
           badge="Doğruluk"
           isMobile={isMobile}
         />
-        <StatHeroCard 
-          icon={Award} 
-          label="Deneme Neti" 
-          value={`${classKPIs.overallExamNet} Net`} 
-          sub={`${classKPIs.totalExamsCount} Deneme Sınavı`} 
-          color="#8b5cf6" 
-          bg="#f5f3ff" 
-          border="#ddd6fe" 
-          badge="LGS Net"
-          isMobile={isMobile}
-        />
+
         <StatHeroCard 
           icon={BookCheck} 
           label="Takip Kitapları" 
