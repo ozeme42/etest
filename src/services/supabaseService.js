@@ -192,10 +192,10 @@ export async function dbGetCurriculum() {
   if (!isSupabaseConfigured()) return null;
   try {
     const [gRes, sRes, uRes, tRes] = await Promise.all([
-      supabase.from('grades').select('*'),
-      supabase.from('subjects').select('*'),
-      supabase.from('units').select('*'),
-      supabase.from('topics').select('*')
+      supabase.from('grades').select('id, name'),
+      supabase.from('subjects').select('id, grade_id, name'),
+      supabase.from('units').select('id, subject_id, name'),
+      supabase.from('topics').select('id, unit_id, name')
     ]);
 
     if (gRes.error || sRes.error || uRes.error || tRes.error) {
@@ -616,10 +616,17 @@ export async function dbDeleteSchedule(schId) {
 export async function dbGetSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    let query = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
+    const LEAN_COLUMNS = 'id, test_id, student_id, homework_id, score, correct_count, wrong_count, empty_count, subject, title, book_title, unit_topic, test_name, answers, created_at, status, is_evaluated_by_teacher, teacher_feedback, total_score_points, max_possible_score, mistake_reasons, approval_status';
+    let query = supabase.from('submissions').select(LEAN_COLUMNS).order('created_at', { ascending: false }).limit(1000);
     if (studentId) query = query.eq('student_id', studentId);
-    const { data, error } = await query;
-    if (error) throw error;
+    let { data, error } = await query;
+    if (error) {
+      let fallbackQuery = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
+      if (studentId) fallbackQuery = fallbackQuery.eq('student_id', studentId);
+      const fallbackRes = await fallbackQuery;
+      if (fallbackRes.error) throw fallbackRes.error;
+      data = fallbackRes.data;
+    }
     return data.map(s => {
       let rawAnswers = s.answers;
       if (typeof rawAnswers === 'string') {
@@ -1996,10 +2003,17 @@ async function getTrackedBooksColumns() {
 export async function dbGetTrackedBooks() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const [bRes, tRes] = await Promise.all([
-      supabase.from('tracked_books').select('*').order('created_at', { ascending: false }),
-      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false })
+    let [bRes, tRes] = await Promise.all([
+      supabase.from('tracked_books').select('id, title, publisher, book_type, option_count, pdf_url, subjects, raw_data, created_at').order('created_at', { ascending: false }),
+      supabase.from('tracked_book_tests').select('id, book_id, subject_id, topic_id, name, question_count, answer_key, is_open_ended, question_type, option_count, pdf_url, due_date, created_at').order('created_at', { ascending: false })
     ]);
+
+    if (bRes?.error) {
+      bRes = await supabase.from('tracked_books').select('*').order('created_at', { ascending: false });
+    }
+    if (tRes?.error) {
+      tRes = await supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false });
+    }
 
     if (bRes.error || tRes.error) return null;
 
