@@ -1362,7 +1362,21 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   if (!s || !targetTestOrId) return false;
   if (s.status === 'in_progress' || s.status === 'draft') return false;
 
-  const specId = typeof targetTestOrId === 'object' ? String(targetTestOrId.id || targetTestOrId.testId || targetTestOrId.bookTestId || '') : String(targetTestOrId);
+  const targetObj = typeof targetTestOrId === 'object' ? targetTestOrId : null;
+  const specIds = targetObj
+    ? [
+        targetObj.testId,
+        targetObj.bookTestId,
+        targetObj.realTestId,
+        targetObj.id,
+        targetObj.hwId,
+        targetObj.homeworkId
+      ].filter(Boolean).map(String)
+    : [String(targetTestOrId)];
+
+  const specId = targetObj
+    ? String(targetObj.testId || targetObj.bookTestId || targetObj.realTestId || targetObj.id || '')
+    : String(targetTestOrId);
   const specClean = specId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
   const specUuid = String(toUUID(specClean || specId) || '');
 
@@ -1377,29 +1391,34 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
 
   // ⚡ FAST PATH 1: Instant Direct ID Matching (0.0001ms)
-  if (specId && specId !== 'undefined' && specId !== 'null' && specClean.length > 3) {
-    const isDirectIdMatch = (sTestId && (sTestId === specId || sClean === specClean || (specUuid && sUuid === specUuid))) ||
-                            (sRealTestId && (sRealTestId === specId || sRealClean === specClean || (specUuid && toUUID(sRealClean) === specUuid))) ||
-                            (sBookTestId && (sBookTestId === specId || sBookClean === specClean || (specUuid && toUUID(sBookClean) === specUuid))) ||
-                            (s.id && (String(s.id).includes(specClean) || String(s.id).includes(specId) || (specUuid && String(s.id).includes(specUuid)))) ||
-                            (s.metadata?.testId && String(s.metadata.testId) === specId) ||
-                            (s.metadata?.realTestId && String(s.metadata.realTestId) === specId) ||
-                            (s.metadata?.bookTestId && String(s.metadata.bookTestId) === specId) ||
-                            (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid))) ||
-                            (Array.isArray(s.tests) && s.tests.some(id => String(id) === specId || (specUuid && toUUID(id) === specUuid)));
+  const isDirectIdMatch = specIds.some(spId => {
+    if (!spId || spId === 'undefined' || spId === 'null') return false;
+    const spClean = spId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+    if (spClean.length < 3) return false;
+    const spUuid = String(toUUID(spClean || spId) || '');
 
-    if (isDirectIdMatch) {
-      const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
-      const tSubj = String(targetTestOrId?.subject || targetTestOrId?.subjectName || targetTestOrId?.parentSubjectName || '').toLowerCase().trim();
-      if (sSubj && tSubj) {
-        const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                                (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                                (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
-                                (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
-        if (isCrossConflict) return false;
-      }
-      return true;
+    return (sTestId && (sTestId === spId || sClean === spClean || (spUuid && sUuid === spUuid))) ||
+           (sRealTestId && (sRealTestId === spId || sRealClean === spClean || (spUuid && toUUID(sRealClean) === spUuid))) ||
+           (sBookTestId && (sBookTestId === spId || sBookClean === spClean || (spUuid && toUUID(sBookClean) === spUuid))) ||
+           (s.id && (String(s.id).includes(spClean) || String(s.id).includes(spId) || (spUuid && String(s.id).includes(spUuid)))) ||
+           (s.metadata?.testId && String(s.metadata.testId) === spId) ||
+           (s.metadata?.realTestId && String(s.metadata.realTestId) === spId) ||
+           (s.metadata?.bookTestId && String(s.metadata.bookTestId) === spId) ||
+           (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === spId || (spUuid && toUUID(id) === spUuid))) ||
+           (Array.isArray(s.tests) && s.tests.some(id => String(id) === spId || (spUuid && toUUID(id) === spUuid)));
+  });
+
+  if (isDirectIdMatch) {
+    const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
+    const tSubj = String(targetTestOrId?.subject || targetTestOrId?.subjectName || targetTestOrId?.parentSubjectName || '').toLowerCase().trim();
+    if (sSubj && tSubj) {
+      const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
+                              (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
+      if (isCrossConflict) return false;
     }
+    return true;
   }
 
   let targetTest = typeof targetTestOrId === 'object'
