@@ -372,7 +372,7 @@ export async function solveQuestionWithAi({
     } catch {}
   }
 
-  if (!forceRefresh && !imageBase64 && cacheKey) {
+  if (!forceRefresh && cacheKey) {
     try {
       const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
       if (cached) {
@@ -516,6 +516,12 @@ Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım 
     }
   }
 
+  if (forceRefresh) {
+    prompt += `\n🔄 ÖNEMLİ TALİMAT (YENİDEN / ALTERNATİF ÇÖZÜM):
+Öğrenci bu soruyu daha derinlemesine kavramak için "Yeniden Çözdür" butonuna basmıştır.
+Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif bir bakış açısıyla, farklı pratik kestirmeler, mantıksal modellemeler veya farklı pedagojik örneklerle açıkla. Çözüm adımlarındaki ve özetindeki açıklamalarını zenginleştir ve çeşitlendir.\n`;
+  }
+
   parts.push({ text: systemInstruction + '\n\n' + prompt });
 
   const requestBody = {
@@ -523,7 +529,7 @@ Görevin: Öğrencinin yanlış yaptığı veya boş bıraktığı soruyu adım 
       { parts }
     ],
     generationConfig: {
-      temperature: 0.2,
+      temperature: forceRefresh ? 0.75 : 0.2,
       topK: 40,
       topP: 0.95,
       maxOutputTokens: 3000

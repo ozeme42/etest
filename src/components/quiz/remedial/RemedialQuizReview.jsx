@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useTheme } from '../../../context/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -167,10 +167,58 @@ export default function RemedialQuizReview({
     return { d, y, b, pct, net };
   }, [reviewQuestions, totalCount]);
 
+  // Question Cache Key Generator
+  const getQuestionCacheKey = (q, qIdx) => {
+    const testId = test.id || test.homeworkId || submission.id || submission.testId || submission.test_id || 'remedial';
+    const qId = q?.id || q?.questionId || q?.realQuestionId || q?.originalQNo || q?.displayQNo || (qIdx + 1);
+    const textSnippet = String(q?.questionText || '').slice(0, 20).replace(/[^a-zA-Z0-9]/g, '');
+    const imgSnippet = q?.primaryImage ? (q.primaryImage.length + '_' + q.primaryImage.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '')) : '';
+    return `remedial_${testId}_q${qIdx + 1}_${qId}_${textSnippet}_${imgSnippet}`;
+  };
+
+  // Pre-load solutions from localStorage on mount and when review questions change
+  useEffect(() => {
+    if (!reviewQuestions || reviewQuestions.length === 0) return;
+    const loaded = {};
+    let hasAny = false;
+    reviewQuestions.forEach((q, idx) => {
+      const qNo = idx + 1;
+      const key = getQuestionCacheKey(q, idx);
+      try {
+        const cached = localStorage.getItem(`ai_sol_${key}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.steps || parsed.explanation || parsed.summary)) {
+            loaded[qNo] = parsed;
+            hasAny = true;
+          }
+        }
+      } catch {}
+    });
+    if (hasAny) {
+      setAiSolutions(prev => ({ ...loaded, ...prev }));
+    }
+  }, [reviewQuestions, test.id, submission.id]);
+
   // AI Solver Handler
   const handleSolveWithAi = async (forceRefresh = false) => {
     const qNo = activeQIdx + 1;
+    const cacheKey = getQuestionCacheKey(activeQuestion, activeQIdx);
+
     if (!forceRefresh && aiSolutions[qNo]) return;
+
+    if (!forceRefresh) {
+      try {
+        const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && (parsed.steps || parsed.explanation || parsed.summary)) {
+            setAiSolutions(prev => ({ ...prev, [qNo]: parsed }));
+            return;
+          }
+        }
+      } catch {}
+    }
 
     setAiLoading(true);
     setAiError(null);
@@ -191,8 +239,14 @@ export default function RemedialQuizReview({
         grade: test.grade || '',
         topic: activeQuestion.unitName || test.topic || '',
         questionNo: qNo,
+        cacheKey,
         forceRefresh
       });
+
+      // Save to localStorage immediately
+      try {
+        localStorage.setItem(`ai_sol_${cacheKey}`, JSON.stringify(res));
+      } catch {}
 
       setAiSolutions(prev => ({
         ...prev,
