@@ -416,10 +416,22 @@ export default function TeacherStudentMistakesPool({
         const rawName = (s.testName || s.testTitle || s.title || '').trim();
         const m = rawName.match(/\((.*?)\)/);
         const searchName = m ? m[1].trim() : rawName;
+        const targetSubj = resolveSubjectName(s.subjectName, s.subject, s.title, s.testTitle);
+
         matchedBookTest = (bookTests || []).find(bt => {
           const btBookId = String(bt.bookId || bt.book_id || '');
           const isSameBook = btBookId === String(matchedBook.id) || toUUID(btBookId) === toUUID(matchedBook.id);
           if (!isSameBook) return false;
+
+          // Subject check: If book has multiple subjects, ensure subject matches!
+          if (targetSubj && targetSubj !== 'Genel') {
+            const btSubj = bt.subject_id ? subjectNameMap.get(String(bt.subject_id)) : (bt.subjectId ? subjectNameMap.get(String(bt.subjectId)) : (bt.subject || bt.subjectName));
+            if (btSubj) {
+              const normBtSubj = resolveSubjectName(btSubj);
+              if (normBtSubj !== targetSubj) return false;
+            }
+          }
+
           const bName = String(bt.name || '').trim();
           return bName === searchName || bName.toLowerCase() === searchName.toLowerCase() ||
                  (searchName && (bName.includes(searchName) || searchName.includes(bName)));
