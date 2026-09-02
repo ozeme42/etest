@@ -1939,16 +1939,7 @@ export function MonthlyListPanel({
           const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          let isForThisDay = dueYMD ? (ymd === dueYMD) : false;
-          if (!isForThisDay) {
-            if (dueTime && startTime) {
-              isForThisDay = dateTime >= startTime && dateTime <= dueTime;
-            } else if (dueTime) {
-              isForThisDay = ymd === dueYMD || (dateTime <= dueTime && dateTime >= dueTime - 6 * 86400000);
-            } else if (startTime) {
-              isForThisDay = dateTime === startTime;
-            }
-          }
+          let isForThisDay = dueYMD ? (ymd === dueYMD) : (!dueYMD && startTime ? dateTime === startTime : false);
 
           if (isForThisDay) {
             const isHwDone = checkIsTaskSolved({
@@ -2129,8 +2120,13 @@ export function MonthlyListPanel({
 
         const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
         if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
+          const processedCleanIds = new Set();
           Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
+            const tCleanId = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
+            if (processedCleanIds.has(tCleanId)) return;
+            processedCleanIds.add(tCleanId);
+
             const tYMD = String(tDateStr).split('T')[0];
             if (ymd === tYMD) {
               const info = resolveBookTestInfo(testId);
@@ -2149,7 +2145,9 @@ export function MonthlyListPanel({
                 taskType: 'kitap'
               }, studentId, submissions, allHomeworks, studyAssignments);
 
-              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${ymd}` || m.testId === testId);
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${ymd}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
+                autoHwItems.some(a => a.testId === testId || a.testId === tCleanId || a.bookTestId === testId || a.bookTestId === tCleanId);
+
               if (!exists) {
                 autoHwItems.push({
                   id: `book_test_${hw.id}_${testId}_${ymd}`,
@@ -2175,7 +2173,7 @@ export function MonthlyListPanel({
         const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
         const startTime = startYMD ? new Date(startYMD).getTime() : null;
 
-        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const rawDue = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.assignedDueDate;
         const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
         const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
@@ -2189,33 +2187,30 @@ export function MonthlyListPanel({
         }
 
         if (isForThisDay) {
-          if (isBook && Array.isArray(hw.tests) && hw.tests.length > 0) {
-            hw.tests.forEach((testId, idx) => {
-              const isTestSolved = checkIsTaskSolved({
-                testId: testId,
-                hwId: hw.id
+          if (isBook) {
+            if (ymd === dueYMD || (!dueYMD && startTime && dateTime === startTime)) {
+              const isHwDone = checkIsTaskSolved({
+                hwId: hw.id,
+                id: hw.id
               }, studentId, submissions, allHomeworks, studyAssignments);
 
-              const tObj = (bookTests || []).find(b => String(b.id) === String(testId));
-              const testTitle = tObj?.name || `Test ${idx + 1}`;
-              const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${ymd}` || m.hwId === hw.id);
+              const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
               if (!exists) {
                 autoHwItems.push({
-                  id: `auto_hw_${hw.id}_${testId}_${ymd}`,
+                  id: `auto_hw_${hw.id}_${ymd}`,
                   hwId: hw.id,
-                  testId: testId,
-                  bookTestId: testId,
-                  bookId: hw.bookId || bookObj?.id || null,
                   isAutoHomework: true,
+                  isBookAssignment: true,
+                  bookId: hw.bookId || bookObj?.id || null,
                   taskType: 'kitap',
-                  subject: tObj?.subject || bookObj?.subject || hw.subject || 'Kitap Çalışması',
-                  topic: `${cleanBookTitle} — ${testTitle}`,
-                  questionCount: tObj?.questionCount ? `${tObj.questionCount} soru` : null,
+                  subject: hw.subject || 'Atanan Kitap',
+                  topic: cleanBookTitle || hw.title || hw.name || 'Kitap Görevi',
+                  questionCount: hw.totalQuestions ? (String(hw.totalQuestions).includes('soru') ? hw.totalQuestions : `${hw.totalQuestions} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-                  done: isTestSolved
+                  done: isHwDone
                 });
               }
-            });
+            }
             return;
           }
 
@@ -3994,16 +3989,7 @@ export default function ProgramCenter({
           const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          let isForThisDay = dueYMD ? (dayInfo.ymd === dueYMD) : false;
-          if (!isForThisDay) {
-            if (dueTime && startTime) {
-              isForThisDay = dayInfo.time >= startTime && dayInfo.time <= dueTime;
-            } else if (dueTime) {
-              isForThisDay = dayInfo.ymd === dueYMD || (dayInfo.time <= dueTime && dayInfo.time >= dueTime - 6 * 86400000);
-            } else if (startTime) {
-              isForThisDay = dayInfo.time === startTime;
-            }
-          }
+          let isForThisDay = dueYMD ? (dayInfo.ymd === dueYMD) : (!dueYMD && startTime ? dayInfo.time === startTime : false);
 
           if (isForThisDay) {
             const isHwDone = checkIsTaskSolved({
@@ -4184,8 +4170,13 @@ export default function ProgramCenter({
 
         const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
         if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
+          const processedCleanIds = new Set();
           Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
+            const tCleanId = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
+            if (processedCleanIds.has(tCleanId)) return;
+            processedCleanIds.add(tCleanId);
+
             const tYMD = String(tDateStr).split('T')[0];
             if (dayInfo.ymd === tYMD) {
               const info = resolveBookTestInfo(testId);
@@ -4216,7 +4207,9 @@ export default function ProgramCenter({
                 bookTitle: cleanBookTitle
               }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
 
-              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}`);
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
+                autoHwItems.some(a => a.testId === testId || a.testId === tCleanId || a.bookTestId === testId || a.bookTestId === tCleanId);
+
               if (!exists) {
                 autoHwItems.push({
                   id: `book_test_${hw.id}_${testId}_${dayObj.day}`,
@@ -4248,7 +4241,7 @@ export default function ProgramCenter({
         const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
         const startTime = startYMD ? new Date(startYMD).getTime() : null;
 
-        const rawDue = hw.dueDate || hw.assignedDueDate;
+        const rawDue = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.assignedDueDate;
         const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
         const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
@@ -4262,52 +4255,32 @@ export default function ProgramCenter({
         }
 
         if (isForThisDay) {
-          if (isBook && Array.isArray(hw.tests) && hw.tests.length > 0) {
-            hw.tests.forEach((testId, idx) => {
-              const info = resolveBookTestInfo(testId);
-              const isTestSolved = checkIsTaskSolved({
-                ...info.tObj,
-                id: testId,
-                testId: testId,
-                bookTestId: testId,
+          if (isBook) {
+            if (dayInfo.ymd === dueYMD || (!dueYMD && startTime && dayInfo.time === startTime)) {
+              const isHwDone = checkIsTaskSolved({
                 hwId: hw.id,
-                taskType: 'kitap',
-                name: info.testName,
-                testName: info.testName,
-                title: info.testName,
-                subject: info.subjectName,
-                subjectName: info.subjectName,
-                unit: info.topicName,
-                unitName: info.topicName,
-                unitTopic: info.topicName,
-                bookTitle: cleanBookTitle
-              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
+                id: hw.id
+              }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
 
-              const tObj = info.tObj || (bookTests || []).find(b => String(b.id) === String(testId));
-              const testTitle = info.testName || tObj?.name || `Test ${idx + 1}`;
-              const exists = manualItems.some(m => m.id === `auto_hw_${hw.id}_${testId}_${dayObj.day}` || m.hwId === hw.id);
+              const exists = manualItems.some(m => m.id === `hw_${hw.id}` || m.hwId === hw.id || (m.topic === (hw.title || hw.name)));
               if (!exists) {
                 autoHwItems.push({
-                  id: `auto_hw_${hw.id}_${testId}_${dayObj.day}`,
+                  id: `auto_hw_${hw.id}_${dayObj.day}`,
                   hwId: hw.id,
-                  testId: testId,
-                  bookTestId: testId,
-                  bookId: hw.bookId || bookObj?.id || null,
                   isAutoHomework: true,
                   isBookAssignment: true,
+                  bookId: hw.bookId || null,
+                  bookName: cleanBookTitle || null,
+                  bookTitle: cleanBookTitle || null,
                   taskType: 'kitap',
-                  subject: tObj?.subject || bookObj?.subject || hw.subject || 'Kitap Çalışması',
-                  unit: tObj?.unit || tObj?.unitName || '',
-                  testName: testTitle,
-                  bookName: cleanBookTitle,
-                  bookTitle: cleanBookTitle,
-                  topic: `${cleanBookTitle} — ${testTitle}`,
-                  questionCount: tObj?.questionCount ? (String(tObj.questionCount).includes('soru') ? tObj.questionCount : `${tObj.questionCount} soru`) : null,
+                  subject: hw.subject || 'Atanan Kitap',
+                  topic: cleanBookTitle || hw.title || hw.name || 'Kitap Görevi',
+                  questionCount: hw.totalQuestions ? (String(hw.totalQuestions).includes('soru') ? hw.totalQuestions : `${hw.totalQuestions} soru`) : null,
                   time: dueYMD ? `Son: ${new Date(rawDue).toLocaleDateString('tr-TR')}` : null,
-                  done: isTestSolved
+                  done: isHwDone
                 });
               }
-            });
+            }
             return;
           }
 

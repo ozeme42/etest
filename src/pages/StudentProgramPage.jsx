@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Save, CheckCircle2, Calendar, ArrowLeft, Layers, Target, BookOpen, CheckCircle, Play, PlayCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
 import ProgramCenter, { normalizeWeeklyProgram } from '../components/ProgramCenter';
+import { toUUID } from '../services/supabaseService';
 
 function getWeekDateRange() {
   const d = new Date();
@@ -18,7 +19,8 @@ function getWeekDateRange() {
 }
 
 export default function StudentProgramPage() {
-  const { currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { currentUser, users } = useAuth();
   const { getCoachingProfileForStudent, saveCoachingProfile } = useCoaching();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -32,7 +34,24 @@ export default function StudentProgramPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const studentId = currentUser?.id;
+  const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+
+  const effectiveStudent = useMemo(() => {
+    if (currentUser?.role === 'student') return currentUser;
+    const queryStudentId = searchParams.get('studentId');
+    if (queryStudentId) {
+      const found = studentMembers.find(s => String(s.id) === String(queryStudentId) || toUUID(s.id) === toUUID(queryStudentId));
+      if (found) return found;
+    }
+    const savedStudentId = localStorage.getItem('etest_selected_student_id');
+    if (savedStudentId) {
+      const found = studentMembers.find(s => String(s.id) === String(savedStudentId) || toUUID(s.id) === toUUID(savedStudentId));
+      if (found) return found;
+    }
+    return studentMembers[0] || currentUser;
+  }, [currentUser, searchParams, studentMembers]);
+
+  const studentId = effectiveStudent?.id || currentUser?.id;
   const existingProfile = useMemo(
     () => getCoachingProfileForStudent(studentId) || {},
     [studentId, getCoachingProfileForStudent]
@@ -220,6 +239,31 @@ export default function StudentProgramPage() {
                 >
                   <Play size={14} fill="#ffffff" /> ⏱️ Çalışma Odası
                 </button>
+
+                {currentUser?.role !== 'student' && studentMembers.length > 0 && (
+                  <select
+                    value={effectiveStudent?.id || ''}
+                    onChange={(e) => {
+                      const newId = e.target.value;
+                      localStorage.setItem('etest_selected_student_id', newId);
+                      setSearchParams({ studentId: newId });
+                    }}
+                    style={{
+                      padding: '0.45rem 0.8rem',
+                      borderRadius: '0.75rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+                      background: 'var(--color-surface, #ffffff)',
+                      color: 'var(--color-text, #1e293b)',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {studentMembers.map(s => (
+                      <option key={s.id} value={s.id}>{s.name || s.username || s.email}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{
@@ -348,6 +392,8 @@ export default function StudentProgramPage() {
         {/* Content */}
         <div style={{ width: '100%', boxSizing: 'border-box' }}>
           <ProgramCenter
+            studentId={studentId}
+            targetStudent={effectiveStudent}
             weeklyProgram={weeklyProgram}
             setWeeklyProgram={setWeeklyProgram}
             topicPool={topicPool}

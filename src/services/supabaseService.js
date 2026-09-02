@@ -192,10 +192,10 @@ export async function dbGetCurriculum() {
   if (!isSupabaseConfigured()) return null;
   try {
     const [gRes, sRes, uRes, tRes] = await Promise.all([
-      supabase.from('grades').select('id, name'),
-      supabase.from('subjects').select('id, grade_id, name'),
-      supabase.from('units').select('id, subject_id, name'),
-      supabase.from('topics').select('id, unit_id, name')
+      supabase.from('grades').select('*'),
+      supabase.from('subjects').select('*'),
+      supabase.from('units').select('*'),
+      supabase.from('topics').select('*')
     ]);
 
     if (gRes.error || sRes.error || uRes.error || tRes.error) {
@@ -616,18 +616,11 @@ export async function dbDeleteSchedule(schId) {
 export async function dbGetSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
-    const LEAN_COLUMNS = 'id, test_id, student_id, homework_id, score, correct_count, wrong_count, empty_count, subject, title, book_title, unit_topic, test_name, answers, created_at, status, is_evaluated_by_teacher, teacher_feedback, total_score_points, max_possible_score, mistake_reasons, approval_status';
-    let query = supabase.from('submissions').select(LEAN_COLUMNS).order('created_at', { ascending: false }).limit(1000);
+    let query = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
     if (studentId) query = query.eq('student_id', studentId);
-    let { data, error } = await query;
-    if (error) {
-      let fallbackQuery = supabase.from('submissions').select('*').order('created_at', { ascending: false }).limit(1000);
-      if (studentId) fallbackQuery = fallbackQuery.eq('student_id', studentId);
-      const fallbackRes = await fallbackQuery;
-      if (fallbackRes.error) throw fallbackRes.error;
-      data = fallbackRes.data;
-    }
-    return data.map(s => {
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(s => {
       let rawAnswers = s.answers;
       if (typeof rawAnswers === 'string') {
         try { rawAnswers = JSON.parse(rawAnswers); } catch {}
@@ -2740,7 +2733,13 @@ export async function dbGetCoachingProfiles() {
 
     (data || []).forEach(p => {
       if (!p) return;
-      const extraData = p.data || (p.extra_data ? (typeof p.extra_data === 'string' ? JSON.parse(p.extra_data) : p.extra_data) : {});
+      let extraData = p.data || (p.extra_data ? (typeof p.extra_data === 'string' ? JSON.parse(p.extra_data) : p.extra_data) : {});
+      if (extraData && typeof extraData.extra_data === 'string') {
+        try {
+          const nested = JSON.parse(extraData.extra_data);
+          extraData = { ...nested, ...extraData };
+        } catch {}
+      }
       const sid = String(p.student_id || extraData.studentId || p.id || '');
       const sUuid = toUUID(sid) || sid;
       const mapKey = sUuid || sid;

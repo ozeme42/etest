@@ -1931,14 +1931,14 @@ export default function StudentDashboard() {
 
         studentHomeworks.forEach(hw => {
           if (!hw) return;
+          const hwBookId = hw.bookId || hw.book_id || hw.raw_data?.bookId || hw.raw_data?.book_id;
           const bookObj = (books || []).find(b =>
-            String(b?.id) === String(hw.bookId) ||
-            toUUID(b?.id) === toUUID(hw.bookId) ||
+            (hwBookId && (String(b?.id) === String(hwBookId) || toUUID(b?.id) === toUUID(hwBookId))) ||
             (b?.title && hw?.title && (
               b.title.toLowerCase().trim() === hw.title.toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim() ||
               hw.title.toLowerCase().includes(b.title.toLowerCase().trim())
             ))
-          ) || ((hw.isBookAssignment || hw.bookId) ? { id: hw.bookId, title: hw.title || 'Kitap Takibi', subjects: [] } : null);
+          ) || ((hw.isBookAssignment || hwBookId) ? { id: hwBookId, title: hw.title || 'Kitap Takibi', subjects: [] } : null);
 
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
 
@@ -2140,7 +2140,12 @@ export default function StudentDashboard() {
               });
             }
 
-            (bookTests || []).filter(bt => String(bt.bookId || bt.book_id) === String(hw.bookId || bookObj?.id) || toUUID(bt.bookId) === toUUID(hw.bookId || bookObj?.id)).forEach(bt => {
+            const targetBookId = hwBookId || hw.bookId || hw.book_id || bookObj?.id;
+            (bookTests || []).filter(bt => {
+              const bId = String(bt.bookId || bt.book_id || '');
+              return (targetBookId && (bId === String(targetBookId) || toUUID(bId) === toUUID(targetBookId))) ||
+                (Array.isArray(hw.tests) && hw.tests.some(tid => String(tid) === String(bt.id) || toUUID(tid) === toUUID(bt.id) || String(tid).replace(/^bt_/, '') === String(bt.id).replace(/^bt_/, '')));
+            }).forEach(bt => {
               const tid = String(bt.id);
               const cleanTid = tid.replace(/^bt_/, '');
               if (!seenTestIds.has(tid) && !seenTestIds.has(cleanTid)) {
