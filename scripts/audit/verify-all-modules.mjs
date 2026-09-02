@@ -20,6 +20,8 @@ import {
 import { 
   getRemedialTestMasteryStatus,
   isRemedialStageDone,
+  scheduleRemedialTestInProgram,
+  getRemedialLockStatus,
   REPETITION_PRESETS 
 } from '../../src/services/remedialSpacedRepetitionService.js';
 
@@ -145,6 +147,46 @@ assert(masteryObj.currentScorePct === 100, 'Puan %100 hesaplandı');
 
 const stageDone = isRemedialStageDone({ testId: 'rem_1', stage: 1 }, sampleRemSubmissions);
 assert(stageDone === true, 'Telafi aşamasının tamamlandığı doğrulandı');
+
+// 4.2 Çizelgeleme (scheduleRemedialTestInProgram)
+const initialWeekly = [
+  { day: 'Pzt', items: [] }, { day: 'Sal', items: [] }, { day: 'Çrş', items: [] },
+  { day: 'Prş', items: [] }, { day: 'Cum', items: [] }, { day: 'Cts', items: [] }, { day: 'Paz', items: [] }
+];
+const updatedProg = scheduleRemedialTestInProgram({
+  currentWeeklyProgram: initialWeekly,
+  testItem: sampleRemedialTest,
+  intervals: [0, 3, 7, 15],
+  startDate: new Date(),
+  studentId: 'st_1'
+});
+const totalScheduledItems = updatedProg.reduce((acc, d) => acc + d.items.length, 0);
+assert(totalScheduledItems === 4, 'Aralıklı tekrar programına 4 aşama eksiksiz yerleştirildi');
+
+// 4.3 Gelecek Tarih Kilitleme (getRemedialLockStatus)
+const todayTask = {
+  type: 'remedialTest',
+  testId: 'rem_1',
+  stage: 1,
+  scheduledDate: todayYMD
+};
+const futureTask = {
+  type: 'remedialTest',
+  testId: 'rem_1',
+  stage: 2,
+  scheduledDate: tomorrowYMD
+};
+
+const todayLock = getRemedialLockStatus(todayTask, todayYMD, [], 'st_1');
+assert(todayLock.isLocked === false, 'Günü gelen telafi testi öğrenciye çözülebilir olarak açıldı');
+
+const futureLock = getRemedialLockStatus(futureTask, todayYMD, [], 'st_1');
+assert(futureLock.isLocked === true, 'Günü gelmemiş aralıklı tekrar testi erkenden çözülmeye karşı kilitlendi');
+assert(futureLock.daysLeft >= 1, `Kalan gün sayısı doğru hesaplandı: ${futureLock.daysLeft} gün`);
+
+// 4.4 Ustalık Elde Edildiğinde Kilit Açma
+const masteredFutureLock = getRemedialLockStatus(futureTask, todayYMD, sampleRemSubmissions, 'st_1');
+assert(masteredFutureLock.isLocked === false, 'Önceki denemede %100 yapan öğrenci için gelecek tekrar serbest bırakıldı');
 
 
 // ─────────────────────────────────────────────────────────────
