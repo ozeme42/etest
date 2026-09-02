@@ -739,7 +739,7 @@ export default function StudentDashboard() {
         }
       }
 
-      const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(tName);
+      const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|etkinlik|alismalar|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test|problemsayfasi|paragraftest|konutesti)$/i.test(tName);
 
       if (bTitle && sName && uTopic && tName) {
         set.add(`full_${bTitle}_${sName}_${uTopic}_${tName}`);
@@ -748,20 +748,14 @@ export default function StudentDashboard() {
         set.add(`bid_subj_topic_tname_${bId}_${sName}_${uTopic}_${tName}`);
       }
 
-      // ONLY add unit-less test matches if the test name is NOT a generic repeating name (like Test-13 or Yeni Nesil 14)
+      // ONLY add unit-less test matches if the test name is NOT a generic repeating name (like Test-13, Problem Sayfası, etc.)
       if (!isGeneric) {
         if (sName && tName) {
           set.add(`subj_test_${sName}_${tName}`);
           set.add(`title_${sName}_${tName}`);
         }
-        if (bTitle && tName) {
-          set.add(`book_test_${bTitle}_${tName}`);
-        }
         if (bTitle && sName && tName) {
           set.add(`full_${bTitle}_${sName}_${tName}`);
-        }
-        if (bId && tName) {
-          set.add(`bid_tname_${bId}_${tName}`);
         }
         if (bId && sName && tName) {
           set.add(`bid_subj_tname_${bId}_${sName}_${tName}`);
@@ -777,7 +771,7 @@ export default function StudentDashboard() {
 
       // Full specific title (preserving exact page/test numbers for unique names)
       const fullTitleStr = normalizeKey(s.title || s.testTitle || s.testName);
-      if (fullTitleStr && fullTitleStr.length >= 8) {
+      if (fullTitleStr && fullTitleStr.length >= 10 && !isGeneric) {
         if (sName) {
           set.add(`title_${sName}_${fullTitleStr}`);
         } else {
@@ -853,18 +847,17 @@ export default function StudentDashboard() {
     if (bTitle && sName && uTopic && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${uTopic}_${tName}`)) return true;
     if (bId && sName && uTopic && tName && studentSolvedSet.has(`bid_subj_topic_tname_${bId}_${sName}_${uTopic}_${tName}`)) return true;
 
-    // Only allow unit-less matching for non-generic test titles (e.g. "93-94. Sayfa Problem Sayfası")
-    const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(tName);
+    // Only allow unit-less matching for non-generic test titles
+    const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|etkinlik|alismalar|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test|problemsayfasi|paragraftest|konutesti)$/i.test(tName);
     if (!isGeneric) {
       if (bTitle && sName && tName && studentSolvedSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
-      if (bTitle && tName && studentSolvedSet.has(`book_test_${bTitle}_${tName}`)) return true;
       if (bId && sName && tName && studentSolvedSet.has(`bid_subj_tname_${bId}_${sName}_${tName}`)) return true;
       if (sName && tName && studentSolvedSet.has(`subj_test_${sName}_${tName}`)) return true;
       if (sName && tName && studentSolvedSet.has(`title_${sName}_${tName}`)) return true;
     }
 
     const itemFullNorm = normalizeKey(item.title || item.testName);
-    if (!isGeneric && itemFullNorm && itemFullNorm.length >= 8) {
+    if (!isGeneric && itemFullNorm && itemFullNorm.length >= 10) {
       if (sName) {
         if (studentSolvedSet.has(`title_${sName}_${itemFullNorm}`)) return true;
         if (studentSolvedSet.has(`title_genel_${itemFullNorm}`)) return true;
@@ -2540,27 +2533,44 @@ export default function StudentDashboard() {
         .replace(/\s*\(tüm kitap\)/gi, '')
         .trim();
 
-      const uTopic = String(it.unitTopic || '')
+      const uTopic = String(it.unitTopic || it.topicName || it.topic || '')
         .toLocaleLowerCase('tr')
         .trim();
+
+      const sSubj = String(it.subject || it.subjectName || '')
+        .toLocaleLowerCase('tr')
+        .trim();
+
+      const pageStr = String(it.page || it.pageRange || (it.startPage && it.endPage ? `${it.startPage}-${it.endPage}` : it.startPage || '') || '')
+        .toLocaleLowerCase('tr')
+        .replace(/[^0-9-]/g, '');
 
       const normT = tName.replace(/[^a-z0-9ğüşıöç]/gi, '');
       const normB = bTitle.replace(/[^a-z0-9ğüşıöç]/gi, '');
       const normU = uTopic.replace(/[^a-z0-9ğüşıöç]/gi, '');
+      const normS = sSubj.replace(/[^a-z0-9ğüşıöç]/gi, '');
 
       // Check if it's an exam / deneme
       const isExam = it.isExamTask || it.categoryType === 'deneme' || it.type === 'physicalExam' || /deneme/i.test(tName);
       if (isExam && normT.length >= 3) {
         keys.push(`exam:${normT}`);
-        keys.push(`title:${normT}`);
       }
+
+      const isGeneric = /^((test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|etkinlik|alismalar|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test|problemsayfasi|paragraftest|konutesti)$/i.test(normT);
 
       if (normT.length >= 3) {
         if (normB) {
-          keys.push(`book_test:${normB}_${normT}`);
-          if (normU) keys.push(`book_unit_test:${normB}_${normU}_${normT}`);
-        } else {
-          keys.push(`title:${normT}`);
+          if (pageStr) {
+            keys.push(`book_page_test:${normB}_${normS}_${pageStr}_${normT}`);
+          }
+          if (normU) {
+            keys.push(`book_unit_test:${normB}_${normS}_${normU}_${normT}`);
+          }
+          if (!isGeneric && !pageStr && !normU) {
+            keys.push(`book_test:${normB}_${normS}_${normT}`);
+          }
+        } else if (!isGeneric) {
+          keys.push(`title:${normS}_${normT}`);
         }
       }
 
