@@ -243,6 +243,14 @@ export default function StatisticsDashboard() {
     });
   }, [allTeacherStudents, selectedGradeFilter, curriculumData]);
 
+  const selectedGradeLabel = useMemo(() => {
+    if (selectedGradeFilter === 'ALL') return 'Tüm Sınıflar';
+    const found = curriculumData.grades?.find(g => String(g.id) === String(selectedGradeFilter) || g.name === selectedGradeFilter);
+    if (found?.name) return found.name;
+    if (String(selectedGradeFilter).startsWith('g_')) return 'Sınıf';
+    return String(selectedGradeFilter).includes('Sınıf') ? selectedGradeFilter : `${selectedGradeFilter}. Sınıf`;
+  }, [selectedGradeFilter, curriculumData.grades]);
+
   const studentIdsSet = useMemo(() => new Set(filteredStudents.map(s => String(s.id))), [filteredStudents]);
 
   // 3. Tarih Filtresi Kontrolü
@@ -328,8 +336,16 @@ export default function StatisticsDashboard() {
       const uniqueBooksRead = new Set(stdBookTests.map(b => b.bookTitle || b.bookId)).size;
 
       let gradeName = std.className || std.grade || 'Sınıfsız';
-      const matched = (curriculumData?.grades || []).find(g => String(g.id) === String(std.gradeId) || g.name === std.gradeId || g.name === std.grade || g.name === std.className);
+      const matched = (curriculumData?.grades || []).find(g => 
+        String(g.id) === String(std.gradeId) || 
+        String(g.id) === String(std.className) || 
+        String(g.id) === String(std.grade) || 
+        g.name === std.gradeId || 
+        g.name === std.grade || 
+        g.name === std.className
+      );
       if (matched) gradeName = matched.name;
+      else if (String(gradeName).startsWith('g_')) gradeName = 'Sınıfsız';
 
       return {
         ...std,
@@ -688,11 +704,23 @@ export default function StatisticsDashboard() {
               }}
             >
               <option value="">👤 Öğrenci Seç & Detaylı Karnesini Gör...</option>
-              {allTeacherStudents.map(st => (
-                <option key={st.id} value={st.id}>
-                  {st.name} {st.className ? `(${st.className})` : st.grade ? `(${st.grade})` : ''}
-                </option>
-              ))}
+              {allTeacherStudents.map(st => {
+                const matchedGrade = (curriculumData?.grades || []).find(g => 
+                  String(g.id) === String(st.gradeId) || 
+                  String(g.id) === String(st.className) || 
+                  String(g.id) === String(st.grade) || 
+                  g.name === st.gradeId || 
+                  g.name === st.grade || 
+                  g.name === st.className
+                );
+                let gLabel = matchedGrade ? matchedGrade.name : (st.className || st.grade || '');
+                if (String(gLabel).startsWith('g_')) gLabel = '';
+                return (
+                  <option key={st.id} value={st.id}>
+                    {st.name} {gLabel ? `(${gLabel})` : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -910,7 +938,7 @@ export default function StatisticsDashboard() {
           icon={Users} 
           label="Öğrenci Sayısı" 
           value={`${classKPIs.totalStudents}`} 
-          sub={selectedGradeFilter === 'ALL' ? 'Tüm Sınıflar' : `${selectedGradeFilter}. Sınıf`} 
+          sub={selectedGradeLabel} 
           color="#0284c7" 
           bg="#f0f9ff" 
           border="#bae6fd" 

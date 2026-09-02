@@ -5147,7 +5147,7 @@ export default function QuestionBank() {
           onSaveQuestions={handleSaveSlicedQuestions}
           mode="general"
           subject={activeSubjectId || 'Matematik'}
-          grade={activeGradeId ? `${activeGradeId}. Sınıf` : '8. Sınıf'}
+          grade={activeGrade?.name || '8. Sınıf'}
         />
       )}
 
