@@ -2225,7 +2225,7 @@ export default function StudentDashboard() {
                   const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
 
                   const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
-                    autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (tidUuid && toUUID(a.testId) === tidUuid) || (a.testName === info.testName && a.subject === info.subjectName && a.bookTitle === info.cleanBookTitle));
+                    autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (tidUuid && toUUID(a.testId) === tidUuid));
 
                   if (!isAlreadyPresent) {
                     autoHwItems.push({
@@ -2397,17 +2397,7 @@ export default function StudentDashboard() {
             const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || (toUUID(sId) && toUUID(sId) === studentUuid);
             if (!isStudentMatch) return false;
 
-            const sTestId = String(s.testId || s.bookTestId || s.realTestId || s.id || '');
-            const isIdMatch = currentTestId && (sTestId === currentTestId || sTestId === currentTestUuid || (toUUID(sTestId) && toUUID(sTestId) === currentTestUuid));
-
-            const sSubject = String(s.subject || s.subjectName || '').toLowerCase().trim();
-            const isSubjectMatch = !itemSubject || !sSubject || itemSubject === sSubject || itemSubject.includes(sSubject) || sSubject.includes(itemSubject);
-
-            const sTopic = String(s.topicName || s.unitTopic || '').toLowerCase().trim();
-            const isTopicMatch = !itemTopic || !sTopic || itemTopic === sTopic || itemTopic.includes(sTopic) || sTopic.includes(itemTopic);
-
-            const isTitleMatch = currentTitle && String(s.title || s.testTitle || s.testName || '').toLowerCase().trim() === currentTitle && isSubjectMatch && isTopicMatch;
-            return isIdMatch || isTitleMatch;
+            return isSubmissionMatchingBookTest(s, item, bookTests, books);
           });
 
           const pastCount = matchingSubs.length;
