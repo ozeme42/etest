@@ -398,6 +398,7 @@ export default memo(function OpticalBubblePanel({
               return (
                 <div
                   key={qNo}
+                  onClick={() => onNavigateToQuestion && onNavigateToQuestion(activeSecIdx || 0, idx)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -406,14 +407,14 @@ export default memo(function OpticalBubblePanel({
                     borderRadius: '0.65rem',
                     background: rowBg,
                     border: rowBorder,
+                    cursor: onNavigateToQuestion ? 'pointer' : 'default',
                     transition: 'all 0.15s ease'
                   }}
+                  title={onNavigateToQuestion ? `${qNo}. soruyu açmak için tıklayın` : undefined}
                 >
                   {/* Question Number & Status Badge */}
                   <div
-                    onClick={() => onNavigateToQuestion && onNavigateToQuestion(activeSecIdx || 0, idx)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: onNavigateToQuestion ? 'pointer' : 'default' }}
-                    title={onNavigateToQuestion ? "Bu soruyu ekrana getir" : undefined}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
                   >
                     <span style={{
                       fontSize: isMobile ? '0.8rem' : '0.85rem',

@@ -339,48 +339,56 @@ export default function RemedialQuizReview({
         }
 
         if (isCurrent) {
-          rowBorder = '1.5px solid #6366f1';
+          rowBorder = '2px solid #6366f1';
+          rowBg = isDark ? 'rgba(99,102,241,0.18)' : 'rgba(99,102,241,0.1)';
         }
 
         return (
           <div
             key={qNo}
+            onClick={() => {
+              setActiveQIdx(idx);
+              if (isMobile) setIsMobileOpticalOpen(false);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '0.4rem 0.65rem',
-              borderRadius: '0.65rem',
+              padding: '0.45rem 0.75rem',
+              borderRadius: '0.75rem',
               background: rowBg,
               border: rowBorder,
-              transition: 'all 0.15s ease'
+              cursor: 'pointer',
+              boxShadow: isCurrent ? '0 0 0 1px #6366f1, 0 4px 14px rgba(99,102,241,0.2)' : 'none',
+              transform: isCurrent ? 'scale(1.01)' : 'none',
+              transition: 'all 0.15s ease',
+              userSelect: 'none'
             }}
+            title={`${qNo}. soruyu açmak için tıklayın`}
           >
             {/* Number & Status */}
-            <div
-              onClick={() => {
-                setActiveQIdx(idx);
-                if (isMobile) setIsMobileOpticalOpen(false);
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}
-              title="Bu soruyu sol ekranda göster"
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
               <span style={{
-                fontSize: '0.84rem',
+                fontSize: '0.86rem',
                 fontWeight: 900,
                 color: isCurrent ? '#6366f1' : (q.isCorrect ? '#16a34a' : (q.isBlank ? 'var(--color-text-muted)' : '#dc2626')),
-                minWidth: '22px'
+                minWidth: '24px'
               }}>
                 {qNo}.
               </span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>
-                {q.isBlank ? (
-                  <span style={{ color: 'var(--color-text-muted)' }}>Boş</span>
-                ) : q.isCorrect ? (
-                  <span style={{ color: '#16a34a' }}>✓</span>
-                ) : (
-                  <span style={{ color: '#dc2626' }}>✗</span>
-                )}
+              <span style={{
+                fontSize: '0.74rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                background: q.isBlank ? 'transparent' : (q.isCorrect ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'),
+                color: q.isBlank ? 'var(--color-text-muted)' : (q.isCorrect ? '#16a34a' : '#dc2626')
+              }}>
+                {q.isBlank ? '—' : (q.isCorrect ? '✓' : '✗')}
               </span>
             </div>
 
@@ -411,13 +419,8 @@ export default function RemedialQuizReview({
                 }
 
                 return (
-                  <button
+                  <div
                     key={letter}
-                    type="button"
-                    onClick={() => {
-                      setActiveQIdx(idx);
-                      if (isMobile) setIsMobileOpticalOpen(false);
-                    }}
                     style={{
                       width: '28px',
                       height: '28px',
@@ -430,12 +433,12 @@ export default function RemedialQuizReview({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: 'pointer',
+                      pointerEvents: 'none',
                       transition: 'all 0.12s ease'
                     }}
                   >
                     {letter}
-                  </button>
+                  </div>
                 );
               })}
             </div>
