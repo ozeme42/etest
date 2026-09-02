@@ -18,17 +18,24 @@ export function useEvaluation() {
 
 const DEFAULT_SAMPLE_SUBMISSIONS = [];
 
+const isSubmissionId = (s) => {
+  if (!s) return false;
+  const str = String(s);
+  if (str.startsWith('tbt_') || str.startsWith('bt_') || str.startsWith('q_') || str.startsWith('hw_')) return false;
+  if (str.startsWith('7462745f') || str.startsWith('68775f')) return false;
+  return str.startsWith('sub_') || str.startsWith('7375625f');
+};
+
 const getDeletedIds = () => {
   try {
     const saved = localStorage.getItem('eTestDeletedSubmissions');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        // 🛡️ Sadece gerçek silinmiş submission oturum ID'leri tutulur; test ID'leri (tbt_..., bt_..., q_...) ASLA deleted listesinde kalamaz!
-        const cleanList = parsed.filter(id => {
-          const s = String(id || '');
-          return (s.startsWith('sub_') || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) && !s.startsWith('tbt_') && !s.startsWith('bt_') && !s.startsWith('q_');
-        });
+        const cleanList = parsed.filter(isSubmissionId);
+        if (cleanList.length !== parsed.length) {
+          localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(cleanList));
+        }
         return new Set(cleanList);
       }
     }
@@ -40,10 +47,8 @@ const markIdsAsDeleted = (ids) => {
   try {
     const current = getDeletedIds();
     (ids || []).forEach(id => {
-      const s = String(id || '');
-      // Sadece tekil oturum ID'lerini kaydet, test ID'lerini kaydetme
-      if (s && (s.startsWith('sub_') || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(s)) && !s.startsWith('tbt_') && !s.startsWith('bt_') && !s.startsWith('q_')) {
-        current.add(s);
+      if (isSubmissionId(id)) {
+        current.add(String(id));
       }
     });
     const arr = Array.from(current).slice(-500);
@@ -134,7 +139,7 @@ export function EvaluationProvider({ children }) {
   const [isSyncing, setIsSyncing] = useState(true);
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
-    if (!force && isCacheValid('submissions', 15) && (submissions || []).length > 0) {
+    if (!force && isCacheValid('submissions', 2) && (submissions || []).length > 0) {
       if (showLoading) setIsSyncing(false);
       return;
     }
@@ -159,10 +164,8 @@ export function EvaluationProvider({ children }) {
           if (!s) return false;
           const sId = String(s.id || '');
           const suId = String(s.supabaseId || '');
-          const sTestId = String(s.test_id || s.testId || '');
 
           if (currentDeletedIds.has(sId) || (suId && currentDeletedIds.has(suId))) return false;
-          if (sTestId && currentDeletedIds.has(sTestId)) return false;
           return true;
         });
 
@@ -221,7 +224,7 @@ export function EvaluationProvider({ children }) {
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      syncFromSupabase(false, false);
+      syncFromSupabase(false, true);
     } else {
       setIsSyncing(false);
     }
@@ -527,11 +530,11 @@ export function EvaluationProvider({ children }) {
     const idsToDelete = [String(id)];
     if (target?.id) idsToDelete.push(String(target.id));
     if (target?.supabaseId) idsToDelete.push(String(target.supabaseId));
-    if (target?.testId) idsToDelete.push(String(target.testId));
-    if (target?.bookTestId) idsToDelete.push(String(target.bookTestId));
 
     markIdsAsDeleted(idsToDelete);
-    idsToDelete.forEach(tid => purgeTestCache(tid, target?.studentId));
+    if (target?.testId) purgeTestCache(target.testId, target?.studentId);
+    if (target?.bookTestId) purgeTestCache(target.bookTestId, target?.studentId);
+    purgeTestCache(id, target?.studentId);
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !idsToDelete.includes(String(s.id)) && !idsToDelete.includes(String(s.supabaseId)));

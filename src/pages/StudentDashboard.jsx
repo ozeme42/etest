@@ -28,7 +28,7 @@ import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
-import { toUUID } from '../services/supabaseService';
+import { toUUID, isValidUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
 import { checkHasItemBeenAttempted } from '../components/ProgramCenter';
 import ManualTestModal from '../components/ManualTestModal';
@@ -610,14 +610,14 @@ export default function StudentDashboard() {
     const list = (submissions || []).filter(isMatch);
     // O(1) Set yerine O(N) list.some() — büyük veri setlerinde kritik fark
     const seenIds = new Set(list.map(x => x.id).filter(Boolean));
-    const seenTestIds = new Set(list.map(x => x.test_id).filter(Boolean));
+    const seenTestIds = new Set(list.map(x => x.testId || x.test_id || x.bookTestId).filter(Boolean));
 
     (homeworks || []).forEach(hw => {
       const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
       (hwSubs || []).forEach(sub => {
         if (sub && isMatch(sub)) {
-          const subId = sub.id;
-          const subTestId = sub.testId || sub.bookTestId;
+          const subId = sub.id || sub.supabaseId;
+          const subTestId = sub.testId || sub.test_id || sub.bookTestId;
           if ((!subId || !seenIds.has(subId)) && (!subTestId || !seenTestIds.has(subTestId))) {
             list.push(sub);
             if (subId) seenIds.add(subId);
@@ -892,11 +892,12 @@ export default function StudentDashboard() {
 
       const hwIdStr = String(hw?.id || '');
       const cleanHwId = hwIdStr.replace(/^hw_/, '');
-      const sHwId = String(s.hwId || s.homeworkId || '');
-      const sTestId = String(s.testId || '');
+      const hwUuid = toUUID(hw?.id) || '';
+      const sHwId = String(s.hwId || s.homeworkId || s.homework_id || s.metadata?.hwId || s.metadata?.homeworkId || '');
+      const sTestId = String(s.testId || s.test_id || s.metadata?.testId || '');
       const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
       const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
-      const sId = String(s.id || '');
+      const sId = String(s.id || s.supabaseId || '');
 
       if (specificTestId) {
         const specStr = String(specificTestId);
@@ -910,9 +911,9 @@ export default function StudentDashboard() {
       }
 
       // 1. Direct ID match
-      if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || sHwId.replace(/^hw_/, '') === cleanHwId)) return true;
-      if (sTestId && (sTestId === hwIdStr || sTestId === cleanHwId || sTestId.replace(/^hw_/, '') === cleanHwId || sTestId.replace(/^q_/, '') === cleanHwId)) return true;
-      if (sId && (sId === hwIdStr || sId === cleanHwId)) return true;
+      if (sHwId && (sHwId === hwIdStr || sHwId === cleanHwId || sHwId.replace(/^hw_/, '') === cleanHwId || (hwUuid && (sHwId === hwUuid || toUUID(sHwId) === hwUuid)))) return true;
+      if (sTestId && (sTestId === hwIdStr || sTestId === cleanHwId || sTestId.replace(/^hw_/, '') === cleanHwId || sTestId.replace(/^q_/, '') === cleanHwId || (hwUuid && (sTestId === hwUuid || toUUID(sTestId) === hwUuid)))) return true;
+      if (sId && (sId === hwIdStr || sId === cleanHwId || (hwUuid && sId === hwUuid))) return true;
 
       // 2. Question IDs / Sections / Tests match
       const qIds = [
@@ -939,12 +940,26 @@ export default function StudentDashboard() {
     const subByHwId = new Map();
     (studentSubmissions || []).forEach(s => {
       if (!s || s.status === 'in_progress' || s.status === 'draft') return;
-      if (s.hwId) { subByHwId.set(String(s.hwId), s); subByHwId.set(String(s.hwId).replace(/^hw_/, ''), s); }
-      if (s.homeworkId) { subByHwId.set(String(s.homeworkId), s); subByHwId.set(String(s.homeworkId).replace(/^hw_/, ''), s); }
-      if (s.testId) { subByHwId.set(String(s.testId), s); subByHwId.set(String(s.testId).replace(/^q_/, ''), s); }
+      const sHw = s.hwId || s.homeworkId || s.homework_id;
+      const sTest = s.testId || s.test_id;
+      if (sHw) {
+        const shStr = String(sHw);
+        subByHwId.set(shStr, s);
+        subByHwId.set(shStr.replace(/^hw_/, ''), s);
+        const u = toUUID(shStr);
+        if (u) subByHwId.set(u, s);
+      }
+      if (sTest) {
+        const stStr = String(sTest);
+        subByHwId.set(stStr, s);
+        subByHwId.set(stStr.replace(/^bt_/, '').replace(/^q_/, ''), s);
+        const u = toUUID(stStr);
+        if (u) subByHwId.set(u, s);
+      }
       if (s.realTestId) subByHwId.set(String(s.realTestId), s);
       if (s.bookTestId) subByHwId.set(String(s.bookTestId), s);
       if (s.id) subByHwId.set(String(s.id), s);
+      if (s.supabaseId) subByHwId.set(String(s.supabaseId), s);
     });
 
     const hwTests = (homeworks || []).filter(hw => {
@@ -1502,10 +1517,10 @@ export default function StudentDashboard() {
         const topId = String(bt.topic_id || bt.topicId || '');
         for (const s of currentBook.subjects) {
           if (!s || s.__meta || !s.name) continue;
-          if (sId && (String(s.id) === sId || (toUUID(s.id) && toUUID(sId) && toUUID(s.id) === toUUID(sId)))) {
+          if (sId && (String(s.id) === sId || ((isValidUUID(s.id) || isValidUUID(sId)) && toUUID(s.id) === toUUID(sId)))) {
             subjObj = s;
             if (topId && s.topics) {
-              topicObj = s.topics.find(tp => String(tp.id) === topId || (toUUID(tp.id) && toUUID(topId) && toUUID(tp.id) === toUUID(topId))) || null;
+              topicObj = s.topics.find(tp => String(tp.id) === topId || ((isValidUUID(tp.id) || isValidUUID(topId)) && toUUID(tp.id) === toUUID(topId))) || null;
             }
             break;
           }
@@ -1565,12 +1580,12 @@ export default function StudentDashboard() {
 
         for (const s of b.subjects) {
           if (!s || s.__meta || !s.name) continue;
-          const isMatchSubj = tSubjectId && (String(s.id) === tSubjectId || (toUUID(s.id) && toUUID(tSubjectId) && toUUID(s.id) === toUUID(tSubjectId)) || (s.name && (tObj?.subjectName || tObj?.subject) && String(s.name).toLowerCase().trim() === String(tObj?.subjectName || tObj?.subject).toLowerCase().trim()));
+          const isMatchSubj = tSubjectId && (String(s.id) === tSubjectId || ((isValidUUID(s.id) || isValidUUID(tSubjectId)) && toUUID(s.id) === toUUID(tSubjectId)) || (s.name && (tObj?.subjectName || tObj?.subject) && String(s.name).toLowerCase().trim() === String(tObj?.subjectName || tObj?.subject).toLowerCase().trim()));
           if (isMatchSubj) {
             subjObj = s;
             if (!currentBook) currentBook = b;
             for (const tp of (s.topics || [])) {
-              if (tTopicId && (String(tp.id) === tTopicId || (toUUID(tp.id) && toUUID(tTopicId) && toUUID(tp.id) === toUUID(tTopicId)) || (tp.name && (tObj?.topicName || tObj?.topic) && String(tp.name).toLowerCase().trim() === String(tObj?.topicName || tObj?.topic).toLowerCase().trim()))) {
+              if (tTopicId && (String(tp.id) === tTopicId || ((isValidUUID(tp.id) || isValidUUID(tTopicId)) && toUUID(tp.id) === toUUID(tTopicId)) || (tp.name && (tObj?.topicName || tObj?.topic) && String(tp.name).toLowerCase().trim() === String(tObj?.topicName || tObj?.topic).toLowerCase().trim()))) {
                 topicObj = tp;
                 break;
               }
@@ -2196,7 +2211,12 @@ export default function StudentDashboard() {
                   return false;
                 })();
 
-                const isTestSolved = tidSolvedCheck || isItemSolved(testItemObj);
+                const isTestSolved = tidSolvedCheck || isItemSolved(testItemObj) || (studentSubmissions || []).some(s => {
+                  if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+                  const sTid = String(s.testId || s.test_id || s.bookTestId || s.realTestId || '');
+                  const sClean = sTid.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+                  return sTid === tidStr || sClean === tCleanId || (tidUuid && (sTid === tidUuid || toUUID(sTid) === tidUuid));
+                });
                 const autoId = `auto_hw_${hw.id}_${tCleanId}_${dayYMD}`;
 
                 const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testId || m.testId === tCleanId))) ||
