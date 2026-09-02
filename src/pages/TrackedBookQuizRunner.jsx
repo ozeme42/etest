@@ -495,10 +495,14 @@ export default function TrackedBookQuizRunner() {
       let isWrong = false;
       let isPending = false;
 
+      const isKeyNonLetter = rawCorrectKey !== '' && rawCorrectKey !== null && !/^[A-Ea-e]$/.test(String(rawCorrectKey).trim());
+      const isAnsNonLetter = rawUserAns !== '' && rawUserAns !== null && !/^[A-Ea-e]$/.test(String(rawUserAns).trim());
+      const isQuestionOE = testIsOpenEnded || isKeyNonLetter || isAnsNonLetter;
+
       if (!rawUserAns && rawUserAns !== 0) {
         blank++;
-      } else if (testIsOpenEnded) {
-        // Açık uçlu mod: esnek sayısal/sembolik/metin karşılaştırma (30°, 30 derece, 30 cm, 30 TL vb. hepsi 30 ile eşleşir)
+      } else if (isQuestionOE) {
+        // Açık uçlu mod: esnek sayısal/sembolik/metin karşılaştırma (30°, 30 derece, 30 cm, 11 kg 500 gr, 11 500 vb.)
         if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
           const isMatch = compareOpenEndedAnswers(rawUserAns, rawCorrectKey);
           if (isMatch === true) {
@@ -538,8 +542,8 @@ export default function TrackedBookQuizRunner() {
 
       detailed.push({
         questionNo: i,
-        userAnswer: testIsOpenEnded ? String(rawUserAns || '') : toLetter(rawUserAns),
-        correctAnswer: testIsOpenEnded ? String(rawCorrectKey || '') : toLetter(rawCorrectKey),
+        userAnswer: isQuestionOE ? String(rawUserAns || '') : toLetter(rawUserAns),
+        correctAnswer: isQuestionOE ? String(rawCorrectKey || '') : toLetter(rawCorrectKey),
         isCorrect,
         isWrong,
         isBlank: !rawUserAns && rawUserAns !== 0,

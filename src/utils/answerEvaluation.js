@@ -54,14 +54,14 @@ export function cleanMathAndUnitString(str) {
   s = s.replace(/%|yüzde/gi, '');
 
   // 6. Remove currency units
-  s = s.replace(/tl|₺|lira|kuruş|kr\b/gi, '');
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(tl|₺|lira|türk lirası|kuruş|kurus|kr)\b/gi, '');
 
-  // 7. Remove common units of measurement
-  s = s.replace(/\b(cm2|cm\^2|cm3|cm\^3|cm|m2|m\^2|m3|m\^3|m|km2|km\^2|km|mm|santimetre|santimetrekare|metre|metrekare|kilometre|milimetre)\b/gi, '');
-  s = s.replace(/\b(kg|kilogram|kilo|gram|gr|g|mg|ton|miligram)\b/gi, '');
-  s = s.replace(/\b(litre|lt|l|mililitre|ml)\b/gi, '');
-  s = s.replace(/\b(saat|sa|dakika|dk|saniye|sn|gun|gün|hafta|ay|yıl|yil)\b/gi, '');
-  s = s.replace(/\b(adet|tane|kisi|kişi|katı|kati|kat)\b/gi, '');
+  // 7. Remove common units of measurement (handles both with space and attached e.g. 11kg, 500gr, 25cm)
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(cm2|cm\^2|cm3|cm\^3|cm|m2|m\^2|m3|m\^3|m|km2|km\^2|km|mm|santimetre|santimetrekare|metre|metrekare|kilometre|milimetre|desimetre|dm)\b/gi, '');
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(kg|kilogram|kilo|gram|gr|g|mg|ton|miligram)\b/gi, '');
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(litre|lt|l|mililitre|ml|cl|dl)\b/gi, '');
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(saat|sa|dakika|dk|saniye|sn|gun|gün|hafta|ay|yıl|yil)\b/gi, '');
+  s = s.replace(/(?:^|\b|(?<=\d|\s))(adet|tane|kisi|kişi|katı|kati|kat)\b/gi, '');
 
   // 8. Remove decorative quotes, brackets, trailing punctuation
   s = s.replace(/['"`()[\]{}.,;:]+$/g, '');
@@ -71,6 +71,147 @@ export function cleanMathAndUnitString(str) {
   s = s.replace(/\s+/g, '');
 
   return s;
+}
+
+const COMMON_UNITS_REGEX = /(?:^|\b|(?<=\d|\s))(?:cm2|cm\^2|cm3|cm\^3|cm|m2|m\^2|m3|m\^3|m|km2|km\^2|km|mm|santimetre|santimetrekare|metre|metrekare|kilometre|milimetre|desimetre|dm|kg|kilogram|kilo|gram|gr|g|mg|ton|miligram|litre|lt|l|mililitre|ml|cl|dl|saat|sa|dakika|dk|saniye|sn|gun|gün|hafta|ay|yıl|yil|adet|tane|kisi|kişi|katı|kati|kat|tl|₺|lira|türk lirası|kurus|kuruş|kr|derece|°c|°|º|santigrat|celcius|yuzde|yüzde|%)(?:$|\b|(?=\d|\s|[.,;:()]))/gi;
+
+/**
+ * Checks if a string is primarily a numerical or measurement answer
+ * (e.g. "11 kg 500 gr", "35 cm", "11 500", "11500", "2 saat 15 dk").
+ */
+export function isNumericalMeasurementString(str) {
+  if (!str || !/\d/.test(str)) return false;
+  let norm = normalizeTurkishText(str);
+  norm = norm.replace(/[\u2212\u2013\u2014-]/g, ' ');
+  norm = norm.replace(/[.,;:()'"/\\#$%=+*?]/g, ' ');
+  norm = norm.replace(/\d+/g, ' ');
+  norm = norm.replace(COMMON_UNITS_REGEX, ' ');
+  norm = norm.replace(/\b(ve|ile|nokta|virgul|virgül|bucuk|buçuk|yarim|yarım)\b/gi, ' ');
+  const remaining = norm.replace(/[^a-zçğıöşü]/gi, '').trim();
+  return remaining.length <= 2;
+}
+
+/**
+ * Extracts digit chunks, concatenated digits, negative sign, and decimal floats.
+ */
+function extractDigitsAndTokens(str) {
+  if (!str) return { digits: '', tokens: [], isNegative: false, floatVal: null };
+  const s = String(str).trim();
+  const isNegative = /(?:^|\s)[\u2212\u2013\u2014-]\s*\d/.test(s);
+  
+  const tokens = s.match(/\d+/g) || [];
+  const digits = tokens.join('');
+  
+  let floatVal = null;
+  const decMatch = s.match(/(?:^|\s)(-?\d+)[.,](\d+)(?:$|\s|[a-zA-Z])/);
+  if (decMatch) {
+    floatVal = parseFloat(decMatch[1] + '.' + decMatch[2]);
+  } else if (tokens.length === 1) {
+    floatVal = parseFloat((isNegative ? '-' : '') + tokens[0]);
+  }
+
+  return { digits, tokens, isNegative, floatVal };
+}
+
+/**
+ * Compares numerical & measurement answers flexibly:
+ * Focuses on the numbers matching, whether entered with or without spaces,
+ * with or without units, and ignoring spelling variations in units
+ * (e.g. "11 kg 500 gr" matches "11 500", "11500", "11kg 500gr", "11.5 kg", "11500 gr").
+ */
+export function compareNumericalOpenEnded(rawU, rawK) {
+  if (!rawU || !rawK) return false;
+  if (!/\d/.test(rawK) || !/\d/.test(rawU)) return false;
+
+  const dataU = extractDigitsAndTokens(rawU);
+  const dataK = extractDigitsAndTokens(rawK);
+
+  // Sign check: if one is negative and other is positive, cannot match
+  if (dataU.isNegative !== dataK.isNegative) return false;
+
+  // 1. Exact tokens match: e.g. ["11", "500"] === ["11", "500"]
+  // (handles "11 500" vs "11 kg 500 gr", "11kg 500gr", "11 k 500 g", "11 klg 500 grm")
+  if (dataU.tokens.length > 0 && dataU.tokens.length === dataK.tokens.length) {
+    const allTokensMatch = dataU.tokens.every((t, i) => Number(t) === Number(dataK.tokens[i]));
+    if (allTokensMatch) return true;
+  }
+
+  // 2. Concatenated digits match: e.g. "11500" === "11500"
+  // (handles "11500" vs "11 kg 500 gr", "11 500" vs "11500", "11kg500gr" vs "11 500")
+  if (dataU.digits && dataK.digits && dataU.digits === dataK.digits) {
+    return true;
+  }
+
+  // 3. Float equality (e.g. 3.5 cm vs 3,5)
+  if (dataU.floatVal !== null && dataK.floatVal !== null && !isNaN(dataU.floatVal) && !isNaN(dataK.floatVal)) {
+    if (Math.abs(dataU.floatVal - dataK.floatVal) < 0.00001) return true;
+  }
+
+  // 4. Metric / time / currency unit conversion for dual-unit answers (e.g. 11 kg 500 gr vs 11.5 kg / 11500 gr)
+  const normK = normalizeTurkishText(rawK);
+  if (dataK.tokens.length === 2) {
+    const [t1, t2] = dataK.tokens.map(Number);
+    let baseK = null;
+    let majorK = null;
+    if (/kg|kilogram|kilo/.test(normK) && /gr|gram|g\b/.test(normK)) {
+      baseK = t1 * 1000 + t2; // 11500
+      majorK = t1 + t2 / 1000; // 11.5
+    } else if (/\bm\b|metre/.test(normK) && /cm|santim/.test(normK)) {
+      baseK = t1 * 100 + t2;
+      majorK = t1 + t2 / 100;
+    } else if (/km|kilometre/.test(normK) && /\bm\b|metre/.test(normK)) {
+      baseK = t1 * 1000 + t2;
+      majorK = t1 + t2 / 1000;
+    } else if (/tl|lira/.test(normK) && /kr|kuruş/.test(normK)) {
+      baseK = t1 * 100 + t2;
+      majorK = t1 + t2 / 100;
+    } else if (/saat|sa\b/.test(normK) && /dk|dakika/.test(normK)) {
+      baseK = t1 * 60 + t2;
+    } else if (/lt|litre/.test(normK) && /ml|mililitre/.test(normK)) {
+      baseK = t1 * 1000 + t2;
+      majorK = t1 + t2 / 1000;
+    } else if (/ton/.test(normK) && /kg|kilo/.test(normK)) {
+      baseK = t1 * 1000 + t2;
+      majorK = t1 + t2 / 1000;
+    }
+
+    if (baseK !== null && dataU.digits === String(baseK)) return true;
+    if (majorK !== null && dataU.floatVal !== null && Math.abs(dataU.floatVal - majorK) < 0.00001) return true;
+  }
+
+  // Reverse check if student entered dual-unit and key was numeric base (e.g. key: "11500", student: "11 kg 500 gr")
+  const normU = normalizeTurkishText(rawU);
+  if (dataU.tokens.length === 2 && dataK.tokens.length === 1) {
+    const [u1, u2] = dataU.tokens.map(Number);
+    let baseU = null;
+    let majorU = null;
+    if (/kg|kilogram|kilo/.test(normU) && /gr|gram|g\b/.test(normU)) {
+      baseU = u1 * 1000 + u2;
+      majorU = u1 + u2 / 1000;
+    } else if (/\bm\b|metre/.test(normU) && /cm|santim/.test(normU)) {
+      baseU = u1 * 100 + u2;
+      majorU = u1 + u2 / 100;
+    } else if (/km|kilometre/.test(normU) && /\bm\b|metre/.test(normU)) {
+      baseU = u1 * 1000 + u2;
+      majorU = u1 + u2 / 1000;
+    } else if (/tl|lira/.test(normU) && /kr|kuruş/.test(normU)) {
+      baseU = u1 * 100 + u2;
+      majorU = u1 + u2 / 100;
+    } else if (/saat|sa\b/.test(normU) && /dk|dakika/.test(normU)) {
+      baseU = u1 * 60 + u2;
+    } else if (/lt|litre/.test(normU) && /ml|mililitre/.test(normU)) {
+      baseU = u1 * 1000 + u2;
+      majorU = u1 + u2 / 1000;
+    } else if (/ton/.test(normU) && /kg|kilo/.test(normU)) {
+      baseU = u1 * 1000 + u2;
+      majorU = u1 + u2 / 1000;
+    }
+
+    if (baseU !== null && dataK.digits === String(baseU)) return true;
+    if (majorU !== null && dataK.floatVal !== null && Math.abs(dataK.floatVal - majorU) < 0.00001) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -109,23 +250,31 @@ export function compareOpenEndedAnswers(userAns, correctKey) {
     }
   }
 
-  // 3. Text match ignoring common punctuation and extra whitespace
+  // 3. Numerical & measurement flexible comparison (numbers-only, spaces/no-spaces, units ignored)
+  // e.g. "11 kg 500 gr" vs "11 500", "11500", "11kg 500gr", "11.500", "11.5 kg"
+  if (isNumericalMeasurementString(rawK) || isNumericalMeasurementString(rawU)) {
+    if (compareNumericalOpenEnded(rawU, rawK)) {
+      return true;
+    }
+  }
+
+  // 4. Text match ignoring common punctuation and extra whitespace
   const cleanTextU = normU.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'<>]/g, ' ').replace(/\s+/g, ' ').trim();
   const cleanTextK = normK.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'<>]/g, ' ').replace(/\s+/g, ' ').trim();
   if (cleanTextU && cleanTextK && cleanTextU === cleanTextK) return true;
 
-  // 4. Forgiving match without Turkish diacritics (e.g. "çiçek" === "cicek", "gözlem" === "gozlem")
+  // 5. Forgiving match without Turkish diacritics (e.g. "çiçek" === "cicek", "gözlem" === "gozlem")
   if (cleanTextU && cleanTextK && stripTurkishDiacritics(cleanTextU) === stripTurkishDiacritics(cleanTextK)) {
     return true;
   }
 
-  // 5. Cleaned unit/math normalization (e.g. "30 cm" === "30", "%25" === "25")
+  // 6. Cleaned unit/math normalization (e.g. "30 cm" === "30", "%25" === "25")
   const cleanU = cleanMathAndUnitString(rawU);
   const cleanK = cleanMathAndUnitString(rawK);
 
   if (cleanU && cleanK && cleanU === cleanK) return true;
 
-  // 6. Numeric float equality (e.g. 30.0 === 30, 3.5 === 3.50, -5 === -5)
+  // 7. Numeric float equality (e.g. 30.0 === 30, 3.5 === 3.50, -5 === -5)
   const numU = Number(cleanU);
   const numK = Number(cleanK);
   if (!isNaN(numU) && !isNaN(numK) && Math.abs(numU - numK) < 0.00001) {

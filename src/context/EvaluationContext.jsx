@@ -918,9 +918,13 @@ export function EvaluationProvider({ children }) {
           let isWrong = false;
           let isPending = false;
 
+          const isKeyNonOption = rawCorrectKey !== '' && rawCorrectKey !== null && !/^[A-Ea-e]$/.test(String(rawCorrectKey).trim());
+          const isAnsNonOption = rawUserAns !== '' && rawUserAns !== null && !/^[A-Ea-e]$/.test(String(rawUserAns).trim());
+          const isQuestionOE = isOpenEnded || sub.isOpenEnded || sub.questionType === 'acik_uclu' || isKeyNonOption || isAnsNonOption;
+
           if (!rawUserAns && rawUserAns !== 0) {
             blank++;
-          } else if (isOpenEnded || sub.isOpenEnded || sub.questionType === 'acik_uclu') {
+          } else if (isQuestionOE) {
             if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
               const isMatch = compareOpenEndedAnswers(rawUserAns, rawCorrectKey);
               if (isMatch === true) {
