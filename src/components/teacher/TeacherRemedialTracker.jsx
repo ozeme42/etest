@@ -264,12 +264,12 @@ function InteractiveRepetitionCalendar({
 
               {cell.isSelected && (
                 <span style={{
-                  fontSize: '0.6rem',
+                  fontSize: '0.56rem',
                   fontWeight: 900,
                   opacity: 0.95,
                   lineHeight: 1
                 }}>
-                  {cell.stage}. Tekrar {cell.days === 0 ? '(Bugün)' : ''}
+                  {cell.stage}. Tekrar {cell.days === 0 ? '(Bugün)' : `(+${cell.days}g)`}
                 </span>
               )}
 
@@ -304,14 +304,16 @@ function InteractiveRepetitionCalendar({
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: '#6366f1' }} />
-            <span>Başlangıç (Bugün)</span>
+            <span>Başlangıç</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} />
             <span>Tekrar Günü (Sıralı)</span>
           </div>
         </div>
-        <span style={{ color: '#10b981', fontWeight: 800 }}>💡 Başlangıç gününe tıklayarak 1. Tekrarı doğrudan bugüne ekleyebilirsiniz</span>
+        <span style={{ color: '#10b981', fontWeight: 800 }}>
+          💡 +15g, başlangıçtan 15 gün sonrasıdır (örn: 2 Eyl + 15g = 17 Eyl). İster takvime tıklayarak doğrudan gün seçin, ister şablon kullanın.
+        </span>
       </div>
     </div>
   );

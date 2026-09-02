@@ -187,7 +187,7 @@ export function getRemedialTestMasteryStatus(test, submissions = []) {
     latestWrong,
     latestBlank,
     submissions: testSubmissions,
-    intervals: test.repetitionIntervals || [1, 3, 7, 15],
+    intervals: test.repetitionIntervals || test.intervals || [0, 3, 7, 15],
     teacherAssigned: test.teacherAssigned || test.createdBy === 'teacher' || Boolean(test.assignedTeacherId)
   };
 }
