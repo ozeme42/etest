@@ -17,7 +17,8 @@ import {
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
-  Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard
+  Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard,
+  FileText, CheckSquare
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
@@ -1200,161 +1201,409 @@ export default function TrackedBookQuizRunner() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', width: '100%', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
       
       {/* ── HEADER ── */}
-      <header style={{ 
-        padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.25rem', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        background: 'var(--color-surface)', 
-        borderBottom: '1.5px solid var(--color-border)',
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 10,
-        flexShrink: 0,
-        gap: '0.5rem',
-        flexWrap: 'wrap',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-      }}>
-        {/* Left: Back + Book & Test Title */}
-        {saveToast && (
-          <div style={{
-            position: 'fixed',
-            top: 66,
-            right: 20,
-            background: '#0f172a',
-            color: '#ffffff',
-            padding: '0.55rem 1rem',
-            borderRadius: 10,
-            fontSize: '0.78rem',
-            fontWeight: 800,
-            zIndex: 999,
-            boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            animation: 'fadeIn 0.2s ease'
-          }}>
-            <Check size={14} color="#10b981" />
-            {saveToast}
-          </div>
-        )}
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <button 
-              onClick={handleGoBack}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              title="Geri Dön"
-            >
-              <ArrowLeft size={isMobile ? 18 : 22} />
-            </button>
-            <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              KİTAP TESTİ
-            </span>
-            <h2 style={{ 
-              color: 'var(--color-text)', 
-              fontSize: isMobile ? '0.9rem' : '1.05rem', 
-              fontWeight: 800, 
-              margin: 0, 
-              whiteSpace: 'nowrap', 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis' 
-            }}>
-              {resolvedBook?.title ? `${resolvedBook.title} — ` : ''}{resolvedTest.name}
-            </h2>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-            <span style={{ color: 'var(--color-text-muted)', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              <span>{resolvedSubject}</span>
-              {resolvedUnit && (
-                <span style={{ color: '#0284c7', fontWeight: 800, background: 'rgba(2,132,199,0.12)', padding: '0.08rem 0.45rem', borderRadius: 6, border: '1px solid rgba(2,132,199,0.25)' }}>
-                  📌 {resolvedUnit}
-                </span>
-              )}
-              <span>• {questionCount} Soru</span>
-            </span>
-            {!isSubmitted && (
-              <span style={{ color: '#16a34a', fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800 }}>
-                • Kodlanan: {answeredCount}/{questionCount} (%{progressPct})
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.35rem' : '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          
-          {/* Large Stylish Countdown Timer in Navbar */}
-          {!isSubmitted && !isTeacherReviewing && (
+      {isMobile ? (
+        /* ── MOBILE NATIVE APP BAR (Single-line Compact Header + Segmented View Tabs) ── */
+        <header style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          background: 'var(--color-surface, #ffffff)',
+          borderBottom: '1.5px solid var(--color-border)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          width: '100%',
+          flexShrink: 0
+        }}>
+          {saveToast && (
             <div style={{
-              padding: isMobile ? '0.35rem 0.75rem' : '0.4rem 1rem',
-              borderRadius: '0.75rem',
-              background: timeLeft < 300
-                ? '#fef2f2'
-                : 'var(--color-surface)',
-              border: timeLeft < 300 ? '1.5px solid #fecaca' : '1.5px solid var(--color-border)',
-              boxShadow: timeLeft < 300 ? '0 0 15px rgba(239, 68, 68, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+              position: 'fixed',
+              top: 56,
+              right: 12,
+              background: '#0f172a',
+              color: '#ffffff',
+              padding: '0.45rem 0.85rem',
+              borderRadius: 8,
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              zIndex: 999,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
               display: 'flex',
               alignItems: 'center',
-              gap: isMobile ? '0.45rem' : '0.65rem',
-              transition: 'all 0.2s ease'
+              gap: 5
             }}>
-              <div style={{
-                width: isMobile ? 24 : 28,
-                height: isMobile ? 24 : 28,
-                borderRadius: '50%',
-                background: timeLeft < 300 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(5, 150, 105, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Clock size={isMobile ? 14 : 16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{ fontSize: '0.6rem', fontWeight: 900, color: timeLeft < 300 ? '#dc2626' : 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {timeLeft < 300 ? '⚠️ AZ KALDI' : 'SÜRE'}
-                </span>
-                <span style={{
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
-                  fontSize: isMobile ? '1rem' : '1.15rem',
-                  fontWeight: 900,
-                  color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
-                  letterSpacing: '0.06em',
-                  marginTop: 2
-                }}>
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
+              <Check size={13} color="#10b981" />
+              {saveToast}
             </div>
           )}
 
-          {/* Theme Toggle Button */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
-            style={{
-              padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.85rem',
-              borderRadius: '0.7rem',
-              background: 'var(--color-surface)',
-              border: '1.5px solid var(--color-border)',
-              color: 'var(--color-text)',
+          {/* Main Top Bar Row */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.45rem 0.75rem',
+            gap: '0.5rem',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            {/* Back Button */}
+            <button 
+              onClick={handleGoBack}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-surface-hover, #f8fafc)',
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s'
+              }}
+              title="Geri Dön"
+            >
+              <ArrowLeft size={17} />
+            </button>
+
+            {/* Test Title & Compact Info */}
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontWeight: 900,
+                  background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                  color: '#ffffff',
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: 4,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  flexShrink: 0
+                }}>
+                  KİTAP TESTİ
+                </span>
+                <span style={{
+                  color: 'var(--color-text)',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  lineHeight: 1.2
+                }}>
+                  {resolvedTest.name || (resolvedBook?.title ? `${resolvedBook.title}` : 'Test')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, fontSize: '0.66rem', color: 'var(--color-text-muted)' }}>
+                <span style={{ fontWeight: 700 }}>{resolvedSubject}</span>
+                <span>•</span>
+                <span>{questionCount} Soru</span>
+                {!isSubmitted && (
+                  <>
+                    <span>•</span>
+                    <span style={{ color: '#16a34a', fontWeight: 800 }}>
+                      Kodlanan: {answeredCount}/{questionCount} (%{progressPct})
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Timer Pill & Theme Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+              {!isSubmitted && !isTeacherReviewing && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '0.25rem 0.55rem',
+                  borderRadius: 99,
+                  background: timeLeft < 300 ? '#fef2f2' : (isDark ? 'rgba(99,102,241,0.15)' : '#eff6ff'),
+                  border: timeLeft < 300 ? '1.5px solid #fecaca' : (isDark ? '1px solid rgba(165,180,252,0.3)' : '1px solid #bfdbfe'),
+                  color: timeLeft < 300 ? '#dc2626' : (isDark ? '#a5b4fc' : '#2563eb'),
+                  fontWeight: 900,
+                  fontSize: '0.82rem',
+                  fontFamily: "'JetBrains Mono', monospace"
+                }}>
+                  <Clock size={12} color={timeLeft < 300 ? '#dc2626' : (isDark ? '#a5b4fc' : '#2563eb')} />
+                  <span>{formatTime(timeLeft)}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '50%',
+                  border: '1.5px solid var(--color-border)',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0
+                }}
+              >
+                {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Thin Progress Indicator */}
+          {!isSubmitted && (
+            <div style={{ width: '100%', height: 3, background: 'var(--color-border)', position: 'relative', overflow: 'hidden' }}>
+              <div style={{
+                width: `${progressPct}%`,
+                height: '100%',
+                background: progressPct >= 100 ? '#10b981' : 'linear-gradient(90deg, #3b82f6, #6366f1)',
+                transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+              }} />
+            </div>
+          )}
+
+          {/* Segmented PDF / Optik Tab Bar on Mobile when hasPdf */}
+          {hasPdf && (
+            <div style={{
+              display: 'flex',
+              padding: '0.3rem 0.65rem',
+              background: 'var(--color-surface-hover, #f8fafc)',
+              borderTop: '1px solid var(--color-border)',
+              gap: 4
+            }}>
+              <button
+                onClick={() => { setShowOptikForm(false); setPdfMode('top'); }}
+                style={{
+                  flex: 1,
+                  padding: '0.35rem 0',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  background: (!showOptikForm && effectivePdfMode !== 'hidden') ? '#2563eb' : 'transparent',
+                  color: (!showOptikForm && effectivePdfMode !== 'hidden') ? '#ffffff' : 'var(--color-text-muted)',
+                  boxShadow: (!showOptikForm && effectivePdfMode !== 'hidden') ? '0 2px 6px rgba(37,99,235,0.25)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <FileText size={12} /> Soru (PDF)
+              </button>
+
+              <button
+                onClick={() => { setShowOptikForm(true); setPdfMode('top'); }}
+                style={{
+                  flex: 1,
+                  padding: '0.35rem 0',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  background: (showOptikForm && effectivePdfMode !== 'hidden') ? '#2563eb' : 'transparent',
+                  color: (showOptikForm && effectivePdfMode !== 'hidden') ? '#ffffff' : 'var(--color-text-muted)',
+                  boxShadow: (showOptikForm && effectivePdfMode !== 'hidden') ? '0 2px 6px rgba(37,99,235,0.25)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <CheckSquare size={12} /> Bölünmüş
+              </button>
+
+              <button
+                onClick={() => { setShowOptikForm(true); setPdfMode('hidden'); }}
+                style={{
+                  flex: 1,
+                  padding: '0.35rem 0',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  background: (showOptikForm && effectivePdfMode === 'hidden') ? '#2563eb' : 'transparent',
+                  color: (showOptikForm && effectivePdfMode === 'hidden') ? '#ffffff' : 'var(--color-text-muted)',
+                  boxShadow: (showOptikForm && effectivePdfMode === 'hidden') ? '0 2px 6px rgba(37,99,235,0.25)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <CheckCircle2 size={12} /> Optik ({answeredCount}/{questionCount})
+              </button>
+            </div>
+          )}
+        </header>
+      ) : (
+        /* ── DESKTOP HEADER ── */
+        <header style={{ 
+          padding: '0.75rem 1.25rem', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          background: 'var(--color-surface)', 
+          borderBottom: '1.5px solid var(--color-border)',
+          position: 'sticky', 
+          top: 0, 
+          zIndex: 10,
+          flexShrink: 0,
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        }}>
+          {saveToast && (
+            <div style={{
+              position: 'fixed',
+              top: 66,
+              right: 20,
+              background: '#0f172a',
+              color: '#ffffff',
+              padding: '0.55rem 1rem',
+              borderRadius: 10,
+              fontSize: '0.78rem',
               fontWeight: 800,
-              fontSize: isMobile ? '0.75rem' : '0.8rem',
-              cursor: 'pointer',
+              zIndex: 999,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
-            {!isMobile && <span>{isDark ? 'Açık' : 'Koyu'}</span>}
-          </button>
+              gap: 6,
+              animation: 'fadeIn 0.2s ease'
+            }}>
+              <Check size={14} color="#10b981" />
+              {saveToast}
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button 
+                onClick={handleGoBack}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Geri Dön"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <span style={{ fontSize: '0.62rem', fontWeight: 900, background: 'linear-gradient(135deg, #0284c7, #0369a1)', color: 'white', padding: '0.15rem 0.5rem', borderRadius: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                KİTAP TESTİ
+              </span>
+              <h2 style={{ 
+                color: 'var(--color-text)', 
+                fontSize: '1.05rem', 
+                fontWeight: 800, 
+                margin: 0, 
+                whiteSpace: 'nowrap', 
+                overflow: 'hidden', 
+                textOverflow: 'ellipsis' 
+              }}>
+                {resolvedBook?.title ? `${resolvedBook.title} — ` : ''}{resolvedTest.name}
+              </h2>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <span>{resolvedSubject}</span>
+                {resolvedUnit && (
+                  <span style={{ color: '#0284c7', fontWeight: 800, background: 'rgba(2,132,199,0.12)', padding: '0.08rem 0.45rem', borderRadius: 6, border: '1px solid rgba(2,132,199,0.25)' }}>
+                    📌 {resolvedUnit}
+                  </span>
+                )}
+                <span>• {questionCount} Soru</span>
+              </span>
+              {!isSubmitted && (
+                <span style={{ color: '#16a34a', fontSize: '0.75rem', fontWeight: 800 }}>
+                  • Kodlanan: {answeredCount}/{questionCount} (%{progressPct})
+                </span>
+              )}
+            </div>
+          </div>
 
-          {/* PDF Mode Selector */}
-          {hasPdf && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              {!isMobile && (
+          {/* Right: Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            
+            {/* Large Stylish Countdown Timer in Navbar */}
+            {!isSubmitted && !isTeacherReviewing && (
+              <div style={{
+                padding: '0.4rem 1rem',
+                borderRadius: '0.75rem',
+                background: timeLeft < 300
+                  ? '#fef2f2'
+                  : 'var(--color-surface)',
+                border: timeLeft < 300 ? '1.5px solid #fecaca' : '1.5px solid var(--color-border)',
+                boxShadow: timeLeft < 300 ? '0 0 15px rgba(239, 68, 68, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                transition: 'all 0.2s ease'
+              }}>
+                <div style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: timeLeft < 300 ? 'rgba(239, 68, 68, 0.1)' : 'rgba(5, 150, 105, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Clock size={16} color={timeLeft < 300 ? '#dc2626' : '#059669'} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 900, color: timeLeft < 300 ? '#dc2626' : 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {timeLeft < 300 ? '⚠️ AZ KALDI' : 'SÜRE'}
+                  </span>
+                  <span style={{
+                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace",
+                    fontSize: '1.15rem',
+                    fontWeight: 900,
+                    color: timeLeft < 300 ? '#dc2626' : 'var(--color-text)',
+                    letterSpacing: '0.06em',
+                    marginTop: 2
+                  }}>
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              title={isDark ? "Açık Temaya Geç" : "Koyu Temaya Geç"}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0.7rem',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                color: 'var(--color-text)',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {isDark ? <Sun size={14} color="#f59e0b" /> : <Moon size={14} color="#6366f1" />}
+              <span>{isDark ? 'Açık' : 'Koyu'}</span>
+            </button>
+
+            {/* PDF Mode Selector */}
+            {hasPdf && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <button
                   onClick={() => setPdfMode('side')}
                   title="Sol panele sabitle"
@@ -1370,132 +1619,131 @@ export default function TrackedBookQuizRunner() {
                   <PanelLeft size={14} />
                   Sol Panel
                 </button>
-              )}
-              <button
-                onClick={() => setPdfMode('top')}
-                title="Üst panele sabitle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'top' ? '#2563eb' : '#cbd5e1'}`,
-                  background: effectivePdfMode === 'top' ? '#eff6ff' : '#ffffff',
-                  color: effectivePdfMode === 'top' ? '#1d4ed8' : '#475569',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
-                }}
-              >
-                <PanelTop size={isMobile ? 13 : 14} />
-                {!isMobile && 'Üst Panel'}
-              </button>
-              <button
-                onClick={() => setPdfMode('float')}
-                title="Yüzen pencere"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'float' ? '#2563eb' : '#cbd5e1'}`,
-                  background: effectivePdfMode === 'float' ? '#eff6ff' : '#ffffff',
-                  color: effectivePdfMode === 'float' ? '#1d4ed8' : '#475569',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
-                }}
-              >
-                <Maximize2 size={isMobile ? 13 : 14} />
-                {!isMobile && 'Pencere'}
-              </button>
-              <button
-                onClick={() => setPdfMode('hidden')}
-                title="PDF'yi Gizle"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  padding: isMobile ? '0.35rem' : '0.4rem 0.65rem',
-                  borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
-                  background: effectivePdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
-                  color: effectivePdfMode === 'hidden' ? '#dc2626' : '#64748b',
-                  fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
-                }}
-              >
-                <XIcon size={isMobile ? 13 : 14} />
-                {!isMobile && 'Gizle'}
-              </button>
-            </div>
-          )}
+                <button
+                  onClick={() => setPdfMode('top')}
+                  title="Üst panele sabitle"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'top' ? '#2563eb' : '#cbd5e1'}`,
+                    background: effectivePdfMode === 'top' ? '#eff6ff' : '#ffffff',
+                    color: effectivePdfMode === 'top' ? '#1d4ed8' : '#475569',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                  }}
+                >
+                  <PanelTop size={14} />
+                  Üst Panel
+                </button>
+                <button
+                  onClick={() => setPdfMode('float')}
+                  title="Yüzen pencere"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'float' ? '#2563eb' : '#cbd5e1'}`,
+                    background: effectivePdfMode === 'float' ? '#eff6ff' : '#ffffff',
+                    color: effectivePdfMode === 'float' ? '#1d4ed8' : '#475569',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                  }}
+                >
+                  <Maximize2 size={14} />
+                  Pencere
+                </button>
+                <button
+                  onClick={() => setPdfMode('hidden')}
+                  title="PDF'yi Gizle"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '0.4rem 0.65rem',
+                    borderRadius: '0.6rem', border: `1.5px solid ${effectivePdfMode === 'hidden' ? '#fecaca' : '#cbd5e1'}`,
+                    background: effectivePdfMode === 'hidden' ? '#fef2f2' : '#ffffff',
+                    color: effectivePdfMode === 'hidden' ? '#dc2626' : '#64748b',
+                    fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer'
+                  }}
+                >
+                  <XIcon size={14} />
+                  Gizle
+                </button>
+              </div>
+            )}
 
-          {/* Optik / Cevap Formu Göster / Gizle Button */}
-          <button
-            onClick={() => setShowOptikForm(!showOptikForm)}
-            style={{
-              padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.85rem',
-              borderRadius: '0.7rem',
-              background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
-              border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
-              color: showOptikForm ? (isOpenEnded ? '#a78bfa' : '#60a5fa') : 'var(--color-text)',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-            title={showOptikForm ? (isOpenEnded ? "Cevap Formunu Gizle" : "Optik Alanı Gizle") : (isOpenEnded ? "Cevap Formunu Göster" : "Optik Alanı Göster")}
-          >
-            {showOptikForm ? <EyeOff size={isMobile ? 13 : 15} /> : <Eye size={isMobile ? 13 : 15} />}
-            <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
-          </button>
-
-          {/* Drawing Canvas Button */}
-          <button
-            onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-            style={{
-              padding: isMobile ? '0.4rem 0.5rem' : '0.45rem 0.85rem',
-              borderRadius: '0.7rem',
-              background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
-              border: `1.5px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
-              color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
-              fontWeight: 800,
-              fontSize: isMobile ? '0.72rem' : '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-            title="Çizim Aracı"
-          >
-            <Pencil size={isMobile ? 13 : 15} /> 
-            {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim")}
-          </button>
-
-          {/* Submit Button */}
-          {!isSubmitted && !isTeacherReviewing && (
+            {/* Optik / Cevap Formu Göster / Gizle Button */}
             <button
-              onClick={() => handleSubmit(false)}
+              onClick={() => setShowOptikForm(!showOptikForm)}
               style={{
-                padding: isMobile ? '0.4rem 0.65rem' : '0.45rem 1.1rem',
+                padding: '0.45rem 0.85rem',
                 borderRadius: '0.7rem',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                color: 'white',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
+                border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
+                color: showOptikForm ? (isOpenEnded ? '#a78bfa' : '#60a5fa') : 'var(--color-text)',
+                fontWeight: 800,
+                fontSize: '0.8rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.4rem',
-                boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                gap: '0.4rem'
               }}
+              title={showOptikForm ? (isOpenEnded ? "Cevap Formunu Gizle" : "Optik Alanı Gizle") : (isOpenEnded ? "Cevap Formunu Göster" : "Optik Alanı Göster")}
             >
-              <CheckCircle2 size={isMobile ? 14 : 16} /> 
-              {!isMobile && "Testi Bitir"}
-              {isMobile && "Bitir"}
+              {showOptikForm ? <EyeOff size={15} /> : <Eye size={15} />}
+              <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
             </button>
-          )}
 
-          {isSubmitted && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
-              <CheckCircle2 size={14} /> Test Tamamlandı
-            </div>
-          )}
+            {/* Drawing Canvas Button */}
+            <button
+              onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0.7rem',
+                background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
+                border: `1.5px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
+                color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+              title="Çizim Aracı"
+            >
+              <Pencil size={15} /> 
+              {isDrawingOpen ? "Çizimi Kapat" : "Çizim"}
+            </button>
 
-        </div>
-      </header>
+            {/* Submit Button */}
+            {!isSubmitted && !isTeacherReviewing && (
+              <button
+                onClick={() => handleSubmit(false)}
+                style={{
+                  padding: '0.45rem 1.1rem',
+                  borderRadius: '0.7rem',
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 3px 10px rgba(16,185,129,0.25)'
+                }}
+              >
+                <CheckCircle2 size={16} /> 
+                Testi Bitir
+              </button>
+            )}
+
+            {isSubmitted && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: 8, fontSize: '0.75rem', fontWeight: 900 }}>
+                <CheckCircle2 size={14} /> Test Tamamlandı
+              </div>
+            )}
+
+          </div>
+        </header>
+      )}
 
       {/* ── CSS FOR RESPONSIVE COLUMN ── */}
       <style>{`
@@ -1545,7 +1793,7 @@ export default function TrackedBookQuizRunner() {
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: !isSidePdf ? 960 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: !isSidePdf ? 960 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.65rem 0.65rem 6.5rem 0.65rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (
@@ -1692,10 +1940,10 @@ export default function TrackedBookQuizRunner() {
 
                 {/* Natural Question Columns Grid (Dynamic 1 or 2 Columns based on container width) */}
                 {(() => {
-                  const isVeryNarrow = isMobile || containerWidth < 460;
-                  const isCompact = containerWidth < 680;
-                  const bubbleSize = isVeryNarrow ? 30 : isCompact ? 36 : (questionColumns.length === 1 ? 42 : 38);
-                  const bubbleFontSize = isVeryNarrow ? '0.8rem' : isCompact ? '0.9rem' : '1rem';
+                  const isVeryNarrow = !isMobile && containerWidth < 460;
+                  const isCompact = !isMobile && containerWidth < 680;
+                  const bubbleSize = isMobile ? (optionsList.length > 4 ? 35 : 39) : (isVeryNarrow ? 32 : isCompact ? 36 : (questionColumns.length === 1 ? 42 : 38));
+                  const bubbleFontSize = isMobile ? (optionsList.length > 4 ? '0.84rem' : '0.94rem') : (isVeryNarrow ? '0.8rem' : isCompact ? '0.9rem' : '1rem');
 
                   return (
                     <div style={{
@@ -1950,142 +2198,147 @@ export default function TrackedBookQuizRunner() {
                                 }}
                               >
                                 {/* Top Question Row */}
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isVeryNarrow ? '0.35rem' : '0.65rem' }}>
-                                  {/* Question Number Badge & Flag */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: isVeryNarrow ? 3 : 5, minWidth: isVeryNarrow ? 44 : 64, flexShrink: 0 }}>
-                                    <div style={{
-                                      width: isVeryNarrow ? 24 : 30,
-                                      height: isVeryNarrow ? 24 : 30,
-                                      borderRadius: '0.5rem',
-                                      background: selected ? '#2563eb' : 'var(--color-surface)',
-                                      color: selected ? '#ffffff' : 'var(--color-text)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontWeight: 900,
-                                      fontSize: isVeryNarrow ? '0.74rem' : '0.84rem',
-                                      border: selected ? 'none' : '1.5px solid var(--color-border-input)',
-                                      boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
-                                    }}>
-                                      {qNo}
-                                    </div>
-
-                                    {!isSubmitted && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
-                                        title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
-                                        style={{
-                                          background: flagged[qNo] ? '#fffbeb' : 'transparent',
-                                          border: flagged[qNo] ? '1px solid #fde68a' : 'none',
-                                          borderRadius: '0.4rem',
-                                          padding: isVeryNarrow ? '1px' : '3px',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          color: flagged[qNo] ? '#d97706' : '#94a3b8'
-                                        }}
-                                      >
-                                        <Flag size={isVeryNarrow ? 11 : 13} fill={flagged[qNo] ? '#d97706' : 'none'} />
-                                      </button>
-                                    )}
-
-                                    {isSubmitted && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                        <span style={{ fontSize: isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
-                                          {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
-                                        </span>
-                                        {isCorrect && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
-                                            style={{
-                                              padding: isVeryNarrow ? '0.1rem 0.3rem' : '0.14rem 0.45rem',
-                                              fontSize: isVeryNarrow ? '0.52rem' : '0.62rem',
-                                              fontWeight: 900,
-                                              borderRadius: 6,
-                                              border: '1.5px solid #a855f7',
-                                              background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
-                                              color: '#7c3aed',
-                                              cursor: 'pointer',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 2,
-                                              boxShadow: '0 2px 6px rgba(168,85,247,0.15)',
-                                              transition: 'all 0.15s ease'
-                                            }}
-                                            title={`Soru ${qNo} için yapay zeka çözümü`}
-                                          >
-                                            <Sparkles size={10} color="#a855f7" />
-                                            <span>AI</span>
-                                          </button>
-                                        )}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: isMobile ? '0.5rem' : (isVeryNarrow ? '0.35rem' : '0.65rem') }}>
+                                    {/* Question Number Badge & Flag */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : (isVeryNarrow ? 3 : 5), minWidth: isMobile ? 52 : (isVeryNarrow ? 44 : 64), flexShrink: 0 }}>
+                                      <div style={{
+                                        width: isMobile ? 32 : (isVeryNarrow ? 24 : 30),
+                                        height: isMobile ? 32 : (isVeryNarrow ? 24 : 30),
+                                        borderRadius: '0.6rem',
+                                        background: selected ? '#2563eb' : 'var(--color-surface)',
+                                        color: selected ? '#ffffff' : 'var(--color-text)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 900,
+                                        fontSize: isMobile ? '0.88rem' : (isVeryNarrow ? '0.74rem' : '0.84rem'),
+                                        border: selected ? 'none' : '1.5px solid var(--color-border-input)',
+                                        boxShadow: selected ? '0 2px 6px rgba(37,99,235,0.25)' : 'none'
+                                      }}>
+                                        {qNo}
                                       </div>
-                                    )}
-                                  </div>
 
-                                  {/* Option Bubbles */}
-                                  <div style={{ display: 'flex', gap: isVeryNarrow ? '0.2rem' : isCompact ? '0.35rem' : '0.45rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
-                                    {optionsList.map((opt) => {
-                                      const isSelected = selected === opt;
-                                      const isThisOptCorrect = isSubmitted && correctKey === opt;
-
-                                      let bubbleBg = 'var(--color-surface)';
-                                      let bubbleBorder = '1.5px solid var(--color-border-input)';
-                                      let bubbleColor = 'var(--color-text)';
-                                      let bubbleShadow = 'none';
-
-                                      if (isSelected) {
-                                        bubbleBg = '#2563eb';
-                                        bubbleBorder = '2px solid #1d4ed8';
-                                        bubbleColor = '#ffffff';
-                                        bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
-                                      }
-
-                                      if (isSubmitted) {
-                                        if (isThisOptCorrect) {
-                                          bubbleBg = '#16a34a';
-                                          bubbleBorder = '2px solid #15803d';
-                                          bubbleColor = '#ffffff';
-                                          bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
-                                        } else if (isSelected && !isThisOptCorrect) {
-                                          bubbleBg = '#dc2626';
-                                          bubbleBorder = '2px solid #b91c1c';
-                                          bubbleColor = '#ffffff';
-                                          bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
-                                        }
-                                      }
-
-                                      return (
+                                      {!isSubmitted && (
                                         <button
-                                          key={opt}
                                           type="button"
-                                          disabled={isSubmitted}
-                                          onClick={() => handleSelectOption(qNo, opt)}
+                                          onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
+                                          title={flagged[qNo] ? "İşareti Kaldır" : "Şüpheli/İncele Olarak İşaretle"}
                                           style={{
-                                            width: bubbleSize,
-                                            height: bubbleSize,
-                                            borderRadius: '50%',
-                                            fontWeight: 900,
-                                            fontSize: bubbleFontSize,
-                                            cursor: isSubmitted ? 'default' : 'pointer',
-                                            border: bubbleBorder,
-                                            background: bubbleBg,
-                                            color: bubbleColor,
-                                            transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
-                                            boxShadow: bubbleShadow,
+                                            background: flagged[qNo] ? '#fffbeb' : 'transparent',
+                                            border: flagged[qNo] ? '1px solid #fde68a' : 'none',
+                                            borderRadius: '0.4rem',
+                                            padding: isVeryNarrow ? '1px' : '3px',
+                                            cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            padding: 0,
-                                            flexShrink: 0
+                                            color: flagged[qNo] ? '#d97706' : '#94a3b8'
                                           }}
                                         >
-                                          {opt}
+                                          <Flag size={isMobile ? 13 : (isVeryNarrow ? 11 : 13)} fill={flagged[qNo] ? '#d97706' : 'none'} />
                                         </button>
-                                      );
-                                    })}
+                                      )}
+
+                                      {isSubmitted && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                          <span style={{ fontSize: isVeryNarrow ? '0.65rem' : '0.72rem', fontWeight: 900, color: isCorrect ? '#15803d' : isWrong ? '#b91c1c' : '#64748b' }}>
+                                            {isCorrect ? '✓' : isWrong ? `(${correctKey})` : `(Boş)`}
+                                          </span>
+                                          {isCorrect && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
+                                              style={{
+                                                padding: isVeryNarrow ? '0.1rem 0.3rem' : '0.14rem 0.45rem',
+                                                fontSize: isVeryNarrow ? '0.52rem' : '0.62rem',
+                                                fontWeight: 900,
+                                                borderRadius: 6,
+                                                border: '1.5px solid #a855f7',
+                                                background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                                color: '#7c3aed',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 2,
+                                                boxShadow: '0 2px 6px rgba(168,85,247,0.15)',
+                                                transition: 'all 0.15s ease'
+                                              }}
+                                              title={`Soru ${qNo} için yapay zeka çözümü`}
+                                            >
+                                              <Sparkles size={10} color="#a855f7" />
+                                              <span>AI</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Option Bubbles */}
+                                    <div style={{ display: 'flex', gap: isMobile ? '0.45rem' : (isVeryNarrow ? '0.2rem' : isCompact ? '0.35rem' : '0.45rem'), flex: 1, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                      {optionsList.map((opt) => {
+                                        const isSelected = selected === opt;
+                                        const isThisOptCorrect = isSubmitted && correctKey === opt;
+
+                                        let bubbleBg = 'var(--color-surface)';
+                                        let bubbleBorder = '1.5px solid var(--color-border-input)';
+                                        let bubbleColor = 'var(--color-text)';
+                                        let bubbleShadow = 'none';
+
+                                        if (isSelected) {
+                                          bubbleBg = '#2563eb';
+                                          bubbleBorder = '2px solid #1d4ed8';
+                                          bubbleColor = '#ffffff';
+                                          bubbleShadow = '0 2px 8px rgba(37,99,235,0.3)';
+                                        }
+
+                                        if (isSubmitted) {
+                                          if (isThisOptCorrect) {
+                                            bubbleBg = '#16a34a';
+                                            bubbleBorder = '2px solid #15803d';
+                                            bubbleColor = '#ffffff';
+                                            bubbleShadow = '0 2px 8px rgba(22,163,74,0.3)';
+                                          } else if (isSelected && !isThisOptCorrect) {
+                                            bubbleBg = '#dc2626';
+                                            bubbleBorder = '2px solid #b91c1c';
+                                            bubbleColor = '#ffffff';
+                                            bubbleShadow = '0 2px 8px rgba(220,38,38,0.3)';
+                                          }
+                                        }
+
+                                        return (
+                                          <button
+                                            key={opt}
+                                            type="button"
+                                            disabled={isSubmitted}
+                                            onClick={() => handleSelectOption(qNo, opt)}
+                                            style={{
+                                              width: bubbleSize,
+                                              height: bubbleSize,
+                                              minWidth: bubbleSize,
+                                              borderRadius: '50%',
+                                              fontWeight: 900,
+                                              fontSize: bubbleFontSize,
+                                              cursor: isSubmitted ? 'default' : 'pointer',
+                                              border: bubbleBorder,
+                                              background: bubbleBg,
+                                              color: bubbleColor,
+                                              transition: 'all 0.12s cubic-bezier(0.4, 0, 0.2, 1)',
+                                              transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                                              boxShadow: bubbleShadow,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              padding: 0,
+                                              flexShrink: 0,
+                                              touchAction: 'manipulation',
+                                              userSelect: 'none',
+                                              WebkitTapHighlightColor: 'transparent'
+                                            }}
+                                          >
+                                            {opt}
+                                          </button>
+                                        );
+                                      })}
 
                                     {!isSubmitted && (
                                       <button
@@ -2633,6 +2886,96 @@ export default function TrackedBookQuizRunner() {
         >
           <FileSpreadsheet size={24} />
         </button>
+      )}
+
+      {/* ── MOBILE STICKY BOTTOM ACTION BAR (Native Mobile Thumb Ergonomics) ── */}
+      {isMobile && !isSubmitted && !isTeacherReviewing && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 75,
+          padding: '0.55rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom, 0px)) 0.85rem',
+          background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(12px)',
+          borderTop: '1.5px solid var(--color-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.65rem',
+          boxShadow: '0 -4px 18px rgba(0,0,0,0.1)'
+        }}>
+          {/* Çizim Aracı Button */}
+          <button
+            type="button"
+            onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+            style={{
+              padding: '0.55rem 0.8rem',
+              borderRadius: '0.85rem',
+              background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
+              border: `1.5px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
+              color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            <Pencil size={15} />
+            <span>{isDrawingOpen ? 'Kapat' : 'Çizim'}</span>
+          </button>
+
+          {/* Optik / Cevap Formu Göster / Gizle Button */}
+          <button
+            type="button"
+            onClick={() => setShowOptikForm(!showOptikForm)}
+            style={{
+              padding: '0.55rem 0.8rem',
+              borderRadius: '0.85rem',
+              background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
+              border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
+              color: showOptikForm ? (isOpenEnded ? '#7c3aed' : '#2563eb') : 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+          >
+            {showOptikForm ? <EyeOff size={15} /> : <Eye size={15} />}
+            <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
+          </button>
+
+          {/* Big Green Bitir Button */}
+          <button
+            type="button"
+            onClick={() => handleSubmit(false)}
+            style={{
+              flex: 1,
+              padding: '0.65rem 1rem',
+              borderRadius: '0.85rem',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: 'none',
+              color: 'white',
+              fontWeight: 900,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              boxShadow: '0 3px 12px rgba(16,185,129,0.35)',
+              transition: 'transform 0.1s'
+            }}
+          >
+            <CheckCircle2 size={17} />
+            <span>Testi Bitir</span>
+          </button>
+        </div>
       )}
 
       {/* ── AI SCREEN SNIPPER & SOLVER MODAL ── */}
