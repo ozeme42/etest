@@ -3600,55 +3600,80 @@ export default function ProgramCenter({
 
     const hwObj = item.hwId ? (allHomeworks || []).find(h => String(h.id) === String(item.hwId)) : null;
     const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || item.bookId));
-    const isExam = item.isExamTask || item.taskType === 'deneme' || item.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
 
     const targetBookTestId = item.bookTestId || item.testId || item.realTestId ||
-      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null) ||
-      (hwObj?.isBookAssignment && hwObj?.tests && hwObj.tests.length > 0 ? hwObj.tests[0] : null);
+      (item.taskType === 'kitap' && item.id && !String(item.id).startsWith('auto_hw') && !String(item.id).startsWith('hw_') ? item.id : null) ||
+      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null);
 
-    // 2. Search for existing completed submission in submissions
-    const matchedSub = (submissions || []).find(s => {
-      if (s.status === 'in_progress' || s.status === 'draft') return false;
-      const sStdId = String(s.studentId || s.student_id || s.userId || '');
-      const isSt = sStdId === String(sId) || (sId && toUUID(sStdId) === toUUID(sId));
-      if (!isSt) return false;
+    const isBook = Boolean(
+      item.isBookTask ||
+      item.isBookAssignment ||
+      item.taskType === 'kitap' ||
+      item.sourceType === 'trackedBook' ||
+      item.sourceType === 'bookTest' ||
+      targetBookTestId
+    );
 
-      const candidateKeys = [item.hwId, targetBookTestId, item.id, item.testId, item.realTestId].filter(Boolean).map(String);
-      const subKeys = [s.id, s.hwId, s.testId, s.realTestId, s.bookTestId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
-      return candidateKeys.some(ck => subKeys.includes(ck) || (toUUID(ck) && subKeys.includes(toUUID(ck))));
-    });
+    const isExam = !isBook && Boolean(
+      item.isExamTask ||
+      item.taskType === 'deneme' ||
+      item.type === 'physicalExam' ||
+      hwObj?.type === 'physicalExam' ||
+      hwObj?.contentType === 'physicalExam' ||
+      matchingBook?.bookType === 'exam' ||
+      hwObj?.isPhysical ||
+      (hwObj?.title && /deneme|sınav|hazır bulunuşluk|hazir bulunusluk/i.test(hwObj.title))
+    );
 
-    if (matchedSub) {
-      navigate(`/review/${matchedSub.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
-      return;
-    }
+    // 1. If item is marked completed or done -> open review
+    if (item.done || item.isCompleted || item.status === 'completed') {
+      if (item.submissionId) {
+        navigate(`/review/${item.submissionId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+        return;
+      }
+      if (item.submission?.id) {
+        navigate(`/review/${item.submission.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+        return;
+      }
 
-    // 3. If item is marked completed, open quiz-review directly
-    if (item.isCompleted || item.isDone || item.status === 'completed') {
-      const reviewTarget = targetBookTestId || item.hwId || item.realTestId || item.testId || item.id;
+      // Search for specific completed submission
+      const matchedSub = (submissions || []).find(s => {
+        if (s.status === 'in_progress' || s.status === 'draft') return false;
+        const sStdId = String(s.studentId || s.student_id || s.userId || '');
+        const isSt = sStdId === String(sId) || (sId && toUUID(sStdId) === toUUID(sId));
+        if (!isSt) return false;
+
+        if (targetBookTestId) {
+          const sTid = String(s.testId || s.test_id || s.realTestId || s.bookTestId || '');
+          return sTid === String(targetBookTestId) || (toUUID(sTid) && toUUID(sTid) === toUUID(targetBookTestId));
+        }
+
+        const candidateKeys = [item.testId, item.realTestId, item.hwId, item.id].filter(Boolean).map(String);
+        const subKeys = [s.id, s.testId, s.realTestId, s.bookTestId, s.hwId, ...(s.bookTestIds || [])].filter(Boolean).map(String);
+        return candidateKeys.some(ck => subKeys.includes(ck) || (toUUID(ck) && subKeys.includes(toUUID(ck))));
+      });
+
+      if (matchedSub) {
+        navigate(`/review/${matchedSub.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+        return;
+      }
+
+      const reviewTarget = targetBookTestId || item.realTestId || item.testId || item.hwId || item.id;
       if (reviewTarget) {
         navigate(`/quiz-review/${reviewTarget}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
         return;
       }
     }
 
-    // Fallback if not completed -> start solving
-    if (isExam) {
-      navigate(`/physical-exam/${item.hwId || item.testId || item.realTestId || item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+    // 2. Not completed -> Solve task
+    // If it is a book test -> ALWAYS navigate to book-quiz
+    if (targetBookTestId) {
+      navigate(`/book-quiz/${targetBookTestId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
 
-    const isBook = Boolean(
-      item.isBookTask ||
-      item.taskType === 'kitap' ||
-      item.sourceType === 'trackedBook' ||
-      item.sourceType === 'bookTest' ||
-      hwObj?.isBookAssignment ||
-      targetBookTestId
-    );
-
-    if (targetBookTestId && isBook) {
-      navigate(`/book-quiz/${targetBookTestId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
+    if (isExam) {
+      navigate(`/physical-exam/${item.hwId || item.realTestId || item.testId || item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
 
@@ -3664,11 +3689,6 @@ export default function ProgramCenter({
     if (item.id && String(item.id).startsWith('hw_')) {
       const cleanId = String(item.id).replace('hw_', '');
       navigate(`/quiz/${cleanId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
-      return;
-    }
-
-    if (targetBookTestId) {
-      navigate(`/book-quiz/${targetBookTestId}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
 

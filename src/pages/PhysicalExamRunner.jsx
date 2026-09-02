@@ -447,9 +447,7 @@ export default function PhysicalExamRunner() {
       String(s.submissionId) === cleanHwId ||
       String(s.hwId) === cleanHwId ||
       String(s.testId) === cleanHwId ||
-      String(s.bookId) === cleanHwId ||
-      String(s.bookTestId) === cleanHwId ||
-      (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id) || String(s.bookId) === String(homework.id)))
+      (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id)))
     ) && (!studentId || String(s.studentId) === String(studentId)));
     const submission = location.state?.submission || hwSub || evalSub;
 

@@ -556,16 +556,23 @@ export default function ModularQuizReviewPage() {
 
     if (foundSubmission) {
       // If this submission belongs to a physical exam or deneme, redirect to /physical-exam/:hwId
-      const isPhysicalExam = Boolean(
+      const isBookTest = Boolean(
+        foundTest?.bookTestId ||
+        foundSubmission.bookTestId ||
+        foundTest?.book_id ||
+        foundTest?.bookId ||
+        foundSubmission.bookId
+      );
+      const isPhysicalExam = !isBookTest && Boolean(
         foundTest?.type === 'physicalExam' ||
         foundSubmission.type === 'physicalExam' ||
         foundSubmission.contentType === 'physicalExam' ||
         foundTest?.contentType === 'physicalExam' ||
         foundSubmission.isPhysical ||
         foundTest?.isPhysical ||
-        isExamBook(foundTest) ||
-        isExamBook(foundSubmission) ||
-        (foundSubmission.title && (foundSubmission.title.toLowerCase().includes('deneme') || foundSubmission.title.toLowerCase().includes('hazır bulunuşluk') || foundSubmission.title.toLowerCase().includes('hazir bulunusluk')))
+        (isExamBook(foundTest) && !foundTest?.bookId) ||
+        (isExamBook(foundSubmission) && !foundSubmission?.bookId) ||
+        (foundSubmission.title && !foundSubmission.bookId && (foundSubmission.title.toLowerCase().includes('deneme') || foundSubmission.title.toLowerCase().includes('hazır bulunuşluk') || foundSubmission.title.toLowerCase().includes('hazir bulunusluk')))
       );
 
       if (isPhysicalExam) {
