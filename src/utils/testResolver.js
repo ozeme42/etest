@@ -1154,14 +1154,15 @@ export function computeStudentAnalyticsData({
     const isTrial = !isStandardBookSub && Boolean(
       s.typeKey === 'physicalExam' ||
       s.sourceType === 'physicalExam' ||
-      s.isTrial ||
-      s.isExam ||
-      s.isMockExam ||
-      s.isTrialExam ||
+      s.type === 'physicalExam' ||
+      s.contentType === 'physicalExam' ||
+      s.isPhysical === true ||
+      s.isPhysicalExam === true ||
+      isExamBook(s) ||
       String(s.id || '').startsWith('me_') ||
       String(s.testId || '').startsWith('me_') ||
       (s.bookId && books.some(b => (String(b.id) === String(s.bookId) || toUUID(b.id) === toUUID(s.bookId)) && isExamBook(b))) ||
-      (s.hwId && homeworks.some(h => (String(h.id) === String(s.hwId) || toUUID(h.id) === toUUID(s.hwId)) && isExamBook(h)))
+      (s.hwId && homeworks.some(h => (String(h.id) === String(s.hwId) || toUUID(h.id) === toUUID(s.hwId)) && (isExamBook(h) || h.type === 'physicalExam' || h.contentType === 'physicalExam' || h.isPhysical)))
     );
 
     const item = {

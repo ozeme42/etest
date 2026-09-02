@@ -1456,23 +1456,23 @@ export default function StatisticsDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border, #e2e8f0)', paddingBottom: '0.65rem', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
               <div>
                 <h3 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Award size={isMobile ? 17 : 20} color="#8b5cf6" /> Sınıf Genel Deneme Net Gelişimi
+                  <Award size={isMobile ? 17 : 20} color="#8b5cf6" /> Fiziki Deneme Sınavları & Sınıf Net Ortalamaları
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.7rem' : '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
-                  LGS ve branş deneme sınavlarının sınıf net ortalamaları
+                  Fiziki deneme sayfasında tanımlı sınavlar ve öğrencilerin net gelişimleri
                 </p>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: 99, background: 'rgba(139, 92, 246, 0.15)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                  Ort. {classKPIs.overallExamNet} Net
+                  Sınıf Ort. {classKPIs.overallExamNet} Net
                 </span>
               </div>
             </div>
 
             {classKPIs.totalExamsCount === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
-                Henüz değerlendirilmiş deneme sınavı kaydı bulunmuyor.
+                Henüz değerlendirilmiş fiziki deneme sınavı kaydı bulunmuyor.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
@@ -1480,19 +1480,35 @@ export default function StatisticsDashboard() {
                   const stdExams = unifiedStudentData.find(s => s.id === std.id)?.filteredExams || [];
                   if (stdExams.length === 0) return null;
                   return (
-                    <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div key={std.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Avatar name={std.name} size={30} />
-                          <span style={{ fontWeight: 800, fontSize: isMobile ? '0.82rem' : '0.85rem', color: 'var(--color-text, #0f172a)' }}>{std.name}</span>
+                          <div>
+                            <span style={{ fontWeight: 800, fontSize: isMobile ? '0.82rem' : '0.85rem', color: 'var(--color-text, #0f172a)', display: 'block' }}>{std.name}</span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>{std.gradeName}</span>
+                          </div>
                         </div>
-                        <span style={{ fontWeight: 900, color: '#a78bfa', fontSize: isMobile ? '0.88rem' : '0.95rem' }}>
+                        <span style={{ fontWeight: 900, color: '#8b5cf6', fontSize: isMobile ? '0.92rem' : '1.05rem' }}>
                           {unifiedStudentData.find(s => s.id === std.id)?.avgExamNet} Net
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                        {stdExams.length} Deneme Çözdü · Son Deneme: {stdExams[0]?.title || 'LGS Denemesi'}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: '1px solid var(--color-border, #e2e8f0)', paddingTop: 6 }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Çözülen Fiziki Denemeler ({stdExams.length})</span>
+                          <span>Net</span>
+                        </div>
+                        {stdExams.map((ex, exIdx) => (
+                          <div key={exIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', padding: '0.2rem 0' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--color-text, #334155)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%' }}>
+                              📋 {ex.title || ex.testTitle}
+                            </span>
+                            <span style={{ fontWeight: 900, color: '#8b5cf6' }}>
+                              {(ex.totalNet ?? ex.net ?? 0).toFixed(1)} Net
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
