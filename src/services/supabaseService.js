@@ -668,7 +668,6 @@ export async function dbGetSubmissions(studentId) {
         bookTitle: meta?.bookTitle || s.book_title || null,
         unitTopic: resolvedUnit || null,
         topicName: resolvedUnit || null,
-        answers: answersArr,
         totalNet: meta?.totalNet !== undefined && meta?.totalNet !== null 
           ? Number(meta.totalNet) 
           : Number(((s.correct_count || 0) - ((s.wrong_count || 0) / 4)).toFixed(2)),
@@ -702,7 +701,6 @@ export async function dbGetSubmissions(studentId) {
         maxPossibleScore: s.max_possible_score || null,
         answers: answersArr.filter(a => a?.type !== 'metadata'),
         mistakeReasons: meta?.mistakeReasons || s.mistake_reasons || null,
-        bookTestId: meta?.bookTestId || s.test_id || meta?.realTestId,
         bookTestIds: meta?.bookTestIds || [],
         questions: s.questions || [],
         contentPayload: s.content_payload || null,

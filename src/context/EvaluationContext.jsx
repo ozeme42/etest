@@ -388,10 +388,7 @@ export function EvaluationProvider({ children }) {
       if (newSub.realTestId) unmarkIdAsDeleted(newSub.realTestId);
       if (newSub.bookTestId) unmarkIdAsDeleted(newSub.bookTestId);
       const nextSubs = [...prev, newSub];
-      try {
-        safeSetItem('etest_submissions', JSON.stringify(nextSubs));
-        safeSetItem('eTestSubmissions', JSON.stringify(nextSubs));
-      } catch (e) {}
+      safeSetItem('eTestSubmissions', JSON.stringify(nextSubs));
       return nextSubs;
     });
 

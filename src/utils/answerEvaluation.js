@@ -348,6 +348,8 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
   const userIdx = normalizeAnswerIndex(userAns);
   if (userIdx === null) return null;
 
+  let hasKeyDefined = false;
+
   // ── STEP 1: Check if this specific qNo has an entry in any answerKey sources ──
   // For multi-question documents (PDF, HTML, Multi-image, Optic), the answerKey array is the definitive source per question number.
   const candidateKeys = [
@@ -424,6 +426,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
     }
 
     if (targetKeyVal !== null && targetKeyVal !== undefined && targetKeyVal !== '' && targetKeyVal !== ' ') {
+      hasKeyDefined = true;
       const isOeMatch = compareOpenEndedAnswers(userAns, targetKeyVal);
       if (isOeMatch === true) return true;
 
@@ -457,6 +460,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
       ];
       for (const cand of subCandidates) {
         if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          hasKeyDefined = true;
           if (compareOpenEndedAnswers(userAns, cand)) return true;
           const targetIdx = normalizeAnswerIndex(cand);
           if (targetIdx !== null) {
@@ -469,7 +473,10 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
       }
       if (Array.isArray(subQ.options) && subQ.options.length > 0) {
         const optIdx = subQ.options.findIndex(o => (typeof o === 'object' && o !== null && (o.isCorrect === true || o.is_correct === true || o.correct === true)));
-        if (optIdx !== -1) return userIdx === optIdx;
+        if (optIdx !== -1) {
+          hasKeyDefined = true;
+          return userIdx === optIdx;
+        }
       }
     }
   }
@@ -502,6 +509,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
 
       for (const cand of directCandidates) {
         if (cand !== undefined && cand !== null && cand !== '' && cand !== 'empty') {
+          hasKeyDefined = true;
           if (compareOpenEndedAnswers(userAns, cand)) return true;
           const targetIdx = normalizeAnswerIndex(cand);
           if (targetIdx !== null) {
@@ -521,6 +529,7 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
           return false;
         });
         if (optIdx !== -1) {
+          hasKeyDefined = true;
           return userIdx === optIdx;
         }
       }
@@ -534,10 +543,15 @@ export function checkIsAnswerCorrect(userAns, qObj = {}, test = {}, qNo = 1) {
       const cleanBulk = bulkStr.replace(/[^A-Ea-e0-4]/g, '');
       const bulkKeyVal = cleanBulk[qNo - 1];
       if (bulkKeyVal) {
+        hasKeyDefined = true;
         const targetIdx = normalizeAnswerIndex(bulkKeyVal);
         if (targetIdx !== null) return userIdx === targetIdx;
       }
     }
+  }
+
+  if (hasKeyDefined) {
+    return false;
   }
 
   return null;
