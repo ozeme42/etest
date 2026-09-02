@@ -1921,10 +1921,13 @@ export function MonthlyListPanel({
         const isExam = Boolean(
           hw.type === 'physicalExam' ||
           hw.contentType === 'physicalExam' ||
+          hw.raw_data?.type === 'physicalExam' ||
+          hw.raw_data?.contentType === 'physicalExam' ||
           hw.bookType === 'exam' ||
           bookObj?.bookType === 'exam' ||
           hw.isPhysical ||
-          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav')))
+          hw.raw_data?.isPhysical ||
+          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav') || hw.title.toLowerCase().includes('hazır bulunuşluk') || hw.title.toLowerCase().includes('hazir bulunusluk')))
         );
 
         if (isExam) {
@@ -1932,17 +1935,19 @@ export function MonthlyListPanel({
           const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
           const startTime = startYMD ? new Date(startYMD).getTime() : null;
 
-          const rawDue = hw.dueDate || hw.assignedDueDate;
+          const rawDue = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.assignedDueDate;
           const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          let isForThisDay = false;
-          if (dueTime && startTime) {
-            isForThisDay = dateTime >= startTime && dateTime <= dueTime;
-          } else if (dueTime) {
-            isForThisDay = ymd === dueYMD || (dateTime <= dueTime && dateTime >= dueTime - 6 * 86400000);
-          } else if (startTime) {
-            isForThisDay = dateTime === startTime;
+          let isForThisDay = dueYMD ? (ymd === dueYMD) : false;
+          if (!isForThisDay) {
+            if (dueTime && startTime) {
+              isForThisDay = dateTime >= startTime && dateTime <= dueTime;
+            } else if (dueTime) {
+              isForThisDay = ymd === dueYMD || (dateTime <= dueTime && dateTime >= dueTime - 6 * 86400000);
+            } else if (startTime) {
+              isForThisDay = dateTime === startTime;
+            }
           }
 
           if (isForThisDay) {
@@ -3951,10 +3956,13 @@ export default function ProgramCenter({
         const isExam = Boolean(
           hw.type === 'physicalExam' ||
           hw.contentType === 'physicalExam' ||
+          hw.raw_data?.type === 'physicalExam' ||
+          hw.raw_data?.contentType === 'physicalExam' ||
           hw.bookType === 'exam' ||
           bookObj?.bookType === 'exam' ||
           hw.isPhysical ||
-          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav')))
+          hw.raw_data?.isPhysical ||
+          (hw.title && (hw.title.toLowerCase().includes('deneme') || hw.title.toLowerCase().includes('sınav') || hw.title.toLowerCase().includes('hazır bulunuşluk') || hw.title.toLowerCase().includes('hazir bulunusluk')))
         );
 
         if (isExam) {
@@ -3962,17 +3970,19 @@ export default function ProgramCenter({
           const startYMD = rawStart ? new Date(rawStart).toISOString().split('T')[0] : null;
           const startTime = startYMD ? new Date(startYMD).getTime() : null;
 
-          const rawDue = hw.dueDate || hw.assignedDueDate;
+          const rawDue = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.assignedDueDate;
           const dueYMD = rawDue ? new Date(rawDue).toISOString().split('T')[0] : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          let isForThisDay = false;
-          if (dueTime && startTime) {
-            isForThisDay = dayInfo.time >= startTime && dayInfo.time <= dueTime;
-          } else if (dueTime) {
-            isForThisDay = dayInfo.ymd === dueYMD || (dayInfo.time <= dueTime && dayInfo.time >= dueTime - 6 * 86400000);
-          } else if (startTime) {
-            isForThisDay = dayInfo.time === startTime;
+          let isForThisDay = dueYMD ? (dayInfo.ymd === dueYMD) : false;
+          if (!isForThisDay) {
+            if (dueTime && startTime) {
+              isForThisDay = dayInfo.time >= startTime && dayInfo.time <= dueTime;
+            } else if (dueTime) {
+              isForThisDay = dayInfo.ymd === dueYMD || (dayInfo.time <= dueTime && dayInfo.time >= dueTime - 6 * 86400000);
+            } else if (startTime) {
+              isForThisDay = dayInfo.time === startTime;
+            }
           }
 
           if (isForThisDay) {

@@ -159,32 +159,59 @@ export default function StudyRoomPage() {
     const seenTaskKeys = new Set();
     const studentHws = (homeworks || []).filter(isMatchHw);
 
-    // A. Atanmış Ödevler
+    // A. Atanmış Ödevler & Denemeler
     studentHws.forEach(hw => {
-      const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
-      if (!isBook) {
+      const bookObj = (books || []).find(b => 
+        String(b.id) === String(hw.bookId || hw.raw_data?.bookId) || 
+        (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+      );
+      const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+
+      const isExam = Boolean(
+        hw.type === 'physicalExam' ||
+        hw.contentType === 'physicalExam' ||
+        hw.raw_data?.type === 'physicalExam' ||
+        hw.raw_data?.contentType === 'physicalExam' ||
+        hw.isPhysical ||
+        hw.raw_data?.isPhysical ||
+        hw.bookType === 'exam' ||
+        bookObj?.bookType === 'exam' ||
+        (hw.title && /deneme|sınav|hazır bulunuşluk|hazir bulunusluk/i.test(hw.title))
+      );
+
+      const testDates = {
+        ...(hw.test_due_dates || hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {})
+      };
+      const hasIndividualTestDates = !isExam && Object.keys(testDates).length > 0;
+
+      if (isExam || !hasIndividualTestDates) {
         const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
-        const qCount = hw.questionCount || (Array.isArray(hw.questions) ? hw.questions.length : (hw.totalQuestions || 10));
-        const assignedDayKey = resolveDayKey(hw.dueDate || hw.startDate || hw.assignedAt);
+        const qCount = Number(hw.totalQuestions || hw.questionCount || (Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(hw.questions) ? hw.questions.length : 0))) || (isExam ? 54 : 10);
+        const hwDueDate = hw.dueDate || hw.due_date || hw.raw_data?.dueDate;
+        const assignedDayKey = resolveDayKey(hwDueDate || hw.startDate || hw.assignedAt);
+
         const dedupeKey = `hw_${hw.id}`;
         if (!seenTaskKeys.has(dedupeKey)) {
           seenTaskKeys.add(dedupeKey);
           taskList.push({
             id: hw.id,
             dedupeKey,
-            title: hw.title || 'Ödev',
-            subtitle: hw.subject || 'Ödev Görevi',
-            subject: hw.subject || 'Genel',
+            title: hw.title || (isExam ? 'Deneme Sınavı' : 'Ödev'),
+            subtitle: isExam ? '📋 Deneme Sınavı' : (hw.subject || 'Ödev Görevi'),
+            subject: isExam ? '📋 Deneme' : (hw.subject || 'Genel'),
             unit: hw.unit || '',
-            topic: hw.topic || '',
-            questionCount: Number(qCount) || 10,
-            dueDate: hw.dueDate,
+            topic: hw.topic || (isExam ? cleanBookTitle : ''),
+            questionCount: qCount,
+            dueDate: hwDueDate,
             dayKey: assignedDayKey,
             dayName: assignedDayKey ? WEEK_DAYS_CONFIG.find(d => d.key === assignedDayKey)?.long : null,
             sourceType: 'homework',
-            sourceLabel: '📝 Atanmış Ödev',
-            type: hw.type,
+            sourceLabel: isExam ? '📋 Deneme Sınavı' : '📝 Atanmış Ödev',
+            type: hw.type || (isExam ? 'physicalExam' : 'standard'),
+            isExamTask: isExam,
+            isPhysical: isExam || hw.isPhysical || hw.raw_data?.isPhysical,
             realTestId: hw.realTestId || hw.testId || hw.id,
+            hwId: hw.id,
             isCompleted: isSolved
           });
         }
@@ -465,32 +492,51 @@ export default function StudyRoomPage() {
               }
             }
           });
-        } else if (!isBook && hw.dueDate) {
-          const hwDayKey = resolveDayKey(hw.dueDate);
-          const isDateMatch = (dayInfo.ymd && hw.dueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
+        }
+
+        // Homework or Exam with a single due date matching this day
+        const hwDueDate = hw.dueDate || hw.due_date || hw.raw_data?.dueDate;
+        const isExam = Boolean(
+          hw.type === 'physicalExam' ||
+          hw.contentType === 'physicalExam' ||
+          hw.raw_data?.type === 'physicalExam' ||
+          hw.raw_data?.contentType === 'physicalExam' ||
+          hw.isPhysical ||
+          hw.raw_data?.isPhysical ||
+          hw.bookType === 'exam' ||
+          bookObj?.bookType === 'exam' ||
+          (hw.title && /deneme|sınav|hazır bulunuşluk|hazir bulunusluk/i.test(hw.title))
+        );
+
+        if (hwDueDate && (isExam || !isBook || Object.keys(testDates).length === 0)) {
+          const hwDayKey = resolveDayKey(hwDueDate);
+          const isDateMatch = (dayInfo.ymd && hwDueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
 
           if (isDateMatch) {
             const dedupeKey = `hw_${hw.id}`;
             if (!seenDayTaskKeys.has(dedupeKey)) {
               seenDayTaskKeys.add(dedupeKey);
-              const qCount = Number(hw.questionCount || hw.totalQuestions) || 12;
+              const qCount = Number(hw.totalQuestions || hw.questionCount || (Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(hw.questions) ? hw.questions.length : 0))) || (isExam ? 54 : 12);
               const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
 
               dayTasks.push({
                 id: dedupeKey,
                 dedupeKey,
-                title: hw.title || 'Ödev Görevi',
-                subtitle: `${dayCfg.long} Ödevi`,
+                title: hw.title || (isExam ? 'Deneme Sınavı' : 'Ödev Görevi'),
+                subtitle: isExam ? `${dayCfg.long} Denemesi` : `${dayCfg.long} Ödevi`,
                 dayName: dayCfg.long,
                 dayKey: dayCfg.key,
-                subject: hw.subject || 'Genel',
+                subject: isExam ? '📋 Deneme' : (hw.subject || 'Genel'),
                 unit: hw.unit || '',
-                topic: hw.topic || '',
+                topic: hw.topic || (isExam ? cleanBookTitle : ''),
                 questionCount: qCount,
-                dueDate: hw.dueDate,
-                sourceType: 'homework',
-                sourceLabel: '📝 Atanmış Ödev',
+                dueDate: hwDueDate,
+                sourceType: 'program',
+                sourceLabel: isExam ? '📋 Deneme Sınavı' : '📝 Atanmış Ödev',
+                isExamTask: isExam,
+                isPhysical: isExam || hw.isPhysical || hw.raw_data?.isPhysical,
                 realTestId: hw.realTestId || hw.testId || hw.id,
+                hwId: hw.id,
                 isCompleted: isSolved
               });
             }
