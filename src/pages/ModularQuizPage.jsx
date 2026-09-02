@@ -1337,6 +1337,18 @@ export default function ModularQuizPage() {
     /özel\s*telafi|telafi\s*testi/i.test(test.name || '')
   );
 
+  const isSingleOE = !isRemedial && !isMultiSection && !isPhysical && !isPdf && !isHtml && Boolean(
+    isWritten ||
+    test.isOpenEnded === true ||
+    test.is_open_ended === true ||
+    test.questionType === 'acik_uclu' ||
+    test.question_type === 'acik_uclu' ||
+    test.type === 'acik_uclu' ||
+    test.type === 'yazili' ||
+    test.type === 'klasik' ||
+    (questions && questions.length > 0 && questions.every(q => q.type === 'acik_uclu' || q.type === 'yazili' || q.type === 'klasik' || q.questionType === 'acik_uclu'))
+  );
+
   const renderRunner = () => {
     // 0. Dedicated Remedial Quiz Runner for custom remedial tests
     if (isRemedial) {
