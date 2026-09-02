@@ -45,7 +45,6 @@ export default function StudyHomeworkPickerModal({
 
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
   const homeworkTasks = allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
-  const bookTasks = allAssignedTasks.filter(t => t.sourceType === 'bookTest' && matchesFilter(t));
   const allTasks = allAssignedTasks.filter(matchesFilter);
 
   // Tab sayıları
@@ -54,7 +53,6 @@ export default function StudyHomeworkPickerModal({
     return acc + valid.length;
   }, 0);
   const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
-  const bookTotalCount = allAssignedTasks.filter(t => t.sourceType === 'bookTest' && (!hideCompletedTasks || !t.isCompleted)).length;
   const allTotalCount = allAssignedTasks.filter(t => !hideCompletedTasks || !t.isCompleted).length;
 
   return (
@@ -141,15 +139,14 @@ export default function StudyHomeworkPickerModal({
         {/* Ana Kaynak Sekmeleri (Tabs) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 6,
           padding: '0.75rem 1.25rem 0.5rem',
           background: themeObj.cardBg
         }}>
           {[
-            { id: 'program', label: '📅 Program', count: programTotalCount },
-            { id: 'homework', label: '📝 Ödevler', count: homeworkTotalCount },
-            { id: 'bookTest', label: '📖 Kitaplar', count: bookTotalCount },
+            { id: 'program', label: '📅 Haftalık Program', count: programTotalCount },
+            { id: 'homework', label: '📝 Atanmış Ödevler', count: homeworkTotalCount },
             { id: 'all', label: '🌟 Tümü', count: allTotalCount }
           ].map(tab => {
             const isActive = hwSourceTab === tab.id;
@@ -331,19 +328,6 @@ export default function StudyHomeworkPickerModal({
               ))
             ) : (
               <EmptyStateMessage message="Atanmış ödev bulunamadı." themeObj={themeObj} />
-            )
-          ) : hwSourceTab === 'bookTest' ? (
-            bookTasks.length > 0 ? (
-              bookTasks.map(task => (
-                <TaskListItem
-                  key={task.id || task.dedupeKey}
-                  task={task}
-                  themeObj={themeObj}
-                  onSelectTask={onSelectTask}
-                />
-              ))
-            ) : (
-              <EmptyStateMessage message="Kitap testi bulunamadı." themeObj={themeObj} />
             )
           ) : (
             allTasks.length > 0 ? (
