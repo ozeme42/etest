@@ -23,12 +23,14 @@ import {
   Trophy,
   Flame,
   Award,
-  ListOrdered
+  ListOrdered,
+  Lock
 } from 'lucide-react';
 import DrawingCanvas from '../common/DrawingCanvas';
 import ImageLightbox, { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import QuizResultModal from '../modals/QuizResultModal';
 import { toUUID } from '../../../services/supabaseService';
+import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
 /**
  * RemedialQuizRunner
@@ -617,6 +619,85 @@ export default function RemedialQuizRunner({
       })}
     </div>
   );
+
+  const isStudent = currentUser?.role === 'student' || (!currentUser?.role && !currentUser?.isTeacher);
+  const lockStatus = useMemo(() => {
+    return getRemedialLockStatus(test, null, submissions, currentUser?.id);
+  }, [test, submissions, currentUser?.id]);
+
+  if (isStudent && lockStatus.isLocked) {
+    return (
+      <div style={{
+        height: '100vh',
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{
+          maxWidth: 480,
+          width: '100%',
+          background: 'var(--color-surface)',
+          borderRadius: 24,
+          padding: isMobile ? '2rem 1.25rem' : '2.5rem 2rem',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px -15px rgba(0,0,0,0.1)',
+          border: '1px solid var(--color-border)'
+        }}>
+          <div style={{
+            width: 68,
+            height: 68,
+            borderRadius: '50%',
+            background: 'rgba(245, 158, 11, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+            border: '2px solid rgba(245, 158, 11, 0.25)'
+          }}>
+            <Lock size={32} color="#f59e0b" />
+          </div>
+          <h2 style={{
+            fontSize: isMobile ? '1.15rem' : '1.25rem',
+            fontWeight: 900,
+            color: 'var(--color-text)',
+            margin: '0 0 0.75rem'
+          }}>
+            Aralıklı Tekrar Günü Henüz Gelmedi
+          </h2>
+          <p style={{
+            fontSize: '0.86rem',
+            color: 'var(--color-text-muted)',
+            lineHeight: 1.55,
+            margin: '0 0 1.75rem'
+          }}>
+            {lockStatus.lockMessage}
+          </p>
+          <button
+            type="button"
+            onClick={() => onExit ? onExit() : window.history.back()}
+            style={{
+              padding: '0.75rem 1.75rem',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+            }}
+          >
+            ← Programa Geri Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{

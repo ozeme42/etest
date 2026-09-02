@@ -6,7 +6,7 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
   Table, List, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Check, Clock, Plus, Upload,
   Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked,
-  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors, Play
+  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors, Play, Lock
 } from 'lucide-react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
@@ -22,7 +22,7 @@ import { toUUID } from '../services/supabaseService';
 import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
 import { resolveTestQuestions } from '../utils/testResolver';
-import { scheduleRemedialTestInProgram } from '../services/remedialSpacedRepetitionService';
+import { scheduleRemedialTestInProgram, getRemedialLockStatus, isRemedialStageDone } from '../services/remedialSpacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
 import {
@@ -502,6 +502,15 @@ export default function StudentWrongAnswersPage() {
 
   const handleDeleteRemedialTest = async (testId, testTitle, e) => {
     if (e) e.stopPropagation();
+    const isTeacher = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
+    const testObj = remedialTests.find(t => String(t.id) === String(testId));
+    const isTeacherTask = Boolean(testObj?.teacherAssigned || testObj?.isTeacherRemedial || testObj?.assignedTeacherId || testObj?.createdBy === 'teacher' || testObj?.source === 'teacher');
+    
+    if (!isTeacher && isTeacherTask) {
+      alert('Öğretmeniniz tarafından atanan telafi testleri öğrenciler tarafından silinemez veya değiştirilemez.');
+      return;
+    }
+
     if (window.confirm(`"${testTitle || 'Bu telafi testini'}" silmek istediğinize emin misiniz?`)) {
       try {
         await deleteQuestion(testId);
@@ -3045,50 +3054,82 @@ export default function StudentWrongAnswersPage() {
                                   )}
                                 </>
                               ) : (
+                                (() => {
+                                  const lockStatus = getRemedialLockStatus(test, null, submissions, selectedStudent?.id || currentUser?.id);
+                                  if (lockStatus.isLocked) {
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={() => alert(lockStatus.lockMessage)}
+                                        style={{
+                                          padding: '6px 12px',
+                                          borderRadius: 7,
+                                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                          border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e2e8f0',
+                                          color: isDark ? '#94a3b8' : '#64748b',
+                                          fontSize: '0.74rem',
+                                          fontWeight: 900,
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 4,
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title={lockStatus.lockMessage}
+                                      >
+                                        <Lock size={12} color="#f59e0b" /> <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
+                                      </button>
+                                    );
+                                  }
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const stId = selectedStudent?.id || currentUser?.id;
+                                        navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
+                                      }}
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: 7,
+                                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        fontSize: '0.74rem',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      <Play size={12} fill="currentColor" /> <span>Testi Çöz</span>
+                                    </button>
+                                  );
+                                })()
+                              )}
+
+                              {/* Delete Button (Only for teacher/admin or custom self-created tests) */}
+                              {(currentUser?.role === 'teacher' || currentUser?.role === 'admin' || (!Boolean(test.teacherAssigned || test.isTeacherRemedial || test.assignedTeacherId || test.createdBy === 'teacher' || test.source === 'teacher') && test.createdBy === currentUser?.id)) && (
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    const stId = selectedStudent?.id || currentUser?.id;
-                                    navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
-                                  }}
+                                  onClick={(e) => handleDeleteRemedialTest(test.id, test.title || test.name, e)}
                                   style={{
-                                    padding: '6px 12px',
+                                    padding: '5px 7px',
                                     borderRadius: 7,
-                                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    fontSize: '0.74rem',
-                                    fontWeight: 900,
+                                    background: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2',
+                                    border: '1px solid rgba(239,68,68,0.3)',
+                                    color: '#dc2626',
                                     cursor: 'pointer',
                                     display: 'inline-flex',
                                     alignItems: 'center',
-                                    gap: 4,
-                                    whiteSpace: 'nowrap'
+                                    justifyContent: 'center'
                                   }}
+                                  title="Bu Telafi Testini Sil"
                                 >
-                                  <Play size={12} fill="currentColor" /> <span>Testi Çöz</span>
+                                  <Trash2 size={12} />
                                 </button>
                               )}
-
-                              {/* Delete Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteRemedialTest(test.id, test.title || test.name, e)}
-                                style={{
-                                  padding: '5px 7px',
-                                  borderRadius: 7,
-                                  background: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2',
-                                  border: '1px solid rgba(239,68,68,0.3)',
-                                  color: '#dc2626',
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                                title="Bu Telafi Testini Sil"
-                              >
-                                <Trash2 size={12} />
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -3371,53 +3412,87 @@ export default function StudentWrongAnswersPage() {
                               </button>
                             </>
                           ) : (
+                            (() => {
+                              const lockStatus = getRemedialLockStatus(test, null, submissions, selectedStudent?.id || currentUser?.id);
+                              if (lockStatus.isLocked) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => alert(lockStatus.lockMessage)}
+                                    style={{
+                                      flex: 1,
+                                      padding: '7px 12px',
+                                      borderRadius: 8,
+                                      background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                      border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e2e8f0',
+                                      color: isDark ? '#94a3b8' : '#64748b',
+                                      fontSize: '0.76rem',
+                                      fontWeight: 900,
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: 6
+                                    }}
+                                    title={lockStatus.lockMessage}
+                                  >
+                                    <Lock size={13} color="#f59e0b" />
+                                    <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
+                                  </button>
+                                );
+                              }
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const stId = selectedStudent?.id || currentUser?.id;
+                                    navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '7px 12px',
+                                    borderRadius: 8,
+                                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 6,
+                                    boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                                    transition: 'all 0.15s'
+                                  }}
+                                >
+                                  <Play size={13} fill="currentColor" /> <span>Testi Çöz</span>
+                                </button>
+                              );
+                            })()
+                          )}
+
+                          {/* Delete Button (Only for teacher/admin or custom self-created tests) */}
+                          {(currentUser?.role === 'teacher' || currentUser?.role === 'admin' || (!Boolean(test.teacherAssigned || test.isTeacherRemedial || test.assignedTeacherId || test.createdBy === 'teacher' || test.source === 'teacher') && test.createdBy === currentUser?.id)) && (
                             <button
                               type="button"
-                              onClick={() => {
-                                const stId = selectedStudent?.id || currentUser?.id;
-                                navigate(`/quiz/${test.id}?studentId=${stId}&mode=solve`, { state: { from: '/student/wrong-answers', mode: 'solve' } });
-                              }}
+                              onClick={(e) => handleDeleteRemedialTest(test.id, test.title || test.name, e)}
                               style={{
-                                flex: 1,
-                                padding: '7px 12px',
+                                padding: '6px 8px',
                                 borderRadius: 8,
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                color: '#ffffff',
-                                border: 'none',
-                                fontSize: '0.78rem',
-                                fontWeight: 900,
+                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                                color: '#dc2626',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6,
-                                boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
-                                transition: 'all 0.15s'
+                                justifyContent: 'center'
                               }}
+                              title="Bu Telafi Testini Sil"
                             >
-                              <Play size={13} fill="currentColor" /> <span>Testi Çöz</span>
+                              <Trash2 size={13} />
                             </button>
                           )}
-
-                          {/* Delete Button */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteRemedialTest(test.id, test.title || test.name, e)}
-                            style={{
-                              padding: '6px 8px',
-                              borderRadius: 8,
-                              background: isDark ? 'rgba(239,68,68,0.1)' : '#fee2e2',
-                              border: '1px solid rgba(239,68,68,0.3)',
-                              color: '#dc2626',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Bu Telafi Testini Sil"
-                          >
-                            <Trash2 size={13} />
-                          </button>
                         </div>
 
                         {/* Practice Only Mistakes Button (If Solved and has Mistakes) */}

@@ -1,11 +1,81 @@
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Plus, Trash2, Lock, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search } from 'lucide-react';
+import { useCurriculum } from '../context/CurriculumContext';
+import { useHomework } from '../context/HomeworkContext';
+import { useAuth } from '../context/AuthContext';
+import { useEvaluation } from '../context/EvaluationContext';
+import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useStudyPlan } from '../context/StudyPlanContext';
+import { useUser } from '../context/UserContext';
+import { useTheme } from '../context/ThemeContext';
+import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
+import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
+
+/* ─── Constants ─── */
+export const DAYS = [
+  { key: 'Pzt', long: 'Pazartesi' },
+  { key: 'Sal', long: 'Salı' },
+  { key: 'Çrş', long: 'Çarşamba' },
+  { key: 'Prş', long: 'Perşembe' },
+  { key: 'Cum', long: 'Cuma' },
+  { key: 'Cts', long: 'Cumartesi' },
+  { key: 'Paz', long: 'Pazar' },
+];
+
+const SUBJECTS = [
+  'Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler',
+  'İngilizce', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya',
+  'Geometri', 'Genel Tekrar', 'Soru Çözümü', 'Deneme Sınavı'
+];
+
+export const TOPIC_STATUSES = ['Başlanmadı', 'Başlandı', 'Öğrenildi', 'Tekrar Yapıldı', 'Tamamlandı'];
+export const STATUS_COLORS = {
+  'Başlanmadı':    { bg: '#f1f5f9', text: '#64748b', border: '#e2e8f0' },
+  'Başlandı':      { bg: '#fef9c3', text: '#a16207', border: '#fde68a' },
+  'Öğrenildi':     { bg: '#dbeafe', text: '#1d4ed8', border: '#bfdbfe' },
+  'Tekrar Yapıldı':{ bg: '#fed7aa', text: '#c2410c', border: '#fdba74' },
+  'Tamamlandı':    { bg: '#dcfce7', text: '#15803d', border: '#86efac' },
+};
+
+export const TASK_TYPES = [
+  { id: 'konu',   label: 'Konu Çalışması', icon: '📖', color: '#6366f1', bg: '#eef2ff' },
+  { id: 'soru',   label: 'Soru Çözme',     icon: '✏️', color: '#7c3aed', bg: '#f5f3ff' },
+  { id: 'tekrar', label: 'Tekrar',          icon: '🔄', color: '#0891b2', bg: '#ecfeff' },
+  { id: 'kitap',  label: 'Kitap Takibi',    icon: '📚', color: '#059669', bg: '#f0fdf4' },
+  { id: 'deneme', label: 'Deneme Sınavı',   icon: '📊', color: '#d97706', bg: '#fffbeb' },
+  { id: 'diger',  label: 'Diğer',           icon: '✨', color: '#64748b', bg: '#f8fafc' },
+];
+
+export const DAY_THEMES = {
+  'Pzt': { gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', lightBg: '#f5f3ff', border: '#c7d2fe', text: '#4f46e5', badgeBg: '#4f46e5' },
+  'Sal': { gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', lightBg: '#ecfeff', border: '#a5f3fc', text: '#0891b2', badgeBg: '#0891b2' },
+  'Çrş': { gradient: 'linear-gradient(135deg, #059669, #10b981)', lightBg: '#ecfdf5', border: '#a7f3d0', text: '#059669', badgeBg: '#059669' },
+  'Prş': { gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', lightBg: '#fffbeb', border: '#fde68a', text: '#d97706', badgeBg: '#d97706' },
+  'Cum': { gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', lightBg: '#faf5ff', border: '#ddd6fe', text: '#7c3aed', badgeBg: '#7c3aed' },
+  'Cts': { gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', lightBg: '#fff1f2', border: '#fecdd3', text: '#e11d48', badgeBg: '#e11d48' },
+  'Paz': { gradient: 'linear-gradient(135deg, #2563eb, #3b82f6)', lightBg: '#eff6ff', border: '#bfdbfe', text: '#2563eb', badgeBg: '#2563eb' },
+};
+
+export const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+export function canStudentDeleteItem(item, currentUser) {
   if (!item) return false;
   // Teachers and admins can delete anything
   if (currentUser?.role && currentUser.role !== 'student') return true;
 
-  // Check if item is teacher-assigned, homework, curriculum, roadmap, or book test
+  // Check if item is teacher-assigned, remedial, homework, curriculum, roadmap, or book test
   const isTeacherTask = Boolean(
     item.isAutoHomework ||
     item.isTeacherAssigned ||
+    item.isTeacherRemedial ||
+    item.isRemedial ||
+    item.isRemedialTest ||
+    item.type === 'remedialTest' ||
+    item.taskType === 'remedialTest' ||
+    item.type === 'remedial' ||
+    item.taskType === 'remedial' ||
     item.isHomework ||
     item.homeworkId ||
     item.hwId ||
@@ -23,6 +93,7 @@
     (typeof item.id === 'string' && (
       item.id.startsWith('hw_') ||
       item.id.startsWith('auto_hw_') ||
+      item.id.startsWith('remedial_') ||
       item.id.startsWith('tbt_') ||
       item.id.startsWith('bt_') ||
       item.id.startsWith('book_test_')
@@ -3234,27 +3305,58 @@ export function MonthlyListPanel({
                                       )}
 
                                       {isClickable && onOpenResult && (
-                                        <button
-                                          type="button"
-                                          onClick={() => onOpenResult(item)}
-                                          style={{
-                                            background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            color: '#ffffff',
-                                            padding: '0.3rem 0.65rem',
-                                            borderRadius: 6,
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 3,
-                                            fontSize: '0.72rem',
-                                            fontWeight: 900,
-                                            boxShadow: '0 2px 6px rgba(79,70,229,0.3)',
-                                            whiteSpace: 'nowrap'
-                                          }}
-                                        >
-                                          {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={12} /> : <PlayCircle size={12} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
-                                        </button>
+                                        (() => {
+                                          const lockStatus = getRemedialLockStatus(item, null, submissions, effectiveStudentId);
+                                          if (lockStatus.isLocked) {
+                                            return (
+                                              <button
+                                                type="button"
+                                                onClick={() => alert(lockStatus.lockMessage)}
+                                                style={{
+                                                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                                  border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #e2e8f0',
+                                                  cursor: 'pointer',
+                                                  color: isDark ? '#94a3b8' : '#64748b',
+                                                  padding: '0.3rem 0.65rem',
+                                                  borderRadius: 6,
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 4,
+                                                  fontSize: '0.72rem',
+                                                  fontWeight: 900,
+                                                  whiteSpace: 'nowrap'
+                                                }}
+                                                title={lockStatus.lockMessage}
+                                              >
+                                                <Lock size={12} color="#f59e0b" />
+                                                <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
+                                              </button>
+                                            );
+                                          }
+                                          return (
+                                            <button
+                                              type="button"
+                                              onClick={() => onOpenResult(item)}
+                                              style={{
+                                                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: '#ffffff',
+                                                padding: '0.3rem 0.65rem',
+                                                borderRadius: 6,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 3,
+                                                fontSize: '0.72rem',
+                                                fontWeight: 900,
+                                                boxShadow: '0 2px 6px rgba(79,70,229,0.3)',
+                                                whiteSpace: 'nowrap'
+                                              }}
+                                            >
+                                              {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? <RotateCcw size={12} /> : <PlayCircle size={12} />} {checkHasItemBeenAttempted(item, effectiveStudentId, submissions, allHomeworks) ? 'Tekrar Çöz' : 'Çöz'}
+                                            </button>
+                                          );
+                                        })()
                                       )}
                                     </>
                                   )}
