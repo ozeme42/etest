@@ -1113,13 +1113,10 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       const tId = String(t.id || '');
       const tUuid = String(toUUID(t.id) || '');
       const tClean = tId.replace(/^hw_/, '').replace(/^q_/, '');
-      const tTitleKey = `title_${(t.title || '').trim().toLowerCase()}`;
-
       if (
         allDeletedIdentifiers.has(tId) ||
         (tUuid && allDeletedIdentifiers.has(tUuid)) ||
-        (tClean && allDeletedIdentifiers.has(tClean)) ||
-        allDeletedIdentifiers.has(tTitleKey)
+        (tClean && allDeletedIdentifiers.has(tClean))
       ) {
         return false;
       }
@@ -1360,32 +1357,6 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       if (item.rawTest?.testId) idsToDelete.add(String(item.rawTest.testId));
       if (item.rawTest?.supabaseId) idsToDelete.add(String(item.rawTest.supabaseId));
       if (item.rawTest?.questionId) idsToDelete.add(String(item.rawTest.questionId));
-      if (Array.isArray(item.allIds)) item.allIds.forEach(id => id && idsToDelete.add(String(id)));
-
-      const normTitle = (item.title || item.rawTest?.title || '').trim().toLowerCase();
-
-      // Find by matching title in homeworks, questions, tests
-      if (normTitle) {
-        (homeworks || []).forEach(h => {
-          if (h && h.title && h.title.trim().toLowerCase() === normTitle) {
-            idsToDelete.add(String(h.id));
-            if (h.supabaseId) idsToDelete.add(String(h.supabaseId));
-          }
-        });
-        (questions || []).forEach(q => {
-          if (q && q.title && q.title.trim().toLowerCase() === normTitle) {
-            idsToDelete.add(String(q.id));
-            if (q.supabaseId) idsToDelete.add(String(q.supabaseId));
-          }
-        });
-        (tests || []).forEach(t => {
-          if (t && t.title && t.title.trim().toLowerCase() === normTitle) {
-            idsToDelete.add(String(t.id));
-            if (t.supabaseId) idsToDelete.add(String(t.supabaseId));
-          }
-        });
-      }
-
       // Expand UUIDs and stripped prefixes
       const arrayIds = Array.from(idsToDelete);
       arrayIds.forEach(id => {
@@ -1399,7 +1370,6 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       setDeletedIdsSet(prev => {
         const next = new Set(prev);
         idsToDelete.forEach(id => next.add(id));
-        if (normTitle) next.add(`title_${normTitle}`);
         try {
           localStorage.setItem('eTestDeletedRemedialTests', JSON.stringify(Array.from(next)));
         } catch {}

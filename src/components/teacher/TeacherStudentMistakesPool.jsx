@@ -953,18 +953,16 @@ export default function TeacherStudentMistakesPool({
     setDeletingId(test.id);
     try {
       if (typeof deleteSubmission === 'function') {
-        if (test.id) await deleteSubmission(test.id);
-        if (test.supabaseId && test.supabaseId !== test.id) await deleteSubmission(test.supabaseId);
-      }
-      if (typeof deleteSubmissionsByTestId === 'function' && test.testId) {
-        await deleteSubmissionsByTestId(test.testId);
+        const sId = test.submissionId || test.id;
+        if (sId) await deleteSubmission(sId);
+        if (test.supabaseId && test.supabaseId !== sId) await deleteSubmission(test.supabaseId);
       }
 
       // Record in local & Supabase deletion cache for instant cloud response
       try {
         const savedDeleted = localStorage.getItem('eTestDeletedSubmissions');
         const parsed = savedDeleted ? JSON.parse(savedDeleted) : [];
-        const toAdd = [String(test.id), String(test.supabaseId || ''), String(test.testId || '')].filter(Boolean);
+        const toAdd = [String(test.submissionId || test.id), String(test.supabaseId || '')].filter(Boolean);
         localStorage.setItem('eTestDeletedSubmissions', JSON.stringify(Array.from(new Set([...parsed, ...toAdd]))));
 
         // Sync deletion to Supabase deleted_records table
