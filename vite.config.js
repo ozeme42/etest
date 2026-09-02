@@ -10,6 +10,7 @@ export default defineConfig({
     port: 5173
   },
   build: {
+    target: 'es2015',
     sourcemap: false,
     chunkSizeWarningLimit: 2000,
     cssMinify: true

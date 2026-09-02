@@ -133,7 +133,12 @@ export function EvaluationProvider({ children }) {
 
   const [isSyncing, setIsSyncing] = useState(true);
 
-  const syncFromSupabase = async (showLoading = false, force = true) => {
+  const syncFromSupabase = async (showLoading = false, force = false) => {
+    if (!force && isCacheValid('submissions', 15) && (submissions || []).length > 0) {
+      if (showLoading) setIsSyncing(false);
+      return;
+    }
+
     if (showLoading) setIsSyncing(true);
 
     try {
@@ -216,7 +221,7 @@ export function EvaluationProvider({ children }) {
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      syncFromSupabase(true, true);
+      syncFromSupabase(false, false);
     } else {
       setIsSyncing(false);
     }

@@ -76,14 +76,19 @@ export function QuestionBankProvider({ children }) {
     if (!isSupabaseConfigured() || !supabase) return;
 
     // Real-time synchronization: Instant updates when questions are created/edited/deleted
+    let debounceTimer = null;
+    const debouncedSync = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => syncQuestions(true), 2000);
+    };
+
     const qChannel = supabase
       .channel('realtime_questions_sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => {
-        syncQuestions(true);
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, debouncedSync)
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       try {
         supabase.removeChannel(qChannel);
       } catch {}

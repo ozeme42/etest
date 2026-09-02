@@ -60,10 +60,15 @@ export function HomeworkProvider({ children }) {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshHomeworks = async (force = true) => {
+  const refreshHomeworks = async (force = false) => {
     if (!isSupabaseConfigured()) {
       setIsLoading(false);
       return null;
+    }
+
+    if (!force && isCacheValid('homeworks', 30) && (homeworks || []).length > 0) {
+      setIsLoading(false);
+      return homeworks;
     }
 
     setIsLoading(true);
@@ -94,7 +99,7 @@ export function HomeworkProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshHomeworks(true);
+    refreshHomeworks(false);
 
     if (!isSupabaseConfigured() || !supabase) return;
 

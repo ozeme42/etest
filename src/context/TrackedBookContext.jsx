@@ -81,7 +81,7 @@ export function TrackedBookProvider({ children }) {
       return null;
     }
     
-    if (!force && isCacheValid('tracked_books', 30) && books.length > 0 && bookTests.length > 200) {
+    if (!force && isCacheValid('tracked_books', 30) && books.length > 0 && bookTests.length > 0) {
       setIsLoading(false);
       return { books, bookTests };
     }
@@ -113,7 +113,7 @@ export function TrackedBookProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshTrackedBooks(true);
+    refreshTrackedBooks(false);
 
     if (!isSupabaseConfigured() || !supabase) return;
 

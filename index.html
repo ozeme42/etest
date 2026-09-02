@@ -16,7 +16,42 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700;800;900&display=swap" rel="stylesheet">
     <title>E-Test Platform</title>
   </head>
-  <body>
+    <script>
+      // Android 8 (API 26) / Chrome 58+ compatibility polyfills
+      if (typeof globalThis === 'undefined') { window.globalThis = window; }
+      if (!Array.prototype.flat) {
+        Array.prototype.flat = function(depth) {
+          var flattend = [];
+          (function flat(array, d) {
+            for (var i = 0; i < array.length; i++) {
+              if (Array.isArray(array[i]) && d > 0) {
+                flat(array[i], d - 1);
+              } else if (array[i] !== undefined) {
+                flattend.push(array[i]);
+              }
+            }
+          })(this, Math.floor(depth) || 1);
+          return flattend;
+        };
+      }
+      if (!Array.prototype.flatMap) {
+        Array.prototype.flatMap = function(callback, thisArg) {
+          return this.map(callback, thisArg).flat();
+        };
+      }
+      if (!Promise.allSettled) {
+        Promise.allSettled = function(promises) {
+          return Promise.all(
+            promises.map(function(promise) {
+              return Promise.resolve(promise).then(
+                function(value) { return { status: 'fulfilled', value: value }; },
+                function(reason) { return { status: 'rejected', reason: reason }; }
+              );
+            })
+          );
+        };
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
