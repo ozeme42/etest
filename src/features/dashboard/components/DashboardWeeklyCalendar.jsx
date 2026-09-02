@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Calendar, CalendarDays, ChevronRight } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default memo(function DashboardWeeklyCalendar({
@@ -10,7 +10,8 @@ export default memo(function DashboardWeeklyCalendar({
   todayDayKey = 'Pzt',
   weekTasksCountMap = {},
   weekInfo = { dayDateMap: {} },
-  onSelectDay
+  onSelectDay,
+  onAddTask
 }) {
   const navigate = useNavigate();
 
@@ -51,6 +52,29 @@ export default memo(function DashboardWeeklyCalendar({
               }}
             >
               ● Bugün
+            </button>
+          )}
+          {onAddTask && (
+            <button
+              type="button"
+              onClick={onAddTask}
+              className="sd-btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                color: '#ffffff',
+                borderRadius: 8,
+                padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.85rem',
+                fontSize: isMobile ? '0.7rem' : '0.75rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              <Plus size={13} strokeWidth={2.5} /> {isMobile ? 'Görev Ekle' : 'Görev Ekle'}
             </button>
           )}
           <button

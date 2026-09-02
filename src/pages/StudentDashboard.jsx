@@ -30,7 +30,8 @@ import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvalu
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import { toUUID, isValidUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
-import { checkHasItemBeenAttempted } from '../components/ProgramCenter';
+import { checkHasItemBeenAttempted, normalizeWeeklyProgram } from '../components/ProgramCenter';
+import AddTaskModal from '../components/program/AddTaskModal';
 import ManualTestModal from '../components/ManualTestModal';
 import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardWeeklyCalendar';
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
@@ -344,6 +345,7 @@ export default function StudentDashboard() {
   });
 
   const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [isAnalyticsReady, setIsAnalyticsReady] = useState(false);
 
   useEffect(() => {
@@ -2623,6 +2625,35 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleAddScheduleTask = async (newItem, targetDayKey) => {
+    try {
+      const dayToUse = targetDayKey || activeDayKey || 'Pzt';
+      const profile = coachingProfile || getCoachingProfileForStudent(selectedStudent?.id) || { studentId: selectedStudent?.id, weeklyProgram: [] };
+      const rawWeekly = normalizeWeeklyProgram(profile.weeklyProgram);
+
+      const updatedWeeklyProgram = rawWeekly.map(dayRow => {
+        if (dayRow.day === dayToUse) {
+          return {
+            ...dayRow,
+            items: [...(dayRow.items || []), newItem]
+          };
+        }
+        return dayRow;
+      });
+
+      await saveCoachingProfile({
+        ...profile,
+        studentId: selectedStudent?.id,
+        weeklyProgram: updatedWeeklyProgram
+      });
+
+      refreshCoaching?.(true);
+      refreshSchedules?.(true);
+    } catch (e) {
+      console.error('Error adding schedule task from dashboard:', e);
+    }
+  };
+
   const handleTaskAction = useCallback((task) => {
     if (!task) return;
     if (task.roadmapAssignmentId) {
@@ -3649,6 +3680,7 @@ export default function StudentDashboard() {
                 weekTasksCountMap={weekTasksCountMap}
                 weekInfo={weekInfo}
                 onSelectDay={setActiveDayKey}
+                onAddTask={() => setIsAddTaskModalOpen(true)}
               />
 
               {/* ── BİRLEŞİK AYIRICI ÇİZGİ ── */}
@@ -3670,6 +3702,7 @@ export default function StudentDashboard() {
                 onToggleTask={handleToggleTask}
                 onTaskClick={handleTaskAction}
                 getRowTheme={getRowTheme}
+                onAddTask={() => setIsAddTaskModalOpen(true)}
               />
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
@@ -3885,6 +3918,17 @@ export default function StudentDashboard() {
         studentId={selectedStudent?.id}
         onClose={() => setIsManualTestModalOpen(false)}
       />
+
+      {/* Gelişmiş Görev Ekleme Modalı (Mobil Uyumlu & Akıllı) */}
+      {isAddTaskModalOpen && (
+        <AddTaskModal
+          dayKey={activeDayKey}
+          onAdd={handleAddScheduleTask}
+          onClose={() => setIsAddTaskModalOpen(false)}
+          topicPool={coachingProfile?.topicPool || []}
+          isDark={isDark}
+        />
+      )}
     </div>
     </SmartPullToRefresh>
   );

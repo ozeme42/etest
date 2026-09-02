@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock } from 'lucide-react';
+import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock, Plus } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
 export default memo(function DashboardTodayTasks({
@@ -12,7 +12,8 @@ export default memo(function DashboardTodayTasks({
   setShowAllDayTasks,
   onToggleTask,
   onTaskClick,
-  getRowTheme
+  getRowTheme,
+  onAddTask
 }) {
   const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(false);
 
@@ -96,21 +97,47 @@ export default memo(function DashboardTodayTasks({
             </div>
           </div>
 
-          {dayProgramInfo.totalCount > 0 && (
-            <span style={{
-              fontSize: isMobile ? '0.72rem' : '0.78rem',
-              fontWeight: 900,
-              padding: '4px 12px',
-              borderRadius: 99,
-              background: dayProgramInfo.hasAllCompleted ? '#10b981' : 'rgba(255, 255, 255, 0.22)',
-              color: '#ffffff',
-              border: '1px solid rgba(255, 255, 255, 0.35)',
-              backdropFilter: 'blur(4px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-            }}>
-              {dayProgramInfo.hasAllCompleted ? '🎉 Tümü Tamamlandı!' : `${dayProgramInfo.completedCount} / ${dayProgramInfo.totalCount} Tamamlandı`}
-            </span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {onAddTask && (
+              <button
+                type="button"
+                onClick={onAddTask}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.22)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  color: '#ffffff',
+                  borderRadius: 99,
+                  padding: isMobile ? '3px 9px' : '4px 12px',
+                  fontSize: isMobile ? '0.7rem' : '0.76rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  backdropFilter: 'blur(4px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Plus size={12} strokeWidth={2.5} /> {isMobile ? 'Ekle' : 'Görev Ekle'}
+              </button>
+            )}
+            {dayProgramInfo.totalCount > 0 && (
+              <span style={{
+                fontSize: isMobile ? '0.72rem' : '0.78rem',
+                fontWeight: 900,
+                padding: '4px 12px',
+                borderRadius: 99,
+                background: dayProgramInfo.hasAllCompleted ? '#10b981' : 'rgba(255, 255, 255, 0.22)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.35)',
+                backdropFilter: 'blur(4px)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                {dayProgramInfo.hasAllCompleted ? '🎉 Tümü Tamamlandı!' : `${dayProgramInfo.completedCount} / ${dayProgramInfo.totalCount} Tamamlandı`}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ── BİRLEŞTİRİLMİŞ GÖREV LİSTESİ CONTAINER'I ── */}
@@ -502,9 +529,32 @@ export default memo(function DashboardTodayTasks({
               <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.92rem', marginBottom: 3 }}>
                 {dayProgramInfo.isToday ? 'Bugün için planlanan tüm görevler bitti veya görev yok!' : `${dayProgramInfo.dayName} günü için kayıtlı görev bulunamadı.`}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: onAddTask ? 12 : 0 }}>
                 Harika gidiyorsun! Haftalık programından yeni hedefler ekleyebilirsin.
               </div>
+              {onAddTask && (
+                <button
+                  type="button"
+                  onClick={onAddTask}
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    border: 'none',
+                    color: '#ffffff',
+                    borderRadius: 99,
+                    padding: '0.45rem 1.1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2.5} /> Hedef / Görev Ekle
+                </button>
+              )}
             </div>
           )}
         </div>
