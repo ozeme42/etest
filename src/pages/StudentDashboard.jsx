@@ -392,7 +392,7 @@ export default function StudentDashboard() {
 
   // Background sync when opening the dashboard (runs strictly ONCE on mount)
   useEffect(() => {
-    refreshHomeworks?.(false);
+    refreshHomeworks?.(true);
     refreshTrackedBooks?.(true);
     syncFromSupabase?.(false, true);
     refreshCoaching?.(true);
@@ -2128,8 +2128,12 @@ export default function StudentDashboard() {
             return false;
           };
 
+          let rawData = hw.raw_data;
+          if (typeof rawData === 'string') {
+            try { rawData = JSON.parse(rawData); } catch {}
+          }
           const testDueDatesMap = {
-            ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
+            ...(hw.testDueDates || hw.scheduleDates || hw.test_due_dates || rawData?.testDueDates || rawData?.scheduleDates || rawData?.test_due_dates || hw.testDates || {})
           };
 
           if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
@@ -2230,12 +2234,17 @@ export default function StudentDashboard() {
             return;
           }
 
+          // A.2) Genel Ödev / Kitap Teslim Tarihi
+          // Tracked book containers with individual tests or 50+ questions should never be pushed as a single massive homework task
+          if (isBook && (hw.totalQuestions > 50 || (typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) || /tüm kitap/i.test(hw.title || ''))) {
+            return;
+          }
+
           const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
           const dueYMD = extractItemYMD(hw.dueDate || hw.assignedDueDate);
           const startTime = startYMD ? new Date(startYMD).getTime() : null;
           const dueTime = dueYMD ? new Date(dueYMD).getTime() : null;
 
-          // A.2) Genel Ödev / Kitap Teslim Tarihi
           const sub = (hw.submissions || hw.raw_data?.submissions || []).find(s => isMatchStudent(s) && isMatchHwSub(s, hw)) ||
             (studentSubmissions || []).find(s => isMatchHwSub(s, hw));
           const isDone = !!sub;

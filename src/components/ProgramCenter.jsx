@@ -2142,7 +2142,11 @@ export function MonthlyListPanel({
           };
         };
 
-        const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
+        let rawData = hw.raw_data;
+        if (typeof rawData === 'string') {
+          try { rawData = JSON.parse(rawData); } catch {}
+        }
+        const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || rawData?.testDueDates || rawData?.scheduleDates || rawData?.test_due_dates || hw.testDates || {};
         if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
           const processedCleanIds = new Set();
           Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
@@ -2223,6 +2227,9 @@ export function MonthlyListPanel({
         }
 
         if (isForThisDay) {
+          if (isBook && (hw.totalQuestions > 50 || (typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) || /tüm kitap/i.test(hw.title || ''))) {
+            return;
+          }
           if (isBook) {
             if (ymd === dueYMD || (!dueYMD && startTime && dateTime === startTime)) {
               const isHwDone = checkIsTaskSolved({
@@ -4210,7 +4217,11 @@ export default function ProgramCenter({
           };
         };
 
-        const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {};
+        let rawData = hw.raw_data;
+        if (typeof rawData === 'string') {
+          try { rawData = JSON.parse(rawData); } catch {}
+        }
+        const testDueDatesMap = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || rawData?.testDueDates || rawData?.scheduleDates || rawData?.test_due_dates || hw.testDates || {};
         if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
           const processedCleanIds = new Set();
           Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
@@ -4297,6 +4308,9 @@ export default function ProgramCenter({
         }
 
         if (isForThisDay) {
+          if (isBook && (hw.totalQuestions > 50 || (typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) || /tüm kitap/i.test(hw.title || ''))) {
+            return;
+          }
           if (isBook) {
             if (dayInfo.ymd === dueYMD || (!dueYMD && startTime && dayInfo.time === startTime)) {
               const isHwDone = checkIsTaskSolved({

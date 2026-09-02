@@ -66,7 +66,12 @@ export function HomeworkProvider({ children }) {
       return null;
     }
 
-    if (!force && isCacheValid('homeworks', 30) && (homeworks || []).length > 0) {
+    const hasIncompleteBookHomeworks = (homeworks || []).some(h =>
+      (h.isBookAssignment || h.bookId || /kitap|seti/i.test(h.title || '')) &&
+      (!h.testDueDates || Object.keys(h.testDueDates).length === 0)
+    );
+
+    if (!force && !hasIncompleteBookHomeworks && isCacheValid('homeworks', 2) && (homeworks || []).length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -99,7 +104,7 @@ export function HomeworkProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshHomeworks(false);
+    refreshHomeworks(true);
 
     if (!isSupabaseConfigured() || !supabase) return;
 
