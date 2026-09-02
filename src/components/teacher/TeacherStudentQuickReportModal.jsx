@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { getAvatarBg, getSubjectTheme } from '../../config/subjectThemes';
-import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { getSubmissionScorePct } from '../../utils/scoreHelpers';
 import { computeStudentAnalyticsData } from '../../utils/testResolver';
 import { timeAgo } from '../../utils/dateHelpers';
 

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "oxlint",
+    "build:apk": "node scripts/build-apk.cjs",
+    "build:apk:debug": "node scripts/build-apk.cjs --debug",
+    "lint": "oxlint src",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -63,6 +63,7 @@ export default function MobileBottomNav() {
 
   const handleTabClick = (path) => {
     if (isTabActive(path)) return;
+    try { triggerHapticFeedback('light'); } catch {}
     navigate(path);
   };
 
@@ -85,12 +86,8 @@ export default function MobileBottomNav() {
         return (
           <button
             key={tab.path}
-            onPointerDown={(e) => {
-              if (e.button === 0 || e.pointerType === 'touch') {
-                handleTabClick(tab.path);
-              }
-            }}
-            onClick={(e) => e.preventDefault()}
+            onClick={() => handleTabClick(tab.path)}
+            type="button"
             style={{
               background: 'transparent',
               border: 'none',

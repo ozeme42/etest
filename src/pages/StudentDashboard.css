@@ -1,19 +1,28 @@
 /* ═══════════════════════════════════════════════════
-   STUDENT DASHBOARD - DUAL THEME DESIGN SYSTEM (OPTIMIZED)
+   STUDENT DASHBOARD - MODERN DUAL THEME DESIGN SYSTEM
+   Optimized for Mobile, Tablet & High-Res Desktop
    ═══════════════════════════════════════════════════ */
 
 .student-dashboard-page {
   min-height: 100vh;
   background-color: var(--color-bg);
   background-image: 
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%),
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.07) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 20%, rgba(168, 85, 247, 0.05) 0%, transparent 45%),
     var(--color-bg);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
   color: var(--color-text);
   padding-bottom: 5rem;
   transition: background-color 0.25s ease, color 0.25s ease;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Touch & Interaction Ergonomics */
+.student-dashboard-page button,
+.student-dashboard-page a,
+.student-dashboard-page [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (min-width: 1025px) {
@@ -23,73 +32,84 @@
 }
 
 [data-theme="dark"] .student-dashboard-page {
+  background-color: #0b0f19;
   background-image: 
-    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.10) 0%, transparent 45%),
+    radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 45%),
     #0b0f19;
 }
 
-/* Card Foundation - rock solid stability on tablets & mobile */
+/* ── Modern Card Foundation ── */
 .sd-card {
   background: var(--color-surface);
   border: 1.5px solid var(--color-border);
-  border-radius: 22px;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
   color: var(--color-text);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 [data-theme="dark"] .sd-card {
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.25);
+  background: rgba(17, 24, 39, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45);
 }
 
 @media (hover: hover) {
   .sd-card:hover {
     border-color: var(--color-border-input) !important;
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.12) !important;
+    box-shadow: 0 12px 32px -4px rgba(99, 102, 241, 0.12) !important;
   }
 }
 
 .sd-btn {
-  transition: transform 0.18s ease, filter 0.18s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
   transform: translateZ(0);
 }
 
 .sd-btn:hover {
   transform: translateY(-2px);
-  filter: brightness(1.1);
+  filter: brightness(1.08);
 }
 
 .sd-btn:active {
   transform: translateY(0);
 }
 
+/* ── Modern KPI Cards ── */
 .sd-kpi {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
   min-width: 0;
   transform: translateZ(0);
+  backdrop-filter: blur(12px);
 }
 
 .sd-kpi::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, transparent 60%);
   border-radius: inherit;
   pointer-events: none;
 }
 
 .sd-kpi:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35) !important;
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35) !important;
+}
+
+.sd-kpi:active {
+  transform: translateY(-1px) scale(0.99);
 }
 
 .sd-success {
@@ -102,6 +122,24 @@
   transform: scale(1.06) rotate(2deg);
 }
 
+/* ── Fluid Responsive Grid Architecture ── */
+.sd-hero-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+@media screen and (min-width: 900px) {
+  .sd-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+}
+
 .sd-grid-layout {
   display: flex;
   flex-direction: column;
@@ -111,22 +149,84 @@
   box-sizing: border-box;
 }
 
-@media screen and (min-width: 1101px) {
+/* Tablet Layout (768px - 1100px) */
+@media screen and (min-width: 768px) and (max-width: 1100px) {
   .sd-grid-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.98fr);
-    gap: 1.75rem;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 1.25rem;
     align-items: start;
   }
 }
 
-/* -- Animations moved from inline style tag -- */
+/* Desktop Layout (1101px+) */
+@media screen and (min-width: 1101px) {
+  .sd-grid-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+}
+
+/* ── 2-Column Compact Subgrid for Desktop (e.g. Homeworks & Books) ── */
+.sd-subgrid-2col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media screen and (min-width: 1024px) {
+  .sd-subgrid-2col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+}
+
+/* ── Modern App Shortcut Dock ── */
+.sd-app-strip-item {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justifyContent: center;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+@media (min-width: 768px) {
+  .sd-app-strip-item {
+    padding: 0.6rem 0.5rem;
+    border-radius: 18px;
+  }
+  .sd-app-strip-item:hover {
+    background: var(--color-surface-hover);
+    transform: translateY(-3px);
+  }
+}
+
+/* ── Keyframe Animations ── */
 @keyframes pulseGlow { 0%,100%{transform:scale(1);opacity:0.9} 50%{transform:scale(1.04);opacity:1} }
 @keyframes onlinePulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.75)} 60%{box-shadow:0 0 0 7px rgba(34,197,94,0)} }
 @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
 @keyframes floatBlob { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-14px) scale(1.07)} }
 @keyframes ringRotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-.sd-online{animation:onlinePulse 2.2s ease-in-out infinite}.sd-avatar-ring{animation:ringRotate 8s linear infinite}
-.sd-hide-scrollbar::-webkit-scrollbar{display:none}.sd-hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:rgba(0,0,0,0.05);border-radius:99px}::-webkit-scrollbar-thumb{background:rgba(100,116,139,0.3);border-radius:99px}
+
+.sd-online { animation: onlinePulse 2.2s ease-in-out infinite; }
+.sd-avatar-ring { animation: ringRotate 8s linear infinite; }
+.sd-hide-scrollbar::-webkit-scrollbar { display: none; }
+.sd-hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom smooth scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.03); border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.25); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.45); }
+
 

@@ -137,7 +137,8 @@ export function AuthProvider({ children }) {
           }
           setLoading(false);
           return { success: true, user: userObj };
-        } else if (supaErr && !foundUser) {
+        } else if (supaErr) {
+          // If Supabase is configured and returns an authentication error, fail securely
           const friendlyErr = translateAuthError(supaErr.message);
           setLoading(false);
           setError(friendlyErr);
@@ -145,8 +146,14 @@ export function AuthProvider({ children }) {
         }
       }
 
-      // 3. Fallback: If user found in local DB without explicit password mismatch
+      // 3. Fallback: Only for offline demo accounts if password matches
       if (foundUser) {
+        if (foundUser.password && password !== foundUser.password) {
+          setLoading(false);
+          const pwdErr = '❌ Şifre hatalı! Lütfen geçerli şifrenizi giriniz.';
+          setError(pwdErr);
+          return { success: false, error: pwdErr };
+        }
         setCurrentUser(foundUser);
         setLoading(false);
         return { success: true, user: foundUser };

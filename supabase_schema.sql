@@ -355,3 +355,26 @@ CREATE TABLE IF NOT EXISTS public.scales (
 ALTER TABLE public.scales ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public scales" ON public.scales FOR ALL USING (true) WITH CHECK (true);
 
+-- ==========================================
+-- 10. CANLI ORTAM GÜVENLİ RLS POLİTİKALARI (PRODUCTION HARDENED RLS)
+-- Canlıya geçerken aşağıdaki politikaları çalıştırarak tam veri izolasyonu sağlayabilirsiniz:
+-- ==========================================
+-- CREATE OR REPLACE FUNCTION auth.current_role() RETURNS text AS $$
+--   SELECT COALESCE(raw_user_meta_data->>'role', 'student') FROM auth.users WHERE id = auth.uid();
+-- $$ LANGUAGE sql STABLE SECURITY DEFINER;
+--
+-- ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+-- DROP POLICY IF EXISTS "Allow public users" ON public.users;
+-- CREATE POLICY "Users view own or teacher views students" ON public.users
+--   FOR SELECT USING (auth.uid()::text = id OR auth.current_role() IN ('teacher', 'admin'));
+--
+-- DROP POLICY IF EXISTS "Allow public submissions" ON public.submissions;
+-- CREATE POLICY "Submissions isolation" ON public.submissions
+--   FOR ALL USING (auth.uid()::text = student_id OR auth.current_role() IN ('teacher', 'admin'))
+--   WITH CHECK (auth.uid()::text = student_id OR auth.current_role() IN ('teacher', 'admin'));
+--
+-- DROP POLICY IF EXISTS "Allow public coaching_notes" ON public.coaching_notes;
+-- CREATE POLICY "Coaching notes privacy" ON public.coaching_notes
+--   FOR ALL USING (auth.uid()::text = student_id OR auth.uid()::text = teacher_id OR auth.current_role() = 'admin')
+--   WITH CHECK (auth.uid()::text = teacher_id OR auth.current_role() = 'admin');
+

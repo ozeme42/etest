@@ -116,8 +116,8 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : (assignedBooksList.length === 1 ? '1fr' : 'repeat(2, 1fr)'),
-          gap: isMobile ? '0.75rem' : '1.1rem'
+          gridTemplateColumns: isMobile ? '1fr' : (assignedBooksList.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
+          gap: isMobile ? '0.75rem' : '1.25rem'
         }}>
           {assignedBooksList.map((book, idx) => {
             const pal = (BOOK_PALETTES && BOOK_PALETTES[idx % BOOK_PALETTES.length]) || { from: '#6366f1', to: '#4f46e5', tag: '#6366f1', shadow: 'rgba(99,102,241,0.3)' };
@@ -180,8 +180,8 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
 
                   {/* Subjects */}
                   {(book.subjects || []).length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                      {(book.subjects || []).slice(0, 3).map((subj, sIdx) => (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+                      {(book.subjects || []).slice(0, 4).map((subj, sIdx) => (
                         <span
                           key={subj.id || sIdx}
                           style={{
@@ -189,92 +189,92 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
                             color: 'var(--color-text, #475569)',
                             border: '1px solid var(--color-border, #cbd5e1)',
                             borderRadius: 6,
-                            padding: '1px 6px',
-                            fontSize: '0.62rem',
+                            padding: '2px 7px',
+                            fontSize: '0.64rem',
                             fontWeight: 700
                           }}
                         >
                           {subj.name}
                         </span>
                       ))}
-                      {(book.subjects || []).length > 3 && (
+                      {(book.subjects || []).length > 4 && (
                         <span style={{
                           background: 'var(--color-surface-hover, #f1f5f9)',
                           color: 'var(--color-text-muted, #64748b)',
                           border: '1px solid var(--color-border, #cbd5e1)',
                           borderRadius: 6,
-                          padding: '1px 5px',
-                          fontSize: '0.62rem',
+                          padding: '2px 6px',
+                          fontSize: '0.64rem',
                           fontWeight: 800
                         }}>
-                          +{(book.subjects || []).length - 3}
+                          +{(book.subjects || []).length - 4}
                         </span>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Test Progress Box */}
+                {/* Test Progress Box - Clean & Spacious */}
                 <div style={{
-                  background: 'var(--color-surface-hover, #f8fafc)',
-                  borderRadius: 12,
-                  padding: isMobile ? '0.7rem 0.85rem' : '0.85rem 1rem',
+                  background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc',
+                  borderRadius: 14,
+                  padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1.1rem',
                   border: '1px solid var(--color-border, #e2e8f0)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem'
+                  flexDirection: 'column',
+                  gap: 6
                 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                      <span style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Test İlerlemesi
-                      </span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 900, color: isCompleted ? '#10b981' : pal.tag }}>
-                        %{book.progressPct}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: isMobile ? '0.82rem' : '0.88rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', marginBottom: 5 }}>
-                      {book.totalSolvedTests} / {book.totalBookTests} test <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>({book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} kaldı` : 'Tamamlandı'})</span>
-                    </div>
-
-                    <div style={{ height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${book.progressPct}%`,
-                        height: '100%',
-                        background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
-                        borderRadius: 99,
-                        transition: 'width 0.6s ease'
-                      }} />
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Test İlerlemesi
+                    </span>
+                    <span style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 900,
+                      color: isCompleted ? '#10b981' : pal.tag,
+                      background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : `${pal.tag}18`,
+                      padding: '2px 8px',
+                      borderRadius: 99
+                    }}>
+                      %{book.progressPct}
+                    </span>
                   </div>
 
-                  <div style={{ position: 'relative', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <MiniCircularProgress pct={book.progressPct} size={44} stroke={4.5} color={isCompleted ? '#10b981' : pal.tag} />
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text, #0f172a)' }}>
-                      %{book.progressPct}
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? '0.82rem' : '0.88rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>
+                    <span>{book.totalSolvedTests} / {book.totalBookTests} test</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
+                      {book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} test kaldı` : '🎉 Tamamlandı'}
+                    </span>
+                  </div>
+
+                  <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginTop: 2 }}>
+                    <div style={{
+                      width: `${book.progressPct}%`,
+                      height: '100%',
+                      background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
+                      borderRadius: 99,
+                      transition: 'width 0.6s ease'
+                    }} />
                   </div>
                 </div>
 
-                {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: isMobile ? 4 : 6 }}>
-                  <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4', border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0', borderRadius: 8, padding: '0.35rem 0.2rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
-                    <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
+                {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı - Ferah ve Dengeli */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 5 : 8 }}>
+                  <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4', border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #bbf7d0', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Doğru</div>
+                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#10b981', marginTop: 2 }}>{book.totalCorrect}</div>
                   </div>
-                  <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecaca', borderRadius: 8, padding: '0.35rem 0.2rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
-                    <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
+                  <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Yanlış</div>
+                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#ef4444', marginTop: 2 }}>{book.totalWrong}</div>
                   </div>
-                  <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? '1px solid rgba(148, 163, 184, 0.3)' : '1px solid #e2e8f0', borderRadius: 8, padding: '0.35rem 0.2rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
-                    <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text, #64748b)', marginTop: 1 }}>{book.totalBlank}</div>
+                  <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? '1px solid rgba(148, 163, 184, 0.25)' : '1px solid #e2e8f0', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Boş</div>
+                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: 'var(--color-text, #64748b)', marginTop: 2 }}>{book.totalBlank}</div>
                   </div>
-                  <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff', border: isDark ? '1px solid rgba(59, 130, 246, 0.35)' : '1px solid #bfdbfe', borderRadius: 8, padding: '0.35rem 0.2rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.58rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
-                    <div style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', fontWeight: 900, color: '#3b82f6', marginTop: 1 }}>%{book.successRate}</div>
+                  <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.12)' : '#eff6ff', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.62rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Başarı</div>
+                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#3b82f6', marginTop: 2 }}>%{book.successRate}</div>
                   </div>
                 </div>
 
@@ -287,24 +287,25 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
                   }}
                   style={{
                     width: '100%',
-                    padding: isMobile ? '0.55rem' : '0.65rem',
+                    padding: isMobile ? '0.65rem' : '0.75rem',
                     background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
                     color: isCompleted ? 'var(--color-text, #334155)' : '#ffffff',
                     border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     fontWeight: 900,
-                    fontSize: isMobile ? '0.78rem' : '0.82rem',
+                    fontSize: isMobile ? '0.8rem' : '0.88rem',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 5,
-                    boxShadow: isCompleted ? 'none' : `0 3px 12px ${pal.shadow}`,
-                    transition: 'all 0.2s ease'
+                    gap: 6,
+                    boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`,
+                    transition: 'all 0.2s ease',
+                    marginTop: 2
                   }}
                 >
                   <span>{isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'}</span>
-                  <ChevronRight size={14} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             );

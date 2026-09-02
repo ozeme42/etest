@@ -196,7 +196,7 @@ export default function ExamManager() {
       if (!b) return false;
       const bType = String(b.bookType || b.book_type || b.raw_data?.bookType || b.type || '').toLowerCase();
       const bPub = String(b.publisher || '').toUpperCase();
-      const isExamType = bType === 'exam' || bType === 'physical_exam' || b.isExam === true || b.id === 'tb_07kzdf_1787267196768';
+      const isExamType = bType === 'exam' || bType === 'physical_exam' || b.isExam === true || b.isExamBook === true || b.isPhysicalExam === true;
       const isPresetPub = ['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'OZEL'].includes(bPub);
       return isExamType || isPresetPub;
     });

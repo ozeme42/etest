@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getAvatarBg, getSubjectTheme } from '../../config/subjectThemes';
-import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { getSubmissionScorePct } from '../../utils/scoreHelpers';
 import { computeStudentAnalyticsData } from '../../utils/testResolver';
 import { timeAgo } from '../../utils/dateHelpers';
+import { formatParentWhatsAppReport, shareViaWhatsApp } from '../../services/parentReportService';
 
 export default function TeacherClassroomExplorer({
   students = [],
@@ -271,6 +272,44 @@ export default function TeacherClassroomExplorer({
     navigator.clipboard.writeText(pwd || '123456');
     setCopiedPwdId(stdId);
     setTimeout(() => setCopiedPwdId(null), 2000);
+  };
+
+  // One-click WhatsApp progress report share
+  const handleQuickWhatsAppShare = (student, stData) => {
+    const reportMessage = formatParentWhatsAppReport({
+      student,
+      stats: {
+        avgScore: stData?.avgScore || 0,
+        totalQuestions: stData?.totalQuestions || 0,
+        totalCorrect: stData?.totalCorrect || 0,
+        totalWrong: stData?.totalWrong || 0,
+        totalBlank: stData?.totalBlank || 0,
+        avgNet: stData?.avgNet || 0,
+        testCount: stData?.testCount || 0,
+        subjects: (stData?.subjects || []).map(s => ({
+          name: s.name,
+          avg: s.avgScore,
+          total: s.questions,
+          correct: s.correct,
+          wrong: s.wrong,
+          avgNet: s.avgNet
+        })),
+        strongTopics: (stData?.topics || []).filter(t => t.avgScore >= 70).slice(0, 3),
+        weakTopics: (stData?.topics || []).filter(t => t.avgScore < 50 && t.questions >= 3).slice(0, 3)
+      },
+      homeworkMetrics: {
+        completed: stData?.hwCompleted || 0,
+        total: stData?.hwTotal || 0,
+        completionRate: stData?.hwTotal > 0 ? Math.round((stData.hwCompleted / stData.hwTotal) * 100) : 0
+      },
+      teacherNote: stData?.savedNote || '',
+      schoolName: 'E-Test Eğitim Kurumları'
+    });
+
+    shareViaWhatsApp({
+      phone: student.phone || student.parentPhone || '',
+      message: reportMessage
+    });
   };
 
   return (
@@ -551,6 +590,23 @@ export default function TeacherClassroomExplorer({
                       }}
                     >
                       <Award size={14} /> 📜 Öğrenci Karnesi
+                    </button>
+
+                    {/* 📱 TEK TIKLA VELİ WHATSAPP PAYLAŞIMI */}
+                    <button
+                      type="button"
+                      onClick={() => handleQuickWhatsAppShare(student, st)}
+                      style={{
+                        padding: '0.45rem 0.85rem', borderRadius: '0.65rem',
+                        background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                        border: 'none', color: '#ffffff',
+                        fontWeight: 900, fontSize: '0.76rem', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        boxShadow: '0 3px 12px rgba(37,211,102,0.3)'
+                      }}
+                      title="Veliye Tek Tıkla WhatsApp İlerleme Raporu Gönder"
+                    >
+                      <MessageSquare size={14} /> WhatsApp
                     </button>
 
                     <Link to={`/coaching/${student.id}`} style={{ textDecoration: 'none' }}>

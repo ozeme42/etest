@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import AdminHomeworkTracker from '../components/AdminHomeworkTracker';
 import TeacherRemedialTracker from '../components/teacher/TeacherRemedialTracker';
-import SummaryManagerPage from './SummaryManagerPage';
-import StudentResultsPage from './StudentResultsPage';
+const SummaryManagerPage = lazy(() => import('./SummaryManagerPage'));
+const StudentResultsPage = lazy(() => import('./StudentResultsPage'));
 import AdminAiSettingsTab from '../components/admin/AdminAiSettingsTab';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import { Award } from 'lucide-react';
@@ -533,7 +533,9 @@ export default function AdminDashboard() {
               padding: '1.25rem',
               boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
             }}>
-              <SummaryManagerPage />
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Yükleniyor...</div>}>
+                <SummaryManagerPage />
+              </Suspense>
             </div>
           )}
           {activeTab === 'results' && (
@@ -544,7 +546,9 @@ export default function AdminDashboard() {
               padding: '1.25rem',
               boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.03)'
             }}>
-              <StudentResultsPage />
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Yükleniyor...</div>}>
+                <StudentResultsPage />
+              </Suspense>
             </div>
           )}
         </div>

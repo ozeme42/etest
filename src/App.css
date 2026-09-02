@@ -148,10 +148,18 @@ html.ssp-in-fullscreen .sidebar {
   font-weight: 900;
   color: var(--color-text-muted);
   letter-spacing: 0.08em;
-  margin: 0.55rem 0 0.2rem 0.45rem;
+  margin: 0.95rem 0 0.35rem 0.45rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+}
+
+.nav-section-title:first-of-type {
+  margin-top: 0.2rem;
+  padding-top: 0;
+  border-top: none;
 }
 
 .nav-section-title::before {

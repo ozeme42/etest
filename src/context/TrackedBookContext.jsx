@@ -94,7 +94,7 @@ export function TrackedBookProvider({ children }) {
         if (res.books) {
           const cleanBooks = res.books.map(b => ({
             ...b,
-            bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard')
+            bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard')
           }));
           const deduped = deduplicateBooks(cleanBooks);
           setBooks(deduped);

@@ -27,6 +27,7 @@ import VisualGoalSection from '../components/coaching/VisualGoalSection';
 import CoachingQuoteCard, { MOTIVATION_QUOTES } from '../components/coaching/CoachingQuoteCard';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { formatParentWhatsAppReport, shareViaWhatsApp } from '../services/parentReportService';
 
 /* ─── Helpers ─── */
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -960,14 +961,43 @@ export default function MyCoachingPage() {
       monthlyGoals: goals.monthlyGoals,
       weeklyGoals:  goals.weeklyGoals,
       dailyGoals:   goals.dailyGoals,
-      schoolGrades: schoolGrades,
-      customSubjects: customSubjects,
       personalInfo,
       goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }, [goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects, personalInfo]);
+
+  const handleQuickWhatsAppParentShare = () => {
+    const hwList = otherHomeworkSubmissions || [];
+    const totalHwQuestions = hwList.reduce((acc, h) => acc + (h.correctCount || 0) + (h.wrongCount || 0) + (h.emptyCount || 0), 0);
+    const totalHwCorrect = hwList.reduce((acc, h) => acc + (h.correctCount || 0), 0);
+    const totalHwWrong = hwList.reduce((acc, h) => acc + (h.wrongCount || 0), 0);
+    const totalHwBlank = hwList.reduce((acc, h) => acc + (h.emptyCount || 0), 0);
+
+    const message = formatParentWhatsAppReport({
+      student: {
+        name: targetStudent?.name || personalInfo?.fullName || currentUser?.name || 'Öğrenci',
+        grade: personalInfo?.gradeClass || goals?.gradeClass || '8. Sınıf'
+      },
+      stats: {
+        avgScore: totalHwQuestions > 0 ? Math.round((totalHwCorrect / totalHwQuestions) * 100) : 0,
+        totalQuestions: totalHwQuestions,
+        totalCorrect: totalHwCorrect,
+        totalWrong: totalHwWrong,
+        totalBlank: totalHwBlank,
+        testCount: hwList.length + (generalTrialExams?.length || 0)
+      },
+      teacherNote: personalInfo?.coachNotes || '',
+      schoolName: 'E-Test Eğitim & Koçluk',
+      teacherName: currentUser?.name || 'Rehberlik / Koçluk'
+    });
+
+    shareViaWhatsApp({
+      phone: targetStudent?.parentPhone || personalInfo?.parentPhone || '',
+      message
+    });
+  };
 
   /* ─── Multi-Item Weekly Program Handlers ─── */
   const addWeeklyItem = (dayName) => {
@@ -1314,6 +1344,28 @@ export default function MyCoachingPage() {
               }}
             >
               <FileText size={isMobile ? 14 : 16} /> <span>{isMobile ? 'Veli Karnesi' : 'Veli Karnesi (PDF)'}</span>
+            </button>
+            <button 
+              onClick={handleQuickWhatsAppParentShare} 
+              title="Veliye WhatsApp İlerleme Raporu Gönder"
+              style={{ 
+                background: 'linear-gradient(135deg, #25D366, #128C7E)', 
+                border: 'none', 
+                borderRadius: '0.75rem', 
+                padding: isMobile ? '0.45rem 0.65rem' : '0.55rem 1.05rem', 
+                color: 'white', 
+                fontWeight: 900, 
+                fontSize: isMobile ? '0.74rem' : '0.83rem', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 5, 
+                boxShadow: '0 4px 14px rgba(37,211,102,0.35)', 
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <MessageSquare size={isMobile ? 14 : 16} /> <span>WhatsApp</span>
             </button>
             {!isMobile && (
               <button

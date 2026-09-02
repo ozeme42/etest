@@ -7,9 +7,10 @@ import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap, Sun, Moon } from 'lucide-react';
+import { Clock3, Trophy, Eye, Home, CheckCircle2, BookOpen, ArrowLeft, Sparkles, Play, Layers, Calendar, ShieldCheck, Check, Zap, Sun, Moon, WifiOff } from 'lucide-react';
 import { checkIsAnswerCorrect, compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
+import { isDeviceOnline } from '../services/offlineSyncService';
 
 import PdfQuizRunner from '../components/quiz/runner/PdfQuizRunner';
 import HtmlQuizRunner from '../components/quiz/runner/HtmlQuizRunner';
@@ -83,6 +84,19 @@ export default function ModularQuizPage() {
   });
   const [submittedResult, setSubmittedResult] = useState(null);
   const isSubmittingRef = useRef(false);
+
+  // Network connection state for offline quiz resilience
+  const [isOnline, setIsOnline] = useState(isDeviceOnline());
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Grace period for initial context data load (4 seconds)
   const [initLoading, setInitLoading] = useState(true);
@@ -1647,6 +1661,32 @@ export default function ModularQuizPage() {
 
   return (
     <>
+      {/* Offline Status Badge */}
+      {!isOnline && (
+        <div style={{
+          position: 'fixed',
+          top: 14,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 999999,
+          background: 'rgba(217, 119, 6, 0.95)',
+          backdropFilter: 'blur(8px)',
+          color: '#ffffff',
+          padding: '0.45rem 1rem',
+          borderRadius: '999px',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: '0.78rem',
+          fontWeight: 800,
+          pointerEvents: 'none'
+        }}>
+          <WifiOff size={15} />
+          <span>Çevrimdışı Mod — Cevaplarınız cihazınızda güvenle saklanıyor</span>
+        </div>
+      )}
+
       {renderRunner()}
       {submittedResult && (() => {
         const cCount = submittedResult.correctCount || 0;
@@ -1721,6 +1761,25 @@ export default function ModularQuizPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Offline submission callout */}
+              {!isOnline && (
+                <div style={{
+                  background: 'rgba(217, 119, 6, 0.1)',
+                  border: '1.5px solid rgba(217, 119, 6, 0.3)',
+                  borderRadius: '1rem',
+                  padding: '0.85rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  color: '#d97706',
+                  fontSize: '0.82rem',
+                  fontWeight: 700
+                }}>
+                  <WifiOff size={18} style={{ flexShrink: 0 }} />
+                  <span>Sınavınız cihazınıza başarıyla kaydedildi. İnternet bağlantınız sağlandığında sonuçlarınız öğretmen paneline otomatik olarak senkronize edilecektir.</span>
+                </div>
+              )}
 
               {/* Open Ended Evaluation Banner */}
               {submittedResult.isOpenEnded ? (

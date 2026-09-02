@@ -58,7 +58,10 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          gap: isMobile ? 8 : 12,
+          justifyContent: 'space-between',
+          gap: isMobile ? 8 : 10,
+          height: '100%',
+          boxSizing: 'border-box',
           boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.04)'
         }}
       >

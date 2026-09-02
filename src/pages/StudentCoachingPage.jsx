@@ -906,8 +906,6 @@ export default function StudentCoachingPage() {
       monthlyGoals: goals.monthlyGoals,
       weeklyGoals:  goals.weeklyGoals,
       dailyGoals:   goals.dailyGoals,
-      schoolGrades: schoolGrades,
-      customSubjects: customSubjects,
       personalInfo,
       goals, weeklyProgram, dailyLogs, topicList, questionTrack, errors, motivation, habits, topicPool, schoolGrades, customSubjects
     });

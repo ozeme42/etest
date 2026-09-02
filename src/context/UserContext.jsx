@@ -15,10 +15,42 @@ export function useUser() {
 }
 
 const DEFAULT_FALLBACK_USERS = [
-  { id: 'admin_1', email: 'admin@test.com', name: 'Yönetici Admin', role: 'admin', password: 'admin', isApproved: true },
-  { id: 'teacher_1', email: 'ogretmen@test.com', name: 'Ayşe Öğretmen', role: 'teacher', password: '123', isApproved: true },
-  { id: 'u1', email: 'zeynep@test.com', name: 'Zeynep', role: 'student', gradeId: 'g1', teacherId: 'teacher_1', password: '123', isApproved: true }
+  { id: 'admin_1', email: 'admin@test.com', name: 'Yönetici Admin', role: 'admin', isApproved: true },
+  { id: 'teacher_1', email: 'ogretmen@test.com', name: 'Ayşe Öğretmen', role: 'teacher', isApproved: true },
+  { id: 'u1', email: 'zeynep@test.com', name: 'Zeynep', role: 'student', gradeId: 'g1', teacherId: 'teacher_1', isApproved: true }
 ];
+
+// Prevents leaking user passwords in LocalStorage to unauthorized roles (especially students)
+function sanitizeUsersForStorage(userList) {
+  if (!Array.isArray(userList)) return [];
+  let authUser = null;
+  try {
+    const raw = localStorage.getItem('eTestAuthUser');
+    if (raw) authUser = JSON.parse(raw);
+  } catch {}
+
+  const currentRole = authUser?.role || 'student';
+  const currentId = String(authUser?.id || '');
+
+  return userList.map(u => {
+    if (!u) return u;
+    // Admins and Teachers can see student helper passwords for password distribution/assistance
+    if (currentRole === 'admin' || currentRole === 'teacher') {
+      // Never leak another admin's password
+      if (u.role === 'admin' && String(u.id) !== currentId) {
+        const { password, ...safe } = u;
+        return safe;
+      }
+      return u;
+    }
+    // Students & unauthenticated users: never store or see any other user's password!
+    if (String(u.id) === currentId) {
+      return u;
+    }
+    const { password, ...safe } = u;
+    return safe;
+  });
+}
 
 export function UserProvider({ children }) {
   const [users, setUsers] = useState(() => {
@@ -26,7 +58,9 @@ export function UserProvider({ children }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return sanitizeUsersForStorage(parsed);
+        }
       } catch {}
     }
     return DEFAULT_FALLBACK_USERS;
@@ -69,7 +103,7 @@ export function UserProvider({ children }) {
             }
           });
 
-          safeSetItem('eTestUsers', JSON.stringify(merged));
+          safeSetItem('eTestUsers', JSON.stringify(sanitizeUsersForStorage(merged)));
           return merged;
         });
       }
@@ -79,7 +113,7 @@ export function UserProvider({ children }) {
 
   useEffect(() => {
     if (users && users.length > 0) {
-      safeSetItem('eTestUsers', JSON.stringify(users));
+      safeSetItem('eTestUsers', JSON.stringify(sanitizeUsersForStorage(users)));
     }
   }, [users]);
 

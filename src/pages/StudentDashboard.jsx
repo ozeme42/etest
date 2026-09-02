@@ -23,7 +23,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook, createCompositeTestKey, getSubmissionCompositeKey } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook, createCompositeTestKey, getSubmissionCompositeKey, computeUnifiedSubmissionStats } from '../utils/testResolver';
 import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
 import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
 import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvaluation';
@@ -41,155 +41,12 @@ import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsC
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
+import StudentTodayFocusCard from '../components/student/StudentTodayFocusCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
 // Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
-
-function computeUnifiedSubmissionStats(sub, hw, allQuestions = []) {
-  if (!sub) return null;
-  const isMultiSec = Boolean(
-    hw?.isBulk ||
-    hw?.type === 'multi' ||
-    sub?.type === 'multi' ||
-    (Array.isArray(hw?.sections) && hw.sections.length > 1) ||
-    (Array.isArray(hw?.tests) && hw.tests.length > 1) ||
-    (Array.isArray(hw?.items) && hw.items.length > 1) ||
-    (sub?.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 1)
-  );
-
-  if (!isMultiSec) return null;
-
-  try {
-    const unifiedTest = normalizeUnifiedTest(hw || sub, allQuestions);
-    const rawSections = unifiedTest.sections;
-    if (!rawSections || rawSections.length === 0) return null;
-
-    if (sub.isEvaluatedByTeacher && typeof sub.correctCount === 'number' && typeof sub.wrongCount === 'number') {
-      const correct = Number(sub.correctCount);
-      const wrong = Number(sub.wrongCount);
-      const blank = Number(sub.blankCount ?? sub.emptyCount ?? 0);
-      const total = Number(sub.totalQuestions || (correct + wrong + blank) || 27);
-      const scorePct = sub.scorePercentage ?? sub.score ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
-      const rawNet = typeof sub.netScore === 'number' ? sub.netScore : Math.max(0, correct - (wrong * 0.25));
-      const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
-      return { total, correct, wrong, blank, pending: 0, scorePct, netScore };
-    }
-
-    const unifiedSub = normalizeUnifiedSubmission(sub, unifiedTest);
-    const sectionAnswersMap = unifiedSub.sections || {};
-    const teacherScores = sub.teacherScores || sub.scores || (sub.raw_data && (sub.raw_data.teacherScores || sub.raw_data.scores)) || {};
-
-    let totalQuestions = 0;
-    let correctCount = 0;
-    let wrongCount = 0;
-    let blankCount = 0;
-    let pendingCount = 0;
-
-    const secOffsets = [];
-    let acc = 0;
-    rawSections.forEach(s => {
-      secOffsets.push(acc);
-      acc += (s.qCount || s.questions?.length || s.resolvedQuestions?.length || 1);
-    });
-
-    rawSections.forEach((sec, sIdx) => {
-      const sa = sectionAnswersMap[sec.id] ||
-                 sectionAnswersMap[sIdx] ||
-                 sectionAnswersMap[String(sIdx)] ||
-                 (sec.title && sectionAnswersMap[sec.title]) ||
-                 (sec.raw?.id && sectionAnswersMap[sec.raw.id]) ||
-                 (sec.raw?.questionId && sectionAnswersMap[sec.raw.questionId]) ||
-                 { answers: {}, openEndedText: {}, teacherScores: {} };
-
-      const secQs = sec.questions || sec.resolvedQuestions || [];
-      const count = sec.qCount || secQs.length || 1;
-      const isSecOpenEnded = sec.type === 'open_ended' || isSectionOpenEnded(sec, hw);
-      const secStart = secOffsets[sIdx] || 0;
-
-      for (let i = 1; i <= count; i++) {
-        totalQuestions++;
-        const globalQNo = secStart + i;
-        const qObj = secQs[i - 1] || {};
-        const isQOE = isSecOpenEnded || isQuestionOpenEnded(qObj, sec, hw);
-
-        const rawAnsItem = Array.isArray(sub?.answers)
-          ? sub.answers.find(a =>
-              (a.sectionId && (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(sec.raw?.id)) && Number(a.questionNoInSection) === i) ||
-              Number(a.questionNo) === globalQNo ||
-              (sIdx === 0 && Number(a.questionNo) === i)
-            )
-          : null;
-
-        const teacherScore = teacherScores[sec.id]?.[i] ??
-                             teacherScores[sIdx]?.[i] ??
-                             sa.teacherScores?.[i] ??
-                             sa.teacherScores?.[String(i)] ??
-                             rawAnsItem?.score;
-
-        if (isQOE) {
-          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText;
-          const hasText = textVal && String(textVal).trim() !== '';
-
-          const isExplicitEmpty = teacherScore === 'empty' || rawAnsItem?.score === 'empty' || rawAnsItem?.evalStatus === 'empty' || (rawAnsItem?.score === 0 && rawAnsItem?.isCorrect === null);
-          const hasExplicitTeacherScore = !isExplicitEmpty && teacherScore !== undefined && teacherScore !== null && teacherScore !== 'empty';
-
-          if (isExplicitEmpty) {
-            blankCount++;
-          } else if (hasExplicitTeacherScore) {
-            if (Number(teacherScore) >= 5) correctCount++;
-            else wrongCount++;
-          } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null) {
-            if (Number(rawAnsItem.score) >= 5) correctCount++;
-            else if (Number(rawAnsItem.score) > 0 || hasText) wrongCount++;
-            else blankCount++;
-          } else if (hasText) {
-            pendingCount++;
-          } else {
-            blankCount++;
-          }
-        } else {
-          // Multiple choice
-          const rawAns = sa.answers?.[i] ?? sa.answers?.[String(i)] ?? rawAnsItem?.userAnswer;
-          const u = normalizeAnswerIndex(rawAns);
-
-          if (u === null && (!rawAnsItem || (rawAnsItem.userAnswer === null && !rawAnsItem.answer))) {
-            blankCount++;
-          } else if (rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
-            if (rawAnsItem.isCorrect) correctCount++;
-            else wrongCount++;
-          } else if (u !== null) {
-            let isCorr = checkIsAnswerCorrect(u, qObj.raw || qObj, sec.raw || sec, i);
-            if (isCorr === false) wrongCount++;
-            else correctCount++;
-          } else {
-            blankCount++;
-          }
-        }
-      }
-    });
-
-    const totalScored = correctCount + wrongCount + blankCount;
-    const scorePct = totalScored > 0 ? Math.round((correctCount / totalScored) * 100) : 0;
-    const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
-    const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
-
-    return {
-      total: totalQuestions,
-      correct: correctCount,
-      wrong: wrongCount,
-      blank: blankCount,
-      pending: pendingCount,
-      scorePct,
-      netScore
-    };
-  } catch (err) {
-    console.warn('computeUnifiedSubmissionStats error:', err);
-    return null;
-  }
-}
-
 const SUBJECT_ROW_THEMES = {
   'matematik':       { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
   'türkçe':          { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
@@ -438,6 +295,23 @@ export default function StudentDashboard() {
   const todayDayKey = currentDayIndex === 0 ? 'Paz' : DAYS_OF_WEEK[currentDayIndex - 1].key;
   const [activeDayKey, setActiveDayKey] = useState(todayDayKey);
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
+  const [focusModeOnly, setFocusModeOnly] = useState(() => {
+    try {
+      return localStorage.getItem('etest_student_focus_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleFocusMode = useCallback(() => {
+    setFocusModeOnly(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('etest_student_focus_mode', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const studentMembers = useMemo(() => users.filter(u => u.role === 'student'), [users]);
   
@@ -2749,6 +2623,63 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleTaskAction = useCallback((task) => {
+    if (!task) return;
+    if (task.roadmapAssignmentId) {
+      navigate(`/student/study-plan/${task.roadmapAssignmentId}`, { state: { from: '/student' } });
+      return;
+    }
+    
+    if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial || task.isTeacherRemedial) {
+      const testTargetId = task.testId || task.realTestId || task.id;
+      if (task.done) {
+        navigate(`/quiz-review/${testTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+        return;
+      }
+      const lockStatus = getRemedialLockStatus(task, null, submissions, selectedStudent?.id);
+      if (lockStatus.isLocked) {
+        alert(lockStatus.lockMessage);
+        return;
+      }
+      navigate(`/quiz/${testTargetId}?studentId=${selectedStudent?.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });
+      return;
+    }
+
+    if (task.done) {
+      const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId || task.id;
+      if (reviewTargetId) {
+        navigate(`/quiz-review/${reviewTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+        return;
+      }
+    }
+
+    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
+    const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+    
+    if (isExam) {
+      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+      return;
+    }
+
+    const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
+      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null);
+
+    if (targetBookTestId) {
+      navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+      return;
+    }
+
+    // Normal Homework Quiz
+    const quizTargetId = task.realTestId || task.hwId || task.id || task.testId;
+    if (quizTargetId) {
+      navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+      return;
+    }
+
+    handleToggleTask(task);
+  }, [books, homeworks, navigate, selectedStudent?.id, submissions, handleToggleTask]);
+
   const handleDeleteTask = async (task) => {
     if (!task) return;
 
@@ -3150,12 +3081,14 @@ export default function StudentDashboard() {
           PREMIUM VIBRANT HEADER
       ══════════════════════════════════════════════════════ */}
       <div style={{
-        background: 'linear-gradient(125deg, #1e1065 0%, #2d1b8e 15%, #4338ca 38%, #6d28d9 58%, #9333ea 78%, #c026d3 100%)',
+        background: isDark
+          ? 'linear-gradient(135deg, #07090e 0%, #0f172a 35%, #1e1b4b 70%, #312e81 100%)'
+          : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
         position: 'relative',
         overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        paddingBottom: isMobile ? '2.5rem' : '4rem'
+        paddingBottom: isMobile ? '2.2rem' : '3.2rem'
       }}>
         {/* Decorative subtle ambient glows */}
         <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.18) 0%, transparent 68%)', pointerEvents:'none' }} />
@@ -3169,7 +3102,7 @@ export default function StudentDashboard() {
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '1rem 0.85rem 0.75rem' : '2rem 2.5rem 1.25rem',
+          padding: isMobile ? '1rem 0.85rem 0.75rem' : '1.5rem clamp(1rem, 2vw, 2rem) 1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -3180,13 +3113,13 @@ export default function StudentDashboard() {
           boxSizing: 'border-box'
         }}>
           {/* SOL: Avatar + İsim + Rozetler */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.6rem', minWidth: 0, flex: 1 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
 
             {/* Avatar with ring - Rütbe Profil Simgesi */}
             <div style={{ position:'relative', flexShrink:0 }}>
               <div style={{
                 position:'absolute',
-                inset: -4,
+                inset: -3,
                 borderRadius:'50%',
                 background: studentRank.bgGradient || 'conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8)',
                 padding: 2,
@@ -3194,19 +3127,19 @@ export default function StudentDashboard() {
                 filter: 'blur(2px)'
               }} />
               <div style={{
-                width: isMobile ? 58 : 92,
-                height: isMobile ? 58 : 92,
+                width: isMobile ? 54 : 68,
+                height: isMobile ? 54 : 68,
                 borderRadius: '50%',
                 background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '1.95rem' : '3.1rem',
+                fontSize: isMobile ? '1.8rem' : '2.3rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 position: 'relative',
                 zIndex: 2,
-                boxShadow: `0 0 0 3px rgba(255,255,255,0.35), 0 8px 28px ${studentRank.color || avatarColor}90`,
+                boxShadow: `0 0 0 3px rgba(255,255,255,0.35), 0 6px 20px ${studentRank.color || avatarColor}80`,
                 userSelect: 'none'
               }}
               title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level})`}
@@ -3223,8 +3156,8 @@ export default function StudentDashboard() {
                 color: '#ffffff',
                 border: '2px solid #ffffff',
                 borderRadius: 99,
-                padding: isMobile ? '1px 5px' : '2px 8px',
-                fontSize: isMobile ? '0.58rem' : '0.74rem',
+                padding: isMobile ? '1px 5px' : '1px 7px',
+                fontSize: isMobile ? '0.58rem' : '0.68rem',
                 fontWeight: 900,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                 whiteSpace: 'nowrap',
@@ -3237,11 +3170,11 @@ export default function StudentDashboard() {
             {/* İsim + Rozetler */}
             <div style={{ minWidth:0, flex:1 }}>
               <div style={{
-                fontSize: isMobile ? '0.62rem' : '0.75rem',
+                fontSize: isMobile ? '0.62rem' : '0.72rem',
                 fontWeight: 800,
                 color:'rgba(196,181,253,0.95)',
                 textTransform:'uppercase',
-                letterSpacing:'0.14em',
+                letterSpacing:'0.12em',
                 marginBottom: 2,
                 display:'flex', alignItems:'center', gap:5
               }}>
@@ -3250,13 +3183,13 @@ export default function StudentDashboard() {
               </div>
 
               <h1 style={{
-                fontSize: isMobile ? '1.25rem' : '2.6rem',
+                fontSize: isMobile ? '1.2rem' : '1.75rem',
                 fontWeight: 900,
                 color:'#ffffff',
-                margin:'0 0 5px 0',
-                lineHeight:1.1,
-                letterSpacing:'-0.03em',
-                textShadow:'0 4px 24px rgba(0,0,0,0.35)',
+                margin:'0 0 4px 0',
+                lineHeight:1.15,
+                letterSpacing:'-0.025em',
+                textShadow:'0 3px 18px rgba(0,0,0,0.35)',
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
               }}>
                 {selectedStudent?.name || 'Öğrenci'}
@@ -3328,12 +3261,12 @@ export default function StudentDashboard() {
             style={{ flexShrink:0 }}
           >
             <div style={{
-              width: isMobile ? 66 : 116,
-              height: isMobile ? 66 : 116,
+              width: isMobile ? 64 : 80,
+              height: isMobile ? 64 : 80,
               position:'relative',
               display:'flex', alignItems:'center', justifyContent:'center'
             }}>
-              <svg width={isMobile ? 66 : 116} height={isMobile ? 66 : 116} style={{ position:'absolute', inset:0 }}>
+              <svg width={isMobile ? 64 : 80} height={isMobile ? 64 : 80} style={{ position:'absolute', inset:0 }}>
                 <defs>
                   <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#c084fc" />
@@ -3342,39 +3275,39 @@ export default function StudentDashboard() {
                   </linearGradient>
                 </defs>
                 <circle
-                  cx={isMobile ? 33 : 58} cy={isMobile ? 33 : 58}
-                  r={isMobile ? 27 : 50}
+                  cx={isMobile ? 32 : 40} cy={isMobile ? 32 : 40}
+                  r={isMobile ? 26 : 33}
                   fill="none"
                   stroke="rgba(255,255,255,0.12)"
-                  strokeWidth={isMobile ? 4 : 6}
+                  strokeWidth={isMobile ? 4 : 5}
                 />
                 <circle
-                  cx={isMobile ? 33 : 58} cy={isMobile ? 33 : 58}
-                  r={isMobile ? 27 : 50}
+                  cx={isMobile ? 32 : 40} cy={isMobile ? 32 : 40}
+                  r={isMobile ? 26 : 33}
                   fill="none"
                   stroke="url(#ringGrad)"
-                  strokeWidth={isMobile ? 4 : 6}
+                  strokeWidth={isMobile ? 4 : 5}
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 27 : 50)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 27 : 50) * (1 - overallSuccessRate / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 33 : 58} ${isMobile ? 33 : 58})`}
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 26 : 33)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 26 : 33) * (1 - overallSuccessRate / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 32 : 40} ${isMobile ? 32 : 40})`}
                   style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
                 />
               </svg>
               <div style={{
-                width: isMobile ? 50 : 90,
-                height: isMobile ? 50 : 90,
+                width: isMobile ? 48 : 62,
+                height: isMobile ? 48 : 62,
                 borderRadius:'50%',
                 background:'rgba(255,255,255,0.1)',
                 backdropFilter:'blur(12px)',
                 border:'1.5px solid rgba(255,255,255,0.22)',
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                boxShadow:'0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
+                boxShadow:'0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
               }}>
-                <div style={{ fontSize: isMobile ? '0.98rem' : '1.75rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
+                <div style={{ fontSize: isMobile ? '0.94rem' : '1.25rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
                   %{overallSuccessRate}
                 </div>
-                <div style={{ fontSize: isMobile ? '0.42rem' : '0.62rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.1em', marginTop:2, textTransform:'uppercase' }}>
+                <div style={{ fontSize: isMobile ? '0.42rem' : '0.56rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase' }}>
                   BAŞARI
                 </div>
               </div>
@@ -3407,8 +3340,8 @@ export default function StudentDashboard() {
       <div style={{
         maxWidth: 1440,
         margin: '0 auto',
-        padding: isMobile ? '0 0.65rem' : '0 2.5rem',
-        marginTop: isMobile ? '-28px' : '-52px',
+        padding: isMobile ? '0 0.65rem' : '0 clamp(1rem, 2.5vw, 2.5rem)',
+        marginTop: isMobile ? '-26px' : '-34px',
         position: 'relative',
         zIndex: 10,
         width: '100%',
@@ -3417,16 +3350,16 @@ export default function StudentDashboard() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? 'repeat(5, minmax(0, 1fr))' : 'repeat(5, 1fr)',
-          gap: isMobile ? '0.25rem' : '0.85rem',
+          gap: isMobile ? '0.25rem' : '0.75rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.55)',   route:'/student/homeworks' },
-            { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.55)',  route:'/student/results' },
-            { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.55)',  route:'/student/homeworks' },
-            { label:'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.55)',   route:'/student/homeworks' },
-            { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.55)', route:'/student/results' },
+            { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.4)',   route:'/student/homeworks' },
+            { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.4)',  route:'/student/results' },
+            { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.4)',  route:'/student/homeworks' },
+            { label:'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.4)',   route:'/student/homeworks' },
+            { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.4)', route:'/student/results' },
           ].map((kpi) => (
             <div
               key={kpi.label}
@@ -3434,23 +3367,44 @@ export default function StudentDashboard() {
               className="sd-kpi"
               style={{
                 background: kpi.grad,
-                border: '1.5px solid rgba(255,255,255,0.22)',
-                borderRadius: isMobile ? 12 : 20,
-                padding: isMobile ? '0.45rem 0.2rem' : '1.1rem 0.85rem',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 0.5rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: `0 10px 30px ${kpi.glow}, 0 2px 0 rgba(255,255,255,0.15) inset`,
-                minHeight: isMobile ? 64 : 112,
+                boxShadow: `0 8px 22px ${kpi.glow}, 0 1px 0 rgba(255,255,255,0.2) inset`,
+                minHeight: isMobile ? 62 : 82,
                 minWidth: 0,
                 overflow: 'hidden'
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.9rem' : '1.55rem', lineHeight: 1, marginBottom: 3 }}>{kpi.emoji}</div>
-              <div style={{ fontSize: isMobile ? '1.05rem' : '2.35rem', fontWeight: 900, color: '#fff', lineHeight: 1, letterSpacing: '-0.03em' }}>{kpi.value}</div>
-              <div style={{ fontSize: isMobile ? '0.42rem' : '0.68rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', letterSpacing: isMobile ? '0.01em' : '0.1em', marginTop: 3, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{kpi.label}</div>
+              <div style={{ fontSize: isMobile ? '0.85rem' : '1.25rem', lineHeight: 1, marginBottom: 3 }}>{kpi.emoji}</div>
+              <div style={{
+                fontSize: isMobile ? '1.05rem' : '1.65rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                lineHeight: 1.1,
+                letterSpacing: '-0.03em'
+              }}>
+                {kpi.value}
+              </div>
+              <div style={{
+                fontSize: isMobile ? '0.42rem' : '0.64rem',
+                fontWeight: 900,
+                color: 'rgba(255,255,255,0.92)',
+                letterSpacing: isMobile ? '0.01em' : '0.06em',
+                marginTop: 3,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%'
+              }}>
+                {kpi.label}
+              </div>
             </div>
           ))}
         </div>
@@ -3459,7 +3413,7 @@ export default function StudentDashboard() {
       {/* ════════════════════════════════════════════
           ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
       ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.75rem 2.5rem 4rem', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
 
         {/* ── MODERN UYGULAMA İKONLARI HIZLI KISAYOL ŞERİDİ (iOS/Android App Style) ── */}
         <div
@@ -3467,8 +3421,8 @@ export default function StudentDashboard() {
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(6, minmax(0, 1fr))' : 'repeat(7, minmax(0, 1fr))',
             gap: isMobile ? '0.2rem' : '0.85rem',
-            padding: isMobile ? '0.65rem 0.25rem 0.55rem' : '0.9rem 1.25rem',
-            marginBottom: isMobile ? '0.9rem' : '1.35rem',
+            padding: isMobile ? '0.65rem 0.25rem 0.55rem' : '0.65rem 1rem',
+            marginBottom: isMobile ? '0.9rem' : '1.15rem',
             background: 'var(--color-surface, #ffffff)',
             border: '1.5px solid var(--color-border, #e2e8f0)',
             borderRadius: isMobile ? 18 : 22,
@@ -3551,6 +3505,7 @@ export default function StudentDashboard() {
                 key={item.id}
                 type="button"
                 onClick={item.onClick}
+                className="sd-app-strip-item"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -3571,20 +3526,20 @@ export default function StudentDashboard() {
                 <div
                   style={{
                     position: 'relative',
-                    width: isMobile ? 38 : 50,
-                    height: isMobile ? 38 : 50,
-                    borderRadius: isMobile ? 12 : 16,
+                    width: isMobile ? 38 : 42,
+                    height: isMobile ? 38 : 42,
+                    borderRadius: isMobile ? 12 : 14,
                     background: item.gradient,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
                     boxShadow: `0 4px 12px ${item.shadow}`,
-                    marginBottom: isMobile ? 3 : 6,
+                    marginBottom: isMobile ? 3 : 5,
                     border: '1px solid rgba(255, 255, 255, 0.25)'
                   }}
                 >
-                  <Icon size={isMobile ? 18 : 24} strokeWidth={2.4} />
+                  <Icon size={isMobile ? 18 : 20} strokeWidth={2.4} />
 
                   {/* Notification Badge on top right of icon */}
                   {item.badge !== null && item.badge !== undefined && (
@@ -3640,19 +3595,32 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
-        {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
-        <div style={{ marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-          <StudentGamificationCard
-            student={selectedStudent}
-            submissions={studentSubmissions}
-            homeworks={homeworks}
-            books={books}
-            bookTests={bookTests}
-            mockExams={studentMockExams}
-            studySessions={[]}
-            users={users}
-            gamificationData={studentGamification}
+        {/* 🎯 HERO ALANI (SOL: BUGÜNÜN ODAK KARTI | SAĞ: SEVİYE & OYUNLAŞTIRMA) */}
+        <div className="sd-hero-grid">
+          <StudentTodayFocusCard
+            studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
+            dayProgramInfo={dayProgramInfo}
+            catchUpTasks={catchUpTasks}
+            focusModeOnly={focusModeOnly}
+            onToggleFocusMode={handleToggleFocusMode}
+            onStartFirstPendingTask={handleTaskAction}
+            isMobile={isMobile}
+            isDark={isDark}
           />
+
+          {!focusModeOnly && (
+            <StudentGamificationCard
+              student={selectedStudent}
+              submissions={studentSubmissions}
+              homeworks={homeworks}
+              books={books}
+              bookTests={bookTests}
+              mockExams={studentMockExams}
+              studySessions={[]}
+              users={users}
+              gamificationData={studentGamification}
+            />
+          )}
         </div>
 
         <div className="sd-grid-layout">
@@ -3700,70 +3668,7 @@ export default function StudentDashboard() {
                 showAllDayTasks={showAllDayTasks}
                 setShowAllDayTasks={setShowAllDayTasks}
                 onToggleTask={handleToggleTask}
-                onTaskClick={(task) => {
-                  if (!task) return;
-                  if (task.roadmapAssignmentId) {
-                    navigate(`/student/study-plan/${task.roadmapAssignmentId}`, { state: { from: '/student' } });
-                    return;
-                  }
-                  
-                  if (task.type === 'remedialTest' || task.taskType === 'remedial' || task.isRemedial || task.isTeacherRemedial) {
-                    const testTargetId = task.testId || task.realTestId || task.id;
-                    if (task.done) {
-                      navigate(`/quiz-review/${testTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
-                      return;
-                    }
-                    const lockStatus = getRemedialLockStatus(task, null, submissions, selectedStudent?.id);
-                    if (lockStatus.isLocked) {
-                      alert(lockStatus.lockMessage);
-                      return;
-                    }
-                    navigate(`/quiz/${testTargetId}?studentId=${selectedStudent.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });
-                    return;
-                  }
-
-                  if (task.done) {
-                    const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId || task.id;
-                    if (reviewTargetId) {
-                      navigate(`/quiz-review/${reviewTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
-                      return;
-                    }
-                  }
-
-                  const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
-                  const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
-                  const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                  
-                  if (isExam) {
-                    navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
-                    return;
-                  }
-
-                  const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
-                    (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null);
-
-                  const isBook = Boolean(
-                    task.isBookTask ||
-                    task.taskType === 'kitap' ||
-                    task.sourceType === 'trackedBook' ||
-                    hwObj?.isBookAssignment ||
-                    targetBookTestId
-                  );
-
-                  if (targetBookTestId) {
-                    navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
-                    return;
-                  }
-
-                  // Normal Homework Quiz
-                  const quizTargetId = task.realTestId || task.hwId || task.id || task.testId;
-                  if (quizTargetId) {
-                    navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
-                    return;
-                  }
-
-                  handleToggleTask(task);
-                }}
+                onTaskClick={handleTaskAction}
                 getRowTheme={getRowTheme}
               />
 
@@ -3775,129 +3680,167 @@ export default function StudentDashboard() {
             </div>
 
             {/* 📋 BÖLÜM 2: ÖDEVLERİM & GÖREV TAKİBİ */}
-            <DashboardHomeworksCard
-              isMobile={isMobile}
-              pendingCount={pendingCount}
-              pendingTasks={pendingTasks}
-              onHwClick={(task) => {
-                const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
-                const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                const realTestId = task.realTestId || task.testId;
-                if (isExam) navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent.id}`);
-                else if (realTestId && realTestId !== (task.hwId || task.id)) navigate(`/quiz/${realTestId}?studentId=${selectedStudent.id}`);
-                else if (hwObj?.id) navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent.id}`);
-                else navigate('/student/homeworks');
-              }}
-              getRowTheme={getRowTheme}
-            />
+            {!focusModeOnly && (
+              <>
+                <DashboardHomeworksCard
+                  isMobile={isMobile}
+                  pendingCount={pendingCount}
+                  pendingTasks={pendingTasks}
+                  onHwClick={(task) => {
+                    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+                    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
+                    const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
+                    const realTestId = task.realTestId || task.testId;
+                    if (isExam) navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent.id}`);
+                    else if (realTestId && realTestId !== (task.hwId || task.id)) navigate(`/quiz/${realTestId}?studentId=${selectedStudent.id}`);
+                    else if (hwObj?.id) navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent.id}`);
+                    else navigate('/student/homeworks');
+                  }}
+                  getRowTheme={getRowTheme}
+                />
 
+                {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI */}
+                <DashboardBooksCard
+                  isMobile={isMobile}
+                  isDark={isDark}
+                  assignedBooksList={assignedBooksList}
+                  onNavigateBooks={() => navigate('/student/books')}
+                  onNavigateBookDetail={(id) => navigate(`/student/books/${id}`)}
+                />
 
-            {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI */}
-            <DashboardBooksCard
-              isMobile={isMobile}
-              isDark={isDark}
-              assignedBooksList={assignedBooksList}
-              onNavigateBooks={() => navigate('/student/books')}
-              onNavigateBookDetail={(id) => navigate(`/student/books/${id}`)}
-            />
+                {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}
+                <DashboardRoadmapCard
+                  isMobile={isMobile}
+                  isDark={isDark}
+                  myRoadmaps={myRoadmaps}
+                  onNavigateRoadmap={(id) => navigate(`/student/study-plan/${id}`)}
+                />
+              </>
+            )}
 
-            {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}
-            <DashboardRoadmapCard
-              isMobile={isMobile}
-              isDark={isDark}
-              myRoadmaps={myRoadmaps}
-              onNavigateRoadmap={(id) => navigate(`/student/study-plan/${id}`)}
-            />
-
+            {focusModeOnly && (
+              <div style={{
+                textAlign: 'center',
+                padding: '1.25rem 1rem',
+                borderRadius: 16,
+                background: 'var(--color-surface)',
+                border: '1.5px dashed var(--color-border)',
+                color: 'var(--color-text-muted)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>🎯 <strong>Sade Odak Modu Etkin:</strong> Günlük görevlerinize odaklanmanız için diğer tüm bölümler gizlendi.</span>
+                <button
+                  type="button"
+                  onClick={handleToggleFocusMode}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#6366f1',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.78rem',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Tüm istatistik ve kütüphane panellerini göster
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          {!focusModeOnly && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
-            {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
-            <div>
-              {isAnalyticsReady ? (
-                <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
-                  <PeriodicQuestionAnalytics
-                    homeworkSubmissions={otherHomeworkSubmissions}
-                    mockExams={generalTrialExams}
-                    studentName={selectedStudent?.name || 'Öğrenci'}
-                  />
-                </Suspense>
-              ) : (
-                <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
-                  📊 Analiz hazırlanıyor…
-                </div>
-              )}
-            </div>
-
-            {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
-            <DashboardGoalsCard
-              isMobile={isMobile}
-              goalTrackingData={goalTrackingData}
-              solvedQuestionsStats={solvedQuestionsStats}
-              onNavigateGoals={() => navigate('/goals')}
-              onUpdateGoalProgress={updateGoalProgress}
-              goalTypeThemes={GOAL_TYPE_THEMES}
-            />
-
-            {/* 📝 BÖLÜM 3: SON ÇÖZÜLEN TESTLER */}
-            <DashboardRecentSolvedCard
-              isMobile={isMobile}
-              recentSolvedTests={recentSolvedTests}
-              onOpenManualModal={() => setIsManualTestModalOpen(true)}
-              onNavigateResults={() => navigate('/student/results')}
-              onReviewTest={(test) => {
-                const targetId = test.testId || test.submissionId || test.id;
-                navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
-                  state: { from: '/student' }
-                });
-              }}
-              selectedStudent={selectedStudent}
-            />
-
-            {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: 22,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-              color: 'var(--color-text)'
-            }}>
-              {(() => {
-                const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
-                return (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Günün İlhamı ({currentQuote.category})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setDashQuoteIdx(p => p + 1)}
-                        style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                      >
-                        <RefreshCw size={11} /> Yeni
-                      </button>
-                    </div>
-
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
-                      "{currentQuote.quote}"
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
-                      — {currentQuote.author}
-                    </div>
+              {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
+              <div>
+                {isAnalyticsReady ? (
+                  <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
+                    <PeriodicQuestionAnalytics
+                      homeworkSubmissions={otherHomeworkSubmissions}
+                      mockExams={generalTrialExams}
+                      studentName={selectedStudent?.name || 'Öğrenci'}
+                    />
+                  </Suspense>
+                ) : (
+                  <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
+                    📊 Analiz hazırlanıyor…
                   </div>
-                );
-              })()}
-            </div>
+                )}
+              </div>
 
-          </div>
+              {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
+              <DashboardGoalsCard
+                isMobile={isMobile}
+                goalTrackingData={goalTrackingData}
+                solvedQuestionsStats={solvedQuestionsStats}
+                onNavigateGoals={() => navigate('/goals')}
+                onUpdateGoalProgress={updateGoalProgress}
+                goalTypeThemes={GOAL_TYPE_THEMES}
+              />
+
+              {/* 📝 BÖLÜM 3: SON ÇÖZÜLEN TESTLER */}
+              <DashboardRecentSolvedCard
+                isMobile={isMobile}
+                recentSolvedTests={recentSolvedTests}
+                onOpenManualModal={() => setIsManualTestModalOpen(true)}
+                onNavigateResults={() => navigate('/student/results')}
+                onReviewTest={(test) => {
+                  const targetId = test.testId || test.submissionId || test.id;
+                  navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+                    state: { from: '/student' }
+                  });
+                }}
+                selectedStudent={selectedStudent}
+              />
+
+              {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #cbd5e1)',
+                borderRadius: 22,
+                padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                color: 'var(--color-text)'
+              }}>
+                {(() => {
+                  const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            Günün İlhamı ({currentQuote.category})
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDashQuoteIdx(p => p + 1)}
+                          style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <RefreshCw size={11} /> Yeni
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                        "{currentQuote.quote}"
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
+                        — {currentQuote.author}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+            </div>
+          )}
 
         </div>
 

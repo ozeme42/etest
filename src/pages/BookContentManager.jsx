@@ -124,7 +124,7 @@ export default function BookContentManager() {
                 ? Number(b.optionCount)
                 : 5)));
 
-        const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.id === 'tb_07kzdf_1787267196768' ? 'exam' : 'standard');
+        const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard');
         const pub = metaObj?.publisher || b.publisher || b.raw_data?.publisher || '';
         const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
 

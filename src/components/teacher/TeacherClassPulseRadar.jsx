@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { getAvatarBg, getSubjectTheme } from '../../config/subjectThemes';
-import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { getSubmissionScorePct } from '../../utils/scoreHelpers';
 
 export default function TeacherClassPulseRadar({
   students = [],

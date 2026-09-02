@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 import { purgeTestCache } from '../services/unifiedResultAdapter';
 import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
+import { initOfflineSyncListeners, saveOfflineSubmission, isDeviceOnline } from '../services/offlineSyncService';
+import { safeSetItem } from '../utils/storageUtils';
 
 const EvaluationContext = createContext();
 
@@ -341,6 +343,17 @@ export function EvaluationProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // Çevrimdışı yapılan sınavları cihaz online olduğunda otomatik senkronize et
+  useEffect(() => {
+    const cleanup = initOfflineSyncListeners(async (sub) => {
+      await dbSaveSubmission(sub);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { newSubId: sub.id } }));
+      }
+    });
+    return cleanup;
+  }, []);
+
   const addSubmission = async (subData) => {
     const newSub = {
       id: `sub_${Date.now()}`,
@@ -391,12 +404,23 @@ export function EvaluationProvider({ children }) {
       if (newSub.bookTestId) unmarkIdAsDeleted(newSub.bookTestId);
       const nextSubs = [...prev, newSub];
       try {
-        localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
-        localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
+        safeSetItem('etest_submissions', JSON.stringify(nextSubs));
+        safeSetItem('eTestSubmissions', JSON.stringify(nextSubs));
       } catch (e) {}
       return nextSubs;
     });
-    await dbSaveSubmission(newSub);
+
+    try {
+      if (!isDeviceOnline()) {
+        await saveOfflineSubmission(newSub);
+      } else {
+        await dbSaveSubmission(newSub);
+      }
+    } catch (err) {
+      console.warn('[EvaluationContext] dbSaveSubmission failed, queuing submission offline:', err);
+      await saveOfflineSubmission(newSub);
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { newSubId: newSub.id } }));
     }

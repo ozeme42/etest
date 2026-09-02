@@ -2037,7 +2037,9 @@ export async function dbGetTrackedBooks() {
         b.raw_data?.bookType === 'exam' ||
         b.type === 'exam' ||
         b.type === 'physicalExam' ||
-        b.id === 'tb_07kzdf_1787267196768' ||
+        b.isExam ||
+        b.isExamBook ||
+        b.isPhysicalExam ||
         title.toLowerCase().includes('deneme') ||
         title.toLowerCase().includes('hazır bulunuşluk') ||
         title.toLowerCase().includes('hazir bulunusluk') ||

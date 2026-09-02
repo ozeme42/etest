@@ -41,8 +41,7 @@ export function isExamBook(b) {
     raw.isExamBook ||
     b.isExam ||
     raw.isExam ||
-    b.isPhysicalExam === true ||
-    b.id === 'tb_07kzdf_1787267196768'
+    b.isPhysicalExam === true
   ) {
     return true;
   }

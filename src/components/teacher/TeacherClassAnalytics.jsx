@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { useTheme } from '../../context/ThemeContext';
 import { getSubjectTheme } from '../../config/subjectThemes';
-import { getSubmissionScorePct } from '../../pages/TeacherDashboard';
+import { getSubmissionScorePct } from '../../utils/scoreHelpers';
 import { computeStudentAnalyticsData } from '../../utils/testResolver';
 
 export default function TeacherClassAnalytics({ students = [], submissions = [], homeworks = [], books = [], bookTests = [] }) {

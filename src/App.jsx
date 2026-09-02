@@ -13,15 +13,16 @@ import CommandPalette from './components/CommandPalette';
 import { useTheme } from './context/ThemeContext';
 import { useMediaQuery } from './hooks/useMediaQuery';
 
-// Core Primary Pages (Direct static import = 0ms instant transition, zero Suspense delay)
-import StudentDashboard from './pages/StudentDashboard';
-import StudentBooksPage from './pages/StudentBooksPage';
-import GoalsAndSchedulePage from './pages/GoalsAndSchedulePage';
-import StudentProgramPage from './pages/StudentProgramPage';
-import StudentResultsPage from './pages/StudentResultsPage';
-import TeacherDashboard from './pages/TeacherDashboard';
-import AdminDashboard from './pages/AdminDashboard';
 import Landing from './pages/Landing';
+
+// Code-split lazy loaded pages
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
+const GoalsAndSchedulePage = lazy(() => import('./pages/GoalsAndSchedulePage'));
+const StudentProgramPage = lazy(() => import('./pages/StudentProgramPage'));
+const StudentResultsPage = lazy(() => import('./pages/StudentResultsPage'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
 // Secondary / Heavy Lazy Loaded Pages
 const StudentBookDetailsPage = lazy(() => import('./pages/StudentBookDetailsPage'));
@@ -104,35 +105,20 @@ import { isHomeworkForStudent } from './utils/testResolver';
 import { toUUID } from './services/supabaseService';
 import './App.css';
 
-// Sayfa JS dosyalarını arka planda önceden yükle → tıklayınca anında açılır
-const preloadAllPages = () => {
-  // StudentDashboard'u hemen yükle (0ms)
-  try { import('./pages/StudentDashboard'); } catch {}
-
-  const otherPages = [
-    () => import('./pages/StudentBooksPage'),
-    () => import('./pages/StudentBookDetailsPage'),
-    () => import('./pages/GoalsAndSchedulePage'),
-    () => import('./pages/StudentProgramPage'),
-    () => import('./pages/StudentResultsPage'),
-    () => import('./pages/StudentHomeworksPage'),
-    () => import('./pages/TeacherDashboard'),
-    () => import('./pages/AdminDashboard'),
-    () => import('./pages/MyCoachingPage'),
-    () => import('./pages/HomeworkManager'),
-    () => import('./pages/EvaluationManager'),
-    () => import('./pages/QuestionBank'),
-    () => import('./pages/StudyRoomPage'),
-    () => import('./pages/StudentSummaryPage'),
-    () => import('./pages/StatisticsDashboard'),
-  ];
-  otherPages.forEach((load, i) => setTimeout(load, 500 + i * 150));
+// Sayfa JS dosyalarını kullanıcının rolüne göre arka planda sessizce önceden yükle
+const preloadRolePages = (role) => {
+  if (role === 'teacher') {
+    setTimeout(() => { try { import('./pages/TeacherDashboard'); } catch {} }, 350);
+    setTimeout(() => { try { import('./pages/HomeworkManager'); } catch {} }, 700);
+  } else if (role === 'admin') {
+    setTimeout(() => { try { import('./pages/AdminDashboard'); } catch {} }, 350);
+    setTimeout(() => { try { import('./pages/TeacherDashboard'); } catch {} }, 700);
+  } else {
+    setTimeout(() => { try { import('./pages/StudentDashboard'); } catch {} }, 250);
+    setTimeout(() => { try { import('./pages/StudentBooksPage'); } catch {} }, 600);
+    setTimeout(() => { try { import('./pages/StudentHomeworksPage'); } catch {} }, 1000);
+  }
 };
-
-// Uygulama açılır açılmaz en kritik sayfaları derhal indir
-try { import('./pages/StudentDashboard'); } catch {}
-try { import('./pages/StudentBooksPage'); } catch {}
-try { import('./pages/StudentProgramPage'); } catch {}
 
 // Route guards: redirects to '/' if user is not logged in or doesn't have the required role
 function RequireAuth({ children }) {
@@ -671,8 +657,8 @@ function AppContent() {
 
   useEffect(() => {
     initNativeApp(navigate);
-    // Kullanıcı giriş yaptıysa tüm sayfa JS'lerini arka planda yükle
-    if (currentUser) preloadAllPages();
+    // Kullanıcı giriş yaptıysa rolüne özel sayfaları arka planda yükle
+    if (currentUser?.role) preloadRolePages(currentUser.role);
 
     const handleWidgetNavigate = (e) => {
       const targetUrl = e?.detail?.url;

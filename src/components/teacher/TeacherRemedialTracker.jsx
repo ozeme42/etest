@@ -1502,7 +1502,12 @@ function EditRemedialModal({
  * Interactive Modal to pick start date, choose/customize repetition intervals,
  * see live schedule dates preview, and sync to student's weekly study program.
  */
-function AddToProgramModal({
+function AddToProgramModal(props) {
+  if (!props.isOpen || !props.testItem) return null;
+  return <AddToProgramModalContent {...props} />;
+}
+
+function AddToProgramModalContent({
   isOpen,
   onClose,
   testItem,
@@ -1513,8 +1518,6 @@ function AddToProgramModal({
   onSuccess,
   isDark
 }) {
-  if (!isOpen || !testItem) return null;
-
   // Selected student
   const [studentId, setStudentId] = useState(() => testItem.studentId || (studentsList[0]?.id || ''));
   // Start date in YYYY-MM-DD

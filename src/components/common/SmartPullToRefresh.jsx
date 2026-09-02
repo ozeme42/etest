@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RefreshCw, ArrowDown, Check } from 'lucide-react';
 
+import { triggerHapticFeedback } from '../../services/nativeMobileService';
+
 const THRESHOLD = 65; // Pull distance to trigger refresh
 const MAX_PULL = 110; // Max visual displacement
 
@@ -24,10 +26,8 @@ export default function SmartPullToRefresh({
 
   const triggerHaptic = useCallback(async () => {
     try {
-      if (window.Capacitor?.isNativePlatform?.()) {
-        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
-        await Haptics.impact({ style: ImpactStyle.Light });
-      } else if (navigator.vibrate) {
+      await triggerHapticFeedback('light');
+      if (navigator.vibrate) {
         navigator.vibrate(15);
       }
     } catch {}
