@@ -179,6 +179,77 @@ function getSubjectKey(s) {
   return 'Genel Testler';
 }
 
+function extractCleanUnitOrTopic(item, bookTestsList = []) {
+  if (!item) return 'Genel Konu';
+
+  // 1. Direct unit field
+  const rawUnit = item.unitName || item.unit || item.unitTopic || '';
+  if (rawUnit && typeof rawUnit === 'string' && rawUnit.trim()) {
+    let clean = rawUnit.trim().replace(/\s*[-–—:]\s*(?:Test|Yeni\s*Nesil|Deneme|Sayfa)\s*[-_\d]+.*$/i, '').trim();
+    if (clean) return clean;
+  }
+
+  // 2. Direct topic field (not just a test name)
+  const rawTopic = item.topicName || item.topic || '';
+  if (rawTopic && typeof rawTopic === 'string' && rawTopic.trim()) {
+    let clean = rawTopic.trim();
+    if (!/^(test[-_\s]*\d+|yeni\s*nesil[-_\s]*\d+|deneme[-_\s]*\d+|sayfa[-_\s]*\d+)/i.test(clean)) {
+      clean = clean.replace(/\s*[-–—:]\s*(?:Test|Yeni\s*Nesil|Deneme|Sayfa)\s*[-_\d]+.*$/i, '').trim();
+      if (clean) return clean;
+    }
+  }
+
+  // 3. Match from bookTests if available
+  const testId = item.bookTestId || item.testId || item.id;
+  if (testId && Array.isArray(bookTestsList) && bookTestsList.length > 0) {
+    const matched = bookTestsList.find(bt => String(bt.id) === String(testId));
+    if (matched) {
+      if (matched.unitName || matched.unit) {
+        let clean = (matched.unitName || matched.unit).trim().replace(/\s*[-–—:]\s*(?:Test|Yeni\s*Nesil|Deneme|Sayfa)\s*[-_\d]+.*$/i, '').trim();
+        if (clean) return clean;
+      }
+      if (matched.topicName || matched.topic) {
+        let clean = (matched.topicName || matched.topic).trim();
+        if (!/^(test[-_\s]*\d+|yeni\s*nesil[-_\s]*\d+|deneme[-_\s]*\d+)/i.test(clean)) {
+          return clean;
+        }
+      }
+    }
+  }
+
+  // 4. Regex extraction from title/testTitle
+  const rawTitle = item.testTitle || item.title || item.testName || '';
+  if (rawTitle && typeof rawTitle === 'string') {
+    const unitMatch = rawTitle.match(/(\d+\.\s*Ünite(?:\s*[-–—:]\s*[^(—›]+)?)/i);
+    if (unitMatch && unitMatch[1]) {
+      let clean = unitMatch[1].trim();
+      clean = clean.replace(/\s*[-–—:]\s*(?:PARAGRAF\s*DENEME|PARAGRAF\s*YENİ\s*NESİL|TEST|DENEME|YENİ\s*NESİL).*$/i, '').trim();
+      if (clean) return clean;
+    }
+
+    if (rawTitle.includes('›')) {
+      const parts = rawTitle.split('›');
+      const lastPart = parts[parts.length - 1].trim();
+      const cleanedLast = lastPart.replace(/\s*\([^)]*\)\s*$/g, '').trim();
+      if (cleanedLast && !/^(test[-_\s]*\d+|yeni\s*nesil[-_\s]*\d+|sayfa[-_\s]*\d+)/i.test(cleanedLast)) {
+        return cleanedLast;
+      }
+    }
+
+    if (rawTitle.includes(' - ')) {
+      const parts = rawTitle.split(' - ');
+      if (parts.length >= 2) {
+        const potentialTopic = parts[1].replace(/\s*\([^)]*\)\s*$/g, '').trim();
+        if (potentialTopic && !/^(test[-_\s]*\d+|yeni\s*nesil[-_\s]*\d+|deneme[-_\s]*\d+)/i.test(potentialTopic)) {
+          return potentialTopic;
+        }
+      }
+    }
+  }
+
+  return 'Genel Konu & Müfredat';
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    MAIN COMPONENT: STATISTICS DASHBOARD
 ══════════════════════════════════════════════════════════════════════════════ */
@@ -433,7 +504,7 @@ export default function StatisticsDashboard() {
         map[subj].wrong += w;
         map[subj].blank += b;
 
-        const topic = h.topicName || h.topic || h.title || 'Genel Konu';
+        const topic = extractCleanUnitOrTopic(h, allBookTests);
         if (!map[subj].topics[topic]) {
           map[subj].topics[topic] = { name: topic, totalQ: 0, correct: 0, wrong: 0 };
         }
@@ -456,6 +527,14 @@ export default function StatisticsDashboard() {
         map[subj].correct += c;
         map[subj].wrong += w;
         map[subj].blank += b;
+
+        const topic = extractCleanUnitOrTopic(e, allBookTests);
+        if (!map[subj].topics[topic]) {
+          map[subj].topics[topic] = { name: topic, totalQ: 0, correct: 0, wrong: 0 };
+        }
+        map[subj].topics[topic].totalQ += q;
+        map[subj].topics[topic].correct += c;
+        map[subj].topics[topic].wrong += w;
       });
     });
 
@@ -484,7 +563,7 @@ export default function StatisticsDashboard() {
       ];
     }
     return list;
-  }, [unifiedStudentData]);
+  }, [unifiedStudentData, allBookTests]);
 
   // 7. Günlük / Zaman Bazlı Soru İlerleme Grafiği (Daily Question Velocity Trend)
   const timeVelocityData = useMemo(() => {
@@ -1266,7 +1345,7 @@ export default function StatisticsDashboard() {
                       gap: 4
                     }}
                   >
-                    <span>{isExpanded ? 'Konuları Gizle' : `Konu Kazanımlarını Gör (${subj.topicList.length})`}</span>
+                    <span>{isExpanded ? 'Ünite & Konuları Gizle' : `Ünite & Konuları Gör (${subj.topicList.length})`}</span>
                     {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </button>
 
