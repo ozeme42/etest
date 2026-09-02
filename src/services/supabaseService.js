@@ -1070,7 +1070,7 @@ export async function dbGetQuestions() {
   try {
     // Ultra-lean select: excludes bloated raw_data to minimize network egress by 99%
     const { data, error } = await supabase.from('questions')
-      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, explanation, image_url, created_at')
+      .select('id, subject, grade_id, topic, topic_id, type, content_type, content_payload, is_bundle, answer_key, title, question_count, question_text, options, correct_answer, image_url, created_at')
       .order('created_at', { ascending: false });
     if (error) throw error;
     return (data || []).map(q => {
