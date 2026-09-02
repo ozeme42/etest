@@ -28,6 +28,296 @@ const SUBJECT_OPTIONS = [
 ];
 
 /**
+ * Interactive Mini Month Calendar to directly click and select repetition dates
+ */
+function InteractiveRepetitionCalendar({
+  startDate,
+  intervals = [],
+  onToggleInterval,
+  isDark
+}) {
+  const [viewDate, setViewDate] = useState(() => {
+    if (startDate) {
+      const parts = startDate.split('-');
+      if (parts.length === 3) return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+    }
+    return new Date();
+  });
+
+  const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  const dayShortNames = ['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz'];
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const handlePrevMonth = () => {
+    setViewDate(new Date(year, month - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setViewDate(new Date(year, month + 1, 1));
+  };
+
+  // Start date object
+  const startObj = useMemo(() => {
+    if (!startDate) return new Date();
+    const parts = startDate.split('-');
+    if (parts.length !== 3) return new Date();
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+  }, [startDate]);
+
+  // First day of month offset (0 = Pzt, 6 = Paz)
+  const firstDay = new Date(year, month, 1);
+  const startDayIdx = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const today = new Date();
+  const isCurrentMonthToday = today.getFullYear() === year && today.getMonth() === month;
+
+  // Build map of selected dates to stage index
+  const intervalMap = useMemo(() => {
+    const map = new Map(); // key: "YYYY-MM-DD" -> { stage: 1, days: 3 }
+    intervals.forEach((days, idx) => {
+      const target = new Date(startObj.getFullYear(), startObj.getMonth(), startObj.getDate() + days, 12, 0, 0);
+      const key = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`;
+      map.set(key, { stage: idx + 1, days });
+    });
+    return map;
+  }, [startObj, intervals]);
+
+  const startDateKey = `${startObj.getFullYear()}-${String(startObj.getMonth() + 1).padStart(2, '0')}-${String(startObj.getDate()).padStart(2, '0')}`;
+
+  const handleDateClick = (dayNumber) => {
+    const clicked = new Date(year, month, dayNumber, 12, 0, 0);
+    const diffTime = clicked.getTime() - startObj.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays >= 0) {
+      onToggleInterval(diffDays);
+    }
+  };
+
+  // Calendar cells
+  const cells = [];
+  for (let i = 0; i < startDayIdx; i++) {
+    cells.push({ type: 'empty', key: `empty_${i}` });
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isToday = isCurrentMonthToday && today.getDate() === d;
+    const isStart = dateKey === startDateKey;
+    const selectedInfo = intervalMap.get(dateKey);
+
+    cells.push({
+      type: 'day',
+      key: `day_${d}`,
+      dayNumber: d,
+      dateKey,
+      isToday,
+      isStart,
+      isSelected: Boolean(selectedInfo),
+      stage: selectedInfo?.stage,
+      days: selectedInfo?.days
+    });
+  }
+
+  return (
+    <div style={{
+      background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#ffffff',
+      borderRadius: 14,
+      border: isDark ? '1.5px solid #334155' : '1.5px solid #e2e8f0',
+      padding: '12px 14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+    }}>
+      {/* Month Navigation */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <button
+          type="button"
+          onClick={handlePrevMonth}
+          style={{
+            background: isDark ? '#1e293b' : '#f1f5f9',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text)',
+            borderRadius: 8,
+            width: 30,
+            height: 30,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '1rem'
+          }}
+          title="Önceki Ay"
+        >
+          ‹
+        </button>
+
+        <span style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+          {monthNames[month]} {year}
+        </span>
+
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          style={{
+            background: isDark ? '#1e293b' : '#f1f5f9',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text)',
+            borderRadius: 8,
+            width: 30,
+            height: 30,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontWeight: 800,
+            fontSize: '1rem'
+          }}
+          title="Sonraki Ay"
+        >
+          ›
+        </button>
+      </div>
+
+      {/* Weekday headers */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, 1fr)',
+        gap: 4,
+        textAlign: 'center'
+      }}>
+        {dayShortNames.map(wd => (
+          <div key={wd} style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', padding: '2px 0' }}>
+            {wd}
+          </div>
+        ))}
+      </div>
+
+      {/* Days Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, 1fr)',
+        gap: 4
+      }}>
+        {cells.map(cell => {
+          if (cell.type === 'empty') {
+            return <div key={cell.key} style={{ minHeight: 40 }} />;
+          }
+
+          let bg = isDark ? '#1e293b' : '#f8fafc';
+          let borderColor = 'transparent';
+          let textColor = 'var(--color-text)';
+          let boxShadow = 'none';
+
+          if (cell.isSelected) {
+            bg = 'linear-gradient(135deg, #10b981, #059669)';
+            textColor = '#ffffff';
+            boxShadow = '0 3px 8px rgba(16, 185, 129, 0.4)';
+          } else if (cell.isStart) {
+            bg = isDark ? 'rgba(99, 102, 241, 0.25)' : '#e0e7ff';
+            borderColor = '#6366f1';
+            textColor = isDark ? '#a5b4fc' : '#4338ca';
+          } else if (cell.isToday) {
+            borderColor = isDark ? '#94a3b8' : '#cbd5e1';
+          }
+
+          return (
+            <button
+              key={cell.key}
+              type="button"
+              onClick={() => handleDateClick(cell.dayNumber)}
+              style={{
+                minHeight: 40,
+                borderRadius: 9,
+                background: bg,
+                border: cell.isSelected ? 'none' : `1.5px solid ${borderColor}`,
+                color: textColor,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                padding: '2px 0',
+                position: 'relative',
+                boxShadow,
+                transform: cell.isSelected ? 'scale(1.03)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+              title={
+                cell.isSelected
+                  ? `${cell.stage}. Tekrar (+${cell.days} Gün) — Kaldırmak için tıkla`
+                  : cell.isStart
+                    ? 'Başlangıç Günü — Tekrar tarihi olarak seçmek için tıkla'
+                    : 'Takvime tıklayarak tekrar günü olarak ekle'
+              }
+            >
+              <span style={{ fontSize: '0.82rem', fontWeight: cell.isSelected || cell.isStart ? 900 : 700 }}>
+                {cell.dayNumber}
+              </span>
+
+              {cell.isSelected && (
+                <span style={{
+                  fontSize: '0.62rem',
+                  fontWeight: 900,
+                  opacity: 0.95,
+                  lineHeight: 1
+                }}>
+                  {cell.stage}. Tekrar
+                </span>
+              )}
+
+              {cell.isStart && !cell.isSelected && (
+                <span style={{
+                  fontSize: '0.58rem',
+                  fontWeight: 800,
+                  opacity: 0.9,
+                  lineHeight: 1
+                }}>
+                  Başlangıç
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Legend & Instructions */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontSize: '0.7rem',
+        color: 'var(--color-text-muted)',
+        fontWeight: 700,
+        paddingTop: 6,
+        borderTop: isDark ? '1px solid #1e293b' : '1px solid #e2e8f0',
+        flexWrap: 'wrap',
+        gap: 6
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: '#6366f1' }} />
+            <span>Başlangıç</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} />
+            <span>Tekrar Günü (Sıralı)</span>
+          </div>
+        </div>
+        <span style={{ color: '#10b981', fontWeight: 800 }}>👆 Takvimde günlere tıklayarak sırasını belirleyin</span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Modal to edit remedial test metadata, view/preview questions, dates/intervals, and sync to study program.
  */
 function EditRemedialModal({
@@ -46,6 +336,7 @@ function EditRemedialModal({
   const [subject, setSubject] = useState(() => testItem?.subject || 'Türkçe');
   const [studentId, setStudentId] = useState(() => testItem?.studentId || '');
   const [schedulePreset, setSchedulePreset] = useState(() => 'standard_leitner');
+  const [plannerMode, setPlannerMode] = useState('calendar'); // 'calendar' | 'presets'
   const [intervals, setIntervals] = useState(() => testItem?.intervals || [1, 3, 7, 15]);
   const [customIntervalsStr, setCustomIntervalsStr] = useState(() => (testItem?.intervals || [1, 3, 7, 15]).join(', '));
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -182,17 +473,31 @@ function EditRemedialModal({
     } else if (presetKey === 'weekly') {
       setIntervals([2, 5, 10, 20]);
       setCustomIntervalsStr('2, 5, 10, 20');
-    } else if (presetKey === 'today') {
-      setIntervals([1, 2]);
-      setCustomIntervalsStr('1, 2');
+    } else if (presetKey === 'clear') {
+      setIntervals([]);
+      setCustomIntervalsStr('');
     }
+  };
+
+  const handleToggleInterval = (dayDiff) => {
+    setIntervals(prev => {
+      let next;
+      if (prev.includes(dayDiff)) {
+        next = prev.filter(d => d !== dayDiff);
+      } else {
+        next = [...prev, dayDiff].sort((a, b) => a - b);
+      }
+      setCustomIntervalsStr(next.join(', '));
+      setSchedulePreset('custom');
+      return next;
+    });
   };
 
   const handleCustomIntervalsChange = (val) => {
     setCustomIntervalsStr(val);
     const parsed = val.split(',')
       .map(s => parseInt(s.trim(), 10))
-      .filter(n => !isNaN(n) && n > 0);
+      .filter(n => !isNaN(n) && n >= 0);
     if (parsed.length > 0) {
       setIntervals(parsed);
     }
@@ -722,98 +1027,232 @@ function EditRemedialModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <CalendarDays size={16} className="text-indigo-500" />
                   <span style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                    🧠 Aralıklı Tekrar (Leitner) &amp; Tarih Planı
+                    🧠 Aralıklı Tekrar Düzeni Seçimi
                   </span>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, marginRight: 6 }}>
-                    Başlangıç Tarihi:
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                {/* View Switcher Tabs */}
+                <div style={{
+                  display: 'flex',
+                  background: isDark ? '#1e293b' : '#f1f5f9',
+                  borderRadius: 8,
+                  padding: 2,
+                  border: '1px solid var(--color-border)'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setPlannerMode('calendar')}
                     style={{
-                      padding: '4px 8px',
+                      padding: '3px 8px',
                       borderRadius: 6,
-                      border: '1px solid var(--color-border)',
-                      background: isDark ? '#0f172a' : '#ffffff',
-                      color: 'var(--color-text)',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      outline: 'none'
+                      border: 'none',
+                      background: plannerMode === 'calendar' ? '#6366f1' : 'transparent',
+                      color: plannerMode === 'calendar' ? '#ffffff' : 'var(--color-text-muted)',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
                     }}
-                  />
+                  >
+                    <Calendar size={11} /> <span>📆 Takvimden Tıkla-Seç</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPlannerMode('presets')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: plannerMode === 'presets' ? '#6366f1' : 'transparent',
+                      color: plannerMode === 'presets' ? '#ffffff' : 'var(--color-text-muted)',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Zap size={11} /> <span>🧠 Şablonlar &amp; Aralıklar</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Presets */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
-                {[
-                  { id: 'standard_leitner', label: 'Standart (1, 3, 7, 15g)', icon: '🧠' },
-                  { id: 'fast', label: 'Hızlı (1, 2, 4, 7g)', icon: '⚡' },
-                  { id: 'weekly', label: 'Haftalık (2, 5, 10, 20g)', icon: '📅' },
-                  { id: 'today', label: 'Hemen (1, 2g)', icon: '🚀' },
-                  { id: 'custom', label: 'Özel Aralık', icon: '✏️' }
-                ].map(p => {
-                  const isSel = schedulePreset === p.id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => handlePresetSelect(p.id)}
-                      style={{
-                        padding: '6px 8px',
-                        borderRadius: 8,
-                        border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                        background: isSel ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : (isDark ? '#0f172a' : '#ffffff'),
-                        color: isSel ? '#6366f1' : 'var(--color-text)',
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}
-                    >
-                      <span>{p.icon}</span>
-                      <span>{p.label}</span>
-                    </button>
-                  );
-                })}
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700, marginRight: 6 }}>
+                  Başlangıç Tarihi:
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--color-border)',
+                    background: isDark ? '#0f172a' : '#ffffff',
+                    color: 'var(--color-text)',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    outline: 'none'
+                  }}
+                />
               </div>
 
-              {schedulePreset === 'custom' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
-                    Virgülle ayırarak günleri giriniz (Örn: 1, 3, 7, 14, 30):
-                  </label>
-                  <input
-                    type="text"
-                    value={customIntervalsStr}
-                    onChange={(e) => handleCustomIntervalsChange(e.target.value)}
-                    placeholder="1, 3, 7, 15"
-                    style={{
-                      width: '100%',
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      border: '1px solid var(--color-border)',
-                      background: isDark ? '#0f172a' : '#ffffff',
-                      color: 'var(--color-text)',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
+              {/* 1. CALENDAR VIEW */}
+              {plannerMode === 'calendar' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <InteractiveRepetitionCalendar
+                    startDate={startDate}
+                    intervals={intervals}
+                    onToggleInterval={handleToggleInterval}
+                    isDark={isDark}
                   />
+
+                  {/* Quick Presets under Calendar */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hızlı Şablon:</span>
+                    <button
+                      type="button"
+                      onClick={() => handlePresetSelect('standard_leitner')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🧠 Standart (1, 3, 7, 15g)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePresetSelect('fast')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ⚡ Hızlı (1, 2, 4, 7g)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePresetSelect('weekly')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📅 Haftalık (2, 5, 10, 20g)
+                    </button>
+                    {intervals.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handlePresetSelect('clear')}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          marginLeft: 'auto'
+                        }}
+                      >
+                        🗑️ Temizle
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. PRESETS VIEW */}
+              {plannerMode === 'presets' && (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 6 }}>
+                    {[
+                      { id: 'standard_leitner', label: 'Standart (1, 3, 7, 15g)', icon: '🧠' },
+                      { id: 'fast', label: 'Hızlı (1, 2, 4, 7g)', icon: '⚡' },
+                      { id: 'weekly', label: 'Haftalık (2, 5, 10, 20g)', icon: '📅' },
+                      { id: 'custom', label: 'Özel Aralık', icon: '✏️' }
+                    ].map(p => {
+                      const isSel = schedulePreset === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handlePresetSelect(p.id)}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: 8,
+                            border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                            background: isSel ? (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff') : (isDark ? '#0f172a' : '#ffffff'),
+                            color: isSel ? '#6366f1' : 'var(--color-text)',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <span>{p.icon}</span>
+                          <span>{p.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{ marginTop: 6 }}>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+                      Virgülle ayırarak günleri giriniz (Örn: 1, 3, 7, 14, 30):
+                    </label>
+                    <input
+                      type="text"
+                      value={customIntervalsStr}
+                      onChange={(e) => handleCustomIntervalsChange(e.target.value)}
+                      placeholder="1, 3, 7, 15"
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: isDark ? '#0f172a' : '#ffffff',
+                        color: 'var(--color-text)',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
                 </div>
               )}
 
               {/* Live Dates Table Preview */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                  🗓️ Hesaplanmış Tekrar Tarihleri:
+                  🗓️ Hesaplanmış Tekrar Tarihleri ({intervals.length} Aşama):
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
                   {stageDatesPreview.map(s => (
@@ -1080,6 +1519,7 @@ function AddToProgramModal({
   const [intervals, setIntervals] = useState(() => (testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [1, 3, 7, 15]);
   const [customIntervalsStr, setCustomIntervalsStr] = useState(() => ((testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [1, 3, 7, 15]).join(', '));
   const [schedulePreset, setSchedulePreset] = useState('standard_leitner');
+  const [plannerMode, setPlannerMode] = useState('calendar'); // 'calendar' | 'presets'
   const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -1114,7 +1554,24 @@ function AddToProgramModal({
     } else if (presetKey === 'intensive') {
       setIntervals([1, 2, 3]);
       setCustomIntervalsStr('1, 2, 3');
+    } else if (presetKey === 'clear') {
+      setIntervals([]);
+      setCustomIntervalsStr('');
     }
+  };
+
+  const handleToggleInterval = (dayDiff) => {
+    setIntervals(prev => {
+      let next;
+      if (prev.includes(dayDiff)) {
+        next = prev.filter(d => d !== dayDiff);
+      } else {
+        next = [...prev, dayDiff].sort((a, b) => a - b);
+      }
+      setCustomIntervalsStr(next.join(', '));
+      setSchedulePreset('custom');
+      return next;
+    });
   };
 
   const handleCustomIntervalsChange = (val) => {
@@ -1173,7 +1630,7 @@ function AddToProgramModal({
       return;
     }
     if (intervals.length === 0) {
-      setErrorMsg('Lütfen en az bir tekrar aralığı belirleyiniz.');
+      setErrorMsg('Lütfen takvimden veya şablonlardan en az bir tekrar tarihi belirleyiniz.');
       return;
     }
 
@@ -1295,8 +1752,8 @@ function AddToProgramModal({
         background: isDark ? '#0f172a' : '#ffffff',
         borderRadius: 20,
         width: '100%',
-        maxWidth: 580,
-        maxHeight: '90vh',
+        maxWidth: 600,
+        maxHeight: '92vh',
         display: 'flex',
         flexDirection: 'column',
         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
@@ -1306,7 +1763,7 @@ function AddToProgramModal({
 
         {/* Modal Header */}
         <div style={{
-          padding: '1.25rem 1.5rem',
+          padding: '1.2rem 1.4rem',
           borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9',
           display: 'flex',
           alignItems: 'center',
@@ -1357,7 +1814,7 @@ function AddToProgramModal({
 
         {/* Modal Body */}
         <div style={{
-          padding: '1.25rem 1.5rem',
+          padding: '1.25rem 1.4rem',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
@@ -1412,7 +1869,7 @@ function AddToProgramModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)' }}>
-                📅 Başlangıç Tarihi
+                🚀 Başlangıç Tarihi
               </label>
               <div style={{ display: 'flex', gap: 4 }}>
                 <button
@@ -1484,87 +1941,278 @@ function AddToProgramModal({
             />
           </div>
 
-          {/* Repetition Intervals & Presets */}
+          {/* Repetition Mode Switcher (Interactive Calendar vs Presets) */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 8 }}>
-              🧠 Aralıklı Tekrar Düzeni (Hangi Gün Aralıklarıyla Çözülecek?)
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                🧠 Aralıklı Tekrar Düzeni Seçimi
+              </label>
 
-            {/* Presets Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-              {[
-                { id: 'standard_leitner', label: 'Standart Leitner', sub: '1, 3, 7, 15 Gün', icon: '🧠' },
-                { id: 'fast', label: 'Hızlı Pekiştirme', sub: '1, 2, 4, 7 Gün', icon: '⚡' },
-                { id: 'weekly', label: 'Haftalık Tekrar', sub: '2, 5, 10, 20 Gün', icon: '📅' },
-                { id: 'intensive', label: 'Yoğun Kamp', sub: '1, 2, 3 Gün', icon: '🎯' }
-              ].map(p => {
-                const isSelected = schedulePreset === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => handlePresetSelect(p.id)}
-                    style={{
-                      padding: '8px 10px',
-                      borderRadius: 10,
-                      border: isSelected ? '2px solid #10b981' : '1px solid var(--color-border)',
-                      background: isSelected ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'var(--color-surface)',
-                      color: isSelected ? '#059669' : 'var(--color-text)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      cursor: 'pointer',
-                      textAlign: 'left'
-                    }}
-                  >
-                    <span style={{ fontSize: '1.1rem' }}>{p.icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{p.sub}</div>
-                    </div>
-                  </button>
-                );
-              })}
+              {/* View Switcher Tabs */}
+              <div style={{
+                display: 'flex',
+                background: isDark ? '#1e293b' : '#f1f5f9',
+                borderRadius: 8,
+                padding: 2,
+                border: '1px solid var(--color-border)'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setPlannerMode('calendar')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: plannerMode === 'calendar' ? '#10b981' : 'transparent',
+                    color: plannerMode === 'calendar' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <Calendar size={12} /> <span>📆 Takvimden Tıkla-Seç</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPlannerMode('presets')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: plannerMode === 'presets' ? '#10b981' : 'transparent',
+                    color: plannerMode === 'presets' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <Zap size={12} /> <span>🧠 Şablonlar &amp; Aralıklar</span>
+                </button>
+              </div>
             </div>
 
-            {/* Interval Chips & Custom Adjustment */}
+            {/* 1. INTERACTIVE CALENDAR VIEW */}
+            {plannerMode === 'calendar' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <InteractiveRepetitionCalendar
+                  startDate={startDate}
+                  intervals={intervals}
+                  onToggleInterval={handleToggleInterval}
+                  isDark={isDark}
+                />
+
+                {/* Quick Presets for Calendar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hızlı Şablon:</span>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('standard_leitner')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🧠 Standart (1, 3, 7, 15g)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('fast')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⚡ Hızlı (1, 2, 4, 7g)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('weekly')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📅 Haftalık (2, 5, 10, 20g)
+                  </button>
+                  {intervals.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handlePresetSelect('clear')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      🗑️ Temizle
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 2. PRESETS & CUSTOM INTERVALS VIEW */}
+            {plannerMode === 'presets' && (
+              <div>
+                {/* Presets Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+                  {[
+                    { id: 'standard_leitner', label: 'Standart Leitner', sub: '1, 3, 7, 15 Gün', icon: '🧠' },
+                    { id: 'fast', label: 'Hızlı Pekiştirme', sub: '1, 2, 4, 7 Gün', icon: '⚡' },
+                    { id: 'weekly', label: 'Haftalık Tekrar', sub: '2, 5, 10, 20 Gün', icon: '📅' },
+                    { id: 'intensive', label: 'Yoğun Kamp', sub: '1, 2, 3 Gün', icon: '🎯' }
+                  ].map(p => {
+                    const isSelected = schedulePreset === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handlePresetSelect(p.id)}
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 10,
+                          border: isSelected ? '2px solid #10b981' : '1px solid var(--color-border)',
+                          background: isSelected ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5') : 'var(--color-surface)',
+                          color: isSelected ? '#059669' : 'var(--color-text)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem' }}>{p.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>{p.sub}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Quick Add Day Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hızlı Gün Ekle:</span>
+                  {[1, 2, 3, 5, 7, 10, 14, 21, 30].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => addIntervalDay(d)}
+                      disabled={intervals.includes(d)}
+                      style={{
+                        padding: '2px 6px',
+                        borderRadius: 6,
+                        border: '1px solid var(--color-border)',
+                        background: intervals.includes(d) ? 'rgba(16,185,129,0.1)' : 'var(--color-surface)',
+                        color: intervals.includes(d) ? '#10b981' : 'var(--color-text-muted)',
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        cursor: intervals.includes(d) ? 'default' : 'pointer',
+                        opacity: intervals.includes(d) ? 0.6 : 1
+                      }}
+                    >
+                      +{d}g
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Comma Input */}
+                <div style={{ marginTop: 6 }}>
+                  <input
+                    type="text"
+                    value={customIntervalsStr}
+                    onChange={(e) => handleCustomIntervalsChange(e.target.value)}
+                    placeholder="Örn: 1, 3, 7, 15"
+                    style={{
+                      width: '100%',
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Interval Chips Summary (Always shown) */}
             <div style={{
-              padding: '10px 12px',
-              borderRadius: 12,
+              marginTop: 10,
+              padding: '8px 10px',
+              borderRadius: 10,
               background: isDark ? 'rgba(30,41,59,0.5)' : '#f8fafc',
               border: '1px solid var(--color-border)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 8
+              gap: 6
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                  Aşama Günleri (+Gün):
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                  Seçilen Tekrar Sırası:
                 </span>
                 <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 800 }}>
                   {intervals.length} Tekrar Aşaması
                 </span>
               </div>
 
-              {/* Interval Chips */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {intervals.map((dayNum, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: 8,
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      color: '#ffffff',
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}
-                  >
-                    <span>{idx + 1}. Aşama: +{dayNum}g</span>
-                    {intervals.length > 1 && (
+              {intervals.length === 0 ? (
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                  Henüz bir tekrar tarihi seçilmedi. Lütfen takvime tıklayarak günleri seçiniz.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {intervals.map((dayNum, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 7,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: '#ffffff',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <span>{idx + 1}. Aşama: +{dayNum}g</span>
                       <span
                         onClick={() => removeIntervalIdx(idx)}
                         style={{ cursor: 'pointer', opacity: 0.8, fontSize: '0.85rem' }}
@@ -1572,57 +2220,10 @@ function AddToProgramModal({
                       >
                         ×
                       </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Quick Add Day Buttons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
-                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hızlı Gün Ekle:</span>
-                {[1, 2, 3, 5, 7, 10, 14, 21, 30].map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => addIntervalDay(d)}
-                    disabled={intervals.includes(d)}
-                    style={{
-                      padding: '2px 6px',
-                      borderRadius: 6,
-                      border: '1px solid var(--color-border)',
-                      background: intervals.includes(d) ? 'rgba(16,185,129,0.1)' : 'var(--color-surface)',
-                      color: intervals.includes(d) ? '#10b981' : 'var(--color-text-muted)',
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      cursor: intervals.includes(d) ? 'default' : 'pointer',
-                      opacity: intervals.includes(d) ? 0.6 : 1
-                    }}
-                  >
-                    +{d}g
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom Comma Input */}
-              <div style={{ marginTop: 4 }}>
-                <input
-                  type="text"
-                  value={customIntervalsStr}
-                  onChange={(e) => handleCustomIntervalsChange(e.target.value)}
-                  placeholder="Örn: 1, 3, 7, 15"
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    border: '1px solid var(--color-border)',
-                    background: 'var(--color-surface)',
-                    color: 'var(--color-text)',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    outline: 'none'
-                  }}
-                />
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1635,7 +2236,7 @@ function AddToProgramModal({
               display: 'flex',
               flexDirection: 'column',
               gap: 6,
-              maxHeight: 180,
+              maxHeight: 160,
               overflowY: 'auto'
             }}>
               {stageDatesPreview.map((step) => (
