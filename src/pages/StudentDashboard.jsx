@@ -2114,154 +2114,102 @@ export default function StudentDashboard() {
             ...(hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || hw.testDates || {})
           };
 
-          if (isBook) {
-            // Collect all genuine tests belonging to this book
-            const allGenuineTests = [];
-            const seenTestIds = new Set();
+          if (isBook && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
+            const processedCleanIds = new Set();
+            Object.entries(testDueDatesMap).forEach(([testId, tDateStr]) => {
+              if (!tDateStr) return;
+              const tCleanId = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
+              if (processedCleanIds.has(tCleanId)) return;
+              processedCleanIds.add(tCleanId);
 
-            if (bookObj?.subjects && Array.isArray(bookObj.subjects)) {
-              bookObj.subjects.forEach(s => {
-                (s.tests || []).forEach(t => {
-                  const tid = String(t.id);
-                  if (!seenTestIds.has(tid)) {
-                    seenTestIds.add(tid);
-                    allGenuineTests.push({ ...t, subjectObj: s, topicObj: null });
-                  }
-                });
-                (s.topics || []).forEach(tp => {
-                  (tp.tests || []).forEach(t => {
-                    const tid = String(t.id);
-                    if (!seenTestIds.has(tid)) {
-                      seenTestIds.add(tid);
-                      allGenuineTests.push({ ...t, subjectObj: s, topicObj: tp });
-                    }
-                  });
-                });
-              });
-            }
+              const tYMD = extractItemYMD(tDateStr);
+              if (dayYMD === tYMD) {
+                const info = resolveBookTestInfo(testId, hw, bookObj);
+                const testName = info?.testName || 'Kitap Testi';
+                const qCount = info?.qCount || 12;
+                const subjectName = info?.subjectName || bookObj?.title || 'Ders';
+                const topicName = info?.topicName || '';
+                const cleanBookTitle = info?.cleanBookTitle || bookObj?.title || hw.title || 'Kitap';
 
-            const targetBookId = hwBookId || hw.bookId || hw.book_id || bookObj?.id;
-            (bookTests || []).filter(bt => {
-              const bId = String(bt.bookId || bt.book_id || '');
-              return (targetBookId && (bId === String(targetBookId) || toUUID(bId) === toUUID(targetBookId))) ||
-                (Array.isArray(hw.tests) && hw.tests.some(tid => String(tid) === String(bt.id) || toUUID(tid) === toUUID(bt.id) || String(tid).replace(/^bt_/, '') === String(bt.id).replace(/^bt_/, '')));
-            }).forEach(bt => {
-              const tid = String(bt.id);
-              const cleanTid = tid.replace(/^bt_/, '');
-              if (!seenTestIds.has(tid) && !seenTestIds.has(cleanTid)) {
-                seenTestIds.add(tid);
-                allGenuineTests.push({ ...bt, isBookTest: true });
-              }
-            });
+                const testItemObj = {
+                  id: testId,
+                  testId: testId,
+                  bookTestId: testId,
+                  hwId: hw.id,
+                  bookId: hw.bookId || hw.book_id || info?.currentBook?.id || bookObj?.id,
+                  name: testName,
+                  testName: testName,
+                  title: `${testName}${topicName ? ` (${topicName})` : ''}`,
+                  unit: topicName,
+                  unitName: topicName,
+                  unitTopic: topicName,
+                  topic: topicName,
+                  topicName: topicName,
+                  subject: subjectName,
+                  subjectName: subjectName,
+                  parentSubjectName: subjectName,
+                  bookTitle: cleanBookTitle
+                };
 
-            if (allGenuineTests.length > 0 && typeof testDueDatesMap === 'object' && Object.keys(testDueDatesMap).length > 0) {
-              allGenuineTests.forEach(testItem => {
-                const tidStr = String(testItem.id);
-                const tidClean = tidStr.replace(/^bt_/, '').replace(/^q_/, '');
+                const tidStr = String(testId);
                 const tidUuid = String(toUUID(tidStr) || '');
 
-                const tDateStr = testDueDatesMap[tidStr] ||
-                  (tidUuid && testDueDatesMap[tidUuid]) ||
-                  testDueDatesMap[tidClean] ||
-                  testDueDatesMap[`bt_${tidClean}`] ||
-                  testDueDatesMap[`bt_${tidStr}`] ||
-                  testItem.dueDate || testItem.testDueDate || testItem.date;
-
-                if (!tDateStr) return;
-                const tYMD = extractItemYMD(tDateStr);
-                if (dayYMD === tYMD) {
-                  const info = resolveBookTestInfo(testItem.id, hw, bookObj);
-                  if (!info || !info.testName || info.testName === 'Testi' || info.testName === info.cleanBookTitle) {
-                    if (testItem.name && testItem.name !== 'Test' && testItem.name !== 'Kitap Testi') {
-                      info.testName = testItem.name;
-                    } else {
-                      return; // Skip phantom/unnamed test
+                const tidSolvedCheck = (() => {
+                  if (studentSolvedSet.has(tidStr) || studentSolvedSet.has(tCleanId) || (tidUuid && studentSolvedSet.has(tidUuid))) return true;
+                  if (studentSolvedSet.has(`tid_${tidStr}`) || studentSolvedSet.has(`tid_${tCleanId}`) || (tidUuid && studentSolvedSet.has(`tid_${tidUuid}`))) return true;
+                  const sNameNorm = (subjectName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+                  if (sNameNorm) {
+                    if (studentSolvedSet.has(`subj_tid_${sNameNorm}_${tidStr}`) || studentSolvedSet.has(`subj_tid_${sNameNorm}_${tCleanId}`)) return true;
+                  }
+                  if (sNameNorm && testName) {
+                    const normKey = (s) => String(s || '').toLowerCase()
+                      .replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[^\p{L}\p{N}]/gu, '').trim();
+                    const normTestName = normKey(testName);
+                    const isGen = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(normTestName);
+                    if (!isGen && normTestName && normTestName.length >= 6) {
+                      if (studentSolvedSet.has(`subj_title_${sNameNorm}_${normTestName}`)) return true;
+                      if (studentSolvedSet.has(`subj_test_${sNameNorm}_${normTestName}`)) return true;
                     }
                   }
-                  const testItemObj = {
-                    ...testItem,
-                    id: testItem.id,
-                    testId: testItem.id,
-                    bookTestId: testItem.id,
-                    bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
-                    name: testItem.name || info.testName,
-                    testName: testItem.name || info.testName,
-                    title: testItem.name || `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                    unit: info.topicName || testItem.unit || testItem.unitName || '',
-                    unitName: info.topicName || testItem.unit || testItem.unitName || '',
-                    unitTopic: info.topicName || testItem.unit || testItem.unitName || '',
-                    topic: info.topicName || '',
-                    topicName: info.topicName || '',
-                    subject: info.subjectName || testItem.subject || testItem.subjectName || '',
-                    subjectName: info.subjectName || testItem.subject || testItem.subjectName || '',
-                    parentSubjectName: info.subjectName || '',
-                    bookTitle: info.cleanBookTitle
-                  };
+                  return false;
+                })();
 
-                  // Check if solved: direct ID match first, then subject-scoped name fallback
-                  // (needed when submission test_id format differs from bookTest id format, e.g. UUID vs tbt_xxx)
-                  const tidSolvedCheck = (() => {
-                    const str = tidStr;
-                    const clean = tidClean;
-                    const u = tidUuid;
-                    // Direct ID match from studentSolvedSet
-                    if (studentSolvedSet.has(str) || studentSolvedSet.has(clean) || (u && studentSolvedSet.has(u))) return true;
-                    if (studentSolvedSet.has(`tid_${str}`) || studentSolvedSet.has(`tid_${clean}`) || (u && studentSolvedSet.has(`tid_${u}`))) return true;
-                    // Subject + testId
-                    const sNameNorm = (info.subjectName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-                    if (sNameNorm) {
-                      if (studentSolvedSet.has(`subj_tid_${sNameNorm}_${str}`) || studentSolvedSet.has(`subj_tid_${sNameNorm}_${clean}`)) return true;
-                    }
-                    // Subject + test name fallback — only for non-generic test names!
-                    if (sNameNorm && info.testName) {
-                      const normKey = (s) => String(s || '').toLowerCase()
-                        .replace(/[\u2010-\u2015\u2212]/g, '-').replace(/[^\p{L}\p{N}]/gu, '').trim();
-                      const normTestName = normKey(info.testName);
-                      const isGen = /^((test|yeninesil|udeg|unite|unitedegerlendirme)[\s-]*\d+|\d+|test)$/i.test(normTestName);
-                      if (!isGen && normTestName && normTestName.length >= 6) {
-                        if (studentSolvedSet.has(`subj_title_${sNameNorm}_${normTestName}`)) return true;
-                        if (studentSolvedSet.has(`subj_test_${sNameNorm}_${normTestName}`)) return true;
-                      }
-                    }
-                    return false;
-                  })();
-                  const isTestSolved = tidSolvedCheck || isItemSolved(testItemObj);
-                  const autoId = `auto_hw_${hw.id}_${testItem.id}_${dayYMD}`;
+                const isTestSolved = tidSolvedCheck || isItemSolved(testItemObj);
+                const autoId = `auto_hw_${hw.id}_${testId}_${dayYMD}`;
 
-                  const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testItem.id || m.testId === tidClean))) ||
-                    autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tidClean || (tidUuid && toUUID(a.testId) === tidUuid));
+                const isAlreadyPresent = dayManualItems.some(m => m.id === autoId || (m.hwId === hw.id && (m.testId === testId || m.testId === tCleanId))) ||
+                  autoHwItems.some(a => String(a.testId) === tidStr || String(a.testId) === tCleanId || (tidUuid && toUUID(a.testId) === tidUuid));
 
-                  if (!isAlreadyPresent) {
-                    autoHwItems.push({
-                      id: autoId,
-                      hwId: hw.id,
-                      testId: testItem.id,
-                      bookTestId: testItem.id,
-                      bookId: hw.bookId || hw.book_id || info.currentBook?.id || bookObj?.id,
-                      isAutoHomework: true,
-                      isBookTask: true,
-                      taskType: 'kitap',
-                      name: testItem.name || info.testName,
-                      testName: testItem.name || info.testName,
-                      title: `${info.testName}${info.topicName ? ` (${info.topicName})` : ''}`,
-                      unit: info.topicName || '',
-                      unitName: info.topicName || '',
-                      unitTopic: info.topicName || '',
-                      topic: info.topicName || '',
-                      topicName: info.topicName || '',
-                      subject: info.subjectName || '',
-                      subjectName: info.subjectName || '',
-                      parentSubjectName: info.subjectName || '',
-                      bookTitle: info.cleanBookTitle,
-                      questionCount: `${info.qCount} soru`,
-                      time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
-                      done: isTestSolved
-                    });
-                  }
+                if (!isAlreadyPresent) {
+                  autoHwItems.push({
+                    id: autoId,
+                    hwId: hw.id,
+                    testId: testId,
+                    bookTestId: testId,
+                    bookId: hw.bookId || hw.book_id || info?.currentBook?.id || bookObj?.id,
+                    isAutoHomework: true,
+                    isBookTask: true,
+                    taskType: 'kitap',
+                    name: testName,
+                    testName: testName,
+                    title: `${testName}${topicName ? ` (${topicName})` : ''}`,
+                    unit: topicName || '',
+                    unitName: topicName || '',
+                    unitTopic: topicName || '',
+                    topic: topicName || '',
+                    topicName: topicName || '',
+                    subject: subjectName || '',
+                    subjectName: subjectName || '',
+                    parentSubjectName: subjectName || '',
+                    bookTitle: cleanBookTitle,
+                    questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
+                    time: `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+                    done: isTestSolved
+                  });
                 }
-              });
-              return;
-            }
+              }
+            });
+            return;
           }
 
           const startYMD = extractItemYMD(hw.startDate || hw.assignedAt || hw.createdAt);
@@ -2289,7 +2237,7 @@ export default function StudentDashboard() {
             }
           }
 
-          if (isForThisDay && !isBook) {
+          if (isForThisDay) {
             const rawDue = hw.dueDate || hw.assignedDueDate;
             let formattedDue = '';
             if (rawDue) {
@@ -2307,9 +2255,10 @@ export default function StudentDashboard() {
                 hwId: hw.id,
                 isAutoHomework: true,
                 isExamTask: isExam,
-                taskType: isExam ? 'deneme' : 'ödev',
-                subject: hw.subject || (isExam ? 'Deneme Sınavı' : 'Ödev'),
-                title: hw.title || 'Ödev Görevi',
+                isBookTask: isBook,
+                taskType: isExam ? 'deneme' : (isBook ? 'kitap' : 'ödev'),
+                subject: hw.subject || (isExam ? 'Deneme Sınavı' : (isBook ? cleanBookTitle : 'Ödev')),
+                title: cleanBookTitle || hw.title || 'Ödev Görevi',
                 questionCount: hw.totalQuestions ? `${hw.totalQuestions} soru` : null,
                 time: formattedDue || null,
                 done: isDone
