@@ -251,7 +251,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     refreshHomeworks?.(true);
     refreshTrackedBooks?.(true);
-    syncFromSupabase?.(false, true);
+    syncFromSupabase?.(false, false);
     refreshCoaching?.(true);
     refreshSchedules?.(true);
   }, []);

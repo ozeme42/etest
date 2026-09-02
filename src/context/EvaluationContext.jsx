@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { dbGetSubmissions, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, dbGetDeletedItems, toUUID } from '../services/supabaseService';
+import { dbGetSubmissions, dbCheckSubmissionsFreshness, dbSaveSubmission, dbDeleteSubmission, dbDeleteSubmissionsByIds, dbDeleteSubmissionsForStudentAndTests, dbDeleteBookSubmissionsForEveryone, dbClearStudentSubmissions, dbGetDeletedItems, toUUID } from '../services/supabaseService';
 import { useAuth } from './AuthContext';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 import { purgeTestCache } from '../services/unifiedResultAdapter';
@@ -141,9 +141,29 @@ export function EvaluationProvider({ children }) {
   const [isSyncing, setIsSyncing] = useState(true);
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
-    if (!force && isCacheValid('submissions', 10) && (submissions || []).length > 0) {
-      if (showLoading) setIsSyncing(false);
-      return;
+    // 1. Zero-bandwidth freshness check: uses HEAD request (~50 bytes) to see if local cache matches DB
+    if (!force && (submissions || []).length > 0) {
+      try {
+        const localCount = (submissions || []).length;
+        const localLatestAt = (submissions || [])
+          .map(s => s.createdAt || s.created_at || s.submittedAt || s.date)
+          .filter(Boolean)
+          .sort()
+          .pop() || null;
+
+        const freshness = await dbCheckSubmissionsFreshness(localCount, localLatestAt);
+        if (freshness.isFresh) {
+          touchCache('submissions');
+          if (showLoading) setIsSyncing(false);
+          return; // Zero bytes downloaded! Cache verified 100% up-to-date!
+        }
+      } catch {
+        // Fallback to time-based cache if network is offline
+        if (isCacheValid('submissions', 10)) {
+          if (showLoading) setIsSyncing(false);
+          return;
+        }
+      }
     }
 
     if (showLoading) setIsSyncing(true);

@@ -613,6 +613,42 @@ export async function dbDeleteSchedule(schId) {
 // ==========================================
 // 3. SINAV SONUÇLARI (SUBMISSIONS) — PATCHED
 // ==========================================
+/**
+ * Ultra-lightweight check (HEAD request + limit 1, ~50 bytes total)
+ * to verify if database submissions match local cache without downloading data rows.
+ */
+export async function dbCheckSubmissionsFreshness(cachedCount = 0, cachedLatestAt = null, studentId = null) {
+  if (!isSupabaseConfigured()) return { isFresh: true };
+  try {
+    let countQuery = supabase.from('submissions').select('*', { count: 'exact', head: true });
+    let latestQuery = supabase.from('submissions').select('created_at').order('created_at', { ascending: false }).limit(1);
+
+    if (studentId) {
+      countQuery = countQuery.eq('student_id', studentId);
+      latestQuery = latestQuery.eq('student_id', studentId);
+    }
+
+    const [{ count, error: countErr }, { data: latestData, error: latestErr }] = await Promise.all([
+      countQuery,
+      latestQuery
+    ]);
+
+    if (countErr || latestErr) {
+      return { isFresh: false };
+    }
+
+    const dbCount = count ?? 0;
+    const dbLatestAt = latestData?.[0]?.created_at || null;
+
+    // Both count and latest timestamp must match
+    const isFresh = (dbCount === cachedCount) && (!dbLatestAt || String(dbLatestAt) === String(cachedLatestAt));
+    return { isFresh, dbCount, dbLatestAt };
+  } catch (err) {
+    console.warn('[Supabase] dbCheckSubmissionsFreshness error:', err);
+    return { isFresh: false };
+  }
+}
+
 export async function dbGetSubmissions(studentId) {
   if (!isSupabaseConfigured()) return null;
   try {
