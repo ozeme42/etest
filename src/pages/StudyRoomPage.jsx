@@ -11,6 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { toUUID } from '../services/supabaseService';
 import { checkIsTaskSolved } from '../components/ProgramCenter';
+import { isHomeworkForStudent } from '../utils/testResolver';
 
 import { AmbientEngine } from '../features/study-room/services/ambientAudioEngine';
 import {
@@ -49,12 +50,19 @@ export default function StudyRoomPage() {
   const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
   const { homeworks = [] } = useHomework() || {};
   const { submissions = [], addSubmission } = useEvaluation() || {};
-  const { getCoachingProfileForStudent } = useCoaching() || {};
+  const { coachingProfiles = {}, getCoachingProfileForStudent } = useCoaching() || {};
 
   const coachingProfile = useMemo(() => {
-    if (!currentUser?.id || !getCoachingProfileForStudent) return {};
-    return getCoachingProfileForStudent(currentUser.id) || {};
-  }, [currentUser?.id, getCoachingProfileForStudent]);
+    if (!currentUser?.id) return {};
+    if (getCoachingProfileForStudent) {
+      const prof = getCoachingProfileForStudent(currentUser.id);
+      if (prof && (prof.weeklyProgram || prof.schedule)) return prof;
+    }
+    if (coachingProfiles && (coachingProfiles[currentUser.id] || coachingProfiles[toUUID(currentUser.id)])) {
+      return coachingProfiles[currentUser.id] || coachingProfiles[toUUID(currentUser.id)] || {};
+    }
+    return {};
+  }, [currentUser?.id, getCoachingProfileForStudent, coachingProfiles]);
 
   const THEMES = useMemo(() => getThemeList(isDark), [isDark]);
   const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('study_theme') || 'system');
@@ -136,7 +144,8 @@ export default function StudyRoomPage() {
     if (!currentUser) return [];
 
     const isMatchHw = (hw) => {
-      if (!hw) return false;
+      if (!hw || !currentUser) return false;
+      if (isHomeworkForStudent(hw, currentUser, [])) return true;
       if (hw.studentId === currentUser.id || hw.student_id === currentUser.id) return true;
       if (studentUuidStr && (hw.studentId === studentUuidStr || hw.student_id === studentUuidStr)) return true;
       if (Array.isArray(hw.targetIds)) {
@@ -245,55 +254,206 @@ export default function StudyRoomPage() {
       });
     });
 
-    // C. Haftalık Koçluk Programı Görevleri
-    const weeklySchedule = coachingProfile?.schedule || {};
-    Object.entries(weeklySchedule).forEach(([dayName, dayTasks]) => {
-      const dayKey = resolveDayKey(dayName);
-      if (Array.isArray(dayTasks)) {
-        dayTasks.forEach((t, idx) => {
-          if (!t) return;
-          const isSolved = t.completed || checkIsTaskSolved(t, currentUser.id, submissions, homeworks, studyAssignments);
-          const dedupeKey = `prog_${dayKey || dayName}_${t.id || idx}`;
-          if (!seenTaskKeys.has(dedupeKey)) {
-            seenTaskKeys.add(dedupeKey);
-            taskList.push({
-              id: t.id || `prog_${idx}`,
-              dedupeKey,
-              title: t.title || t.text || t.name || 'Program Görevi',
-              subtitle: t.subject || 'Haftalık Program',
-              subject: t.subject || matchSubjectFromTask(t),
-              unit: t.unit || '',
-              topic: t.topic || '',
-              bookName: t.bookName || t.bookTitle || '',
-              questionCount: extractQuestionCountFromTask(t),
-              dayKey: dayKey || currentTodayKey,
-              dayName: dayKey ? WEEK_DAYS_CONFIG.find(d => d.key === dayKey)?.long : dayName,
-              sourceType: 'program',
-              sourceLabel: '📅 Haftalık Program',
-              testId: t.testId || t.bookTestId || null,
-              bookTestId: t.bookTestId || null,
-              hwId: t.hwId || null,
-              isCompleted: isSolved
-            });
+    // C. Haftalık Ders Programı Görevleri (Koçluk / ProgramCenter)
+    const weeklyProg = coachingProfile?.weeklyProgram || [];
+    weeklyProg.forEach(dayObj => {
+      const rawDay = dayObj.day || 'Pzt';
+      const dayKey = resolveDayKey(rawDay) || rawDay;
+      const dayCfg = WEEK_DAYS_CONFIG.find(d => d.key === dayKey) || { long: rawDay };
+
+      (dayObj.items || []).forEach((item, idx) => {
+        const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
+        const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
+
+        if (matchedBookTest) {
+          const existingBtTask = taskList.find(t => String(t.bookTestId || t.id) === String(matchedBookTest.id));
+          if (existingBtTask) {
+            if (!existingBtTask.dayKey) {
+              existingBtTask.dayKey = dayKey;
+              existingBtTask.dayName = dayCfg.long;
+            }
+            return;
           }
-        });
-      }
+        }
+
+        const dedupeKey = `prog_${dayKey}_${item.id || idx}_${item.text || item.topic}`;
+        if (!seenTaskKeys.has(dedupeKey)) {
+          seenTaskKeys.add(dedupeKey);
+          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
+
+          taskList.push({
+            id: dedupeKey,
+            dedupeKey,
+            title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
+            subtitle: `${dayCfg.long} Programı`,
+            dayName: dayCfg.long,
+            dayKey,
+            subject: item.subject || 'Genel',
+            unit: item.unit || '',
+            topic: item.topic || item.text || '',
+            questionCount: qCount,
+            sourceType: matchedBookTest ? 'bookTest' : 'program',
+            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            bookTestId: matchedBookTest?.id || item.bookTestId,
+            realTestId: matchedBookTest?.id || item.realTestId || item.testId,
+            bookTitle: matchedBook?.title,
+            isCompleted: isSolved,
+            programItem: item
+          });
+        }
+      });
     });
 
     return taskList;
   }, [currentUser, studentIdStr, studentUuidStr, homeworks, books, bookTests, submissions, studyAssignments, coachingProfile, WEEK_DAYS_CONFIG, currentTodayKey]);
 
-  const filteredTasksList = useMemo(() => {
-    return allAssignedTasks.filter(task => {
-      if (hideCompletedTasks && task.isCompleted) return false;
-      const matchSource = hwSourceTab === 'all' || task.sourceType === hwSourceTab;
-      const matchSubject = hwFilterSubject === 'all' || (task.subject && task.subject.toLowerCase().includes(hwFilterSubject.toLowerCase()));
-      const matchQuery = !hwSearchQuery.trim() ||
-        (task.title || '').toLowerCase().includes(hwSearchQuery.toLowerCase()) ||
-        (task.subject || '').toLowerCase().includes(hwSearchQuery.toLowerCase());
-      return matchSource && matchSubject && matchQuery;
+  // 2. Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Birebir Ders Programı ile Özdeş)
+  const weeklyProgramGrouped = useMemo(() => {
+    const weeklyProg = coachingProfile?.weeklyProgram || [];
+    const studentHws = (homeworks || []).filter(hw => {
+      if (!hw || !currentUser) return false;
+      if (isHomeworkForStudent(hw, currentUser, [])) return true;
+      if (hw.studentId === currentUser.id || hw.student_id === currentUser.id) return true;
+      if (studentUuidStr && (hw.studentId === studentUuidStr || hw.student_id === studentUuidStr)) return true;
+      if (Array.isArray(hw.targetIds)) {
+        if (hw.targetIds.includes(currentUser.id) || (studentUuidStr && hw.targetIds.includes(studentUuidStr))) return true;
+        if (hw.targetIds.some(tid => String(tid) === studentIdStr || (studentUuidStr && String(tid) === studentUuidStr))) return true;
+      }
+      return false;
     });
-  }, [allAssignedTasks, hwSourceTab, hwFilterSubject, hwSearchQuery, hideCompletedTasks]);
+
+    return WEEK_DAYS_CONFIG.map(dayCfg => {
+      const dayTasks = [];
+      const seenDayTaskKeys = new Set();
+      const dayInfo = weekDayDateMap[dayCfg.key] || {};
+
+      // 1. Koçluk / Ders Programındaki Öğeler
+      const dayProgObj = weeklyProg.find(d => resolveDayKey(d.day) === dayCfg.key);
+      const progItems = dayProgObj?.items || [];
+
+      progItems.forEach((item, idx) => {
+        const dedupeKey = `prog_${dayCfg.key}_${item.id || idx}_${item.text || item.topic}`;
+        if (!seenDayTaskKeys.has(dedupeKey)) {
+          seenDayTaskKeys.add(dedupeKey);
+          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
+          const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
+          const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
+
+          dayTasks.push({
+            id: dedupeKey,
+            dedupeKey,
+            title: `${item.text || item.topic || `${item.subject || 'Ders'} Çalışması`}`,
+            subtitle: `${dayCfg.long} Programı`,
+            dayName: dayCfg.long,
+            dayKey: dayCfg.key,
+            subject: item.subject || matchedBook?.subject || 'Genel',
+            unit: item.unit || matchedBookTest?.unit || '',
+            topic: item.topic || item.text || matchedBookTest?.topic || '',
+            questionCount: qCount,
+            sourceType: matchedBookTest ? 'bookTest' : 'program',
+            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            bookTestId: matchedBookTest?.id || item.bookTestId,
+            realTestId: matchedBookTest?.id || item.realTestId || item.testId,
+            bookTitle: matchedBook?.title,
+            testName: matchedBookTest?.name || matchedBookTest?.title,
+            isCompleted: isSolved,
+            programItem: item
+          });
+        }
+      });
+
+      // 2. Bu Güne Özel Olarak Atanmış Kitap Testleri (hw.testDueDates)
+      studentHws.forEach(hw => {
+        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
+        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.id));
+        const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+          .replace(/\s*\(Tüm Kitap\)/gi, '')
+          .trim();
+
+        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object') {
+          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+            if (!tDateStr) return;
+            const targetDayKey = resolveDayKey(tDateStr);
+            const isMatchDate = (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd)) || (targetDayKey === dayCfg.key);
+
+            if (isMatchDate) {
+              const dedupeKey = `bt_${testId}`;
+              if (!seenDayTaskKeys.has(dedupeKey)) {
+                seenDayTaskKeys.add(dedupeKey);
+                const bt = (bookTests || []).find(b => String(b.id) === String(testId));
+                const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
+                const isSolved = checkIsTaskSolved({ testId, bookTestId: testId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
+
+                dayTasks.push({
+                  id: dedupeKey,
+                  dedupeKey,
+                  title: `${cleanBookTitle} — ${bt?.name || bt?.title || 'Test'}`,
+                  subtitle: `${dayCfg.long} Kitap Testi`,
+                  dayName: dayCfg.long,
+                  dayKey: dayCfg.key,
+                  subject: bt?.subject || hw.subject || bookObj?.subject || 'Genel',
+                  unit: bt?.unit || bt?.unitName || '',
+                  topic: bt?.topic || bt?.topicName || '',
+                  questionCount: qCount,
+                  dueDate: tDateStr,
+                  sourceType: 'bookTest',
+                  sourceLabel: '📚 Kitap Testi',
+                  bookTestId: testId,
+                  realTestId: testId,
+                  bookId: bookObj?.id || hw.bookId,
+                  bookTitle: cleanBookTitle,
+                  testName: bt?.name || bt?.title,
+                  isCompleted: isSolved,
+                  isBookAssignment: true
+                });
+              }
+            }
+          });
+        } else if (!isBook && hw.dueDate) {
+          const hwDayKey = resolveDayKey(hw.dueDate);
+          const isDateMatch = (dayInfo.ymd && hw.dueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
+
+          if (isDateMatch) {
+            const dedupeKey = `hw_${hw.id}`;
+            if (!seenDayTaskKeys.has(dedupeKey)) {
+              seenDayTaskKeys.add(dedupeKey);
+              const qCount = Number(hw.questionCount || hw.totalQuestions) || 12;
+              const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
+
+              dayTasks.push({
+                id: dedupeKey,
+                dedupeKey,
+                title: hw.title || 'Ödev Görevi',
+                subtitle: `${dayCfg.long} Ödevi`,
+                dayName: dayCfg.long,
+                dayKey: dayCfg.key,
+                subject: hw.subject || 'Genel',
+                unit: hw.unit || '',
+                topic: hw.topic || '',
+                questionCount: qCount,
+                dueDate: hw.dueDate,
+                sourceType: 'homework',
+                sourceLabel: '📝 Atanmış Ödev',
+                realTestId: hw.realTestId || hw.testId || hw.id,
+                isCompleted: isSolved
+              });
+            }
+          }
+        }
+      });
+
+      return {
+        ...dayCfg,
+        dateLabel: dayInfo.dateLabel || '',
+        tasks: dayTasks,
+        totalQuestions: dayTasks.reduce((acc, t) => acc + (Number(t.questionCount) || 0), 0),
+        completedCount: dayTasks.filter(t => t.isCompleted).length
+      };
+    });
+  }, [coachingProfile, homeworks, bookTests, books, submissions, studyAssignments, currentUser, studentIdStr, studentUuidStr, WEEK_DAYS_CONFIG, weekDayDateMap]);
 
   // ── 📚 DERS VE HIZ TAKİBİ ──
   const [selectedSubject, setSelectedSubject] = useState(() => localStorage.getItem('study_selected_subject') || 'Matematik');
@@ -1186,9 +1346,8 @@ export default function StudyRoomPage() {
         setHideCompletedTasks={setHideCompletedTasks}
         selectedProgramDay={selectedProgramDay}
         setSelectedProgramDay={setSelectedProgramDay}
-        weekDaysConfig={WEEK_DAYS_CONFIG}
+        weeklyProgramGrouped={weeklyProgramGrouped}
         allAssignedTasks={allAssignedTasks}
-        filteredTasksList={filteredTasksList}
         onSelectTask={handleSelectTask}
       />
 
