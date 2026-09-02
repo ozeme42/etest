@@ -141,7 +141,7 @@ export function EvaluationProvider({ children }) {
   const [isSyncing, setIsSyncing] = useState(true);
 
   const syncFromSupabase = async (showLoading = false, force = false) => {
-    if (!force && isCacheValid('submissions', 2) && (submissions || []).length > 0) {
+    if (!force && isCacheValid('submissions', 10) && (submissions || []).length > 0) {
       if (showLoading) setIsSyncing(false);
       return;
     }
@@ -207,10 +207,7 @@ export function EvaluationProvider({ children }) {
           });
 
           const mergedList = deduplicateSubmissions([...updatedSubs, ...localDraftsOnly]);
-          try {
-            localStorage.setItem('eTestSubmissions', JSON.stringify(mergedList));
-            localStorage.setItem('etest_submissions', JSON.stringify(mergedList));
-          } catch {}
+          safeSetItem('eTestSubmissions', JSON.stringify(mergedList));
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { count: mergedList.length } }));
           }
@@ -226,7 +223,7 @@ export function EvaluationProvider({ children }) {
 
   useEffect(() => {
     if (isSupabaseConfigured()) {
-      syncFromSupabase(false, true);
+      syncFromSupabase(false, false);
     } else {
       setIsSyncing(false);
     }
@@ -253,10 +250,7 @@ export function EvaluationProvider({ children }) {
             purgeTestCache(delId);
             setSubmissions(prev => {
               const next = prev.filter(s => String(s.id) !== delId && String(s.supabaseId) !== delId);
-              try {
-                localStorage.setItem('eTestSubmissions', JSON.stringify(next));
-                localStorage.setItem('etest_submissions', JSON.stringify(next));
-              } catch (e) {}
+              safeSetItem('eTestSubmissions', JSON.stringify(next));
               return next;
             });
           }
@@ -276,22 +270,13 @@ export function EvaluationProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('eTestSubmissions', JSON.stringify(submissions));
-    } catch (err) {
-      if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        try {
-          // Keep only the latest 10 submissions to fit in quota
-          const trimmed = submissions.slice(-10);
-          localStorage.setItem('eTestSubmissions', JSON.stringify(trimmed));
-          // Silently trimmed. The React state still holds all items, but localStorage holds 10 to prevent crashes.
-        } catch (e2) {
-          // Ignore
-        }
-      } else {
-        console.warn('EvaluationContext: Error saving to localStorage:', err);
-      }
+    if (submissions && submissions.length > 0) {
+      safeSetItem('eTestSubmissions', JSON.stringify(submissions));
     }
+    // Clean up duplicate legacy key to free up 5MB quota
+    try {
+      localStorage.removeItem('etest_submissions');
+    } catch {}
   }, [submissions]);
 
   // Sync across tabs
@@ -535,10 +520,7 @@ export function EvaluationProvider({ children }) {
       }
 
       if (savedTarget) {
-        try {
-          localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
-          localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
-        } catch (e) {}
+        safeSetItem('eTestSubmissions', JSON.stringify(nextSubs));
       }
       return nextSubs;
     });
@@ -562,10 +544,7 @@ export function EvaluationProvider({ children }) {
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !idsToDelete.includes(String(s.id)) && !idsToDelete.includes(String(s.supabaseId)));
-      try {
-        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
-        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
-      } catch (e) {}
+      safeSetItem('eTestSubmissions', JSON.stringify(remaining));
       return remaining;
     });
 
@@ -629,10 +608,7 @@ export function EvaluationProvider({ children }) {
           String(s.id || '').startsWith(`hw_${tStr}_`);
         return !isTarget;
       });
-      try {
-        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
-        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
-      } catch (e) {}
+      safeSetItem('eTestSubmissions', JSON.stringify(remaining));
       return remaining;
     });
 
@@ -744,10 +720,7 @@ export function EvaluationProvider({ children }) {
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !toDeleteIds.includes(String(s.id)) && !toDeleteIds.includes(String(s.supabaseId)));
-      try {
-        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
-        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
-      } catch {}
+      safeSetItem('eTestSubmissions', JSON.stringify(remaining));
       return remaining;
     });
 
@@ -826,10 +799,7 @@ export function EvaluationProvider({ children }) {
 
     setSubmissions(prev => {
       const remaining = prev.filter(s => !toDeleteIds.includes(String(s.id)) && !toDeleteIds.includes(String(s.supabaseId)));
-      try {
-        localStorage.setItem('eTestSubmissions', JSON.stringify(remaining));
-        localStorage.setItem('etest_submissions', JSON.stringify(remaining));
-      } catch {}
+      safeSetItem('eTestSubmissions', JSON.stringify(remaining));
       return remaining;
     });
 
@@ -1030,10 +1000,7 @@ export function EvaluationProvider({ children }) {
       });
 
       if (changed) {
-        try {
-          localStorage.setItem('eTestSubmissions', JSON.stringify(nextSubs));
-          localStorage.setItem('etest_submissions', JSON.stringify(nextSubs));
-        } catch (e) {}
+        safeSetItem('eTestSubmissions', JSON.stringify(nextSubs));
       }
       return nextSubs;
     });

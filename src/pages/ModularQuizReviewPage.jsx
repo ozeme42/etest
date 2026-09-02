@@ -106,10 +106,11 @@ export default function ModularQuizReviewPage() {
     // Gather all submission sources
     if (submissions && Array.isArray(submissions)) allCandidatePool.push(...submissions);
     try {
-      const l1 = JSON.parse(localStorage.getItem('eTestSubmissions') || '[]');
-      const l2 = JSON.parse(localStorage.getItem('etest_submissions') || '[]');
-      if (Array.isArray(l1)) allCandidatePool.push(...l1);
-      if (Array.isArray(l2)) allCandidatePool.push(...l2);
+      const rawStored = localStorage.getItem('eTestSubmissions') || localStorage.getItem('etest_submissions');
+      if (rawStored) {
+        const l = JSON.parse(rawStored);
+        if (Array.isArray(l)) allCandidatePool.push(...l);
+      }
     } catch {}
 
     if (homeworks && Array.isArray(homeworks)) {
