@@ -198,6 +198,12 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
     item.id
   ].filter(Boolean).map(String);
 
+  const cleanTargetIds = [];
+  targetIds.forEach(tId => {
+    cleanTargetIds.push(tId);
+    cleanTargetIds.push(tId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, ''));
+  });
+
   const isRemedial = Boolean(
     item.type === 'remedialTest' ||
     item.taskType === 'remedialTest' ||
@@ -218,14 +224,23 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
       s.id,
       s.submissionId,
       s.testId,
+      s.test_id,
       s.realTestId,
       s.hwId,
+      s.homeworkId,
+      s.homework_id,
       s.bookTestId,
       s.metadata?.realTestId,
-      s.metadata?.bookTestId
+      s.metadata?.bookTestId,
+      s.metadata?.testId
     ].filter(Boolean).map(String);
 
-    const hasIdMatch = targetIds.some(tId => sIds.some(sId => sId === tId || toUUID(sId) === toUUID(tId)));
+    const hasIdMatch = cleanTargetIds.some(tId => sIds.some(sId => {
+      if (!sId || !tId) return false;
+      const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      return sId === tId || sClean === tClean || (toUUID(sClean) && toUUID(tClean) && toUUID(sClean) === toUUID(tClean));
+    }));
     if (hasIdMatch) return true;
 
     if (isRemedial) {
@@ -243,7 +258,7 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
   if (allHomeworks && Array.isArray(allHomeworks)) {
     const matchInHws = allHomeworks.some(hw => {
       if (!hw || !Array.isArray(hw.submissions)) return false;
-      const isTargetHw = targetIds.some(tId => String(hw.id) === tId || toUUID(hw.id) === toUUID(tId));
+      const isTargetHw = targetIds.some(tId => String(hw.id) === tId || (toUUID(hw.id) && toUUID(tId) && toUUID(hw.id) === toUUID(tId)));
       if (!isTargetHw) return false;
 
       return hw.submissions.some(s => {
@@ -291,9 +306,15 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
   // CASE 1: SPECIFIC TEST / QUIZ TASK (MUST match the exact test ID)
   if (specificTestId) {
     const tIdStr = String(specificTestId);
-    if (precomputedSolvedIdsSet && precomputedSolvedIdsSet.has(tIdStr)) return true;
-    const tUuidStr = String(toUUID(specificTestId) || '');
-    if (precomputedSolvedIdsSet && tUuidStr && precomputedSolvedIdsSet.has(tUuidStr)) return true;
+    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+    const tUuidStr = String(toUUID(tCleanId || specificTestId) || '');
+
+    if (precomputedSolvedIdsSet && (
+      precomputedSolvedIdsSet.has(tIdStr) ||
+      precomputedSolvedIdsSet.has(tCleanId) ||
+      precomputedSolvedIdsSet.has(`bt_${tCleanId}`) ||
+      (tUuidStr && precomputedSolvedIdsSet.has(tUuidStr))
+    )) return true;
 
     // 1. Check in global submissions
     const isTestSolvedInSubs = (submissions || []).some(s => {
@@ -315,12 +336,14 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
         s.bookTestIds.forEach(bid => { if (bid) subFields.push(String(bid)); });
       }
 
-      if (subFields.some(sf => sf && (
-        sf === tIdStr ||
-        (tUuidStr && sf === tUuidStr) ||
-        toUUID(sf) === tIdStr ||
-        (tUuidStr && toUUID(sf) === tUuidStr)
-      ))) return true;
+      if (subFields.some(sf => {
+        if (!sf) return false;
+        const sfClean = sf.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        const sfUuid = toUUID(sfClean || sf);
+        return sf === tIdStr || sf === tCleanId || sfClean === tCleanId ||
+          (tUuidStr && (sf === tUuidStr || sfClean === tUuidStr || (sfUuid && sfUuid === tUuidStr))) ||
+          (toUUID(sf) && (toUUID(sf) === tIdStr || toUUID(sf) === tCleanId));
+      })) return true;
 
       return isSubmissionMatchingBookTest(s, item, bookTests, books);
     });
@@ -336,7 +359,8 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
           if (!s || !isMatchStudent(s)) return false;
           if (s.status === 'in_progress' || s.status === 'draft') return false;
           const sTestId = String(s.testId || s.test_id || s.realTestId || s.bookTestId || '');
-          if (sTestId === tIdStr || (tUuidStr && sTestId === tUuidStr) || toUUID(sTestId) === tIdStr) return true;
+          const sClean = sTestId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+          if (sTestId === tIdStr || sTestId === tCleanId || sClean === tCleanId || (tUuidStr && sTestId === tUuidStr) || (tUuidStr && sClean === tUuidStr)) return true;
           return isSubmissionMatchingBookTest(s, item, bookTests, books);
         });
         if (hasTestSub) return true;
@@ -2140,20 +2164,32 @@ export function MonthlyListPanel({
               const displaySub = `${cleanBookTitle} — ${testName}`;
 
               const isSolved = checkIsTaskSolved({
-                testId: testId,
+                ...info.tObj,
+                id: tCleanId,
+                testId: tCleanId,
+                bookTestId: tCleanId,
                 hwId: hw.id,
-                taskType: 'kitap'
+                taskType: 'kitap',
+                name: testName,
+                testName: testName,
+                title: testName,
+                subject: subjectName,
+                subjectName: subjectName,
+                unit: topicName,
+                unitName: topicName,
+                unitTopic: topicName,
+                bookTitle: cleanBookTitle
               }, studentId, submissions, allHomeworks, studyAssignments);
 
-              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${ymd}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${tCleanId}_${ymd}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
                 autoHwItems.some(a => a.testId === testId || a.testId === tCleanId || a.bookTestId === testId || a.bookTestId === tCleanId);
 
               if (!exists) {
                 autoHwItems.push({
-                  id: `book_test_${hw.id}_${testId}_${ymd}`,
+                  id: `book_test_${hw.id}_${tCleanId}_${ymd}`,
                   hwId: hw.id,
-                  testId: testId,
-                  bookTestId: testId,
+                  testId: tCleanId,
+                  bookTestId: tCleanId,
                   bookId: hw.bookId || info.currentBook?.id || null,
                   isAutoHomework: true,
                   taskType: 'kitap',
@@ -3894,8 +3930,11 @@ export default function ProgramCenter({
       ids.forEach(id => {
         if (!id) return;
         const str = String(id);
+        const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         solvedIdsSet.add(str);
-        const u = toUUID(str);
+        solvedIdsSet.add(clean);
+        solvedIdsSet.add(`bt_${clean}`);
+        const u = toUUID(clean || str);
         if (u) solvedIdsSet.add(String(u));
       });
     });
@@ -3908,8 +3947,11 @@ export default function ProgramCenter({
           ids.forEach(id => {
             if (!id) return;
             const str = String(id);
+            const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
             solvedIdsSet.add(str);
-            const u = toUUID(str);
+            solvedIdsSet.add(clean);
+            solvedIdsSet.add(`bt_${clean}`);
+            const u = toUUID(clean || str);
             if (u) solvedIdsSet.add(String(u));
           });
         });
@@ -4191,9 +4233,9 @@ export default function ProgramCenter({
 
               const isSolved = checkIsTaskSolved({
                 ...info.tObj,
-                id: testId,
-                testId: testId,
-                bookTestId: testId,
+                id: tCleanId,
+                testId: tCleanId,
+                bookTestId: tCleanId,
                 hwId: hw.id,
                 taskType: 'kitap',
                 name: testName,
@@ -4207,15 +4249,15 @@ export default function ProgramCenter({
                 bookTitle: cleanBookTitle
               }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
 
-              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${testId}_${dayObj.day}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
+              const exists = manualItems.some(m => m.id === `book_test_${hw.id}_${tCleanId}_${dayObj.day}` || m.testId === testId || m.testId === tCleanId || m.bookTestId === testId || m.bookTestId === tCleanId) ||
                 autoHwItems.some(a => a.testId === testId || a.testId === tCleanId || a.bookTestId === testId || a.bookTestId === tCleanId);
 
               if (!exists) {
                 autoHwItems.push({
-                  id: `book_test_${hw.id}_${testId}_${dayObj.day}`,
+                  id: `book_test_${hw.id}_${tCleanId}_${dayObj.day}`,
                   hwId: hw.id,
-                  testId: testId,
-                  bookTestId: testId,
+                  testId: tCleanId,
+                  bookTestId: tCleanId,
                   bookId: hw.bookId || info.currentBook?.id || null,
                   isAutoHomework: true,
                   isBookAssignment: true,

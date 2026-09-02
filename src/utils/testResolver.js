@@ -1409,14 +1409,21 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   });
 
   if (isDirectIdMatch) {
-    const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
-    const tSubj = String(targetTestOrId?.subject || targetTestOrId?.subjectName || targetTestOrId?.parentSubjectName || '').toLowerCase().trim();
-    if (sSubj && tSubj) {
-      const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
-                              (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
-      if (isCrossConflict) return false;
+    const hasLongUniqueId = specIds.some(id => {
+      const c = String(id || '').replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      return c.length >= 16 || (toUUID(c) && toUUID(c).length >= 32);
+    });
+
+    if (!hasLongUniqueId) {
+      const sSubj = String(s.subject || s.subjectName || s.metadata?.subject || s.lesson || '').toLowerCase().trim();
+      const tSubj = String(targetTestOrId?.subject || targetTestOrId?.subjectName || targetTestOrId?.parentSubjectName || '').toLowerCase().trim();
+      if (sSubj && tSubj) {
+        const isCrossConflict = (tSubj.includes('türk') && (sSubj.includes('mat') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('mat') && (sSubj.includes('türk') || sSubj.includes('fen') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('fen') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('sos'))) ||
+                                (tSubj.includes('sos') && (sSubj.includes('türk') || sSubj.includes('mat') || sSubj.includes('fen')));
+        if (isCrossConflict) return false;
+      }
     }
     return true;
   }
