@@ -277,23 +277,31 @@ export default function RemedialQuizReview({
   const normalizedSteps = useMemo(() => {
     if (!currentSolution) return [];
     if (Array.isArray(currentSolution.steps) && currentSolution.steps.length > 0) {
-      return currentSolution.steps.map((st, i) => {
-        if (typeof st === 'string') {
-          return {
-            title: `${i + 1}. Adım`,
-            content: cleanAiMathText(st)
-          };
-        }
-        if (typeof st === 'object' && st !== null) {
-          const detail = st.detail || st.explanation || st.text || st.description || st.content || st.step || '';
-          const title = st.title && st.title !== detail ? st.title : `${i + 1}. Adım`;
-          return {
-            title,
-            content: cleanAiMathText(detail || st.title || '')
-          };
-        }
-        return { title: `${i + 1}. Adım`, content: String(st) };
-      });
+      return currentSolution.steps
+        .filter(st => {
+          if (!st) return false;
+          const s = typeof st === 'string' ? st.trim() : (st?.detail || st?.content || st?.text || '');
+          if (s === '{' || s === '}' || s === '[' || s === ']' || s === ',' || s === '],') return false;
+          if (/^"(?:isEnglishQuestion|correctAnswer|summary|steps|mistakeAdvice|goldenRule|similarQuestion|options)"\s*:/i.test(s)) return false;
+          return true;
+        })
+        .map((st, i) => {
+          if (typeof st === 'string') {
+            return {
+              title: `${i + 1}. Adım`,
+              content: cleanAiMathText(st)
+            };
+          }
+          if (typeof st === 'object' && st !== null) {
+            const detail = st.detail || st.explanation || st.text || st.description || st.content || st.step || '';
+            const title = st.title && st.title !== detail ? st.title : `${i + 1}. Adım`;
+            return {
+              title,
+              content: cleanAiMathText(detail || st.title || '')
+            };
+          }
+          return { title: `${i + 1}. Adım`, content: String(st) };
+        });
     } else if (currentSolution.explanation) {
       return [{
         title: 'Detaylı Çözüm',

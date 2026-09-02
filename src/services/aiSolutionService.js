@@ -310,7 +310,13 @@ export function getHtmlFromActiveIframe() {
 export function isGenericPlaceholderSolution(parsed) {
   if (!parsed || typeof parsed !== 'object') return true;
   const sText = JSON.stringify(parsed);
+  const hasRawJsonPollution = Array.isArray(parsed.steps) && parsed.steps.some(st => {
+    const s = typeof st === 'string' ? st.trim() : (st?.detail || st?.content || '');
+    return s === '{' || s === '}' || s === '[' || s === ']' || s.includes('"isEnglishQuestion"') || s.includes('"summary":') || s.includes('"steps":');
+  });
+
   return (
+    hasRawJsonPollution ||
     sText.includes('genel test mantığı çerçevesinde temel bir kazanımı') ||
     sText.includes('Öncelikle soruda bizden ne istendiğini ve elimizdeki verilerin neler olduğunu') ||
     sText.includes('Soruda verilenleri ve isteneni netleştirelim') ||
@@ -532,7 +538,8 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
       temperature: forceRefresh ? 0.75 : 0.2,
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 3000
+      maxOutputTokens: 3000,
+      responseMimeType: 'application/json'
     }
   };
 
@@ -604,33 +611,8 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
     throw new Error('Gemini API boş yanıt döndürdü.');
   }
 
-  // Parse JSON response
-  let parsed = null;
-  try {
-    const cleaned = rawText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-    parsed = JSON.parse(cleaned);
-  } catch (err) {
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        parsed = JSON.parse(match[0]);
-      } catch {}
-    }
-  }
-
-  if (!parsed || (!parsed.steps && !parsed.explanation && !parsed.summary)) {
-    parsed = {
-      correctAnswer: correctAnswer || 'Belirtilmedi',
-      summary: 'Çözüm Başarıyla Üretildi',
-      steps: rawText.split('\n').filter(l => l.trim().length > 0),
-      mistakeAdvice: `Hata sebebi (${cleanReason}) analizi ve doğru çözüm adımları yukarıda sunulmuştur.`,
-      goldenRule: 'Sorunun temel kazanımını ve çözüm adımlarını dikkatle inceleyiniz.'
-    };
-  }
+  // Parse JSON response safely
+  const parsed = parseGeminiJsonResponse(rawText, { correctAnswer, cleanReason });
 
   // Save to local cache with zero DB cost
   if (cacheKey && parsed) {
@@ -640,4 +622,114 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
   }
 
   return parsed;
+}
+
+export function parseGeminiJsonResponse(rawText, fallbackData = {}) {
+  if (!rawText || typeof rawText !== 'string') return null;
+
+  // 1. Direct Clean & Parse
+  let cleaned = rawText
+    .replace(/^[\s\S]*?```json\s*/i, '')
+    .replace(/\s*```[\s\S]*$/i, '')
+    .trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (parsed && typeof parsed === 'object') return normalizeParsedSolution(parsed);
+  } catch {}
+
+  // 2. Direct Match between first { and last }
+  const firstBrace = rawText.indexOf('{');
+  const lastBrace = rawText.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const jsonSubstring = rawText.substring(firstBrace, lastBrace + 1).trim();
+    try {
+      const parsed = JSON.parse(jsonSubstring);
+      if (parsed && typeof parsed === 'object') return normalizeParsedSolution(parsed);
+    } catch {}
+
+    // 3. Fix common JSON formatting issues (trailing commas, control chars)
+    try {
+      const relaxed = jsonSubstring
+        .replace(/,\s*([}\]])/g, '$1')
+        .replace(/[\u0000-\u001F]+/g, (match) => (match === '\n' || match === '\r' || match === '\t' ? match : ''));
+      const parsed = JSON.parse(relaxed);
+      if (parsed && typeof parsed === 'object') return normalizeParsedSolution(parsed);
+    } catch {}
+  }
+
+  // 4. Regex extraction for all known fields
+  try {
+    const extractStringField = (fieldName) => {
+      const regex = new RegExp(`"${fieldName}"\\s*:\\s*"([\\s\\S]*?)(?<!\\\\)"`, 'i');
+      const m = rawText.match(regex);
+      if (m && m[1]) {
+        return m[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
+      }
+      return '';
+    };
+
+    const extractArrayField = (fieldName) => {
+      const regex = new RegExp(`"${fieldName}"\\s*:\\s*\\[([\\s\\S]*?)\\]`, 'i');
+      const m = rawText.match(regex);
+      if (m && m[1]) {
+        const itemMatches = m[1].match(/"([\s\S]*?)(?<!\\)"/g);
+        if (itemMatches && itemMatches.length > 0) {
+          return itemMatches.map(s => s.slice(1, -1).replace(/\\"/g, '"').replace(/\\n/g, '\n').trim()).filter(Boolean);
+        }
+      }
+      return [];
+    };
+
+    const summary = extractStringField('summary');
+    const steps = extractArrayField('steps');
+    const mistakeAdvice = extractStringField('mistakeAdvice') || extractStringField('mistakeAnalysis');
+    const goldenRule = extractStringField('goldenRule') || extractStringField('keyConcept') || extractStringField('tips');
+    const correctAnswer = extractStringField('correctAnswer') || extractStringField('correctAnswerLetter');
+
+    if (summary || steps.length > 0 || mistakeAdvice || goldenRule) {
+      return normalizeParsedSolution({
+        isEnglishQuestion: /"isEnglishQuestion"\s*:\s*true/i.test(rawText),
+        summary: summary || 'Çözüm Başarıyla Üretildi',
+        steps: steps.length > 0 ? steps : (summary ? [summary] : []),
+        mistakeAdvice,
+        goldenRule,
+        correctAnswer: correctAnswer || fallbackData.correctAnswer || 'Belirtilmedi'
+      });
+    }
+  } catch {}
+
+  // 5. Clean out JSON syntax markers completely if text is unparseable
+  const cleanRawText = rawText
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .replace(/["{}\[\]]/g, '')
+    .replace(/^\s*(?:isEnglishQuestion|correctAnswer|summary|steps|mistakeAdvice|goldenRule|similarQuestion)\s*:\s*/gim, '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 3 && !/^[:,]$/.test(l));
+
+  return {
+    correctAnswer: fallbackData.correctAnswer || 'Belirtilmedi',
+    summary: 'Çözüm Başarıyla Üretildi',
+    steps: cleanRawText.length > 0 ? cleanRawText : ['Sorunun adımları analiz edildi.'],
+    mistakeAdvice: fallbackData.cleanReason ? `Hata sebebi (${fallbackData.cleanReason}) analizi ve doğru çözüm adımları yukarıda sunulmuştur.` : 'Çözüm adımlarını inceleyiniz.',
+    goldenRule: 'Sorunun temel kazanımını ve çözüm adımlarını dikkatle inceleyiniz.'
+  };
+}
+
+function normalizeParsedSolution(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+
+  if (Array.isArray(obj.steps)) {
+    obj.steps = obj.steps.filter(st => {
+      if (typeof st === 'string') {
+        const t = st.trim();
+        return t && t !== '{' && t !== '}' && t !== '[' && t !== ']' && !/^"(?:isEnglishQuestion|correctAnswer|summary|steps|mistakeAdvice|goldenRule)"\s*:/.test(t);
+      }
+      return true;
+    });
+  }
+
+  return obj;
 }
