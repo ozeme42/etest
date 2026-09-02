@@ -21,6 +21,9 @@ android {
             debuggable true
         }
         release {
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
             minifyEnabled false
             shrinkResources false
             signingConfig signingConfigs.debug

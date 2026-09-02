@@ -418,12 +418,12 @@ export default function TeacherStudentMistakesPool({
         const searchName = m ? m[1].trim() : rawName;
         const targetSubj = resolveSubjectName(s.subjectName, s.subject, s.title, s.testTitle);
 
+        // 1. Check in bookTests table
         matchedBookTest = (bookTests || []).find(bt => {
           const btBookId = String(bt.bookId || bt.book_id || '');
           const isSameBook = btBookId === String(matchedBook.id) || toUUID(btBookId) === toUUID(matchedBook.id);
           if (!isSameBook) return false;
 
-          // Subject check: If book has multiple subjects, ensure subject matches!
           if (targetSubj && targetSubj !== 'Genel') {
             const btSubj = bt.subject_id ? subjectNameMap.get(String(bt.subject_id)) : (bt.subjectId ? subjectNameMap.get(String(bt.subjectId)) : (bt.subject || bt.subjectName));
             if (btSubj) {
@@ -432,10 +432,40 @@ export default function TeacherStudentMistakesPool({
             }
           }
 
-          const bName = String(bt.name || '').trim();
+          const bName = String(bt.name || bt.title || '').trim();
           return bName === searchName || bName.toLowerCase() === searchName.toLowerCase() ||
                  (searchName && (bName.includes(searchName) || searchName.includes(bName)));
         });
+
+        // 2. If not found in bookTests table, check inside matchedBook embedded structure
+        if (!matchedBookTest) {
+          const rawSubjs = matchedBook.subjects || matchedBook.raw_data?.subjects || [];
+          for (const sb of rawSubjs) {
+            for (const tp of (sb.topics || sb.raw_data?.topics || [])) {
+              for (const ts of (tp.tests || tp.raw_data?.tests || [])) {
+                const tsIdStr = String(ts.id || ts.testId || '');
+                const tsName = String(ts.name || ts.title || '').trim();
+                const isIdMatch = candidateIds.some(cid => String(cid) === tsIdStr || toUUID(cid) === toUUID(tsIdStr));
+                const isNameMatch = tsName === searchName || tsName.toLowerCase() === searchName.toLowerCase() || (searchName && (tsName.includes(searchName) || searchName.includes(tsName)));
+                if (isIdMatch || isNameMatch) {
+                  matchedBookTest = {
+                    ...ts,
+                    id: ts.id || tsIdStr,
+                    name: ts.name || ts.title || searchName,
+                    subjectId: sb.id,
+                    subjectName: sb.name || sb.title,
+                    topicId: tp.id,
+                    unitName: tp.name || tp.title,
+                    answerKey: ts.answerKey || ts.answer_key || matchedBook.answerKey || {}
+                  };
+                  break;
+                }
+              }
+              if (matchedBookTest) break;
+            }
+            if (matchedBookTest) break;
+          }
+        }
       }
 
       const bId = matchedBook ? matchedBook.id : (meta?.bookId || s.bookId || 'other_tests');
@@ -640,7 +670,28 @@ export default function TeacherStudentMistakesPool({
         testTopicFromId
       } = resolveBookAndTestInfo(s);
 
-      const matchedKey = matchedBookTest?.answerKey || matchedBookTest?.answer_key || s.answerKey || s.raw_data?.answerKey || {};
+      const extractCorrectLetter = (val) => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'string') {
+          const clean = val.trim().toUpperCase();
+          if (/^[A-E]$/.test(clean)) return clean;
+          if (clean === '1') return 'A';
+          if (clean === '2') return 'B';
+          if (clean === '3') return 'C';
+          if (clean === '4') return 'D';
+          if (clean === '5') return 'E';
+          if (clean.startsWith('OPT_')) return clean.replace('OPT_', '').toUpperCase();
+          return clean;
+        }
+        if (typeof val === 'number') {
+          if (val >= 0 && val <= 4 && Number.isInteger(val)) return String.fromCharCode(65 + val);
+          if (val >= 1 && val <= 5 && Number.isInteger(val)) return String.fromCharCode(64 + val);
+          return String(val);
+        }
+        return String(val);
+      };
+
+      const matchedKey = matchedBookTest?.answerKey || matchedBookTest?.answer_key || matchedBook?.answerKey || matchedBook?.answer_key || s.answerKey || s.raw_data?.answerKey || {};
       const studentAnswersMap = s.studentAnswers || s.raw_data?.studentAnswers || {};
 
       const wrongList = [];
@@ -649,10 +700,11 @@ export default function TeacherStudentMistakesPool({
         cleanAnswers.forEach((ans, idx) => {
           const qNo = ans.questionNo || ans.qNum || (idx + 1);
           const userAns = ans.userAnswer ?? ans.selectedOption ?? ans.selectedAnswer ?? ans.answer ?? ans.textAns ?? '';
-          let correctAns = ans.correctAnswer ?? ans.correctOption ?? ans.correct ?? '';
-          if (!correctAns || correctAns === '—' || correctAns === '?') {
-            correctAns = matchedKey[String(qNo)] || matchedKey[qNo] || '—';
+          let rawCorr = ans.correctAnswer ?? ans.correctOption ?? ans.correct;
+          if (!rawCorr || rawCorr === '—' || rawCorr === '?') {
+            rawCorr = matchedKey[String(qNo)] ?? matchedKey[qNo] ?? (Array.isArray(matchedKey) ? matchedKey[qNo - 1] : null);
           }
+          const correctAns = extractCorrectLetter(rawCorr) || '—';
           
           const isExplicitCorrect = ans.isCorrect === true || ans.evalStatus === 'correct';
           const isMatchExact = Boolean(userAns && correctAns && correctAns !== '—' && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY');
@@ -679,7 +731,8 @@ export default function TeacherStudentMistakesPool({
         const qCount = Number(s.totalQuestions) || Number(matchedBookTest?.questionCount) || Number(matchedBookTest?.question_count) || Object.keys(matchedKey).filter(k => k !== '__meta').length || 20;
         for (let i = 1; i <= qCount; i++) {
           const userAns = studentAnswersMap[String(i)] ?? studentAnswersMap[i] ?? '';
-          const correctAns = matchedKey[String(i)] ?? matchedKey[i] ?? '';
+          const rawCorr = matchedKey[String(i)] ?? matchedKey[i] ?? (Array.isArray(matchedKey) ? matchedKey[i - 1] : null);
+          const correctAns = extractCorrectLetter(rawCorr);
           if (correctAns && correctAns !== '__meta') {
             const isMatch = Boolean(userAns && String(userAns).trim().toUpperCase() === String(correctAns).trim().toUpperCase() && userAns !== 'EMPTY' && userAns !== 'Boş');
             if (!isMatch) {
@@ -698,7 +751,8 @@ export default function TeacherStudentMistakesPool({
       } else {
         const wCount = Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0);
         for (let i = 1; i <= wCount; i++) {
-          const correctAns = matchedKey[String(i)] ?? matchedKey[i] ?? '?';
+          const rawCorr = matchedKey[String(i)] ?? matchedKey[i] ?? (Array.isArray(matchedKey) ? matchedKey[i - 1] : null);
+          const correctAns = extractCorrectLetter(rawCorr) || '?';
           wrongList.push({
             qNo: i,
             userAns: 'Yanlış',
@@ -1107,16 +1161,23 @@ export default function TeacherStudentMistakesPool({
         };
       }
       mistakesByTest[item.testId].wrongQuestions.push(item.qNo);
+      const corrOpt = item.correctOption && item.correctOption !== '?' && item.correctOption !== '—'
+        ? item.correctOption
+        : (item.correctAns && item.correctAns !== '?' && item.correctAns !== '—' ? item.correctAns : null);
+
       mistakesByTest[item.testId].wrongQuestionsList.push({
         qNum: item.qNo,
         qNo: item.qNo,
         selectedOption: item.selectedOption,
-        correctOption: item.correctOption,
+        correctOption: corrOpt || item.correctOption,
+        correctAns: corrOpt || item.correctAns,
         page: item.testPage,
         pdfPage: item.testPage
       });
-      if (item.correctOption && item.correctOption !== '?' && item.correctOption !== '—') {
-        mistakesByTest[item.testId].answerKeyMap[item.qNo] = item.correctOption;
+
+      if (corrOpt) {
+        mistakesByTest[item.testId].answerKeyMap[item.qNo] = corrOpt;
+        mistakesByTest[item.testId].answerKeyMap[String(item.qNo)] = corrOpt;
       }
       mistakesByTest[item.testId].wrongCount++;
     });

@@ -191,3 +191,67 @@ export function getRemedialTestMasteryStatus(test, submissions = []) {
     teacherAssigned: test.teacherAssigned || test.createdBy === 'teacher' || Boolean(test.assignedTeacherId)
   };
 }
+
+/**
+ * Checks whether a remedial task / stage is date-locked (scheduled for a future date).
+ * Prevents students from solving future spaced repetition stages ahead of time.
+ */
+export function getRemedialLockStatus(task, todayStr = null, submissions = [], studentId = null) {
+  if (!task) return { isLocked: false };
+
+  const isRemedial = Boolean(
+    task.isRemedial ||
+    task.isRemedialTest ||
+    task.isTeacherRemedial ||
+    task.type === 'remedialTest' ||
+    task.taskType === 'remedialTest' ||
+    task.type === 'remedial' ||
+    task.taskType === 'remedial' ||
+    String(task.text || task.title || '').includes('Tekrar') ||
+    Boolean(task.stage)
+  );
+
+  if (!isRemedial) return { isLocked: false };
+
+  // If already done/completed, it is not locked for review
+  if (task.done) return { isLocked: false };
+
+  // If already mastered (100% correct in previous submission), it is not locked
+  if (isRemedialStageDone(task, submissions, studentId)) {
+    return { isLocked: false };
+  }
+
+  // Resolve today's date in local YYYY-MM-DD
+  const now = new Date();
+  const defaultTodayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = (todayStr && typeof todayStr === 'string') ? todayStr.slice(0, 10) : defaultTodayStr;
+
+  const targetDateRaw = task.scheduledDate || task.date || task.singleDate || task.specificDate || task.due_date;
+
+  if (targetDateRaw && typeof targetDateRaw === 'string') {
+    const cleanTarget = targetDateRaw.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanTarget) && cleanTarget > today) {
+      const parts = cleanTarget.split('-').map(Number);
+      const targetDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+      const formattedDate = targetDateObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'short' });
+      
+      const todayParts = today.split('-').map(Number);
+      const todayDateObj = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+      const diffMs = targetDateObj.getTime() - todayDateObj.getTime();
+      const daysLeft = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+      return {
+        isLocked: true,
+        reason: 'future_scheduled',
+        targetDate: cleanTarget,
+        formattedDate,
+        daysLeft,
+        badgeText: daysLeft === 1 ? '🔒 Yarın Açılacak' : `🔒 ${formattedDate} (${daysLeft} gün sonra)`,
+        lockMessage: `Bu telafi testi aralıklı tekrar programınıza göre ${formattedDate} tarihinde çözülecektir. Bilgilerin hafızaya tam yerleşmesi ve pekişmesi için günü gelmeden erken çözülemez.`
+      };
+    }
+  }
+
+  return { isLocked: false };
+}
+

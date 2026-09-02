@@ -499,6 +499,33 @@ function SlicerPdfPageItem({
   );
 }
 
+export function getCorrectAnswerValue(q, ak) {
+  if (!ak) return '';
+  const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^[A-Ea-e]$/.test(trimmed)) return trimmed.toUpperCase();
+    if (trimmed === '1') return 'A';
+    if (trimmed === '2') return 'B';
+    if (trimmed === '3') return 'C';
+    if (trimmed === '4') return 'D';
+    if (trimmed === '5') return 'E';
+    if (trimmed.startsWith('OPT_')) return trimmed.replace('OPT_', '').toUpperCase();
+    return trimmed;
+  }
+  if (typeof val === 'number') {
+    if (val >= 0 && val <= 4 && Number.isInteger(val)) {
+      return String.fromCharCode(65 + val);
+    }
+    if (val >= 1 && val <= 5 && Number.isInteger(val)) {
+      return String.fromCharCode(64 + val);
+    }
+    return String(val);
+  }
+  return String(val);
+}
+
 export default function PdfQuestionSlicerModal({
   isOpen,
   onClose,
@@ -708,14 +735,64 @@ export default function PdfQuestionSlicerModal({
     if (initialMistakes && Array.isArray(initialMistakes) && initialMistakes.length > 0) {
       return initialMistakes.map(item => {
         const wrongList = (item.wrongQuestionsList || item.wrongQuestions || []).map(q => typeof q === 'object' ? (q.qNo || q.qNum || 1) : Number(q));
-        const akMap = item.answerKeyMap || {};
+        const akMap = { ...(item.answerKeyMap || {}) };
+
+        // 1. From wrongQuestionsList
         if (Array.isArray(item.wrongQuestionsList)) {
           item.wrongQuestionsList.forEach(q => {
             const num = q.qNo || q.qNum || 1;
-            const corr = q.correctOption || q.correctAns;
-            if (corr && corr !== '?' && corr !== '—') akMap[num] = corr;
+            const corr = q.correctOption || q.correctAns || q.correctAnswer;
+            const val = getCorrectAnswerValue(num, { [num]: corr });
+            if (val && val !== '?' && val !== '—') {
+              akMap[num] = val;
+              akMap[String(num)] = val;
+            }
           });
         }
+
+        // 2. Comprehensive lookup in currentBook subjects / bookTests / books / homeworks if missing
+        let testAk = item.answerKey || item.answer_key;
+        if (!testAk || Object.keys(testAk).length === 0) {
+          const rawSubjs = currentBook?.subjects || currentBook?.raw_data?.subjects || [];
+          for (const sb of rawSubjs) {
+            for (const tp of (sb.topics || sb.raw_data?.topics || [])) {
+              for (const ts of (tp.tests || tp.raw_data?.tests || [])) {
+                if (String(ts.id) === String(item.testId) || String(ts.id) === String(item.id) || (ts.name && (ts.name === item.testName || ts.name === item.name || ts.name === item.title))) {
+                  testAk = ts.answerKey || ts.answer_key;
+                  break;
+                }
+              }
+              if (testAk) break;
+            }
+            if (testAk) break;
+          }
+        }
+
+        if (!testAk || Object.keys(testAk).length === 0) {
+          const bTest = (bookTests || []).find(bt =>
+            String(bt.id) === String(item.testId) ||
+            String(bt.id) === String(item.id) ||
+            toUUID(bt.id) === toUUID(item.testId) ||
+            bt.name === item.testName ||
+            bt.name === item.name ||
+            bt.title === item.testName ||
+            bt.title === item.name
+          );
+          testAk = bTest?.answerKey || bTest?.answer_key || currentBook?.answerKey || currentBook?.answer_key;
+        }
+
+        wrongList.forEach(qNo => {
+          if (!akMap[qNo] || akMap[qNo] === '?' || akMap[qNo] === '—') {
+            if (testAk) {
+              const val = getCorrectAnswerValue(qNo, testAk);
+              if (val && val !== '?' && val !== '—') {
+                akMap[qNo] = val;
+                akMap[String(qNo)] = val;
+              }
+            }
+          }
+        });
+
         return {
           ...item,
           testId: item.testId || item.id,
@@ -913,24 +990,6 @@ export default function PdfQuestionSlicerModal({
 
     // 2. For each canonical test, find mistakes using strict submission matching
     const list = [];
-
-    const getCorrectAnswerValue = (q, ak) => {
-      if (!ak) return '';
-      const val = ak[q] ?? ak[String(q)] ?? (Array.isArray(ak) ? ak[q - 1] : null);
-      if (val === null || val === undefined) return '';
-      if (typeof val === 'string') {
-        const trimmed = val.trim();
-        if (/^[A-Ea-e]$/.test(trimmed)) return trimmed.toUpperCase();
-        return trimmed;
-      }
-      if (typeof val === 'number') {
-        if (val >= 0 && val <= 4 && Number.isInteger(val)) {
-          return String.fromCharCode(65 + val);
-        }
-        return String(val);
-      }
-      return String(val);
-    };
 
     canonicalTests.forEach(testObj => {
       const tIdStr = String(testObj.id);
@@ -1131,7 +1190,12 @@ export default function PdfQuestionSlicerModal({
         sortedTests.forEach(t => {
           const sortedWrongQNos = [...(t.wrongQuestions || [])].sort((a, b) => Number(a) - Number(b));
           sortedWrongQNos.forEach(qNo => {
-            const rawAns = (t.answerKeyMap && t.answerKeyMap[qNo]) !== undefined ? t.answerKeyMap[qNo] : '';
+            let rawAns = (t.answerKeyMap && (t.answerKeyMap[qNo] ?? t.answerKeyMap[String(qNo)])) !== undefined ? (t.answerKeyMap[qNo] ?? t.answerKeyMap[String(qNo)]) : '';
+            if (!rawAns || rawAns === '?' || rawAns === '—') {
+              const bTest = (bookTests || []).find(bt => String(bt.id) === String(t.testId) || bt.name === t.testName || bt.title === t.testName);
+              const testAk = bTest?.answerKey || bTest?.answer_key || currentBook?.answerKey || {};
+              rawAns = getCorrectAnswerValue(qNo, testAk);
+            }
             const isOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
             list.push({
               testId: t.testId,
@@ -1139,7 +1203,7 @@ export default function PdfQuestionSlicerModal({
               unitName: t.unitName,
               subjectName: t.subjectName,
               qNo: qNo,
-              correctAnswer: rawAns,
+              correctAnswer: rawAns || 'A',
               isOpenEnded: isOe
             });
           });
@@ -1538,7 +1602,19 @@ export default function PdfQuestionSlicerModal({
       const sPrefix = activeTargetQuestion.subjectName ? `${activeTargetQuestion.subjectName} › ` : '';
       const uPrefix = activeTargetQuestion.unitName ? `${activeTargetQuestion.unitName} › ` : '';
       assignedTitle = `${sPrefix}${uPrefix}${activeTargetQuestion.testName} — Soru ${activeTargetQuestion.qNo}`;
-      assignedAnswer = activeTargetQuestion.correctAnswer !== undefined && activeTargetQuestion.correctAnswer !== null ? String(activeTargetQuestion.correctAnswer).trim() : '';
+      
+      let targetAns = activeTargetQuestion.correctAnswer;
+      if (!targetAns || targetAns === '?' || targetAns === '—') {
+        const matchingMistake = bookMistakesList.find(m => String(m.testId) === String(activeTargetQuestion.testId));
+        targetAns = matchingMistake?.answerKeyMap?.[activeTargetQuestion.qNo] ?? matchingMistake?.answerKeyMap?.[String(activeTargetQuestion.qNo)];
+      }
+      if (!targetAns || targetAns === '?' || targetAns === '—') {
+        const bTest = (bookTests || []).find(bt => String(bt.id) === String(activeTargetQuestion.testId) || bt.name === activeTargetQuestion.testName);
+        const testAk = bTest?.answerKey || bTest?.answer_key || currentBook?.answerKey || {};
+        targetAns = getCorrectAnswerValue(activeTargetQuestion.qNo, testAk);
+      }
+
+      assignedAnswer = (targetAns !== undefined && targetAns !== null && targetAns !== '' && targetAns !== '?' && targetAns !== '—') ? String(targetAns).trim() : 'A';
       assignedTestId = activeTargetQuestion.testId;
       originalQNo = activeTargetQuestion.qNo;
       isOe = Boolean(activeTargetQuestion.isOpenEnded || (assignedAnswer && !/^[A-Ea-e]$/.test(assignedAnswer)));
@@ -1575,7 +1651,12 @@ export default function PdfQuestionSlicerModal({
         for (const q of t.wrongQuestions) {
           const isAlreadyDone = [...slicedQuestions, newQuestion].some(sq => sq.sourceTestId === t.testId && sq.originalQuestionNo === q);
           if (!isAlreadyDone) {
-            const rawAns = (t.answerKeyMap && t.answerKeyMap[q]) !== undefined ? t.answerKeyMap[q] : '';
+            let rawAns = (t.answerKeyMap && (t.answerKeyMap[q] ?? t.answerKeyMap[String(q)])) !== undefined ? (t.answerKeyMap[q] ?? t.answerKeyMap[String(q)]) : '';
+            if (!rawAns || rawAns === '?' || rawAns === '—') {
+              const bTest = (bookTests || []).find(bt => String(bt.id) === String(t.testId) || bt.name === t.testName);
+              const testAk = bTest?.answerKey || bTest?.answer_key || currentBook?.answerKey || {};
+              rawAns = getCorrectAnswerValue(q, testAk);
+            }
             const targetOe = rawAns ? !/^[A-Ea-e]$/.test(String(rawAns).trim()) : false;
             setActiveTargetQuestion({
               testId: t.testId,
@@ -1583,7 +1664,7 @@ export default function PdfQuestionSlicerModal({
               unitName: t.unitName,
               subjectName: t.subjectName,
               qNo: q,
-              correctAnswer: rawAns,
+              correctAnswer: rawAns || 'A',
               isOpenEnded: targetOe
             });
             foundNext = true;

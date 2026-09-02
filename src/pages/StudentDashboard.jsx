@@ -42,8 +42,7 @@ import DashboardRecentSolvedCard from '../features/dashboard/components/Dashboar
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
-import { syncWidgetData } from '../services/widgetSyncService';
-import { isRemedialStageDone } from '../services/remedialSpacedRepetitionService';
+import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
 // Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
@@ -3707,6 +3706,11 @@ export default function StudentDashboard() {
                     const testTargetId = task.testId || task.realTestId || task.id;
                     if (task.done) {
                       navigate(`/quiz-review/${testTargetId}?studentId=${selectedStudent.id}`, { state: { from: '/student' } });
+                      return;
+                    }
+                    const lockStatus = getRemedialLockStatus(task, null, submissions, selectedStudent?.id);
+                    if (lockStatus.isLocked) {
+                      alert(lockStatus.lockMessage);
                       return;
                     }
                     navigate(`/quiz/${testTargetId}?studentId=${selectedStudent.id}&retake=true&mode=solve`, { state: { from: '/student', retake: true, mode: 'solve' } });

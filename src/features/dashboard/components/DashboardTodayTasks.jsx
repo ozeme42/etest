@@ -1,5 +1,6 @@
 import React, { memo, useState } from 'react';
-import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye } from 'lucide-react';
+import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock } from 'lucide-react';
+import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -366,6 +367,37 @@ export default memo(function DashboardTodayTasks({
                         >
                           <Eye size={13} /> ✓ Tamamlandı • İncele
                         </button>
+                      ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
+                        (() => {
+                          const lockStatus = getRemedialLockStatus(task);
+                          return (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(lockStatus.lockMessage);
+                              }}
+                              style={{
+                                background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9',
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                border: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0',
+                                borderRadius: 8,
+                                padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.85rem',
+                                fontSize: isMobile ? '0.72rem' : '0.76rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                flexShrink: 0
+                              }}
+                              title={lockStatus.lockMessage}
+                            >
+                              <Lock size={13} color="#f59e0b" />
+                              <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
+                            </button>
+                          );
+                        })()
                       ) : isQuizTask ? (
                         <button
                           type="button"
