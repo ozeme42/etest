@@ -336,8 +336,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     (testIdCandidate && b.id && testIdCandidate.includes(String(b.id)))
   );
 
-  if (!matchedBook && (rawSub.type === 'book' || rawSub.typeKey === 'book' || rawSub.sourceType === 'trackedBook' || testIdCandidate.startsWith('tbt_') || testIdCandidate.startsWith('bt_') || (books && books.length > 0))) {
-    matchedBook = books?.[0] || null;
+  if (!matchedBook && (rawSub.type === 'book' || rawSub.typeKey === 'book' || rawSub.sourceType === 'trackedBook' || testIdCandidate.startsWith('tbt_') || testIdCandidate.startsWith('bt_'))) {
+    matchedBook = (books || []).find(b => isStandardOrMixedBook(b)) || null;
   }
 
   let matchedSubject = (matchedBook?.subjects || []).find(s =>
