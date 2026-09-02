@@ -192,19 +192,32 @@ export default function StudyRoomPage() {
     });
 
     // B. Kitap Testleri
+    // B. Kitap Testleri & Tarihli Testler
     const assignedBookIds = new Set();
     studentHws.forEach(hw => {
-      if (hw.bookId) assignedBookIds.add(String(hw.bookId));
+      if (hw.bookId) {
+        assignedBookIds.add(String(hw.bookId));
+        const u = toUUID(hw.bookId);
+        if (u) assignedBookIds.add(u);
+      }
+      if (hw.raw_data?.bookId) {
+        assignedBookIds.add(String(hw.raw_data.bookId));
+        const u = toUUID(hw.raw_data.bookId);
+        if (u) assignedBookIds.add(u);
+      }
       if (hw.isBookAssignment && hw.id) assignedBookIds.add(String(hw.id));
     });
+
     (books || []).forEach(b => {
-      if (assignedBookIds.has(String(b.id)) || (b.assignedStudents && b.assignedStudents.includes(currentUser?.id)) || (b.studentIds && b.studentIds.includes(currentUser?.id))) {
+      if (assignedBookIds.has(String(b.id)) || (toUUID(b.id) && assignedBookIds.has(toUUID(b.id))) || (b.assignedStudents && b.assignedStudents.includes(currentUser?.id)) || (b.studentIds && b.studentIds.includes(currentUser?.id))) {
         assignedBookIds.add(String(b.id));
+        const u = toUUID(b.id);
+        if (u) assignedBookIds.add(u);
       }
     });
 
     (books || []).forEach(book => {
-      const isAssigned = assignedBookIds.has(String(book.id)) || assignedBookIds.size === 0;
+      const isAssigned = assignedBookIds.has(String(book.id)) || (toUUID(book.id) && assignedBookIds.has(toUUID(book.id))) || assignedBookIds.size === 0;
       if (!isAssigned && (books.length > 6)) return;
 
       const cleanBookTitle = (book.title || 'Kitap')
@@ -212,18 +225,35 @@ export default function StudyRoomPage() {
         .replace(/\s*\(Tüm Kitap\)/gi, '')
         .trim();
 
-      const matchingHwsForBook = studentHws.filter(h => String(h.bookId) === String(book.id) || String(h.id) === String(book.id));
-      const testsForBook = (bookTests || []).filter(bt => String(bt.bookId) === String(book.id));
+      const matchingHwsForBook = studentHws.filter(h => 
+        String(h.bookId || h.raw_data?.bookId) === String(book.id) || 
+        (toUUID(h.bookId || h.raw_data?.bookId) && toUUID(h.bookId || h.raw_data?.bookId) === toUUID(book.id)) ||
+        String(h.id) === String(book.id)
+      );
+      const testsForBook = (bookTests || []).filter(bt => 
+        String(bt.bookId || bt.book_id) === String(book.id) || 
+        (toUUID(bt.bookId || bt.book_id) && toUUID(bt.bookId || bt.book_id) === toUUID(book.id))
+      );
 
       testsForBook.forEach(bt => {
         const isSolved = checkIsTaskSolved({ testId: bt.id, bookTestId: bt.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
         const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
 
         let testDayKey = null;
+        let testDueDate = null;
         matchingHwsForBook.forEach(hw => {
-          if (hw.testDueDates && hw.testDueDates[bt.id]) {
-            testDayKey = resolveDayKey(hw.testDueDates[bt.id]);
-          } else if (Array.isArray(hw.tests) && hw.tests.some(tId => String(tId) === String(bt.id)) && hw.dueDate) {
+          const testDates = {
+            ...(hw.test_due_dates || hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {})
+          };
+          const cleanBtId = String(bt.id).replace(/^bt_/, '').replace(/^q_/, '');
+          const btUuid = toUUID(cleanBtId);
+
+          const dateVal = testDates[cleanBtId] || testDates[String(bt.id)] || testDates[`bt_${cleanBtId}`] || (btUuid && testDates[btUuid]);
+          if (dateVal) {
+            testDueDate = dateVal;
+            testDayKey = resolveDayKey(dateVal);
+          } else if (Array.isArray(hw.tests) && hw.tests.some(tId => String(tId) === String(bt.id) || (btUuid && toUUID(tId) === btUuid)) && hw.dueDate) {
+            testDueDate = hw.dueDate;
             testDayKey = resolveDayKey(hw.dueDate);
           }
         });
@@ -245,8 +275,9 @@ export default function StudyRoomPage() {
             bookTestId: bt.id,
             questionCount: qCount,
             dayKey: testDayKey,
-            sourceType: 'bookTest',
-            sourceLabel: '📖 Kitap Testi',
+            dueDate: testDueDate,
+            sourceType: testDayKey ? 'program' : 'homework',
+            sourceLabel: '📚 Kitap Testi',
             answerKey: bt.answerKey || bt.answer_key,
             isCompleted: isSolved
           });
@@ -366,26 +397,47 @@ export default function StudyRoomPage() {
 
       // 2. Bu Güne Özel Olarak Atanmış Kitap Testleri (hw.testDueDates)
       studentHws.forEach(hw => {
-        const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && books.some(b => String(b.id) === String(hw.bookId)));
-        const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.id));
+        const isBook = Boolean(
+          hw.isBookAssignment ||
+          hw.sourceType === 'trackedBook' ||
+          hw.bookId ||
+          hw.raw_data?.bookId ||
+          (hw.testDueDates && Object.keys(hw.testDueDates).length > 0) ||
+          (hw.scheduleDates && Object.keys(hw.scheduleDates).length > 0) ||
+          (hw.test_due_dates && Object.keys(hw.test_due_dates).length > 0) ||
+          (hw.title && /kitap|seti|soru bankası|paragraf|atlı karınca|artıbir/i.test(hw.title))
+        );
+        const bookObj = (books || []).find(b => 
+          String(b.id) === String(hw.bookId || hw.raw_data?.bookId) || 
+          (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+        );
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
           .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
           .replace(/\s*\(Tüm Kitap\)/gi, '')
           .trim();
 
-        if (isBook && hw.testDueDates && typeof hw.testDueDates === 'object') {
-          Object.entries(hw.testDueDates).forEach(([testId, tDateStr]) => {
+        const testDates = {
+          ...(hw.test_due_dates || hw.testDueDates || hw.scheduleDates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {})
+        };
+
+        if (isBook && typeof testDates === 'object' && Object.keys(testDates).length > 0) {
+          Object.entries(testDates).forEach(([testId, tDateStr]) => {
             if (!tDateStr) return;
+            const cleanTestId = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
+            const testUuid = toUUID(cleanTestId);
             const targetDayKey = resolveDayKey(tDateStr);
             const isMatchDate = (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd)) || (targetDayKey === dayCfg.key);
 
             if (isMatchDate) {
-              const dedupeKey = `bt_${testId}`;
+              const dedupeKey = `bt_${cleanTestId}`;
               if (!seenDayTaskKeys.has(dedupeKey)) {
                 seenDayTaskKeys.add(dedupeKey);
-                const bt = (bookTests || []).find(b => String(b.id) === String(testId));
+                const bt = (bookTests || []).find(b => {
+                  const bId = String(b.id);
+                  return bId === cleanTestId || bId === String(testId) || (testUuid && toUUID(bId) === testUuid);
+                });
                 const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
-                const isSolved = checkIsTaskSolved({ testId, bookTestId: testId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
+                const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
 
                 dayTasks.push({
                   id: dedupeKey,
@@ -394,18 +446,19 @@ export default function StudyRoomPage() {
                   subtitle: `${dayCfg.long} Kitap Testi`,
                   dayName: dayCfg.long,
                   dayKey: dayCfg.key,
-                  subject: bt?.subject || hw.subject || bookObj?.subject || 'Genel',
+                  subject: bt?.subject || bt?.subjectName || hw.subject || bookObj?.subject || 'Genel',
                   unit: bt?.unit || bt?.unitName || '',
                   topic: bt?.topic || bt?.topicName || '',
                   questionCount: qCount,
                   dueDate: tDateStr,
-                  sourceType: 'bookTest',
+                  sourceType: 'program',
                   sourceLabel: '📚 Kitap Testi',
-                  bookTestId: testId,
-                  realTestId: testId,
+                  bookTestId: cleanTestId,
+                  realTestId: cleanTestId,
                   bookId: bookObj?.id || hw.bookId,
                   bookTitle: cleanBookTitle,
                   testName: bt?.name || bt?.title,
+                  answerKey: bt?.answerKey || bt?.answer_key,
                   isCompleted: isSolved,
                   isBookAssignment: true
                 });

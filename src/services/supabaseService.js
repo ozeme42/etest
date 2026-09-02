@@ -2003,17 +2003,10 @@ async function getTrackedBooksColumns() {
 export async function dbGetTrackedBooks() {
   if (!isSupabaseConfigured()) return null;
   try {
-    let [bRes, tRes] = await Promise.all([
-      supabase.from('tracked_books').select('id, title, publisher, book_type, option_count, pdf_url, subjects, raw_data, created_at').order('created_at', { ascending: false }),
-      supabase.from('tracked_book_tests').select('id, book_id, subject_id, topic_id, name, question_count, answer_key, is_open_ended, question_type, option_count, pdf_url, due_date, created_at').order('created_at', { ascending: false })
+    const [bRes, tRes] = await Promise.all([
+      supabase.from('tracked_books').select('*').order('created_at', { ascending: false }),
+      supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false })
     ]);
-
-    if (bRes?.error) {
-      bRes = await supabase.from('tracked_books').select('*').order('created_at', { ascending: false });
-    }
-    if (tRes?.error) {
-      tRes = await supabase.from('tracked_book_tests').select('*').order('created_at', { ascending: false });
-    }
 
     if (bRes.error || tRes.error) return null;
 

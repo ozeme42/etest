@@ -45,7 +45,6 @@ export default function StudyHomeworkPickerModal({
 
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
   const homeworkTasks = allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
-  const allTasks = allAssignedTasks.filter(matchesFilter);
 
   // Tab sayıları
   const programTotalCount = (weeklyProgramGrouped || []).reduce((acc, g) => {
@@ -53,7 +52,6 @@ export default function StudyHomeworkPickerModal({
     return acc + valid.length;
   }, 0);
   const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
-  const allTotalCount = allAssignedTasks.filter(t => !hideCompletedTasks || !t.isCompleted).length;
 
   return (
     <div style={{
@@ -139,15 +137,14 @@ export default function StudyHomeworkPickerModal({
         {/* Ana Kaynak Sekmeleri (Tabs) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 6,
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 8,
           padding: '0.75rem 1.25rem 0.5rem',
           background: themeObj.cardBg
         }}>
           {[
             { id: 'program', label: '📅 Haftalık Program', count: programTotalCount },
-            { id: 'homework', label: '📝 Atanmış Ödevler', count: homeworkTotalCount },
-            { id: 'all', label: '🌟 Tümü', count: allTotalCount }
+            { id: 'homework', label: '📝 Atanmış Ödevler', count: homeworkTotalCount }
           ].map(tab => {
             const isActive = hwSourceTab === tab.id;
             return (
@@ -316,7 +313,7 @@ export default function StudyHomeworkPickerModal({
             ) : (
               <EmptyStateMessage message={`${currentDayGroup.long || 'Bu gün'} için kayıtlı görev bulunamadı.`} themeObj={themeObj} />
             )
-          ) : hwSourceTab === 'homework' ? (
+          ) : (
             homeworkTasks.length > 0 ? (
               homeworkTasks.map(task => (
                 <TaskListItem
@@ -328,19 +325,6 @@ export default function StudyHomeworkPickerModal({
               ))
             ) : (
               <EmptyStateMessage message="Atanmış ödev bulunamadı." themeObj={themeObj} />
-            )
-          ) : (
-            allTasks.length > 0 ? (
-              allTasks.map(task => (
-                <TaskListItem
-                  key={task.id || task.dedupeKey}
-                  task={task}
-                  themeObj={themeObj}
-                  onSelectTask={onSelectTask}
-                />
-              ))
-            ) : (
-              <EmptyStateMessage message="Kriterlere uygun görev veya test bulunamadı." themeObj={themeObj} />
             )
           )}
         </div>
