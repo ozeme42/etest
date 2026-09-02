@@ -252,9 +252,9 @@ function InteractiveRepetitionCalendar({
               }}
               title={
                 cell.isSelected
-                  ? `${cell.stage}. Tekrar (+${cell.days} Gün) — Kaldırmak için tıkla`
+                  ? `${cell.stage}. Tekrar (${cell.days === 0 ? 'Bugün' : '+' + cell.days + ' Gün'}) — Kaldırmak için tıkla`
                   : cell.isStart
-                    ? 'Başlangıç Günü — Tekrar tarihi olarak seçmek için tıkla'
+                    ? 'Başlangıç Günü (Bugün) — 1. Tekrarı bugüne eklemek için tıkla'
                     : 'Takvime tıklayarak tekrar günü olarak ekle'
               }
             >
@@ -264,18 +264,18 @@ function InteractiveRepetitionCalendar({
 
               {cell.isSelected && (
                 <span style={{
-                  fontSize: '0.62rem',
+                  fontSize: '0.6rem',
                   fontWeight: 900,
                   opacity: 0.95,
                   lineHeight: 1
                 }}>
-                  {cell.stage}. Tekrar
+                  {cell.stage}. Tekrar {cell.days === 0 ? '(Bugün)' : ''}
                 </span>
               )}
 
               {cell.isStart && !cell.isSelected && (
                 <span style={{
-                  fontSize: '0.58rem',
+                  fontSize: '0.55rem',
                   fontWeight: 800,
                   opacity: 0.9,
                   lineHeight: 1
@@ -304,14 +304,14 @@ function InteractiveRepetitionCalendar({
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: '#6366f1' }} />
-            <span>Başlangıç</span>
+            <span>Başlangıç (Bugün)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} />
             <span>Tekrar Günü (Sıralı)</span>
           </div>
         </div>
-        <span style={{ color: '#10b981', fontWeight: 800 }}>👆 Takvimde günlere tıklayarak sırasını belirleyin</span>
+        <span style={{ color: '#10b981', fontWeight: 800 }}>💡 Başlangıç gününe tıklayarak 1. Tekrarı doğrudan bugüne ekleyebilirsiniz</span>
       </div>
     </div>
   );
@@ -337,8 +337,8 @@ function EditRemedialModal({
   const [studentId, setStudentId] = useState(() => testItem?.studentId || '');
   const [schedulePreset, setSchedulePreset] = useState(() => 'standard_leitner');
   const [plannerMode, setPlannerMode] = useState('calendar'); // 'calendar' | 'presets'
-  const [intervals, setIntervals] = useState(() => testItem?.intervals || [1, 3, 7, 15]);
-  const [customIntervalsStr, setCustomIntervalsStr] = useState(() => (testItem?.intervals || [1, 3, 7, 15]).join(', '));
+  const [intervals, setIntervals] = useState(() => testItem?.intervals || [0, 3, 7, 15]);
+  const [customIntervalsStr, setCustomIntervalsStr] = useState(() => (testItem?.intervals || [0, 3, 7, 15]).join(', '));
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [syncToProgram, setSyncToProgram] = useState(true);
   const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
@@ -452,9 +452,11 @@ function EditRemedialModal({
     return intervals.map((days, idx) => {
       const target = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
       const dateFormatted = `${target.getDate()} ${monthNames[target.getMonth()]} ${target.getFullYear()} (${dayNames[target.getDay()]})`;
+      const diffLabel = days === 0 ? 'Bugün (Başlangıç)' : days === 1 ? 'Yarın (+1g)' : `+${days} Gün`;
       return {
         stage: idx + 1,
         days,
+        diffLabel,
         dateFormatted
       };
     });
@@ -465,14 +467,17 @@ function EditRemedialModal({
   const handlePresetSelect = (presetKey) => {
     setSchedulePreset(presetKey);
     if (presetKey === 'standard_leitner') {
+      setIntervals([0, 3, 7, 15]);
+      setCustomIntervalsStr('0, 3, 7, 15');
+    } else if (presetKey === 'fast') {
+      setIntervals([0, 1, 3, 7]);
+      setCustomIntervalsStr('0, 1, 3, 7');
+    } else if (presetKey === 'weekly') {
+      setIntervals([0, 5, 10, 20]);
+      setCustomIntervalsStr('0, 5, 10, 20');
+    } else if (presetKey === 'tomorrow') {
       setIntervals([1, 3, 7, 15]);
       setCustomIntervalsStr('1, 3, 7, 15');
-    } else if (presetKey === 'fast') {
-      setIntervals([1, 2, 4, 7]);
-      setCustomIntervalsStr('1, 2, 4, 7');
-    } else if (presetKey === 'weekly') {
-      setIntervals([2, 5, 10, 20]);
-      setCustomIntervalsStr('2, 5, 10, 20');
     } else if (presetKey === 'clear') {
       setIntervals([]);
       setCustomIntervalsStr('');
@@ -1516,8 +1521,8 @@ function AddToProgramModal({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   // Repetition intervals in days
-  const [intervals, setIntervals] = useState(() => (testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [1, 3, 7, 15]);
-  const [customIntervalsStr, setCustomIntervalsStr] = useState(() => ((testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [1, 3, 7, 15]).join(', '));
+  const [intervals, setIntervals] = useState(() => (testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [0, 3, 7, 15]);
+  const [customIntervalsStr, setCustomIntervalsStr] = useState(() => ((testItem.intervals && testItem.intervals.length > 0) ? testItem.intervals : [0, 3, 7, 15]).join(', '));
   const [schedulePreset, setSchedulePreset] = useState('standard_leitner');
   const [plannerMode, setPlannerMode] = useState('calendar'); // 'calendar' | 'presets'
   const [keepMasteryTracking, setKeepMasteryTracking] = useState(true);
@@ -1543,17 +1548,20 @@ function AddToProgramModal({
   const handlePresetSelect = (presetKey) => {
     setSchedulePreset(presetKey);
     if (presetKey === 'standard_leitner') {
+      setIntervals([0, 3, 7, 15]);
+      setCustomIntervalsStr('0, 3, 7, 15');
+    } else if (presetKey === 'fast') {
+      setIntervals([0, 1, 3, 7]);
+      setCustomIntervalsStr('0, 1, 3, 7');
+    } else if (presetKey === 'weekly') {
+      setIntervals([0, 5, 10, 20]);
+      setCustomIntervalsStr('0, 5, 10, 20');
+    } else if (presetKey === 'intensive') {
+      setIntervals([0, 1, 2, 3]);
+      setCustomIntervalsStr('0, 1, 2, 3');
+    } else if (presetKey === 'tomorrow') {
       setIntervals([1, 3, 7, 15]);
       setCustomIntervalsStr('1, 3, 7, 15');
-    } else if (presetKey === 'fast') {
-      setIntervals([1, 2, 4, 7]);
-      setCustomIntervalsStr('1, 2, 4, 7');
-    } else if (presetKey === 'weekly') {
-      setIntervals([2, 5, 10, 20]);
-      setCustomIntervalsStr('2, 5, 10, 20');
-    } else if (presetKey === 'intensive') {
-      setIntervals([1, 2, 3]);
-      setCustomIntervalsStr('1, 2, 3');
     } else if (presetKey === 'clear') {
       setIntervals([]);
       setCustomIntervalsStr('');
@@ -1614,7 +1622,7 @@ function AddToProgramModal({
     return intervals.map((days, idx) => {
       const target = new Date(start.getFullYear(), start.getMonth(), start.getDate() + days, 12, 0, 0);
       const dateFormatted = `${target.getDate()} ${monthNames[target.getMonth()]} ${target.getFullYear()}, ${dayNames[target.getDay()]}`;
-      const diffLabel = days === 0 ? 'Başlangıç Günü (Bugün)' : `+${days} Gün Sonra`;
+      const diffLabel = days === 0 ? 'Bugün (Başlangıç Günü)' : days === 1 ? 'Yarın (+1 Gün)' : `+${days} Gün Sonra`;
       return {
         stage: idx + 1,
         days,
@@ -2025,7 +2033,7 @@ function AddToProgramModal({
                       cursor: 'pointer'
                     }}
                   >
-                    🧠 Standart (1, 3, 7, 15g)
+                    🧠 Standart (Bugün, 3, 7, 15g)
                   </button>
                   <button
                     type="button"
@@ -2041,7 +2049,7 @@ function AddToProgramModal({
                       cursor: 'pointer'
                     }}
                   >
-                    ⚡ Hızlı (1, 2, 4, 7g)
+                    ⚡ Hızlı (Bugün, 1, 3, 7g)
                   </button>
                   <button
                     type="button"
@@ -2057,7 +2065,23 @@ function AddToProgramModal({
                       cursor: 'pointer'
                     }}
                   >
-                    📅 Haftalık (2, 5, 10, 20g)
+                    📅 Haftalık (Bugün, 5, 10, 20g)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePresetSelect('tomorrow')}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    🎯 Yarından Başla (1, 3, 7, 15g)
                   </button>
                   {intervals.length > 0 && (
                     <button
@@ -2088,10 +2112,10 @@ function AddToProgramModal({
                 {/* Presets Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
                   {[
-                    { id: 'standard_leitner', label: 'Standart Leitner', sub: '1, 3, 7, 15 Gün', icon: '🧠' },
-                    { id: 'fast', label: 'Hızlı Pekiştirme', sub: '1, 2, 4, 7 Gün', icon: '⚡' },
-                    { id: 'weekly', label: 'Haftalık Tekrar', sub: '2, 5, 10, 20 Gün', icon: '📅' },
-                    { id: 'intensive', label: 'Yoğun Kamp', sub: '1, 2, 3 Gün', icon: '🎯' }
+                    { id: 'standard_leitner', label: 'Standart Leitner', sub: 'Bugün, 3, 7, 15 Gün', icon: '🧠' },
+                    { id: 'fast', label: 'Hızlı Pekiştirme', sub: 'Bugün, 1, 3, 7 Gün', icon: '⚡' },
+                    { id: 'weekly', label: 'Haftalık Tekrar', sub: 'Bugün, 5, 10, 20 Gün', icon: '📅' },
+                    { id: 'tomorrow', label: 'Yarından Başla', sub: '1, 3, 7, 15 Gün', icon: '🎯' }
                   ].map(p => {
                     const isSelected = schedulePreset === p.id;
                     return (
@@ -2125,7 +2149,7 @@ function AddToProgramModal({
                 {/* Quick Add Day Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
                   <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>Hızlı Gün Ekle:</span>
-                  {[1, 2, 3, 5, 7, 10, 14, 21, 30].map(d => (
+                  {[0, 1, 2, 3, 5, 7, 10, 14, 21, 30].map(d => (
                     <button
                       key={d}
                       type="button"
@@ -2143,7 +2167,7 @@ function AddToProgramModal({
                         opacity: intervals.includes(d) ? 0.6 : 1
                       }}
                     >
-                      +{d}g
+                      {d === 0 ? '+0g (Bugün)' : d === 1 ? '+1g (Yarın)' : `+${d}g`}
                     </button>
                   ))}
                 </div>
@@ -2154,7 +2178,7 @@ function AddToProgramModal({
                     type="text"
                     value={customIntervalsStr}
                     onChange={(e) => handleCustomIntervalsChange(e.target.value)}
-                    placeholder="Örn: 1, 3, 7, 15"
+                    placeholder="Örn: 0, 3, 7, 15"
                     style={{
                       width: '100%',
                       padding: '6px 10px',
@@ -2212,7 +2236,9 @@ function AddToProgramModal({
                         gap: 6
                       }}
                     >
-                      <span>{idx + 1}. Aşama: +{dayNum}g</span>
+                      <span>
+                        {idx + 1}. Aşama: {dayNum === 0 ? 'Bugün (0g)' : dayNum === 1 ? 'Yarın (+1g)' : `+${dayNum}g`}
+                      </span>
                       <span
                         onClick={() => removeIntervalIdx(idx)}
                         style={{ cursor: 'pointer', opacity: 0.8, fontSize: '0.85rem' }}
