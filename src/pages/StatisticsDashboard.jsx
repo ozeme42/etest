@@ -22,7 +22,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
-import { computeStudentAnalyticsData, isHomeworkForStudent } from '../utils/testResolver';
+import { computeStudentAnalyticsData, isHomeworkForStudent, isStandardOrMixedBook, isExamBook } from '../utils/testResolver';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import PeriodicQuestionAnalytics from '../components/PeriodicQuestionAnalytics';
 import StudentResultsPage from './StudentResultsPage';
@@ -270,6 +270,17 @@ export default function StatisticsDashboard() {
   const { mockExams: allMockExams } = useCoaching() || { mockExams: [] };
   const curriculumContext = useCurriculum() || {};
   const curriculumData = curriculumContext.data || { grades: [], subjects: [] };
+
+  // Only standard/mixed regular books (excluding mock exams / physical exams)
+  const trackedBooksOnly = useMemo(() => {
+    return (allBooks || []).filter(b => isStandardOrMixedBook(b));
+  }, [allBooks]);
+
+  const trackedBookIds = useMemo(() => new Set(trackedBooksOnly.map(b => String(b.id))), [trackedBooksOnly]);
+
+  const trackedBookTestsOnly = useMemo(() => {
+    return (allBookTests || []).filter(t => trackedBookIds.has(String(t.bookId)));
+  }, [allBookTests, trackedBookIds]);
 
   // Filter States
   const [selectedGradeFilter, setSelectedGradeFilter] = useState('ALL');
@@ -984,8 +995,8 @@ export default function StatisticsDashboard() {
         <StatHeroCard 
           icon={BookCheck} 
           label="Takip Kitapları" 
-          value={`${allBooks.length} Kitap`} 
-          sub={`${allBookTests.length} Test Çözüldü`} 
+          value={`${trackedBooksOnly.length} Kitap`} 
+          sub={`${trackedBookTestsOnly.length} Test`} 
           color="#10b981" 
           bg="#f0fdf4" 
           border="#bbf7d0" 
@@ -1397,18 +1408,18 @@ export default function StatisticsDashboard() {
               </div>
 
               <span style={{ fontSize: '0.7rem', fontWeight: 900, padding: '0.25rem 0.65rem', borderRadius: 99, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                {allBooks.length} Kitap
+                {trackedBooksOnly.length} Kitap
               </span>
             </div>
 
-            {allBooks.length === 0 ? (
+            {trackedBooksOnly.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 700 }}>
                 Henüz sisteme eklenmiş takip kitabı bulunmuyor.
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: isMobile ? '0.65rem' : '1rem' }}>
-                {allBooks.map(b => {
-                  const testsInBook = (allBookTests || []).filter(t => String(t.bookId) === String(b.id));
+                {trackedBooksOnly.map(b => {
+                  const testsInBook = (trackedBookTestsOnly || []).filter(t => String(t.bookId) === String(b.id));
                   return (
                     <div key={b.id} style={{ background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 14, padding: isMobile ? '0.85rem' : '1rem 1.25rem', border: '1.5px solid var(--color-border, #e2e8f0)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
