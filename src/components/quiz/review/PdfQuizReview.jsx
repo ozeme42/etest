@@ -1193,6 +1193,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
           isOpen={Boolean(aiModalQuestionNo)}
           onClose={() => setAiModalQuestionNo(null)}
           questionNo={aiModalQuestionNo}
+          isPdf={true}
           question={questions[aiModalQuestionNo - 1] || {
             questionNo: aiModalQuestionNo,
             userAnswer: answers[aiModalQuestionNo - 1]?.userAnswer,

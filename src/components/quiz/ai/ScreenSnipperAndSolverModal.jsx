@@ -32,12 +32,35 @@ export default function ScreenSnipperAndSolverModal({
   topic = '',
   testId = '',
   pdfCanvasRef = null, // Optional ref to PDF canvas for direct precision crop
-  existingImageUrl = '' // Optional existing image from image-based quiz
+  existingImageUrl = '', // Optional existing image from image-based quiz
+  isPdf = false
 }) {
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
 
-  const [activeTab, setActiveTab] = useState(existingImageUrl ? 'image' : (question?.questionText || htmlPayload ? 'auto' : 'crop')); // 'crop' | 'camera' | 'auto' | 'image'
+  const isRealQuestionText = (txt) => {
+    if (!txt || typeof txt !== 'string') return false;
+    const clean = txt.trim();
+    if (clean.length < 5) return false;
+    if (/^(soru\s*\d+|\d+\.\s*soru|bölüm\s*\d+|\d+\.\s*bölüm|test\s*\d+|genel\s*test)/i.test(clean)) return false;
+    return true;
+  };
+
+  const isPdfMode = Boolean(
+    isPdf ||
+    String(testId || '').toLowerCase().includes('pdf') ||
+    question?.formatType === 'pdf' ||
+    question?.contentType === 'pdf' ||
+    question?.sourceFormat === 'pdf' ||
+    Boolean(typeof document !== 'undefined' && (document.querySelector('.pdf-viewer-container') || document.querySelector('canvas.react-pdf__Page__canvas')))
+  );
+
+  const [activeTab, setActiveTab] = useState(() => {
+    if (existingImageUrl) return 'image';
+    if (isPdfMode) return 'crop';
+    if (isRealQuestionText(question?.questionText) || htmlPayload) return 'auto';
+    return 'crop';
+  });
   const [croppedImage, setCroppedImage] = useState(existingImageUrl || null);
   const [isSnipping, setIsSnipping] = useState(false);
   const [snipRect, setSnipRect] = useState(null); // { startX, startY, currentX, currentY }
@@ -107,6 +130,9 @@ export default function ScreenSnipperAndSolverModal({
     }
 
     async function tryAutoSolve() {
+      // In PDF mode, questions are inside the PDF document. Auto-solve must NOT trigger with null/empty question!
+      if (isPdfMode) return;
+
       let effectiveHtml = htmlPayload || question?.htmlPayload || getHtmlFromActiveIframe();
       if (!effectiveHtml || effectiveHtml === '[STORED_IN_INDEXEDDB]' || effectiveHtml === '[LOCALSTORAGE_CACHE]') {
         const candidateKeys = [
@@ -129,8 +155,13 @@ export default function ScreenSnipperAndSolverModal({
         }
       }
 
-      const effectiveText = question?.questionText || question?.title || extractTargetQuestionFromHtml(effectiveHtml, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
-      if (!cachedSolution && (effectiveHtml || effectiveText || existingImageUrl)) {
+      const htmlQuestionText = extractTargetQuestionFromHtml(effectiveHtml, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
+      const rawQText = question?.questionText;
+      const effectiveText = isRealQuestionText(rawQText) ? rawQText : (isRealQuestionText(htmlQuestionText) ? htmlQuestionText : null);
+
+      const hasValidContent = Boolean(existingImageUrl || (effectiveHtml && effectiveHtml.length > 50 && htmlQuestionText) || effectiveText);
+
+      if (!cachedSolution && hasValidContent) {
         if (autoSolvedRef.current !== cacheKey) {
           autoSolvedRef.current = cacheKey;
           handleSolve(null, effectiveHtml, false);
@@ -267,9 +298,11 @@ export default function ScreenSnipperAndSolverModal({
         } catch (e) {}
       }
     }
-    const qText = question?.questionText || question?.title || extractTargetQuestionFromHtml(htmlDoc, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo) || '';
+    const parsedHtmlText = extractTargetQuestionFromHtml(htmlDoc, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
+    const qText = (isRealQuestionText(question?.questionText) ? question.questionText : '')
+      || (parsedHtmlText || '');
 
-    if (!imgToSend && !qText && !htmlDoc) {
+    if (!imgToSend && !qText && (!htmlDoc || !parsedHtmlText)) {
       setError('Lütfen çözülmesi istenen sorunun ekran görüntüsünü kırpın, fotoğrafını yükleyin veya Ctrl+V ile yapıştırın.');
       return;
     }
@@ -1503,10 +1536,12 @@ export default function ScreenSnipperAndSolverModal({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem' }}>
-                    Soru Çözümü Almaya Hazır mısınız?
+                    {isPdfMode ? `📄 ${questionNo}. Soruyu PDF'ten Kırpın` : 'Soru Çözümü Almaya Hazır mısınız?'}
                   </h4>
-                  <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 420 }}>
-                    Yukarıdaki <b>"✂️ Ekrandan Soruyu Kırp"</b> butonuna basarak PDF/HTML ekranından soruyu seçebilir veya <b>"📸 Fotoğraf Çek"</b> ile sorunun resmini yükleyebilirsiniz.
+                  <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 460, lineHeight: 1.45 }}>
+                    {isPdfMode
+                      ? `Yapay zekanın soruyu doğru analiz edip adım adım çözebilmesi için lütfen aşağıdaki butona basıp PDF ekranındaki ${questionNo}. soruyu çerçeveye alın veya ekran alıntısını yapıştırın (Ctrl+V).`
+                      : `Yukarıdaki "✂️ Ekrandan Soruyu Kırp" butonuna basarak ekrandan soruyu seçebilir veya "📸 Fotoğraf Çek" ile sorunun resmini yükleyebilirsiniz.`}
                   </p>
                 </div>
 
@@ -1528,7 +1563,7 @@ export default function ScreenSnipperAndSolverModal({
                   }}
                 >
                   <Crop size={18} />
-                  <span>✂️ Şimdi Soruyu Kırp & Çöz</span>
+                  <span>✂️ {isPdfMode ? `${questionNo}. Soruyu PDF'ten Çerçeveye Al` : 'Şimdi Soruyu Kırp & Çöz'}</span>
                 </button>
               </div>
             )}
