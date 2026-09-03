@@ -1629,6 +1629,16 @@ export async function dbGetHomeworks() {
 
       const rawTargetType = raw.targetType || raw.target_type || h.target_type || (rawTargetIds.some(id => String(id).startsWith('g_') || String(id).startsWith('c_')) ? 'grade' : 'student');
 
+      // Reconstruct imageUrls / imageUrl from questionsList if omitted for bandwidth optimization
+      let restoredImageUrls = raw.imageUrls;
+      let restoredImageUrl = raw.imageUrl;
+      if (Array.isArray(raw.questionsList) && (!restoredImageUrls || restoredImageUrls.length === 0)) {
+        restoredImageUrls = raw.questionsList.map(q => q?.imageUrl || q?.contentPayload || q?.image).filter(Boolean);
+        if (!restoredImageUrl && restoredImageUrls.length > 0) {
+          restoredImageUrl = restoredImageUrls[0];
+        }
+      }
+
       return {
         ...raw,
         id: canonicalId,
@@ -1636,6 +1646,8 @@ export async function dbGetHomeworks() {
         title: h.title || raw.title || '',
         subject: h.subject || raw.subject || 'Genel',
         dueDate: h.due_date || raw.dueDate,
+        imageUrl: restoredImageUrl || raw.imageUrl,
+        imageUrls: restoredImageUrls || raw.imageUrls,
         targetType: rawTargetType,
         targetIds: rawTargetIds,
         tests: qIds,
@@ -1763,10 +1775,21 @@ export async function dbAddHomework(hw) {
       dueDate: calculatedDueDate
     };
 
-    // Strip large base64 payloads from raw_data so PostgreSQL rows stay under 5 KB
+    // Strip large base64 payloads and deduplicate image fields from raw_data to save network egress
     const safeRaw = { ...fullRaw };
     if (typeof safeRaw.pdfPayload === 'string' && safeRaw.pdfPayload.startsWith('data:') && safeRaw.pdfPayload.length > 2000) {
       safeRaw.pdfPayload = '[STORED_IN_INDEXEDDB]';
+    }
+    // Deduplicate base64 images if questionsList already holds question images
+    if (Array.isArray(safeRaw.questionsList) && safeRaw.questionsList.length > 0) {
+      delete safeRaw.contentPayload;
+      delete safeRaw.imageUrls;
+      delete safeRaw.imageUrl;
+      safeRaw.questionsList = safeRaw.questionsList.map(q => {
+        const cleanQ = { ...q };
+        delete cleanQ.contentPayload; // Keep only cleanQ.imageUrl
+        return cleanQ;
+      });
     }
     if (Array.isArray(safeRaw.sections)) {
       safeRaw.sections = safeRaw.sections.map(sec => {
