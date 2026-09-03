@@ -1722,10 +1722,16 @@ export default function QuestionBank() {
                 <span>{imgCount} Görsel</span>
               </div>
             )}
-            {getAnswerKeyCount(q.answerKey) > 0 && (
+            {q.type !== 'acik_uclu' && q.type !== 'yazili' && getAnswerKeyCount(q.answerKey) > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'var(--color-surface-hover)', border: `1px solid ${cfg.border || 'var(--color-border)'}`, borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: cfg.accent }}>
                 <span>🗝️</span>
                 <span>Cevap Anahtarlı</span>
+              </div>
+            )}
+            {(q.type === 'acik_uclu' || q.type === 'yazili') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '20px', padding: '0.25rem 0.7rem', fontSize: '0.75rem', fontWeight: 900, color: '#f59e0b' }}>
+                <span>👨‍🏫</span>
+                <span>Öğretmen Değerlendirmeli</span>
               </div>
             )}
             {q.contentType === 'text' && q.questionText && (
@@ -4831,14 +4837,11 @@ export default function QuestionBank() {
                                 </div>
                               )}
 
-                              {/* Open Ended Expected Answer Box */}
+                              {/* Open Ended Student Answer Placeholder Preview */}
                               {isOpenEnded && (
-                                <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', background: isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#93c5fd' : '#1d4ed8' }}>
-                                    💡 Beklenen / Doğru Cevap:
-                                  </span>
-                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>
-                                    {kAns && String(kAns).trim() ? String(kAns).trim() : (qItem.correctAnswer !== undefined && qItem.correctAnswer !== null ? String(qItem.correctAnswer) : 'Açık uçlu serbest yanıt')}
+                                <div style={{ marginTop: '0.85rem', padding: '0.85rem 1.15rem', borderRadius: '0.75rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff', border: isDark ? '1.5px dashed rgba(255,255,255,0.18)' : '1.5px dashed #cbd5e1', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                  <span style={{ fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                                    ✍️ <strong style={{ color: isDark ? '#fbbf24' : '#d97706' }}>Açık Uçlu Soru:</strong> Öğrenci serbest metin/yazılı olarak yanıtlayacaktır. Yanıtlar sınav veya ödev tamamlandıktan sonra öğretmen tarafından değerlendirilir.
                                   </span>
                                 </div>
                               )}
