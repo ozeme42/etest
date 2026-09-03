@@ -2624,7 +2624,7 @@ export default function PhysicalExamRunner() {
           correctAnswer={aiModalQuestion.correctAnswer || ''}
           subject={aiModalQuestion.subjectName || 'Genel'}
           topic={homework?.title || homework?.unitTopic || ''}
-          testId={id || hwId || homework?.id || 'physical_exam'}
+          testId={hwId || homework?.id || 'physical_exam'}
         />
       )}
 
