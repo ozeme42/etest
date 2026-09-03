@@ -1139,7 +1139,29 @@ export async function dbGetQuestions() {
         contentType: q.content_type || 'text',
         contentPayload: contentPayload,
         isBundle: Boolean(q.is_bundle),
-        answerKey: q.answer_key || [],
+        answerKey: (() => {
+          const rawKey = q.answer_key;
+          if (!rawKey) return [];
+          if (Array.isArray(rawKey)) return rawKey;
+          if (typeof rawKey === 'string') {
+            const trimmed = rawKey.trim();
+            if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && typeof parsed === 'object') return Object.values(parsed);
+              } catch {}
+            }
+            if (trimmed.includes(',')) {
+              return trimmed.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+            }
+            return trimmed.split('');
+          }
+          if (typeof rawKey === 'object') {
+            return Object.values(rawKey);
+          }
+          return [];
+        })(),
         title: q.title || '',
         questionCount: q.question_count || 1,
         questionText: q.question_text || '',

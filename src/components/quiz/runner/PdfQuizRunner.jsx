@@ -79,17 +79,28 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
   // Exact question count calculation
   const qCount = useMemo(() => {
     // 1. Direct answer key length (highest priority for multiple-choice tests with answer keys)
-    const keyArray = test.answerKey || questions[0]?.answerKey;
-    if (Array.isArray(keyArray) && keyArray.length > 0) {
-      const valid = keyArray.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
-      if (valid.length > 0) return valid.length;
-    }
-    if (typeof keyArray === 'string' && keyArray.trim().length > 0) {
-      return keyArray.trim().length;
-    }
-    if (typeof keyArray === 'object' && keyArray !== null && Object.keys(keyArray).length > 0) {
-      return Object.keys(keyArray).length;
-    }
+    const rawKey = test.answerKey || questions[0]?.answerKey;
+    const normalized = (() => {
+      if (!rawKey) return [];
+      if (Array.isArray(rawKey)) return rawKey;
+      if (typeof rawKey === 'string') {
+        const trimmed = rawKey.trim();
+        if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed && typeof parsed === 'object') return Object.values(parsed);
+          } catch {}
+        }
+        if (trimmed.includes(',')) return trimmed.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+        return trimmed.split('');
+      }
+      if (typeof rawKey === 'object') return Object.values(rawKey);
+      return [];
+    })();
+
+    const validKeys = normalized.filter(x => x !== undefined && x !== null && String(x).trim() !== '');
+    if (validKeys.length > 0) return validKeys.length;
 
     // 2. Direct question list length if defined with multiple questions
     if (Array.isArray(test.questionsList) && test.questionsList.length > 0) {

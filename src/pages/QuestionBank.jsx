@@ -24,6 +24,29 @@ import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
+export function normalizeAnswerKey(rawKey) {
+  if (!rawKey) return [];
+  if (Array.isArray(rawKey)) return rawKey;
+  if (typeof rawKey === 'string') {
+    const trimmed = rawKey.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') return Object.values(parsed);
+      } catch {}
+    }
+    if (trimmed.includes(',')) {
+      return trimmed.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+    }
+    return trimmed.split('');
+  }
+  if (typeof rawKey === 'object') {
+    return Object.values(rawKey);
+  }
+  return [];
+}
+
 export default function QuestionBank() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
@@ -902,36 +925,8 @@ export default function QuestionBank() {
     setCreationStep(2);
     
     // Safely extract answer key as both array and clean string
-    let normalizedAnswerKey = [];
-    let keyStr = '';
-
-    if (Array.isArray(q.answerKey)) {
-      normalizedAnswerKey = q.answerKey;
-      keyStr = q.answerKey.join('').trimEnd();
-    } else if (typeof q.answerKey === 'string') {
-      const trimmed = q.answerKey.trim();
-      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        try {
-          const parsed = JSON.parse(trimmed);
-          if (Array.isArray(parsed)) {
-            normalizedAnswerKey = parsed;
-            keyStr = parsed.join('').trimEnd();
-          } else {
-            normalizedAnswerKey = trimmed.split('');
-            keyStr = trimmed;
-          }
-        } catch {
-          normalizedAnswerKey = trimmed.split('');
-          keyStr = trimmed;
-        }
-      } else {
-        normalizedAnswerKey = trimmed.split('');
-        keyStr = trimmed;
-      }
-    } else if (q.answerKey && typeof q.answerKey === 'object') {
-      normalizedAnswerKey = Object.values(q.answerKey);
-      keyStr = normalizedAnswerKey.join('').trimEnd();
-    }
+    const normalizedAnswerKey = normalizeAnswerKey(q.answerKey);
+    const keyStr = normalizedAnswerKey.join('').trimEnd();
 
     let richPayload = q.contentPayload || '';
     if (!richPayload || (typeof richPayload === 'string' && (richPayload.includes('[STORED_IN_INDEXEDDB]') || richPayload.includes('[LOCALSTORAGE_CACHE]')))) {
@@ -1613,13 +1608,8 @@ export default function QuestionBank() {
 
   const getAnswerKeyCount = (answerKey) => {
     if (!answerKey) return 0;
-    if (Array.isArray(answerKey)) {
-      return answerKey.filter(k => k && k !== ' ').length;
-    }
-    if (typeof answerKey === 'string') {
-      return answerKey.replace(/\s+/g, '').length;
-    }
-    return 0;
+    const list = normalizeAnswerKey(answerKey);
+    return list.filter(k => k && String(k).trim() !== '').length;
   };
 
   const renderQuestionCard = (q) => {
@@ -4887,12 +4877,10 @@ export default function QuestionBank() {
                       const targetCount = Number(q.questionCount) || (uniqueImages.length > 0 ? uniqueImages.length : 1);
                       const imageList = (uniqueImages.length > targetCount) ? uniqueImages.slice(0, targetCount) : (uniqueImages.length > 0 ? uniqueImages : (q.contentPayload ? [q.contentPayload] : ['']));
 
+                      const normalizedKeys = normalizeAnswerKey(q.answerKey);
                       const getCorrectIdxForImg = (imgIdx) => {
-                        if (Array.isArray(q.answerKey) && q.answerKey[imgIdx] !== undefined && q.answerKey[imgIdx] !== ' ') {
-                          return typeof q.answerKey[imgIdx] === 'number' ? q.answerKey[imgIdx] : (String(q.answerKey[imgIdx]).toUpperCase().charCodeAt(0) - 65);
-                        }
-                        if (typeof q.answerKey === 'string' && q.answerKey[imgIdx] && q.answerKey[imgIdx] !== ' ') {
-                          return q.answerKey[imgIdx].toUpperCase().charCodeAt(0) - 65;
+                        if (normalizedKeys[imgIdx] !== undefined && normalizedKeys[imgIdx] !== ' ') {
+                          return typeof normalizedKeys[imgIdx] === 'number' ? normalizedKeys[imgIdx] : (String(normalizedKeys[imgIdx]).toUpperCase().charCodeAt(0) - 65);
                         }
                         if (q.imageAnswers && q.imageAnswers[imgIdx] !== undefined) {
                           return q.imageAnswers[imgIdx];
@@ -5013,7 +5001,7 @@ export default function QuestionBank() {
 
                     {/* Optical Answer Key Grid */}
                     {q.type === 'coktan_secmeli' && (() => {
-                      const keyList = Array.isArray(q.answerKey) ? q.answerKey : (typeof q.answerKey === 'string' ? q.answerKey.split('') : (q.answerKey && typeof q.answerKey === 'object' ? Object.values(q.answerKey) : []));
+                      const keyList = normalizeAnswerKey(q.answerKey);
                       const totalQCount = Number(q.questionCount) || (keyList.length > 0 ? keyList.length : 1);
 
                       return (
@@ -5074,7 +5062,7 @@ export default function QuestionBank() {
 
                 {/* Optical Answer Key Grid for PDF Tests */}
                 {!q.questionsList && q.contentType === 'pdf' && q.type === 'coktan_secmeli' && (() => {
-                  const keyList = Array.isArray(q.answerKey) ? q.answerKey : (typeof q.answerKey === 'string' ? q.answerKey.split('') : (q.answerKey && typeof q.answerKey === 'object' ? Object.values(q.answerKey) : []));
+                  const keyList = normalizeAnswerKey(q.answerKey);
                   const totalQCount = Number(q.questionCount) || (keyList.length > 0 ? keyList.length : 1);
 
                   return (
