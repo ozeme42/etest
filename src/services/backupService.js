@@ -155,7 +155,13 @@ export async function restoreFullBackup(jsonInput) {
 
   // Extract actual data dictionary from various wrapper formats
   let data = null;
-  if (parsed.data && typeof parsed.data === 'object') {
+  if (parsed.tables && typeof parsed.tables === 'object') {
+    data = parsed.tables;
+  } else if (parsed.backup_data && typeof parsed.backup_data === 'object') {
+    data = parsed.backup_data;
+  } else if (Array.isArray(parsed) && parsed[0]?.backup_data) {
+    data = parsed[0].backup_data;
+  } else if (parsed.data && typeof parsed.data === 'object') {
     data = parsed.data;
   } else if (parsed.full_backup_data && typeof parsed.full_backup_data === 'object') {
     data = parsed.full_backup_data;
@@ -185,7 +191,15 @@ export async function restoreFullBackup(jsonInput) {
   } catch {}
 
   // 1. Restore Curriculum to both localStorage and IndexedDB
-  const cur = data['eTestCurriculum'] || data['curriculumData'] || data['curriculum'];
+  let cur = data['eTestCurriculum'] || data['curriculumData'] || data['curriculum'];
+  if (!cur && (data['grades'] || data['subjects'] || data['units'] || data['topics'])) {
+    cur = {
+      grades: data['grades'] || [],
+      subjects: data['subjects'] || [],
+      units: data['units'] || [],
+      topics: data['topics'] || []
+    };
+  }
   if (cur) {
     const curStr = typeof cur === 'string' ? cur : JSON.stringify(cur);
     safeSetItem('eTestCurriculum', curStr);
@@ -216,34 +230,91 @@ export async function restoreFullBackup(jsonInput) {
     safeSetItem('eTestQuestions', JSON.stringify(sanitizedQs));
   }
 
-  // 3. Restore all other keys
+  // 3. Restore Submissions (Exam and test results)
+  const subs = data['eTestSubmissions'] || data['etest_submissions'] || data['submissions'];
+  if (Array.isArray(subs)) {
+    restoredStats.submissionCount = subs.length;
+    const subsStr = JSON.stringify(subs);
+    safeSetItem('eTestSubmissions', subsStr);
+    safeSetItem('etest_submissions', subsStr);
+  }
+
+  // 4. Restore Tracked Books & Tests
+  const books = data['eTestTrackedBooks'] || data['trackedBooks'] || data['tracked_books'];
+  if (Array.isArray(books)) {
+    restoredStats.bookCount = books.length;
+    const booksStr = JSON.stringify(books);
+    safeSetItem('eTestTrackedBooks', booksStr);
+    safeSetItem('trackedBooks', booksStr);
+  }
+
+  const bTests = data['eTestTrackedBookTests'] || data['tracked_book_tests'];
+  if (Array.isArray(bTests)) {
+    restoredStats.bookTestCount = bTests.length;
+    safeSetItem('eTestTrackedBookTests', JSON.stringify(bTests));
+  }
+
+  // 5. Restore Homeworks
+  const hws = data['eTestHomeworks'] || data['homeworks'];
+  if (Array.isArray(hws)) {
+    restoredStats.homeworkCount = hws.length;
+    safeSetItem('eTestHomeworks', JSON.stringify(hws));
+  }
+
+  // 6. Restore Users
+  const users = data['eTestUsers'] || data['users'];
+  if (Array.isArray(users)) {
+    restoredStats.userCount = users.length;
+    safeSetItem('eTestUsers', JSON.stringify(users));
+  }
+
+  // 7. Restore Study Plans & Coaching & Scales & Goals
+  if (data['study_plans'] || data['eTestStudyPlans']) {
+    safeSetItem('eTestStudyPlans', JSON.stringify(data['study_plans'] || data['eTestStudyPlans']));
+  }
+  if (data['coaching_profiles'] || data['eTestCoachingProfiles'] || data['etest_coaching_profiles']) {
+    const cpStr = JSON.stringify(data['coaching_profiles'] || data['eTestCoachingProfiles'] || data['etest_coaching_profiles']);
+    safeSetItem('eTestCoachingProfiles', cpStr);
+    safeSetItem('etest_coaching_profiles', cpStr);
+  }
+  if (data['goals'] || data['eTestGoals']) {
+    safeSetItem('eTestGoals', JSON.stringify(data['goals'] || data['eTestGoals']));
+  }
+  if (data['schedules'] || data['eTestSchedules']) {
+    safeSetItem('eTestSchedules', JSON.stringify(data['schedules'] || data['eTestSchedules']));
+  }
+  if (data['summaries'] || data['eTestSummaries']) {
+    safeSetItem('eTestSummaries', JSON.stringify(data['summaries'] || data['eTestSummaries']));
+  }
+  if (data['scales'] || data['eTestScales']) {
+    safeSetItem('eTestScales', JSON.stringify(data['scales'] || data['eTestScales']));
+  }
+
+  // 8. Restore all other miscellaneous keys
   Object.keys(data).forEach(key => {
-    if (key === 'eTestQuestions' || key === 'eTestCurriculum' || key === 'curriculumData' || key === 'questions' || key === 'curriculum') return;
+    if (['eTestQuestions', 'eTestCurriculum', 'curriculumData', 'questions', 'curriculum',
+         'eTestSubmissions', 'etest_submissions', 'submissions',
+         'eTestTrackedBooks', 'trackedBooks', 'tracked_books',
+         'eTestTrackedBookTests', 'tracked_book_tests',
+         'eTestHomeworks', 'homeworks',
+         'eTestUsers', 'users',
+         'grades', 'subjects', 'units', 'topics',
+         'study_plans', 'eTestStudyPlans',
+         'coaching_profiles', 'eTestCoachingProfiles', 'etest_coaching_profiles',
+         'goals', 'eTestGoals', 'schedules', 'eTestSchedules', 'summaries', 'eTestSummaries', 'scales', 'eTestScales'
+        ].includes(key)) return;
     try {
       const val = typeof data[key] === 'string' ? data[key] : JSON.stringify(data[key]);
       safeSetItem(key, val);
-      if (key === 'eTestTrackedBooks') safeSetItem('trackedBooks', val);
-      if (key === 'eTestSubmissions') safeSetItem('etest_submissions', val);
     } catch (e) {
       console.warn(`[Restore] Error writing ${key}:`, e);
     }
   });
 
-  // Calculate restored stats
-  const users = data['eTestUsers'] || data['users'];
-  if (Array.isArray(users)) restoredStats.userCount = users.length;
-
-  const subs = data['eTestSubmissions'] || data['etest_submissions'] || data['submissions'];
-  if (Array.isArray(subs)) restoredStats.submissionCount = subs.length;
-
-  const hws = data['eTestHomeworks'] || data['homeworks'];
-  if (Array.isArray(hws)) restoredStats.homeworkCount = hws.length;
-
-  const books = data['eTestTrackedBooks'] || data['trackedBooks'] || data['tracked_books'];
-  if (Array.isArray(books)) restoredStats.bookCount = books.length;
-
-  const bTests = data['eTestTrackedBookTests'] || data['tracked_book_tests'];
-  if (Array.isArray(bTests)) restoredStats.bookTestCount = bTests.length;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('etest-data-restored'));
+    window.dispatchEvent(new CustomEvent('etest-submissions-updated'));
+  }
 
   return restoredStats;
 }
