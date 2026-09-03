@@ -676,7 +676,7 @@ export default function OpenEndedReview({
           existingImageUrl={resolvedImages?.[0] || null}
           mistakeReason={mistakeReason || ''}
           onMistakeReasonChange={handleSetMistakeReason}
-          studentAnswer={finalText || 'Boş bırakıldı'}
+          studentAnswer={rawText || 'Boş bırakıldı'}
           correctAnswer={question?.correctAnswerText || question?.answer || question?.solution || question?.explanation || 'Açık Uçlu / Yazılı Değerlendirme'}
           subject={question?.subject || 'Genel'}
           topic={question?.topic || ''}
