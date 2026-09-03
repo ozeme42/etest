@@ -2526,13 +2526,43 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
       if (Array.isArray(t.targetStudentIds)) t.targetStudentIds.forEach(id => id && id !== 'teacher' && targetStudentIds.add(String(id)));
 
       // Also check submissions for this test
+      const tIds = new Set((t.allIds || [t.id]).flatMap(id => [String(id), String(id).replace(/^bt_|^q_|^hw_/, ''), toUUID(id) ? String(toUUID(id)) : null]).filter(Boolean));
+      const cleanTTitle = (t.title || t.name || '').trim().toLowerCase();
+
       const testSubs = (submissions || []).filter(s => {
         if (!s) return false;
-        const subMatch = (t.allIds || [t.id]).some(id => 
-          String(s.testId) === String(id) || String(s.realTestId) === String(id) || String(s.hwId) === String(id)
-        );
-        return subMatch || (t.title && s.testTitle && s.testTitle.toLowerCase().trim() === t.title.toLowerCase().trim());
+        const sId = String(s.id || '');
+        const suId = String(s.supabaseId || '');
+        const answersArr = Array.isArray(s.answers) ? s.answers : [];
+        const meta = answersArr.find(a => a?.type === 'metadata') || {};
+        const realId = String(meta.realId || s.realId || '');
+        
+        if (s.status === 'in_progress' || s.status === 'draft' || meta.status === 'in_progress') return false;
+        if (sId.startsWith('draft_') || sId.startsWith('64726166') || suId.startsWith('64726166') || realId.startsWith('draft_')) return false;
+
+        const subFields = [
+          s.testId,
+          s.test_id,
+          s.realTestId,
+          s.hwId,
+          s.homeworkId,
+          s.bookTestId,
+          s.id,
+          s.supabaseId,
+          meta.realTestId,
+          meta.bookTestId,
+          meta.hwId,
+          meta.realId,
+          meta.testId
+        ].filter(Boolean).map(String);
+
+        const subMatch = subFields.some(sf => tIds.has(sf) || tIds.has(sf.replace(/^bt_|^q_|^hw_/, '')));
+        const subTitle = (s.testTitle || s.title || s.test_title || meta.testTitle || '').trim().toLowerCase();
+        const titleMatch = Boolean(cleanTTitle && subTitle && subTitle === cleanTTitle);
+
+        return subMatch || titleMatch;
       });
+
       testSubs.forEach(s => {
         const sid = s.studentId || s.userId || s.student_id;
         if (sid && sid !== 'teacher') targetStudentIds.add(String(sid));
@@ -2543,7 +2573,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
           const studentObj = (students.length > 0 ? students : users).find(u => String(u.id) === sid || (toUUID(u.id) && String(toUUID(u.id)) === String(toUUID(sid))));
           const studentName = studentObj?.name || studentObj?.fullName || 'Öğrenci';
           const studentSubs = testSubs.filter(s => String(s.studentId || s.userId || s.student_id) === sid || (toUUID(s.studentId) && String(toUUID(s.studentId)) === String(toUUID(sid))));
-          const statusInfo = getRemedialTestMasteryStatus(t, studentSubs.length > 0 ? studentSubs : submissions);
+          const statusInfo = getRemedialTestMasteryStatus(t, studentSubs);
 
           rows.push({
             ...statusInfo,
@@ -2555,7 +2585,7 @@ export default function TeacherRemedialTracker({ isDark: propIsDark, targetStude
           });
         });
       } else {
-        const statusInfo = getRemedialTestMasteryStatus(t, submissions);
+        const statusInfo = getRemedialTestMasteryStatus(t, testSubs);
         rows.push({
           ...statusInfo,
           studentId: null,

@@ -98,14 +98,22 @@ const deduplicateSubmissions = (list) => {
 
   sortedList.forEach(sub => {
     if (!sub) return;
+    const id1 = String(sub.id || '').trim();
+    const id2 = String(sub.supabaseId || '').trim();
+    const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a?.type === 'metadata') : (sub.metadata || {});
+    const id3 = String(meta?.realId || meta?.submissionId || sub.originalSubmissionId || '').trim();
+
+    // Ignore unfinished empty drafts in main submissions store
+    if (sub.status === 'in_progress' || sub.status === 'draft' || meta?.status === 'in_progress') return;
+    if (id1.startsWith('draft_') || id1.startsWith('64726166') || id2.startsWith('64726166') || id3.startsWith('draft_')) {
+      const hasAnswers = (Array.isArray(sub.answers) ? sub.answers : []).some(a => a?.type !== 'metadata' && a?.userAnswer !== null && a?.userAnswer !== undefined);
+      const hasCounts = (Number(sub.correctCount ?? sub.correct_count ?? sub.correct ?? 0) + Number(sub.wrongCount ?? sub.wrong_count ?? sub.wrong ?? 0)) > 0;
+      if (!hasAnswers && !hasCounts) return;
+    }
+
     const sStudentId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '').trim();
     const sTestId = String(sub.testId || sub.realTestId || sub.bookTestId || sub.test_id || sub.title || '').trim();
     const sTitle = String(sub.title || sub.testTitle || sub.test_title || '').trim().toLowerCase();
-    
-    const id1 = String(sub.id || '').trim();
-    const id2 = String(sub.supabaseId || '').trim();
-    const meta = (sub.answers && Array.isArray(sub.answers)) ? sub.answers.find(a => a.type === 'metadata') : (sub.metadata || {});
-    const id3 = String(meta?.realId || meta?.submissionId || sub.originalSubmissionId || '').trim();
 
     const cleanTId = sTestId.replace(/^bt_/, '').replace(/^q_/, '').toLowerCase();
     const corr = sub.correctCount ?? sub.correct ?? 0;
@@ -209,6 +217,16 @@ export function EvaluationProvider({ children }) {
           const suId = String(s.supabaseId || '');
 
           if (currentDeletedIds.has(sId) || (suId && currentDeletedIds.has(suId))) return false;
+
+          const meta = (Array.isArray(s.answers) ? s.answers : []).find(a => a?.type === 'metadata') || {};
+          const realId = String(meta.realId || s.realId || '');
+          if (s.status === 'in_progress' || s.status === 'draft' || meta.status === 'in_progress') return false;
+          if (sId.startsWith('draft_') || sId.startsWith('64726166') || suId.startsWith('64726166') || realId.startsWith('draft_')) {
+            const hasAnswers = (Array.isArray(s.answers) ? s.answers : []).some(a => a?.type !== 'metadata' && a?.userAnswer !== null && a?.userAnswer !== undefined);
+            const hasCounts = (Number(s.correctCount ?? s.correct_count ?? s.correct ?? 0) + Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0)) > 0;
+            if (!hasAnswers && !hasCounts) return false;
+          }
+
           return true;
         });
 

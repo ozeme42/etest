@@ -141,7 +141,22 @@ export async function migrateAllLocalDataToSupabase(onProgress = () => {}) {
     } catch {}
 
     if (localSubs.length > 0) {
-      const subRows = localSubs.map(s => {
+      const cleanCompletedSubs = localSubs.filter(s => {
+        if (!s) return false;
+        const sId = String(s.id || '');
+        const suId = String(s.supabaseId || '');
+        const meta = (Array.isArray(s.answers) ? s.answers : []).find(a => a?.type === 'metadata') || {};
+        const realId = String(meta.realId || s.realId || '');
+        if (s.status === 'in_progress' || s.status === 'draft' || meta.status === 'in_progress') return false;
+        if (sId.startsWith('draft_') || sId.startsWith('64726166') || suId.startsWith('64726166') || realId.startsWith('draft_')) {
+          const hasAnswers = (Array.isArray(s.answers) ? s.answers : []).some(a => a?.type !== 'metadata' && a?.userAnswer !== null && a?.userAnswer !== undefined);
+          const hasCounts = (Number(s.correctCount ?? s.correct_count ?? s.correct ?? 0) + Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0)) > 0;
+          if (!hasAnswers && !hasCounts) return false;
+        }
+        return true;
+      });
+
+      const subRows = cleanCompletedSubs.map(s => {
         const rawAnswers = (s.answers || []).filter(a => a.type !== 'metadata');
         const isApproved = s.isApproved !== undefined ? Boolean(s.isApproved) : (s.approvalStatus === 'approved' || s.status === 'completed');
         return {

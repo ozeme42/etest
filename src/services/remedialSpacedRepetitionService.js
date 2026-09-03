@@ -1,7 +1,4 @@
-/**
- * remedialSpacedRepetitionService.js
- * Teacher-assigned remedial test spaced repetition & 100% mastery tracking engine.
- */
+import { toUUID } from './supabaseService';
 
 export const REPETITION_PRESETS = [
   { id: 'standard_leitner', label: 'Standart Leitner (Bugün, 3, 7, 15 Gün)', intervals: [0, 3, 7, 15], icon: '🧠' },
@@ -94,33 +91,48 @@ export function isRemedialStageDone(item, submissions = [], studentId = null) {
   if (!specificTestId) return false;
 
   const tIdStr = String(specificTestId);
+  const tClean = tIdStr.replace(/^bt_|^q_|^hw_/, '');
+  const tUuid = toUUID(specificTestId);
+  const itemTitle = String(item.title || item.name || '').toLowerCase().trim();
   const studentIdStr = studentId ? String(studentId) : '';
+  const studentUuid = studentId ? String(toUUID(studentId) || '') : '';
 
   const matchingSubs = (submissions || []).filter(s => {
-    if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+    if (!s) return false;
+    const sId = String(s.id || '');
+    const suId = String(s.supabaseId || '');
+    const answersArr = Array.isArray(s.answers) ? s.answers : [];
+    const meta = answersArr.find(a => a?.type === 'metadata') || {};
+    const realId = String(meta.realId || s.realId || '');
+    
+    if (s.status === 'in_progress' || s.status === 'draft' || meta.status === 'in_progress') return false;
+    if (sId.startsWith('draft_') || sId.startsWith('64726166') || suId.startsWith('64726166') || realId.startsWith('draft_')) return false;
+
     if (studentIdStr) {
-      const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-      if (sId && sId !== studentIdStr) return false;
+      const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      if (sStdId && sStdId !== studentIdStr && (!studentUuid || sStdId !== studentUuid)) return false;
     }
 
     const subFields = [
       s.testId,
       s.test_id,
       s.hwId,
+      s.homeworkId,
       s.realTestId,
       s.bookTestId,
       s.id,
-      s.metadata?.realTestId,
-      s.metadata?.bookTestId,
-      s.metadata?.realId,
-      s.metadata?.testId
+      s.supabaseId,
+      meta.realTestId,
+      meta.bookTestId,
+      meta.realId,
+      meta.testId
     ].filter(Boolean).map(String);
 
-    return subFields.some(sf => sf && (
-      sf === tIdStr ||
-      sf === tIdStr.replace(/^bt_|^q_|^hw_/, '') ||
-      (item.title && s.testTitle && s.testTitle.toLowerCase().trim() === String(item.title).toLowerCase().trim())
-    ));
+    const idMatches = subFields.some(sf => sf === tIdStr || sf === tClean || (tUuid && sf === tUuid));
+    const subTitle = (s.testTitle || s.title || s.test_title || meta.testTitle || '').toLowerCase().trim();
+    const titleMatches = Boolean(itemTitle && subTitle && subTitle === itemTitle);
+
+    return idMatches || titleMatches;
   });
 
   const targetStage = Number(item.stage || 1);
@@ -130,9 +142,10 @@ export function isRemedialStageDone(item, submissions = [], studentId = null) {
 
   // Check 100% Mastery
   const isMastered = matchingSubs.some(s => {
-    const corr = Number(s.correctCount ?? s.correct ?? 0);
-    const tot = Number(s.totalQuestions ?? s.total ?? 0);
-    return tot > 0 && corr === tot;
+    const corr = Number(s.correctCount ?? s.correct_count ?? s.correct ?? 0);
+    const tot = Number(s.totalQuestions ?? (corr + Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0)));
+    const score = Number(s.score || 0);
+    return (tot > 0 && corr === tot) || score === 100;
   });
 
   if (isMastered) return true;
@@ -145,12 +158,74 @@ export function isRemedialStageDone(item, submissions = [], studentId = null) {
 export function getRemedialTestMasteryStatus(test, submissions = []) {
   if (!test) return null;
 
+  const rawIds = [
+    test.id,
+    test.hwId,
+    test.testId,
+    test.realTestId,
+    test.bookTestId,
+    test.questionId,
+    test.supabaseId,
+    ...(test.allIds || [])
+  ].filter(Boolean).map(String);
+
+  const testIdSet = new Set(rawIds);
+  rawIds.forEach(id => {
+    testIdSet.add(id.replace(/^bt_|^q_|^hw_/, ''));
+    const uuidVal = toUUID(id);
+    if (uuidVal) testIdSet.add(String(uuidVal));
+  });
+
+  const cleanTestTitle = (test.title || test.name || '').toLowerCase().trim();
+
+  // Helper to detect if a submission is an unfinished draft
+  const isDraftSub = (s) => {
+    if (!s) return true;
+    const sId = String(s.id || '');
+    const suId = String(s.supabaseId || '');
+    const answersArr = Array.isArray(s.answers) ? s.answers : [];
+    const meta = answersArr.find(a => a?.type === 'metadata') || {};
+    const realId = String(meta.realId || s.realId || '');
+    
+    if (s.status === 'in_progress' || s.status === 'draft' || meta.status === 'in_progress') return true;
+    if (sId.startsWith('draft_') || sId.startsWith('64726166') || suId.startsWith('64726166') || realId.startsWith('draft_')) {
+      const hasAnswers = answersArr.some(a => a?.type !== 'metadata' && a?.userAnswer !== null && a?.userAnswer !== undefined);
+      const hasCounts = (Number(s.correctCount ?? s.correct_count ?? s.correct ?? 0) + Number(s.wrongCount ?? s.wrong_count ?? s.wrong ?? 0)) > 0;
+      if (!hasAnswers && !hasCounts) return true;
+      if (s.status === 'in_progress' || meta.status === 'in_progress') return true;
+    }
+    return false;
+  };
+
   const testSubmissions = (submissions || []).filter(sub => {
-    return String(sub.testId) === String(test.id) ||
-           String(sub.hwId) === String(test.id) ||
-           String(sub.id) === String(test.id) ||
-           (test.title && sub.testTitle && sub.testTitle.toLowerCase().trim() === test.title.toLowerCase().trim());
-  }).sort((a, b) => new Date(a.submittedAt || a.createdAt || 0) - new Date(b.submittedAt || b.createdAt || 0));
+    if (isDraftSub(sub)) return false;
+
+    const answersArr = Array.isArray(sub.answers) ? sub.answers : [];
+    const meta = answersArr.find(a => a?.type === 'metadata') || {};
+
+    const subFields = [
+      sub.testId,
+      sub.test_id,
+      sub.realTestId,
+      sub.hwId,
+      sub.homeworkId,
+      sub.bookTestId,
+      sub.id,
+      sub.supabaseId,
+      meta.realTestId,
+      meta.bookTestId,
+      meta.hwId,
+      meta.realId,
+      meta.testId
+    ].filter(Boolean).map(String);
+
+    const idMatches = subFields.some(sf => testIdSet.has(sf) || testIdSet.has(sf.replace(/^bt_|^q_|^hw_/, '')));
+
+    const subTitle = (sub.testTitle || sub.title || sub.test_title || meta.testTitle || '').toLowerCase().trim();
+    const titleMatches = Boolean(cleanTestTitle && subTitle && subTitle === cleanTestTitle);
+
+    return idMatches || titleMatches;
+  }).sort((a, b) => new Date(a.submittedAt || a.createdAt || a.created_at || 0) - new Date(b.submittedAt || b.createdAt || b.created_at || 0));
 
   const totalQuestions = Number(test.questionCount || test.totalQuestions || test.questionsList?.length || 10);
   const solveCount = testSubmissions.length;
@@ -163,11 +238,24 @@ export function getRemedialTestMasteryStatus(test, submissions = []) {
 
   if (isSolved) {
     const latestSub = testSubmissions[testSubmissions.length - 1];
-    latestCorrect = latestSub.correctCount ?? (latestSub.correct || 0);
-    latestWrong = latestSub.wrongCount ?? (latestSub.wrong || 0);
-    latestBlank = latestSub.blankCount ?? (latestSub.emptyCount || 0);
-    const totalCalc = latestSub.totalQuestions || (latestCorrect + latestWrong + latestBlank) || totalQuestions;
-    currentScorePct = totalCalc > 0 ? Math.min(100, Math.round((latestCorrect / totalCalc) * 100)) : 0;
+    latestCorrect = Number(latestSub.correctCount ?? latestSub.correct_count ?? latestSub.correct ?? 0);
+    latestWrong = Number(latestSub.wrongCount ?? latestSub.wrong_count ?? latestSub.wrong ?? 0);
+    latestBlank = Number(latestSub.blankCount ?? latestSub.emptyCount ?? latestSub.empty_count ?? 0);
+    
+    // Total questions in submission
+    const answeredCount = latestCorrect + latestWrong + latestBlank;
+    const effectiveTotal = latestSub.totalQuestions || (answeredCount > 0 ? answeredCount : totalQuestions);
+    
+    if (effectiveTotal > (latestCorrect + latestWrong) && latestBlank === 0) {
+      latestBlank = effectiveTotal - (latestCorrect + latestWrong);
+    }
+
+    if (effectiveTotal > 0) {
+      currentScorePct = Math.min(100, Math.round((latestCorrect / effectiveTotal) * 100));
+    }
+    if (currentScorePct === 0 && typeof latestSub.score === 'number' && latestSub.score > 0) {
+      currentScorePct = Math.round(latestSub.score);
+    }
   }
 
   const isMastered = currentScorePct === 100 && isSolved;
