@@ -3,7 +3,7 @@ import {
   Check, Calendar, Sparkles, BookOpen, Compass, 
   ChevronRight, ChevronDown, ChevronUp, Layers, Target, 
   CheckCircle2, Plus, Edit2, Trash2, X, Save,
-  Star, Flag, FolderPlus
+  Star, Flag, FolderPlus, Settings
 } from 'lucide-react';
 import { useCurriculum } from '../../context/CurriculumContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -130,6 +130,7 @@ export default function CurriculumRoadmapView({
   const [newSubjectName, setNewSubjectName] = useState('');
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
   const [successNotice, setSuccessNotice] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const availableGrades = useMemo(() => {
     return curriculumData?.grades || [];
@@ -611,16 +612,18 @@ export default function CurriculumRoadmapView({
             font-size: 0.8rem !important;
           }
           .roadmap-pills-row {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr 1.2fr !important;
+            display: flex !important;
+            align-items: center !important;
             gap: 6px !important;
             width: 100% !important;
           }
           .roadmap-pills-row button {
+            flex: 1 !important;
             justify-content: center !important;
             padding: 0.45rem 0.2rem !important;
             height: 38px !important;
             font-size: 0.73rem !important;
+            white-space: nowrap !important;
           }
           .roadmap-kpi-container {
             grid-template-columns: repeat(3, 1fr) !important;
@@ -761,7 +764,7 @@ export default function CurriculumRoadmapView({
               )}
             </div>
 
-            {/* Hızlı Butonlar: Aç / Kapat / Yeni Ders */}
+            {/* Hızlı Butonlar: Aç / Kapat / Düzenle */}
             <div className="roadmap-pills-row">
               <button
                 type="button"
@@ -805,30 +808,115 @@ export default function CurriculumRoadmapView({
                 <ChevronUp size={13} /> Kapat
               </button>
 
+              {/* ⚙️ Düzenleme Modu Aç/Kapat Butonu */}
               <button
                 type="button"
-                onClick={() => setShowAddSubjectModal(true)}
+                onClick={() => {
+                  setIsEditMode(p => !p);
+                  if (isEditMode) {
+                    setEditingItem(null);
+                    setShowAddSubjectModal(false);
+                  }
+                }}
                 style={{
                   padding: '0.4rem 0.75rem',
                   borderRadius: '0.6rem',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981, #059669)',
-                  color: '#ffffff',
+                  border: isEditMode ? '1.5px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1'),
+                  background: isEditMode ? 'linear-gradient(135deg, #10b981, #059669)' : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                  color: isEditMode ? '#ffffff' : 'var(--color-text)',
                   fontSize: '0.74rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                  gap: 5,
+                  boxShadow: isEditMode ? '0 2px 10px rgba(16, 185, 129, 0.35)' : 'none',
+                  transition: 'all 0.15s ease'
                 }}
+                title={isEditMode ? 'Düzenleme modunu kapat' : 'Müfredatı düzenle / sil'}
               >
-                <Plus size={14} /> + Ders
+                {isEditMode ? (
+                  <>
+                    <Check size={14} strokeWidth={3} /> Bitti
+                  </>
+                ) : (
+                  <>
+                    <Settings size={13} /> Düzenle
+                  </>
+                )}
               </button>
+
+              {/* Yalnızca Düzenleme Modu Açıkken: "+ Ders" Butonu */}
+              {isEditMode && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSubjectModal(true)}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '0.6rem',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: '#ffffff',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+                  }}
+                >
+                  <Plus size={14} /> + Ders
+                </button>
+              )}
             </div>
 
           </div>
         </div>
+
+        {/* DÜZENLEME MODU AKTİF BİLGİLENDİRME BANNERI */}
+        {isEditMode && (
+          <div style={{
+            background: isDark ? 'rgba(99, 102, 241, 0.18)' : '#eef2ff',
+            border: '1.5px solid #6366f1',
+            borderRadius: '0.85rem',
+            padding: '0.65rem 0.95rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            color: isDark ? '#c7d2fe' : '#4338ca',
+            fontSize: '0.78rem',
+            fontWeight: 800,
+            gap: 8,
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Settings size={16} color="#6366f1" style={{ flexShrink: 0 }} />
+              <span>⚙️ Düzenleme Modu Açık — İstediğiniz ders veya üniteyi yeniden adlandırabilir veya silebilirsiniz.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditMode(false);
+                setEditingItem(null);
+                setShowAddSubjectModal(false);
+              }}
+              style={{
+                padding: '4px 12px',
+                borderRadius: '0.45rem',
+                border: 'none',
+                background: '#10b981',
+                color: '#ffffff',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                flexShrink: 0
+              }}
+            >
+              ✓ Bitti
+            </button>
+          </div>
+        )}
 
         {/* BAŞARI BİLDİRİM BANNERI */}
         {successNotice && (
@@ -1230,30 +1318,32 @@ export default function CurriculumRoadmapView({
                           }}>
                             {sub.name}
                           </h3>
-                          <button
-                            type="button"
-                            title="Ders Adını Düzenle"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingItem({ level: 'subject', subId: sub.id, name: sub.name });
-                            }}
-                            style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2, flexShrink: 0 }}
-                          >
-                            <Edit2 size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            title="Dersi Sil"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteItem('subject', sub.id, null, null, sub.name);
-                            }}
-                            style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2, flexShrink: 0 }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          {isEditMode && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <button
+                                type="button"
+                                title="Ders Adını Düzenle"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItem({ level: 'subject', subId: sub.id, name: sub.name });
+                                }}
+                                style={{ background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', border: 'none', borderRadius: '0.35rem', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '3px 5px', display: 'flex' }}
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                              <button
+                                type="button"
+                                title="Dersi Sil"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteItem('subject', sub.id, null, null, sub.name);
+                                }}
+                                style={{ background: 'rgba(239,68,68,0.12)', border: 'none', borderRadius: '0.35rem', color: '#ef4444', cursor: 'pointer', padding: '3px 5px', display: 'flex' }}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                       
@@ -1373,30 +1463,32 @@ export default function CurriculumRoadmapView({
                                       }}>
                                         {unit.name}
                                       </span>
-                                      <button
-                                        type="button"
-                                        title="Üniteyi Düzenle"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingItem({ level: 'unit', subId: sub.id, unitId: unit.id, name: unit.name });
-                                        }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2, flexShrink: 0 }}
-                                      >
-                                        <Edit2 size={11} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        title="Üniteyi Sil"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteItem('unit', sub.id, unit.id, null, unit.name);
-                                        }}
-                                        style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2, flexShrink: 0 }}
-                                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                        onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
-                                      >
-                                        <Trash2 size={11} />
-                                      </button>
+                                      {isEditMode && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <button
+                                            type="button"
+                                            title="Üniteyi Düzenle"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingItem({ level: 'unit', subId: sub.id, unitId: unit.id, name: unit.name });
+                                            }}
+                                            style={{ background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', border: 'none', borderRadius: '0.35rem', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '3px 4px', display: 'flex' }}
+                                          >
+                                            <Edit2 size={11} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            title="Üniteyi Sil"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteItem('unit', sub.id, unit.id, null, unit.name);
+                                            }}
+                                            style={{ background: 'rgba(239,68,68,0.12)', border: 'none', borderRadius: '0.35rem', color: '#ef4444', cursor: 'pointer', padding: '3px 4px', display: 'flex' }}
+                                          >
+                                            <Trash2 size={11} />
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   )}
 
@@ -1539,24 +1631,26 @@ export default function CurriculumRoadmapView({
                                                   <span style={{ fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: 99, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                                                     {cfg.icon} {cfg.label}
                                                   </span>
-                                                  <button
-                                                    type="button"
-                                                    title="Konu Adını Düzenle"
-                                                    onClick={() => setEditingItem({ level: 'topic', subId: sub.id, unitId: unit.id, topicId: topic.id, name: topic.name })}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2 }}
-                                                  >
-                                                    <Edit2 size={11} />
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    title="Konuyu Sil"
-                                                    onClick={() => handleDeleteItem('topic', sub.id, unit.id, topic.id, topic.name)}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2 }}
-                                                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                                    onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
-                                                  >
-                                                    <Trash2 size={11} />
-                                                  </button>
+                                                  {isEditMode && (
+                                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 3 }}>
+                                                      <button
+                                                        type="button"
+                                                        title="Konu Adını Düzenle"
+                                                        onClick={() => setEditingItem({ level: 'topic', subId: sub.id, unitId: unit.id, topicId: topic.id, name: topic.name })}
+                                                        style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 2 }}
+                                                      >
+                                                        <Edit2 size={11} />
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        title="Konuyu Sil"
+                                                        onClick={() => handleDeleteItem('topic', sub.id, unit.id, topic.id, topic.name)}
+                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 2 }}
+                                                      >
+                                                        <Trash2 size={11} />
+                                                      </button>
+                                                    </div>
+                                                  )}
                                                 </div>
 
                                                 <h4 style={{
@@ -1643,43 +1737,45 @@ export default function CurriculumRoadmapView({
                                     );
                                   })}
 
-                                  {/* Ünite İçine Yeni Konu Ekleme */}
-                                  <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                                    <input
-                                      type="text"
-                                      value={newTopicNames[unit.id] || ''}
-                                      onChange={e => setNewTopicNames({ ...newTopicNames, [unit.id]: e.target.value })}
-                                      onKeyDown={e => e.key === 'Enter' && handleAddTopic(sub.id, unit.id)}
-                                      placeholder="Bu üniteye yeni konu ekle..."
-                                      style={{
-                                        flex: 1,
-                                        padding: '0.4rem 0.65rem',
-                                        borderRadius: '0.5rem',
-                                        border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                                        background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-                                        color: 'var(--color-text)',
-                                        fontSize: '0.78rem',
-                                        outline: 'none'
-                                      }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleAddTopic(sub.id, unit.id)}
-                                      style={{
-                                        padding: '0.4rem 0.85rem',
-                                        borderRadius: '0.5rem',
-                                        border: 'none',
-                                        background: subColor,
-                                        color: '#ffffff',
-                                        fontSize: '0.74rem',
-                                        fontWeight: 800,
-                                        cursor: 'pointer',
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >
-                                      + Konu
-                                    </button>
-                                  </div>
+                                  {/* Ünite İçine Yeni Konu Ekleme (Yalnızca Düzenleme Modunda) */}
+                                  {isEditMode && (
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                                      <input
+                                        type="text"
+                                        value={newTopicNames[unit.id] || ''}
+                                        onChange={e => setNewTopicNames({ ...newTopicNames, [unit.id]: e.target.value })}
+                                        onKeyDown={e => e.key === 'Enter' && handleAddTopic(sub.id, unit.id)}
+                                        placeholder="Bu üniteye yeni konu ekle..."
+                                        style={{
+                                          flex: 1,
+                                          padding: '0.4rem 0.65rem',
+                                          borderRadius: '0.5rem',
+                                          border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                                          background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+                                          color: 'var(--color-text)',
+                                          fontSize: '0.78rem',
+                                          outline: 'none'
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddTopic(sub.id, unit.id)}
+                                        style={{
+                                          padding: '0.4rem 0.85rem',
+                                          borderRadius: '0.5rem',
+                                          border: 'none',
+                                          background: subColor,
+                                          color: '#ffffff',
+                                          fontSize: '0.74rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                      >
+                                        + Konu
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1688,52 +1784,54 @@ export default function CurriculumRoadmapView({
                       })
                     )}
 
-                    {/* Ders İçine Yeni Ünite Ekleme */}
-                    <div style={{
-                      display: 'flex',
-                      gap: 6,
-                      padding: '0.55rem 0.75rem',
-                      borderRadius: '0.85rem',
-                      background: isDark ? 'rgba(255,255,255,0.02)' : '#f1f5f9',
-                      border: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1',
-                      alignItems: 'center'
-                    }}>
-                      <FolderPlus size={15} color={subColor} style={{ flexShrink: 0 }} />
-                      <input
-                        type="text"
-                        value={newUnitNames[sub.id] || ''}
-                        onChange={e => setNewUnitNames({ ...newUnitNames, [sub.id]: e.target.value })}
-                        onKeyDown={e => e.key === 'Enter' && handleAddUnit(sub.id)}
-                        placeholder={`"${sub.name}" için yeni ünite adı...`}
-                        style={{
-                          flex: 1,
-                          padding: '0.35rem 0.65rem',
-                          borderRadius: '0.5rem',
-                          border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1',
-                          background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-                          color: 'var(--color-text)',
-                          fontSize: '0.78rem',
-                          outline: 'none'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleAddUnit(sub.id)}
-                        style={{
-                          padding: '0.4rem 0.85rem',
-                          borderRadius: '0.55rem',
-                          border: 'none',
-                          background: subColor,
-                          color: '#ffffff',
-                          fontSize: '0.74rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        + Ünite
-                      </button>
-                    </div>
+                    {/* Ders İçine Yeni Ünite Ekleme (Yalnızca Düzenleme Modunda) */}
+                    {isEditMode && (
+                      <div style={{
+                        display: 'flex',
+                        gap: 6,
+                        padding: '0.55rem 0.75rem',
+                        borderRadius: '0.85rem',
+                        background: isDark ? 'rgba(255,255,255,0.02)' : '#f1f5f9',
+                        border: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1',
+                        alignItems: 'center'
+                      }}>
+                        <FolderPlus size={15} color={subColor} style={{ flexShrink: 0 }} />
+                        <input
+                          type="text"
+                          value={newUnitNames[sub.id] || ''}
+                          onChange={e => setNewUnitNames({ ...newUnitNames, [sub.id]: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && handleAddUnit(sub.id)}
+                          placeholder={`"${sub.name}" için yeni ünite adı...`}
+                          style={{
+                            flex: 1,
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '0.5rem',
+                            border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1',
+                            background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+                            color: 'var(--color-text)',
+                            fontSize: '0.78rem',
+                            outline: 'none'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddUnit(sub.id)}
+                          style={{
+                            padding: '0.4rem 0.85rem',
+                            borderRadius: '0.55rem',
+                            border: 'none',
+                            background: subColor,
+                            color: '#ffffff',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          + Ünite
+                        </button>
+                      </div>
+                    )}
 
                   </div>
                 )}
