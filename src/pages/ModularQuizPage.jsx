@@ -27,6 +27,17 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { idbGetPayload } from '../services/indexedDbService';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
+const toSafeLetter = (val) => {
+  if (val === null || val === undefined || val === '' || val === 'empty') return null;
+  if (typeof val === 'number') return (!isNaN(val) && val >= 0 && val <= 4) ? String.fromCharCode(65 + val) : String(val);
+  const s = String(val).trim();
+  if (s === 'ʊ') return 'A';
+  if (/^[A-Ea-e]$/.test(s)) return s.toUpperCase();
+  const n = parseInt(s, 10);
+  if (!isNaN(n) && n >= 0 && n <= 4) return String.fromCharCode(65 + n);
+  return s;
+};
+
 export default function ModularQuizPage() {
   const { testId } = useParams();
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -1003,17 +1014,6 @@ export default function ModularQuizPage() {
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
       const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
-
-      const toSafeLetter = (val) => {
-        if (val === null || val === undefined || val === '' || val === 'empty') return null;
-        if (typeof val === 'number') return (!isNaN(val) && val >= 0 && val <= 4) ? String.fromCharCode(65 + val) : String(val);
-        const s = String(val).trim();
-        if (s === 'ʊ') return 'A';
-        if (/^[A-Ea-e]$/.test(s)) return s.toUpperCase();
-        const n = parseInt(s, 10);
-        if (!isNaN(n) && n >= 0 && n <= 4) return String.fromCharCode(65 + n);
-        return s;
-      };
 
       const finalCorrectAnswer = toSafeLetter(ans.correctAnswerLetter)
         || toSafeLetter(ans.correctAnswer)

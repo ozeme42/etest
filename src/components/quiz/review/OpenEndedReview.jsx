@@ -673,7 +673,7 @@ export default function OpenEndedReview({
           onClose={() => setAiModalOpen(false)}
           questionNo={qNo}
           question={question}
-          existingImageUrl={imgSrc}
+          existingImageUrl={resolvedImages?.[0] || null}
           mistakeReason={mistakeReason || ''}
           onMistakeReasonChange={handleSetMistakeReason}
           studentAnswer={finalText || 'Boş bırakıldı'}
