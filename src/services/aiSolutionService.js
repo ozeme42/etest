@@ -309,21 +309,21 @@ export function getHtmlFromActiveIframe() {
 
 export function isGenericPlaceholderSolution(parsed) {
   if (!parsed || typeof parsed !== 'object') return true;
+  // If it's literally the prompt placeholder template where fields were not filled
+  if (parsed.summary === 'Sorunun kazanımı ve temel mantığının 1-2 cümlelik özeti' ||
+      parsed.summary === 'Sorunun 1-2 cümlelik Türkçe özeti') {
+    return true;
+  }
   const sText = JSON.stringify(parsed);
   const hasRawJsonPollution = Array.isArray(parsed.steps) && parsed.steps.some(st => {
     const s = typeof st === 'string' ? st.trim() : (st?.detail || st?.content || '');
-    return s === '{' || s === '}' || s === '[' || s === ']' || s.includes('"isEnglishQuestion"') || s.includes('"summary":') || s.includes('"steps":');
+    return s === '{' || s === '}' || s === '[' || s === ']' || s.includes('"isEnglishQuestion"') || s.includes('"summary":');
   });
 
   return (
     hasRawJsonPollution ||
     sText.includes('genel test mantığı çerçevesinde temel bir kazanımı') ||
-    sText.includes('Öncelikle soruda bizden ne istendiğini ve elimizdeki verilerin neler olduğunu') ||
-    sText.includes('Soruda verilenleri ve isteneni netleştirelim') ||
-    sText.includes('Kuralı veya çözüm yolunu adım adım uygulayalım') ||
-    sText.includes('verilen öncüllerin dikkatli analiz edilerek') ||
-    sText.includes('rastgele harfler girmen') ||
-    (parsed.isEnglishQuestion && sText.includes('Which of the following is correct according to the text'))
+    sText.includes('rastgele harfler girmen')
   );
 }
 

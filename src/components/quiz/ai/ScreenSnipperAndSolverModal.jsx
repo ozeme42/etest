@@ -93,7 +93,9 @@ export default function ScreenSnipperAndSolverModal({
     } catch {}
   };
 
-  const cacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
+  const cleanSubj = (subject && subject !== 'Genel' ? subject : (question?.subject || '')).trim().replace(/\s+/g, '_');
+  const cacheKey = `${testId || 'test'}_${cleanSubj ? `${cleanSubj}_` : ''}q${questionNo}_${currentUser?.id || 'u'}`;
+  const legacyCacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
 
   // Check cache or auto-solve on open
   useEffect(() => {
@@ -107,13 +109,17 @@ export default function ScreenSnipperAndSolverModal({
 
     let cachedSolution = null;
     try {
-      const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
+      let cached = localStorage.getItem(`ai_sol_${cacheKey}`);
+      if (!cached && legacyCacheKey !== cacheKey) {
+        cached = localStorage.getItem(`ai_sol_${legacyCacheKey}`);
+      }
       if (cached) {
         const parsed = JSON.parse(cached);
         const isEnglishSubj = /ingilizce|english|yks[\s-_]*dil/i.test(subject || '');
         const isStale = (parsed?.isEnglishQuestion && !isEnglishSubj) || isGenericPlaceholderSolution(parsed);
         if (isStale) {
           localStorage.removeItem(`ai_sol_${cacheKey}`);
+          if (legacyCacheKey !== cacheKey) localStorage.removeItem(`ai_sol_${legacyCacheKey}`);
         } else {
           cachedSolution = parsed;
           setSolution(cachedSolution);
@@ -125,10 +131,16 @@ export default function ScreenSnipperAndSolverModal({
       setSolution(null);
     }
 
-    if (existingImageUrl) {
-      setCroppedImage(existingImageUrl);
-      setActiveTab('image');
-    }
+    // Restore cached question image if previously cropped or uploaded
+    try {
+      const savedImg = localStorage.getItem(`ai_img_${cacheKey}`) || 
+                       (legacyCacheKey !== cacheKey ? localStorage.getItem(`ai_img_${legacyCacheKey}`) : null) || 
+                       existingImageUrl;
+      if (savedImg) {
+        setCroppedImage(savedImg);
+        setActiveTab('image');
+      }
+    } catch {}
 
     async function tryAutoSolve() {
       // In PDF mode, questions are inside the PDF document. Auto-solve must NOT trigger with null/empty question!
@@ -267,6 +279,9 @@ export default function ScreenSnipperAndSolverModal({
   const handleReSolve = () => {
     try {
       localStorage.removeItem(`ai_sol_${cacheKey}`);
+      if (legacyCacheKey !== cacheKey) {
+        localStorage.removeItem(`ai_sol_${legacyCacheKey}`);
+      }
     } catch {}
     setSolution(null);
     setError(null);
@@ -331,6 +346,13 @@ export default function ScreenSnipperAndSolverModal({
       });
 
       setSolution(res);
+
+      // Persist the question image alongside solution in localStorage for instant reload
+      if (imgToSend) {
+        try {
+          localStorage.setItem(`ai_img_${cacheKey}`, imgToSend);
+        } catch {}
+      }
 
       // Record AI usage log for teacher transparency
       recordAiUsageLog({
