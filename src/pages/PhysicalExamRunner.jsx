@@ -669,6 +669,10 @@ export default function PhysicalExamRunner() {
 
   const subjects = homework?.subjects || [];
   const activeSubject = subjects[activeSubjectIndex] || subjects[0];
+  const activeSubjectStat = useMemo(() => {
+    if (!results?.subjectStats || !activeSubject) return null;
+    return results.subjectStats.find(s => s.name === activeSubject.name);
+  }, [results, activeSubject]);
 
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
 
@@ -1739,120 +1743,178 @@ export default function PhysicalExamRunner() {
               
               {/* 1. SCORECARD HERO (AFTER SUBMISSION) */}
               {isSubmitted && results && (
-                <div style={{ background: 'var(--color-surface)', borderRadius: '1.4rem', padding: '1.25rem 1.4rem', color: 'var(--color-text)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.25rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: '#fef3c7', border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Trophy size={26} color="#b45309" />
+                <div style={{ 
+                  background: 'var(--color-surface)', 
+                  borderRadius: isMobile ? '1rem' : '1.25rem', 
+                  padding: isMobile || isSidePdf ? '0.85rem 0.95rem' : '1.15rem 1.35rem', 
+                  color: 'var(--color-text)', 
+                  boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', 
+                  border: '1.5px solid var(--color-border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: isMobile || isSidePdf ? '0.65rem' : '0.85rem'
+                }}>
+                  {/* Top: Badge + Title + Action Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 11, background: '#fef3c7', border: '1.5px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Trophy size={20} color="#b45309" />
                       </div>
-                      <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.15)', border: '1px solid #3b82f6', borderRadius: 99, padding: '0.15rem 0.6rem', marginBottom: 4 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>SINAV TAMAMLANDI</span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(37,99,235,0.12)', border: '1px solid #3b82f6', borderRadius: 99, padding: '0.1rem 0.5rem', marginBottom: 2 }}>
+                          <span style={{ fontSize: '0.62rem', fontWeight: 900, color: '#2563eb', letterSpacing: '0.04em' }}>SINAV TAMAMLANDI</span>
                         </div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>{homework.title}</div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {/* Doğru */}
-                      <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1 }}>{results.totalCorrect}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
-                      </div>
-
-                      {/* Yanlış */}
-                      <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1.1 }}>{results.totalWrong}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
-                      </div>
-
-                      {/* Boş */}
-                      <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 14, padding: '0.55rem 0.95rem', textAlign: 'center', minWidth: 68 }}>
-                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#475569', lineHeight: 1.1 }}>{results.totalBlank}</div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
-                      </div>
-
-                      {/* Toplam Net */}
-                      <div style={{
-                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                        borderRadius: 16,
-                        padding: '0.55rem 1.25rem',
-                        textAlign: 'center',
-                        minWidth: 95,
-                        boxShadow: '0 4px 14px rgba(99,102,241,0.25)'
-                      }}>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
-                          {results.totalNet}
-                        </div>
-                        <div style={{ fontSize: '0.68rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>
-                          🎯 TOPLAM NET
+                        <div style={{ fontSize: isSidePdf ? '0.96rem' : '1.12rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {homework.title}
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Action buttons after submission */}
-                  <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid var(--color-border)', flexWrap: 'wrap', alignItems: 'center' }}>
                     <button 
                       onClick={handleGoBack}
-                      style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
+                      style={{ 
+                        padding: isSidePdf ? '0.42rem 0.8rem' : '0.5rem 1rem', 
+                        borderRadius: '0.65rem', 
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)', 
+                        border: 'none', 
+                        color: 'white', 
+                        fontWeight: 900, 
+                        fontSize: isSidePdf ? '0.76rem' : '0.82rem', 
+                        cursor: 'pointer', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 6, 
+                        boxShadow: '0 2px 8px rgba(79,70,229,0.22)', 
+                        transition: 'transform 0.15s',
+                        flexShrink: 0
+                      }}
                       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
                       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                     >
-                      <Trophy size={16} /> {returnUrl ? (returnUrl.includes('/program') || returnUrl.includes('/my-program') ? '📅 Programa Dön' : (returnUrl.includes('/homeworks') ? '📝 Ödevlere Dön' : (returnUrl === '/student' ? '🏠 Panoya Dön' : 'Geri Dön'))) : 'Denemelerime Dön'}
+                      <Trophy size={14} /> {returnUrl ? (returnUrl.includes('/program') || returnUrl.includes('/my-program') ? '📅 Programa Dön' : (returnUrl.includes('/homeworks') ? '📝 Ödevlere Dön' : (returnUrl === '/student' ? '🏠 Panoya Dön' : 'Geri Dön'))) : 'Denemelerime Dön'}
                     </button>
+                  </div>
+
+                  {/* 4 Stat Boxes: DOĞRU, YANLIŞ, BOŞ, TOPLAM NET in a perfect 4-column responsive grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(4, 1fr)', 
+                    gap: isMobile || isSidePdf ? 5 : 8, 
+                    width: '100%' 
+                  }}>
+                    {/* Doğru */}
+                    <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 10, padding: isSidePdf ? '0.45rem 0.2rem' : '0.6rem 0.4rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: isSidePdf ? '1.15rem' : '1.35rem', fontWeight: 900, color: '#15803d', lineHeight: 1.1 }}>{results.totalCorrect}</div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#16a34a', letterSpacing: '0.04em', marginTop: 3 }}>DOĞRU</div>
+                    </div>
+
+                    {/* Yanlış */}
+                    <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: 10, padding: isSidePdf ? '0.45rem 0.2rem' : '0.6rem 0.4rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: isSidePdf ? '1.15rem' : '1.35rem', fontWeight: 900, color: '#b91c1c', lineHeight: 1.1 }}>{results.totalWrong}</div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#dc2626', letterSpacing: '0.04em', marginTop: 3 }}>YANLIŞ</div>
+                    </div>
+
+                    {/* Boş */}
+                    <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: isSidePdf ? '0.45rem 0.2rem' : '0.6rem 0.4rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: isSidePdf ? '1.15rem' : '1.35rem', fontWeight: 900, color: '#475569', lineHeight: 1.1 }}>{results.totalBlank}</div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#64748b', letterSpacing: '0.04em', marginTop: 3 }}>BOŞ</div>
+                    </div>
+
+                    {/* Toplam Net */}
+                    <div style={{
+                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      borderRadius: 10,
+                      padding: isSidePdf ? '0.45rem 0.2rem' : '0.6rem 0.4rem',
+                      textAlign: 'center',
+                      boxShadow: '0 3px 10px rgba(99,102,241,0.22)'
+                    }}>
+                      <div style={{ fontSize: isSidePdf ? '1.15rem' : '1.35rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
+                        {results.totalNet}
+                      </div>
+                      <div style={{ fontSize: '0.62rem', fontWeight: 900, color: '#e0e7ff', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 3 }}>
+                        🎯 NET
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* 2. SUBJECT TABS PILLS */}
+              {/* 2. SUBJECT SELECTOR (RESPONSIVE MULTI-ROW GRID - NO CLIPPING) */}
               <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: isMobile ? 4 : isSidePdf ? 4 : 6, 
-                overflowX: 'auto', 
-                padding: isMobile ? '0.1rem 0.1rem 0.25rem 0.1rem' : '0 0 2px 0',
-                scrollbarWidth: 'none',
-                WebkitOverflowScrolling: 'touch'
+                display: 'grid', 
+                gridTemplateColumns: subjects.length <= 2 
+                  ? 'repeat(2, 1fr)' 
+                  : (isSidePdf || isMobile || containerWidth < 720 ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(140px, 1fr))'),
+                gap: isMobile ? 5 : isSidePdf ? 5 : 7,
+                width: '100%'
               }}>
                 {subjects.map((sub, idx) => {
                   const isActive = activeSubjectIndex === idx;
                   const count = sub.count || 0;
-                  const filledCount = (answers[sub.name] || []).filter(Boolean).length;
+                  const subAns = answers[sub.name] || [];
+                  const filledCount = subAns.filter(Boolean).length;
                   const isDone = filledCount === count && count > 0;
+                  const subStat = results?.subjectStats?.find(s => s.name === sub.name);
 
                   return (
                     <button
                       key={idx}
+                      type="button"
                       onClick={() => setActiveSubjectIndex(idx)}
                       style={{
-                        padding: isMobile ? '0.22rem 0.5rem' : isSidePdf ? '0.28rem 0.55rem' : '0.6rem 1.15rem',
-                        borderRadius: isMobile ? '0.55rem' : isSidePdf ? '0.65rem' : '0.9rem',
+                        padding: isMobile ? '0.42rem 0.55rem' : isSidePdf ? '0.45rem 0.65rem' : '0.62rem 0.85rem',
+                        borderRadius: '0.75rem',
                         border: isActive ? '2px solid #2563eb' : '1.5px solid var(--color-border)',
                         background: isActive ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : 'var(--color-surface)',
                         color: isActive ? '#ffffff' : 'var(--color-text)',
                         fontWeight: 800,
-                        fontSize: isMobile ? '0.7rem' : isSidePdf ? '0.72rem' : '0.86rem',
+                        fontSize: isMobile ? '0.74rem' : isSidePdf ? '0.76rem' : '0.84rem',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: isMobile ? '0.3rem' : isSidePdf ? '0.35rem' : '0.5rem',
-                        boxShadow: isActive ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
+                        justifyContent: 'space-between',
+                        gap: 6,
+                        boxShadow: isActive ? '0 3px 10px rgba(37,99,235,0.25)' : '0 1px 3px rgba(0,0,0,0.02)',
                         transition: 'all 0.15s ease',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
-                      <span>{sub.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                        <span style={{ 
+                          width: 6, 
+                          height: 6, 
+                          borderRadius: '50%', 
+                          background: isActive ? '#ffffff' : (isDone ? '#10b981' : '#3b82f6'),
+                          flexShrink: 0
+                        }} />
+                        <span style={{ 
+                          whiteSpace: 'nowrap', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {sub.name}
+                        </span>
+                      </div>
+
                       <span style={{
-                        fontSize: isMobile ? '0.62rem' : isSidePdf ? '0.64rem' : '0.68rem',
-                        padding: isMobile ? '0.08rem 0.35rem' : isSidePdf ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
+                        fontSize: '0.64rem',
+                        padding: '0.1rem 0.42rem',
                         borderRadius: 99,
-                        background: isActive ? 'rgba(255,255,255,0.22)' : isDone ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)',
-                        color: isActive ? '#ffffff' : isDone ? '#10b981' : 'var(--color-text-muted)',
-                        fontWeight: 900
+                        background: isActive 
+                          ? 'rgba(255,255,255,0.22)' 
+                          : isSubmitted 
+                            ? (subStat && subStat.net > 0 ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)') 
+                            : (isDone ? 'rgba(16,185,129,0.15)' : 'var(--color-surface-hover)'),
+                        color: isActive 
+                          ? '#ffffff' 
+                          : isSubmitted 
+                            ? (subStat && subStat.net > 0 ? '#10b981' : 'var(--color-text-muted)') 
+                            : (isDone ? '#10b981' : 'var(--color-text-muted)'),
+                        fontWeight: 900,
+                        flexShrink: 0
                       }}>
-                        {filledCount}/{count}
+                        {isSubmitted && subStat ? `${subStat.net} Net` : `${filledCount}/${count}`}
                       </span>
                     </button>
                   );
@@ -1872,10 +1934,10 @@ export default function PhysicalExamRunner() {
                   boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
                 }}>
                   {/* Subject Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: isMobile ? '0.25rem' : isSidePdf ? '0.35rem' : '0.75rem', flexWrap: 'wrap', gap: '0.3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#2563eb' }} />
-                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.78rem' : isSidePdf ? '0.82rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: isMobile ? '0.3rem' : isSidePdf ? '0.35rem' : '0.75rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb' }} />
+                      <h3 style={{ margin: 0, fontSize: isMobile ? '0.8rem' : isSidePdf ? '0.84rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
                         {activeSubject.name}
                       </h3>
                       <span style={{ fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.7rem' : '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
@@ -1884,9 +1946,18 @@ export default function PhysicalExamRunner() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.68rem' : '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: isMobile ? '0.1rem 0.4rem' : isSidePdf ? '0.15rem 0.45rem' : '0.2rem 0.6rem', borderRadius: 99 }}>
-                        {(answers[activeSubject.name] || []).filter(Boolean).length}/{activeSubject.count} Kodlandı
-                      </span>
+                      {isSubmitted && activeSubjectStat ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 800 }}>
+                          <span style={{ color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.12rem 0.45rem', borderRadius: 6 }}>{activeSubjectStat.correct} D</span>
+                          <span style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', padding: '0.12rem 0.45rem', borderRadius: 6 }}>{activeSubjectStat.wrong} Y</span>
+                          <span style={{ color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '0.12rem 0.45rem', borderRadius: 6 }}>{activeSubjectStat.blank} B</span>
+                          <span style={{ color: '#ffffff', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.12rem 0.55rem', borderRadius: 6, fontWeight: 900, boxShadow: '0 2px 6px rgba(99,102,241,0.2)' }}>{activeSubjectStat.net} Net</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: isMobile ? '0.66rem' : isSidePdf ? '0.68rem' : '0.75rem', fontWeight: 800, color: '#2563eb', background: 'rgba(37,99,235,0.1)', padding: isMobile ? '0.1rem 0.4rem' : isSidePdf ? '0.15rem 0.45rem' : '0.2rem 0.6rem', borderRadius: 99 }}>
+                          {(answers[activeSubject.name] || []).filter(Boolean).length}/{activeSubject.count} Kodlandı
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -2448,29 +2519,42 @@ export default function PhysicalExamRunner() {
               </div>
 
               {/* Subject Tabs in Mobile Modal */}
-              <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, width: '100%' }}>
                 {subjects.map((sub, idx) => {
                   const isActive = activeSubjectIndex === idx;
                   const subAns = answers[sub.name] || [];
                   const filled = subAns.filter(Boolean).length;
+                  const subStat = results?.subjectStats?.find(s => s.name === sub.name);
                   return (
                     <button
                       key={sub.name}
                       type="button"
                       onClick={() => setActiveSubjectIndex(idx)}
                       style={{
-                        padding: '0.35rem 0.65rem',
+                        padding: '0.42rem 0.6rem',
                         borderRadius: 8,
                         background: isActive ? '#4f46e5' : 'var(--color-surface-hover, #f8fafc)',
                         border: `1.5px solid ${isActive ? '#4338ca' : 'var(--color-border-input, #cbd5e1)'}`,
-                        color: isActive ? 'white' : 'var(--color-text-muted, #64748b)',
+                        color: isActive ? 'white' : 'var(--color-text)',
                         fontWeight: 900,
-                        fontSize: '0.72rem',
-                        whiteSpace: 'nowrap',
+                        fontSize: '0.74rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
                         cursor: 'pointer'
                       }}
                     >
-                      {sub.name} ({filled}/{sub.count})
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.name}</span>
+                      <span style={{
+                        fontSize: '0.65rem',
+                        padding: '0.1rem 0.35rem',
+                        borderRadius: 99,
+                        background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)',
+                        color: isActive ? 'white' : 'var(--color-text-muted)',
+                        fontWeight: 900
+                      }}>
+                        {isSubmitted && subStat ? `${subStat.net} Net` : `${filled}/${sub.count}`}
+                      </span>
                     </button>
                   );
                 })}
