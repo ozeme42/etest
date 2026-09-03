@@ -979,38 +979,45 @@ export default function ModularQuizPage() {
 
       let isCorrect = ans.isCorrect;
       if (isQExplicitOE) {
+        // Açık uçlu sorular optik/harf anahtarlarıyla (A, B vs.) otomatik yanlış yapılamaz
         const correctKey = qObj.correctAnswer || (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)]) : null);
-        if (correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '') {
+        const isLetterKey = typeof correctKey === 'string' && /^[A-Ea-e]$/.test(correctKey.trim());
+
+        if (!isLetterKey && correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '' && test.autoGradeOpenEnded) {
           isCorrect = compareOpenEndedAnswers(textVal || userAns, correctKey);
         } else {
-          isCorrect = null; // Açık uçlu sorular kayıtlı cevap anahtarı yoksa öğretmen puanlayana kadar pending kalır
+          isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar daima 'pending' kalır
         }
-      } else if (isCorrect === undefined || isCorrect === null) {
-        const testCtx = {
-          ...test,
-          ...qObj,
-          answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers || test?.htmlPayload?.answerKey,
-          answer_key: test?.answer_key || questions[0]?.answer_key || qObj?.answer_key || test?.htmlPayload?.answer_key,
-          htmlPayload: test?.htmlPayload || qObj?.htmlPayload,
-          bankQ: {
-            ...(test?.bankQ || {}),
-            ...(qObj?.bankQ || {})
-          }
-        };
-        if (userAns !== null && userAns !== undefined && userAns !== '') {
-          isCorrect = checkIsAnswerCorrect(userAns, qObj, testCtx, qNo);
-        }
-      }
 
-      if (isCorrect === true) correctCount++;
-      else if (isCorrect === false && ((userAns !== null && userAns !== undefined && userAns !== '') || hasTextVal)) wrongCount++;
-      else if (isQExplicitOE) {
-        if (hasTextVal && isCorrect === null) {
+        if (hasTextVal) {
           pendingCount++;
+          isCorrect = null;
         } else {
           blankCount++;
+          isCorrect = null;
         }
-      } else blankCount++;
+      } else {
+        if (isCorrect === undefined || isCorrect === null) {
+          const testCtx = {
+            ...test,
+            ...qObj,
+            answerKey: test?.answerKey || questions[0]?.answerKey || qObj?.answerKey || test?.opticAnswers || test?.htmlPayload?.answerKey,
+            answer_key: test?.answer_key || questions[0]?.answer_key || qObj?.answer_key || test?.htmlPayload?.answer_key,
+            htmlPayload: test?.htmlPayload || qObj?.htmlPayload,
+            bankQ: {
+              ...(test?.bankQ || {}),
+              ...(qObj?.bankQ || {})
+            }
+          };
+          if (userAns !== null && userAns !== undefined && userAns !== '') {
+            isCorrect = checkIsAnswerCorrect(userAns, qObj, testCtx, qNo);
+          }
+        }
+
+        if (isCorrect === true) correctCount++;
+        else if (isCorrect === false && userAns !== null && userAns !== undefined && userAns !== '') wrongCount++;
+        else blankCount++;
+      }
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
       const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
@@ -1726,7 +1733,16 @@ export default function ModularQuizPage() {
         const cCount = submittedResult.correctCount || 0;
         const wCount = submittedResult.wrongCount || 0;
         const bCount = submittedResult.blankCount || 0;
-        const pCount = submittedResult.pendingCount || 0;
+
+        // Count actual answered open-ended questions from submission answers or openEndedText
+        const answeredOECount = Array.isArray(submittedResult.answers)
+          ? submittedResult.answers.filter(a => {
+              const txt = a.userAnswerText || a.textAns;
+              return Boolean((txt && String(txt).trim() !== '' && String(txt).trim() !== 'empty') || (a.userAnswer && a.userAnswer !== 'empty' && a.isOpenEnded));
+            }).length
+          : (submittedResult.openEndedText ? Object.values(submittedResult.openEndedText).filter(t => t && String(t).trim() !== '' && String(t).trim() !== 'empty').length : 0);
+
+        const pCount = Math.max(submittedResult.pendingCount || 0, answeredOECount);
         const totQ = submittedResult.totalQuestions || (cCount + wCount + bCount + pCount) || 1;
         const scorePct = submittedResult.score !== undefined && submittedResult.score !== null ? submittedResult.score : Math.round((cCount / totQ) * 100);
         const net = Math.max(0, cCount - (wCount * 0.25));
@@ -1832,7 +1848,7 @@ export default function ModularQuizPage() {
                       Yazılı / Açık Uçlu Cevaplarınız Öğretmen Değerlendirmesine İletildi
                     </h4>
                     <p style={{ margin: 0, fontSize: '0.84rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                      Açık uçlu ({submittedResult.pendingCount || submittedResult.totalQuestions} soru) cevaplarınız öğretmeniniz tarafından incelenip puanlandıktan sonra karne ve başarı durumunuza yansıyacaktır.
+                      Açık uçlu ({pCount || totQ} soru) yanıtınız öğretmeniniz tarafından incelenip puanlandıktan sonra karne ve başarı durumunuza yansıyacaktır.
                     </p>
                   </div>
                 </div>
@@ -2013,7 +2029,7 @@ export default function ModularQuizPage() {
                   }}>
                     <div style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 800 }}>AÇIK UÇLU YANIT</div>
                     <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#a78bfa', marginTop: 2 }}>
-                      {pCount || totQ} Soru
+                      {pCount} / {totQ} Soru
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 700 }}>
                       ⏳ Değerlendirmede
