@@ -328,7 +328,7 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
   const [aiModalQuestionNo, setAiModalQuestionNo] = useState(null);
 
   const studentId = submission?.studentId || currentUser?.id || 'u1';
-  const testId = test?.id || submission?.testId || submission?.bookTestId || 'test_1';
+  const testId = test?.id || submission?.testId || submission?.bookTestId || submission?.id || submission?.homeworkId || 'test_1';
   const testKey = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
 
   const [mistakeReasons, setMistakeReasons] = useState(() => {
@@ -1347,8 +1347,8 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
           onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestionNo, r)}
           studentAnswer={hasAnswer ? (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : String(userAns)) : ''}
           correctAnswer={displayCorrectKey || ''}
-          subject={test?.subject || submission?.subject || 'Genel'}
-          topic={test?.topic || submission?.unitTopic || ''}
+          subject={test?.subject || submission?.subject || activeQuestion?.subject || 'Genel'}
+          topic={test?.topic || submission?.unitTopic || activeQuestion?.topic || ''}
           testId={testId}
         />
       )}

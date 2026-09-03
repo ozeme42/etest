@@ -1,4 +1,5 @@
 import { dbGetUserAiApiKey, dbGetSystemAiApiKey } from './supabaseService';
+import { idbSetPayload, idbGetPayload, idbDeletePayload } from './indexedDbService';
 
 export const GEMINI_AVAILABLE_MODELS = [
   {
@@ -371,24 +372,31 @@ export async function solveQuestionWithAi({
     /\b(which of the following|according to the text|according to the passage|choose the correct|fill in the blank|complete the sentence|opposite meaning|closest in meaning|read the text and answer)\b/i.test(effectiveQuestionText)
   );
 
-  // 1. Invalidate or check local cache
+  // 1. Invalidate or check local cache (both localStorage and IndexedDB)
   if (forceRefresh && cacheKey) {
     try {
       localStorage.removeItem(`ai_sol_${cacheKey}`);
+      await idbDeletePayload(`ai_sol_${cacheKey}`);
     } catch {}
   }
 
   if (!forceRefresh && cacheKey) {
     try {
+      let parsed = null;
       const cached = localStorage.getItem(`ai_sol_${cacheKey}`);
       if (cached) {
-        const parsed = JSON.parse(cached);
-        const isStaleEnglish = parsed?.isEnglishQuestion && !isEnglishQuestion;
+        try { parsed = JSON.parse(cached); } catch {}
+      }
+      if (!parsed) {
+        parsed = await idbGetPayload(`ai_sol_${cacheKey}`);
+      }
+      if (parsed) {
         const isPlaceholder = isGenericPlaceholderSolution(parsed);
-        if (parsed && (parsed.steps || parsed.explanation || parsed.summary) && !isStaleEnglish && !isPlaceholder) {
+        if ((parsed.steps || parsed.explanation || parsed.summary) && !isPlaceholder) {
           return parsed;
-        } else if (isStaleEnglish || isPlaceholder) {
+        } else if (isPlaceholder) {
           localStorage.removeItem(`ai_sol_${cacheKey}`);
+          await idbDeletePayload(`ai_sol_${cacheKey}`);
         }
       }
     } catch {}
@@ -635,10 +643,13 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
   // Parse JSON response safely
   const parsed = parseGeminiJsonResponse(rawText, { correctAnswer, cleanReason });
 
-  // Save to local cache with zero DB cost
+  // Save to local cache with dual-layer storage (LocalStorage + IndexedDB)
   if (cacheKey && parsed) {
     try {
       localStorage.setItem(`ai_sol_${cacheKey}`, JSON.stringify(parsed));
+    } catch {}
+    try {
+      await idbSetPayload(`ai_sol_${cacheKey}`, parsed);
     } catch {}
   }
 

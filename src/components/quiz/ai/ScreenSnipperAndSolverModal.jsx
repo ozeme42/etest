@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { solveQuestionWithAi, getResolvedAiApiKey, cleanAiMathText, extractTargetQuestionFromHtml, getHtmlFromActiveIframe, isGenericPlaceholderSolution } from '../../../services/aiSolutionService';
 import { dbSaveUserAiApiKey, dbSaveSystemAiApiKey, toUUID } from '../../../services/supabaseService';
-import { idbGetPayload } from '../../../services/indexedDbService';
+import { idbGetPayload, idbSetPayload, idbDeletePayload } from '../../../services/indexedDbService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -98,6 +98,26 @@ export default function ScreenSnipperAndSolverModal({
   const cleanSubj = (subject && subject !== 'Genel' ? subject : (question?.subject || '')).trim().replace(/\s+/g, '_');
   const cacheKey = `${testId || 'test'}_${cleanSubj ? `${cleanSubj}_` : ''}q${questionNo}_${currentUser?.id || 'u'}`;
   const legacyCacheKey = `${testId || 'test'}_q${questionNo}_${currentUser?.id || 'u'}`;
+  const generalKey = `${testId || 'test'}_q${questionNo}`;
+
+  const candidateCacheKeys = [
+    `ai_sol_${cacheKey}`,
+    `ai_sol_${legacyCacheKey}`,
+    `ai_sol_${generalKey}`,
+    cleanSubj ? `ai_sol_${testId || 'test'}_${cleanSubj}_q${questionNo}` : null
+  ].filter(Boolean);
+
+  // Self-heal: Clean up any oversized base64 images that might have filled localStorage quota
+  useEffect(() => {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('ai_img_')) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
+  }, []);
 
   // Check cache or auto-solve on open
   useEffect(() => {
@@ -109,81 +129,104 @@ export default function ScreenSnipperAndSolverModal({
     setError(null);
     getResolvedAiApiKey(currentUser?.id).catch(() => {});
 
-    let cachedSolution = null;
-    try {
-      let cached = localStorage.getItem(`ai_sol_${cacheKey}`);
-      if (!cached && legacyCacheKey !== cacheKey) {
-        cached = localStorage.getItem(`ai_sol_${legacyCacheKey}`);
+    let isMounted = true;
+
+    async function loadCachedOrAutoSolve() {
+      let cachedSolution = null;
+
+      // 1. Check LocalStorage across candidate keys
+      for (const k of candidateCacheKeys) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && (parsed.steps || parsed.summary || parsed.explanation) && !isGenericPlaceholderSolution(parsed)) {
+              cachedSolution = parsed;
+              break;
+            }
+          }
+        } catch {}
       }
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        const isEnglishSubj = /ingilizce|english|yks[\s-_]*dil/i.test(subject || '');
-        const isStale = (parsed?.isEnglishQuestion && !isEnglishSubj) || isGenericPlaceholderSolution(parsed);
-        if (isStale) {
-          localStorage.removeItem(`ai_sol_${cacheKey}`);
-          if (legacyCacheKey !== cacheKey) localStorage.removeItem(`ai_sol_${legacyCacheKey}`);
-        } else {
-          cachedSolution = parsed;
-          setSolution(cachedSolution);
+
+      // 2. Check IndexedDB across candidate keys if not in LocalStorage
+      if (!cachedSolution) {
+        for (const k of candidateCacheKeys) {
+          try {
+            const idbVal = await idbGetPayload(k);
+            if (idbVal && typeof idbVal === 'object' && (idbVal.steps || idbVal.summary || idbVal.explanation) && !isGenericPlaceholderSolution(idbVal)) {
+              cachedSolution = idbVal;
+              break;
+            }
+          } catch {}
         }
+      }
+
+      if (!isMounted) return;
+
+      if (cachedSolution) {
+        setSolution(cachedSolution);
       } else {
         setSolution(null);
       }
-    } catch {
-      setSolution(null);
-    }
 
-    // Restore cached question image if previously cropped or uploaded
-    try {
-      const savedImg = localStorage.getItem(`ai_img_${cacheKey}`) || 
-                       (legacyCacheKey !== cacheKey ? localStorage.getItem(`ai_img_${legacyCacheKey}`) : null) || 
-                       existingImageUrl;
-      if (savedImg) {
-        setCroppedImage(savedImg);
+      // 3. Restore image (prefer existingImageUrl, then IndexedDB)
+      if (existingImageUrl) {
+        setCroppedImage(existingImageUrl);
         setActiveTab('image');
+      } else {
+        try {
+          const idbImg = await idbGetPayload(`ai_img_${cacheKey}`) || await idbGetPayload(`ai_img_${legacyCacheKey}`);
+          if (idbImg && isMounted) {
+            setCroppedImage(idbImg);
+            setActiveTab('image');
+          }
+        } catch {}
       }
-    } catch {}
 
-    async function tryAutoSolve() {
-      // In PDF mode, questions are inside the PDF document. Auto-solve must NOT trigger with null/empty question!
+      // 4. In PDF mode, questions are inside PDF so no auto-solve without crop
       if (isPdfMode) return;
 
-      let effectiveHtml = htmlPayload || question?.htmlPayload || getHtmlFromActiveIframe();
-      if (!effectiveHtml || effectiveHtml === '[STORED_IN_INDEXEDDB]' || effectiveHtml === '[LOCALSTORAGE_CACHE]') {
-        const candidateKeys = [
-          testId,
-          String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, ''),
-          `q_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
-          `hw_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
-          toUUID(testId),
-          question?.id,
-          toUUID(question?.id)
-        ].filter(Boolean);
-        for (const k of candidateKeys) {
-          try {
-            const val = await idbGetPayload(String(k));
-            if (val && typeof val === 'string' && val.trim().length > 5 && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
-              effectiveHtml = val;
-              break;
-            }
-          } catch (e) {}
+      // 5. If NO cached solution exists, auto-solve once
+      if (!cachedSolution) {
+        let effectiveHtml = htmlPayload || question?.htmlPayload || getHtmlFromActiveIframe();
+        if (!effectiveHtml || effectiveHtml === '[STORED_IN_INDEXEDDB]' || effectiveHtml === '[LOCALSTORAGE_CACHE]') {
+          const candidateKeys = [
+            testId,
+            String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, ''),
+            `q_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+            `hw_${String(testId).replace(/^q_?|^hw_?|^test_?|^bt_?|^sub_?/, '')}`,
+            toUUID(testId),
+            question?.id,
+            toUUID(question?.id)
+          ].filter(Boolean);
+          for (const k of candidateKeys) {
+            try {
+              const val = await idbGetPayload(String(k));
+              if (val && typeof val === 'string' && val.trim().length > 5 && val !== '[STORED_IN_INDEXEDDB]' && val !== '[LOCALSTORAGE_CACHE]') {
+                effectiveHtml = val;
+                break;
+              }
+            } catch (e) {}
+          }
         }
-      }
 
-      const htmlQuestionText = extractTargetQuestionFromHtml(effectiveHtml, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
-      const rawQText = question?.questionText;
-      const effectiveText = isRealQuestionText(rawQText) ? rawQText : (isRealQuestionText(htmlQuestionText) ? htmlQuestionText : null);
+        const htmlQuestionText = extractTargetQuestionFromHtml(effectiveHtml, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo);
+        const rawQText = question?.questionText;
+        const effectiveText = isRealQuestionText(rawQText) ? rawQText : (isRealQuestionText(htmlQuestionText) ? htmlQuestionText : null);
+        const hasValidContent = Boolean(existingImageUrl || (effectiveHtml && effectiveHtml.length > 50 && htmlQuestionText) || effectiveText);
 
-      const hasValidContent = Boolean(existingImageUrl || (effectiveHtml && effectiveHtml.length > 50 && htmlQuestionText) || effectiveText);
-
-      if (!cachedSolution && hasValidContent) {
-        if (autoSolvedRef.current !== cacheKey) {
+        if (hasValidContent && autoSolvedRef.current !== cacheKey) {
           autoSolvedRef.current = cacheKey;
           handleSolve(null, effectiveHtml, false);
         }
       }
     }
-    tryAutoSolve();
+
+    loadCachedOrAutoSolve();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, cacheKey, existingImageUrl, htmlPayload, question]);
 
   // Global clipboard paste listener (Ctrl+V)
@@ -278,12 +321,14 @@ export default function ScreenSnipperAndSolverModal({
   };
 
   // Force Re-solve Handler
-  const handleReSolve = () => {
+  const handleReSolve = async () => {
     try {
-      localStorage.removeItem(`ai_sol_${cacheKey}`);
-      if (legacyCacheKey !== cacheKey) {
-        localStorage.removeItem(`ai_sol_${legacyCacheKey}`);
+      for (const k of candidateCacheKeys) {
+        localStorage.removeItem(k);
+        await idbDeletePayload(k);
       }
+      await idbDeletePayload(`ai_img_${cacheKey}`);
+      await idbDeletePayload(`ai_img_${legacyCacheKey}`);
     } catch {}
     setSolution(null);
     setError(null);
@@ -349,10 +394,10 @@ export default function ScreenSnipperAndSolverModal({
 
       setSolution(res);
 
-      // Persist the question image alongside solution in localStorage for instant reload
-      if (imgToSend) {
+      // Save custom cropped/uploaded image in IndexedDB (never in localStorage to prevent 5MB quota errors)
+      if (imgToSend && !existingImageUrl) {
         try {
-          localStorage.setItem(`ai_img_${cacheKey}`, imgToSend);
+          await idbSetPayload(`ai_img_${cacheKey}`, imgToSend);
         } catch {}
       }
 
