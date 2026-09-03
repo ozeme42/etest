@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Trash2, Lock, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search } from 'lucide-react';
+import { Plus, Trash2, Lock, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search, Compass, Layers } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useHomework } from '../context/HomeworkContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTes
 import { toUUID } from '../services/supabaseService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 import AddTaskModal from './program/AddTaskModal';
+import CurriculumRoadmapView from './roadmap/CurriculumRoadmapView';
 
 /* ─── Constants ─── */
 export const DAYS = [
@@ -1030,6 +1031,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedCurriculumPreview, setSelectedCurriculumPreview] = useState(null);
   const [selectedSubjectsForImport, setSelectedSubjectsForImport] = useState(new Set());
+  const [poolViewMode, setPoolViewMode] = useState('roadmap'); // 'roadmap' | 'list'
   
   const loadTemplate = (tplKey) => {
     if (!window.confirm(`Mevcut tüm dersleriniz silinecek ve ${tplKey} şablonu yüklenecek. Emin misiniz?`)) return;
@@ -1133,8 +1135,59 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
 
   return (
     <div>
-      {/* Şablon Yükleme Alanı */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+      {/* Görünüm Geçişi (Yol Haritası / Liste) & Şablon Butonu */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{
+          display: 'flex',
+          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+          padding: 3,
+          borderRadius: '0.75rem',
+          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'
+        }}>
+          <button
+            type="button"
+            onClick={() => setPoolViewMode('roadmap')}
+            style={{
+              padding: '0.35rem 0.85rem',
+              borderRadius: '0.6rem',
+              border: 'none',
+              background: poolViewMode === 'roadmap' ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'transparent',
+              color: poolViewMode === 'roadmap' ? '#ffffff' : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              boxShadow: poolViewMode === 'roadmap' ? '0 2px 8px rgba(124,58,237,0.35)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Compass size={14} /> 🗺️ Yol Haritası
+          </button>
+          <button
+            type="button"
+            onClick={() => setPoolViewMode('list')}
+            style={{
+              padding: '0.35rem 0.85rem',
+              borderRadius: '0.6rem',
+              border: 'none',
+              background: poolViewMode === 'list' ? (isDark ? 'rgba(255,255,255,0.15)' : '#ffffff') : 'transparent',
+              color: poolViewMode === 'list' ? (isDark ? '#ffffff' : '#0f172a') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+              fontWeight: 800,
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              boxShadow: poolViewMode === 'list' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Layers size={14} /> 📋 Klasik Liste
+          </button>
+        </div>
+
         <button onClick={() => { setShowTemplates(p => !p); setSelectedCurriculumPreview(null); }}
           style={{ background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)', color: isDark ? '#a5b4fc' : '#6366f1', border: isDark ? '1.5px solid rgba(165,180,252,0.35)' : '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.45rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)' }}>
           📚 Şablon Yükle {showTemplates ? '▲' : '▼'}
@@ -1223,124 +1276,139 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
           )}
         </div>
       )}
-      {pool.length > 0 && (
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-          {[
-            { label: 'Toplam Ders', value: pool.length, color: '#818cf8', border: 'rgba(129,140,248,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#eef2ff' },
-            { label: 'Toplam Konu', value: pool.reduce((a, s) => a + s.topics.length, 0), color: '#c084fc', border: 'rgba(192,132,252,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#f5f3ff' },
-            { label: 'Tamamlanan', value: pool.reduce((a, s) => a + s.topics.filter(t => t.status === 'Tamamlandı').length, 0), color: '#34d399', border: 'rgba(52,211,153,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#f0fdf4' },
-          ].map(stat => (
-            <div key={stat.label} style={{ background: stat.bg, borderRadius: '0.85rem', padding: '0.7rem 1.1rem', flex: '1 1 120px', border: isDark ? `1.5px solid ${stat.border}` : 'none', boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
-              <div style={{ fontWeight: 900, fontSize: '1.3rem', color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginTop: 2 }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
+      {/* ── ROADMAP PATİKASI GÖRÜNÜMÜ ── */}
+      {poolViewMode === 'roadmap' && (
+        <CurriculumRoadmapView
+          topicPool={topicPool}
+          setTopicPool={setTopicPool}
+          onAssignTopic={onAssignTopic}
+          isDark={isDark}
+        />
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {pool.map((subject, idx) => {
-          const isOpen = expandedSubjects[subject.id];
-          const doneCount = subject.topics.filter(t => t.status === 'Tamamlandı').length;
-          const totalCount = subject.topics.length;
-          return (
-            <div key={`${subject.id || subject.name}_${idx}`} style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e8ecf0', overflow: 'hidden', boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(20px)' : 'none' }}>
-              <div onClick={() => toggleSubject(subject.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.85rem 1rem', cursor: 'pointer', gap: '0.75rem' }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: subject.color, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.9rem', color: isDark ? '#ffffff' : '#1e293b' }}>{subject.name}</div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.6)' : '#94a3b8', marginTop: 1 }}>{doneCount}/{totalCount} konu tamamlandı</div>
+      {/* ── KLASİK LİSTE GÖRÜNÜMÜ ── */}
+      {poolViewMode === 'list' && (
+        <>
+          {pool.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+              {[
+                { label: 'Toplam Ders', value: pool.length, color: '#818cf8', border: 'rgba(129,140,248,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#eef2ff' },
+                { label: 'Toplam Konu', value: pool.reduce((a, s) => a + s.topics.length, 0), color: '#c084fc', border: 'rgba(192,132,252,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#f5f3ff' },
+                { label: 'Tamamlanan', value: pool.reduce((a, s) => a + s.topics.filter(t => t.status === 'Tamamlandı').length, 0), color: '#34d399', border: 'rgba(52,211,153,0.35)', bg: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : '#f0fdf4' },
+              ].map(stat => (
+                <div key={stat.label} style={{ background: stat.bg, borderRadius: '0.85rem', padding: '0.7rem 1.1rem', flex: '1 1 120px', border: isDark ? `1.5px solid ${stat.border}` : 'none', boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.3rem', color: stat.color }}>{stat.value}</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginTop: 2 }}>{stat.label}</div>
                 </div>
-                {totalCount > 0 && (
-                  <div style={{ width: 48, height: 4, background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', borderRadius: 99 }}>
-                    <div style={{ height: 4, borderRadius: 99, width: `${Math.round((doneCount / totalCount) * 100)}%`, background: subject.color }} />
-                  </div>
-                )}
-                <button onClick={e => { e.stopPropagation(); deleteSubject(subject.id); }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.3)' : '#e2e8f0', padding: 4, borderRadius: 6, display: 'flex' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                  onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.3)' : '#e2e8f0'}>
-                  <Trash2 size={14} />
-                </button>
-                {isOpen ? <ChevronDown size={16} color={isDark ? '#a5b4fc' : '#94a3b8'} /> : <ChevronRight size={16} color={isDark ? '#a5b4fc' : '#94a3b8'} />}
-              </div>
+              ))}
+            </div>
+          )}
 
-              {isOpen && (
-                <div style={{ padding: '0 1rem 1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.65rem' }}>
-                    {subject.topics.map((topic, tIdx) => {
-                      const sc = STATUS_COLORS[topic.status] || STATUS_COLORS['Başlanmadı'];
-                      return (
-                        <div key={`${topic.id || topic.name}_${tIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.65rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: '0.6rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9', flexWrap: 'wrap' }}>
-                          <div style={{ flex: 1, minWidth: 110, fontSize: '0.83rem', fontWeight: 700, color: isDark ? '#ffffff' : '#374151' }}>{topic.name}</div>
-                          
-                          {/* Quick Assign Action Chips */}
-                          {onAssignTopic && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-                              <button
-                                title="Konu Çalışması Olarak Programa Ekle"
-                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'konu' }); }}
-                                style={{ padding: '3px 7px', border: '1px solid rgba(129,140,248,0.35)', borderRadius: '0.4rem', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                              >
-                                📖 Çalış
-                              </button>
-                              <button
-                                title="Soru Çözümü Olarak Programa Ekle"
-                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'soru' }); }}
-                                style={{ padding: '3px 7px', border: '1px solid rgba(251,146,60,0.35)', borderRadius: '0.4rem', background: 'rgba(234,88,12,0.2)', color: '#fb923c', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                              >
-                                ✏️ Soru
-                              </button>
-                              <button
-                                title="Tekrar Olarak Programa Ekle"
-                                onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'tekrar' }); }}
-                                style={{ padding: '3px 7px', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.4rem', background: 'rgba(16,185,129,0.2)', color: '#34d399', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-                              >
-                                🔄 Tekrar
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {pool.map((subject, idx) => {
+              const isOpen = expandedSubjects[subject.id];
+              const doneCount = subject.topics.filter(t => t.status === 'Tamamlandı').length;
+              const totalCount = subject.topics.length;
+              return (
+                <div key={`${subject.id || subject.name}_${idx}`} style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 27, 75, 0.92) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.14)' : '1.5px solid #e8ecf0', overflow: 'hidden', boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.3)' : 'none', backdropFilter: isDark ? 'blur(20px)' : 'none' }}>
+                  <div onClick={() => toggleSubject(subject.id)} style={{ display: 'flex', alignItems: 'center', padding: '0.85rem 1rem', cursor: 'pointer', gap: '0.75rem' }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: subject.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: isDark ? '#ffffff' : '#1e293b' }}>{subject.name}</div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.6)' : '#94a3b8', marginTop: 1 }}>{doneCount}/{totalCount} konu tamamlandı</div>
+                    </div>
+                    {totalCount > 0 && (
+                      <div style={{ width: 48, height: 4, background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', borderRadius: 99 }}>
+                        <div style={{ height: 4, borderRadius: 99, width: `${Math.round((doneCount / totalCount) * 100)}%`, background: subject.color }} />
+                      </div>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); deleteSubject(subject.id); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.3)' : '#e2e8f0', padding: 4, borderRadius: 6, display: 'flex' }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                      onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.3)' : '#e2e8f0'}>
+                      <Trash2 size={14} />
+                    </button>
+                    {isOpen ? <ChevronDown size={16} color={isDark ? '#a5b4fc' : '#94a3b8'} /> : <ChevronRight size={16} color={isDark ? '#a5b4fc' : '#94a3b8'} />}
+                  </div>
+
+                  {isOpen && (
+                    <div style={{ padding: '0 1rem 1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.65rem' }}>
+                        {subject.topics.map((topic, tIdx) => {
+                          const sc = STATUS_COLORS[topic.status] || STATUS_COLORS['Başlanmadı'];
+                          return (
+                            <div key={`${topic.id || topic.name}_${tIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.65rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', borderRadius: '0.6rem', border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #f1f5f9', flexWrap: 'wrap' }}>
+                              <div style={{ flex: 1, minWidth: 110, fontSize: '0.83rem', fontWeight: 700, color: isDark ? '#ffffff' : '#374151' }}>{topic.name}</div>
+                              
+                              {/* Quick Assign Action Chips */}
+                              {onAssignTopic && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                                  <button
+                                    title="Konu Çalışması Olarak Programa Ekle"
+                                    onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'konu' }); }}
+                                    style={{ padding: '3px 7px', border: '1px solid rgba(129,140,248,0.35)', borderRadius: '0.4rem', background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                                  >
+                                    📖 Çalış
+                                  </button>
+                                  <button
+                                    title="Soru Çözümü Olarak Programa Ekle"
+                                    onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'soru' }); }}
+                                    style={{ padding: '3px 7px', border: '1px solid rgba(251,146,60,0.35)', borderRadius: '0.4rem', background: 'rgba(234,88,12,0.2)', color: '#fb923c', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                                  >
+                                    ✏️ Soru
+                                  </button>
+                                  <button
+                                    title="Tekrar Olarak Programa Ekle"
+                                    onClick={e => { e.stopPropagation(); onAssignTopic({ subjectName: subject.name, topicName: topic.name, taskType: 'tekrar' }); }}
+                                    style={{ padding: '3px 7px', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.4rem', background: 'rgba(16,185,129,0.2)', color: '#34d399', fontSize: '0.67rem', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+                                  >
+                                    🔄 Tekrar
+                                  </button>
+                                </div>
+                              )}
+
+                              <select value={topic.status} onChange={e => updateTopicStatus(subject.id, topic.id, e.target.value)} onClick={e => e.stopPropagation()}
+                                style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 6px', border: `1.5px solid ${sc.border}`, borderRadius: '0.4rem', background: isDark ? 'rgba(0,0,0,0.4)' : sc.bg, color: isDark ? '#ffffff' : sc.text, outline: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                                {TOPIC_STATUSES.map(s => <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
+                              </select>
+                              <button onClick={() => deleteTopic(subject.id, topic.id)}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.4)' : '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4, flexShrink: 0 }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                                onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.4)' : '#cbd5e1'}>
+                                <Trash2 size={12} />
                               </button>
                             </div>
-                          )}
-
-                          <select value={topic.status} onChange={e => updateTopicStatus(subject.id, topic.id, e.target.value)} onClick={e => e.stopPropagation()}
-                            style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 6px', border: `1.5px solid ${sc.border}`, borderRadius: '0.4rem', background: isDark ? 'rgba(0,0,0,0.4)' : sc.bg, color: isDark ? '#ffffff' : sc.text, outline: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                            {TOPIC_STATUSES.map(s => <option key={s} value={s} style={{ background: '#0f172a', color: '#ffffff' }}>{s}</option>)}
-                          </select>
-                          <button onClick={() => deleteTopic(subject.id, topic.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(255,255,255,0.4)' : '#cbd5e1', padding: 2, display: 'flex', borderRadius: 4, flexShrink: 0 }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
-                            onMouseLeave={e => e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.4)' : '#cbd5e1'}>
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.65rem' }}>
-                    <input value={newTopics[subject.id] || ''} onChange={e => setNewTopics(prev => ({ ...prev, [subject.id]: e.target.value }))}
-                      onKeyDown={e => e.key === 'Enter' && addTopic(subject.id)} placeholder="Yeni konu ekle..."
-                      style={{ flex: 1, padding: '0.45rem 0.7rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.55rem', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', background: isDark ? 'rgba(255,255,255,0.07)' : 'white', color: isDark ? '#ffffff' : '#0f172a' }} />
-                    <button onClick={() => addTopic(subject.id)}
-                      style={{ padding: '0.45rem 0.8rem', background: (newTopics[subject.id] || '').trim() ? subject.color : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), color: (newTopics[subject.id] || '').trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.55rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
-                      Ekle
-                    </button>
-                  </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.65rem' }}>
+                        <input value={newTopics[subject.id] || ''} onChange={e => setNewTopics(prev => ({ ...prev, [subject.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && addTopic(subject.id)} placeholder="Yeni konu ekle..."
+                          style={{ flex: 1, padding: '0.45rem 0.7rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.55rem', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', background: isDark ? 'rgba(255,255,255,0.07)' : 'white', color: isDark ? '#ffffff' : '#0f172a' }} />
+                        <button onClick={() => addTopic(subject.id)}
+                          style={{ padding: '0.45rem 0.8rem', background: (newTopics[subject.id] || '').trim() ? subject.color : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), color: (newTopics[subject.id] || '').trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.55rem', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer' }}>
+                          Ekle
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
 
-      <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px dashed rgba(129,140,248,0.35)' : '1.5px dashed #c7d2fe', padding: '1rem', marginTop: '0.75rem', display: 'flex', gap: '0.65rem', alignItems: 'center', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
-        <BookOpen size={18} color="#818cf8" style={{ flexShrink: 0 }} />
-        <input value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSubject()}
-          placeholder="Yeni ders ekle (Örn: Matematik)..."
-          style={{ flex: 1, padding: '0.5rem 0.7rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.55rem', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', background: isDark ? 'rgba(255,255,255,0.07)' : 'white', color: isDark ? '#ffffff' : '#0f172a' }} />
-        <button onClick={addSubject}
-          style={{ padding: '0.5rem 1rem', background: newSubjectName.trim() ? 'linear-gradient(135deg,#6366f1,#7c3aed)' : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), color: newSubjectName.trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.55rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: newSubjectName.trim() ? '0 2px 8px rgba(99,102,241,0.3)' : 'none' }}>
-          + Ders Ekle
-        </button>
-      </div>
+          <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 27, 75, 0.9) 100%)' : 'white', borderRadius: '1rem', border: isDark ? '1.5px dashed rgba(129,140,248,0.35)' : '1.5px dashed #c7d2fe', padding: '1rem', marginTop: '0.75rem', display: 'flex', gap: '0.65rem', alignItems: 'center', backdropFilter: isDark ? 'blur(16px)' : 'none' }}>
+            <BookOpen size={18} color="#818cf8" style={{ flexShrink: 0 }} />
+            <input value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSubject()}
+              placeholder="Yeni ders ekle (Örn: Matematik)..."
+              style={{ flex: 1, padding: '0.5rem 0.7rem', border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #e2e8f0', borderRadius: '0.55rem', fontSize: '0.85rem', outline: 'none', fontFamily: 'inherit', background: isDark ? 'rgba(255,255,255,0.07)' : 'white', color: isDark ? '#ffffff' : '#0f172a' }} />
+            <button onClick={addSubject}
+              style={{ padding: '0.5rem 1rem', background: newSubjectName.trim() ? 'linear-gradient(135deg,#6366f1,#7c3aed)' : (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'), color: newSubjectName.trim() ? 'white' : '#94a3b8', border: 'none', borderRadius: '0.55rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: newSubjectName.trim() ? '0 2px 8px rgba(99,102,241,0.3)' : 'none' }}>
+              + Ders Ekle
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -3039,7 +3107,26 @@ export default function ProgramCenter({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [programTab, setProgramTab] = useState('haftalik');
+  const location = useLocation();
+  const [programTab, setProgramTab] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab');
+      if (t === 'konular' || t === 'aylik' || t === 'haftalik') return t;
+    } catch {}
+    return 'haftalik';
+  });
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const t = params.get('tab');
+      if (t && (t === 'konular' || t === 'aylik' || t === 'haftalik')) {
+        setProgramTab(t);
+      }
+    } catch {}
+  }, [location.search]);
+
   const [addingToDay, setAddingToDay] = useState(null);
   const [weekOffset, setWeekOffset] = useState(0);
   const [weeklyPrintOrientation, setWeeklyPrintOrientation] = useState('landscape');
@@ -3050,7 +3137,6 @@ export default function ProgramCenter({
   const [expandedDayTasks, setExpandedDayTasks] = useState({});
   const [daySearchQueries, setDaySearchQueries] = useState({});
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handlePrevDay = useCallback(() => {
     const currentIndex = DAYS.findIndex(d => d.key === selectedDayFilter);

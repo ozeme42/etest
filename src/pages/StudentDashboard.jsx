@@ -3746,7 +3746,13 @@ export default function StudentDashboard() {
                   isMobile={isMobile}
                   isDark={isDark}
                   myRoadmaps={myRoadmaps}
-                  onNavigateRoadmap={(id) => navigate(`/student/study-plan/${id}`)}
+                  onNavigateRoadmap={(id) => {
+                    if (id === 'curriculum-roadmap') {
+                      navigate('/my-program?tab=konular');
+                    } else {
+                      navigate(`/student/study-plan/${id}`);
+                    }
+                  }}
                 />
               </>
             )}

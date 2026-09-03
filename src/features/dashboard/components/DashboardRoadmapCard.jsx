@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Compass } from 'lucide-react';
 
 const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
   isMobile,
@@ -30,19 +30,40 @@ const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
         </div>
 
         <span style={{ background: isDark ? 'rgba(124, 58, 237, 0.2)' : 'rgba(124, 58, 237, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.7rem', fontWeight: 900 }}>
-          {myRoadmaps.length} Harita
+          {myRoadmaps.length > 0 ? `${myRoadmaps.length} Atanmış Harita` : 'Müfredat Haritası'}
         </span>
       </div>
 
       {myRoadmaps.length === 0 ? (
-        <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
-          <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>🎯</div>
-          <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
-            Henüz atanmış bir yol haritanız yok
+        <div style={{ padding: '1.75rem 1.25rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1.5px dashed var(--color-border-input, #cbd5e1)' }}>
+          <div style={{ fontSize: '2.4rem', marginBottom: 6 }}>🗺️</div>
+          <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '1rem', marginBottom: 4 }}>
+            Sınıf & Konu Yol Haritanız Hazır!
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
-            Koçunuz tarafından atanacak ders çalışma planları burada gösterilecektir.
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)', maxWidth: 360, margin: '0 auto 1rem auto', lineHeight: 1.4 }}>
+            Derslerinizin tüm ünite ve konularını görsel bir patika üzerinde adım adım takip edebilir, ilerlemenizi kaydedebilirsiniz.
           </div>
+          <button
+            type="button"
+            onClick={() => onNavigateRoadmap && onNavigateRoadmap('curriculum-roadmap')}
+            style={{
+              background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+              border: 'none',
+              borderRadius: 99,
+              color: '#ffffff',
+              padding: '0.55rem 1.35rem',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
+              transition: 'transform 0.15s ease'
+            }}
+          >
+            <Compass size={15} /> 🗺️ Yol Haritasını Keşfet
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -83,6 +104,27 @@ const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
               </div>
             </div>
           ))}
+
+          {/* Full Curriculum Roadmap Link */}
+          <div style={{ textAlign: 'center', paddingTop: 6, borderTop: isDark ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #e2e8f0' }}>
+            <button
+              type="button"
+              onClick={() => onNavigateRoadmap && onNavigateRoadmap('curriculum-roadmap')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: isDark ? '#a5b4fc' : '#6366f1',
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}
+            >
+              <Compass size={13} /> Tüm Sınıf &amp; Konu Müfredat Yol Haritası ↗
+            </button>
+          </div>
         </div>
       )}
     </div>
