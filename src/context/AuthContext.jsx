@@ -140,9 +140,16 @@ export function AuthProvider({ children }) {
           const authEmail = fullEmail.includes('@') ? fullEmail : `${cleanEmail}@etest.com`;
           const { data, error: supaErr } = await supabase.auth.signInWithPassword({ email: authEmail, password });
           if (!supaErr && data?.user) {
-            const role = data.user.user_metadata?.role || foundUser?.role || 'student';
-            const isApproved = foundUser?.isApproved !== undefined 
-              ? foundUser.isApproved 
+            // Find in currentUsersList or query users table directly to guarantee exact role from PostgreSQL database
+            const matchedDbUser = foundUser || (currentUsersList || []).find(u => 
+              String(u.id) === String(data.user.id) || 
+              (u.email && u.email.toLowerCase() === (data.user.email || '').toLowerCase())
+            );
+
+            // DB role has 100% priority over raw user_metadata
+            const role = matchedDbUser?.role || data.user.user_metadata?.role || 'student';
+            const isApproved = matchedDbUser?.isApproved !== undefined 
+              ? matchedDbUser.isApproved 
               : (data.user.user_metadata?.isApproved !== undefined ? data.user.user_metadata.isApproved : (role === 'teacher' ? false : true));
 
             if (role === 'teacher' && !isApproved) {
@@ -156,14 +163,14 @@ export function AuthProvider({ children }) {
             const userObj = {
               id: data.user.id,
               email: data.user.email,
-              name: foundUser?.name || data.user.user_metadata?.name || data.user.email.split('@')[0],
+              name: matchedDbUser?.name || data.user.user_metadata?.name || data.user.email.split('@')[0],
               password: password,
               role,
-              gradeId: foundUser?.gradeId || data.user.user_metadata?.gradeId || 'g1',
+              gradeId: matchedDbUser?.gradeId || data.user.user_metadata?.gradeId || 'g1',
               isApproved
             };
             setCurrentUser(userObj);
-            if (!foundUser) {
+            if (!matchedDbUser) {
               await dbAddUser(userObj);
             }
             setLoading(false);

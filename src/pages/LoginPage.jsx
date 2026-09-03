@@ -56,9 +56,9 @@ export default function LoginPage() {
         }
         const res = await login(email, password);
         if (res.success) {
-          if (res.user?.role === 'student') navigate('/student');
+          if (res.user?.role === 'admin') navigate('/admin');
           else if (res.user?.role === 'teacher') navigate('/teacher');
-          else navigate('/admin');
+          else navigate('/student');
         } else {
           setErrorMessage(res.error || 'Giriş bilgileri hatalı. Lütfen kontrol ediniz.');
         }
