@@ -4,49 +4,39 @@ export const GEMINI_AVAILABLE_MODELS = [
   {
     id: 'gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash-Lite',
-    tag: '⚡ En Hızlı & Anlık Yanıt (Önerilen)',
-    desc: "1-2 saniyede anında soru çözümü, fotoğraf tanıma ve ultra düşük gecikme sağlayan en hafif ve en hızlı resmi model.",
-    badge: 'En Hızlı',
-    color: '#10b981',
-    bg: 'rgba(16, 185, 129, 0.12)',
-    border: '#86efac'
+    tag: '⚡ Hızlı & Yüksek Kota (Önerilen)',
+    desc: "Düşük gecikmeli, yüksek kotalı ve seri soru çözümleri için Google tarafından optimize edilmiş Flash Lite sürümü.",
+    badge: 'Önerilen',
+    color: '#0284c7',
+    bg: 'rgba(2, 132, 199, 0.12)',
+    border: '#7dd3fc'
   },
   {
     id: 'gemini-3.7-flash',
     name: 'Gemini 3.7 Flash',
-    tag: '⭐ En Yeni Nesil Amiral Gemisi',
-    desc: "Google'ın en gelişmiş yeni nesil Flash modeli; karmaşık şekilli sorular, grafikler ve MEB kazanımları için üstün başarı.",
+    tag: '🧠 İleri Düzey Düşünme & Hibrit',
+    desc: "Google'ın en gelişmiş yeni nesil hibrit modeli; karmaşık şekilli sorular, grafikler ve MEB kazanımları için üstün başarı.",
     badge: 'Yeni Nesil',
     color: '#7c3aed',
     bg: 'rgba(124, 58, 237, 0.12)',
     border: '#c084fc'
   },
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    tag: '🚀 Yüksek Kararlılık',
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    tag: '🚀 Güçlü & Kararlı',
     desc: "Geniş bağlam ve güvenilir görsel analiz performansı sunan kararlı üretim modeli.",
     badge: 'Kararlı',
-    color: '#6366f1',
-    bg: 'rgba(99, 102, 241, 0.12)',
-    border: '#a5b4fc'
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.12)',
+    border: '#6ee7b7'
   },
   {
-    id: 'gemini-2.5-flash-lite',
-    name: 'Gemini 2.5 Flash-Lite',
-    tag: '⚡ Hızlı & Hafif',
-    desc: "Düşük gecikmeli ve ekonomik soru çözümleri için optimize edilmiş Flash Lite sürümü.",
-    badge: 'Hızlı',
-    color: '#0284c7',
-    bg: 'rgba(2, 132, 199, 0.12)',
-    border: '#7dd3fc'
-  },
-  {
-    id: 'gemini-3.1-pro',
-    name: 'Gemini 3.1 Pro',
-    tag: '🧠 Derin Muhakeme & Uzman',
-    desc: "İleri düzey matematik, geometri ve karmaşık fen soruları için en yüksek akıl yürütme kapasitesi.",
-    badge: 'Uzman',
+    id: 'gemini-3.5-flash-lite',
+    name: 'Gemini 3.5 Flash-Lite',
+    tag: '🎯 Hafif & Güvenilir',
+    desc: "Alternatif hafif üretim modeli.",
+    badge: 'Hafif',
     color: '#ec4899',
     bg: 'rgba(236, 72, 153, 0.12)',
     border: '#f472b6'
@@ -566,9 +556,10 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
     preferredModel,
     'gemini-3.1-flash-lite',
     'gemini-3.7-flash',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-3.1-pro'
+    'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
+    'gemini-flash-latest'
   ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
   for (const model of prioritizedModels) {
@@ -577,13 +568,13 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         try {
-          controller.abort(new Error(`Timeout: ${model} 10 saniyede yanıt vermedi.`));
+          controller.abort(new Error(`Timeout: ${model} 35 saniyede yanıt vermedi.`));
         } catch {
           controller.abort();
         }
-      }, 10000);
+      }, 35000);
 
-      const isThinkingModel = model.includes('3.7') || model.includes('3.1-pro');
+      const isThinkingModel = model.includes('3.7');
       const bodyWithModelConfig = {
         ...requestBody,
         generationConfig: {
