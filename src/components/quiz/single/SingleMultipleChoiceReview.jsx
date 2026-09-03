@@ -32,35 +32,53 @@ export default function SingleMultipleChoiceReview({
 
   const normalizeAns = (val) => {
     if (val === null || val === undefined || val === '' || val === 'empty') return null;
-    if (typeof val === 'number') return val;
+    if (val === 'ʊ') return 0;
+    if (typeof val === 'number') return (!isNaN(val) && val >= 0 && val <= 4) ? val : null;
     const str = String(val).trim().toUpperCase();
+    if (str === 'ʊ') return 0;
     if (/^[A-E]$/.test(str)) return str.charCodeAt(0) - 65;
     const num = Number(str);
-    return (!isNaN(num) && num >= 0 && num <= 4) ? num : str;
+    return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
+  };
+
+  const toSafeVal = (v) => {
+    if (v === undefined || v === null || v === '' || v === 'empty') return null;
+    if (v === 'ʊ') return 'A';
+    if (typeof v === 'number') return (!isNaN(v) && v >= 0 && v <= 4) ? String.fromCharCode(65 + v) : v;
+    const s = String(v).trim();
+    if (s === 'ʊ') return 'A';
+    if (/^[A-Ea-e]$/.test(s)) return s.toUpperCase();
+    const n = parseInt(s, 10);
+    if (!isNaN(n) && n >= 0 && n <= 4) return String.fromCharCode(65 + n);
+    return s;
   };
 
   const resolveCorrectForQ = (qNo, idx, ansObj, q, testObj) => {
     const isValidVal = (v) => v !== undefined && v !== null && (typeof v === 'string' ? v.trim() !== '' && v.trim() !== 'empty' : true);
 
-    if (isValidVal(ansObj?.correctAnswer)) return ansObj.correctAnswer;
-    if (isValidVal(ansObj?.correctAnswerLetter)) return ansObj.correctAnswerLetter;
-    if (isValidVal(q?.correctAnswer)) return q.correctAnswer;
-    if (isValidVal(q?.correct_answer)) return q.correct_answer;
-    if (isValidVal(q?.bankQ?.correctAnswer)) return q.bankQ.correctAnswer;
-    if (isValidVal(q?.bankQ?.correct_answer)) return q.bankQ.correct_answer;
-    if (isValidVal(q?.correctAnswerLetter)) return q.correctAnswerLetter;
-    if (isValidVal(q?.correctOption)) return q.correctOption;
-    if (isValidVal(q?.answer)) return q.answer;
-    if (isValidVal(testObj?.correctAnswer)) return testObj.correctAnswer;
-    if (isValidVal(testObj?.correct_answer)) return testObj.correct_answer;
-    if (isValidVal(testObj?.bankQ?.correctAnswer)) return testObj.bankQ.correctAnswer;
+    const directCandidate = (() => {
+      if (toSafeVal(ansObj?.correctAnswer)) return toSafeVal(ansObj.correctAnswer);
+      if (toSafeVal(ansObj?.correctAnswerLetter)) return toSafeVal(ansObj.correctAnswerLetter);
+      if (toSafeVal(q?.correctAnswer)) return toSafeVal(q.correctAnswer);
+      if (toSafeVal(q?.correct_answer)) return toSafeVal(q.correct_answer);
+      if (toSafeVal(q?.bankQ?.correctAnswer)) return toSafeVal(q.bankQ.correctAnswer);
+      if (toSafeVal(q?.bankQ?.correct_answer)) return toSafeVal(q.bankQ.correct_answer);
+      if (toSafeVal(q?.correctAnswerLetter)) return toSafeVal(q.correctAnswerLetter);
+      if (toSafeVal(q?.correctOption)) return toSafeVal(q.correctOption);
+      if (toSafeVal(q?.answer)) return toSafeVal(q.answer);
+      if (toSafeVal(testObj?.correctAnswer)) return toSafeVal(testObj.correctAnswer);
+      if (toSafeVal(testObj?.correct_answer)) return toSafeVal(testObj.correct_answer);
+      if (toSafeVal(testObj?.bankQ?.correctAnswer)) return toSafeVal(testObj.bankQ.correctAnswer);
+      return null;
+    })();
+    if (directCandidate !== null) return directCandidate;
 
     for (const exp of [q?.explanation, q?.bankQ?.explanation, testObj?.explanation, testObj?.bankQ?.explanation]) {
       if (typeof exp === 'string' && exp.trim().startsWith('{')) {
         try {
           const parsed = JSON.parse(exp);
-          if (isValidVal(parsed.correctAnswer)) return parsed.correctAnswer;
-          if (isValidVal(parsed.correct_answer)) return parsed.correct_answer;
+          if (toSafeVal(parsed.correctAnswer)) return toSafeVal(parsed.correctAnswer);
+          if (toSafeVal(parsed.correct_answer)) return toSafeVal(parsed.correct_answer);
         } catch {}
       }
     }
@@ -69,10 +87,10 @@ export default function SingleMultipleChoiceReview({
     if (ak) {
       if (typeof ak === 'object' && !Array.isArray(ak)) {
         const val = ak[qNo] ?? ak[String(qNo)] ?? ak[idx] ?? ak[String(idx)];
-        if (isValidVal(val)) return val;
+        if (toSafeVal(val)) return toSafeVal(val);
       } else if (Array.isArray(ak)) {
         const val = ak[idx] ?? ak[qNo];
-        if (isValidVal(val)) return val;
+        if (toSafeVal(val)) return toSafeVal(val);
       } else if (typeof ak === 'string') {
         const clean = ak.replace(/[^A-Ea-e]/g, '').toUpperCase();
         if (clean[idx]) return clean[idx];
@@ -101,10 +119,10 @@ export default function SingleMultipleChoiceReview({
     let isCorr = null;
 
     if (!isBlank) {
-      if (normC !== null && normC !== undefined) {
-        isCorr = (normU === normC);
-      } else if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
+      if (ansObj.isCorrect !== undefined && ansObj.isCorrect !== null) {
         isCorr = Boolean(ansObj.isCorrect);
+      } else if (normC !== null && normC !== undefined) {
+        isCorr = (normU === normC);
       } else {
         isCorr = true;
       }
@@ -350,8 +368,15 @@ export default function SingleMultipleChoiceReview({
                 {viewMode === 'single' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                     {(() => {
-                      const curQ = questions[activeQIdx] || {};
+                      const rawQ = questions[activeQIdx] || {};
                       const qNo = activeQIdx + 1;
+                      const curQ = {
+                        ...rawQ,
+                        options: (rawQ.options && rawQ.options.length > 0)
+                          ? rawQ.options
+                          : (test.options && test.options.length > 0 ? test.options : (rawQ.options || [])),
+                        questionText: rawQ.questionText || test.questionText || `Soru ${qNo}`
+                      };
                       const curAnsObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[activeQIdx] || {};
                       const curUAns = answersMap[qNo] ?? curAnsObj.userAnswer;
                       const curCAns = resolveCorrectForQ(qNo, activeQIdx, curAnsObj, curQ, test);
@@ -442,17 +467,24 @@ export default function SingleMultipleChoiceReview({
                 ) : (
                   questions.map((q, idx) => {
                     const qNo = idx + 1;
+                    const curQ = {
+                      ...(q || {}),
+                      options: (q?.options && q.options.length > 0)
+                        ? q.options
+                        : (test.options && test.options.length > 0 ? test.options : (q?.options || [])),
+                      questionText: q?.questionText || test.questionText || `Soru ${qNo}`
+                    };
                     const ansObj = (Array.isArray(answers) ? answers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo) : null) || answers[idx] || {};
                     const uAns = answersMap[qNo] ?? ansObj.userAnswer;
-                    const cAns = resolveCorrectForQ(qNo, idx, ansObj, q, test);
+                    const cAns = resolveCorrectForQ(qNo, idx, ansObj, curQ, test);
 
                     return (
                       <div key={idx} id={`review-q-${qNo}`}>
                         <MultipleChoiceReview
-                          question={q}
+                          question={curQ}
                           qNo={qNo}
                           totalQuestions={totalQuestions}
-                          imageUrls={q.images || q.imageUrls || (q.imageUrl ? [q.imageUrl] : [])}
+                          imageUrls={curQ.images || curQ.imageUrls || (curQ.imageUrl ? [curQ.imageUrl] : [])}
                           userAnswer={uAns}
                           correctAnswer={cAns}
                           isCorrect={isCorrectMap[qNo]}

@@ -125,8 +125,10 @@ export default function MultipleChoiceReview({
 
   const normalizeAns = (val) => {
     if (val === null || val === undefined || val === '' || val === 'empty') return null;
-    if (typeof val === 'number') return val;
+    if (val === 'ʊ') return 0;
+    if (typeof val === 'number') return (!isNaN(val) && val >= 0 && val <= 4) ? val : null;
     const str = String(val).trim().toUpperCase();
+    if (str === 'ʊ') return 0;
     if (/^[A-E]$/.test(str)) return str.charCodeAt(0) - 65;
     const num = Number(str);
     return (!isNaN(num) && num >= 0 && num <= 4) ? num : null;
@@ -159,9 +161,9 @@ export default function MultipleChoiceReview({
   const normalizedCorrect = normalizeAns(rawCorrect);
 
   const hasSelected = normalizedUser !== null;
-  const effectiveIsCorrect = (hasSelected && normalizedCorrect !== null)
-    ? normalizedUser === normalizedCorrect
-    : (isCorrect !== null && isCorrect !== undefined ? isCorrect : null);
+  const effectiveIsCorrect = (isCorrect !== null && isCorrect !== undefined)
+    ? isCorrect
+    : ((hasSelected && normalizedCorrect !== null) ? normalizedUser === normalizedCorrect : null);
 
   const rawOptions = extractQuestionOptions(question);
   const explicitCount = Number(

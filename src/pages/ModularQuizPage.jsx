@@ -1003,12 +1003,24 @@ export default function ModularQuizPage() {
 
       const answerKeyArr = test.answerKey || questions[0]?.answerKey || null;
       const answerKeyLetter = (answerKeyArr && Array.isArray(answerKeyArr)) ? answerKeyArr[qNo - 1] : null;
-      const finalCorrectAnswer = (ans.correctAnswerLetter !== undefined && ans.correctAnswerLetter !== null && ans.correctAnswerLetter !== '')
-        ? ans.correctAnswerLetter
-        : (ans.correctAnswer !== undefined && ans.correctAnswer !== null && ans.correctAnswer !== '')
-          ? (typeof ans.correctAnswer === 'number' ? String.fromCharCode(65 + ans.correctAnswer) : String(ans.correctAnswer))
-          : answerKeyLetter
-          ?? (qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null));
+
+      const toSafeLetter = (val) => {
+        if (val === null || val === undefined || val === '' || val === 'empty') return null;
+        if (typeof val === 'number') return (!isNaN(val) && val >= 0 && val <= 4) ? String.fromCharCode(65 + val) : String(val);
+        const s = String(val).trim();
+        if (s === 'ʊ') return 'A';
+        if (/^[A-Ea-e]$/.test(s)) return s.toUpperCase();
+        const n = parseInt(s, 10);
+        if (!isNaN(n) && n >= 0 && n <= 4) return String.fromCharCode(65 + n);
+        return s;
+      };
+
+      const finalCorrectAnswer = toSafeLetter(ans.correctAnswerLetter)
+        || toSafeLetter(ans.correctAnswer)
+        || toSafeLetter(answerKeyLetter)
+        || toSafeLetter(qObj.correctAnswerLetter)
+        || toSafeLetter(qObj.correctAnswer)
+        || null;
 
       return {
         ...ans,
@@ -1052,6 +1064,16 @@ export default function ModularQuizPage() {
     });
 
     const effectiveHwId = activeHomework ? activeHomework.id : (String(testId || '').startsWith('hw_') ? testId : null);
+    const isActualBook = Boolean(
+      test.isBookAssignment ||
+      test.sourceType === 'trackedBook' ||
+      test.sourceType === 'bookTest' ||
+      test.sourceType === 'book' ||
+      test.bookId ||
+      String(test.id).startsWith('bt_') ||
+      String(test.id).startsWith('tbt_')
+    );
+
     const submissionData = {
       id: draftSubmission ? draftSubmission.id : newSubId,
       testId: test.id,
@@ -1062,8 +1084,8 @@ export default function ModularQuizPage() {
       studentName: searchParams.get('studentName') || 'Öğrenci',
       subject: test.subject || test.publisher || 'Genel',
       bookId: test.bookId || null,
-      bookTestId: test.id,
-      bookTestIds: test.tests || [test.id],
+      bookTestId: isActualBook ? test.id : null,
+      bookTestIds: isActualBook ? (test.tests || [test.id]) : null,
       openEndedText: derivedOpenEndedText,
       questionsList: questions.map(q => ({
         id: q.id,
@@ -1193,7 +1215,7 @@ export default function ModularQuizPage() {
         ...ans,
         isCorrect,
         isOpenEnded: isAcikUclu,
-        correctAnswer: ans.correctAnswerLetter || ans.correctAnswer || qObj.correctAnswerLetter || (qObj.correctAnswer !== null && qObj.correctAnswer !== undefined ? String.fromCharCode(65 + qObj.correctAnswer) : null)
+        correctAnswer: toSafeLetter(ans.correctAnswerLetter) || toSafeLetter(ans.correctAnswer) || toSafeLetter(qObj.correctAnswerLetter) || toSafeLetter(qObj.correctAnswer) || null
       };
     });
 
@@ -1201,14 +1223,14 @@ export default function ModularQuizPage() {
 
     const draftData = {
       testId: test.id,
-      hwId: String(test.id) !== String(testId) ? testId : null,
+      hwId: String(test.id) !== String(testId) ? testId : (String(test.id).startsWith('hw_') ? test.id : null),
       testTitle: test.title || test.name || 'Sınav',
       studentId: studentId,
       studentName: searchParams.get('studentName') || 'Öğrenci',
       subject: test.subject || test.publisher || 'Genel',
       bookId: test.bookId || null,
-      bookTestId: test.id,
-      bookTestIds: test.tests || [test.id],
+      bookTestId: isActualBook ? test.id : null,
+      bookTestIds: isActualBook ? (test.tests || [test.id]) : null,
       isOpenEnded: isAcikUclu,
       openEndedText: derivedOpenEndedText,
       answers: evaluatedAnswers,

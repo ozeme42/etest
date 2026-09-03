@@ -474,6 +474,12 @@ export default function ModularQuizReviewPage() {
           else if (expectedQCount === 1 && !isPlaceholder(foundTest.questionText)) resolvedText = foundTest.questionText;
           else resolvedText = existingQ.questionText || `Soru ${qNo}`;
 
+          const finalOptions = (existingQ.options && existingQ.options.length > 0)
+            ? existingQ.options
+            : ((subQ.options && subQ.options.length > 0)
+                ? subQ.options
+                : ((expectedQCount === 1 && foundTest.options && foundTest.options.length > 0) ? foundTest.options : (existingQ.options || [])));
+
           expanded.push({
             ...existingQ,
             ...subQ,
@@ -481,6 +487,7 @@ export default function ModularQuizReviewPage() {
             id: existingQ.id || subQ.id || subAns.questionId || `q_${qNo}`,
             questionNo: qNo,
             questionText: resolvedText,
+            options: finalOptions,
             userAnswer: subAns.userAnswer ?? existingQ.userAnswer,
             userAnswerText: subAns.userAnswerText || subAns.studentAnswerText || existingQ.userAnswerText || ''
           });
@@ -500,10 +507,18 @@ export default function ModularQuizReviewPage() {
             else if (!isPlaceholder(subQ.text)) resolvedText = subQ.text;
             else if (!isPlaceholder(subAns.questionText)) resolvedText = subAns.questionText;
             else if (!isPlaceholder(subAns.text)) resolvedText = subAns.text;
+            else if (expectedQCount === 1 && !isPlaceholder(foundTest.questionText)) resolvedText = foundTest.questionText;
           }
+
+          const finalOptions = (q.options && q.options.length > 0)
+            ? q.options
+            : ((subQ.options && subQ.options.length > 0)
+                ? subQ.options
+                : ((expectedQCount === 1 && foundTest.options && foundTest.options.length > 0) ? foundTest.options : (q.options || [])));
 
           return {
             ...q,
+            options: finalOptions,
             questionText: resolvedText || q.questionText || `Soru ${qNo}`,
             userAnswerText: q.userAnswerText || subAns.userAnswerText || subAns.studentAnswerText || ''
           };
@@ -824,20 +839,31 @@ export default function ModularQuizReviewPage() {
     (questions && questions.some(q => q.imageUrl || (q.imageUrls && q.imageUrls.length > 0) || q.contentPayload?.startsWith?.('data:image') || q.contentType === 'gorsel'))
   );
 
-  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended and NOT digital/image/remedial/pdf)
-  const isBookOrOptical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isPdf && !isHtml && !isSectionOpenEnded(test) && Boolean(
-    test.bookId ||
-    test.bookTestId ||
-    submission?.bookId ||
-    submission?.bookTestId ||
+  const hasDigitalQuestions = Boolean(
+    (questions && questions.length > 0 && questions.some(q => (q.questionText && q.questionText.trim().length > 0) || (Array.isArray(q.options) && q.options.length > 1))) ||
+    test.questionText ||
+    (Array.isArray(test.options) && test.options.length > 1) ||
+    test.contentType === 'text' ||
+    test.contentType === 'json' ||
+    (test.questionsList && test.questionsList.length > 0)
+  );
+
+  const isHomework = Boolean(
+    String(test.id || '').startsWith('hw_') ||
+    String(submission?.testId || '').startsWith('hw_') ||
+    String(submission?.hwId || '').startsWith('hw_') ||
+    test.questionIds?.length > 0
+  );
+
+  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended, NOT homework, NO digital questions, and NOT digital/image/remedial/pdf)
+  const isBookOrOptical = !isHomework && !hasDigitalQuestions && !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isPdf && !isHtml && !isSectionOpenEnded(test) && Boolean(
+    test.isBookAssignment ||
     test.sourceType === 'trackedBook' ||
     test.sourceType === 'bookTest' ||
-    test.sourceType === 'optik' ||
     test.sourceType === 'book' ||
     test.sourceType === 'study_room_optical' ||
     submission?.sourceType === 'trackedBook' ||
     submission?.sourceType === 'bookTest' ||
-    submission?.sourceType === 'optik' ||
     submission?.sourceType === 'book' ||
     submission?.sourceType === 'study_room_optical' ||
     submission?.typeKey === 'book' ||
@@ -848,7 +874,6 @@ export default function ModularQuizReviewPage() {
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
     test.type === 'optik_form' ||
-    test.isBookAssignment ||
     test.isPhysical ||
     String(test.id || '').startsWith('bt_') ||
     String(test.id || '').startsWith('tbt_') ||
@@ -856,20 +881,16 @@ export default function ModularQuizReviewPage() {
     String(submission?.testId || '').startsWith('tbt_') ||
     String(submission?.id || '').startsWith('bt_') ||
     String(submission?.id || '').startsWith('tbt_') ||
+    (test.bookId && test.bookId !== null && String(test.bookId).trim() !== '' && !String(test.id).startsWith('hw_')) ||
+    (submission?.bookId && submission?.bookId !== null && String(submission?.bookId).trim() !== '' && !String(submission?.testId).startsWith('hw_')) ||
     (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
       String(bt.id) === String(test.id) || 
       String(bt.id) === String(submission?.testId) || 
-      String(bt.id) === String(submission?.bookTestId) ||
       (toUUID(bt.id) && (toUUID(bt.id) === toUUID(test.id) || toUUID(bt.id) === toUUID(submission?.testId)))
-    )) ||
-    (books && Array.isArray(books) && books.some(b => 
-      String(b.id) === String(test.bookId) || 
-      String(b.id) === String(submission?.bookId) ||
-      (toUUID(b.id) && (toUUID(b.id) === toUUID(test.bookId) || toUUID(b.id) === toUUID(submission?.bookId)))
     ))
   );
 
-  const isPhysical = !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isPdf && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+  const isPhysical = !isHomework && !hasDigitalQuestions && !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isPdf && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
@@ -977,19 +998,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Physical & Tracked Book Review (Supports Optical Multiple Choice for paper books)
-  if (isPhysical || isBookOrOptical) {
-    return (
-      <PhysicalQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 5. Single HTML Review
+  // 4. Single HTML Review
   if (isHtml) {
     return (
       <HtmlQuizReview
@@ -1001,7 +1010,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 6. Single Image Review
+  // 5. Single Image Review
   if (isImageTest) {
     return (
       <ImageQuizReview
@@ -1013,7 +1022,31 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 7. Default: Single Multiple-Choice Review
+  // 6. Single Digital Multiple Choice Review (For Question Bank questions/homeworks with text & options)
+  if (hasDigitalQuestions || isMultipleChoiceTest) {
+    return (
+      <SingleMultipleChoiceReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 7. Physical & Tracked Book Review (Supports Optical Multiple Choice for paper books)
+  if (isPhysical || isBookOrOptical) {
+    return (
+      <PhysicalQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // Default: Single Multiple-Choice Review
   return (
     <SingleMultipleChoiceReview
       submission={submission}
