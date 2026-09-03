@@ -1187,6 +1187,20 @@ export async function dbGetQuestions() {
         correctAnswer: q.correct_answer !== undefined ? q.correct_answer : '0',
         explanation: q.explanation || '',
         imageUrl: cleanImageUrl,
+        questionsList: (() => {
+          if (Array.isArray(q.questions_list) && q.questions_list.length > 0) return q.questions_list;
+          if (Array.isArray(q.questionsList) && q.questionsList.length > 0) return q.questionsList;
+          const payload = q.content_payload || q.contentPayload;
+          if (typeof payload === 'string' && (payload.includes('"questionText"') || payload.includes('"options"') || q.content_type === 'json')) {
+            try {
+              const clean = payload.replace(/\|/g, '').trim();
+              const parsed = JSON.parse(clean);
+              if (Array.isArray(parsed)) return parsed;
+              if (parsed && Array.isArray(parsed.questions)) return parsed.questions;
+            } catch {}
+          }
+          return null;
+        })(),
         createdAt: q.created_at
       };
     });
@@ -1328,6 +1342,10 @@ export async function dbAddQuestion(q) {
       if (typeof payload === 'string') {
         if (isHtmlPayload(payload)) {
           return await processBase64String(payload, suffix);
+        }
+        const trimmed = payload.trim();
+        if (q.contentType === 'json' || (trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+          return payload;
         }
         if (payload.includes('\n') || payload.includes('|')) {
           const parts = payload.split(/\n\n|\n|\|/).map(s => s.trim()).filter(Boolean);

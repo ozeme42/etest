@@ -982,7 +982,8 @@ export default function QuestionBank() {
         setEditableQuestionsList(list);
       } else if (richPayload) {
         try {
-          const parsed = JSON.parse(richPayload);
+          const cleanPayload = typeof richPayload === 'string' ? richPayload.replace(/\|/g, '') : richPayload;
+          const parsed = JSON.parse(cleanPayload);
           if (Array.isArray(parsed)) {
             const list = parsed.map((item, idx) => {
               let cAns = item.correctAnswer !== undefined ? item.correctAnswer : item.correctAnswerLetter;
@@ -4746,60 +4747,108 @@ export default function QuestionBank() {
               <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: '1.25rem', padding: '1.75rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', marginBottom: '1.5rem' }}>
                 
                 {/* 0. WRITTEN TEXT BUNDLE PREVIEW (questionsList for non-visual tests) */}
-                {q.contentType !== 'gorsel' && (!q.imageUrls || q.imageUrls.length === 0) && q.questionsList && q.questionsList.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', marginBottom: '1.25rem' }}>
-                      📚 Toplu Yazılı Test Soruları ({q.questionsList.length} Soru - Art Arda Sıralı):
-                    </h4>
+                {(() => {
+                  const resolvedQuestionsList = (() => {
+                    if (Array.isArray(q.questionsList) && q.questionsList.length > 0) return q.questionsList;
+                    const payload = q.contentPayload || q.content_payload;
+                    if (typeof payload === 'string' && (payload.includes('"questionText"') || payload.includes('"options"') || q.contentType === 'json')) {
+                      try {
+                        const clean = payload.replace(/\|/g, '').trim();
+                        const parsed = JSON.parse(clean);
+                        if (Array.isArray(parsed)) return parsed;
+                        if (parsed && Array.isArray(parsed.questions)) return parsed.questions;
+                      } catch {}
+                    }
+                    return [];
+                  })();
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                      {q.questionsList.map((qItem, iIdx) => (
-                        <div key={iIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
-                            <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
-                              Soru {iIdx + 1}
-                            </span>
-                          </div>
+                  if (q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0)) {
+                    return null;
+                  }
+                  if (resolvedQuestionsList.length === 0) {
+                    return null;
+                  }
 
-                          <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
-                            {qItem.questionText}
-                          </h5>
+                  const normKeyList = normalizeAnswerKey(q.answerKey);
 
-                          {qItem.options && qItem.options.length > 0 && q.type !== 'acik_uclu' && q.type !== 'yazili' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
-                              {qItem.options.map((opt, oIdx) => {
-                                const isCorrect = qItem.correctAnswer === oIdx;
-                                return (
-                                  <div
-                                    key={oIdx}
-                                    style={{
-                                      padding: '0.75rem 1rem', borderRadius: '0.75rem',
-                                      border: isCorrect ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
-                                      background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
-                                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
-                                    }}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <span style={{ fontWeight: 900, width: '24px', height: '24px', borderRadius: '50%', background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'), color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
-                                        {String.fromCharCode(65 + oIdx)}
-                                      </span>
-                                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#0f172a') }}>{opt}</span>
-                                    </div>
-                                    {isCorrect && (
-                                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
-                                        <Check size={14} strokeWidth={3} /> Doğru
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                  return (
+                    <div>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', marginBottom: '1.25rem' }}>
+                        📚 Toplu Yazılı Test Soruları ({resolvedQuestionsList.length} Soru - Art Arda Sıralı):
+                      </h4>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                        {resolvedQuestionsList.map((qItem, iIdx) => {
+                          const kAns = normKeyList[iIdx];
+                          const expectedIdx = typeof kAns === 'number' ? kAns : (typeof kAns === 'string' && /^[A-E]$/i.test(kAns.trim()) ? (kAns.trim().toUpperCase().charCodeAt(0) - 65) : (typeof qItem.correctAnswer === 'number' ? qItem.correctAnswer : (typeof qItem.correctAnswer === 'string' && /^[A-E]$/i.test(qItem.correctAnswer.trim()) ? (qItem.correctAnswer.trim().toUpperCase().charCodeAt(0) - 65) : -1)));
+
+                          const isOpenEnded = q.type === 'acik_uclu' || q.type === 'yazili' || qItem.type === 'acik_uclu' || (!qItem.options || qItem.options.length === 0);
+
+                          return (
+                            <div key={iIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', boxShadow: isDark ? 'none' : '0 2px 8px rgba(0,0,0,0.03)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                                <span style={{ background: '#4f46e5', color: 'white', fontWeight: 900, fontSize: '0.8rem', padding: '0.2rem 0.65rem', borderRadius: '6px' }}>
+                                  Soru {iIdx + 1}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: isOpenEnded ? (isDark ? '#fbbf24' : '#d97706') : (isDark ? '#34d399' : '#16a34a') }}>
+                                  {isOpenEnded ? '📝 Açık Uçlu (Yazılı)' : '🔘 Çoktan Seçmeli'}
+                                </span>
+                              </div>
+
+                              <h5 style={{ fontSize: '1.05rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                                {qItem.questionText || `Soru ${iIdx + 1}`}
+                              </h5>
+
+                              {/* Multiple Choice Options */}
+                              {!isOpenEnded && qItem.options && qItem.options.length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                                  {qItem.options.map((opt, oIdx) => {
+                                    const isCorrect = expectedIdx === oIdx;
+                                    return (
+                                      <div
+                                        key={oIdx}
+                                        style={{
+                                          padding: '0.75rem 1rem', borderRadius: '0.75rem',
+                                          border: isCorrect ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                                          background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
+                                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                          <span style={{ fontWeight: 900, width: '24px', height: '24px', borderRadius: '50%', background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'), color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                                            {String.fromCharCode(65 + oIdx)}
+                                          </span>
+                                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#0f172a') }}>{opt}</span>
+                                        </div>
+                                        {isCorrect && (
+                                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', display: 'flex', alignItems: 'center', gap: '0.2rem', marginLeft: 'auto' }}>
+                                            <Check size={14} strokeWidth={3} /> Doğru
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Open Ended Expected Answer Box */}
+                              {isOpenEnded && (
+                                <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.75rem', background: isDark ? 'rgba(59,130,246,0.1)' : '#eff6ff', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: isDark ? '#93c5fd' : '#1d4ed8' }}>
+                                    💡 Beklenen / Doğru Cevap:
+                                  </span>
+                                  <span style={{ fontWeight: 900, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#0f172a' }}>
+                                    {kAns && String(kAns).trim() ? String(kAns).trim() : (qItem.correctAnswer !== undefined && qItem.correctAnswer !== null ? String(qItem.correctAnswer) : 'Açık uçlu serbest yanıt')}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* 1. TEXT QUESTION PREVIEW */}
                 {!q.questionsList && q.contentType === 'text' && (
