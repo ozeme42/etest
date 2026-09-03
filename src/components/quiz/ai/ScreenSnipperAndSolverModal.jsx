@@ -11,6 +11,7 @@ import { idbGetPayload } from '../../../services/indexedDbService';
 import { recordAiUsageLog } from '../../../services/aiUsageLogService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 /**
  * ScreenSnipperAndSolverModal
@@ -37,6 +38,7 @@ export default function ScreenSnipperAndSolverModal({
 }) {
   const { currentUser } = useAuth();
   const { isDark } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 960px)');
 
   const isRealQuestionText = (txt) => {
     if (!txt || typeof txt !== 'string') return false;
@@ -802,294 +804,422 @@ export default function ScreenSnipperAndSolverModal({
             style={{
               background: 'var(--color-surface)',
               color: 'var(--color-text)',
-              borderRadius: '1.5rem',
+              borderRadius: isMobile ? '1rem' : '1.5rem',
               border: '1.5px solid var(--color-border)',
-              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.3)',
-              maxWidth: 720,
-              width: '100%',
-              maxHeight: '90vh',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.4)',
+              maxWidth: isMobile ? '96vw' : '1400px',
+              width: isMobile ? '96vw' : '94vw',
+              height: isMobile ? '92vh' : '90vh',
+              maxHeight: '92vh',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden'
             }}
           >
-          {/* Header */}
-          <div style={{
-            padding: '1.2rem 1.5rem',
-            background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Sparkles size={22} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900 }}>
-                  Soru {questionNo} — Yapay Zeka Çözüm Asistanı
-                </h3>
-                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', opacity: 0.9 }}>
-                  {subject} {topic ? `• ${topic}` : ''} {mistakeReason ? `(Hata: ${mistakeReason})` : ''}
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={onClose}
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                border: 'none',
-                color: 'white',
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          {/* Action Toolbar / Capture Options */}
-          <div style={{
-            padding: '0.85rem 1.5rem',
-            background: 'var(--color-surface-hover)',
-            borderBottom: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '0.6rem',
-            flexShrink: 0
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {/* Screen Snipping Button */}
-              <button
-                onClick={startSnippingMode}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '0.6rem',
-                  background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
-                  border: 'none',
-                  color: 'white',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  boxShadow: '0 2px 8px rgba(168,85,247,0.3)'
-                }}
-              >
-                <Crop size={15} />
-                <span>✂️ Ekrandan Soruyu Kırp</span>
-              </button>
-
-              {/* Camera Snap (Mobile Friendly) */}
-              <button
-                onClick={() => cameraInputRef.current?.click()}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '0.6rem',
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border-input)',
-                  color: 'var(--color-text)',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
-                }}
-              >
-                <Camera size={15} color="#3b82f6" />
-                <span>📸 Fotoğraf Çek</span>
-              </button>
-
-              {/* 📸 Browser Screen Capture API */}
-              <button
-                onClick={handleCaptureScreen}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '0.6rem',
-                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12))',
-                  border: '1.5px solid rgba(99, 102, 241, 0.4)',
-                  color: '#4f46e5',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
-                }}
-                title="Tarayıcı ekran görüntüsü al ve anında çöz"
-              >
-                <Camera size={15} color="#4f46e5" />
-                <span>📸 Ekranı Yakala</span>
-              </button>
-
-              {/* Clipboard Paste (Ctrl+V) */}
-              <button
-                onClick={handleClipboardPaste}
-                style={{
-                  padding: '0.45rem 0.85rem',
-                  borderRadius: '0.6rem',
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid #a855f7',
-                  color: '#a855f7',
-                  fontWeight: 800,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
-                }}
-                title="Panodaki görseli yapıştır (Ctrl+V)"
-              >
-                <Copy size={14} />
-                <span>📋 Panodan Yapıştır (Ctrl+V)</span>
-              </button>
-
-              {/* File Upload */}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: '0.6rem',
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border-input)',
-                  color: 'var(--color-text-muted)',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem'
-                }}
-              >
-                <Upload size={14} />
-                <span>Görsel Yükle</span>
-              </button>
-
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: 'none' }}
-                onChange={handleImageFile}
-              />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handleImageFile}
-              />
-            </div>
-
-            {/* Direct Re-solve / Refresh */}
-            <button
-              onClick={handleReSolve}
-              disabled={loading}
-              style={{
-                padding: '0.45rem 0.85rem',
-                borderRadius: '0.6rem',
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-                border: 'none',
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '0.78rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                opacity: loading ? 0.6 : 1,
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
-              }}
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>{loading ? 'Yeniden Çözülüyor...' : 'Yeniden Çöz'}</span>
-            </button>
-          </div>
-
-          {/* Content Body */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '1.25rem 1.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.25rem'
-          }}>
-            {/* Target Question Preview Badge */}
-            {(isRealQuestionText(question?.questionText) || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)) && (
-              <div style={{
-                background: 'rgba(99, 102, 241, 0.06)',
-                border: '1.5px solid rgba(99, 102, 241, 0.25)',
-                borderRadius: '0.85rem',
-                padding: '0.75rem 1rem',
-                fontSize: '0.82rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4
-              }}>
-                <div style={{ fontWeight: 800, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <BookOpen size={15} />
-                  <span>🎯 Algılanan Hedef Soru ({questionNo}. Soru):</span>
+            {/* Header */}
+            <div style={{
+              padding: '1.1rem 1.5rem',
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 38, height: 38, borderRadius: '0.75rem', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={20} />
                 </div>
-                <div style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', lineHeight: 1.45, maxHeight: '90px', overflowY: 'auto', fontWeight: 600 }}>
-                  {question?.questionText || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)}
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900 }}>
+                    Soru {questionNo} — Yapay Zeka Çözüm Asistanı
+                  </h3>
+                  <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.78rem', opacity: 0.9 }}>
+                    {subject} {topic ? `• ${topic}` : ''} {mistakeReason ? `(Hata: ${mistakeReason})` : ''}
+                  </p>
                 </div>
               </div>
-            )}
 
-            {/* Cropped Preview (if any) */}
-            {croppedImage && (
-              <div style={{
-                background: 'var(--color-surface-hover)',
-                borderRadius: '0.85rem',
-                border: '1px solid var(--color-border)',
-                padding: '0.6rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.85rem'
-              }}>
-                <img
-                  src={croppedImage}
-                  alt="Kırpılan Soru"
-                  style={{
-                    maxHeight: 90,
-                    maxWidth: 160,
-                    borderRadius: '0.5rem',
-                    objectFit: 'contain',
-                    border: '1px solid var(--color-border)'
-                  }}
-                />
-                <div style={{ flex: 1, fontSize: '0.78rem' }}>
-                  <div style={{ fontWeight: 800, color: '#a855f7' }}>✓ Soru Görseli Alındı</div>
-                  <div style={{ color: 'var(--color-text-muted)', marginTop: 2 }}>
-                    Görsel bellekte işlendi, Gemini Vision analiz ediyor. (0 Byte DB Kotası)
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <button
-                  onClick={() => {
-                    setCroppedImage(null);
-                    handleReSolve();
+                  onClick={handleReSolve}
+                  disabled={loading}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '0.6rem',
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    opacity: loading ? 0.6 : 1,
+                    backdropFilter: 'blur(4px)'
                   }}
-                  style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
-                  title="Görseli Kaldır ve Metinden Çöz"
+                  title="Soruyu mevcut görselle sıfırdan yeniden çöz"
                 >
-                  <X size={16} />
+                  <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                  <span>{loading ? 'Yeniden Çözülüyor...' : 'Yeniden Çöz'}</span>
+                </button>
+
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <X size={18} />
                 </button>
               </div>
-            )}
+            </div>
+
+            {/* Main Workspace Body (Desktop Split 2-Columns: Sol Soru | Sağ Çözüm) */}
+            <div style={{
+              flex: 1,
+              overflow: 'hidden',
+              display: isMobile ? 'flex' : 'grid',
+              gridTemplateColumns: isMobile ? undefined : 'minmax(380px, 460px) 1fr',
+              flexDirection: isMobile ? 'column' : undefined,
+              height: '100%'
+            }}>
+              {/* ── SOL SÜTUN: SORU PANELİ & YAKALAMA ARAÇLARI ── */}
+              <div style={{
+                overflowY: 'auto',
+                padding: isMobile ? '1rem' : '1.25rem 1.4rem',
+                borderRight: isMobile ? 'none' : '1.5px solid var(--color-border)',
+                borderBottom: isMobile ? '1.5px solid var(--color-border)' : 'none',
+                background: 'var(--color-surface-hover)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                {/* Soru Kırpma & Görsel Araçları */}
+                <div style={{
+                  background: 'var(--color-surface)',
+                  borderRadius: '1rem',
+                  border: '1.5px solid var(--color-border)',
+                  padding: '0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.6rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Camera size={14} color="#7c3aed" /> Soru Kırpma & Görsel Araçları
+                    </span>
+                    {croppedImage && (
+                      <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 800 }}>
+                        ✓ Görsel Hazır
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.45rem' }}>
+                    <button
+                      onClick={startSnippingMode}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        border: 'none',
+                        color: 'white',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 8px rgba(168,85,247,0.3)'
+                      }}
+                    >
+                      <Crop size={14} />
+                      <span>✂️ Soruyu Kırp</span>
+                    </button>
+
+                    <button
+                      onClick={handleClipboardPaste}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'var(--color-surface)',
+                        border: '1.5px solid #a855f7',
+                        color: '#a855f7',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                      title="Panodaki görseli yapıştır (Ctrl+V veya Win+Shift+S)"
+                    >
+                      <Copy size={14} />
+                      <span>📋 Yapıştır (Ctrl+V)</span>
+                    </button>
+
+                    <button
+                      onClick={handleCaptureScreen}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1))',
+                        border: '1.5px solid rgba(99, 102, 241, 0.35)',
+                        color: '#4f46e5',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                      title="Tarayıcı ekran görüntüsü al ve soruyu seç"
+                    >
+                      <Camera size={14} color="#4f46e5" />
+                      <span>📸 Ekranı Yakala</span>
+                    </button>
+
+                    <button
+                      onClick={() => cameraInputRef.current?.click()}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'var(--color-surface)',
+                        border: '1.5px solid var(--color-border-input)',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <Camera size={14} color="#3b82f6" />
+                      <span>📸 Fotoğraf Çek</span>
+                    </button>
+
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.65rem',
+                        background: 'var(--color-surface)',
+                        border: '1.5px solid var(--color-border-input)',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 700,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem'
+                      }}
+                    >
+                      <Upload size={14} />
+                      <span>📁 Görsel Yükle</span>
+                    </button>
+                  </div>
+
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    style={{ display: 'none' }}
+                    onChange={handleImageFile}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleImageFile}
+                  />
+                </div>
+
+                {/* Kırpılan Soru Görseli Büyük Kartı */}
+                {croppedImage ? (
+                  <div style={{
+                    background: 'var(--color-surface)',
+                    borderRadius: '1rem',
+                    border: '1.5px solid var(--color-border)',
+                    padding: '0.85rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.65rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontWeight: 800, fontSize: '0.82rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <CheckCircle2 size={15} /> Kırpılan Soru Görseli
+                      </span>
+                      <button
+                        onClick={() => {
+                          setCroppedImage(null);
+                          try {
+                            localStorage.removeItem(`ai_img_${cacheKey}`);
+                            if (legacyCacheKey !== cacheKey) localStorage.removeItem(`ai_img_${legacyCacheKey}`);
+                          } catch {}
+                        }}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: '#ef4444',
+                          borderRadius: '0.45rem',
+                          padding: '0.2rem 0.5rem',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                        title="Görseli Kaldır"
+                      >
+                        <X size={12} /> Görseli Kaldır
+                      </button>
+                    </div>
+                    <div style={{
+                      borderRadius: '0.75rem',
+                      overflow: 'hidden',
+                      border: '1px solid var(--color-border)',
+                      background: 'rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.5rem',
+                      minHeight: 180
+                    }}>
+                      <img
+                        src={croppedImage}
+                        alt="Kırpılan Soru"
+                        style={{
+                          maxWidth: '100%',
+                          maxHeight: 380,
+                          objectFit: 'contain',
+                          borderRadius: '0.5rem'
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+                      ✓ Soru bellekte işlendi, Gemini Vision analiz etti. (0 Byte DB Kotası)
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    background: 'var(--color-surface)',
+                    borderRadius: '1rem',
+                    border: '2px dashed var(--color-border)',
+                    padding: '2.5rem 1.25rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.65rem'
+                  }}>
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '1rem',
+                      background: 'rgba(124, 58, 237, 0.1)',
+                      color: '#7c3aed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Crop size={24} />
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
+                      {isPdfMode ? `📄 ${questionNo}. Soruyu PDF'ten Kırpın` : 'Soruyu Kırpın veya Yükleyin'}
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', lineHeight: 1.45, maxWidth: 300 }}>
+                      {isPdfMode
+                        ? 'Klavyeden Win+Shift+S ile soruyu seçip Ctrl+V yapabilir veya yukarıdaki "✂️ Soruyu Kırp" butonunu kullanabilirsiniz.'
+                        : 'Yukarıdaki butonlarla soruyu kırpabilir, ekran görüntüsü yapıştırabilir veya fotoğraf çekebilirsiniz.'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Algılanan Hedef Soru Metni & Şıklar (eğer varsa) */}
+                {(isRealQuestionText(question?.questionText) || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)) && (
+                  <div style={{
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                    borderRadius: '0.85rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4
+                  }}>
+                    <div style={{ fontWeight: 800, color: '#4f46e5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <BookOpen size={15} />
+                      <span>🎯 Algılanan Hedef Soru ({questionNo}. Soru):</span>
+                    </div>
+                    <div style={{ color: 'var(--color-text)', whiteSpace: 'pre-wrap', lineHeight: 1.45, maxHeight: '120px', overflowY: 'auto', fontWeight: 600 }}>
+                      {question?.questionText || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Soru Bilgileri & Hata Nedeni Rozetleri */}
+                <div style={{
+                  background: 'var(--color-surface)',
+                  borderRadius: '0.85rem',
+                  border: '1px solid var(--color-border)',
+                  padding: '0.75rem 1rem',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '0.5rem',
+                  fontSize: '0.76rem'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>İşaretlenen:</span>
+                    <span style={{ fontWeight: 900, color: studentAnswer && studentAnswer !== 'Boş' ? '#ef4444' : 'var(--color-text-muted)' }}>
+                      {studentAnswer || 'Boş'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>Doğru Cevap:</span>
+                    <span style={{ fontWeight: 900, color: '#10b981' }}>
+                      {correctAnswer || 'Belirlenmedi'}
+                    </span>
+                  </div>
+                  {mistakeReason && (
+                    <div style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: 2, borderTop: '1px solid var(--color-border)', paddingTop: 4 }}>
+                      <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>Hata Sebebi:</span>
+                      <span style={{ fontWeight: 800, color: '#f59e0b' }}>
+                        {mistakeReason}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── SAĞ SÜTUN: YAPAY ZEKA ÇÖZÜM PANELİ ── */}
+              <div style={{
+                overflowY: 'auto',
+                padding: isMobile ? '1rem' : '1.25rem 1.75rem',
+                background: 'var(--color-surface)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.15rem'
+              }}>
 
             {/* Error View */}
             {error && (
@@ -1745,10 +1875,11 @@ export default function ScreenSnipperAndSolverModal({
                 </div>
               </div>
             )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* ── API KEY MODAL ── */}
       {apiKeyModalOpen && (
