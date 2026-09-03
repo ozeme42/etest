@@ -668,16 +668,37 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   const detailedAnswers = [];
 
   const titleLower = String(rawSub.title || rawSub.testTitle || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || '').toLowerCase();
-  const hasOEKeywords = titleLower.includes('açık uçlu') ||
-                        titleLower.includes('acik uclu') ||
-                        titleLower.includes('klasik') ||
-                        titleLower.includes('yazılı') ||
-                        titleLower.includes('yazili') ||
-                        titleLower.includes('görsel soru') ||
-                        titleLower.includes('gorsel soru') ||
-                        /\baç\b|\bac\b/.test(titleLower);
+  
+  const isExplicitMC = Boolean(
+    /\bçok\b|\bcok\b|çoktan|coktan/i.test(titleLower) ||
+    rawSub.type === 'multiple_choice' ||
+    rawSub.type === 'coktan_secmeli' ||
+    rawSub.questionType === 'multiple_choice' ||
+    rawSub.questionType === 'coktan_secmeli' ||
+    rawSub.contentType === 'multiple_choice' ||
+    rawSub.contentType === 'coktan_secmeli' ||
+    matchedHw?.type === 'multiple_choice' ||
+    matchedHw?.contentType === 'multiple_choice' ||
+    (Array.isArray(rawSub.answers) && rawSub.answers.length > 0 && rawSub.answers.every(a => 
+      typeof a === 'number' || (typeof a === 'string' && /^[A-E]$/i.test(a)) ||
+      (!a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+      (!a.userAnswerText || String(a.userAnswerText).trim().length === 0))
+    ))
+  );
 
-  const hasWrittenAnswers = Boolean(
+  const hasOEKeywords = !isExplicitMC && (
+    titleLower.includes('açık uçlu') ||
+    titleLower.includes('acik uclu') ||
+    titleLower.includes('klasik') ||
+    titleLower.includes('yazılı sınav') ||
+    titleLower.includes('klasik yazılı') ||
+    titleLower.includes('görsel soru') ||
+    titleLower.includes('gorsel soru') ||
+    /\baç\b|\bac\b/.test(titleLower) ||
+    (/\byazılı\b|\byazili\b/.test(titleLower) && !/\bçok\b|\bcok\b/i.test(titleLower))
+  );
+
+  const hasWrittenAnswers = !isExplicitMC && Boolean(
     (rawSub.openEndedText && Object.keys(rawSub.openEndedText).length > 0) ||
     rawSub.writtenAnswer ||
     rawSub.writtenAnswers ||
@@ -688,7 +709,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     ))
   );
 
-  const isSubWritten = Boolean(
+  const isSubWritten = !isExplicitMC && Boolean(
     rawSub.isOpenEnded ||
     rawSub.type === 'acik_uclu' ||
     rawSub.type === 'yazili' ||

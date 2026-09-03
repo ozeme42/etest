@@ -159,16 +159,34 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
             );
 
             const titleLower = String(test.title || test.testTitle || test.fullTitle || test.name || '').toLowerCase();
-            const hasOEKeywords = titleLower.includes('açık uçlu') ||
-                                  titleLower.includes('acik uclu') ||
-                                  titleLower.includes('klasik') ||
-                                  titleLower.includes('yazılı') ||
-                                  titleLower.includes('yazili') ||
-                                  titleLower.includes('görsel soru') ||
-                                  titleLower.includes('gorsel soru') ||
-                                  /\baç\b|\bac\b/.test(titleLower);
+            const isExplicitMC = Boolean(
+              /\bçok\b|\bcok\b|çoktan|coktan/i.test(titleLower) ||
+              test.type === 'multiple_choice' ||
+              test.type === 'coktan_secmeli' ||
+              test.questionType === 'multiple_choice' ||
+              test.questionType === 'coktan_secmeli' ||
+              test.contentType === 'multiple_choice' ||
+              test.contentType === 'coktan_secmeli' ||
+              (Array.isArray(test.answers) && test.answers.length > 0 && test.answers.every(a => 
+                typeof a === 'number' || (typeof a === 'string' && /^[A-E]$/i.test(a)) ||
+                (!a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
+                (!a.userAnswerText || String(a.userAnswerText).trim().length === 0))
+              ))
+            );
 
-            const hasWrittenAnswers = Boolean(
+            const hasOEKeywords = !isExplicitMC && (
+              titleLower.includes('açık uçlu') ||
+              titleLower.includes('acik uclu') ||
+              titleLower.includes('klasik') ||
+              titleLower.includes('yazılı sınav') ||
+              titleLower.includes('klasik yazılı') ||
+              titleLower.includes('görsel soru') ||
+              titleLower.includes('gorsel soru') ||
+              /\baç\b|\bac\b/.test(titleLower) ||
+              (/\byazılı\b|\byazili\b/.test(titleLower) && !/\bçok\b|\bcok\b/i.test(titleLower))
+            );
+
+            const hasWrittenAnswers = !isExplicitMC && Boolean(
               (test.openEndedText && Object.keys(test.openEndedText).length > 0) ||
               test.writtenAnswer ||
               test.writtenAnswers ||
@@ -179,7 +197,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
               ))
             );
 
-            const isWritten = Boolean(
+            const isWritten = !isExplicitMC && Boolean(
               test.isOpenEnded ||
               test.type === 'acik_uclu' ||
               test.type === 'yazili' ||
@@ -196,10 +214,12 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
             );
 
             const isPending = Boolean(
-              test.isPendingEvaluation ||
-              test.isManualPending ||
-              (isWritten && !isEvaluated) ||
-              (!isEvaluated && (hasWrittenAnswers || hasOEKeywords) && (!test.isPhysicalExam && !test.isExam && test.type !== 'physicalExam' && test.type !== 'optik_form' && test.type !== 'multiple_choice'))
+              !isExplicitMC && (
+                test.isPendingEvaluation ||
+                test.isManualPending ||
+                (isWritten && !isEvaluated) ||
+                (!isEvaluated && (hasWrittenAnswers || hasOEKeywords) && (!test.isPhysicalExam && !test.isExam && test.type !== 'physicalExam' && test.type !== 'optik_form' && test.type !== 'multiple_choice'))
+              )
             );
 
             const scoreRate = (test.score !== undefined && test.score !== null && !isPending)
@@ -307,11 +327,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                       </span>
                     ) : (
                       <>
-                        {isWritten ? (
-                          <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 800 }}>
-                            ✓ Öğretmen Notu Verildi
-                          </span>
-                        ) : (
+                        {(correct > 0 || wrong > 0 || !isWritten) ? (
                           <>
                             <span style={{ color: '#16a34a' }}>
                               ✓ {correct}D
@@ -325,11 +341,15 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                               </span>
                             )}
                           </>
+                        ) : (
+                          <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 800 }}>
+                            ✓ Öğretmen Notu Verildi
+                          </span>
                         )}
                         <span style={{ color: 'var(--color-text-muted)', opacity: 0.75 }}>
                           • {totalQ} Soru
                         </span>
-                        {test.net !== undefined && test.net !== null && !test.isOpenEnded && !isWritten && !isPending && (
+                        {test.net !== undefined && test.net !== null && (correct > 0 || wrong > 0 || !isWritten) && (
                           <span style={{ color: '#6366f1', fontWeight: 900 }}>
                             • {test.net} Net
                           </span>
