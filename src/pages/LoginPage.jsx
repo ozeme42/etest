@@ -9,7 +9,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, register, currentUser, logout } = useAuth();
+  const { login, register, currentUser, logout, fastDemoLogin } = useAuth();
   const { data: curData } = useCurriculum();
 
   const [isRegister, setIsRegister] = useState(false);
@@ -550,6 +550,127 @@ export default function LoginPage() {
             </span>
             {!isLoading && <ArrowRight size={18} />}
           </button>
+
+          {/* Quick Demo Login for Guests / Incognito */}
+          {!isRegister && (
+            <div style={{ marginTop: '1.25rem', paddingTop: '1.1rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: '#a5b4fc',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.65rem'
+              }}>
+                <Sparkles size={13} color="#818cf8" />
+                <span>Tek Tıkla Hızlı Giriş (Misafir / Test)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await fastDemoLogin('student');
+                      navigate('/student');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  style={{
+                    padding: '0.55rem 0.4rem',
+                    borderRadius: '0.85rem',
+                    background: 'rgba(99, 102, 241, 0.18)',
+                    border: '1px solid rgba(129, 140, 248, 0.3)',
+                    color: '#e0e7ff',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.35)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.18)'}
+                >
+                  <span style={{ fontSize: '1rem' }}>🎓</span>
+                  <span>Öğrenci</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await fastDemoLogin('teacher');
+                      navigate('/teacher');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  style={{
+                    padding: '0.55rem 0.4rem',
+                    borderRadius: '0.85rem',
+                    background: 'rgba(168, 85, 247, 0.18)',
+                    border: '1px solid rgba(192, 132, 252, 0.3)',
+                    color: '#f3e8ff',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.35)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(168, 85, 247, 0.18)'}
+                >
+                  <span style={{ fontSize: '1rem' }}>👩‍🏫</span>
+                  <span>Öğretmen</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      await fastDemoLogin('admin');
+                      navigate('/admin');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  style={{
+                    padding: '0.55rem 0.4rem',
+                    borderRadius: '0.85rem',
+                    background: 'rgba(236, 72, 153, 0.18)',
+                    border: '1px solid rgba(244, 114, 182, 0.3)',
+                    color: '#fce7f3',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(236, 72, 153, 0.35)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(236, 72, 153, 0.18)'}
+                >
+                  <span style={{ fontSize: '1rem' }}>⚙️</span>
+                  <span>Admin</span>
+                </button>
+              </div>
+            </div>
+          )}
         </form>
 
       </div>
