@@ -1060,13 +1060,47 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
       const unitsForSub = (curriculumData.units || []).filter(u => u.subjectId === sub.id);
       const unitIds = new Set(unitsForSub.map(u => u.id));
       const topicsForSub = (curriculumData.topics || []).filter(t => t.subjectId === sub.id || unitIds.has(t.unitId));
-      const topicNames = topicsForSub.map(t => t.name).filter(bool => bool);
       
+      const structuredUnits = unitsForSub.map((u, uIdx) => {
+        const uTopics = topicsForSub.filter(t => t.unitId === u.id).map((t, tIdx) => ({
+          id: t.id || uid(),
+          name: t.name,
+          status: 'Başlanmadı'
+        }));
+        return {
+          id: u.id || uid(),
+          name: u.name || `${uIdx + 1}. Ünite`,
+          topics: uTopics
+        };
+      });
+
+      const assignedTopicIds = new Set(structuredUnits.flatMap(u => u.topics.map(t => t.id)));
+      const unassignedTopics = topicsForSub.filter(t => !assignedTopicIds.has(t.id)).map(t => ({
+        id: t.id || uid(),
+        name: t.name,
+        status: 'Başlanmadı'
+      }));
+
+      if (unassignedTopics.length > 0) {
+        if (structuredUnits.length === 0) {
+          structuredUnits.push({
+            id: uid(),
+            name: '1. Ünite: Temel Konular',
+            topics: unassignedTopics
+          });
+        } else {
+          structuredUnits[0].topics = [...structuredUnits[0].topics, ...unassignedTopics];
+        }
+      }
+
+      const flatTopics = structuredUnits.flatMap(u => u.topics);
+
       return {
         id: sub.id,
         name: sub.name,
         color: colors[idx % colors.length],
-        topics: topicNames
+        units: structuredUnits,
+        topics: flatTopics
       };
     });
 
@@ -1084,11 +1118,16 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
       subjectsToImport.forEach(sub => {
         const existing = next.find(s => s.name.toLowerCase() === sub.name.toLowerCase());
         if (existing) {
-          const existingNames = new Set(existing.topics.map(t => t.name));
-          const newTopics = sub.topics.filter(n => !existingNames.has(n)).map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' }));
-          existing.topics = [...existing.topics, ...newTopics];
+          existing.units = sub.units || [];
+          existing.topics = sub.topics || [];
         } else {
-          next.push({ id: uid(), name: sub.name, color: sub.color, topics: sub.topics.map(n => ({ id: uid(), name: n, done: false, status: 'Başlanmadı' })) });
+          next.push({
+            id: uid(),
+            name: sub.name,
+            color: sub.color,
+            units: sub.units || [],
+            topics: sub.topics || []
+          });
         }
       });
       return next;
@@ -1247,21 +1286,15 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
             <>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: isDark ? '#ffffff' : '#334155', marginBottom: 12 }}>✨ Hazır Şablon & Kayıtlı Müfredatlardan Yükle</div>
               
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginBottom: 8 }}>📌 Sınav Hazırlık Şablonları:</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
-                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
-                      style={{ background: 'linear-gradient(135deg,#6366f1,#7c3aed)', color: 'white', border: 'none', borderRadius: '0.6rem', padding: '0.45rem 0.8rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
-                      <Plus size={14} /> {tplKey} Şablonu
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+              {/* 1. ÖNCELİKLİ: Kayıtlı MEB Sınıf Müfredatları (Ders -> Ünite -> Konu) */}
               {curriculumData?.grades && curriculumData.grades.length > 0 && (
-                <div style={{ paddingTop: 12, borderTop: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1px dashed #cbd5e1' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginBottom: 8 }}>🏫 Kayıtlı Sınıf Müfredatından Yükle:</div>
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    🏫 Kayıtlı MEB Sınıf Müfredatından Yükle <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: 99, background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>Ders ➔ Ünite ➔ Konu (Önerilen)</span>
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginBottom: 8 }}>
+                    Sistemde kayıtlı resmi MEB dersleri, üniteleri ve tüm kazanımları eksiksiz olarak yol haritanıza yüklenir.
+                  </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {curriculumData.grades.map(grade => (
                       <button key={grade.id} onClick={() => previewGradeCurriculum(grade.id)}
@@ -1272,6 +1305,21 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
                   </div>
                 </div>
               )}
+
+              {/* 2. Eski Sade Şablonlar */}
+              <div style={{ paddingTop: 12, borderTop: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', marginBottom: 6 }}>
+                  📌 Sade Sınav Konu Şablonları (Ünitesiz):
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {Object.keys(TOPIC_TEMPLATES).map(tplKey => (
+                    <button key={tplKey} onClick={() => loadTemplate(tplKey)}
+                      style={{ background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', color: isDark ? '#c7d2fe' : '#475569', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', borderRadius: '0.6rem', padding: '0.4rem 0.75rem', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Plus size={13} /> {tplKey}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
         </div>

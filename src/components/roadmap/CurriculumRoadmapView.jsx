@@ -118,6 +118,7 @@ export default function CurriculumRoadmapView({
   const [newTopicNames, setNewTopicNames] = useState({}); // { [unitId]: string }
   const [newSubjectName, setNewSubjectName] = useState('');
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
+  const [successNotice, setSuccessNotice] = useState('');
 
   const availableGrades = useMemo(() => {
     return curriculumData?.grades || [];
@@ -238,6 +239,42 @@ export default function CurriculumRoadmapView({
   };
 
   // ── MUTATION HELPERS (Save directly to topicPool & DB) ──
+  const handleSaveCurriculumAsMyRoadmap = () => {
+    const selectedGradeObj = availableGrades.find(g => String(g.id) === String(selectedSourceKey));
+    const gradeName = selectedGradeObj?.name || 'Seçili Sınıf';
+
+    if (!window.confirm(`"${gradeName}" müfredatını tüm dersleri, üniteleri ve konularıyla kişisel yol haritanız olarak kaydetmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    const clone = currentRoadmapSubjects.map(sub => ({
+      id: uid(),
+      name: sub.name,
+      color: sub.color || '#6366f1',
+      units: (sub.units || []).map((u, uIdx) => ({
+        id: uid(),
+        name: u.name || `${uIdx + 1}. Ünite`,
+        topics: (u.topics || []).map(t => ({
+          id: uid(),
+          name: t.name,
+          status: t.status || 'Başlanmadı'
+        }))
+      })),
+      topics: (sub.units || []).flatMap(u => (u.topics || []).map(t => ({
+        id: uid(),
+        name: t.name,
+        status: t.status || 'Başlanmadı'
+      })))
+    }));
+
+    if (setTopicPool) {
+      setTopicPool(clone);
+    }
+    setSelectedSourceKey('pool');
+    setSuccessNotice(`🎉 "${gradeName}" müfredatı tüm ders, ünite ve konularıyla kişisel yol haritanıza başarıyla kaydedildi!`);
+    setTimeout(() => setSuccessNotice(''), 5000);
+  };
+
   const updateTree = (updater) => {
     if (!setTopicPool) return;
     const baseTree = currentRoadmapSubjects.map(s => ({
@@ -259,6 +296,8 @@ export default function CurriculumRoadmapView({
     setTopicPool(finalizedTree);
     if (selectedSourceKey !== 'pool') {
       setSelectedSourceKey('pool');
+      setSuccessNotice('⭐ Yaptığınız düzenleme kişisel yol haritanıza kaydedildi!');
+      setTimeout(() => setSuccessNotice(''), 4000);
     }
   };
 
@@ -558,8 +597,60 @@ export default function CurriculumRoadmapView({
                 </option>
               ))}
             </select>
+
+            {/* Kayıtlı Sınıf Seçiliyse: "Bu Müfredatı Yol Haritam Olarak Kaydet" butonu */}
+            {selectedSourceKey !== 'pool' && (
+              <button
+                type="button"
+                onClick={handleSaveCurriculumAsMyRoadmap}
+                style={{
+                  padding: '0.38rem 0.85rem',
+                  borderRadius: '0.55rem',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                  color: '#ffffff',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.4)'
+                }}
+              >
+                <Sparkles size={14} /> ⭐ Bu Müfredatı Yol Haritam Olarak Kaydet
+              </button>
+            )}
           </div>
         </div>
+
+        {/* BAŞARI BİLDİRİM BANNERI */}
+        {successNotice && (
+          <div style={{
+            background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#ecfdf5',
+            border: '1.5px solid #10b981',
+            borderRadius: '0.85rem',
+            padding: '0.75rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            color: isDark ? '#6ee7b7' : '#065f46',
+            fontSize: '0.82rem',
+            fontWeight: 800,
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle2 size={18} color="#10b981" />
+              <span>{successNotice}</span>
+            </div>
+            <button
+              onClick={() => setSuccessNotice('')}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 2 }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* ── 2. OYUNLAŞTIRILMIŞ KPI & MOTİVASYON BARI ── */}
         <div style={{
