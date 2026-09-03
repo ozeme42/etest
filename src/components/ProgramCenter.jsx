@@ -1472,6 +1472,7 @@ export function MonthlyListPanel({
   weeklyProgram,
   allHomeworks,
   currentUser,
+  studentId,
   submissions,
   curData,
   books = [],
@@ -1485,6 +1486,7 @@ export function MonthlyListPanel({
   onStartStudy,
   isDark = false
 }) {
+  const effectiveStudentId = studentId || currentUser?.id;
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
   const [expandedMonthDays, setExpandedMonthDays] = useState({});
@@ -5620,6 +5622,7 @@ export default function ProgramCenter({
           weeklyProgram={weeklyProgram}
           allHomeworks={allHomeworks}
           currentUser={effectiveUser}
+          studentId={effectiveStudentId}
           submissions={submissions}
           curData={curData}
           books={books}
