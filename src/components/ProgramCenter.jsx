@@ -1182,13 +1182,15 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
           background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
           padding: 3,
           borderRadius: '0.75rem',
-          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0'
+          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+          flex: '1 1 200px'
         }}>
           <button
             type="button"
             onClick={() => setPoolViewMode('roadmap')}
             style={{
-              padding: '0.35rem 0.85rem',
+              flex: 1,
+              padding: '0.42rem 0.85rem',
               borderRadius: '0.6rem',
               border: 'none',
               background: poolViewMode === 'roadmap' ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'transparent',
@@ -1198,7 +1200,8 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              justifyContent: 'center',
+              gap: 6,
               boxShadow: poolViewMode === 'roadmap' ? '0 2px 8px rgba(124,58,237,0.35)' : 'none',
               transition: 'all 0.15s ease'
             }}
@@ -1209,7 +1212,8 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
             type="button"
             onClick={() => setPoolViewMode('list')}
             style={{
-              padding: '0.35rem 0.85rem',
+              flex: 1,
+              padding: '0.42rem 0.85rem',
               borderRadius: '0.6rem',
               border: 'none',
               background: poolViewMode === 'list' ? (isDark ? 'rgba(255,255,255,0.15)' : '#ffffff') : 'transparent',
@@ -1219,7 +1223,8 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              justifyContent: 'center',
+              gap: 6,
               boxShadow: poolViewMode === 'list' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 0.15s ease'
             }}
@@ -1229,7 +1234,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
         </div>
 
         <button onClick={() => { setShowTemplates(p => !p); setSelectedCurriculumPreview(null); }}
-          style={{ background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)', color: isDark ? '#a5b4fc' : '#6366f1', border: isDark ? '1.5px solid rgba(165,180,252,0.35)' : '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.45rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, backdropFilter: 'blur(8px)' }}>
+          style={{ background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.5)', color: isDark ? '#a5b4fc' : '#6366f1', border: isDark ? '1.5px solid rgba(165,180,252,0.35)' : '1.5px solid #c7d2fe', borderRadius: '0.65rem', padding: '0.45rem 0.85rem', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, backdropFilter: 'blur(8px)' }}>
           📚 Şablon Yükle {showTemplates ? '▲' : '▼'}
         </button>
       </div>
