@@ -76,17 +76,21 @@ export default function PhysicalExamRunner() {
   const returnUrl = location.state?.from || location.state?.returnUrl || queryParams.get('from');
   const studentId = paramStudentId || currentUser?.id;
 
-  const handleGoBack = () => {
-    if (returnUrl) {
-      navigate(returnUrl);
-    } else {
-      navigate(-1);
-    }
-  };
-
   const currentViewingStudent = users.find(u => u.id === studentId);
   const isTeacherReviewing = currentUser?.role !== 'student' && paramStudentId && paramStudentId !== currentUser?.id;
   const isTeacherOrAdmin = currentUser?.role === 'teacher' || currentUser?.role === 'admin' || currentUser?.role === 'coordinator' || isTeacherReviewing;
+
+  const handleGoBack = useCallback(() => {
+    if (returnUrl) {
+      navigate(returnUrl, { replace: true });
+    } else if (isTeacherReviewing || currentUser?.role === 'teacher') {
+      navigate('/teacher', { replace: true });
+    } else if (currentUser?.role === 'admin') {
+      navigate('/admin', { replace: true });
+    } else {
+      navigate('/student/exams', { replace: true });
+    }
+  }, [returnUrl, isTeacherReviewing, currentUser, navigate]);
 
   const homework = useMemo(() => {
     const cleanId = String(hwId || '');
@@ -789,7 +793,7 @@ export default function PhysicalExamRunner() {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: 0 }}>Fiziki Deneme Bulunamadı</h2>
         <p style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: 400, margin: 0 }}>Aradığınız deneme mevcut değil veya silinmiş olabilir.</p>
         <button 
-          onClick={() => navigate(-1)} 
+          onClick={handleGoBack} 
           style={{ marginTop: '0.5rem', padding: '0.75rem 1.5rem', background: '#4f46e5', color: 'white', fontWeight: 900, borderRadius: '0.75rem', border: 'none', cursor: 'pointer' }}
         >
           Geri Dön
@@ -819,10 +823,7 @@ export default function PhysicalExamRunner() {
           boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
         }}>
           <button
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate('/');
-            }}
+            onClick={handleGoBack}
             style={{
               background: 'var(--color-surface-hover)',
               border: '1.5px solid var(--color-border)',
@@ -1133,10 +1134,7 @@ export default function PhysicalExamRunner() {
             {/* Left: Back Arrow + Title & Meta */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
               <button
-                onClick={() => {
-                  if (window.history.length > 1) navigate(-1);
-                  else navigate('/');
-                }}
+                onClick={handleGoBack}
                 style={{
                   background: 'var(--color-surface-hover)',
                   border: '1px solid var(--color-border)',
@@ -1345,10 +1343,7 @@ export default function PhysicalExamRunner() {
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <button 
-                onClick={() => {
-                  if (window.history.length > 1) navigate(-1);
-                  else navigate('/');
-                }}
+                onClick={handleGoBack}
                 style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 title="Geri Dön"
               >
@@ -1581,7 +1576,7 @@ export default function PhysicalExamRunner() {
             <span style={{ background: '#2563eb', color: 'white', padding: '2px 8px', borderRadius: 6, fontSize: '0.7rem' }}>Öğretmen İncelemesi</span>
             <span>{currentViewingStudent.name} isimli öğrencinin optik formunu inceliyorsunuz.</span>
           </div>
-          <button onClick={() => navigate(-1)} style={{ background: '#ffffff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '0.3rem 0.8rem', borderRadius: 6, fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
+          <button onClick={handleGoBack} style={{ background: '#ffffff', border: '1px solid #bfdbfe', color: '#1e40af', padding: '0.3rem 0.8rem', borderRadius: 6, fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer' }}>
             ← Geri
           </button>
         </div>
