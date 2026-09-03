@@ -9,6 +9,41 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
   onReviewTest,
   selectedStudent
 }) {
+  const displayTests = React.useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    const sorted = [...(recentSolvedTests || [])].sort((a, b) => {
+      const aTitle = String(a.fullTitle || a.testTitle || a.title || '');
+      const bTitle = String(b.fullTitle || b.testTitle || b.title || '');
+      const aIsExam = Boolean(a.isPhysicalExam || a.typeKey === 'physicalExam' || /deneme|sınav/i.test(aTitle) || a.subject === 'Genel');
+      const bIsExam = Boolean(b.isPhysicalExam || b.typeKey === 'physicalExam' || /deneme|sınav/i.test(bTitle) || b.subject === 'Genel');
+      if (aIsExam && !bIsExam) return -1;
+      if (!aIsExam && bIsExam) return 1;
+      return 0;
+    });
+
+    sorted.forEach(t => {
+      const dStr = String(t.date || t.submittedAt || '').slice(0, 10);
+      const titleStr = String(t.fullTitle || t.testTitle || t.title || '').trim();
+      const isExam = Boolean(t.isPhysicalExam || t.typeKey === 'physicalExam' || /deneme|sınav/i.test(titleStr) || t.subject === 'Genel');
+      const isGenTest = /^(test|yeni nesil|ü\.?\s*değ)[-\s]?\d*$/i.test(titleStr) || titleStr === 'Test';
+      const scoreKey = `${dStr}_${t.correctCount || 0}_${t.wrongCount || 0}_${t.totalQuestions || 0}`;
+
+      if (t.id && seen.has(`id_${t.id}`)) return;
+      if (t.submissionId && seen.has(`id_${t.submissionId}`)) return;
+      if (seen.has(`score_${scoreKey}`) && (isGenTest || isExam)) return;
+
+      if (t.id) seen.add(`id_${t.id}`);
+      if (t.submissionId) seen.add(`id_${t.submissionId}`);
+      if (isExam || t.totalQuestions >= 20 || isGenTest || t.subject === 'Genel') {
+        seen.add(`score_${scoreKey}`);
+      }
+      list.push(t);
+    });
+
+    return list.slice(0, 5);
+  }, [recentSolvedTests]);
+
   return (
     <div className="sd-card" style={{
       padding: isMobile ? '0.75rem 0.65rem' : '1.35rem 1.6rem',
@@ -93,7 +128,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
       </div>
 
       {/* Test Listesi */}
-      {recentSolvedTests.length === 0 ? (
+      {displayTests.length === 0 ? (
         <div style={{ padding: '1.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 12, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
           <div style={{ fontSize: '1.6rem', marginBottom: 4 }}>📊</div>
           <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.85rem', marginBottom: 2 }}>
@@ -105,7 +140,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.4rem' : '0.55rem' }}>
-          {recentSolvedTests.map((test, idx) => {
+          {displayTests.map((test, idx) => {
             const totalQ = Number(test.totalQuestions) || ((Number(test.correctCount) || 0) + (Number(test.wrongCount) || 0) + (Number(test.emptyCount) || 0)) || 0;
             const correct = Number(test.correctCount) || 0;
             const wrong = Number(test.wrongCount) || 0;
@@ -140,6 +175,19 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                   ? Number(test.scorePercentage)
                   : (totalQ > 0 && !isPending ? Math.round((correct / totalQ) * 100) : null));
 
+            const isDenemeExam = Boolean(
+              test.isPhysicalExam ||
+              test.isExam ||
+              test.typeKey === 'physicalExam' ||
+              test.type === 'physicalExam' ||
+              test.sourceType === 'physicalExam' ||
+              /deneme|sınav/i.test(test.title || '') ||
+              /deneme|sınav/i.test(test.testTitle || '') ||
+              /deneme|sınav/i.test(test.fullTitle || '') ||
+              test.subject === 'Genel' ||
+              test.subjectName === 'Genel'
+            );
+
             return (
               <div
                 key={test.id || idx}
@@ -173,7 +221,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                     }}>
                       {test.subject}
                     </span>
-                    {Boolean(test.unitTopic && test.unitTopic !== test.title && test.unitTopic !== test.subTitle && (!test.subTitle || !test.unitTopic.toLowerCase().includes(test.subTitle.toLowerCase()))) && (
+                    {!isDenemeExam && Boolean(test.unitTopic && test.unitTopic !== test.title && test.unitTopic !== test.subTitle && (!test.subTitle || !test.unitTopic.toLowerCase().includes(test.subTitle.toLowerCase()))) && (
                       <span style={{
                         background: 'rgba(245, 158, 11, 0.12)',
                         color: '#b45309',

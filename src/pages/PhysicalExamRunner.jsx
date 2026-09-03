@@ -727,6 +727,12 @@ export default function PhysicalExamRunner() {
     
     // Save to HomeworkContext
     submitHomework(hwId, studentId, calculated.totalNet, homework.totalQuestions, {
+      testId: hwId,
+      hwId: hwId,
+      title: homework.title,
+      testTitle: homework.title,
+      type: 'physicalExam',
+      isPhysicalExam: true,
       subjectStats: calculated,
       studentAnswers: answers,
       correctCount: calculated.totalCorrect,

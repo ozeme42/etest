@@ -83,8 +83,20 @@ const deduplicateSubmissions = (list) => {
   if (!Array.isArray(list)) return [];
   const map = new Map();
   const seenIdentities = new Set();
+  const seenExamScores = new Set();
 
-  list.forEach(sub => {
+  // Sort so that within any identical score/date group, Deneme/Exam items ALWAYS come first!
+  const sortedList = [...list].sort((a, b) => {
+    const aTitle = String(a?.title || a?.testTitle || a?.test_title || '');
+    const bTitle = String(b?.title || b?.testTitle || b?.test_title || '');
+    const aIsExam = Boolean(a?.isPhysicalExam || a?.type === 'physicalExam' || /deneme|sınav/i.test(aTitle) || a?.subject === 'Genel');
+    const bIsExam = Boolean(b?.isPhysicalExam || b?.type === 'physicalExam' || /deneme|sınav/i.test(bTitle) || b?.subject === 'Genel');
+    if (aIsExam && !bIsExam) return -1;
+    if (!aIsExam && bIsExam) return 1;
+    return 0;
+  });
+
+  sortedList.forEach(sub => {
     if (!sub) return;
     const sStudentId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '').trim();
     const sTestId = String(sub.testId || sub.realTestId || sub.bookTestId || sub.test_id || sub.title || '').trim();
@@ -98,16 +110,22 @@ const deduplicateSubmissions = (list) => {
     const cleanTId = sTestId.replace(/^bt_/, '').replace(/^q_/, '').toLowerCase();
     const corr = sub.correctCount ?? sub.correct ?? 0;
     const wrg = sub.wrongCount ?? sub.wrong ?? 0;
+    const totQ = sub.totalQuestions || 0;
     const dateStr = sub.submittedAt || sub.date || sub.createdAt || '';
     const dateYMD = String(dateStr).slice(0, 10);
 
     const logicalKey = `${sStudentId}___${cleanTId || sTitle}___${corr}_${wrg}_${dateYMD}`;
+    const scoreKey = `${sStudentId}___${dateYMD}___${corr}_${wrg}_${totQ}`;
 
-    // Check if seen by any ID or by logical match
+    const isExam = Boolean(sub.isPhysicalExam || sub.type === 'physicalExam' || /deneme|sınav/i.test(sTitle) || sub.subject === 'Genel');
+    const isGenericTest = /^(test|yeni nesil|ü\.?\s*değ)[-\s]?\d*$/i.test(sTitle) || sTitle === 'test';
+
+    // Check if seen by any ID, logical match, or duplicate generic test when exam is present
     const isIdDuplicate = (id1 && seenIdentities.has(id1)) || (id2 && seenIdentities.has(id2)) || (id3 && seenIdentities.has(id3));
     const isLogicalDuplicate = seenIdentities.has(logicalKey);
+    const isScoreDuplicate = isGenericTest && seenExamScores.has(scoreKey);
 
-    if (isIdDuplicate || isLogicalDuplicate) {
+    if (isIdDuplicate || isLogicalDuplicate || isScoreDuplicate) {
       return; // Skip duplicate!
     }
 
@@ -115,6 +133,9 @@ const deduplicateSubmissions = (list) => {
     if (id2) seenIdentities.add(id2);
     if (id3) seenIdentities.add(id3);
     seenIdentities.add(logicalKey);
+    if (isExam || sub.subject === 'Genel' || totQ >= 20) {
+      seenExamScores.add(scoreKey);
+    }
 
     const primaryKey = id1 || id2 || logicalKey || `sub_${map.size}`;
     map.set(primaryKey, sub);

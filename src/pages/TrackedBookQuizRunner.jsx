@@ -966,8 +966,24 @@ export default function TrackedBookQuizRunner() {
 
     // 1. Save to EvaluationContext
     try {
+      const isExam = Boolean(
+        resolvedBook?.bookType === 'exam' ||
+        resolvedBook?.isExam ||
+        resolvedBook?.isExamBook ||
+        resolvedBook?.isPhysicalExam ||
+        (resolvedBook?.title && /deneme|sınav/i.test(resolvedBook.title)) ||
+        (resolvedHw?.title && /deneme|sınav/i.test(resolvedHw.title))
+      );
+
+      const examTitle = resolvedBook?.title || resolvedHw?.title || resolvedTest.name;
+      const finalUnitTopic = isExam ? null : (resolvedUnit || resolvedTopic || null);
+      const fullTestTitle = isExam
+        ? examTitle
+        : (finalUnitTopic
+            ? `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${finalUnitTopic} (${resolvedTest.name})`
+            : `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} (${resolvedTest.name})`);
+
       const newSubId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-      const fullTestTitle = `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${resolvedUnit || resolvedTopic || '1. Ünite'} (${resolvedTest.name})`;
       await addSubmission({
         id: newSubId,
         testId: resolvedTest.id,
@@ -975,13 +991,13 @@ export default function TrackedBookQuizRunner() {
         bookTestId: resolvedTest.id,
         bookId: resolvedBook?.id,
         bookTitle: resolvedBook?.title || 'Kitap',
-        subject: resolvedSubject || resolvedBook?.subject || 'Türkçe',
-        subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
-        topicName: resolvedUnit || resolvedTopic || '1. Ünite',
-        unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
-        testName: resolvedTest.name,
+        subject: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+        subjectName: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+        topicName: finalUnitTopic,
+        unitTopic: finalUnitTopic,
+        testName: isExam ? examTitle : resolvedTest.name,
         testTitle: fullTestTitle,
-        title: resolvedTest.name,
+        title: isExam ? examTitle : resolvedTest.name,
         fullTitle: fullTestTitle,
         hwId: resolvedHw?.id || null,
         studentId: studentId,
@@ -992,6 +1008,10 @@ export default function TrackedBookQuizRunner() {
         wrongCount: calculated.wrong,
         blankCount: calculated.blank,
         totalQuestions: calculated.totalQuestions,
+        isExam,
+        isPhysicalExam: isExam,
+        type: isExam ? 'physicalExam' : 'book',
+        typeKey: isExam ? 'physicalExam' : 'book',
         answers: [
           ...answersList,
           {
@@ -1001,20 +1021,19 @@ export default function TrackedBookQuizRunner() {
             realTestId: resolvedTest.id,
             bookTestId: resolvedTest.id,
             bookTitle: resolvedBook?.title || 'Kitap',
-            subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
-            topicName: resolvedUnit || resolvedTopic || '1. Ünite',
-            unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
-            testName: resolvedTest.name,
+            subjectName: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+            topicName: finalUnitTopic,
+            unitTopic: finalUnitTopic,
+            testName: isExam ? examTitle : resolvedTest.name,
             testTitle: fullTestTitle,
             totalQuestions: calculated.totalQuestions,
             totalNet: calculated.net,
-            sourceType: 'trackedBook'
+            sourceType: isExam ? 'physicalExam' : 'trackedBook'
           }
         ],
         studentAnswers: answers,
         mistakeReasons: mistakeReasons,
-        sourceType: 'trackedBook',
-        typeKey: 'book'
+        sourceType: isExam ? 'physicalExam' : 'trackedBook'
       });
     } catch (e) {
       console.error("Evaluation submission error", e);
@@ -1023,15 +1042,36 @@ export default function TrackedBookQuizRunner() {
     // 2. Save to HomeworkContext if this test was assigned as homework
     if (resolvedHw) {
       try {
-        const fullTestTitle = `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${resolvedUnit || resolvedTopic || '1. Ünite'} (${resolvedTest.name})`;
+        const isExam = Boolean(
+          resolvedBook?.bookType === 'exam' ||
+          resolvedBook?.isExam ||
+          resolvedBook?.isExamBook ||
+          resolvedBook?.isPhysicalExam ||
+          (resolvedBook?.title && /deneme|sınav/i.test(resolvedBook.title)) ||
+          (resolvedHw?.title && /deneme|sınav/i.test(resolvedHw.title))
+        );
+
+        const examTitle = resolvedBook?.title || resolvedHw?.title || resolvedTest.name;
+        const finalUnitTopic = isExam ? null : (resolvedUnit || resolvedTopic || null);
+        const fullTestTitle = isExam
+          ? examTitle
+          : (finalUnitTopic
+              ? `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${finalUnitTopic} (${resolvedTest.name})`
+              : `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} (${resolvedTest.name})`);
+
         await submitHomework(resolvedHw.id, studentId, calculated.net, calculated.totalQuestions, {
           testId: resolvedTest.id,
           bookTestId: resolvedTest.id,
-          testName: resolvedTest.name,
+          hwId: resolvedHw.id,
+          testName: isExam ? examTitle : resolvedTest.name,
           testTitle: fullTestTitle,
-          subjectName: resolvedSubject || resolvedBook?.subject || 'Türkçe',
-          topicName: resolvedUnit || resolvedTopic || '1. Ünite',
-          unitTopic: resolvedUnit || resolvedTopic || '1. Ünite',
+          title: isExam ? examTitle : (resolvedTest.name || fullTestTitle),
+          subjectName: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+          topicName: finalUnitTopic,
+          unitTopic: finalUnitTopic,
+          type: isExam ? 'physicalExam' : 'book',
+          isExam,
+          isPhysicalExam: isExam,
           studentAnswers: answers,
           correctCount: calculated.correct,
           wrongCount: calculated.wrong,

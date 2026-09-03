@@ -409,16 +409,28 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
+  let rawBookTitle = matchedBook?.title || rawSub.bookTitle || meta.bookTitle || matchedHw?.bookTitle || '';
+  if (!rawBookTitle && rawSub.title && rawSub.title.includes('—')) {
+    rawBookTitle = rawSub.title.split('—')[0].trim();
+  }
+  const cleanBookTitle = (rawBookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+
   // Fast extraction if still not found
   if (!matchedBookTest && books && Array.isArray(books)) {
-    const rawSubTitle = String(rawSub.testTitle || rawSub.title || meta.testTitle || meta.testName || '').trim();
+    const rawSubTitle = String(rawSub.testTitle || rawSub.title || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || '').trim();
     const candMatch = testIdCandidate.match(/_(\d+)$/);
     const i = candMatch ? parseInt(candMatch[1], 10) : 1;
-    const genName = (!isNaN(i) && i >= 1) ? (i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`)) : (rawSubTitle || 'Test-1');
+    const isExamHint = Boolean(
+      rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
+      rawSub.isExam || matchedHw?.type === 'physicalExam' || matchedBook?.bookType === 'exam' ||
+      /deneme|sınav/i.test(String(rawSubTitle || matchedHw?.title || cleanBookTitle || ''))
+    );
+    const fallbackTestName = isExamHint ? (rawSubTitle || matchedHw?.title || cleanBookTitle || 'Deneme Sınavı') : 'Test-1';
+    const genName = (!isNaN(i) && i >= 1 && !isExamHint) ? (i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`)) : fallbackTestName;
     matchedBookTest = {
       id: testIdCandidate,
       name: rawSubTitle || genName,
-      subjectName: rawSub.subject || 'Genel'
+      subjectName: rawSub.subject || (isExamHint ? 'Genel' : 'Genel')
     };
   }
 
@@ -489,21 +501,48 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
+  // Detect if this item is an Exam / Deneme
+  const isDirectExam = Boolean(
+    rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
+    raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
+    rawSub.isExam || raw.isExam ||
+    matchedHw?.type === 'physicalExam' || matchedHw?.contentType === 'physicalExam' || matchedHw?.isPhysical === true ||
+    (matchedHw && isExamBook(matchedHw)) ||
+    (matchedBook && isExamBook(matchedBook)) ||
+    matchedBook?.bookType === 'exam' ||
+    String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_') ||
+    String(rawSub.hwId || '').startsWith('me_') ||
+    /deneme|sınav|hazır bulunuşluk|hazir bulunusluk|lgs|tyt|ayt|kpss|yks/i.test(
+      String(rawSub.title || rawSub.testTitle || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || matchedBook?.title || '')
+    )
+  );
+
   // 2. Resolve exact unit name (1. Ünite, 2. Ünite, 3. Ünite, 4. Ünite, 5. Ünite...)
-  let topicName = matchedTopic?.name || meta.topicName || meta.unitTopic || rawSub.topic || rawSub.unitTopic || matchedBookTest?.topicName;
-  if (!topicName || topicName === 'Genel Konu' || topicName === '1. Ünite') {
-    const unitMatch = allIdAndTitleStrings.match(/top_subj_\d+_(\d+)/i) ||
-                      allIdAndTitleStrings.match(/top_\w+_(\d+)/i) ||
-                      allIdAndTitleStrings.match(/(\d+)\.\s*Ünite/i);
-    if (unitMatch) {
-      topicName = `${unitMatch[1]}. Ünite`;
-    } else {
-      topicName = '1. Ünite';
+  // IMPORTANT: Deneme / Sınav NEVER has a unit!
+  let topicName = null;
+  if (!isDirectExam) {
+    topicName = matchedTopic?.name || meta.topicName || meta.unitTopic || rawSub.topic || rawSub.unitTopic || matchedBookTest?.topicName || null;
+    if (!topicName || topicName === 'Genel Konu' || topicName === '1. Ünite') {
+      const unitMatch = allIdAndTitleStrings.match(/top_subj_\d+_(\d+)/i) ||
+                        allIdAndTitleStrings.match(/top_\w+_(\d+)/i) ||
+                        allIdAndTitleStrings.match(/(\d+)\.\s*Ünite/i);
+      if (unitMatch) {
+        topicName = `${unitMatch[1]}. Ünite`;
+      } else {
+        topicName = null; // NEVER default to fake '1. Ünite'!
+      }
     }
   }
 
   // 3. Resolve clean test name (Test-1, Test-8, Yeni Nesil 6, 9-10. Sayfa 1. Ünite - PARAGRAF TEST - 1...)
   let testName = matchedBookTest?.name;
+  if (isDirectExam) {
+    const examCandidate = cleanBookTitle || matchedHw?.title || rawSub.testTitle || rawSub.title || meta.testTitle || '';
+    if (examCandidate && /deneme|sınav/i.test(examCandidate)) {
+      testName = examCandidate;
+    }
+  }
+
   if (!testName || testName === 'Test') {
     const rawT = rawSub.testName || rawSub.testTitle || rawSub.title || meta.testTitle || meta.testName || '';
     if (rawT.includes('—')) {
@@ -559,14 +598,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  let rawBookTitle = matchedBook?.title || rawSub.bookTitle || meta.bookTitle || matchedHw?.bookTitle || '';
-  if (!rawBookTitle && rawSub.title && rawSub.title.includes('—')) {
-    rawBookTitle = rawSub.title.split('—')[0].trim();
-  }
-  const cleanBookTitle = (rawBookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
-  const fullTitle = cleanBookTitle
-    ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
-    : (topicName ? `${subjectName} › ${topicName} (${testName})` : (rawSub.title || testName));
+  const fullTitle = isDirectExam
+    ? (testName || cleanBookTitle || matchedHw?.title || rawSub.title || 'Deneme Sınavı')
+    : (cleanBookTitle
+      ? (topicName ? `${cleanBookTitle} — ${subjectName} › ${topicName} (${testName})` : `${cleanBookTitle} — ${subjectName} (${testName})`)
+      : (topicName ? `${subjectName} › ${topicName} (${testName})` : (rawSub.title || testName)));
 
   // 3. Question Count & Answer Key
   const rawAnswerKey = matchedBookTest?.answer_key || matchedBookTest?.answerKey || rawSub.answerKey || rawSub.answer_key || matchedHw?.answerKey || {};
@@ -821,9 +857,9 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     };
   }
 
-  const isMultiSubjectExam = Object.keys(scores).length > 1 || (isPhysicalExam && (matchedHw?.title || cleanBookTitle));
-  const finalDisplayTitle = isMultiSubjectExam ? (matchedHw?.title || cleanBookTitle || rawSub.title || testName) : fullTitle;
-  const finalSubjectName = isMultiSubjectExam ? 'Genel' : subjectName;
+  const isMultiSubjectExam = isDirectExam || Object.keys(scores).length > 1 || (isPhysicalExam && (matchedHw?.title || cleanBookTitle));
+  const finalDisplayTitle = isMultiSubjectExam ? (matchedHw?.title || cleanBookTitle || rawSub.testTitle || rawSub.title || testName) : fullTitle;
+  const finalSubjectName = (isMultiSubjectExam || rawSub.subject === 'Genel') ? 'Genel' : subjectName;
 
   return {
     id: uniqueId,
@@ -831,14 +867,16 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     scores,
     supabaseId: rawSub.supabaseId || (toUUID(rawSub.id) ? rawSub.id : null),
     sourceType: matchedHw ? 'homework' : (matchedBook ? 'book' : 'submission'),
-    typeKey,
+    typeKey: isDirectExam ? 'physicalExam' : typeKey,
+    isPhysicalExam: isDirectExam || isPhysicalExam,
+    isExam: isDirectExam || isPhysicalExam,
     
     testId: realTestId,
     bookTestId: realTestId,
     realTestId,
     testName: isMultiSubjectExam ? finalDisplayTitle : testName,
     testTitle: finalDisplayTitle,
-    title: isMultiSubjectExam ? finalDisplayTitle : testName,
+    title: isMultiSubjectExam ? finalDisplayTitle : (testName || finalDisplayTitle),
     fullTitle: finalDisplayTitle,
     bookId: bookId || null,
     bookTitle: cleanBookTitle,
@@ -846,9 +884,9 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     subjectName: finalSubjectName,
     subject: finalSubjectName,
     subjectKey: calculatedSubjectKey,
-    topicId: matchedTopic?.id || null,
-    topicName,
-    unitTopic: topicName,
+    topicId: isMultiSubjectExam ? null : (matchedTopic?.id || null),
+    topicName: isMultiSubjectExam ? null : topicName,
+    unitTopic: isMultiSubjectExam ? null : topicName,
     
     studentId,
     date: dateVal,
@@ -938,7 +976,9 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const candidateIds = [
         sub.test_id, sub.testId, sub.realTestId, sub.bookTestId,
         normalized?.testId, normalized?.realTestId, normalized?.bookTestId,
-        sub.raw_data?.test_id, sub.raw_data?.testId
+        sub.raw_data?.test_id, sub.raw_data?.testId,
+        sub.hwId, sub.hw_id, sub.homeworkId,
+        normalized?.hwId, normalized?.id, normalized?.bookId
       ].filter(Boolean);
 
       candidateIds.forEach(cid => {
@@ -954,9 +994,13 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       const dateStr = String(normalized?.date || sub.created_at || sub.submittedAt || sub.date || '').slice(0, 10);
       const dCount = normalized?.correctCount ?? sub.correct_count ?? sub.correctCount ?? 0;
       const yCount = normalized?.wrongCount ?? sub.wrong_count ?? sub.wrongCount ?? 0;
+      const qTotal = normalized?.totalQuestions ?? sub.totalQuestions ?? 0;
       const cleanTitle = String(titleStr).toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
       const sig = `${cleanTitle}_${dateStr}_${dCount}_${yCount}`;
       if (sig) processedAttemptSigs.add(sig);
+
+      const scoreSig = `${dateStr}_${dCount}_${yCount}_${qTotal}`;
+      if (scoreSig) processedAttemptSigs.add(`score_${scoreSig}`);
     };
 
     // 1. PRIMARY SOURCE: All student submissions from EvaluationContext / Supabase
@@ -974,6 +1018,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     // 2. Homework Submissions not already in submissions table
     (homeworks || []).forEach(hw => {
       if (!hw || !hw.submissions || !Array.isArray(hw.submissions)) return;
+      const hwIdStr = String(hw.id || '');
+      const hwUuidStr = String(toUUID(hw.id) || '');
+      if ((hwIdStr && processedTestKeys.has(hwIdStr)) || (hwUuidStr && processedTestKeys.has(hwUuidStr))) {
+        return;
+      }
+
       hw.submissions.filter(isMatchStudent).forEach(hs => {
         if (!hs || isDeletedItem(hs)) return;
         if (hs.status === 'in_progress' || hs.status === 'draft') return;
@@ -986,19 +1036,22 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         const isAlreadyIn = (hsId && processedTestKeys.has(hsId)) ||
                             (hsTestId && processedTestKeys.has(hsTestId)) ||
                             (hsClean && processedTestKeys.has(hsClean)) ||
-                            (hsUuid && processedTestKeys.has(String(hsUuid)));
+                            (hsUuid && processedTestKeys.has(String(hsUuid))) ||
+                            (hwIdStr && processedTestKeys.has(hwIdStr));
 
         const titleStr = hs.testTitle || hs.title || hs.test_name || hs.name || hw.title || '';
         const cleanTitle = String(titleStr).toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
         const dateStr = String(hs.created_at || hs.submittedAt || hs.date || '').slice(0, 10);
         const dCount = hs.correct_count ?? hs.correctCount ?? 0;
         const yCount = hs.wrong_count ?? hs.wrongCount ?? 0;
+        const qTotal = hs.totalQuestions || ((dCount + yCount) || 0);
         const sig = `${cleanTitle}_${dateStr}_${dCount}_${yCount}`;
         const isSigMatch = sig && processedAttemptSigs.has(sig);
+        const isScoreSigMatch = processedAttemptSigs.has(`score_${dateStr}_${dCount}_${yCount}_${qTotal}`);
 
-        if (isAlreadyIn || isSigMatch) return;
+        if (isAlreadyIn || isSigMatch || isScoreSigMatch) return;
 
-        const normalized = normalizeUnifiedSubmission({ ...hs, hwId: hw.id }, { books, bookTests, homeworks });
+        const normalized = normalizeUnifiedSubmission({ ...hs, hwId: hw.id, title: hs.title || hw.title, testTitle: hs.testTitle || hw.title }, { books, bookTests, homeworks });
         if (normalized && !isDeletedItem(normalized)) {
           registerTestKeys(hs, normalized);
           results.push(normalized);
@@ -1023,27 +1076,53 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       });
     });
 
-    // Sort newest first by date/submittedAt/createdAt
+    // Intelligent Deduplication Pass
+    // Sort newest first by date, but within same day, prioritize Deneme/Exam over generic test!
     results.sort((a, b) => {
       const timeB = new Date(b.submittedAt || b.date || b.createdAt || 0).getTime();
       const timeA = new Date(a.submittedAt || a.date || a.createdAt || 0).getTime();
+      if (Math.abs(timeB - timeA) > 1000 * 60 * 60 * 24) {
+        return timeB - timeA;
+      }
+      const aTitle = String(a.fullTitle || a.testTitle || a.title || '');
+      const bTitle = String(b.fullTitle || b.testTitle || b.title || '');
+      const aIsDeneme = Boolean(a.isPhysicalExam || a.typeKey === 'physicalExam' || /deneme|sınav/i.test(aTitle) || a.subject === 'Genel');
+      const bIsDeneme = Boolean(b.isPhysicalExam || b.typeKey === 'physicalExam' || /deneme|sınav/i.test(bTitle) || b.subject === 'Genel');
+      if (aIsDeneme && !bIsDeneme) return -1;
+      if (!aIsDeneme && bIsDeneme) return 1;
       return timeB - timeA;
     });
 
-    // Final deduplication pass
     const finalSeen = new Set();
     const finalResults = [];
     results.forEach(item => {
-      const cleanTitle = String(item.fullTitle || item.testTitle || item.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
-      const dateStr = String(item.date || item.submittedAt || '').slice(0, 10);
-      const sig = `${cleanTitle}_${dateStr}_${item.correctCount || 0}_${item.wrongCount || 0}`;
       const idStr = String(item.id || item.submissionId || '');
-
       if (idStr && finalSeen.has(`id_${idStr}`)) return;
+
+      const dateStr = String(item.date || item.submittedAt || '').slice(0, 10);
+      const d = item.correctCount || 0;
+      const y = item.wrongCount || 0;
+      const tot = item.totalQuestions || 0;
+
+      const titleStr = String(item.fullTitle || item.testTitle || item.title || '').trim();
+      const cleanTitle = titleStr.toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+      const isDeneme = Boolean(item.isPhysicalExam || item.typeKey === 'physicalExam' || /deneme|sınav/i.test(titleStr) || item.subject === 'Genel');
+      const isGenericTest = /^(test|yeni nesil|ü\.?\s*değ)[-\s]?\d*$/i.test(titleStr) || titleStr === 'Test';
+
+      const sig = `${cleanTitle}_${dateStr}_${d}_${y}`;
       if (sig && finalSeen.has(`sig_${sig}`)) return;
+
+      const scoreSig = `score_${dateStr}_${d}_${y}_${tot}`;
+      if (finalSeen.has(scoreSig)) {
+        // A matching attempt (e.g. Deneme) on this date with the exact same D, Y, Total Questions was already recorded!
+        return;
+      }
 
       if (idStr) finalSeen.add(`id_${idStr}`);
       if (sig) finalSeen.add(`sig_${sig}`);
+      if (isDeneme || tot >= 20 || isGenericTest || item.subject === 'Genel') {
+        finalSeen.add(scoreSig);
+      }
       finalResults.push(item);
     });
 

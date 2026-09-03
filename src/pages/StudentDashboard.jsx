@@ -441,6 +441,53 @@ export default function StudentDashboard() {
     () => getCoachingProfileForStudent(studentId),
     [studentId, getCoachingProfileForStudent]
   );
+
+  const personalRoadmap = useMemo(() => {
+    const rawPool = coachingProfile?.topicPool;
+    if (!Array.isArray(rawPool) || rawPool.length === 0) return null;
+
+    let totalTopics = 0;
+    let doneTopics = 0;
+    let inProgressTopics = 0;
+    let totalUnits = 0;
+    const subjectCount = rawPool.length;
+
+    rawPool.forEach(sub => {
+      if (Array.isArray(sub.units) && sub.units.length > 0) {
+        totalUnits += sub.units.length;
+        sub.units.forEach(u => {
+          (u.topics || []).forEach(t => {
+            totalTopics += 1;
+            const status = typeof t === 'object' ? t?.status : 'Başlanmadı';
+            if (status === 'Tamamlandı') doneTopics += 1;
+            else if (status === 'Başlandı' || status === 'Öğrenildi' || status === 'Tekrar Yapıldı') inProgressTopics += 1;
+          });
+        });
+      } else if (Array.isArray(sub.topics) && sub.topics.length > 0) {
+        totalUnits += 1;
+        sub.topics.forEach(t => {
+          totalTopics += 1;
+          const status = typeof t === 'object' ? t?.status : 'Başlanmadı';
+          if (status === 'Tamamlandı') doneTopics += 1;
+          else if (status === 'Başlandı' || status === 'Öğrenildi' || status === 'Tekrar Yapıldı') inProgressTopics += 1;
+        });
+      }
+    });
+
+    if (totalTopics === 0) return null;
+
+    const pct = Math.round((doneTopics / totalTopics) * 100);
+
+    return {
+      hasRoadmap: true,
+      subjectCount,
+      unitCount: totalUnits,
+      totalTopics,
+      doneTopics,
+      inProgressTopics,
+      pct
+    };
+  }, [coachingProfile?.topicPool]);
   const studentMeetings = useMemo(
     () => getMeetingsForStudent(studentId),
     [studentId, getMeetingsForStudent]
@@ -487,18 +534,34 @@ export default function StudentDashboard() {
     // O(1) Set yerine O(N) list.some() — büyük veri setlerinde kritik fark
     const seenIds = new Set(list.map(x => x.id).filter(Boolean));
     const seenTestIds = new Set(list.map(x => x.testId || x.test_id || x.bookTestId).filter(Boolean));
+    const seenHwIds = new Set(list.map(x => x.hwId || x.hw_id || (x.type === 'physicalExam' ? x.testId : null)).filter(Boolean));
 
     (homeworks || []).forEach(hw => {
       const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      const isHwAlreadyInList = seenHwIds.has(hw.id) || (toUUID(hw.id) && seenHwIds.has(String(toUUID(hw.id)))) ||
+        seenTestIds.has(hw.id) || (toUUID(hw.id) && seenTestIds.has(String(toUUID(hw.id))));
+
       (hwSubs || []).forEach(sub => {
         if (sub && isMatch(sub)) {
-          const subId = sub.id || sub.supabaseId;
+          const subId = sub.id || sub.submissionId || sub.supabaseId;
           const subTestId = sub.testId || sub.test_id || sub.bookTestId;
-          if ((!subId || !seenIds.has(subId)) && (!subTestId || !seenTestIds.has(subTestId))) {
-            list.push(sub);
-            if (subId) seenIds.add(subId);
-            if (subTestId) seenTestIds.add(subTestId);
-          }
+          if (isHwAlreadyInList && !subTestId) return;
+          if (subId && seenIds.has(subId)) return;
+          if (subTestId && seenTestIds.has(subTestId)) return;
+
+          const completeSub = {
+            ...sub,
+            id: subId || `hw_sub_${hw.id}_${selectedStudent.id}`,
+            hwId: hw.id,
+            testId: subTestId || hw.id,
+            title: sub.title || sub.testTitle || hw.title,
+            testTitle: sub.testTitle || sub.title || hw.title,
+            type: sub.type || hw.type || 'homework'
+          };
+          list.push(completeSub);
+          if (completeSub.id) seenIds.add(completeSub.id);
+          if (completeSub.testId) seenTestIds.add(completeSub.testId);
+          seenHwIds.add(hw.id);
         }
       });
     });
@@ -1244,13 +1307,14 @@ export default function StudentDashboard() {
     if (!selectedStudent?.id) return [];
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: selectedStudent.id,
-      submissions: studentSubmissions,
+      targetStudent: selectedStudent,
+      submissions,
       homeworks,
       books,
       bookTests
     });
     return allSubs.slice(0, 5);
-  }, [selectedStudent?.id, studentSubmissions, homeworks, books, bookTests]);
+  }, [selectedStudent, submissions, homeworks, books, bookTests]);
 
   const handleDeleteRecentTest = async (testItem) => {
     if (!testItem || !window.confirm(`"${testItem.title || 'Bu test'}" sonucunu silmek istediğinize emin misiniz? Tüm kaydı ve istatistikleri sıfırlanacaktır.`)) return;
@@ -3745,6 +3809,7 @@ export default function StudentDashboard() {
                 <DashboardRoadmapCard
                   isMobile={isMobile}
                   isDark={isDark}
+                  personalRoadmap={personalRoadmap}
                   myRoadmaps={myRoadmaps}
                   onNavigateRoadmap={(id) => {
                     if (id === 'curriculum-roadmap') {
