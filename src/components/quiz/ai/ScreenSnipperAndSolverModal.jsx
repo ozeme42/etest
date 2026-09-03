@@ -447,7 +447,7 @@ export default function ScreenSnipperAndSolverModal({
           console.warn('Screen capture failed:', err);
         }
         setIsSnipping(false);
-        setError('Bu PDF Google Drive üzerinden açıldığı için tarayıcı güvenlik kuralı nedeniyle doğrudan kopyalanamadı. Lütfen klavyeden Windows Ekran Alıntısı (Win + Shift + S) ile soruyu seçip buraya Ctrl + V ile yapıştırın veya "Panodan Yapıştır" butonuna tıklayın.');
+        setError('Ekran görüntüsü yakalama izni verilmedi veya iptal edildi. Soruyu çözdürmek için klavyeden Windows Ekran Alıntısı (Win + Shift + S) ile soruyu seçip buraya Ctrl + V ile yapıştırabilir veya "Panodan Yapıştır" butonuna tıklayabilirsiniz.');
         return;
       }
     }
@@ -1654,7 +1654,7 @@ export default function ScreenSnipperAndSolverModal({
                   </h4>
                   <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 460, lineHeight: 1.45 }}>
                     {isPdfMode
-                      ? `Bu PDF belgesi Google Drive üzerinden görüntülenmektedir. En pratik 2 yöntemle soruyu çözdürebilirsiniz:`
+                      ? `Ekrandaki PDF veya dijital kitaptan soruyu 2 pratik yöntemle anında çözdürebilirsiniz:`
                       : `Yukarıdaki butonlarla soruyu kırpabilir veya fotoğrafını yükleyebilirsiniz.`}
                   </p>
                   {isPdfMode && (
