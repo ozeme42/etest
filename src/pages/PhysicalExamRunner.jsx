@@ -10,6 +10,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { sortSubjectsByTeacherOrder } from '../utils/answerEvaluation';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
+import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndSolverModal';
 import { 
   ArrowLeft, CheckCircle2, AlertCircle, Clock, 
   Send, X as XIcon, LayoutTemplate, Trophy, BarChart3, ListTree, 
@@ -224,6 +225,7 @@ export default function PhysicalExamRunner() {
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
+  const [aiModalQuestion, setAiModalQuestion] = useState(null);
   const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
 
@@ -2136,7 +2138,7 @@ export default function PhysicalExamRunner() {
                                       <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
                                         {isWrong ? '🤔 Yanlış Sebebi:' : '○ Boş Sebebi:'}
                                       </span>
-                                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                                         {MISTAKE_REASON_OPTIONS.map(r => {
                                           const key = `${activeSubject.name}_${qNo}`;
                                           const isSelected = mistakeReasons[key] === r.label;
@@ -2163,6 +2165,39 @@ export default function PhysicalExamRunner() {
                                             </button>
                                           );
                                         })}
+                                        {/* ✂️ AI Soru Çözümü & Kırpma Butonu */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setAiModalQuestion({
+                                              subjectName: activeSubject.name,
+                                              questionNo: qNo,
+                                              userAnswer: selected || 'Boş',
+                                              correctAnswer: correctKey || '',
+                                              mistakeReason: mistakeReasons[`${activeSubject.name}_${qNo}`] || ''
+                                            });
+                                          }}
+                                          style={{
+                                            padding: isVeryNarrow ? '0.12rem 0.35rem' : '0.18rem 0.5rem',
+                                            fontSize: isVeryNarrow ? '0.55rem' : '0.62rem',
+                                            fontWeight: 900,
+                                            borderRadius: 6,
+                                            border: '1.5px solid #a855f7',
+                                            background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                            color: '#7c3aed',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 3,
+                                            boxShadow: '0 2px 6px rgba(168,85,247,0.2)',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                          title={`Soru ${qNo} için yapay zeka çözümü ve soru kırpma`}
+                                        >
+                                          <Sparkles size={11} color="#7c3aed" />
+                                          <span>✨ AI Çözüm & Kırp</span>
+                                        </button>
                                       </div>
                                     </div>
                                   )}
@@ -2455,7 +2490,7 @@ export default function PhysicalExamRunner() {
                           <span style={{ fontSize: '0.62rem', fontWeight: 800, color: isWrong ? '#b91c1c' : '#475569' }}>
                             {isWrong ? '❌ Yanlış:' : '○ Boş:'}
                           </span>
-                          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                             {MISTAKE_REASON_OPTIONS.map(r => {
                               const key = `${activeSubject.name}_${qNo}`;
                               const isSelected = mistakeReasons[key] === r.label;
@@ -2479,6 +2514,38 @@ export default function PhysicalExamRunner() {
                                 </button>
                               );
                             })}
+
+                            {/* ✂️ AI Soru Çözümü & Kırpma Butonu */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMobileOpticModal(false);
+                                setAiModalQuestion({
+                                  subjectName: activeSubject.name,
+                                  questionNo: qNo,
+                                  userAnswer: selected || 'Boş',
+                                  correctAnswer: correctKey || '',
+                                  mistakeReason: mistakeReasons[`${activeSubject.name}_${qNo}`] || ''
+                                });
+                              }}
+                              style={{
+                                padding: '0.12rem 0.35rem',
+                                fontSize: '0.55rem',
+                                fontWeight: 900,
+                                borderRadius: 6,
+                                border: '1.5px solid #a855f7',
+                                background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                color: '#7c3aed',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Sparkles size={10} color="#7c3aed" />
+                              <span>✨ AI Çözüm</span>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -2537,6 +2604,28 @@ export default function PhysicalExamRunner() {
         >
           <FileSpreadsheet size={24} />
         </button>
+      )}
+
+      {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
+      {aiModalQuestion && (
+        <ScreenSnipperAndSolverModal
+          isOpen={Boolean(aiModalQuestion)}
+          onClose={() => setAiModalQuestion(null)}
+          questionNo={aiModalQuestion.questionNo}
+          isPdf={Boolean(homework?.pdfUrl)}
+          question={{
+            questionNo: aiModalQuestion.questionNo,
+            userAnswer: aiModalQuestion.userAnswer || null,
+            correctAnswerLetter: aiModalQuestion.correctAnswer || null
+          }}
+          mistakeReason={mistakeReasons[`${aiModalQuestion.subjectName}_${aiModalQuestion.questionNo}`] || aiModalQuestion.mistakeReason || ''}
+          onMistakeReasonChange={(r) => handleSetMistakeReason(aiModalQuestion.subjectName, aiModalQuestion.questionNo, r)}
+          studentAnswer={aiModalQuestion.userAnswer || 'Boş'}
+          correctAnswer={aiModalQuestion.correctAnswer || ''}
+          subject={aiModalQuestion.subjectName || 'Genel'}
+          topic={homework?.title || homework?.unitTopic || ''}
+          testId={id || hwId || homework?.id || 'physical_exam'}
+        />
       )}
 
     </div>
