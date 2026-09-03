@@ -199,9 +199,13 @@ export default function PhysicalExamRunner() {
 
     if (hw) {
       const combinedAnsKey = { ...(matchingBook?.answerKey || {}), ...(hw.answerKey || {}), ...builtAnswerKey };
+      const resolvedSubs = Array.isArray(hw.submissions) && hw.submissions.length > 0
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
 
       return {
         ...hw,
+        submissions: resolvedSubs,
         examType: formatExamType(hw.examType || matchingBook?.publisher || 'Özel'),
         type: 'physicalExam',
         pdfUrl: pdfUrl,
@@ -236,10 +240,18 @@ export default function PhysicalExamRunner() {
   const isSubmittingRef = useRef(false);
   
   const draftKey = `draft_physical_exam_${hwId}_${studentId}`;
+  const submissionKey = `submission_physical_exam_${hwId}_${studentId}`;
 
   // Student answers state: { "Türkçe": ["A", "B", "", "C", ...], "Matematik": [...] }
   const [answers, setAnswers] = useState(() => {
     try {
+      if (!isRetake) {
+        const savedSub = localStorage.getItem(`submission_physical_exam_${hwId}_${studentId}`);
+        if (savedSub) {
+          const parsed = JSON.parse(savedSub);
+          if (parsed?.studentAnswers && typeof parsed.studentAnswers === 'object') return parsed.studentAnswers;
+        }
+      }
       const draftStr = localStorage.getItem(`draft_physical_exam_${hwId}_${studentId}`);
       if (draftStr) {
         const parsed = JSON.parse(draftStr);
@@ -248,8 +260,27 @@ export default function PhysicalExamRunner() {
     } catch {}
     return {};
   });
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [results, setResults] = useState(null);
+
+  const [isSubmitted, setIsSubmitted] = useState(() => {
+    if (isRetake) return false;
+    try {
+      const savedSub = localStorage.getItem(`submission_physical_exam_${hwId}_${studentId}`);
+      if (savedSub) return true;
+    } catch {}
+    return false;
+  });
+
+  const [results, setResults] = useState(() => {
+    if (isRetake) return null;
+    try {
+      const savedSub = localStorage.getItem(`submission_physical_exam_${hwId}_${studentId}`);
+      if (savedSub) {
+        const parsed = JSON.parse(savedSub);
+        if (parsed?.subjectStats) return parsed.subjectStats;
+      }
+    } catch {}
+    return null;
+  });
   const [savedFeedbackToast, setSavedFeedbackToast] = useState(null);
   const [showMistakeSummary, setShowMistakeSummary] = useState(true);
   const [flagged, setFlagged] = useState({});
@@ -327,6 +358,8 @@ export default function PhysicalExamRunner() {
   const [isStarted, setIsStarted] = useState(() => {
     if (isTeacherReviewing || isRetake) return true;
     try {
+      const savedSub = localStorage.getItem(`submission_physical_exam_${hwId}_${studentId}`);
+      if (savedSub) return true;
       const started = localStorage.getItem(`${draftKey}_started`);
       if (started === 'true') return true;
       const draftStr = localStorage.getItem(draftKey);
@@ -427,12 +460,14 @@ export default function PhysicalExamRunner() {
 
   // Load existing submission or draft
   useEffect(() => {
-    if (!homework || initializedRef.current) return;
+    if (!homework) return;
+    if (initializedRef.current && isSubmitted) return;
 
     if (isRetake) {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
       localStorage.removeItem(`${draftKey}_started`);
+      localStorage.removeItem(`submission_physical_exam_${hwId}_${studentId}`);
       const init = {};
       homework.subjects?.forEach(sub => {
         init[sub.name] = Array(sub.count).fill('');
@@ -445,9 +480,13 @@ export default function PhysicalExamRunner() {
       return;
     }
 
-    // Check if already submitted in HomeworkContext or EvaluationContext
+    // Check if already submitted in HomeworkContext, raw_data, EvaluationContext, or localStorage
     const cleanHwId = String(hwId || '');
-    const hwSub = (homework.submissions || []).find(s => String(s.studentId) === String(studentId));
+    const allSubs = [
+      ...(Array.isArray(homework?.submissions) ? homework.submissions : []),
+      ...(Array.isArray(homework?.raw_data?.submissions) ? homework.raw_data.submissions : [])
+    ];
+    const hwSub = allSubs.find(s => String(s.studentId) === String(studentId));
     const evalSub = (evalSubmissions || []).find(s => (
       String(s.id) === cleanHwId ||
       String(s.submissionId) === cleanHwId ||
@@ -455,10 +494,18 @@ export default function PhysicalExamRunner() {
       String(s.testId) === cleanHwId ||
       (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id)))
     ) && (!studentId || String(s.studentId) === String(studentId)));
-    const submission = location.state?.submission || hwSub || evalSub;
+
+    let localSub = null;
+    try {
+      const saved = localStorage.getItem(`submission_physical_exam_${hwId}_${studentId}`);
+      if (saved) localSub = JSON.parse(saved);
+    } catch {}
+
+    const submission = location.state?.submission || hwSub || evalSub || localSub;
 
     if (submission) {
       setIsSubmitted(true);
+      setIsStarted(true);
       setShowOptikForm(true);
       
       const subMeta = (submission?.answers && Array.isArray(submission.answers)) ? submission.answers.find(a => a?.type === 'metadata') : {};
@@ -527,6 +574,16 @@ export default function PhysicalExamRunner() {
       }
 
       setResults(calc);
+
+      try {
+        localStorage.setItem(`submission_physical_exam_${hwId}_${studentId}`, JSON.stringify({
+          ...submission,
+          studentAnswers: loadedAns,
+          subjectStats: calc,
+          mistakeReasons: submission.mistakeReasons || mistakeReasons
+        }));
+      } catch {}
+
       initializedRef.current = true;
     } else {
       // Draft mode
@@ -543,7 +600,7 @@ export default function PhysicalExamRunner() {
       });
       initializedRef.current = true;
     }
-  }, [homework, hwId, studentId, isRetake, draftKey, evalSubmissions]);
+  }, [homework, hwId, studentId, isRetake, draftKey, evalSubmissions, isSubmitted]);
 
   // Timer interval
   useEffect(() => {
@@ -777,6 +834,20 @@ export default function PhysicalExamRunner() {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
       localStorage.removeItem(`${draftKey}_started`);
+      localStorage.setItem(`submission_physical_exam_${hwId}_${studentId}`, JSON.stringify({
+        hwId,
+        studentId,
+        isSubmitted: true,
+        score: calculated.totalNet,
+        totalQuestions: homework.totalQuestions,
+        correctCount: calculated.totalCorrect,
+        wrongCount: calculated.totalWrong,
+        blankCount: calculated.totalBlank,
+        subjectStats: calculated,
+        studentAnswers: answers,
+        mistakeReasons: mistakeReasons,
+        submittedAt: new Date().toISOString()
+      }));
     } catch {}
 
     setResults(calculated);
