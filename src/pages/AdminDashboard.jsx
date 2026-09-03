@@ -22,6 +22,26 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import { Award } from 'lucide-react';
 import './AdminDashboard.css';
 
+const SUPABASE_FULL_BACKUP_SQL = `SELECT jsonb_build_object(
+  'users', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.users t), '[]'::jsonb),
+  'grades', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.grades t), '[]'::jsonb),
+  'subjects', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.subjects t), '[]'::jsonb),
+  'units', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.units t), '[]'::jsonb),
+  'topics', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.topics t), '[]'::jsonb),
+  'tracked_books', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.tracked_books t), '[]'::jsonb),
+  'tracked_book_tests', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.tracked_book_tests t), '[]'::jsonb),
+  'homeworks', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.homeworks t), '[]'::jsonb),
+  'submissions', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.submissions t), '[]'::jsonb),
+  'questions', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.questions t), '[]'::jsonb),
+  'study_plans', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.study_plans t), '[]'::jsonb),
+  'study_assignments', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.study_assignments t), '[]'::jsonb),
+  'coaching_profiles', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.coaching_profiles t), '[]'::jsonb),
+  'goals', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.goals t), '[]'::jsonb),
+  'schedules', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.schedules t), '[]'::jsonb),
+  'summaries', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.summaries t), '[]'::jsonb),
+  'scales', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.scales t), '[]'::jsonb)
+) AS full_backup_data;`;
+
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('curriculum');
   const [isMigrating, setIsMigrating] = useState(false);
@@ -35,6 +55,7 @@ export default function AdminDashboard() {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedJsonText, setPastedJsonText] = useState('');
   const [isPastingRestore, setIsPastingRestore] = useState(false);
+  const [sqlCopied, setSqlCopied] = useState(false);
 
   const handleDownloadBackup = async () => {
     setIsBackingUp(true);
@@ -608,6 +629,69 @@ export default function AdminDashboard() {
                 ⚠️ {restoreError}
               </div>
             )}
+
+            {/* 💡 Supabase SQL Generator Helper */}
+            <div style={{
+              background: 'rgba(14, 165, 233, 0.07)',
+              border: '1px solid rgba(14, 165, 233, 0.28)',
+              borderRadius: '1rem',
+              padding: '0.85rem 1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.6rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0284c7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚡ Supabase'den Tüm Verileri Tek Tıkla Çekme SQL Kodu:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(SUPABASE_FULL_BACKUP_SQL);
+                    setSqlCopied(true);
+                    setTimeout(() => setSqlCopied(false), 2500);
+                  }}
+                  style={{
+                    background: sqlCopied ? '#059669' : 'linear-gradient(135deg, #0284c7, #0ea5e9)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.55rem',
+                    padding: '0.35rem 0.75rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {sqlCopied ? '✅ SQL Kopyalandı!' : '📋 SQL Kodunu Kopyala'}
+                </button>
+              </div>
+
+              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: 1.45 }}>
+                <strong>Adımlar:</strong> Supabase ➔ <strong>SQL Editor</strong>'e girin, bu kodu yapıştırıp <strong>Run</strong> deyin. Çıkan sonuç hücresine tıklayıp kopyalayın ve aşağıdaki kutucuğa yapıştırıp <strong>Geri Yükle</strong>'ye basın.
+              </div>
+
+              <pre style={{
+                margin: 0,
+                padding: '0.65rem 0.85rem',
+                borderRadius: '0.6rem',
+                background: 'rgba(0, 0, 0, 0.55)',
+                color: '#7dd3fc',
+                fontFamily: 'monospace',
+                fontSize: '0.68rem',
+                maxHeight: '110px',
+                overflowY: 'auto',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                border: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
+                {SUPABASE_FULL_BACKUP_SQL}
+              </pre>
+            </div>
 
             <textarea
               placeholder='Kopyaladığınız JSON metnini buraya yapıştırın (Ctrl + V)...'
