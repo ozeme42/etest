@@ -62,6 +62,7 @@ export default function ScreenSnipperAndSolverModal({
     return 'crop';
   });
   const [croppedImage, setCroppedImage] = useState(existingImageUrl || null);
+  const [snapshotCanvas, setSnapshotCanvas] = useState(null);
   const [isSnipping, setIsSnipping] = useState(false);
   const [snipRect, setSnipRect] = useState(null); // { startX, startY, currentX, currentY }
   const [isDragging, setIsDragging] = useState(false);
@@ -403,6 +404,7 @@ export default function ScreenSnipperAndSolverModal({
         if (isSnipping) {
           setIsSnipping(false);
           setSnipRect(null);
+          setSnapshotCanvas(null);
         } else if (isOpen) {
           onClose();
         }
@@ -412,11 +414,45 @@ export default function ScreenSnipperAndSolverModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSnipping, isOpen, onClose]);
 
-  // ── Screen Snipping Tool Overlay Logic (Zero Permission) ──
-  const startSnippingMode = () => {
+  // ── Screen Snipping Tool Overlay Logic ──
+  const startSnippingMode = async () => {
     setError(null);
-    setIsSnipping(true);
     setSnipRect(null);
+
+    const hasCanvas = Boolean(document.querySelector('canvas:not(#snip-snapshot-canvas)'));
+    const hasIframe = Boolean(document.querySelector('iframe'));
+
+    // If viewing an iframe (e.g. Google Drive PDF) where direct DOM pixel reading is blocked by CORS:
+    if (hasIframe && !hasCanvas && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'browser' },
+          audio: false
+        });
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+        const snap = document.createElement('canvas');
+        snap.id = 'snip-snapshot-canvas';
+        snap.width = video.videoWidth;
+        snap.height = video.videoHeight;
+        const ctx = snap.getContext('2d');
+        ctx.drawImage(video, 0, 0, snap.width, snap.height);
+        stream.getTracks().forEach(t => t.stop());
+        setSnapshotCanvas(snap);
+        setIsSnipping(true);
+        return;
+      } catch (err) {
+        if (err.name !== 'NotAllowedError') {
+          console.warn('Screen capture failed:', err);
+        }
+        setIsSnipping(false);
+        setError('Bu PDF Google Drive üzerinden açıldığı için tarayıcı güvenlik kuralı nedeniyle doğrudan kopyalanamadı. Lütfen klavyeden Windows Ekran Alıntısı (Win + Shift + S) ile soruyu seçip buraya Ctrl + V ile yapıştırın veya "Panodan Yapıştır" butonuna tıklayın.');
+        return;
+      }
+    }
+
+    setIsSnipping(true);
   };
 
   const handleSnipMouseDown = (e) => {
@@ -434,7 +470,7 @@ export default function ScreenSnipperAndSolverModal({
     setSnipRect(prev => prev ? ({ ...prev, currentX: e.clientX, currentY: e.clientY }) : null);
   };
 
-  const handleSnipMouseUp = () => {
+  const handleSnipMouseUp = async () => {
     if (!isDragging || !snipRect) {
       setIsDragging(false);
       return;
@@ -449,14 +485,40 @@ export default function ScreenSnipperAndSolverModal({
     if (width < 20 || height < 20) {
       setIsSnipping(false);
       setSnipRect(null);
+      setSnapshotCanvas(null);
       return;
     }
 
     try {
       const cropCanvas = document.createElement('canvas');
 
-      // Search for any canvas elements in the viewport (e.g. PDF canvas)
-      const allCanvases = Array.from(document.querySelectorAll('canvas')).filter(c => {
+      // 1. If we captured a snapshot of an iframe
+      const snap = snapshotCanvas || document.getElementById('snip-snapshot-canvas');
+      if (snap) {
+        const scaleX = snap.width / window.innerWidth;
+        const scaleY = snap.height / window.innerHeight;
+        const srcX = Math.max(0, x1 * scaleX);
+        const srcY = Math.max(0, y1 * scaleY);
+        const srcW = Math.min(snap.width - srcX, width * scaleX);
+        const srcH = Math.min(snap.height - srcY, height * scaleY);
+
+        cropCanvas.width = srcW;
+        cropCanvas.height = srcH;
+        const ctx = cropCanvas.getContext('2d');
+        ctx.drawImage(snap, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+
+        const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.92);
+        setCroppedImage(croppedDataUrl);
+        setSnapshotCanvas(null);
+        setIsSnipping(false);
+        setSnipRect(null);
+        setActiveTab('image');
+        handleSolve(croppedDataUrl);
+        return;
+      }
+
+      // 2. Search for any canvas elements in the viewport (e.g. PDF canvas)
+      const allCanvases = Array.from(document.querySelectorAll('canvas:not(#snip-snapshot-canvas)')).filter(c => {
         const r = c.getBoundingClientRect();
         return r.width > 20 && r.height > 20 &&
                !(x1 > r.right || x1 + width < r.left || y1 > r.bottom || y1 + height < r.top);
@@ -499,16 +561,51 @@ export default function ScreenSnipperAndSolverModal({
           cropCanvas.height = srcH;
           const ctx = cropCanvas.getContext('2d');
           ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+        } else if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+          try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+              video: { displaySurface: 'browser' },
+              audio: false
+            });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await video.play();
+            const fullCanvas = document.createElement('canvas');
+            fullCanvas.width = video.videoWidth;
+            fullCanvas.height = video.videoHeight;
+            const fullCtx = fullCanvas.getContext('2d');
+            fullCtx.drawImage(video, 0, 0, fullCanvas.width, fullCanvas.height);
+            stream.getTracks().forEach(track => track.stop());
+
+            const scaleX = video.videoWidth / window.innerWidth;
+            const scaleY = video.videoHeight / window.innerHeight;
+
+            const srcX = Math.max(0, x1 * scaleX);
+            const srcY = Math.max(0, y1 * scaleY);
+            const srcW = Math.min(video.videoWidth - srcX, width * scaleX);
+            const srcH = Math.min(video.videoHeight - srcY, height * scaleY);
+
+            cropCanvas.width = srcW;
+            cropCanvas.height = srcH;
+            const ctx = cropCanvas.getContext('2d');
+            ctx.drawImage(fullCanvas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+          } catch (e) {
+            setIsSnipping(false);
+            setSnipRect(null);
+            setError('Bu PDF Google Drive üzerinden açıldığı için tarayıcı güvenlik kuralı nedeniyle doğrudan kopyalanamadı. Lütfen klavyeden Windows Ekran Alıntısı (Win + Shift + S) ile soruyu seçip buraya Ctrl + V ile yapıştırın veya "Panodan Yapıştır" butonuna tıklayın.');
+            return;
+          }
         } else {
           setIsSnipping(false);
           setSnipRect(null);
-          setError('Görsel bulunamadı. HTML testler için yapay zeka soruyu doğrudan test metninden çözer. İsterseniz Windows Ekran Alıntısı (Win+Shift+S) ile kopyalayıp Ctrl+V tuşlarıyla buraya yapıştırabilirsiniz.');
+          setError('Görsel yakalanamadı. Lütfen Windows Ekran Alıntısı (Win + Shift + S) ile soruyu seçip bu pencereye Ctrl + V tuşlarıyla yapıştırın veya "Panodan Yapıştır" butonuna tıklayın.');
           return;
         }
       }
 
       const croppedDataUrl = cropCanvas.toDataURL('image/jpeg', 0.92);
       setCroppedImage(croppedDataUrl);
+      setSnapshotCanvas(null);
       setIsSnipping(false);
       setSnipRect(null);
       setActiveTab('image');
@@ -517,6 +614,7 @@ export default function ScreenSnipperAndSolverModal({
       console.warn('Crop error:', err);
       setIsSnipping(false);
       setSnipRect(null);
+      setSnapshotCanvas(null);
     }
   };
 
@@ -571,10 +669,25 @@ export default function ScreenSnipperAndSolverModal({
             inset: 0,
             zIndex: 99999,
             cursor: 'crosshair',
-            background: 'rgba(0, 0, 0, 0.45)',
+            background: snapshotCanvas ? '#0f172a' : 'rgba(0, 0, 0, 0.45)',
             userSelect: 'none'
           }}
         >
+          {snapshotCanvas && (
+            <img
+              src={snapshotCanvas.toDataURL('image/jpeg', 0.92)}
+              alt="Snapshot"
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                pointerEvents: 'none'
+              }}
+            />
+          )}
+
           {/* Header Banner */}
           <div style={{
             position: 'absolute',
@@ -591,12 +704,13 @@ export default function ScreenSnipperAndSolverModal({
             alignItems: 'center',
             gap: '0.75rem',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.2)'
+            border: '1px solid rgba(255,255,255,0.2)',
+            zIndex: 2
           }}>
             <Crop size={16} color="#a855f7" />
             <span>Fare veya parmağınızla {questionNo}. sorunun etrafını çerçeve içine alıp bırakın</span>
             <button
-              onClick={(e) => { e.stopPropagation(); setIsSnipping(false); }}
+              onClick={(e) => { e.stopPropagation(); setIsSnipping(false); setSnapshotCanvas(null); }}
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 border: 'none',
@@ -893,7 +1007,7 @@ export default function ScreenSnipperAndSolverModal({
             gap: '1.25rem'
           }}>
             {/* Target Question Preview Badge */}
-            {(question?.questionText || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)) && (
+            {(isRealQuestionText(question?.questionText) || extractTargetQuestionFromHtml(htmlPayload, questionNo) || extractTargetQuestionFromHtml(getHtmlFromActiveIframe(), questionNo)) && (
               <div style={{
                 background: 'rgba(99, 102, 241, 0.06)',
                 border: '1.5px solid rgba(99, 102, 241, 0.25)',
@@ -1536,35 +1650,77 @@ export default function ScreenSnipperAndSolverModal({
                 </div>
                 <div>
                   <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.05rem' }}>
-                    {isPdfMode ? `📄 ${questionNo}. Soruyu PDF'ten Kırpın` : 'Soru Çözümü Almaya Hazır mısınız?'}
+                    {isPdfMode ? `📄 ${questionNo}. Soruyu PDF'ten Kırpın veya Yapıştırın` : 'Soru Çözümü Almaya Hazır mısınız?'}
                   </h4>
                   <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 460, lineHeight: 1.45 }}>
                     {isPdfMode
-                      ? `Yapay zekanın soruyu doğru analiz edip adım adım çözebilmesi için lütfen aşağıdaki butona basıp PDF ekranındaki ${questionNo}. soruyu çerçeveye alın veya ekran alıntısını yapıştırın (Ctrl+V).`
-                      : `Yukarıdaki "✂️ Ekrandan Soruyu Kırp" butonuna basarak ekrandan soruyu seçebilir veya "📸 Fotoğraf Çek" ile sorunun resmini yükleyebilirsiniz.`}
+                      ? `Bu PDF belgesi Google Drive üzerinden görüntülenmektedir. En pratik 2 yöntemle soruyu çözdürebilirsiniz:`
+                      : `Yukarıdaki butonlarla soruyu kırpabilir veya fotoğrafını yükleyebilirsiniz.`}
                   </p>
+                  {isPdfMode && (
+                    <div style={{
+                      margin: '0.75rem auto 0 auto',
+                      padding: '0.65rem 0.9rem',
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      border: '1.5px solid rgba(59, 130, 246, 0.25)',
+                      borderRadius: '0.75rem',
+                      fontSize: '0.8rem',
+                      color: 'var(--color-text)',
+                      textAlign: 'left',
+                      lineHeight: 1.5,
+                      maxWidth: 460
+                    }}>
+                      <div style={{ fontWeight: 800, color: '#3b82f6', marginBottom: 3 }}>💡 En Hızlı 2 Seçenek:</div>
+                      <div><b>1. En Hızlı:</b> Klavyeden <kbd style={{ background: '#334155', color: '#f8fafc', padding: '1px 5px', borderRadius: 4 }}>Win + Shift + S</kbd> ile soruyu seçin ve aşağıdaki <b>"📋 Panodan Yapıştır"</b> butonuna tıklayın (veya <kbd style={{ background: '#334155', color: '#f8fafc', padding: '1px 5px', borderRadius: 4 }}>Ctrl + V</kbd>).</div>
+                      <div style={{ marginTop: 3 }}><b>2. Ekran Kırpma:</b> Aşağıdaki <b>"✂️ Ekrandan Kırp"</b> butonuna basıp sekmeyi onaylayarak soruyu doğrudan fareyle çerçeveye alın.</div>
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  onClick={startSnippingMode}
-                  style={{
-                    padding: '0.75rem 1.75rem',
-                    borderRadius: '0.85rem',
-                    background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: 900,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)'
-                  }}
-                >
-                  <Crop size={18} />
-                  <span>✂️ {isPdfMode ? `${questionNo}. Soruyu PDF'ten Çerçeveye Al` : 'Şimdi Soruyu Kırp & Çöz'}</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    onClick={startSnippingMode}
+                    style={{
+                      padding: '0.75rem 1.4rem',
+                      borderRadius: '0.85rem',
+                      background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                      border: 'none',
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 16px rgba(124, 58, 237, 0.3)'
+                    }}
+                  >
+                    <Crop size={18} />
+                    <span>✂️ {isPdfMode ? `${questionNo}. Soruyu PDF'ten Kırp` : 'Şimdi Soruyu Kırp & Çöz'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleClipboardPaste}
+                    style={{
+                      padding: '0.75rem 1.4rem',
+                      borderRadius: '0.85rem',
+                      background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+                      border: 'none',
+                      color: 'white',
+                      fontWeight: 900,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 16px rgba(37, 99, 235, 0.3)'
+                    }}
+                    title="Windows'ta Win+Shift+S ile soruyu kopyaladıktan sonra yapıştırın"
+                  >
+                    <Copy size={18} />
+                    <span>📋 Panodan Yapıştır (Ctrl+V)</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
