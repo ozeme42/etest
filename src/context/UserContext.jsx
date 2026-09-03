@@ -59,7 +59,8 @@ export function UserProvider({ children }) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return sanitizeUsersForStorage(parsed);
+          const clean = parsed.filter(u => u && u.email !== 'ozgurdere@gmail.ocm');
+          return sanitizeUsersForStorage(clean);
         }
       } catch {}
     }
@@ -96,15 +97,9 @@ export function UserProvider({ children }) {
             };
           });
 
-          // Preserve any locally created users not present in Supabase
-          prev.forEach(localU => {
-            if (!merged.some(m => String(m.id) === String(localU.id) || (m.email && localU.email && m.email.toLowerCase() === localU.email.toLowerCase()))) {
-              merged.push(localU);
-            }
-          });
-
-          safeSetItem('eTestUsers', JSON.stringify(sanitizeUsersForStorage(merged)));
-          return merged;
+          const cleanMerged = merged.filter(u => u && u.email !== 'ozgurdere@gmail.ocm');
+          safeSetItem('eTestUsers', JSON.stringify(sanitizeUsersForStorage(cleanMerged)));
+          return cleanMerged;
         });
       }
     }

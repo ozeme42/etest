@@ -209,20 +209,11 @@ export function AuthProvider({ children }) {
         return { success: true, user: demoUser };
       }
 
-      // 5. Auto-register new student if completely new email
-      const newUser = {
-        id: `u_${Date.now()}`,
-        name: email.split('@')[0],
-        email: fullEmail,
-        password: password || '123456',
-        role: 'student',
-        gradeId: 'g1',
-        isApproved: true
-      };
-      await addUser(newUser);
-      setCurrentUser(newUser);
+      // 5. User not found
       setLoading(false);
-      return { success: true, user: newUser };
+      const notFoundErr = '❌ Kullanıcı bulunamadı veya şifre hatalı! Lütfen bilgilerinizi kontrol ediniz.';
+      setError(notFoundErr);
+      return { success: false, error: notFoundErr };
     } catch (err) {
       const friendlyErr = translateAuthError(err.message);
       setError(friendlyErr);
