@@ -667,14 +667,58 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   let blankCount = 0;
   const detailedAnswers = [];
 
+  const titleLower = String(rawSub.title || rawSub.testTitle || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || '').toLowerCase();
+  const hasOEKeywords = titleLower.includes('açık uçlu') ||
+                        titleLower.includes('acik uclu') ||
+                        titleLower.includes('klasik') ||
+                        titleLower.includes('yazılı') ||
+                        titleLower.includes('yazili') ||
+                        titleLower.includes('görsel soru') ||
+                        titleLower.includes('gorsel soru') ||
+                        /\baç\b|\bac\b/.test(titleLower);
+
+  const hasWrittenAnswers = Boolean(
+    (rawSub.openEndedText && Object.keys(rawSub.openEndedText).length > 0) ||
+    rawSub.writtenAnswer ||
+    rawSub.writtenAnswers ||
+    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => 
+      a?.isOpenEnded || a?.is_open_ended || a?.type === 'acik_uclu' || a?.type === 'gorsel_klasik' || a?.type === 'open_ended' ||
+      a?.writtenAnswer || (a?.userAnswerText && String(a.userAnswerText).trim() !== '' && String(a.userAnswerText).trim() !== 'empty') ||
+      a?.maxScore !== undefined
+    ))
+  );
+
   const isSubWritten = Boolean(
     rawSub.isOpenEnded ||
     rawSub.type === 'acik_uclu' ||
     rawSub.type === 'yazili' ||
+    rawSub.type === 'gorsel_klasik' ||
     rawSub.questionType === 'acik_uclu' ||
     rawSub.questionType === 'yazili' ||
-    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a?.type === 'open_ended' || a?.maxScore !== undefined))
+    rawSub.questionType === 'gorsel_klasik' ||
+    rawSub.contentType === 'acik_uclu' ||
+    rawSub.contentType === 'yazili' ||
+    rawSub.contentType === 'gorsel_klasik' ||
+    matchedHw?.isOpenEnded ||
+    matchedHw?.type === 'acik_uclu' ||
+    matchedHw?.questionType === 'acik_uclu' ||
+    hasWrittenAnswers ||
+    (hasOEKeywords && (!isDirectExam && rawSub.type !== 'optik_form' && rawSub.type !== 'multiple_choice' && matchedBookTest === null))
   );
+
+  const isEvaluated = Boolean(
+    rawSub.isEvaluated === true ||
+    rawSub.isEvaluatedByTeacher === true ||
+    rawSub.evaluatedByTeacher === true ||
+    rawSub.status === 'evaluated' ||
+    rawSub.status === 'graded' ||
+    Boolean(rawSub.teacherFeedback || rawSub.teacherNote) ||
+    Boolean(rawSub.teacherScores && Object.keys(rawSub.teacherScores).length > 0) ||
+    Boolean(rawSub.evaluatedAt && (rawSub.teacherFeedback || rawSub.teacherNote || rawSub.isEvaluated || rawSub.status === 'evaluated')) ||
+    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a && (a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending' && a.score !== ''))))
+  );
+
+  const isPendingEvaluation = isSubWritten && !isEvaluated;
 
   if (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a?.type !== 'metadata' && (a?.score !== undefined || a?.teacherFeedback || a?.teacherScore !== undefined))) {
     rawSub.answers.filter(a => a?.type !== 'metadata').forEach((a, idx) => {
@@ -703,39 +747,35 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       if (userLetter && correctLetter) {
         isCorrect = (userLetter === correctLetter);
       } else if (userLetter && !correctLetter) {
-        if (Array.isArray(rawSub.answers)) {
-          const existing = rawSub.answers.find(a => (a.questionNo === i || a.questionIndex === i));
-          if (existing?.isCorrect !== undefined) isCorrect = existing.isCorrect;
-        }
+        isCorrect = null;
+      } else if (!userLetter) {
+        isCorrect = null;
       }
 
       if (isCorrect === true) correctCount++;
-      else if (userLetter) wrongCount++;
+      else if (isCorrect === false) wrongCount++;
       else blankCount++;
 
       detailedAnswers.push({
         questionNo: i,
         userAnswer: userLetter,
         correctAnswer: correctLetter,
-        isCorrect,
-        reason: mistakeReasons[i] || null
+        isCorrect
       });
     }
   }
 
-  // Override correct/wrong counts if pre-evaluated by teacher, entered manually, or explicitly defined in snake_case / camelCase
+  // 5. Override explicit counts if present
   if (expCorrect !== undefined && expCorrect !== null && !isNaN(Number(expCorrect))) {
-    const numCorr = Number(expCorrect);
-    const numWrg = (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) ? Number(expWrong) : 0;
-    const numEmp = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) ? Number(expEmpty) : Math.max(0, totalQuestions - numCorr - numWrg);
-    
-    if ((correctCount === 0 && wrongCount === 0 && (numCorr > 0 || numWrg > 0)) || Object.keys(studentAnswersMap).length === 0) {
-      correctCount = numCorr;
-      wrongCount = numWrg;
-      blankCount = numEmp;
-    } else if (numCorr !== correctCount || numWrg !== wrongCount) {
-      correctCount = numCorr;
-      wrongCount = numWrg;
+    correctCount = Number(expCorrect);
+  }
+  if (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) {
+    wrongCount = Number(expWrong);
+  }
+  if (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) {
+    blankCount = Number(expEmpty);
+  } else if (totalQuestions > 0 && (correctCount > 0 || wrongCount > 0)) {
+    if (blankCount === 0 && (correctCount + wrongCount) < totalQuestions) {
       blankCount = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty)))
         ? Number(expEmpty)
         : Math.max(0, totalQuestions - correctCount - wrongCount);
@@ -761,19 +801,23 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   // 6. Score & Net Calculation
   const expScorePct = rawSub.scorePercentage ?? rawSub.score_percentage ?? rawSub.pct ?? raw.scorePercentage;
-  let scorePercentage = 0;
-  if (totalQuestions > 0 && correctCount >= 0) {
-    scorePercentage = Math.min(100, Math.max(0, Math.round((correctCount / totalQuestions) * 100)));
-  } else if (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct))) {
-    scorePercentage = Math.min(100, Math.max(0, Math.round(Number(expScorePct))));
-  } else if (rawSub.score !== undefined && rawSub.score !== null && !isNaN(Number(rawSub.score)) && Number(rawSub.score) > 10) {
-    scorePercentage = Math.min(100, Math.max(0, Math.round(Number(rawSub.score))));
+  let scorePercentage = null;
+  if (!isPendingEvaluation) {
+    if (totalQuestions > 0 && correctCount >= 0) {
+      scorePercentage = Math.min(100, Math.max(0, Math.round((correctCount / totalQuestions) * 100)));
+    } else if (expScorePct !== undefined && expScorePct !== null && !isNaN(Number(expScorePct))) {
+      scorePercentage = Math.min(100, Math.max(0, Math.round(Number(expScorePct))));
+    } else if (rawSub.score !== undefined && rawSub.score !== null && !isNaN(Number(rawSub.score)) && Number(rawSub.score) > 10) {
+      scorePercentage = Math.min(100, Math.max(0, Math.round(Number(rawSub.score))));
+    }
   }
 
   const expNet = rawSub.totalNet ?? rawSub.total_net ?? rawSub.net ?? raw.totalNet;
-  const netScore = (expNet !== undefined && expNet !== null && !isNaN(Number(expNet)))
-    ? Number(Number(expNet).toFixed(2))
-    : Number((correctCount - (wrongCount / 4)).toFixed(2));
+  const netScore = isPendingEvaluation
+    ? null
+    : ((expNet !== undefined && expNet !== null && !isNaN(Number(expNet)))
+        ? Number(Number(expNet).toFixed(2))
+        : Number((correctCount - (wrongCount / 4)).toFixed(2)));
 
   // 7. Date Resolution
   const dateVal = extractItemDate(rawSub);
@@ -819,20 +863,6 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     : (isBookTest ? 'book' : (matchedHw ? 'homework' : 'submission'));
 
   const calculatedSubjectKey = getSubjectKey({ fullTitle, subjectName });
-
-  const isEvaluated = Boolean(
-    rawSub.isEvaluated === true ||
-    rawSub.isEvaluatedByTeacher === true ||
-    rawSub.evaluatedByTeacher === true ||
-    rawSub.status === 'evaluated' ||
-    rawSub.status === 'graded' ||
-    Boolean(rawSub.teacherFeedback || rawSub.teacherNote) ||
-    Boolean(rawSub.teacherScores && Object.keys(rawSub.teacherScores).length > 0) ||
-    Boolean(rawSub.evaluatedAt && (rawSub.teacherFeedback || rawSub.teacherNote || rawSub.isEvaluated || rawSub.status === 'evaluated')) ||
-    (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending')))
-  );
-
-  const isPendingEvaluation = isSubWritten && !isEvaluated;
 
   let subjectStats = rawSub.subjectStats || rawSub.metadata?.subjectStats;
   if (!subjectStats && matchedHw?.submissions) {

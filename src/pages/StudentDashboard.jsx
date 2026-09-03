@@ -1027,6 +1027,9 @@ export default function StudentDashboard() {
     let totalQuestions = 0;
 
     (otherHomeworkSubmissions || []).forEach(s => {
+      // 🛡️ Exclude unevaluated open-ended tests from dragging down the overall success percentage
+      if (s.isPendingEvaluation || (s.isOpenEnded && !s.isEvaluated) || s.scorePercentage === null || s.scorePercentage === undefined) return;
+
       const c = Number(s.correctCount) || 0;
       const w = Number(s.wrongCount) || 0;
       const e = Number(s.emptyCount) || 0;
@@ -1037,6 +1040,8 @@ export default function StudentDashboard() {
     });
 
     (generalTrialExams || []).forEach(m => {
+      if (m.isPendingEvaluation || (m.isOpenEnded && !m.isEvaluated)) return;
+
       const c = Number(m.totalCorrect ?? m.correctCount) || 0;
       const w = Number(m.totalWrong ?? m.wrongCount) || 0;
       const e = Number(m.totalEmpty ?? m.emptyCount ?? m.blankCount) || 0;

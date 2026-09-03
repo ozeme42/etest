@@ -770,13 +770,15 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   /* ── Totals summary across filtered submissions ─── */
   const tableTotals = useMemo(() => {
     const count = filteredSubs.length;
-    const totalC = filteredSubs.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
-    const totalW = filteredSubs.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
-    const totalB = filteredSubs.reduce((sum, s) => sum + (Number(s.blankCount ?? s.emptyCount) || 0), 0);
+    // 🛡️ Exclude unevaluated open-ended submissions from dragging down the overall accuracy & net
+    const evaluatedSubs = filteredSubs.filter(s => !s.isPendingEvaluation && (!s.isOpenEnded || s.isEvaluated));
+    const totalC = evaluatedSubs.reduce((sum, s) => sum + (Number(s.correctCount) || 0), 0);
+    const totalW = evaluatedSubs.reduce((sum, s) => sum + (Number(s.wrongCount) || 0), 0);
+    const totalB = evaluatedSubs.reduce((sum, s) => sum + (Number(s.blankCount ?? s.emptyCount) || 0), 0);
     const totalQ = totalC + totalW + totalB;
-    const totalNet = Number(filteredSubs.reduce((sum, s) => sum + (Number(s.netScore ?? s.net ?? s.totalNet) || 0), 0).toFixed(2));
+    const totalNet = Number(evaluatedSubs.reduce((sum, s) => sum + (Number(s.netScore ?? s.net ?? s.totalNet) || 0), 0).toFixed(2));
     const overallSuccess = totalQ > 0 ? Math.round((totalC / totalQ) * 100) : 0;
-    return { count, totalQ, totalC, totalW, totalB, totalNet, overallSuccess };
+    return { count, totalQ, totalC, totalW, totalB, totalNet, overallSuccess, pendingCount: filteredSubs.length - evaluatedSubs.length };
   }, [filteredSubs]);
 
   // Reset page to 1 when filters change

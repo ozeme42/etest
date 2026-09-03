@@ -149,31 +149,64 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
             const isEvaluated = Boolean(
               test.isEvaluated === true ||
               test.isEvaluatedByTeacher === true ||
+              test.evaluatedByTeacher === true ||
               test.status === 'evaluated' ||
               test.status === 'graded' ||
-              test.teacherFeedback ||
-              test.teacherNote ||
-              (test.teacherScores && Object.keys(test.teacherScores).length > 0) ||
-              test.evaluatedAt ||
-              (Array.isArray(test.answers) && test.answers.some(a => a && (a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending'))))
+              Boolean(test.teacherFeedback || test.teacherNote) ||
+              Boolean(test.teacherScores && Object.keys(test.teacherScores).length > 0) ||
+              Boolean(test.evaluatedAt && (test.teacherFeedback || test.teacherNote || test.isEvaluated || test.status === 'evaluated')) ||
+              (Array.isArray(test.answers) && test.answers.some(a => a && (a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending' && a.score !== ''))))
+            );
+
+            const titleLower = String(test.title || test.testTitle || test.fullTitle || test.name || '').toLowerCase();
+            const hasOEKeywords = titleLower.includes('açık uçlu') ||
+                                  titleLower.includes('acik uclu') ||
+                                  titleLower.includes('klasik') ||
+                                  titleLower.includes('yazılı') ||
+                                  titleLower.includes('yazili') ||
+                                  titleLower.includes('görsel soru') ||
+                                  titleLower.includes('gorsel soru') ||
+                                  /\baç\b|\bac\b/.test(titleLower);
+
+            const hasWrittenAnswers = Boolean(
+              (test.openEndedText && Object.keys(test.openEndedText).length > 0) ||
+              test.writtenAnswer ||
+              test.writtenAnswers ||
+              (Array.isArray(test.answers) && test.answers.some(a => 
+                a?.isOpenEnded || a?.is_open_ended || a?.type === 'acik_uclu' || a?.type === 'gorsel_klasik' || a?.type === 'open_ended' ||
+                a?.writtenAnswer || (a?.userAnswerText && String(a.userAnswerText).trim() !== '' && String(a.userAnswerText).trim() !== 'empty') ||
+                a?.maxScore !== undefined
+              ))
             );
 
             const isWritten = Boolean(
               test.isOpenEnded ||
               test.type === 'acik_uclu' ||
               test.type === 'yazili' ||
+              test.type === 'gorsel_klasik' ||
               test.questionType === 'acik_uclu' ||
               test.questionType === 'yazili' ||
-              test.isPendingEvaluation
+              test.questionType === 'gorsel_klasik' ||
+              test.contentType === 'acik_uclu' ||
+              test.contentType === 'yazili' ||
+              test.contentType === 'gorsel_klasik' ||
+              test.isPendingEvaluation ||
+              hasWrittenAnswers ||
+              (hasOEKeywords && (!test.isPhysicalExam && !test.isExam && test.type !== 'physicalExam' && test.type !== 'optik_form' && test.type !== 'multiple_choice'))
             );
 
-            const isPending = isWritten && !isEvaluated;
+            const isPending = Boolean(
+              test.isPendingEvaluation ||
+              test.isManualPending ||
+              (isWritten && !isEvaluated) ||
+              (!isEvaluated && (hasWrittenAnswers || hasOEKeywords) && (!test.isPhysicalExam && !test.isExam && test.type !== 'physicalExam' && test.type !== 'optik_form' && test.type !== 'multiple_choice'))
+            );
 
             const scoreRate = (test.score !== undefined && test.score !== null && !isPending)
               ? Number(test.score)
               : (test.scorePercentage !== undefined && test.scorePercentage !== null && !isPending
                   ? Number(test.scorePercentage)
-                  : (totalQ > 0 && !isPending ? Math.round((correct / totalQ) * 100) : null));
+                  : (totalQ > 0 && !isPending && !isWritten ? Math.round((correct / totalQ) * 100) : null));
 
             const isDenemeExam = Boolean(
               test.isPhysicalExam ||
@@ -269,8 +302,8 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                         ❌ Onaylanmadı
                       </span>
                     ) : isPending ? (
-                      <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                        📝 {totalQ || 1} Açık Uçlu Soru • ⏳ İncelemede
+                      <span style={{ color: '#7c3aed', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 800 }}>
+                        📝 {totalQ || 1} Açık Uçlu Soru • <span style={{ background: 'rgba(124, 58, 237, 0.12)', color: '#7c3aed', padding: '1px 6px', borderRadius: 4, fontWeight: 900 }}>⏳ Değerlendirmede</span>
                       </span>
                     ) : (
                       <>
@@ -296,7 +329,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                         <span style={{ color: 'var(--color-text-muted)', opacity: 0.75 }}>
                           • {totalQ} Soru
                         </span>
-                        {test.net !== undefined && test.net !== null && !test.isOpenEnded && (
+                        {test.net !== undefined && test.net !== null && !test.isOpenEnded && !isWritten && !isPending && (
                           <span style={{ color: '#6366f1', fontWeight: 900 }}>
                             • {test.net} Net
                           </span>
@@ -308,21 +341,38 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
 
                 {/* Sağ Taraf: Skor Rozeti ve İnceleme Oku */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  {scoreRate !== null && !test.isManualPending && !isPending && (
+                  {isPending ? (
                     <span style={{
-                      fontSize: isMobile ? '0.68rem' : '0.75rem',
+                      fontSize: isMobile ? '0.64rem' : '0.72rem',
                       fontWeight: 900,
-                      color: scoreRate >= 70 ? '#166534' : scoreRate >= 50 ? '#b45309' : '#dc2626',
-                      background: scoreRate >= 70 ? '#f0fdf4' : scoreRate >= 50 ? '#fffbeb' : '#fef2f2',
-                      border: `1px solid ${scoreRate >= 70 ? '#bbf7d0' : scoreRate >= 50 ? '#fde68a' : '#fecaca'}`,
+                      color: '#7c3aed',
+                      background: 'rgba(124, 58, 237, 0.12)',
+                      border: '1px solid rgba(124, 58, 237, 0.3)',
                       padding: isMobile ? '2px 6px' : '3px 8px',
                       borderRadius: 6,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 2
+                      gap: 3
                     }}>
-                      %{scoreRate}
+                      ⏳ Değerlendirmede
                     </span>
+                  ) : (
+                    scoreRate !== null && !test.isManualPending && (
+                      <span style={{
+                        fontSize: isMobile ? '0.68rem' : '0.75rem',
+                        fontWeight: 900,
+                        color: scoreRate >= 70 ? '#166534' : scoreRate >= 50 ? '#b45309' : '#dc2626',
+                        background: scoreRate >= 70 ? '#f0fdf4' : scoreRate >= 50 ? '#fffbeb' : '#fef2f2',
+                        border: `1px solid ${scoreRate >= 70 ? '#bbf7d0' : scoreRate >= 50 ? '#fde68a' : '#fecaca'}`,
+                        padding: isMobile ? '2px 6px' : '3px 8px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2
+                      }}>
+                        %{scoreRate}
+                      </span>
+                    )
                   )}
                   <ChevronRight size={isMobile ? 14 : 16} color="var(--color-text-muted)" />
                 </div>

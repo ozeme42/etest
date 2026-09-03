@@ -1230,8 +1230,8 @@ export function computeStudentAnalyticsData({
       subject: s.subjectName || s.subject || 'Genel',
       subjectName: s.subjectName || s.subject || 'Genel',
       date: s.date,
-      totalNet: s.netScore ?? s.totalNet ?? 0,
-      net: s.netScore ?? s.totalNet ?? 0,
+      totalNet: s.isPendingEvaluation ? null : (s.netScore ?? s.totalNet ?? 0),
+      net: s.isPendingEvaluation ? null : (s.netScore ?? s.totalNet ?? 0),
       correctCount: s.correctCount || 0,
       correct: s.correctCount || 0,
       wrongCount: s.wrongCount || 0,
@@ -1244,6 +1244,10 @@ export function computeStudentAnalyticsData({
       approvalStatus: 'approved',
       isTrial: isTrial,
       parentBookId: s.bookId,
+      isOpenEnded: Boolean(s.isOpenEnded),
+      isPendingEvaluation: Boolean(s.isPendingEvaluation),
+      isEvaluated: Boolean(s.isEvaluated),
+      scorePercentage: s.scorePercentage,
       scores: (s.scores && Object.keys(s.scores).length > 0) ? s.scores : {
         [s.subjectName || s.subject || 'Genel']: {
           d: s.correctCount || 0,
@@ -1252,7 +1256,7 @@ export function computeStudentAnalyticsData({
           correct: s.correctCount || 0,
           wrong: s.wrongCount || 0,
           empty: s.blankCount ?? s.emptyCount ?? 0,
-          net: s.netScore ?? s.totalNet ?? 0
+          net: s.isPendingEvaluation ? null : (s.netScore ?? s.totalNet ?? 0)
         }
       }
     };
