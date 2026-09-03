@@ -1030,18 +1030,20 @@ export default function StudentDashboard() {
       const c = Number(s.correctCount) || 0;
       const w = Number(s.wrongCount) || 0;
       const e = Number(s.emptyCount) || 0;
-      const q = c + w + e;
+      const explicitTotal = Number(s.totalQuestions) || 0;
+      const q = (c + w + e > 0) ? (c + w + e) : explicitTotal;
       totalCorrect += c;
-      totalQuestions += q > 0 ? q : (c + w);
+      totalQuestions += q;
     });
 
     (generalTrialExams || []).forEach(m => {
-      const c = Number(m.totalCorrect) || 0;
-      const w = Number(m.totalWrong) || 0;
-      const e = Number(m.totalEmpty) || 0;
-      const q = c + w + e;
+      const c = Number(m.totalCorrect ?? m.correctCount) || 0;
+      const w = Number(m.totalWrong ?? m.wrongCount) || 0;
+      const e = Number(m.totalEmpty ?? m.emptyCount ?? m.blankCount) || 0;
+      const explicitTotal = Number(m.totalQuestions) || 0;
+      const q = (c + w + e > 0) ? (c + w + e) : explicitTotal;
       totalCorrect += c;
-      totalQuestions += q > 0 ? q : (c + w);
+      totalQuestions += q;
     });
 
     if (totalQuestions > 0) {

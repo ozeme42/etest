@@ -629,6 +629,26 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     totalQuestions = derivedQuestionsCount;
   }
 
+  // 🛡️ CRITICAL FIX: Prevent artificial blank questions inflating total questions!
+  // If the submission explicitly provides correctCount and wrongCount (and optionally blankCount),
+  // e.g. 47D + 7Y + 0B = 54, do not let an unpruned template or answer-key length (e.g. 60 or 90)
+  // invent fake blank questions that unfairly depress the student's success rate.
+  if (expCorrect !== undefined && expCorrect !== null && expWrong !== undefined && expWrong !== null) {
+    const numCorr = Number(expCorrect) || 0;
+    const numWrg = Number(expWrong) || 0;
+    const hasExplicitBlank = expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty));
+    const numEmp = hasExplicitBlank ? Number(expEmpty) : 0;
+    const explicitQ = numCorr + numWrg + numEmp;
+
+    if (explicitQ > 0) {
+      if (hasExplicitBlank && numEmp === 0) {
+        totalQuestions = explicitQ;
+      } else if (explicitQ < totalQuestions && (rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam || rawSub.isPhysical)) {
+        totalQuestions = explicitQ;
+      }
+    }
+  }
+
   // 4. Mistake Reasons Map
   const mistakeReasons = rawSub.mistakeReasons || raw.mistakeReasons || {};
   if (Array.isArray(rawSub.answers)) {
@@ -716,7 +736,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     } else if (numCorr !== correctCount || numWrg !== wrongCount) {
       correctCount = numCorr;
       wrongCount = numWrg;
-      blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
+      blankCount = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty)))
+        ? Number(expEmpty)
+        : Math.max(0, totalQuestions - correctCount - wrongCount);
+    }
+    if (expEmpty !== undefined && expEmpty !== null && Number(expEmpty) === 0) {
+      blankCount = 0;
     }
   }
 
