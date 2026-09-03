@@ -71,7 +71,7 @@ export function HomeworkProvider({ children }) {
       (!h.testDueDates || Object.keys(h.testDueDates).length === 0)
     );
 
-    if (!force && !hasIncompleteBookHomeworks && isCacheValid('homeworks', 2) && (homeworks || []).length > 0) {
+    if (!force && !hasIncompleteBookHomeworks && isCacheValid('homeworks', 15) && (homeworks || []).length > 0) {
       setIsLoading(false);
       return homeworks;
     }
@@ -104,7 +104,7 @@ export function HomeworkProvider({ children }) {
   };
 
   useEffect(() => {
-    refreshHomeworks(true);
+    refreshHomeworks(false);
 
     if (!isSupabaseConfigured() || !supabase) return;
 

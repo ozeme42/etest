@@ -640,8 +640,14 @@ export async function dbCheckSubmissionsFreshness(cachedCount = 0, cachedLatestA
     const dbCount = count ?? 0;
     const dbLatestAt = latestData?.[0]?.created_at || null;
 
-    // Both count and latest timestamp must match
-    const isFresh = (dbCount === cachedCount) && (!dbLatestAt || String(dbLatestAt) === String(cachedLatestAt));
+    const dbTime = dbLatestAt ? new Date(dbLatestAt).getTime() : 0;
+    const cachedTime = cachedLatestAt ? new Date(cachedLatestAt).getTime() : 0;
+    const isTimestampMatch = (!dbLatestAt && !cachedLatestAt) ||
+                             (String(dbLatestAt) === String(cachedLatestAt)) ||
+                             (!isNaN(dbTime) && !isNaN(cachedTime) && Math.abs(dbTime - cachedTime) <= 5000);
+
+    // Both count and latest timestamp must match (or counts match when cachedCount > 0)
+    const isFresh = (dbCount === cachedCount) && (isTimestampMatch || (cachedCount > 0 && dbCount === cachedCount));
     return { isFresh, dbCount, dbLatestAt };
   } catch (err) {
     console.warn('[Supabase] dbCheckSubmissionsFreshness error:', err);

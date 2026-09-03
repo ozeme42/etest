@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:apk": "node scripts/build-apk.cjs",
     "build:apk:debug": "node scripts/build-apk.cjs --debug",
+    "backup": "node scripts/backup/export-supabase-json.mjs",
+    "restore": "node scripts/backup/restore-supabase-json.mjs",
     "lint": "oxlint src",
     "preview": "vite preview"
   },
