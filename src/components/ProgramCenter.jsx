@@ -1489,6 +1489,7 @@ export function MonthlyListPanel({
   const effectiveStudentId = studentId || currentUser?.id;
   const [monthOffset, setMonthOffset] = useState(0);
   const [onlyWithTasks, setOnlyWithTasks] = useState(false);
+  const [showAllMonthDays, setShowAllMonthDays] = useState(false);
   const [expandedMonthDays, setExpandedMonthDays] = useState({});
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -2155,6 +2156,18 @@ export function MonthlyListPanel({
     return monthInfo.daysList.filter(d => d.items.length > 0);
   }, [monthInfo, onlyWithTasks]);
 
+  const INITIAL_DAYS_LIMIT = 7;
+  const initialDaysCount = useMemo(() => {
+    const todayIdx = filteredDays.findIndex(d => d.isToday);
+    if (todayIdx === -1) return INITIAL_DAYS_LIMIT;
+    return Math.max(INITIAL_DAYS_LIMIT, todayIdx + 3);
+  }, [filteredDays]);
+
+  const displayedDays = useMemo(() => {
+    if (showAllMonthDays) return filteredDays;
+    return filteredDays.slice(0, initialDaysCount);
+  }, [filteredDays, showAllMonthDays, initialDaysCount]);
+
   const monthTotalTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.length, 0);
   const monthDoneTasks = monthInfo.daysList.reduce((acc, d) => acc + d.items.filter(i => i.done).length, 0);
   const monthCompletionPct = monthTotalTasks > 0 ? Math.round((monthDoneTasks / monthTotalTasks) * 100) : 0;
@@ -2621,21 +2634,46 @@ export function MonthlyListPanel({
             paddingTop: 4,
             borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9'
           }}>
-            <button
-              onClick={() => setOnlyWithTasks(v => !v)}
-              style={{
-                padding: isMobile ? '0.25rem 0.6rem' : '0.35rem 0.75rem',
-                borderRadius: 99,
-                background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
-                border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
-                color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
-                fontWeight: 800,
-                fontSize: isMobile ? '0.7rem' : '0.75rem',
-                cursor: 'pointer'
-              }}
-            >
-              {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setOnlyWithTasks(v => !v)}
+                style={{
+                  padding: isMobile ? '0.25rem 0.6rem' : '0.35rem 0.75rem',
+                  borderRadius: 99,
+                  background: onlyWithTasks ? (isDark ? 'rgba(99,102,241,0.25)' : '#eef2ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                  border: onlyWithTasks ? '1.5px solid #818cf8' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                  color: onlyWithTasks ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {onlyWithTasks ? '🔍 Sadece Görevli Günler' : '📋 Tüm Günler'}
+              </button>
+
+              {filteredDays.length > initialDaysCount && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllMonthDays(v => !v)}
+                  style={{
+                    padding: isMobile ? '0.25rem 0.6rem' : '0.35rem 0.75rem',
+                    borderRadius: 99,
+                    background: showAllMonthDays ? (isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                    border: showAllMonthDays ? '1.5px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'),
+                    color: showAllMonthDays ? (isDark ? '#6ee7b7' : '#059669') : (isDark ? 'rgba(255,255,255,0.7)' : '#64748b'),
+                    fontWeight: 800,
+                    fontSize: isMobile ? '0.7rem' : '0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  {showAllMonthDays ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  <span>{showAllMonthDays ? `▲ İlk ${initialDaysCount} Gün` : `▼ Tüm Ayı Aç (${filteredDays.length} Gün)`}</span>
+                </button>
+              )}
+            </div>
 
             {/* Print Buttons */}
             <div style={{ display: 'inline-flex', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9', padding: 2, borderRadius: 99, border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1' }}>
@@ -2686,7 +2724,7 @@ export function MonthlyListPanel({
 
         {/* Days Agenda List (Screen) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {filteredDays.map(d => {
+          {displayedDays.map(d => {
             const taskIcons = { konu: '📖', soru: '✏️', tekrar: '🔄', kitap: '📚', deneme: '📊', ödev: '📝', diger: '✨' };
             const theme = DAY_THEMES[d.dayKey] || DAY_THEMES['Pzt'];
             return (
@@ -2729,9 +2767,9 @@ export function MonthlyListPanel({
                       Programlanan ders görevi yok
                     </div>
                   ) : (() => {
-                    const isShowAllMonthTasks = !!expandedMonthDays[d.ymd] || !isMobile;
-                    const MAX_MONTH_ITEMS = 4;
-                    const shouldShowMoreBtn = isMobile && d.items.length > MAX_MONTH_ITEMS;
+                    const isShowAllMonthTasks = Boolean(expandedMonthDays[d.ymd]);
+                    const MAX_MONTH_ITEMS = 3;
+                    const shouldShowMoreBtn = d.items.length > MAX_MONTH_ITEMS;
                     const displayedMonthItems = (shouldShowMoreBtn && !isShowAllMonthTasks) ? d.items.slice(0, MAX_MONTH_ITEMS) : d.items;
 
                     return (
@@ -3137,6 +3175,54 @@ export function MonthlyListPanel({
               </div>
             );
           })}
+
+          {filteredDays.length > initialDaysCount && (
+            <div style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowAllMonthDays(prev => !prev)}
+                style={{
+                  width: '100%',
+                  padding: '0.85rem 1.25rem',
+                  borderRadius: '1rem',
+                  border: isDark ? '1.5px solid rgba(99,102,241,0.35)' : '1.5px solid rgba(99,102,241,0.25)',
+                  background: isDark ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.7), rgba(49, 46, 129, 0.7))' : 'linear-gradient(135deg, #eef2ff, #f5f3ff)',
+                  color: isDark ? '#c7d2fe' : '#4f46e5',
+                  fontSize: '0.85rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(99,102,241,0.15)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {showAllMonthDays ? (
+                  <>
+                    <ChevronUp size={16} />
+                    <span>Daha Az Gün Göster (İlk {initialDaysCount} Gün)</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={16} />
+                    <span>Ayın Kalan {filteredDays.length - initialDaysCount} Gününü Göster ({filteredDays.length} Gün)</span>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      background: '#6366f1',
+                      color: '#ffffff',
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      fontWeight: 900
+                    }}>
+                      +{filteredDays.length - initialDaysCount} Gün
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
