@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useCurriculum } from '../../context/CurriculumContext';
 import { useTheme } from '../../context/ThemeContext';
+import { sortSubjectsByMebOrder, sortUnitsNaturally } from '../../utils/testResolver';
 
 export const STATUS_CONFIG = {
   'Başlanmadı':    { label: 'Başlanmadı', color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.12)', border: '#cbd5e1', icon: '○' },
@@ -16,9 +17,10 @@ export const STATUS_CONFIG = {
   'Tamamlandı':    { label: 'Tamamlandı', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: '#a7f3d0', icon: '✓' },
 };
 
+// MEB & ÖSYM Resmi Sınav Ders Sıralaması ve Renkleri:
 const SUBJECT_COLORS = {
-  'Matematik': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '📐' },
   'Türkçe': { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: '📖' },
+  'Matematik': { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: '📐' },
   'Fen Bilimleri': { color: '#059669', bg: '#ecfdf5', border: '#a7f3d0', icon: '🔬' },
   'Sosyal Bilgiler': { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: '🌍' },
   'İnkılap Tarihi': { color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', icon: '🇹🇷' },
@@ -27,39 +29,45 @@ const SUBJECT_COLORS = {
   'Fizik': { color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', icon: '⚡' },
   'Kimya': { color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', icon: '🧪' },
   'Biyoloji': { color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0', icon: '🧬' },
-  'Geometri': { color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', icon: '📏' }
+  'Geometri': { color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', icon: '📏' },
+  'Tarih': { color: '#b45309', bg: '#fef3c7', border: '#fde68a', icon: '📜' },
+  'Coğrafya': { color: '#047857', bg: '#d1fae5', border: '#a7f3d0', icon: '🗺️' },
+  'Felsefe': { color: '#6b21a8', bg: '#f3e8ff', border: '#e9d5ff', icon: '💭' }
 };
 
 const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-// Helper: Normalize subject into 3 levels (Ders -> Ünite -> Konu)
+// Helper: Normalize subject into 3 levels (Ders -> Ünite -> Konu) sorted in MEB / ÖSYM order
 function normalizeTo3Levels(subjects) {
-  return (subjects || []).map((sub, sIdx) => {
+  const normalized = (subjects || []).map((sub, sIdx) => {
     const subId = String(sub.id || `sub_${sIdx}`);
     const color = sub.color || SUBJECT_COLORS[sub.name]?.color || '#6366f1';
 
     // If subject already has structured units:
     if (Array.isArray(sub.units) && sub.units.length > 0) {
+      const sortedUnits = [...sub.units].sort(sortUnitsNaturally).map((u, uIdx) => ({
+        ...u,
+        id: String(u.id || `unit_${subId}_${uIdx}`),
+        name: u.name || `${uIdx + 1}. Ünite`,
+        topics: (u.topics || []).map((t, tIdx) => {
+          if (typeof t === 'string') {
+            return { id: `top_${subId}_${uIdx}_${tIdx}`, name: t, status: 'Başlanmadı' };
+          }
+          return {
+            ...t,
+            id: String(t.id || `top_${subId}_${uIdx}_${tIdx}`),
+            name: t.name || `Konu ${tIdx + 1}`,
+            status: t.status || 'Başlanmadı'
+          };
+        })
+      }));
+
       return {
         ...sub,
         id: subId,
         color,
-        units: sub.units.map((u, uIdx) => ({
-          ...u,
-          id: String(u.id || `unit_${subId}_${uIdx}`),
-          name: u.name || `${uIdx + 1}. Ünite`,
-          topics: (u.topics || []).map((t, tIdx) => {
-            if (typeof t === 'string') {
-              return { id: `top_${subId}_${uIdx}_${tIdx}`, name: t, status: 'Başlanmadı' };
-            }
-            return {
-              ...t,
-              id: String(t.id || `top_${subId}_${uIdx}_${tIdx}`),
-              name: t.name || `Konu ${tIdx + 1}`,
-              status: t.status || 'Başlanmadı'
-            };
-          })
-        }))
+        units: sortedUnits,
+        topics: sortedUnits.flatMap(u => u.topics || [])
       };
     }
 
@@ -90,6 +98,9 @@ function normalizeTo3Levels(subjects) {
       topics: flatTopics
     };
   });
+
+  // Sort subjects in MEB & ÖSYM official exam order: Türkçe -> Matematik -> Fen -> Sosyal -> İngilizce -> Din...
+  return normalized.sort(sortSubjectsByMebOrder);
 }
 
 export default function CurriculumRoadmapView({

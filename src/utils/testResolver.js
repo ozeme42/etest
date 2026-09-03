@@ -6,6 +6,64 @@ import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapte
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 /**
+ * MEB & ÖSYM Resmi Sınav Ders Sıralaması:
+ * 1. Türkçe
+ * 2. Matematik
+ * 3. Fen Bilimleri
+ * 4. Sosyal Bilgiler / İnkılap Tarihi
+ * 5. İngilizce / Yabancı Dil
+ * 6. Din Kültürü
+ */
+export const MEB_OSYM_SUBJECT_ORDER = [
+  // 1. Türkçe Grubu
+  'türkçe', 'turkce', 'edebiyat', 'türk dili ve edebiyatı', 'turk dili ve edebiyati', 'paragraf', 'tyt türkçe', 'tyt turkce',
+  // 2. Matematik Grubu
+  'matematik', 'geometri', 'temel matematik', 'ileri matematik', 'tyt matematik', 'ayt matematik',
+  // 3. Fen Grubu
+  'fen bilimleri', 'fen ve teknoloji', 'fen', 'fizik', 'kimya', 'biyoloji', 'tyt fen', 'ayt fen',
+  // 4. Sosyal Grubu
+  'sosyal bilgiler', 'sosyal', 't.c. inkılap tarihi ve atatürkçülük', 't.c. inkılap tarihi', 'inkılap tarihi', 'inkilap tarihi', 'inkılap', 'tarih', 'coğrafya', 'cografya', 'felsefe', 'felsefe grubu', 'mantık', 'psikoloji', 'sosyoloji', 'tyt sosyal', 'ayt sosyal', 'ayt sözel', 'ayt eşit ağırlık',
+  // 5. Yabancı Dil
+  'ingilizce', 'ingilizce / yabancı dil', 'yabancı dil', 'almanca', 'fransızca', 'ydt',
+  // 6. Din
+  'din kültürü ve ahlak bilgisi', 'din kültürü', 'din kulturu', 'din',
+  // 7. Diğer
+  'bilişim teknolojileri', 'bilişim', 'kodlama', 'robotik', 'görsel sanatlar', 'resim', 'müzik', 'beden eğitimi', 'trafik güvenliği', 'insan hakları', 'rehberlik', 'genel'
+];
+
+export function getMebSubjectRank(name) {
+  if (!name) return 9999;
+  const lower = String(name).trim().toLocaleLowerCase('tr');
+  
+  const exactIdx = MEB_OSYM_SUBJECT_ORDER.indexOf(lower);
+  if (exactIdx !== -1) return exactIdx;
+
+  const subIdx = MEB_OSYM_SUBJECT_ORDER.findIndex(item => lower.includes(item) || item.includes(lower));
+  if (subIdx !== -1) return subIdx;
+
+  return 1000;
+}
+
+export function sortSubjectsByMebOrder(a, b) {
+  const nameA = a?.name || a?.subject || a?.title || (typeof a === 'string' ? a : '');
+  const nameB = b?.name || b?.subject || b?.title || (typeof b === 'string' ? b : '');
+  
+  const rankA = getMebSubjectRank(nameA);
+  const rankB = getMebSubjectRank(nameB);
+  
+  if (rankA !== rankB) {
+    return rankA - rankB;
+  }
+  return String(nameA).localeCompare(String(nameB), 'tr', { numeric: true });
+}
+
+export function sortUnitsNaturally(a, b) {
+  const nameA = a?.name || a?.title || (typeof a === 'string' ? a : '');
+  const nameB = b?.name || b?.title || (typeof b === 'string' ? b : '');
+  return String(nameA).localeCompare(String(nameB), 'tr', { numeric: true });
+}
+
+/**
  * Checks whether a tracked book or homework is a Mock Exam (Deneme)
  */
 export function isExamBook(b) {
@@ -929,11 +987,10 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
         return sIdxA - sIdxB;
       }
     } else {
-      const stdOrder = ['Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler', 'İnkılap Tarihi', 'İngilizce', 'Din Kültürü', 'Genel'];
-      const sIdxA = stdOrder.indexOf(subjNameA);
-      const sIdxB = stdOrder.indexOf(subjNameB);
-      if (sIdxA !== -1 && sIdxB !== -1 && sIdxA !== sIdxB) {
-        return sIdxA - sIdxB;
+      const rankA = getMebSubjectRank(subjNameA);
+      const rankB = getMebSubjectRank(subjNameB);
+      if (rankA !== rankB) {
+        return rankA - rankB;
       }
     }
 

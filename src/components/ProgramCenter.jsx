@@ -9,7 +9,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook, sortSubjectsByMebOrder } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 import AddTaskModal from './program/AddTaskModal';
@@ -27,9 +27,10 @@ export const DAYS = [
 ];
 
 const SUBJECTS = [
-  'Matematik', 'Türkçe', 'Fen Bilimleri', 'Sosyal Bilgiler',
-  'İngilizce', 'Fizik', 'Kimya', 'Biyoloji', 'Tarih', 'Coğrafya',
-  'Geometri', 'Genel Tekrar', 'Soru Çözümü', 'Deneme Sınavı'
+  'Türkçe', 'Matematik', 'Fen Bilimleri', 'Sosyal Bilgiler',
+  'İnkılap Tarihi', 'İngilizce', 'Din Kültürü', 'Fizik', 'Kimya',
+  'Biyoloji', 'Tarih', 'Coğrafya', 'Geometri', 'Felsefe',
+  'Genel Tekrar', 'Soru Çözümü', 'Deneme Sınavı'
 ];
 
 export const TOPIC_STATUSES = ['Başlanmadı', 'Başlandı', 'Öğrenildi', 'Tekrar Yapıldı', 'Tamamlandı'];
@@ -1049,7 +1050,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
     const gradeObj = (curriculumData.grades || []).find(g => g.id === gradeId);
     if (!gradeObj) return;
 
-    const gradeSubjects = (curriculumData.subjects || []).filter(s => s.gradeId === gradeId);
+    const gradeSubjects = (curriculumData.subjects || []).filter(s => s.gradeId === gradeId).sort(sortSubjectsByMebOrder);
     if (gradeSubjects.length === 0) {
       alert(`"${gradeObj.name}" sınıfı için henüz kayıtlı ders müfredatı bulunamadı.`);
       return;
@@ -1130,7 +1131,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
           });
         }
       });
-      return next;
+      return next.sort(sortSubjectsByMebOrder);
     });
 
     setSelectedCurriculumPreview(null);
@@ -1170,7 +1171,7 @@ export function TopicPoolPanel({ topicPool, setTopicPool, onAssignTopic, isDark 
       ? { ...s, topics: s.topics.filter(t => t.id !== topicId) } : s));
   };
 
-  const pool = topicPool || [];
+  const pool = useMemo(() => [...(topicPool || [])].sort(sortSubjectsByMebOrder), [topicPool]);
 
   return (
     <div>
