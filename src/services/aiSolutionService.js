@@ -2,44 +2,54 @@ import { dbGetUserAiApiKey, dbGetSystemAiApiKey } from './supabaseService';
 
 export const GEMINI_AVAILABLE_MODELS = [
   {
-    id: 'gemini-3.1-flash-lite',
-    name: 'Gemini 3.1 Flash-Lite',
-    tag: '⚡ Hızlı & Yüksek Kota (Önerilen)',
-    desc: "Düşük gecikmeli, yüksek kotalı ve seri soru çözümleri için Google tarafından optimize edilmiş Flash Lite sürümü.",
-    badge: 'Önerilen',
-    color: '#0284c7',
-    bg: 'rgba(2, 132, 199, 0.12)',
-    border: '#7dd3fc'
-  },
-  {
-    id: 'gemini-3.7-flash',
-    name: 'Gemini 3.7 Flash',
-    tag: '🧠 İleri Düzey Düşünme & Hibrit',
-    desc: "Google'ın en gelişmiş yeni nesil hibrit modeli; karmaşık şekilli sorular, grafikler ve MEB kazanımları için üstün başarı.",
-    badge: 'Yeni Nesil',
-    color: '#7c3aed',
-    bg: 'rgba(124, 58, 237, 0.12)',
-    border: '#c084fc'
-  },
-  {
     id: 'gemini-3.6-flash',
     name: 'Gemini 3.6 Flash',
-    tag: '🚀 Güçlü & Kararlı',
-    desc: "Geniş bağlam ve güvenilir görsel analiz performansı sunan kararlı üretim modeli.",
-    badge: 'Kararlı',
+    tag: '⚡ En Hızlı & En Kararlı (Önerilen)',
+    desc: "Geniş bağlam ve güvenilir görsel analiz performansı sunan, 503 yoğunluk hatası vermeyen en kararlı üretim modeli.",
+    badge: 'Önerilen',
     color: '#10b981',
     bg: 'rgba(16, 185, 129, 0.12)',
     border: '#6ee7b7'
   },
   {
-    id: 'gemini-3.5-flash-lite',
-    name: 'Gemini 3.5 Flash-Lite',
-    tag: '🎯 Hafif & Güvenilir',
-    desc: "Alternatif hafif üretim modeli.",
-    badge: 'Hafif',
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    tag: '🚀 Yüksek Muhakeme & Hızlı',
+    desc: "Yüksek akıl yürütme kabiliyeti ve hızlı yanıt süresi ile kendini kanıtlamış kararlı model.",
+    badge: 'Kararlı',
+    color: '#0284c7',
+    bg: 'rgba(2, 132, 199, 0.12)',
+    border: '#7dd3fc'
+  },
+  {
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash-Lite',
+    tag: '💡 Ultra Hızlı & Yüksek Kota',
+    desc: "Düşük gecikmeli, yüksek kotalı ve seri soru çözümleri için Google tarafından optimize edilmiş Flash Lite sürümü.",
+    badge: 'Ultra Hızlı',
+    color: '#3b82f6',
+    bg: 'rgba(59, 130, 246, 0.12)',
+    border: '#93c5fd'
+  },
+  {
+    id: 'gemini-flash-latest',
+    name: 'Gemini Flash Latest',
+    tag: '📦 Otomatik Güncel',
+    desc: "Google'ın sürekli güncel tuttuğu en yeni stabil flash sürümü.",
+    badge: 'Güncel',
     color: '#ec4899',
     bg: 'rgba(236, 72, 153, 0.12)',
     border: '#f472b6'
+  },
+  {
+    id: 'gemini-3.7-flash',
+    name: 'Gemini 3.7 Flash',
+    tag: '⭐ İleri Düzey Düşünme & Hibrit (Dönemsel Yoğunluk)',
+    desc: "Google'ın en gelişmiş yeni nesil hibrit modeli (yoğunluk dönemlerinde 503 yanıtı verebilir, otomatik yedek modele geçer).",
+    badge: 'Yeni Nesil',
+    color: '#7c3aed',
+    bg: 'rgba(124, 58, 237, 0.12)',
+    border: '#c084fc'
   }
 ];
 
@@ -551,15 +561,20 @@ Lütfen bu soruyu standart/önceki anlatımdan FARKLI bir yöntemle, alternatif 
   let responseData = null;
   let lastError = null;
 
-  const preferredModel = localStorage.getItem('system_ai_default_model') || 'gemini-3.1-flash-lite';
+  let preferredModel = localStorage.getItem('system_ai_default_model');
+  // 3.7 Flash is currently experiencing 503 high demand spikes on Google API; fallback default to 3.6 Flash
+  if (!preferredModel || preferredModel === 'gemini-3.7-flash') {
+    preferredModel = 'gemini-3.6-flash';
+  }
+
   const prioritizedModels = [
     preferredModel,
-    'gemini-3.1-flash-lite',
-    'gemini-3.7-flash',
     'gemini-3.6-flash',
-    'gemini-3.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-flash-latest'
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-3.7-flash'
   ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
   for (const model of prioritizedModels) {
