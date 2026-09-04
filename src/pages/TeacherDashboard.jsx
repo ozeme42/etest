@@ -79,8 +79,6 @@ export default function TeacherDashboard() {
   const [feedTypeFilter, setFeedTypeFilter] = useState('all'); // 'all' | 'remedial' | 'book' | 'exam'
   const [feedScoreFilter, setFeedScoreFilter] = useState('all'); // 'all' | 'high' | 'mid' | 'low'
   const [feedSearch, setFeedSearch] = useState('');
-  const [feedPage, setFeedPage] = useState(1);
-  const itemsPerPage = 20;
 
   // Telafi & Hata Havuzu State
   const [selectedRemedialStudentId, setSelectedRemedialStudentId] = useState(null);
@@ -415,10 +413,10 @@ export default function TeacherDashboard() {
     });
   }, [teacherSubmissions, feedStudentFilter, feedSubjectFilter, feedTypeFilter, feedScoreFilter, feedSearch, students]);
 
-  // Paginated submissions to show all smoothly
-  const paginatedSubmissions = useMemo(() => {
-    return filteredSubmissions.slice(0, feedPage * itemsPerPage);
-  }, [filteredSubmissions, feedPage, itemsPerPage]);
+  // Feed limited strictly to last 10 exams
+  const feedSubmissions = useMemo(() => {
+    return filteredSubmissions.slice(0, 10);
+  }, [filteredSubmissions]);
 
   // Total mistakes in pool across teacher's students
   const totalMistakesInPool = useMemo(() => {
@@ -968,7 +966,7 @@ export default function TeacherDashboard() {
                   >
                     <CheckCircle2 size={15} />
                     <span>Sınav Çözüm Akışı</span>
-                    <span className="teacher-subtab-count">{teacherSubmissions.length}</span>
+                    <span className="teacher-subtab-count">Son {feedSubmissions.length}</span>
                   </button>
 
                   <button
@@ -997,14 +995,14 @@ export default function TeacherDashboard() {
                 </div>
 
                 <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  {submissionSubTab === 'feed' && `Gösterilen: ${paginatedSubmissions.length} / ${filteredSubmissions.length} Sınav`}
+                  {submissionSubTab === 'feed' && `Son ${feedSubmissions.length} Sınav Çözümü Gösteriliyor`}
                   {submissionSubTab === 'remedials' && `Aktif Öğrenci: ${activeRemedialStudent?.name || 'Seçilmedi'}`}
                   {submissionSubTab === 'programs' && `Haftalık İlerleme: %${programStats.pct}`}
                 </div>
               </div>
 
               {/* ────────────────────────────────────────────────
-                  ALT GÖRÜNÜM 1: GELİŞMİŞ SINAV ÇÖZÜM AKIŞI (266)
+                  ALT GÖRÜNÜM 1: GELİŞMİŞ SINAV ÇÖZÜM AKIŞI (SON 10)
                   ──────────────────────────────────────────────── */}
               {submissionSubTab === 'feed' && (
                 <>
@@ -1016,7 +1014,7 @@ export default function TeacherDashboard() {
                         type="text"
                         placeholder="Sınav, ders veya öğrenci ara..."
                         value={feedSearch}
-                        onChange={e => { setFeedSearch(e.target.value); setFeedPage(1); }}
+                        onChange={e => setFeedSearch(e.target.value)}
                         className="teacher-form-input"
                         style={{ paddingLeft: '1.9rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem 0.45rem 1.9rem' }}
                       />
@@ -1024,7 +1022,7 @@ export default function TeacherDashboard() {
 
                     <select
                       value={feedStudentFilter}
-                      onChange={e => { setFeedStudentFilter(e.target.value); setFeedPage(1); }}
+                      onChange={e => setFeedStudentFilter(e.target.value)}
                       className="teacher-form-input"
                       style={{ width: 'auto', minWidth: 150, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
                     >
@@ -1038,7 +1036,7 @@ export default function TeacherDashboard() {
 
                     <select
                       value={feedSubjectFilter}
-                      onChange={e => { setFeedSubjectFilter(e.target.value); setFeedPage(1); }}
+                      onChange={e => setFeedSubjectFilter(e.target.value)}
                       className="teacher-form-input"
                       style={{ width: 'auto', minWidth: 120, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
                     >
@@ -1050,7 +1048,7 @@ export default function TeacherDashboard() {
 
                     <select
                       value={feedTypeFilter}
-                      onChange={e => { setFeedTypeFilter(e.target.value); setFeedPage(1); }}
+                      onChange={e => setFeedTypeFilter(e.target.value)}
                       className="teacher-form-input"
                       style={{ width: 'auto', minWidth: 120, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
                     >
@@ -1062,7 +1060,7 @@ export default function TeacherDashboard() {
 
                     <select
                       value={feedScoreFilter}
-                      onChange={e => { setFeedScoreFilter(e.target.value); setFeedPage(1); }}
+                      onChange={e => setFeedScoreFilter(e.target.value)}
                       className="teacher-form-input"
                       style={{ width: 'auto', minWidth: 125, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
                     >
@@ -1081,7 +1079,6 @@ export default function TeacherDashboard() {
                           setFeedTypeFilter('all');
                           setFeedScoreFilter('all');
                           setFeedSearch('');
-                          setFeedPage(1);
                         }}
                         className="btn-secondary-action"
                         style={{ padding: '0.45rem 0.75rem', fontSize: '0.74rem' }}
@@ -1111,7 +1108,7 @@ export default function TeacherDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedSubmissions.map((sub, idx) => {
+                          {feedSubmissions.map((sub, idx) => {
                             const std = students.find(s => s.id === sub.studentId || toUUID(s.id) === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
                             const c = Number(sub.correctCount ?? sub.correct ?? 0);
                             const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
@@ -1223,25 +1220,15 @@ export default function TeacherDashboard() {
                     </div>
                   )}
 
-                  {/* DAHA FAZLA GÖSTER / TÜMÜNÜ YÜKLE */}
-                  {paginatedSubmissions.length < filteredSubmissions.length && (
-                    <div style={{ textAlign: 'center', paddingTop: '0.85rem' }}>
-                      <button
-                        type="button"
-                        onClick={() => setFeedPage(p => p + 1)}
-                        className="btn-secondary-action"
-                        style={{
-                          padding: '0.6rem 1.4rem',
-                          fontWeight: 800,
-                          fontSize: '0.82rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6
-                        }}
-                      >
-                        <RotateCcw size={14} />
-                        Daha Fazla Sınav Göster (+{Math.min(itemsPerPage, filteredSubmissions.length - paginatedSubmissions.length)} / Kalan: {filteredSubmissions.length - paginatedSubmissions.length})
-                      </button>
+                  {filteredSubmissions.length > 10 && (
+                    <div style={{
+                      textAlign: 'center',
+                      paddingTop: '0.65rem',
+                      fontSize: '0.74rem',
+                      color: 'var(--color-text-muted)',
+                      fontWeight: 600
+                    }}>
+                      ⚡ Akışta en son çözülen 10 sınav gösterilmektedir. (Filtrelenen toplam: {filteredSubmissions.length} sınav)
                     </div>
                   )}
                 </>
