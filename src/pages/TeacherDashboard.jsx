@@ -111,12 +111,121 @@ export default function TeacherDashboard() {
   const teacherHwIds = useMemo(() => teacherHomeworks.map(h => h.id), [teacherHomeworks]);
 
   const teacherSubmissions = useMemo(() => {
-    return (submissions || []).filter(sub =>
+    // 1. Global submissions from evaluation context
+    const globalList = (submissions || []).filter(sub =>
       currentUser?.role === 'admin' ||
       teacherStudentIds.includes(sub.studentId) ||
       teacherHwIds.includes(sub.testId)
     );
-  }, [submissions, teacherStudentIds, teacherHwIds, currentUser]);
+
+    // 2. Also collect valid embedded submissions inside teacherHomeworks
+    const seenIds = new Set(globalList.map(s => String(s.id)));
+    const embeddedList = [];
+    teacherHomeworks.forEach(hw => {
+      const subs = Array.isArray(hw.submissions)
+        ? hw.submissions
+        : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+      subs.forEach(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft') return;
+        const sId = String(s.id || `hwsub_${hw.id}_${s.studentId}`);
+        if (!seenIds.has(sId)) {
+          seenIds.add(sId);
+          embeddedList.push({
+            ...s,
+            id: sId,
+            title: s.title || hw.title,
+            subject: s.subject || hw.subject || 'Genel',
+            homework_id: hw.id,
+            testId: s.testId || hw.id,
+            studentId: s.studentId || s.student_id
+          });
+        }
+      });
+    });
+
+    return [...globalList, ...embeddedList];
+  }, [submissions, teacherStudentIds, teacherHwIds, teacherHomeworks, currentUser]);
+
+  // Comprehensive homework submission matcher
+  const getHomeworkSubmissionStats = (hw) => {
+    if (!hw) return { studentCount: 0, totalCount: 0 };
+
+    const hwIdStr = String(hw.id || '');
+    const hwCleanId = hwIdStr.replace(/^hw_/, '');
+    const hwUuid = toUUID(hwIdStr);
+
+    // 1. Direct submissions inside hw
+    const embeddedSubs = Array.isArray(hw.submissions)
+      ? hw.submissions
+      : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+    const validEmbedded = embeddedSubs.filter(s => s && s.status !== 'in_progress' && s.status !== 'draft');
+
+    // 2. Tests in this homework
+    const rawTests = hw.tests || hw.raw_data?.tests || [];
+    const testIdSet = new Set();
+    if (Array.isArray(rawTests)) {
+      rawTests.forEach(t => {
+        if (!t) return;
+        const tStr = String(t.id || t);
+        testIdSet.add(tStr);
+        testIdSet.add(tStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, ''));
+        const u = toUUID(tStr);
+        if (u) testIdSet.add(String(u));
+      });
+    }
+
+    // 3. Match from teacherSubmissions
+    const matchedGlobalSubs = (teacherSubmissions || []).filter(s => {
+      if (!s) return false;
+      let raw = {};
+      if (typeof s.raw_data === 'string') {
+        try { raw = JSON.parse(s.raw_data); } catch(e){}
+      } else if (s.raw_data && typeof s.raw_data === 'object') {
+        raw = s.raw_data;
+      }
+      if (s.status === 'in_progress' || s.status === 'draft' || raw.status === 'in_progress' || raw.status === 'draft') return false;
+
+      const subFields = [
+        s.id, s.test_id, s.testId, s.homework_id, s.hw_id, s.hwId, s.homeworkId,
+        raw.id, raw.testId, raw.realTestId, raw.bookTestId, raw.hwId, raw.homeworkId, raw.homework_id
+      ].filter(Boolean).map(String);
+
+      const matchesHw = subFields.some(f => {
+        return f === hwIdStr || f === hwCleanId || (hwUuid && f === String(hwUuid)) || toUUID(f) === hwUuid || toUUID(f) === hwIdStr;
+      });
+      if (matchesHw) return true;
+
+      if (testIdSet.size > 0) {
+        const matchesTest = subFields.some(f => {
+          const cleanF = f.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+          return testIdSet.has(f) || testIdSet.has(cleanF) || (toUUID(f) && testIdSet.has(String(toUUID(f))));
+        });
+        if (matchesTest) return true;
+      }
+
+      if (hw.title && (s.title === hw.title || raw.title === hw.title)) {
+        return true;
+      }
+
+      return false;
+    });
+
+    // Count unique students who submitted
+    const uniqueStudents = new Set();
+    validEmbedded.forEach(s => {
+      const sid = s.studentId || s.student_id;
+      if (sid) uniqueStudents.add(String(sid));
+    });
+    matchedGlobalSubs.forEach(s => {
+      const sid = s.student_id || s.studentId || s.raw_data?.studentId;
+      if (sid) uniqueStudents.add(String(sid));
+    });
+
+    const studentCount = uniqueStudents.size;
+    const totalCount = Math.max(studentCount, validEmbedded.length, matchedGlobalSubs.length);
+
+    return { studentCount, totalCount };
+  };
 
   // Pending Approvals & Evaluations
   const pendingManualApprovals = useMemo(() => {
@@ -820,7 +929,7 @@ export default function TeacherDashboard() {
                     <tbody>
                       {filteredHomeworks.map(hw => {
                         const due = hw.dueDate ? new Date(hw.dueDate) : null;
-                        const subCount = teacherSubmissions.filter(s => s.homework_id === hw.id || s.testId === hw.id).length;
+                        const { studentCount, totalCount } = getHomeworkSubmissionStats(hw);
                         return (
                           <tr key={hw.id}>
                             <td>
@@ -833,7 +942,19 @@ export default function TeacherDashboard() {
                               {due ? due.toLocaleDateString('tr-TR') : 'Tarih Yok'}
                             </td>
                             <td>
-                              <strong>{subCount}</strong> teslim
+                              {studentCount > 0 ? (
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                                  color: '#059669', fontWeight: 800, fontSize: '0.82rem'
+                                }}>
+                                  <CheckCircle2 size={15} color="#059669" />
+                                  {studentCount} Öğrenci ({totalCount} Teslim)
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                                  0 teslim (Bekliyor)
+                                </span>
+                              )}
                             </td>
                             <td style={{ textAlign: 'right' }}>
                               <button
