@@ -257,11 +257,18 @@ export function useTeacherGrading({ submission, test, sections = [] }) {
         status: 'evaluated'
       };
 
-      if (updateSubmission) {
-        await updateSubmission(submission.id, patch);
+      const subId = submission?.id || submission?.submissionId || submission?._id;
+      if (updateSubmission && subId) {
+        await updateSubmission(subId, patch);
       }
-      if (updateHomeworkSubmission && (submission.hwId || submission.testId || submission.homeworkId)) {
-        await updateHomeworkSubmission(submission.hwId || submission.testId || submission.homeworkId, submission.studentId || submission.userId, patch);
+      const hwId = submission?.hwId || submission?.testId || submission?.homeworkId || test?.id;
+      const studentId = submission?.studentId || submission?.userId || submission?.id;
+      if (updateHomeworkSubmission && hwId && studentId) {
+        try {
+          await updateHomeworkSubmission(hwId, studentId, patch);
+        } catch (e) {
+          console.warn('updateHomeworkSubmission error in useTeacherGrading:', e);
+        }
       }
     } finally {
       setIsSaving(false);

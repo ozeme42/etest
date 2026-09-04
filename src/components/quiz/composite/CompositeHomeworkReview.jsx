@@ -286,6 +286,16 @@ export default function CompositeHomeworkReview({
     if (onClose) onClose();
   };
 
+  const handleExit = () => {
+    if (isTeacher) {
+      if (window.confirm('Yapılan değerlendirmeler kaydedilsin mi?\n\nTamam: Kaydet ve Çık\nİptal: Kaydetmeden Çık')) {
+        handleSaveAndClose();
+        return;
+      }
+    }
+    if (onClose) onClose();
+  };
+
   return (
     <div style={{ height: '100vh', maxHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', background: 'var(--color-bg)', color: 'var(--color-text)', overflow: 'hidden' }}>
       {/* Top Header */}
@@ -303,7 +313,7 @@ export default function CompositeHomeworkReview({
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.5rem' : '0.75rem', minWidth: 0 }}>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleExit}
             style={{
               padding: isMobile ? '0.45rem' : '0.55rem',
               borderRadius: '0.75rem',
@@ -422,7 +432,7 @@ export default function CompositeHomeworkReview({
           {/* Close Button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleExit}
             style={{
               padding: '0.55rem 1.15rem',
               borderRadius: '0.75rem',
@@ -1073,7 +1083,8 @@ export default function CompositeHomeworkReview({
           ) : (
             <button
               type="button"
-              onClick={onClose}
+              disabled={isSaving}
+              onClick={isTeacher ? handleSaveAndClose : onClose}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1081,17 +1092,17 @@ export default function CompositeHomeworkReview({
                 padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.25rem',
                 borderRadius: '0.75rem',
                 border: 'none',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                background: isTeacher ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#ffffff',
                 fontSize: isMobile ? '0.78rem' : '0.86rem',
                 fontWeight: 900,
-                cursor: 'pointer',
-                boxShadow: '0 3px 10px rgba(16,185,129,0.3)',
+                cursor: isSaving ? 'not-allowed' : 'pointer',
+                boxShadow: isTeacher ? '0 3px 10px rgba(37,99,235,0.3)' : '0 3px 10px rgba(16,185,129,0.3)',
                 transition: 'all 0.15s ease'
               }}
             >
-              <CheckCircle2 size={16} />
-              <span>İncelemeyi Bitir</span>
+              {isTeacher ? <Save size={16} /> : <CheckCircle2 size={16} />}
+              <span>{isTeacher ? (isSaving ? 'Kaydediliyor...' : 'Değerlendirmeyi Bitir & Kaydet') : 'İncelemeyi Bitir'}</span>
             </button>
           )}
         </div>
