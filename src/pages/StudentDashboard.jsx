@@ -42,6 +42,7 @@ import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsC
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
+import GamificationModal from '../components/gamification/GamificationModal';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
@@ -295,6 +296,7 @@ export default function StudentDashboard() {
   const todayDayKey = currentDayIndex === 0 ? 'Paz' : DAYS_OF_WEEK[currentDayIndex - 1].key;
   const [activeDayKey, setActiveDayKey] = useState(todayDayKey);
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
+  const [isGamificationModalOpen, setIsGamificationModalOpen] = useState(false);
   const [focusModeOnly, setFocusModeOnly] = useState(() => {
     try {
       return localStorage.getItem('etest_student_focus_mode') === 'true';
@@ -3160,16 +3162,22 @@ export default function StudentDashboard() {
           {/* SOL: Avatar + İsim + Rozetler */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
 
-            {/* Avatar with circular progress ring & streak badges */}
-            <div style={{
-              position: 'relative',
-              flexShrink: 0,
-              width: isMobile ? 66 : 82,
-              height: isMobile ? 66 : 82,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+            {/* Avatar with circular progress ring & badges */}
+            <div
+              onClick={() => setIsGamificationModalOpen(true)}
+              style={{
+                position: 'relative',
+                flexShrink: 0,
+                width: isMobile ? 66 : 82,
+                height: isMobile ? 66 : 82,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.18s ease'
+              }}
+              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • Rozetleri ve Seviyeyi Görüntüle`}
+            >
               {/* Circular Progress SVG Ring (Seviye / XP İlerleme Halkası) */}
               <svg
                 width={isMobile ? 66 : 82}
@@ -3831,6 +3839,21 @@ export default function StudentDashboard() {
           onClose={() => setIsAddTaskModalOpen(false)}
           topicPool={coachingProfile?.topicPool || []}
           isDark={isDark}
+        />
+      )}
+
+      {/* Rozetler ve Gamification Modalı */}
+      {isGamificationModalOpen && (
+        <GamificationModal
+          student={selectedStudent}
+          submissions={studentSubmissions}
+          homeworks={homeworks}
+          books={books}
+          bookTests={bookTests}
+          mockExams={studentMockExams}
+          studySessions={[]}
+          users={users}
+          onClose={() => setIsGamificationModalOpen(false)}
         />
       )}
     </div>
