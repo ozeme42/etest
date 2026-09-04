@@ -5,7 +5,7 @@ import {
   Search, BarChart3, TrendingUp, UserPlus, CheckCircle2,
   AlertCircle, Scissors, Sparkles, Map, Bell, ArrowRight,
   Calendar, RotateCcw, CheckSquare, Layers, Eye, Filter,
-  SlidersHorizontal, ChevronLeft, ChevronRight, Check
+  SlidersHorizontal, ChevronLeft, ChevronRight, Check, Clock
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -68,6 +68,8 @@ export default function TeacherDashboard() {
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedGradeFilter, setSelectedGradeFilter] = useState('');
   const [hwSearch, setHwSearch] = useState('');
+  const [hwSubTab, setHwSubTab] = useState('pending'); // 'pending' | 'solved' | 'all'
+  const [hwSubjectFilter, setHwSubjectFilter] = useState('all');
 
   // Sub-view inside 'submissions' tab: 'feed' | 'remedials' | 'programs'
   const [submissionSubTab, setSubmissionSubTab] = useState('feed');
@@ -242,21 +244,30 @@ export default function TeacherDashboard() {
       return false;
     });
 
-    // Count unique students who submitted
+    // Count unique students who submitted and latest submission timestamp
+    let latestTime = 0;
     const uniqueStudents = new Set();
     validEmbedded.forEach(s => {
       const sid = s.studentId || s.student_id;
       if (sid) uniqueStudents.add(String(sid));
+      const t = new Date(s.submittedAt || s.createdAt || s.date || 0).getTime();
+      if (!isNaN(t) && t > latestTime) latestTime = t;
     });
     matchedGlobalSubs.forEach(s => {
       const sid = s.student_id || s.studentId || s.raw_data?.studentId;
       if (sid) uniqueStudents.add(String(sid));
+      const t = new Date(s.submittedAt || s.createdAt || s.date || 0).getTime();
+      if (!isNaN(t) && t > latestTime) latestTime = t;
     });
 
     const studentCount = uniqueStudents.size;
     const totalCount = Math.max(studentCount, validEmbedded.length, matchedGlobalSubs.length);
 
-    return { studentCount, totalCount };
+    // Count assigned students for this homework
+    const assignedStudents = (students || []).filter(st => isHomeworkForStudent(hw, st, data?.grades || []));
+    const assignedCount = assignedStudents.length > 0 ? assignedStudents.length : (students?.length || 1);
+
+    return { studentCount, totalCount, latestTime, assignedCount };
   };
 
   // Pending Approvals & Evaluations
@@ -655,12 +666,119 @@ export default function TeacherDashboard() {
     return { totalItems, completedItems, pct };
   }, [activeWeeklyProgram]);
 
-  // Filtered Homeworks List
+  // Available Subjects for Homeworks
+  const availableHwSubjects = useMemo(() => {
+    const set = new Set();
+    teacherHomeworks.forEach(h => {
+      if (h.subject) set.add(h.subject);
+    });
+    return Array.from(set).sort();
+  }, [teacherHomeworks]);
+
+  // Filtered Homeworks List (with search & subject filter)
   const filteredHomeworks = useMemo(() => {
     return teacherHomeworks.filter(h => {
-      return !hwSearch || h.title?.toLowerCase().includes(hwSearch.toLowerCase()) || h.subject?.toLowerCase().includes(hwSearch.toLowerCase());
+      const q = hwSearch.trim().toLowerCase();
+      if (q) {
+        const titleMatch = (h.title || '').toLowerCase().includes(q);
+        const subjMatch = (h.subject || '').toLowerCase().includes(q);
+        if (!titleMatch && !subjMatch) return false;
+      }
+      if (hwSubjectFilter !== 'all' && (h.subject || '') !== hwSubjectFilter) {
+        return false;
+      }
+      return true;
     });
-  }, [teacherHomeworks, hwSearch]);
+  }, [teacherHomeworks, hwSearch, hwSubjectFilter]);
+
+  // Çözülen Ödevler (En az 1 teslimi olanlar, en son teslim/çözüm en üstte)
+  const solvedHomeworks = useMemo(() => {
+    return filteredHomeworks
+      .filter(hw => {
+        const { totalCount } = getHomeworkSubmissionStats(hw);
+        return totalCount > 0;
+      })
+      .sort((a, b) => {
+        const statsA = getHomeworkSubmissionStats(a);
+        const statsB = getHomeworkSubmissionStats(b);
+        const timeA = statsA.latestTime || new Date(a.createdAt || a.dueDate || 0).getTime();
+        const timeB = statsB.latestTime || new Date(b.createdAt || b.dueDate || 0).getTime();
+        return timeB - timeA;
+      });
+  }, [filteredHomeworks, teacherSubmissions]);
+
+  // Çözülen Ödevler (KESİNLİKLE SON 10 TANE)
+  const solvedHomeworksLimit = useMemo(() => {
+    return solvedHomeworks.slice(0, 10);
+  }, [solvedHomeworks]);
+
+  // Bekleyen Ödevler (0 teslim veya henüz tüm öğrencilerin teslim etmediği ödevler)
+  const pendingHomeworks = useMemo(() => {
+    return filteredHomeworks
+      .filter(hw => {
+        const { studentCount, assignedCount } = getHomeworkSubmissionStats(hw);
+        return studentCount < assignedCount || studentCount === 0;
+      })
+      .sort((a, b) => {
+        const dueA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+        const dueB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+        return dueA - dueB; // Teslim tarihi en yakın olanlar en üstte
+      });
+  }, [filteredHomeworks, teacherSubmissions, students, data?.grades]);
+
+  // Toplam teslim sayısı
+  const totalHwSubmissionsCount = useMemo(() => {
+    let count = 0;
+    teacherHomeworks.forEach(hw => {
+      const { totalCount } = getHomeworkSubmissionStats(hw);
+      count += totalCount;
+    });
+    return count;
+  }, [teacherHomeworks, teacherSubmissions]);
+
+  // Deadline status helper
+  const getDeadlineStatus = (dueDateStr) => {
+    if (!dueDateStr) return { label: 'Tarih Yok', color: 'var(--color-text-muted)', bg: 'var(--color-surface-hover)', border: 'var(--color-border)' };
+    const due = new Date(dueDateStr);
+    const now = new Date();
+    const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const dueZero = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+
+    const diffDays = Math.round((dueZero - todayZero) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return {
+        label: `⚠️ Süresi Doldu (${Math.abs(diffDays)} gün önce)`,
+        color: '#dc2626',
+        bg: '#fee2e2',
+        border: '#fecdd3',
+        isOverdue: true
+      };
+    }
+    if (diffDays === 0) {
+      return {
+        label: '🔥 Bugün Son Gün!',
+        color: '#d97706',
+        bg: '#fef3c7',
+        border: '#fde68a',
+        isToday: true
+      };
+    }
+    if (diffDays === 1) {
+      return {
+        label: '⏳ Yarın Son Gün',
+        color: '#4338ca',
+        bg: '#eef2ff',
+        border: '#c7d2fe'
+      };
+    }
+    return {
+      label: `📅 ${due.toLocaleDateString('tr-TR')} (${diffDays} gün kaldı)`,
+      color: '#059669',
+      bg: '#ecfdf5',
+      border: '#a7f3d0'
+    };
+  };
 
   /* ── Handlers ── */
   const handleAddStudent = async (e) => {
@@ -1935,91 +2053,386 @@ export default function TeacherDashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════
-              SEKME 3: VERİLEN ÖDEVLER
+              SEKME 3: VERİLEN ÖDEVLER (BEKLEYENLER & ÇÖZÜLENLER SON 10)
               ═══════════════════════════════════════════════════ */}
           {activeTab === 'homeworks' && (
             <div className="teacher-simple-card">
-              <div className="teacher-filter-bar">
-                <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
-                  <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+              {/* 🧭 ALT SEKME GEÇİŞİ */}
+              <div className="teacher-subtab-container">
+                <div className="teacher-subtab-nav">
+                  <button
+                    type="button"
+                    onClick={() => setHwSubTab('pending')}
+                    className={`teacher-subtab-pill ${hwSubTab === 'pending' ? 'active' : ''}`}
+                  >
+                    <Clock size={15} />
+                    <span>⏳ Bekleyen Ödevler</span>
+                    <span className="teacher-subtab-count">{pendingHomeworks.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHwSubTab('solved')}
+                    className={`teacher-subtab-pill ${hwSubTab === 'solved' ? 'active' : ''}`}
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>✅ Çözülen Ödevler</span>
+                    <span className="teacher-subtab-count">Son {solvedHomeworksLimit.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setHwSubTab('all')}
+                    className={`teacher-subtab-pill ${hwSubTab === 'all' ? 'active' : ''}`}
+                  >
+                    <Layers size={15} />
+                    <span>Tüm Ödevler</span>
+                    <span className="teacher-subtab-count">{filteredHomeworks.length}</span>
+                  </button>
+                </div>
+
+                <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  {hwSubTab === 'pending' && `${pendingHomeworks.length} Teslim Bekleyen Ödev`}
+                  {hwSubTab === 'solved' && `Son ${solvedHomeworksLimit.length} Çözülen Ödev Gösteriliyor`}
+                  {hwSubTab === 'all' && `Toplam ${filteredHomeworks.length} Ödev`}
+                </div>
+              </div>
+
+              {/* 4 KPI ÖZET KARTI */}
+              <div className="teacher-kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <div className="teacher-kpi-card" style={{ borderLeft: '4px solid #d97706' }}>
+                  <div className="teacher-kpi-header">
+                    <span className="teacher-kpi-title">Teslim Bekleyen</span>
+                    <div className="teacher-kpi-icon" style={{ background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
+                      <Clock size={18} />
+                    </div>
+                  </div>
+                  <div className="teacher-kpi-value" style={{ color: '#d97706' }}>{pendingHomeworks.length}</div>
+                  <div className="teacher-kpi-subtext">Ödev çözüm bekliyor</div>
+                </div>
+
+                <div className="teacher-kpi-card" style={{ borderLeft: '4px solid #059669' }}>
+                  <div className="teacher-kpi-header">
+                    <span className="teacher-kpi-title">Çözülen Ödevler</span>
+                    <div className="teacher-kpi-icon" style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669' }}>
+                      <CheckCircle2 size={18} />
+                    </div>
+                  </div>
+                  <div className="teacher-kpi-value" style={{ color: '#059669' }}>{solvedHomeworksLimit.length}</div>
+                  <div className="teacher-kpi-subtext">Son 10 çözülen (Toplam {solvedHomeworks.length})</div>
+                </div>
+
+                <div className="teacher-kpi-card" style={{ borderLeft: '4px solid #4f46e5' }}>
+                  <div className="teacher-kpi-header">
+                    <span className="teacher-kpi-title">Toplam Teslim</span>
+                    <div className="teacher-kpi-icon" style={{ background: 'rgba(79, 70, 229, 0.1)', color: '#4f46e5' }}>
+                      <ClipboardCheck size={18} />
+                    </div>
+                  </div>
+                  <div className="teacher-kpi-value" style={{ color: '#4f46e5' }}>{totalHwSubmissionsCount}</div>
+                  <div className="teacher-kpi-subtext">Öğrenci teslimi yapıldı</div>
+                </div>
+
+                <div className="teacher-kpi-card" style={{ borderLeft: '4px solid #6366f1' }}>
+                  <div className="teacher-kpi-header">
+                    <span className="teacher-kpi-title">Kayıtlı Ödevler</span>
+                    <div className="teacher-kpi-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+                      <BookOpen size={18} />
+                    </div>
+                  </div>
+                  <div className="teacher-kpi-value" style={{ color: '#6366f1' }}>{teacherHomeworks.length}</div>
+                  <div className="teacher-kpi-subtext">Tanımlanmış ödev</div>
+                </div>
+              </div>
+
+              {/* FİLTRELEME & AKSİYON ÇUBUĞU */}
+              <div className="teacher-advanced-filter-row" style={{ marginTop: '0.75rem' }}>
+                <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                  <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                   <input
                     type="text"
-                    placeholder="Ödev veya ders ara..."
+                    placeholder="Ödev başlığı veya ders ara..."
                     value={hwSearch}
                     onChange={e => setHwSearch(e.target.value)}
                     className="teacher-form-input"
-                    style={{ paddingLeft: '2rem' }}
+                    style={{ paddingLeft: '1.9rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem 0.45rem 1.9rem' }}
                   />
                 </div>
+
+                <select
+                  value={hwSubjectFilter}
+                  onChange={e => setHwSubjectFilter(e.target.value)}
+                  className="teacher-form-input"
+                  style={{ width: 'auto', minWidth: 130, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
+                >
+                  <option value="all">Tüm Dersler</option>
+                  {availableHwSubjects.map(subj => (
+                    <option key={subj} value={subj}>{subj}</option>
+                  ))}
+                </select>
+
+                {(hwSearch || hwSubjectFilter !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHwSearch('');
+                      setHwSubjectFilter('all');
+                    }}
+                    className="btn-secondary-action"
+                    style={{ padding: '0.45rem 0.75rem', fontSize: '0.74rem' }}
+                    title="Filtreleri temizle"
+                  >
+                    ✕ Temizle
+                  </button>
+                )}
 
                 <button
                   onClick={() => navigate('/homeworks')}
                   className="btn-primary-action"
+                  style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '0.45rem 0.85rem', fontSize: '0.78rem' }}
                 >
                   <Plus size={14} /> Yeni Ödev Ata
                 </button>
               </div>
 
-              {filteredHomeworks.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)' }}>
-                  Tanımlanmış bir ödev bulunamadı.
-                </div>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="teacher-simple-table">
-                    <thead>
-                      <tr>
-                        <th>Ödev Başlığı</th>
-                        <th>Ders</th>
-                        <th>Son Teslim Tarihi</th>
-                        <th>Teslim Edenler</th>
-                        <th style={{ textAlign: 'right' }}>İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredHomeworks.map(hw => {
-                        const due = hw.dueDate ? new Date(hw.dueDate) : null;
-                        const { studentCount, totalCount } = getHomeworkSubmissionStats(hw);
-                        return (
-                          <tr key={hw.id}>
-                            <td>
-                              <strong style={{ color: 'var(--color-text)' }}>{hw.title}</strong>
-                            </td>
-                            <td>
-                              <span className="teacher-badge-pill">{hw.subject || 'Genel'}</span>
-                            </td>
-                            <td>
-                              {due ? due.toLocaleDateString('tr-TR') : 'Tarih Yok'}
-                            </td>
-                            <td>
-                              {studentCount > 0 ? (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                                  color: '#059669', fontWeight: 800, fontSize: '0.82rem'
-                                }}>
-                                  <CheckCircle2 size={15} color="#059669" />
-                                  {studentCount} Öğrenci ({totalCount} Teslim)
-                                </span>
-                              ) : (
-                                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
-                                  0 teslim (Bekliyor)
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <button
-                                onClick={() => navigate('/homeworks')}
-                                className="btn-secondary-action"
-                                style={{ padding: '0.35rem 0.65rem', fontSize: '0.74rem' }}
-                              >
-                                Ödevi Yönet
-                              </button>
-                            </td>
+              {/* ────────────────────────────────────────────────
+                  1. GÖRÜNÜM: BEKLEYEN ÖDEVLER
+                  ──────────────────────────────────────────────── */}
+              {(hwSubTab === 'pending' || hwSubTab === 'all') && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  {hwSubTab === 'all' && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginBottom: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--color-border)'
+                    }}>
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Clock size={16} color="#d97706" />
+                        <span>⏳ Teslim Bekleyen Ödevler ({pendingHomeworks.length})</span>
+                      </h4>
+                    </div>
+                  )}
+
+                  {pendingHomeworks.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2.5rem 1.5rem',
+                      borderRadius: '0.75rem',
+                      background: isDark ? 'rgba(16, 185, 129, 0.08)' : '#ecfdf5',
+                      border: '1.5px solid #a7f3d0',
+                      color: '#065f46'
+                    }}>
+                      <div style={{ fontSize: '1.8rem', marginBottom: '0.4rem' }}>🎉</div>
+                      <h4 style={{ margin: '0 0 0.3rem', fontSize: '1rem', fontWeight: 800 }}>
+                        Harika! Teslim Bekleyen Ödev Yok
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: isDark ? '#a7f3d0' : '#047857' }}>
+                        Tüm öğrenciler tanımlanmış ödevlerini teslim etti veya bekleyen ödev bulunmuyor.
+                      </p>
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="teacher-simple-table">
+                        <thead>
+                          <tr>
+                            <th>Ödev Başlığı</th>
+                            <th>Ders</th>
+                            <th>Son Teslim Tarihi</th>
+                            <th>Bekleme / Teslim Durumu</th>
+                            <th>Hedef Kitle</th>
+                            <th style={{ textAlign: 'right' }}>İşlem</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {pendingHomeworks.map(hw => {
+                            const { studentCount, totalCount, assignedCount } = getHomeworkSubmissionStats(hw);
+                            const dl = getDeadlineStatus(hw.dueDate);
+                            const isPartial = studentCount > 0;
+
+                            return (
+                              <tr key={hw.id}>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: '0.95rem' }}>📝</span>
+                                    <div>
+                                      <strong style={{ color: 'var(--color-text)' }}>{hw.title}</strong>
+                                      {hw.description && (
+                                        <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', marginTop: 1 }}>
+                                          {hw.description}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span className="teacher-badge-pill">{hw.subject || 'Genel'}</span>
+                                </td>
+                                <td>
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    fontSize: '0.72rem', fontWeight: 800, padding: '0.18rem 0.55rem',
+                                    borderRadius: '0.45rem', background: dl.bg, color: dl.color,
+                                    border: `1px solid ${dl.border}`
+                                  }}>
+                                    {dl.label}
+                                  </span>
+                                </td>
+                                <td>
+                                  {isPartial ? (
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      fontSize: '0.74rem', fontWeight: 800, color: '#d97706',
+                                      background: '#fffbeb', padding: '0.2rem 0.55rem', borderRadius: '0.45rem',
+                                      border: '1px solid #fde68a'
+                                    }}>
+                                      <Clock size={12} />
+                                      {studentCount}/{assignedCount} Teslim ({assignedCount - studentCount} Bekliyor)
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                                      fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)',
+                                      background: 'var(--color-surface-hover)', padding: '0.2rem 0.55rem', borderRadius: '0.45rem'
+                                    }}>
+                                      <Clock size={12} />
+                                      0 Teslim (Bekliyor)
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                    {assignedCount} Öğrenci
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <button
+                                    onClick={() => navigate('/homeworks')}
+                                    className="btn-secondary-action"
+                                    style={{ padding: '0.35rem 0.65rem', fontSize: '0.74rem' }}
+                                  >
+                                    Ödevi Yönet ↗
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────
+                  2. GÖRÜNÜM: ÇÖZÜLEN ÖDEVLER (KESİNLİKLE SON 10 TANE)
+                  ──────────────────────────────────────────────── */}
+              {(hwSubTab === 'solved' || hwSubTab === 'all') && (
+                <div style={{ marginTop: hwSubTab === 'all' ? '1.5rem' : '0.75rem' }}>
+                  {hwSubTab === 'all' && (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginBottom: '0.5rem', paddingBottom: '0.35rem', borderBottom: '1px solid var(--color-border)'
+                    }}>
+                      <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <CheckCircle2 size={16} color="#059669" />
+                        <span>✅ Çözülen Ödevler (Son 10)</span>
+                      </h4>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                        Toplam çözülen: {solvedHomeworks.length}
+                      </span>
+                    </div>
+                  )}
+
+                  {solvedHomeworksLimit.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)' }}>
+                      Henüz öğrenciler tarafından çözülmüş veya teslim edilmiş bir ödev bulunmuyor.
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="teacher-simple-table">
+                          <thead>
+                            <tr>
+                              <th>Ödev Başlığı</th>
+                              <th>Ders</th>
+                              <th>Son Teslim Tarihi</th>
+                              <th>Teslim Edenler</th>
+                              <th>Son Çözüm Zamanı</th>
+                              <th style={{ textAlign: 'right' }}>İşlem</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {solvedHomeworksLimit.map(hw => {
+                              const { studentCount, totalCount, latestTime } = getHomeworkSubmissionStats(hw);
+                              const due = hw.dueDate ? new Date(hw.dueDate) : null;
+
+                              return (
+                                <tr key={hw.id}>
+                                  <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span style={{ fontSize: '0.95rem' }}>✅</span>
+                                      <div>
+                                        <strong style={{ color: 'var(--color-text)' }}>{hw.title}</strong>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className="teacher-badge-pill">{hw.subject || 'Genel'}</span>
+                                  </td>
+                                  <td>
+                                    <span style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)' }}>
+                                      {due ? due.toLocaleDateString('tr-TR') : 'Tarih Yok'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                                      color: '#059669', fontWeight: 800, fontSize: '0.8rem',
+                                      background: '#ecfdf5', padding: '0.2rem 0.55rem', borderRadius: '0.45rem',
+                                      border: '1px solid #a7f3d0'
+                                    }}>
+                                      <CheckCircle2 size={13} color="#059669" />
+                                      {studentCount} Öğrenci ({totalCount} Teslim)
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                      {latestTime ? timeAgo(latestTime) : 'Bilinmiyor'}
+                                    </span>
+                                  </td>
+                                  <td style={{ textAlign: 'right' }}>
+                                    <button
+                                      onClick={() => navigate('/homeworks')}
+                                      className="btn-secondary-action"
+                                      style={{ padding: '0.35rem 0.65rem', fontSize: '0.74rem' }}
+                                    >
+                                      Sonuçları Gör ↗
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div style={{
+                        marginTop: '0.75rem',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1px dashed var(--color-border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.74rem',
+                        color: 'var(--color-text-muted)',
+                        fontWeight: 600
+                      }}>
+                        <span>⚡ Öğrenciler tarafından en son çözülen/teslim edilen 10 ödev gösterilmektedir.</span>
+                        <span>Toplam çözülen: {solvedHomeworks.length} ödev</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
