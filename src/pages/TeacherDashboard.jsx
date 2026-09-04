@@ -53,7 +53,7 @@ export default function TeacherDashboard() {
   const { submissions = [] } = useEvaluation();
   const { users = [], addStudentForTeacher, updateUser } = useUser();
   const { currentUser } = useAuth();
-  const { toggleCoachedStudent, getCoachedStudentIds, mockExams = [] } = useCoaching();
+  const { toggleCoachedStudent, getCoachedStudentIds, mockExams = [], coachingMeetings = [] } = useCoaching();
   const navigate = useNavigate();
 
   /* ── State ── */
@@ -195,6 +195,181 @@ export default function TeacherDashboard() {
     const avgSuccess = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
     return { totalQuestions, avgSuccess, totalSubs: teacherSubmissions.length };
   }, [teacherSubmissions]);
+
+  // 1. Oluşturulan Sınav Sayısı (Müfredat testleri + Mock denemeler + Kitap testleri)
+  const createdExamsCount = useMemo(() => {
+    const curTests = data?.tests?.length || 0;
+    const mocks = (mockExams || []).length;
+    const bTests = (bookTests || []).length;
+    return curTests + mocks + bTests;
+  }, [data?.tests, mockExams, bookTests]);
+
+  // 2. Aktif Dersler
+  const activeSubjects = useMemo(() => {
+    return (data?.subjects || []).filter(s => s && s.name);
+  }, [data?.subjects]);
+  const activeSubjectsCount = activeSubjects.length;
+
+  // 3. Günün Tarihi (Türkçe format)
+  const todayFormatted = useMemo(() => {
+    return new Date().toLocaleDateString('tr-TR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }, []);
+
+  const isTodayDate = (dateVal) => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  const isUpcomingDate = (dateVal) => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    const diffHours = (d.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diffHours > 0 && diffHours <= 36;
+  };
+
+  // 4. Son Bildirimler (Dinamik Akış)
+  const recentNotifications = useMemo(() => {
+    const notifs = [];
+
+    // Bekleyen Manuel Onaylar
+    pendingManualApprovals.slice(0, 3).forEach(item => {
+      const student = students.find(s => s.id === item.studentId) || { name: item.studentName || 'Öğrenci' };
+      notifs.push({
+        id: `pending_mock_${item.id}`,
+        priority: 1,
+        icon: AlertTriangle,
+        iconColor: '#ef4444',
+        bgColor: 'rgba(239, 68, 68, 0.12)',
+        title: 'Manuel Sınav Onayı Bekliyor',
+        desc: `${student.name}, "${item.title || item.name || 'Fiziki Deneme'}" sonucunu girdi.`,
+        time: item.createdAt || item.date || item.submittedAt || new Date().toISOString(),
+        actionLabel: 'Onayla',
+        onAction: () => navigate('/approvals')
+      });
+    });
+
+    // Bekleyen Açık Uçlu Değerlendirmeler
+    pendingEvaluations.slice(0, 3).forEach(sub => {
+      const student = students.find(s => s.id === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
+      notifs.push({
+        id: `pending_eval_${sub.id}`,
+        priority: 1,
+        icon: Clock3,
+        iconColor: '#f59e0b',
+        bgColor: 'rgba(245, 158, 11, 0.12)',
+        title: 'Puanlama Bekleyen Sınav',
+        desc: `${student.name}, açık uçlu testini tamamladı. Değerlendirme bekliyor.`,
+        time: sub.submittedAt || sub.createdAt || new Date().toISOString(),
+        actionLabel: 'Puanla',
+        onAction: () => navigate('/approvals')
+      });
+    });
+
+    // Teslimi Yaklaşan Ödevler
+    teacherHomeworks.forEach(hw => {
+      if (hw.dueDate && (isTodayDate(hw.dueDate) || isUpcomingDate(hw.dueDate))) {
+        notifs.push({
+          id: `hw_due_${hw.id}`,
+          priority: 2,
+          icon: Bell,
+          iconColor: '#8b5cf6',
+          bgColor: 'rgba(139, 92, 246, 0.12)',
+          title: isTodayDate(hw.dueDate) ? 'Ödev Teslimi Bugün!' : 'Ödev Teslimi Yaklaşıyor',
+          desc: `"${hw.title}" ödevinin son teslim tarihi: ${new Date(hw.dueDate).toLocaleDateString('tr-TR')}`,
+          time: hw.dueDate,
+          actionLabel: 'Ödevler',
+          onAction: () => navigate('/homeworks')
+        });
+      }
+    });
+
+    // Son Tamamlanan Öğrenci Çözümleri
+    const sortedSubs = [...teacherSubmissions].sort((a, b) => {
+      const tA = new Date(a.submittedAt || a.createdAt || a.date || 0).getTime();
+      const tB = new Date(b.submittedAt || b.createdAt || b.date || 0).getTime();
+      return tB - tA;
+    }).slice(0, 6);
+
+    sortedSubs.forEach(sub => {
+      const student = students.find(s => s.id === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
+      const score = getSubmissionScorePct(sub);
+      const testTitle = sub.title || sub.testName || sub.bookTitle || 'Test';
+
+      if (score < 50) {
+        notifs.push({
+          id: `sub_low_${sub.id}`,
+          priority: 2,
+          icon: AlertCircle,
+          iconColor: '#ef4444',
+          bgColor: 'rgba(239, 68, 68, 0.12)',
+          title: 'Düşük Başarı Uyarısı',
+          desc: `${student.name}, "${testTitle}" testini %${score} ile tamamladı. Destek gerekebilir.`,
+          time: sub.submittedAt || sub.createdAt || sub.date || new Date().toISOString(),
+          actionLabel: 'Karne Aç',
+          onAction: () => setSelectedReportStudent(student)
+        });
+      } else if (score >= 80) {
+        notifs.push({
+          id: `sub_high_${sub.id}`,
+          priority: 3,
+          icon: Star,
+          iconColor: '#10b981',
+          bgColor: 'rgba(16, 185, 129, 0.12)',
+          title: 'Yüksek Başarı Tebriği',
+          desc: `${student.name}, "${testTitle}" testinde %${score} başarı elde etti.`,
+          time: sub.submittedAt || sub.createdAt || sub.date || new Date().toISOString(),
+          actionLabel: 'Karne Aç',
+          onAction: () => setSelectedReportStudent(student)
+        });
+      } else {
+        notifs.push({
+          id: `sub_normal_${sub.id}`,
+          priority: 4,
+          icon: CheckCircle2,
+          iconColor: '#6366f1',
+          bgColor: 'rgba(99, 102, 241, 0.12)',
+          title: 'Sınav Tamamlandı',
+          desc: `${student.name}, "${testTitle}" testini tamamladı (%${score}).`,
+          time: sub.submittedAt || sub.createdAt || sub.date || new Date().toISOString(),
+          actionLabel: 'İncele',
+          onAction: () => setSelectedReportStudent(student)
+        });
+      }
+    });
+
+    return notifs.sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime();
+    }).slice(0, 6);
+  }, [pendingManualApprovals, pendingEvaluations, teacherHomeworks, teacherSubmissions, students, navigate]);
+
+  // 5. Bugünkü Program (Ödevler, Sınavlar ve Görüşmeler)
+  const todayProgram = useMemo(() => {
+    const dueHws = teacherHomeworks.filter(hw => isTodayDate(hw.dueDate));
+    const todaySubs = teacherSubmissions.filter(sub => isTodayDate(sub.submittedAt || sub.createdAt || sub.date));
+    const meetings = (coachingMeetings || []).filter(m => isTodayDate(m.date || m.scheduledAt));
+
+    return {
+      dueHws,
+      todaySubs,
+      meetings,
+      totalCount: dueHws.length + todaySubs.length + meetings.length
+    };
+  }, [teacherHomeworks, teacherSubmissions, coachingMeetings]);
 
   // Weakest Topics Across the Entire Class for the Remedial Desk
   const weakestTopics = useMemo(() => {
@@ -457,46 +632,67 @@ export default function TeacherDashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════
-              3. DÖRT TEMEL KPI METRİĞİ (BERRAK & NET)
+              3. ALTI TEMEL ÖZET BİLGİ METRİĞİ (KOKPİT)
               ═══════════════════════════════════════════════════ */}
           <div className="teacher-kpi-grid">
-            <div className="teacher-kpi-card">
+            {/* 1. 👨‍🎓 Toplam Öğrenci */}
+            <div className="teacher-kpi-card" onClick={() => setActiveTab('students')} style={{ cursor: 'pointer' }} title="Öğrencilerimi Görüntüle">
               <div className="teacher-kpi-icon" style={{ background: 'rgba(14, 165, 233, 0.12)', color: '#0ea5e9' }}>
                 <Users size={20} />
               </div>
               <div className="teacher-kpi-info">
-                <span className="teacher-kpi-label">Kayıtlı Öğrenciler</span>
+                <span className="teacher-kpi-label">Toplam Öğrenci</span>
                 <span className="teacher-kpi-value">{students.length}</span>
                 <span className="teacher-kpi-sub">{coachedIds.length} öğrenci koçlukta</span>
               </div>
             </div>
 
-            <div className="teacher-kpi-card">
-              <div className="teacher-kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+            {/* 2. 📝 Oluşturulan Sınav Sayısı */}
+            <div className="teacher-kpi-card" onClick={() => setShowTestModal(true)} style={{ cursor: 'pointer' }} title="Yeni Test Oluştur">
+              <div className="teacher-kpi-icon" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6' }}>
                 <FileText size={20} />
               </div>
               <div className="teacher-kpi-info">
-                <span className="teacher-kpi-label">Aktif Ödevler</span>
-                <span className="teacher-kpi-value">{teacherHomeworks.length}</span>
-                <span className="teacher-kpi-sub">Sınıfa atanan ödevler</span>
+                <span className="teacher-kpi-label">Oluşturulan Sınav</span>
+                <span className="teacher-kpi-value">{createdExamsCount}</span>
+                <span className="teacher-kpi-sub">Müfredat, Deneme &amp; Kitap</span>
               </div>
             </div>
 
-            <div className="teacher-kpi-card">
+            {/* 3. 📊 Çözülmüş Sınav Sayısı */}
+            <div className="teacher-kpi-card" onClick={() => setActiveTab('analytics')} style={{ cursor: 'pointer' }} title="Sınıf Analizini Aç">
               <div className="teacher-kpi-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-                <TrendingUp size={20} />
+                <CheckSquare size={20} />
               </div>
               <div className="teacher-kpi-info">
-                <span className="teacher-kpi-label">Sınıf Başarısı</span>
-                <span className="teacher-kpi-value">%{executiveMetrics.avgSuccess}</span>
+                <span className="teacher-kpi-label">Çözülmüş Sınav</span>
+                <span className="teacher-kpi-value">{teacherSubmissions.length}</span>
                 <span className="teacher-kpi-sub">{executiveMetrics.totalQuestions} soru çözüldü</span>
               </div>
             </div>
 
-            <div className="teacher-kpi-card">
+            {/* 4. 📈 Ortalama Başarı */}
+            <div className="teacher-kpi-card" onClick={() => setActiveTab('analytics')} style={{ cursor: 'pointer' }} title="Detaylı Grafikler">
+              <div className="teacher-kpi-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+                <TrendingUp size={20} />
+              </div>
+              <div className="teacher-kpi-info">
+                <span className="teacher-kpi-label">Ortalama Başarı</span>
+                <span className="teacher-kpi-value">%{executiveMetrics.avgSuccess}</span>
+                <span className="teacher-kpi-sub">Sınıf genel ortalaması</span>
+              </div>
+            </div>
+
+            {/* 5. ⏳ Bekleyen Değerlendirmeler */}
+            <div
+              className="teacher-kpi-card"
+              onClick={() => navigate('/approvals')}
+              style={{ cursor: 'pointer' }}
+              title="Onay Merkezine Git"
+            >
               <div className="teacher-kpi-icon" style={{
-                background: totalPendingActionCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(99, 102, 241, 0.12)',
-                color: totalPendingActionCount > 0 ? '#ef4444' : '#6366f1'
+                background: totalPendingActionCount > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                color: totalPendingActionCount > 0 ? '#ef4444' : '#10b981'
               }}>
                 {totalPendingActionCount > 0 ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
               </div>
@@ -504,6 +700,20 @@ export default function TeacherDashboard() {
                 <span className="teacher-kpi-label">Bekleyen İşlemler</span>
                 <span className="teacher-kpi-value">{totalPendingActionCount}</span>
                 <span className="teacher-kpi-sub">{totalPendingActionCount > 0 ? 'Onay / Puanlama bekliyor' : 'Tüm işlemler güncel'}</span>
+              </div>
+            </div>
+
+            {/* 6. 📚 Aktif Dersler */}
+            <div className="teacher-kpi-card" onClick={() => navigate('/questions')} style={{ cursor: 'pointer' }} title="Soru Bankasına Git">
+              <div className="teacher-kpi-icon" style={{ background: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4' }}>
+                <Layers size={20} />
+              </div>
+              <div className="teacher-kpi-info">
+                <span className="teacher-kpi-label">Aktif Dersler</span>
+                <span className="teacher-kpi-value">{activeSubjectsCount}</span>
+                <span className="teacher-kpi-sub">
+                  {activeSubjects.slice(0, 2).map(s => s.name).join(', ') || 'Müfredat'}
+                </span>
               </div>
             </div>
           </div>
@@ -553,7 +763,251 @@ export default function TeacherDashboard() {
           {activeTab === 'overview' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-              {/* 🚀 BÖLÜM 1: ÜRETİM & HAZIRLIK STÜDYOSU (4 GÜÇLÜ İNTERAKTİF ARAÇ KARTI) */}
+              {/* ═══════════════════════════════════════════════════
+                  BÖLÜM 1: 📅 BUGÜNKÜ PROGRAM & 🔔 SON BİLDİRİMLER
+                  ═══════════════════════════════════════════════════ */}
+              <div className="teacher-hub-grid">
+
+                {/* ── SOL SÜTUN: 📅 BUGÜNKÜ PROGRAM ── */}
+                <div className="teacher-card">
+                  <div className="teacher-card-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: '0.75rem',
+                        background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Calendar size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                          Bugünkü Program
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                          {todayFormatted}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span className="teacher-badge-pill" style={{
+                        background: todayProgram.totalCount > 0 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.12)',
+                        color: todayProgram.totalCount > 0 ? '#10b981' : 'var(--color-text-muted)',
+                        border: 'none'
+                      }}>
+                        {todayProgram.totalCount} Planlı Etkinlik
+                      </span>
+                      <button
+                        onClick={() => navigate('/homeworks')}
+                        className="btn-secondary-action"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem' }}
+                        title="Yeni Ödev Ata"
+                      >
+                        <Plus size={12} /> Plan Ekle
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {todayProgram.totalCount === 0 ? (
+                      <div className="teacher-empty-state-box">
+                        <Clock3 size={32} style={{ color: 'var(--color-text-muted)', opacity: 0.5, marginBottom: '0.4rem' }} />
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                          Bugün için teslimi beklenen ödev veya planlanmış görüşme yok.
+                        </p>
+                        <p style={{ margin: '0.25rem 0 0.85rem', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          Öğrencilerinize yeni bir konu testi atayabilir veya AI ile telafi testi hazırlayabilirsiniz.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          <button onClick={() => navigate('/homeworks')} className="btn-primary-action" style={{ fontSize: '0.75rem', padding: '0.45rem 0.8rem' }}>
+                            <BookOpen size={13} /> Ödev Ata
+                          </button>
+                          <button onClick={() => handleLaunchAiForTopic('Genel Tekrar', 'Matematik')} className="btn-secondary-action" style={{ fontSize: '0.75rem', padding: '0.45rem 0.8rem' }}>
+                            <Sparkles size={13} /> AI Test Üret
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* 1. Bugün Teslim Edilecek Ödevler */}
+                        {todayProgram.dueHws.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              📝 Bugün Teslim Edilecek Ödevler ({todayProgram.dueHws.length})
+                            </span>
+                            {todayProgram.dueHws.map(hw => (
+                              <div key={hw.id} className="teacher-program-item">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                      <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem 0.4rem', borderRadius: 4, background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1' }}>
+                                        {hw.subject || 'Ders'}
+                                      </span>
+                                      <strong style={{ fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {hw.title}
+                                      </strong>
+                                    </div>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                                      Son Teslim: Bugün 23:59
+                                    </span>
+                                  </div>
+                                </div>
+                                <button onClick={() => navigate('/homeworks')} className="btn-secondary-action" style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem' }}>
+                                  İncele
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 2. Bugünün Görüşmeleri */}
+                        {todayProgram.meetings.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              👥 Bugünkü Koçluk &amp; Görüşmeler ({todayProgram.meetings.length})
+                            </span>
+                            {todayProgram.meetings.map(m => (
+                              <div key={m.id} className="teacher-program-item">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6', flexShrink: 0 }} />
+                                  <div style={{ minWidth: 0 }}>
+                                    <strong style={{ fontSize: '0.82rem', color: 'var(--color-text)' }}>
+                                      {m.studentName || 'Öğrenci Görüşmesi'}
+                                    </strong>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                                      {m.time ? `Saat: ${m.time}` : 'Bugün Planlı'} · {m.notes || 'Gelişim değerlendirmesi'}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* 3. Bugün Çözülen Sınavlar */}
+                        {todayProgram.todaySubs.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              ⚡ Bugün Tamamlanan Sınavlar ({todayProgram.todaySubs.length})
+                            </span>
+                            {todayProgram.todaySubs.slice(0, 3).map(sub => {
+                              const std = students.find(s => s.id === sub.studentId);
+                              const score = getSubmissionScorePct(sub);
+                              return (
+                                <div key={sub.id} className="teacher-program-item">
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                                    <div style={{ minWidth: 0 }}>
+                                      <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-text)' }}>
+                                        {std?.name || sub.studentName || 'Öğrenci'}
+                                      </span>
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginLeft: 6 }}>
+                                        {sub.title || sub.testName || 'Test'} · <strong style={{ color: score >= 70 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444' }}>%{score}</strong>
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {std && (
+                                    <button onClick={() => setSelectedReportStudent(std)} className="btn-secondary-action" style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem' }}>
+                                      Karne
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── SAĞ SÜTUN: 🔔 SON BİLDİRİMLER ── */}
+                <div className="teacher-card">
+                  <div className="teacher-card-header" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: '0.75rem',
+                        background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Bell size={18} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                          Son Bildirimler
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
+                          Sistem ve öğrenci hareketleri canlı akışı
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="teacher-badge-pill" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', border: 'none' }}>
+                      {recentNotifications.length} Bildirim
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {recentNotifications.length === 0 ? (
+                      <div className="teacher-empty-state-box">
+                        <CheckCircle2 size={32} style={{ color: '#10b981', opacity: 0.7, marginBottom: '0.4rem' }} />
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>
+                          Tüm bildirimler güncel!
+                        </p>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                          Şu anda dikkat gerektiren acil bir uyarı veya okunmamış bildirim bulunmuyor.
+                        </p>
+                      </div>
+                    ) : (
+                      recentNotifications.map(notif => {
+                        const IconComponent = notif.icon;
+                        return (
+                          <div key={notif.id} className="teacher-notif-row">
+                            <div
+                              style={{
+                                width: 34, height: 34, borderRadius: '0.65rem',
+                                background: notif.bgColor, color: notif.iconColor,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0
+                              }}
+                            >
+                              <IconComponent size={16} />
+                            </div>
+
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.8rem', color: 'var(--color-text)' }}>
+                                  {notif.title}
+                                </span>
+                                <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                                  {timeAgo(notif.time)}
+                                </span>
+                              </div>
+                              <p style={{ margin: '0.15rem 0 0', fontSize: '0.74rem', color: 'var(--color-text-muted)', lineHeight: 1.35 }}>
+                                {notif.desc}
+                              </p>
+                            </div>
+
+                            {notif.actionLabel && (
+                              <button
+                                onClick={notif.onAction}
+                                className="btn-secondary-action"
+                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem', flexShrink: 0 }}
+                              >
+                                {notif.actionLabel}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* 🚀 BÖLÜM 2: ÜRETİM & HAZIRLIK STÜDYOSU (4 GÜÇLÜ İNTERAKTİF ARAÇ KARTI) */}
               <div className="teacher-studio-grid">
                 {/* 1. AI Soru Üretici */}
                 <div className="teacher-studio-card" style={{ '--studio-accent': '#8b5cf6' }}>
