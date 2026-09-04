@@ -260,67 +260,110 @@
   text-overflow: ellipsis;
 }
 
-/* ── 4. QUICK ACTION SHORTCUTS (4 CLEAN TILES) ── */
-.teacher-actions-row {
+/* ── 4. PRODUCTION STUDIO MODULES (4 RICH INTERACTIVE CARDS) ── */
+.teacher-studio-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0.85rem;
 }
 
-@media (max-width: 900px) {
-  .teacher-actions-row {
+@media (max-width: 1000px) {
+  .teacher-studio-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 480px) {
-  .teacher-actions-row {
+@media (max-width: 520px) {
+  .teacher-studio-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.teacher-action-tile {
+.teacher-studio-card {
   background: var(--color-surface, #ffffff);
   border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 1.1rem;
-  padding: 0.9rem 1rem;
+  border-radius: 1.2rem;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.teacher-studio-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: var(--studio-accent, #6366f1);
+  opacity: 0.85;
+}
+
+.teacher-studio-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.teacher-studio-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.teacher-action-tile:hover {
-  transform: translateY(-2px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 6px 16px -2px rgba(99, 102, 241, 0.12);
-}
-
-.teacher-action-tile-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 0.75rem;
+.teacher-studio-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.teacher-action-tile-text h4 {
-  margin: 0;
-  font-size: 0.84rem;
+.teacher-studio-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.teacher-studio-body h4 {
+  margin: 0.2rem 0 0.25rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--color-text, #0f172a);
 }
 
-.teacher-action-tile-text p {
-  margin: 0.15rem 0 0;
-  font-size: 0.7rem;
+.teacher-studio-body p {
+  margin: 0;
+  font-size: 0.74rem;
   color: var(--color-text-muted, #64748b);
-  font-weight: 500;
+  line-height: 1.4;
+}
+
+.teacher-studio-btn {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  border-radius: 0.75rem;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  transition: all 0.15s ease;
 }
 
 /* ── 5. MAIN NAVIGATION TABS ── */
@@ -376,15 +419,15 @@
   color: #6366f1;
 }
 
-/* ── 6. 2-COLUMN OVERVIEW LAYOUT ── */
-.teacher-overview-grid {
+/* ── 6. 2-COLUMN WORK DESK LAYOUT ── */
+.teacher-workdesk-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
 }
 
 @media (max-width: 860px) {
-  .teacher-overview-grid {
+  .teacher-workdesk-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -416,7 +459,7 @@
 
 .teacher-card-header h3 {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--color-text, #0f172a);
   display: flex;
@@ -441,87 +484,24 @@
   text-decoration: underline;
 }
 
-/* Activity Item */
-.teacher-activity-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.85rem;
-  background: var(--color-surface-hover, #f8fafc);
-  border: 1px solid var(--color-border, #f1f5f9);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.teacher-activity-row:hover {
-  transform: translateY(-1px);
-  border-color: rgba(99, 102, 241, 0.3);
-}
-
-.teacher-activity-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.teacher-activity-name {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--color-text, #0f172a);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.teacher-activity-meta {
-  margin: 0.1rem 0 0;
-  font-size: 0.7rem;
-  color: var(--color-text-muted, #64748b);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.teacher-score-pill {
-  font-size: 0.75rem;
-  font-weight: 800;
-  padding: 0.2rem 0.55rem;
-  border-radius: 0.55rem;
-  flex-shrink: 0;
-}
-
-.teacher-score-pill.good {
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.teacher-score-pill.warn {
-  background: rgba(245, 158, 11, 0.12);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.teacher-score-pill.bad {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-/* Homework Item */
-.teacher-hw-row {
+/* Weak Topics Row */
+.teacher-weak-topic-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
   padding: 0.65rem 0.85rem;
   border-radius: 0.85rem;
   background: var(--color-surface-hover, #f8fafc);
   border: 1px solid var(--color-border, #f1f5f9);
+  transition: all 0.15s ease;
 }
 
-.teacher-hw-title {
+.teacher-weak-topic-row:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.teacher-weak-topic-name {
   margin: 0;
   font-size: 0.84rem;
   font-weight: 700;
@@ -531,33 +511,52 @@
   text-overflow: ellipsis;
 }
 
-.teacher-hw-meta {
-  margin: 0.15rem 0 0;
+.teacher-weak-topic-sub {
+  margin: 0.1rem 0 0;
   font-size: 0.7rem;
   color: var(--color-text-muted, #64748b);
 }
 
-.teacher-hw-badge {
-  font-size: 0.68rem;
+.teacher-weak-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  color: #ffffff;
+  font-size: 0.72rem;
   font-weight: 800;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
   flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 
-.teacher-hw-badge.urgent {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+.teacher-weak-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
 }
 
-.teacher-hw-badge.normal {
-  background: rgba(14, 165, 233, 0.12);
-  color: #0ea5e9;
-  border: 1px solid rgba(14, 165, 233, 0.3);
+/* Quick Student Select Row */
+.teacher-quick-student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.8rem;
+  background: var(--color-surface-hover, #f8fafc);
+  border: 1px solid var(--color-border, #f1f5f9);
+  transition: all 0.15s ease;
 }
 
-/* Student Cards Grid */
+.teacher-quick-student-row:hover {
+  border-color: rgba(14, 165, 233, 0.3);
+}
+
+/* Student Cards Grid (In Students Tab) */
 .teacher-students-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

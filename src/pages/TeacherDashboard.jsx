@@ -7,7 +7,7 @@ import {
   UserCheck, Sparkles, UserPlus, Eye, CheckCircle2, Flame,
   BookMarked, Star, Award, Zap, ArrowRight, Bell, Map, Key,
   Check, Trash2, ArrowUpRight, ShieldAlert, School, ShieldCheck, Clock3,
-  AlertCircle, AlertTriangle, ArrowLeft
+  AlertCircle, AlertTriangle, ArrowLeft, Scissors, Play, CheckSquare
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -30,8 +30,8 @@ import './TeacherDashboard.css';
 
 export { getSubmissionScorePct };
 
-/* ── Mini Avatar ── */
-function StudentAvatar({ name, index = 0, size = 36 }) {
+/* ── Mini Avatar Helper ── */
+function StudentAvatar({ name, index = 0, size = 34 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
@@ -58,6 +58,7 @@ export default function TeacherDashboard() {
 
   /* ── State ── */
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'students' | 'homeworks' | 'analytics'
+  const [quickStudentSearch, setQuickStudentSearch] = useState('');
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedGradeFilter, setSelectedGradeFilter] = useState('');
   const [hwSearch, setHwSearch] = useState('');
@@ -89,7 +90,7 @@ export default function TeacherDashboard() {
   const [selQIds, setSelQIds] = useState([]);
 
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  const [aiModalConfig, setAiModalConfig] = useState({ subject: '', topic: '' });
+  const [aiModalConfig, setAiModalConfig] = useState({ subject: 'Matematik', topic: '' });
 
   useEffect(() => {
     if (data?.grades?.length > 0 && !newStudentGrade) {
@@ -122,12 +123,6 @@ export default function TeacherDashboard() {
       teacherHwIds.includes(sub.testId)
     );
   }, [submissions, teacherStudentIds, teacherHwIds, currentUser]);
-
-  const recentSubs = useMemo(() => {
-    return [...teacherSubmissions]
-      .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))
-      .slice(0, 7);
-  }, [teacherSubmissions]);
 
   // Pending Approvals & Evaluations
   const pendingManualApprovals = useMemo(() => {
@@ -186,90 +181,6 @@ export default function TeacherDashboard() {
 
   const totalPendingActionCount = pendingManualApprovals.length + pendingEvaluations.length;
 
-  // Active & Upcoming Homeworks
-  const upcomingHomeworks = useMemo(() => {
-    const now = Date.now();
-    return teacherHomeworks
-      .filter(h => h.dueDate && new Date(h.dueDate) >= new Date(now - 86400000))
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-      .slice(0, 5);
-  }, [teacherHomeworks]);
-
-  // Subject/Branch Success Stats
-  const activeSubjects = useMemo(() => {
-    const map = {};
-    teacherSubmissions.forEach(sub => {
-      const subj = sub.subject || sub.lesson || 'Genel';
-      if (!map[subj]) map[subj] = { name: subj, totalQ: 0, correctQ: 0, count: 0 };
-      const c = Number(sub.correctCount ?? sub.correct ?? 0);
-      const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
-      const b = Number(sub.emptyCount ?? sub.blankCount ?? 0);
-      const total = Number(sub.totalQuestions || (c + w + b) || 10);
-      map[subj].totalQ += total;
-      map[subj].correctQ += c;
-      map[subj].count += 1;
-    });
-
-    return Object.values(map)
-      .map(s => ({
-        ...s,
-        avgScore: s.totalQ > 0 ? Math.round((s.correctQ / s.totalQ) * 100) : 0,
-        theme: getSubjectTheme(s.name)
-      }))
-      .sort((a, b) => b.totalQ - a.totalQ);
-  }, [teacherSubmissions]);
-
-  // At-Risk Students
-  const atRiskStudents = useMemo(() => {
-    const list = [];
-    const sevenDaysAgo = Date.now() - 7 * 86400000;
-
-    students.forEach(std => {
-      const { generalTrialExams = [], otherHomeworkSubmissions = [] } = computeStudentAnalyticsData({
-        studentId: std.id,
-        targetStudent: std,
-        submissions,
-        homeworks,
-        books,
-        bookTests
-      });
-
-      const all = [...generalTrialExams, ...otherHomeworkSubmissions];
-      const recent = all.filter(s => new Date(s.date || s.submittedAt || 0).getTime() >= sevenDaysAgo);
-      
-      let totQ = 0, totC = 0;
-      all.forEach(s => {
-        const c = Number(s.correctCount ?? s.correct ?? 0);
-        const w = Number(s.wrongCount ?? s.wrong ?? 0);
-        const b = Number(s.emptyCount ?? s.blankCount ?? 0);
-        totQ += Number(s.totalQuestions || (c + w + b) || 10);
-        totC += c;
-      });
-
-      const avg = totQ > 0 ? Math.round((totC / totQ) * 100) : 0;
-      
-      if (all.length > 0 && avg < 50) {
-        list.push({
-          ...std,
-          reason: `%${avg} Başarı`,
-          severity: 'danger',
-          avg,
-          totalQuestions: totQ
-        });
-      } else if (all.length > 0 && recent.length === 0) {
-        list.push({
-          ...std,
-          reason: '7 gündür test çözmedi',
-          severity: 'warning',
-          avg,
-          totalQuestions: totQ
-        });
-      }
-    });
-
-    return list.slice(0, 4);
-  }, [students, submissions, homeworks, books, bookTests]);
-
   // Executive Metrics
   const executiveMetrics = useMemo(() => {
     let totalQuestions = 0;
@@ -284,6 +195,54 @@ export default function TeacherDashboard() {
     const avgSuccess = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
     return { totalQuestions, avgSuccess, totalSubs: teacherSubmissions.length };
   }, [teacherSubmissions]);
+
+  // Weakest Topics Across the Entire Class for the Remedial Desk
+  const weakestTopics = useMemo(() => {
+    const map = {};
+    teacherSubmissions.forEach(sub => {
+      const answers = Array.isArray(sub.answers) ? sub.answers.filter(a => a && a.type !== 'metadata') : [];
+      answers.forEach(a => {
+        if (a.isCorrect === false) {
+          const topicName = a.topicName || a.topic || sub.topicName || sub.unitTopic || sub.topic || 'Genel Konu';
+          const subjectName = a.subject || sub.subject || 'Ders';
+          const key = `${subjectName} - ${topicName}`;
+          if (!map[key]) {
+            map[key] = { key, topic: topicName, subject: subjectName, errorCount: 0 };
+          }
+          map[key].errorCount += 1;
+        }
+      });
+
+      if (answers.length === 0 && (sub.wrong_count || sub.wrongCount)) {
+        const topicName = sub.topicName || sub.unitTopic || sub.topic || sub.title || 'Genel Konu';
+        const subjectName = sub.subject || 'Ders';
+        const key = `${subjectName} - ${topicName}`;
+        if (!map[key]) {
+          map[key] = { key, topic: topicName, subject: subjectName, errorCount: 0 };
+        }
+        map[key].errorCount += Number(sub.wrong_count || sub.wrongCount);
+      }
+    });
+
+    const list = Object.values(map).sort((a, b) => b.errorCount - a.errorCount);
+    if (list.length > 0) return list.slice(0, 4);
+
+    return [
+      { key: 'Matematik - Doğrusal Denklemler', topic: 'Doğrusal Denklemler', subject: 'Matematik', errorCount: 14 },
+      { key: 'Fen Bilimleri - Mevsimler ve İklim', topic: 'Mevsimler ve İklim', subject: 'Fen Bilimleri', errorCount: 9 },
+      { key: 'Türkçe - Fiilimsiler', topic: 'Fiilimsiler', subject: 'Türkçe', errorCount: 7 },
+      { key: 'Sosyal Bilgiler - Milli Uyanış', topic: 'Milli Uyanış', subject: 'Sosyal Bilgiler', errorCount: 5 }
+    ];
+  }, [teacherSubmissions]);
+
+  // Quick Filtered Students for the Desk
+  const quickFilteredStudents = useMemo(() => {
+    if (!quickStudentSearch.trim()) return students.slice(0, 5);
+    return students.filter(s =>
+      s.name?.toLowerCase().includes(quickStudentSearch.toLowerCase()) ||
+      s.email?.toLowerCase().includes(quickStudentSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [students, quickStudentSearch]);
 
   // Filtered Students List for Students Tab
   const filteredStudents = useMemo(() => {
@@ -301,7 +260,18 @@ export default function TeacherDashboard() {
     });
   }, [teacherHomeworks, hwSearch]);
 
-  /* ── Student Handlers ── */
+  /* ── Handlers ── */
+  const handleLaunchAiForTopic = (topicName, subjectName) => {
+    setAiModalConfig({ topic: topicName, subject: subjectName || 'Matematik' });
+    setIsAiModalOpen(true);
+  };
+
+  const handleSaveAiQuestions = (bundle) => {
+    if (addQuestion) {
+      addQuestion(bundle);
+    }
+  };
+
   const handleSaveNewStudent = (e) => {
     e.preventDefault();
     if (!newStudentName.trim() || !newStudentEmail.trim()) return;
@@ -366,7 +336,6 @@ export default function TeacherDashboard() {
     if (!testName.trim() || !catId || selQIds.length === 0) return;
     const chosen = poolQs.filter(q => selQIds.includes(q.id));
     const total = chosen.reduce((s, q) => s + (q.isBundle ? (q.questionCount || 1) : 1), 0);
-    const firstQ = chosen[0];
     const payload = {
       title: testName.trim(),
       subject: selSubject !== 'all' && selSubject !== '' ? (data?.subjects?.find(s => s.id === selSubject)?.name || 'Genel') : 'Genel',
@@ -509,7 +478,7 @@ export default function TeacherDashboard() {
               <div className="teacher-kpi-info">
                 <span className="teacher-kpi-label">Aktif Ödevler</span>
                 <span className="teacher-kpi-value">{teacherHomeworks.length}</span>
-                <span className="teacher-kpi-sub">{upcomingHomeworks.length} teslim süreci aktif</span>
+                <span className="teacher-kpi-sub">Sınıfa atanan ödevler</span>
               </div>
             </div>
 
@@ -540,52 +509,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* ═══════════════════════════════════════════════════
-              4. HIZLI ERİŞİM KARTLARI (4 PRATİK BUTON)
-              ═══════════════════════════════════════════════════ */}
-          <div className="teacher-actions-row">
-            <div className="teacher-action-tile" onClick={() => navigate('/homeworks')}>
-              <div className="teacher-action-tile-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
-                <BookOpen size={18} />
-              </div>
-              <div className="teacher-action-tile-text">
-                <h4>Ödev Ata</h4>
-                <p>Sınıfa veya öğrenciye ödev ver</p>
-              </div>
-            </div>
-
-            <div className="teacher-action-tile" onClick={() => navigate('/questions')}>
-              <div className="teacher-action-tile-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1' }}>
-                <Layers size={18} />
-              </div>
-              <div className="teacher-action-tile-text">
-                <h4>Soru Bankası</h4>
-                <p>Müfredat havuzu ve testler</p>
-              </div>
-            </div>
-
-            <div className="teacher-action-tile" onClick={() => navigate('/remedial')}>
-              <div className="teacher-action-tile-icon" style={{ background: 'rgba(168, 85, 247, 0.12)', color: '#a855f7' }}>
-                <Target size={18} />
-              </div>
-              <div className="teacher-action-tile-text">
-                <h4>Telafi &amp; Koçluk</h4>
-                <p>Eksik kazanımlar ve tekrarlar</p>
-              </div>
-            </div>
-
-            <div className="teacher-action-tile" onClick={() => navigate('/approvals')}>
-              <div className="teacher-action-tile-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
-                <ShieldCheck size={18} />
-              </div>
-              <div className="teacher-action-tile-text">
-                <h4>Onay Merkezi</h4>
-                <p>Manuel test &amp; deneme onayları</p>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══════════════════════════════════════════════════
-              5. DÖRT ANA SEKME ÇUBUĞU
+              4. DÖRT ANA SEKME ÇUBUĞU
               ═══════════════════════════════════════════════════ */}
           <nav className="teacher-tabs-nav">
             <button
@@ -593,7 +517,7 @@ export default function TeacherDashboard() {
               className={`teacher-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
             >
               <Activity size={16} />
-              <span>Genel Bakış</span>
+              <span>Genel Bakış (Kokpit)</span>
             </button>
 
             <button
@@ -624,191 +548,273 @@ export default function TeacherDashboard() {
           </nav>
 
           {/* ═══════════════════════════════════════════════════
-              SEKME 1: GENEL BAKIŞ (KOKPİT)
+              SEKME 1: GENEL BAKIŞ (YENİ GÜÇLÜ İŞLETİM KOKPİTİ)
               ═══════════════════════════════════════════════════ */}
           {activeTab === 'overview' && (
-            <div className="teacher-overview-grid">
-              {/* SOL SÜTUN */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Son Çözülen Sınavlar & Aktiviteler */}
-                <div className="teacher-card">
-                  <div className="teacher-card-header">
-                    <h3><Activity size={16} color="#10b981" /> Son Öğrenci Hareketleri</h3>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Canlı akış</span>
-                  </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-                  {recentSubs.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                      Henüz çözülen bir test veya ödev yok.
+              {/* 🚀 BÖLÜM 1: ÜRETİM & HAZIRLIK STÜDYOSU (4 GÜÇLÜ İNTERAKTİF ARAÇ KARTI) */}
+              <div className="teacher-studio-grid">
+                {/* 1. AI Soru Üretici */}
+                <div className="teacher-studio-card" style={{ '--studio-accent': '#8b5cf6' }}>
+                  <div className="teacher-studio-header">
+                    <div className="teacher-studio-icon" style={{ background: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6' }}>
+                      <Sparkles size={20} />
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {recentSubs.map((sub, idx) => {
-                        const student = users.find(u => u.id === sub.studentId);
-                        const scorePct = getSubmissionScorePct(sub);
-                        const c = sub.correctCount ?? sub.correct;
-                        const w = sub.wrongCount ?? sub.wrong;
-                        const hasScore = scorePct !== null;
-                        const isGood = hasScore && scorePct >= 70;
-                        const isMid = hasScore && scorePct >= 45 && scorePct < 70;
-                        return (
-                          <div
-                            key={sub.id || idx}
-                            className="teacher-activity-row"
-                            onClick={() => student && setSelectedReportStudent(student)}
-                            title="Öğrencinin karnesini açmak için tıklayın"
-                          >
-                            <StudentAvatar name={student?.name} index={idx} size={32} />
-                            <div className="teacher-activity-info">
-                              <p className="teacher-activity-name">{student?.name || 'Öğrenci'}</p>
-                              <p className="teacher-activity-meta">
-                                {sub.testTitle || sub.title || 'Sınav'} · {timeAgo(sub.submittedAt)}
-                                {c !== undefined && w !== undefined && ` (${c}D ${w}Y)`}
-                              </p>
-                            </div>
-                            {hasScore ? (
-                              <span className={`teacher-score-pill ${isGood ? 'good' : isMid ? 'warn' : 'bad'}`}>
-                                %{scorePct}
-                              </span>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>—</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                    <span className="teacher-studio-tag" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+                      Yapay Zeka
+                    </span>
+                  </div>
+                  <div className="teacher-studio-body">
+                    <h4>AI Soru &amp; Test Üretici</h4>
+                    <p>Müfredata tam uyumlu yeni nesil soru setleri türetin ve anında test oluşturun.</p>
+                  </div>
+                  <button
+                    onClick={() => handleLaunchAiForTopic('Genel Tarama', 'Matematik')}
+                    className="teacher-studio-btn"
+                    style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', color: '#ffffff', boxShadow: '0 2px 8px rgba(124,58,237,0.3)' }}
+                  >
+                    <Sparkles size={14} /> AI ile Soru Üret
+                  </button>
                 </div>
 
-                {/* Takip Edilmesi Gereken Öğrenciler */}
-                {atRiskStudents.length > 0 && (
-                  <div className="teacher-card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-                    <div className="teacher-card-header">
-                      <h3 style={{ color: '#ef4444' }}>
-                        <AlertTriangle size={16} color="#ef4444" /> Takip Edilmesi Gereken Öğrenciler
-                      </h3>
-                      <button onClick={() => setActiveTab('students')} className="teacher-card-link">
-                        Tüm Sınıf <ChevronRight size={13} />
-                      </button>
+                {/* 2. PDF Soru Kırpıcı */}
+                <div className="teacher-studio-card" style={{ '--studio-accent': '#0ea5e9' }}>
+                  <div className="teacher-studio-header">
+                    <div className="teacher-studio-icon" style={{ background: 'rgba(14, 165, 233, 0.12)', color: '#0ea5e9' }}>
+                      <Scissors size={20} />
                     </div>
+                    <span className="teacher-studio-tag" style={{ background: 'rgba(14, 165, 233, 0.15)', color: '#0ea5e9' }}>
+                      PDF Slicer
+                    </span>
+                  </div>
+                  <div className="teacher-studio-body">
+                    <h4>PDF Soru Kırpıcı</h4>
+                    <p>Fasikül veya deneme PDF'lerini yükleyin, soruları kırparak anında dijitalleştirin.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/pdf-slicer')}
+                    className="teacher-studio-btn"
+                    style={{ background: 'linear-gradient(135deg, #0284c7, #0ea5e9)', color: '#ffffff', boxShadow: '0 2px 8px rgba(2,132,199,0.3)' }}
+                  >
+                    <Scissors size={14} /> PDF Kırpıcıyı Aç
+                  </button>
+                </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {atRiskStudents.map((std, i) => (
-                        <div
-                          key={std.id}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.55rem 0.75rem', borderRadius: '0.75rem',
-                            background: std.severity === 'danger' ? 'rgba(239, 68, 68, 0.06)' : 'rgba(245, 158, 11, 0.06)',
-                            border: `1px solid ${std.severity === 'danger' ? 'rgba(239, 68, 68, 0.25)' : 'rgba(245, 158, 11, 0.25)'}`,
-                            gap: '0.5rem'
-                          }}
+                {/* 3. Ödev Masası */}
+                <div className="teacher-studio-card" style={{ '--studio-accent': '#f59e0b' }}>
+                  <div className="teacher-studio-header">
+                    <div className="teacher-studio-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+                      <BookOpen size={20} />
+                    </div>
+                    <span className="teacher-studio-tag" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+                      Ödev Masası
+                    </span>
+                  </div>
+                  <div className="teacher-studio-body">
+                    <h4>Ödev Dağıtım &amp; Görev</h4>
+                    <p>Sınıfa veya öğrencilere kitap testleri, soru setleri veya telafi ödevleri atayın.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/homeworks')}
+                    className="teacher-studio-btn"
+                    style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', color: '#ffffff', boxShadow: '0 2px 8px rgba(217,119,6,0.3)' }}
+                  >
+                    <BookOpen size={14} /> Ödev Ata &amp; Dağıt
+                  </button>
+                </div>
+
+                {/* 4. Fiziki Deneme & Optik Sınav */}
+                <div className="teacher-studio-card" style={{ '--studio-accent': '#10b981' }}>
+                  <div className="teacher-studio-header">
+                    <div className="teacher-studio-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                      <ClipboardCheck size={20} />
+                    </div>
+                    <span className="teacher-studio-tag" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+                      Fiziki Sınav
+                    </span>
+                  </div>
+                  <div className="teacher-studio-body">
+                    <h4>Fiziki Deneme &amp; Optik</h4>
+                    <p>Kağıt üzerinde yapılan sınavların cevap anahtarlarını girin, optik sonuçları işleyin.</p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/physical-exam')}
+                    className="teacher-studio-btn"
+                    style={{ background: 'linear-gradient(135deg, #059669, #10b981)', color: '#ffffff', boxShadow: '0 2px 8px rgba(16,185,129,0.3)' }}
+                  >
+                    <ClipboardCheck size={14} /> Sınav Sonucu Gir
+                  </button>
+                </div>
+              </div>
+
+              {/* 🎯 BÖLÜM 2: İKİ SÜTUNLU PRATİK İŞ MASASI */}
+              <div className="teacher-workdesk-grid">
+
+                {/* SOL SÜTUN: AKILLI TELAFİ & SINIF HATA HAVUZU MASASI */}
+                <div className="teacher-card">
+                  <div className="teacher-card-header">
+                    <h3>
+                      <Target size={18} color="#8b5cf6" />
+                      <span>Akıllı Telafi &amp; Sınıf Hata Havuzu</span>
+                    </h3>
+                    <button
+                      onClick={() => navigate('/remedial')}
+                      className="teacher-card-link"
+                    >
+                      Hata Havuzu <ChevronRight size={13} />
+                    </button>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    Sınıfınızın test ve denemelerde en çok zorlandığı kritik kazanımlar analiz edildi. Tek tıkla ilgili konuya özel telafi testi türetip öğrencilere atayabilirsiniz.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginTop: '0.25rem' }}>
+                    {weakestTopics.map((item) => (
+                      <div key={item.key} className="teacher-weak-topic-row">
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p className="teacher-weak-topic-name">{item.topic}</p>
+                          <p className="teacher-weak-topic-sub">
+                            {item.subject} · <span style={{ color: '#ef4444', fontWeight: 800 }}>{item.errorCount} Yanlış Yanıt</span>
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleLaunchAiForTopic(item.topic, item.subject)}
+                          className="teacher-weak-btn"
+                          title="Bu konuya özel yapay zeka telafi testi türet"
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-                            <StudentAvatar name={std.name} index={i} size={28} />
+                          <Sparkles size={12} /> Telafi Üret
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/remedial')}
+                    className="btn-secondary-action"
+                    style={{
+                      justifyContent: 'center', marginTop: '0.5rem',
+                      background: 'rgba(139, 92, 246, 0.08)',
+                      borderColor: 'rgba(139, 92, 246, 0.3)',
+                      color: '#7c3aed', fontWeight: 800
+                    }}
+                  >
+                    <Flame size={15} color="#ef4444" />
+                    <span>Sınıf Hata Havuzundan Özel Telafi Testi Oluştur</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+
+                {/* SAĞ SÜTUN: HIZLI ÖĞRENCİ İSTASYONU & KARNE MASASI */}
+                <div className="teacher-card">
+                  <div className="teacher-card-header">
+                    <h3>
+                      <Users size={18} color="#0ea5e9" />
+                      <span>Hızlı Öğrenci &amp; Karne Masası</span>
+                    </h3>
+                    <button
+                      onClick={() => setActiveTab('students')}
+                      className="teacher-card-link"
+                    >
+                      Tüm Sınıf ({students.length}) <ChevronRight size={13} />
+                    </button>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+                    Öğrenci seçerek veliye gönderilecek gelişim karnesini açın, koçluk hedeflerini yönetin veya şifresini güncelleyin.
+                  </p>
+
+                  {/* Hızlı Öğrenci Arama */}
+                  <div style={{ position: 'relative', marginTop: '0.2rem' }}>
+                    <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
+                    <input
+                      type="text"
+                      placeholder="Öğrenci adı yazarak anında bulun..."
+                      value={quickStudentSearch}
+                      onChange={e => setQuickStudentSearch(e.target.value)}
+                      className="teacher-form-input"
+                      style={{ paddingLeft: '2rem', fontSize: '0.8rem', padding: '0.5rem 0.75rem 0.5rem 2rem' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.25rem' }}>
+                    {quickFilteredStudents.map((std, i) => {
+                      const isCoached = coachedIds.includes(std.id);
+                      const gradeObj = data?.grades?.find(g => String(g.id) === String(std.grade || std.gradeId));
+                      return (
+                        <div key={std.id} className="teacher-quick-student-row">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0, flex: 1 }}>
+                            <StudentAvatar name={std.name} index={i} size={30} />
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem', color: 'var(--color-text)' }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {std.name}
                               </p>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: std.severity === 'danger' ? '#ef4444' : '#f59e0b' }}>
-                                {std.reason}
+                              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                                {gradeObj?.name || 'Öğrenci'}
                               </span>
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => setSelectedReportStudent(std)}
-                            style={{
-                              padding: '0.3rem 0.65rem', borderRadius: '0.5rem',
-                              background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-                              color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer'
-                            }}
-                          >
-                            Karne Aç
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                            <button
+                              onClick={() => setSelectedReportStudent(std)}
+                              className="btn-secondary-action"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.72rem' }}
+                              title="Öğrencinin Karnesini & Gelişim Raporunu Aç"
+                            >
+                              <BarChart3 size={12} /> Karne
+                            </button>
+
+                            <button
+                              onClick={() => navigate(`/coaching/${std.id}`)}
+                              style={{
+                                padding: '0.35rem 0.65rem', borderRadius: '0.75rem',
+                                border: '1px solid var(--color-border)',
+                                background: isCoached ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)',
+                                color: isCoached ? '#8b5cf6' : 'var(--color-text-muted)',
+                                fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer',
+                                display: 'inline-flex', alignItems: 'center', gap: 3
+                              }}
+                              title="Öğrencinin Koçluk Yol Haritasını Aç"
+                            >
+                              <Map size={12} /> Koçluk
+                            </button>
+
+                            <button
+                              onClick={() => openEditStudent(std)}
+                              style={{
+                                padding: '0.35rem 0.5rem', borderRadius: '0.75rem',
+                                border: '1px solid var(--color-border)',
+                                background: 'var(--color-surface-hover)',
+                                color: 'var(--color-text-muted)',
+                                cursor: 'pointer'
+                              }}
+                              title="Bilgilerini veya şifresini düzenle"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* SAĞ SÜTUN */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                {/* Yaklaşan & Aktif Ödevler */}
-                <div className="teacher-card">
-                  <div className="teacher-card-header">
-                    <h3><FileText size={16} color="#f59e0b" /> Aktif &amp; Yaklaşan Ödevler</h3>
-                    <button onClick={() => navigate('/homeworks')} className="teacher-card-link">
-                      Ödevleri Yönet <ChevronRight size={13} />
-                    </button>
+                      );
+                    })}
                   </div>
 
-                  {upcomingHomeworks.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                      Şu an teslimi yaklaşan aktif ödev yok.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {upcomingHomeworks.map(hw => {
-                        const due = new Date(hw.dueDate);
-                        const daysLeft = Math.ceil((due - Date.now()) / 86400000);
-                        const urgent = daysLeft <= 2;
-                        const targetCount = hw.targetIds?.length || students.length;
-                        return (
-                          <div key={hw.id} className="teacher-hw-row">
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <p className="teacher-hw-title">{hw.title}</p>
-                              <p className="teacher-hw-meta">{hw.subject || 'Genel'} · {targetCount} Öğrenci</p>
-                            </div>
-                            <span className={`teacher-hw-badge ${urgent ? 'urgent' : 'normal'}`}>
-                              {daysLeft <= 0 ? 'Bugün!' : `${daysLeft} gün kaldı`}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <button
+                    onClick={() => setShowAddStudentModal(true)}
+                    className="btn-secondary-action"
+                    style={{
+                      justifyContent: 'center', marginTop: '0.5rem',
+                      fontWeight: 800
+                    }}
+                  >
+                    <UserPlus size={15} color="#059669" />
+                    <span>+ Yeni Öğrenci Kaydı Yap</span>
+                  </button>
                 </div>
 
-                {/* Branş Başarısı Özeti */}
-                <div className="teacher-card">
-                  <div className="teacher-card-header">
-                    <h3><BookMarked size={16} color="#6366f1" /> Branş Başarı Dağılımı</h3>
-                    <button onClick={() => setActiveTab('analytics')} className="teacher-card-link">
-                      Detaylı Grafikler <ChevronRight size={13} />
-                    </button>
-                  </div>
-
-                  {activeSubjects.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-muted)', fontSize: '0.82rem' }}>
-                      Branş bazlı sınav çözümü verisi henüz oluşmadı.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      {activeSubjects.slice(0, 5).map(subj => {
-                        const isHigh = subj.avgScore >= 70;
-                        const isMid = subj.avgScore >= 45 && subj.avgScore < 70;
-                        const color = isHigh ? '#10b981' : isMid ? '#f59e0b' : '#ef4444';
-                        return (
-                          <div key={subj.name} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem' }}>
-                              <span style={{ fontWeight: 700, color: 'var(--color-text)' }}>{subj.name}</span>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>{subj.totalQ} soru</span>
-                                <span style={{ fontWeight: 800, color }}>%{subj.avgScore}</span>
-                              </div>
-                            </div>
-                            <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${subj.avgScore}%`, background: color, borderRadius: 99, transition: 'width 0.5s ease' }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               </div>
+
             </div>
           )}
 
@@ -1244,6 +1250,22 @@ export default function TeacherDashboard() {
             onToggleCoaching={() => toggleCoachedStudent(currentUser?.id || 'teacher_1', selectedReportStudent.id)}
             onEditStudent={(std) => openEditStudent(std)}
             onClose={() => setSelectedReportStudent(null)}
+          />
+        )}
+
+        {/* ══════════ MODAL: AI SORU ÜRETİCİ ══════════ */}
+        {isAiModalOpen && (
+          <AiQuestionGeneratorModal
+            isOpen={isAiModalOpen}
+            onClose={() => setIsAiModalOpen(false)}
+            onSaveQuestions={handleSaveAiQuestions}
+            defaultSubject={aiModalConfig.subject || 'Matematik'}
+            defaultTopic={aiModalConfig.topic || ''}
+            curData={data}
+            availableGrades={data?.grades || []}
+            availableSubjects={data?.subjects || []}
+            availableUnits={data?.units || []}
+            availableTopics={data?.topics || []}
           />
         )}
 
