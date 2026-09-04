@@ -3343,31 +3343,6 @@ export default function StudentDashboard() {
                   )}
                 </div>
 
-                {/* Günlük İlerleme Rozeti */}
-                <div
-                  style={{
-                    background: dailyGoalProgress.isAllDone
-                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
-                      : 'rgba(255,255,255,0.12)',
-                    border: dailyGoalProgress.isAllDone
-                      ? '1.5px solid rgba(16, 185, 129, 0.6)'
-                      : '1px solid rgba(255,255,255,0.25)',
-                    borderRadius: 999,
-                    padding: isMobile ? '2px 8px' : '4px 12px',
-                    fontSize: isMobile ? '0.64rem' : '0.76rem',
-                    fontWeight: 900,
-                    color: dailyGoalProgress.isAllDone ? '#a7f3d0' : 'rgba(255,255,255,0.95)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: dailyGoalProgress.isAllDone ? '0 2px 10px rgba(16, 185, 129, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
-                    backdropFilter: 'blur(16px)'
-                  }}
-                  title={`Günün Görev İlerlemesi: %${dailyGoalProgress.pct} (${dailyGoalProgress.label})`}
-                >
-                  <span>{dailyGoalProgress.isAllDone ? '🎯' : '⏳'}</span>
-                  <span>%{dailyGoalProgress.pct} Günlük Hedef</span>
-                </div>
                 <button
                   type="button"
                   onClick={() => navigate('/study-room')}
