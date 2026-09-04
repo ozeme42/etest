@@ -3122,7 +3122,7 @@ export default function StudentDashboard() {
 
   return (
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
-      <div className="student-dashboard-page" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 1.5rem)' }}>
+      <div className="student-dashboard-page" style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px) + 0.85rem)' }}>
       {/* styles are in StudentDashboard.css */}
       {/* ══════════════════════════════════════════════════════
           PREMIUM VIBRANT HEADER
