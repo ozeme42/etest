@@ -2903,6 +2903,44 @@ export default function StudentDashboard() {
   const avatarColor = avatarColors[studentMembers.findIndex(s => s.id === selectedStudent?.id) % avatarColors.length] || '#6366f1';
   const todayStr = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
+  const studentStreak = studentGamification?.stats?.dailyStreak || studentGamification?.streakTierInfo?.streak || 0;
+  const streakMultiplier = studentGamification?.streakTierInfo?.multiplier || 1.0;
+
+  const dailyGoalProgress = useMemo(() => {
+    const total = dayProgramInfo?.totalCount || 0;
+    const completed = dayProgramInfo?.completedCount || 0;
+    const remedial = catchUpTasks?.length || 0;
+
+    if (total > 0) {
+      const pct = Math.min(100, Math.round((completed / total) * 100));
+      return {
+        pct,
+        completed,
+        total,
+        isAllDone: completed >= total && remedial === 0,
+        label: `${completed}/${total} Görev`
+      };
+    }
+
+    if (remedial === 0) {
+      return {
+        pct: 100,
+        completed: 0,
+        total: 0,
+        isAllDone: true,
+        label: 'Tümü Tamam'
+      };
+    }
+
+    return {
+      pct: 0,
+      completed: 0,
+      total: remedial,
+      isAllDone: false,
+      label: `${remedial} Telafi Bekliyor`
+    };
+  }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount, catchUpTasks?.length]);
+
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
 
@@ -3127,55 +3165,163 @@ export default function StudentDashboard() {
           {/* SOL: Avatar + İsim + Rozetler */}
           <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
 
-            {/* Avatar with ring - Rütbe Profil Simgesi */}
-            <div style={{ position:'relative', flexShrink:0 }}>
-              <div style={{
-                position:'absolute',
-                inset: -3,
-                borderRadius:'50%',
-                background: studentRank.bgGradient || 'conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8)',
-                padding: 2,
-                opacity: 0.8,
-                filter: 'blur(2px)'
-              }} />
-              <div style={{
-                width: isMobile ? 54 : 68,
-                height: isMobile ? 54 : 68,
-                borderRadius: '50%',
-                background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '1.8rem' : '2.3rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                position: 'relative',
-                zIndex: 2,
-                boxShadow: `0 0 0 3px rgba(255,255,255,0.35), 0 6px 20px ${studentRank.color || avatarColor}80`,
-                userSelect: 'none'
-              }}
-              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level})`}
+            {/* Avatar with circular progress ring & streak badges */}
+            <div style={{
+              position: 'relative',
+              flexShrink: 0,
+              width: isMobile ? 66 : 82,
+              height: isMobile ? 66 : 82,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {/* Circular Progress SVG Ring */}
+              <svg
+                width={isMobile ? 66 : 82}
+                height={isMobile ? 66 : 82}
+                style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
+              >
+                <defs>
+                  <linearGradient id="avatarProgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    {dailyGoalProgress.isAllDone ? (
+                      <>
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#34d399" />
+                      </>
+                    ) : (
+                      <>
+                        <stop offset="0%" stopColor="#818cf8" />
+                        <stop offset="50%" stopColor="#c084fc" />
+                        <stop offset="100%" stopColor="#f472b6" />
+                      </>
+                    )}
+                  </linearGradient>
+                </defs>
+                {/* Background track circle */}
+                <circle
+                  cx={isMobile ? 33 : 41}
+                  cy={isMobile ? 33 : 41}
+                  r={isMobile ? 29 : 36.5}
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.16)"
+                  strokeWidth={isMobile ? 3.5 : 4.5}
+                />
+                {/* Animated circular progress circle */}
+                <circle
+                  cx={isMobile ? 33 : 41}
+                  cy={isMobile ? 33 : 41}
+                  r={isMobile ? 29 : 36.5}
+                  fill="none"
+                  stroke="url(#avatarProgGrad)"
+                  strokeWidth={isMobile ? 3.5 : 4.5}
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 29 : 36.5)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 29 : 36.5) * (1 - dailyGoalProgress.pct / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 33 : 41} ${isMobile ? 33 : 41})`}
+                  style={{
+                    transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                    filter: dailyGoalProgress.pct > 0 ? 'drop-shadow(0 0 4px rgba(192, 132, 252, 0.6))' : 'none'
+                  }}
+                />
+              </svg>
+
+              {/* Inner Avatar */}
+              <div
+                style={{
+                  width: isMobile ? 52 : 64,
+                  height: isMobile ? 52 : 64,
+                  borderRadius: '50%',
+                  background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? '1.7rem' : '2.15rem',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  position: 'relative',
+                  zIndex: 2,
+                  boxShadow: `0 4px 16px ${studentRank.color || avatarColor}60`,
+                  userSelect: 'none'
+                }}
+                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • Günlük İlerleme: %${dailyGoalProgress.pct}`}
               >
                 <span>{studentRank.icon || '🛡️'}</span>
               </div>
-              {/* Seviye (Lv) Alt Rozeti */}
-              <div style={{
-                position: 'absolute',
-                bottom: -2,
-                right: -2,
-                zIndex: 4,
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                color: '#ffffff',
-                border: '2px solid #ffffff',
-                borderRadius: 99,
-                padding: isMobile ? '1px 5px' : '1px 7px',
-                fontSize: isMobile ? '0.58rem' : '0.68rem',
-                fontWeight: 900,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                whiteSpace: 'nowrap',
-                lineHeight: 1.2
-              }}>
+
+              {/* Top-Left: Mini Streak Flame Badge on Avatar (if streak > 0) */}
+              {studentStreak > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: -3,
+                    left: -3,
+                    zIndex: 5,
+                    background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
+                    color: '#ffffff',
+                    border: '2px solid #ffffff',
+                    borderRadius: 99,
+                    padding: isMobile ? '1px 5px' : '1px 6px',
+                    fontSize: isMobile ? '0.56rem' : '0.66rem',
+                    fontWeight: 900,
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.2
+                  }}
+                  title={`Günlük Kesintisiz Seri: ${studentStreak} Gün`}
+                >
+                  <span>🔥</span>
+                  <span>{studentStreak}</span>
+                </div>
+              )}
+
+              {/* Bottom-Right: Level (Lv) Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -2,
+                  right: -2,
+                  zIndex: 5,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  borderRadius: 99,
+                  padding: isMobile ? '1px 5px' : '1px 7px',
+                  fontSize: isMobile ? '0.56rem' : '0.66rem',
+                  fontWeight: 900,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2
+                }}
+              >
                 Lv.{studentRank.level}
+              </div>
+
+              {/* Bottom-Left: Daily Progress % Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -2,
+                  left: -2,
+                  zIndex: 5,
+                  background: dailyGoalProgress.isAllDone
+                    ? 'linear-gradient(135deg, #10b981, #059669)'
+                    : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  borderRadius: 99,
+                  padding: isMobile ? '1px 4px' : '1px 6px',
+                  fontSize: isMobile ? '0.54rem' : '0.62rem',
+                  fontWeight: 900,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2
+                }}
+                title={`Günün İlerlemesi: %${dailyGoalProgress.pct} (${dailyGoalProgress.label})`}
+              >
+                %{dailyGoalProgress.pct}
               </div>
             </div>
 
@@ -3209,6 +3355,62 @@ export default function StudentDashboard() {
 
               {/* Pill badges */}
               <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+                {/* Günlük Kesintisiz Seri Rozeti */}
+                <div
+                  style={{
+                    background: studentStreak > 0
+                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.22))'
+                      : 'rgba(255,255,255,0.1)',
+                    border: studentStreak > 0
+                      ? '1.5px solid rgba(245, 158, 11, 0.6)'
+                      : '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 999,
+                    padding: isMobile ? '2px 8px' : '4px 12px',
+                    fontSize: isMobile ? '0.64rem' : '0.76rem',
+                    fontWeight: 900,
+                    color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
+                    backdropFilter: 'blur(16px)'
+                  }}
+                  title="Günlük Kesintisiz Seri"
+                >
+                  <Flame size={isMobile ? 12 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8' }} />
+                  <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
+                  {streakMultiplier > 1.0 && (
+                    <span style={{ fontSize: '0.6rem', background: '#f59e0b', color: '#ffffff', padding: '0 4px', borderRadius: 4, fontWeight: 900 }}>
+                      {streakMultiplier}x
+                    </span>
+                  )}
+                </div>
+
+                {/* Günlük İlerleme Rozeti */}
+                <div
+                  style={{
+                    background: dailyGoalProgress.isAllDone
+                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.25))'
+                      : 'rgba(255,255,255,0.12)',
+                    border: dailyGoalProgress.isAllDone
+                      ? '1.5px solid rgba(16, 185, 129, 0.6)'
+                      : '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: 999,
+                    padding: isMobile ? '2px 8px' : '4px 12px',
+                    fontSize: isMobile ? '0.64rem' : '0.76rem',
+                    fontWeight: 900,
+                    color: dailyProgress.isAllDone ? '#a7f3d0' : 'rgba(255,255,255,0.95)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: dailyProgress.isAllDone ? '0 2px 10px rgba(16, 185, 129, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
+                    backdropFilter: 'blur(16px)'
+                  }}
+                  title={`Günün Görev İlerlemesi: %${dailyGoalProgress.pct} (${dailyGoalProgress.label})`}
+                >
+                  <span>{dailyGoalProgress.isAllDone ? '🎯' : '⏳'}</span>
+                  <span>%{dailyGoalProgress.pct} Günlük Hedef</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => navigate('/study-room')}
