@@ -1995,7 +1995,10 @@ export default function StudentDashboard() {
           Object.entries(testDates).forEach(([testIdKey, tDateStr]) => {
             if (!tDateStr) return;
             const targetDayKey = resolveDayKey(tDateStr);
-            const isMatchDate = (dayYMD && String(tDateStr).startsWith(dayYMD)) || (targetDayKey === dayMeta.key);
+            const isExplicitDate = String(tDateStr).includes('-') || String(tDateStr).includes('.');
+            const isMatchDate = isExplicitDate
+              ? (dayYMD && String(tDateStr).startsWith(dayYMD))
+              : (targetDayKey === dayMeta.key);
             if (!isMatchDate) return;
 
             const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
@@ -2008,22 +2011,36 @@ export default function StudentDashboard() {
               return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
             });
 
-            let resolvedSubject = bt?.subject || bt?.subjectName || bookObj?.subject || hw.subject || '';
+            let resolvedSubject = bt?.subject || bt?.subjectName || '';
             let resolvedUnit = bt?.unit || bt?.unitName || '';
-            if (bookObj?.subjects) {
-              for (const subj of bookObj.subjects) {
-                if (String(subj.id) === String(bt?.subjectId)) {
-                  if (!resolvedSubject) resolvedSubject = subj.name;
-                }
+            const sId = bt?.subjectId || bt?.subject_id;
+            const tId = bt?.topicId || bt?.topic_id;
+
+            let bookSubjects = bookObj?.subjects || [];
+            if (typeof bookSubjects === 'string') {
+              try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+            }
+
+            if (Array.isArray(bookSubjects)) {
+              for (const subj of bookSubjects) {
+                const isSubjMatch = sId && String(subj.id) === String(sId);
+                let isTopicMatch = false;
                 for (const top of (subj.topics || [])) {
-                  if (String(top.id) === String(bt?.topicId) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                  if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
                     resolvedUnit = top.name;
-                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    isTopicMatch = true;
                     break;
                   }
                 }
-                if (resolvedUnit) break;
+                if (isSubjMatch || isTopicMatch) {
+                  resolvedSubject = subj.name;
+                  break;
+                }
               }
+            }
+
+            if (!resolvedSubject) {
+              resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
             }
 
             const testTitle = bt?.name || bt?.title || 'Kitap Testi';
@@ -2341,22 +2358,36 @@ export default function StudentDashboard() {
             return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
           });
 
-          let resolvedSubject = bt?.subject || bt?.subjectName || bookObj?.subject || hw.subject || '';
+          let resolvedSubject = bt?.subject || bt?.subjectName || '';
           let resolvedUnit = bt?.unit || bt?.unitName || '';
-          if (bookObj?.subjects) {
-            for (const subj of bookObj.subjects) {
-              if (String(subj.id) === String(bt?.subjectId)) {
-                if (!resolvedSubject) resolvedSubject = subj.name;
-              }
+          const sId = bt?.subjectId || bt?.subject_id;
+          const tId = bt?.topicId || bt?.topic_id;
+
+          let bookSubjects = bookObj?.subjects || [];
+          if (typeof bookSubjects === 'string') {
+            try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+          }
+
+          if (Array.isArray(bookSubjects)) {
+            for (const subj of bookSubjects) {
+              const isSubjMatch = sId && String(subj.id) === String(sId);
+              let isTopicMatch = false;
               for (const top of (subj.topics || [])) {
-                if (String(top.id) === String(bt?.topicId) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
                   resolvedUnit = top.name;
-                  if (!resolvedSubject) resolvedSubject = subj.name;
+                  isTopicMatch = true;
                   break;
                 }
               }
-              if (resolvedUnit) break;
+              if (isSubjMatch || isTopicMatch) {
+                resolvedSubject = subj.name;
+                break;
+              }
             }
+          }
+
+          if (!resolvedSubject) {
+            resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
           }
 
           const testTitle = bt?.name || bt?.title || 'Kitap Testi';
@@ -2392,7 +2423,7 @@ export default function StudentDashboard() {
 
           const isSolvedInSubs = (studentSubmissions || submissions || []).some(s => {
             if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-            return isSubmissionMatchingBookTest(s, bt || { id: cleanTestId, testId: cleanTestId }, bookTests, books);
+            return isSubmissionMatchingBookTest(s, candidateItem, bookTests, books);
           });
           if (isSolvedInSubs) return;
 

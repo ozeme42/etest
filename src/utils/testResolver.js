@@ -1,8 +1,8 @@
-import { toUUID } from '../services/supabaseService';
-import { getTurkeyYMD, extractItemDate } from './dateHelpers';
-import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation';
-import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
-import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter';
+import { toUUID } from '../services/supabaseService.js';
+import { getTurkeyYMD, extractItemDate } from './dateHelpers.js';
+import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from './answerEvaluation.js';
+import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter.js';
+import { getAllUnifiedStudentSubmissions } from '../services/unifiedResultAdapter.js';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 
 /**
@@ -1599,12 +1599,44 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   // Lookup targetTest metadata from bookTests if not already filled
-  if (targetTest && !targetTest.name && !targetTest.title && !targetTest.testName && specClean) {
+  if (targetTest && (!targetTest.name && !targetTest.title && !targetTest.testName) && specClean) {
     const found = (bookTests || []).find(bt => {
       const btClean = String(bt.id).replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
       return String(bt.id) === specId || btClean === specClean || (toUUID(bt.id) && toUUID(bt.id) === specUuid);
     });
     if (found) targetTest = { ...found, ...targetTest };
+  }
+
+  // Auto-enrich targetTest subject, unit, and bookTitle from books if missing
+  if (targetTest && (!targetTest.subject || !targetTest.unit || !targetTest.bookTitle)) {
+    const sId = targetTest.subjectId || targetTest.subject_id;
+    const tId = targetTest.topicId || targetTest.topic_id;
+    const bId = targetTest.bookId || targetTest.book_id;
+    const bookObj = (books || []).find(b => String(b.id) === String(bId) || (toUUID(b.id) && toUUID(b.id) === toUUID(bId)));
+    if (bookObj) {
+      if (!targetTest.bookTitle) targetTest.bookTitle = bookObj.title;
+      let bookSubjects = bookObj.subjects || [];
+      if (typeof bookSubjects === 'string') {
+        try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+      }
+      if (Array.isArray(bookSubjects)) {
+        for (const subj of bookSubjects) {
+          const isSubjMatch = sId && String(subj.id) === String(sId);
+          let isTopicMatch = false;
+          for (const top of (subj.topics || [])) {
+            if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === specClean)) {
+              if (!targetTest.unit) targetTest.unit = top.name;
+              isTopicMatch = true;
+              break;
+            }
+          }
+          if (isSubjMatch || isTopicMatch) {
+            if (!targetTest.subject) targetTest.subject = subj.name;
+            break;
+          }
+        }
+      }
+    }
   }
 
   const cleanHelper = (str) => String(str || '')
@@ -1741,8 +1773,16 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const cleanTName = tName.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').trim();
   const normOnlyChars = (str) => cleanHelper(str).replace(/[^a-z0-9ğüşıöç]/g, '');
 
-  const normSubChars = normOnlyChars(normSubTest);
-  const normTChars = normOnlyChars(cleanTName);
+  const isGenericTitle = /^((test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|etkinlik|alismalar|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test|problemsayfasi|paragraftest|konutesti)$/i.test(normTChars);
+
+  if (isGenericTitle && tSubject && normSubSubject) {
+    const isSubMatch = tSubject === normSubSubject ||
+      (tSubject.includes('türk') && normSubSubject.includes('türk')) ||
+      (tSubject.includes('mat') && normSubSubject.includes('mat')) ||
+      (tSubject.includes('fen') && normSubSubject.includes('fen')) ||
+      (tSubject.includes('sos') && normSubSubject.includes('sos'));
+    if (!isSubMatch) return false;
+  }
 
   if (normSubChars === normTChars && normTChars.length >= 2) {
     if (!tUnitNum || !sUnitNum || tUnitNum === sUnitNum) {

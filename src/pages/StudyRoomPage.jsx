@@ -453,7 +453,10 @@ export default function StudyRoomPage() {
             const cleanTestId = String(testId).replace(/^bt_/, '').replace(/^q_/, '');
             const testUuid = toUUID(cleanTestId);
             const targetDayKey = resolveDayKey(tDateStr);
-            const isMatchDate = (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd)) || (targetDayKey === dayCfg.key);
+            const isExplicitDate = String(tDateStr).includes('-') || String(tDateStr).includes('.');
+            const isMatchDate = isExplicitDate
+              ? (dayInfo.ymd && tDateStr.startsWith(dayInfo.ymd))
+              : (targetDayKey === dayCfg.key);
 
             if (isMatchDate) {
               const dedupeKey = `bt_${cleanTestId}`;
@@ -464,7 +467,40 @@ export default function StudyRoomPage() {
                   return bId === cleanTestId || bId === String(testId) || (testUuid && toUUID(bId) === testUuid);
                 });
                 const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
-                const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
+
+                let resolvedSubject = bt?.subject || bt?.subjectName || '';
+                let resolvedUnit = bt?.unit || bt?.unitName || '';
+                const sId = bt?.subjectId || bt?.subject_id;
+                const tId = bt?.topicId || bt?.topic_id;
+
+                let bookSubjects = bookObj?.subjects || [];
+                if (typeof bookSubjects === 'string') {
+                  try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+                }
+
+                if (Array.isArray(bookSubjects)) {
+                  for (const subj of bookSubjects) {
+                    const isSubjMatch = sId && String(subj.id) === String(sId);
+                    let isTopicMatch = false;
+                    for (const top of (subj.topics || [])) {
+                      if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                        resolvedUnit = top.name;
+                        isTopicMatch = true;
+                        break;
+                      }
+                    }
+                    if (isSubjMatch || isTopicMatch) {
+                      resolvedSubject = subj.name;
+                      break;
+                    }
+                  }
+                }
+
+                if (!resolvedSubject) {
+                  resolvedSubject = hw.subject || bookObj?.subject || 'Genel';
+                }
+
+                const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap', subject: resolvedSubject, unitTopic: resolvedUnit }, currentUser.id, submissions, homeworks, studyAssignments);
 
                 dayTasks.push({
                   id: dedupeKey,
@@ -473,9 +509,9 @@ export default function StudyRoomPage() {
                   subtitle: `${dayCfg.long} Kitap Testi`,
                   dayName: dayCfg.long,
                   dayKey: dayCfg.key,
-                  subject: bt?.subject || bt?.subjectName || hw.subject || bookObj?.subject || 'Genel',
-                  unit: bt?.unit || bt?.unitName || '',
-                  topic: bt?.topic || bt?.topicName || '',
+                  subject: resolvedSubject,
+                  unit: resolvedUnit || bt?.unit || bt?.unitName || '',
+                  topic: resolvedUnit || bt?.topic || bt?.topicName || '',
                   questionCount: qCount,
                   dueDate: tDateStr,
                   sourceType: 'program',
@@ -510,7 +546,10 @@ export default function StudyRoomPage() {
 
         if (hwDueDate && (isExam || !isBook || Object.keys(testDates).length === 0)) {
           const hwDayKey = resolveDayKey(hwDueDate);
-          const isDateMatch = (dayInfo.ymd && hwDueDate.startsWith(dayInfo.ymd)) || (hwDayKey === dayCfg.key);
+          const isExplicitDate = String(hwDueDate).includes('-') || String(hwDueDate).includes('.');
+          const isDateMatch = isExplicitDate
+            ? (dayInfo.ymd && hwDueDate.startsWith(dayInfo.ymd))
+            : (hwDayKey === dayCfg.key);
 
           if (isDateMatch) {
             const dedupeKey = `hw_${hw.id}`;
