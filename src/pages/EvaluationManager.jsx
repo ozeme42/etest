@@ -253,7 +253,7 @@ export default function EvaluationManager() {
         (Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.some(a => a.evaluatedByTeacher === true))
       );
 
-      // Öğrencinin yazdığı açık uçlu yanıt metinleri
+      // 1. Öğrencinin yazdığı açık uçlu yanıt metinleri
       let hasStudentWrittenText = false;
       if (sub.openEndedText && typeof sub.openEndedText === 'object') {
         hasStudentWrittenText = Object.values(sub.openEndedText).some(t => t && String(t).trim().length > 0 && String(t).trim() !== 'empty');
@@ -270,27 +270,18 @@ export default function EvaluationManager() {
         );
       }
 
-      // Açık uçlu / yazılı soru veya bölüm bayrakları
-      let hasOEQuestionFlag = false;
-      if (sub.isOpenEnded === true || sub.is_open_ended === true) {
-        hasOEQuestionFlag = true;
-      } else if (['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(sub.type || sub.questionType || sub.contentType)) {
-        hasOEQuestionFlag = true;
-      } else if (matchedHw && (matchedHw.isOpenEnded || ['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(matchedHw.type || matchedHw.contentType))) {
-        hasOEQuestionFlag = true;
-      } else if (Array.isArray(sub.answers) && sub.answers.some(a => 
-        a.isOpenEnded === true || a.is_open_ended === true || ['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(a.questionType || a.type)
-      )) {
-        hasOEQuestionFlag = true;
-      } else if (sub.sections && typeof sub.sections === 'object') {
-        hasOEQuestionFlag = Object.values(sub.sections).some(sec => 
-          sec.type === 'open_ended' || sec.isOpenEnded === true || sec.is_open_ended === true
-        );
-      }
+      // 2. Çoktan seçmeli optik şık seçimleri (A, B, C, D, E veya 0, 1, 2, 3...)
+      const hasOptionAnswers = Array.isArray(sub.answers) && sub.answers.some(a => {
+        const u = a.userAnswer;
+        return (typeof u === 'number' && u >= 0 && u <= 5) ||
+               (typeof u === 'string' && /^[A-Ea-e]$/.test(String(u).trim()));
+      });
 
       const titleLower = String(title).toLowerCase();
 
-      // Belirgin Çoktan Seçmeli test kontrolleri
+      // 3. Çoktan seçmeli test sinyalleri:
+      // - Başlıkta veya yapıda 'çok', 'çoktan seçmeli', 'pdfç'
+      // - VEYA öğrenci şık işaretlemiş ve hiç yazılı metin girmemiş (otomatik değerlendirilen sınavlar)
       const isExplicitMC = Boolean(
         /\bçok\b|\bcok\b|çoktan|coktan|\bpdfç\b|\bpdfc\b/i.test(titleLower) ||
         sub.type === 'multiple_choice' ||
@@ -301,10 +292,25 @@ export default function EvaluationManager() {
         sub.contentType === 'coktan_secmeli' ||
         matchedHw?.type === 'multiple_choice' ||
         matchedHw?.contentType === 'multiple_choice' ||
-        matchedCurTest?.type === 'multiple_choice'
+        matchedCurTest?.type === 'multiple_choice' ||
+        (hasOptionAnswers && !hasStudentWrittenText)
       );
 
-      // Başlıkta açık uçlu / yazılı anahtar kelimeleri
+      // 4. Açık uçlu soru bayrakları (ancak çoktan seçmeli değilse geçerli)
+      const hasOEQuestionFlag = !isExplicitMC && Boolean(
+        sub.isOpenEnded === true ||
+        sub.is_open_ended === true ||
+        ['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(sub.type || sub.questionType || sub.contentType) ||
+        (matchedHw && (matchedHw.isOpenEnded || ['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(matchedHw.type || matchedHw.contentType))) ||
+        (Array.isArray(sub.answers) && sub.answers.some(a => 
+          a.isOpenEnded === true || a.is_open_ended === true || ['acik_uclu', 'yazili', 'gorsel_klasik', 'open_ended'].includes(a.questionType || a.type)
+        )) ||
+        (sub.sections && typeof sub.sections === 'object' && Object.values(sub.sections).some(sec => 
+          sec.type === 'open_ended' || sec.isOpenEnded === true || sec.is_open_ended === true
+        ))
+      );
+
+      // 5. Kesin açık uçlu / yazılı anahtar kelimeleri (görsel soru seti hariç tutuldu)
       const hasOEKeywords = !isExplicitMC && (
         titleLower.includes('açık uçlu') ||
         titleLower.includes('acik uclu') ||
@@ -313,25 +319,13 @@ export default function EvaluationManager() {
         titleLower.includes('klasik yazılı') ||
         titleLower.includes('yazılı kağıdı') ||
         titleLower.includes('pdfaç') ||
-        titleLower.includes('görsel soru seti') ||
         /\baç\b|\bac\b/.test(titleLower) ||
         (/\byazılı\b|\byazili\b/.test(titleLower) && !/\bçok\b|\bcok\b/i.test(titleLower))
       );
 
-      // Yalnızca optik harf/numara şıkları seçilmiş mi
-      const hasOnlyMCOptionSelections = Array.isArray(sub.answers) && sub.answers.length > 0 && sub.answers.every(a => {
-        const uAns = a.userAnswer;
-        const isOpt = typeof uAns === 'number' || (typeof uAns === 'string' && /^[A-Ea-e0-4]$/.test(uAns.trim())) || uAns === 'empty' || uAns === null || uAns === undefined;
-        const noText = (!a.userAnswerText || String(a.userAnswerText).trim().length === 0 || String(a.userAnswerText).trim() === 'empty') &&
-                       (!a.textAns || String(a.textAns).trim().length === 0 || String(a.textAns).trim() === 'empty');
-        return isOpt && noText && !a.isOpenEnded && !a.is_open_ended;
-      });
-
-      // Saf çoktan seçmeli test kontrolü:
-      const isPureMC = isExplicitMC || (hasOnlyMCOptionSelections && !hasStudentWrittenText && !hasOEQuestionFlag && !hasOEKeywords);
-
-      // Sınav Değerlendirmeleri YALNIZCA öğretmen puanlaması gerektiren açık uçlu / yazılı sınavlar içindir
-      const isEvaluationTarget = !isPureMC && (hasStudentWrittenText || hasOEQuestionFlag || hasOEKeywords);
+      // 6. Sınav Değerlendirmeleri YALNIZCA öğretmen notlandırması bekleyen açık uçlu / yazılı sınavlar içindir
+      // Çoktan seçmeli şık işaretlenmiş ve metin yazılmamış testler ASLA hedef olamaz!
+      const isEvaluationTarget = !isExplicitMC && (hasStudentWrittenText || (hasOEQuestionFlag && !hasOptionAnswers) || (hasOEKeywords && !hasOptionAnswers));
 
       const isPending = isManual
         ? isManualPending
