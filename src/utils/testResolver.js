@@ -1772,6 +1772,8 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
 
   const cleanTName = tName.replace(/^.*?—\s*/, '').replace(/^.*?[›>]\s*/, '').trim();
   const normOnlyChars = (str) => cleanHelper(str).replace(/[^a-z0-9ğüşıöç]/g, '');
+  const normSubChars = normOnlyChars(normSubTest);
+  const normTChars = normOnlyChars(cleanTName);
 
   const isGenericTitle = /^((test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|etkinlik|alismalar|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test|problemsayfasi|paragraftest|konutesti)$/i.test(normTChars);
 
