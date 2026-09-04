@@ -3435,35 +3435,6 @@ export default function StudentDashboard() {
                   <Headphones size={isMobile ? 12 : 14} />
                   <span>Çalışma Odası</span>
                 </button>
-                <div style={{
-                  background:'rgba(255,255,255,0.12)',
-                  backdropFilter:'blur(16px)',
-                  border:'1px solid rgba(255,255,255,0.25)',
-                  borderRadius:999,
-                  padding: isMobile ? '2px 7px' : '5px 15px',
-                  fontSize: isMobile ? '0.62rem' : '0.78rem',
-                  fontWeight:700, color:'rgba(255,255,255,0.95)',
-                  display:'inline-flex', alignItems:'center', gap:4,
-                  boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
-                }}>
-                  <span>🗓</span><span>{heroDateStr}</span>
-                </div>
-                {Boolean(gradeLabel) && (
-                  <div style={{
-                    background: 'rgba(255,255,255,0.1)',
-                    backdropFilter:'blur(16px)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius:999,
-                    padding: isMobile ? '2px 7px' : '5px 15px',
-                    fontSize: isMobile ? '0.62rem' : '0.78rem',
-                    fontWeight:800,
-                    color: 'rgba(255,255,255,0.9)',
-                    display:'inline-flex', alignItems:'center', gap:4,
-                    boxShadow:'0 2px 8px rgba(0,0,0,0.15)'
-                  }}>
-                    <span>🎓</span><span>{gradeLabel}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
