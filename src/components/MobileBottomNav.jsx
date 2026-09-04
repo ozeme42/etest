@@ -71,15 +71,13 @@ export default function MobileBottomNav() {
     <nav
       className="mobile-bottom-nav sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
       style={{
-        background: isDark ? 'rgba(15, 23, 42, 0.92)' : 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)',
-        boxShadow: isDark ? '0 -4px 20px rgba(0,0,0,0.45)' : '0 -2px 14px rgba(0,0,0,0.06)',
-        paddingTop: '0.3rem',
+        background: isDark ? 'rgb(15, 23, 42)' : 'rgb(255, 255, 255)',
+        borderTop: isDark ? '1.5px solid rgba(51, 65, 85, 0.7)' : '1.5px solid rgba(226, 232, 240, 0.9)',
+        boxShadow: isDark ? '0 -4px 16px rgba(0,0,0,0.4)' : '0 -2px 12px rgba(0,0,0,0.06)',
+        paddingTop: '0.35rem',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.35rem)',
-        paddingLeft: '0.4rem',
-        paddingRight: '0.4rem',
+        paddingLeft: '0.5rem',
+        paddingRight: '0.5rem',
       }}
     >
       {tabs.map((tab) => {
@@ -98,60 +96,33 @@ export default function MobileBottomNav() {
               alignItems: 'center',
               justifyContent: 'center',
               flex: 1,
-              padding: '0.15rem 0',
+              padding: '0.1rem 0',
               cursor: 'pointer',
               position: 'relative',
               outline: 'none',
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
-              transition: 'transform 0.18s ease'
+              transform: isActive ? 'translateY(-2px)' : 'none',
             }}
           >
+            {isActive && (
+              <div style={{ position: 'absolute', top: -6, width: 24, height: 3, borderRadius: 99, background: isDark ? '#818cf8' : '#6366f1' }} />
+            )}
             <div style={{
-              width: 44,
-              height: 28,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: isActive
-                ? (isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.28), rgba(139,92,246,0.22))' : 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(79,70,229,0.12))')
-                : 'transparent',
-              border: isActive
-                ? (isDark ? '1px solid rgba(165,180,252,0.35)' : '1px solid rgba(99,102,241,0.25)')
-                : '1px solid transparent',
-              boxShadow: isActive
-                ? (isDark ? '0 2px 8px rgba(99,102,241,0.35)' : '0 2px 8px rgba(99,102,241,0.15)')
-                : 'none',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              width: 36, height: 36, borderRadius: 11,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: isActive ? (isDark ? 'linear-gradient(135deg,#818cf8,#6366f1)' : 'linear-gradient(135deg,#6366f1,#4f46e5)') : 'transparent',
+              boxShadow: isActive ? (isDark ? '0 4px 14px rgba(99,102,241,0.55)' : '0 3px 10px rgba(99,102,241,0.35)') : 'none',
             }}>
-              <Icon
-                size={18}
-                strokeWidth={isActive ? 2.5 : 1.8}
-                color={isActive ? (isDark ? '#818cf8' : '#4f46e5') : (isDark ? '#94a3b8' : '#64748b')}
-              />
+              <Icon size={19} strokeWidth={isActive ? 2.5 : 2} color={isActive ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b')} />
             </div>
             <span style={{
-              fontSize: '0.62rem',
-              fontWeight: isActive ? 900 : 600,
-              marginTop: '0.15rem',
-              letterSpacing: '0.01em',
-              lineHeight: 1.1,
-              color: isActive ? (isDark ? '#c7d2fe' : '#4338ca') : (isDark ? '#94a3b8' : '#64748b'),
-              transition: 'color 0.15s ease'
+              fontSize: '0.64rem', fontWeight: isActive ? 900 : 700,
+              marginTop: '0.15rem', letterSpacing: '0.02em',
+              color: isActive ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? '#94a3b8' : '#64748b')
             }}>
               {tab.label}
             </span>
-            {isActive && (
-              <div style={{
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                background: isDark ? '#818cf8' : '#4f46e5',
-                marginTop: 2,
-                boxShadow: isDark ? '0 0 6px #818cf8' : '0 0 4px rgba(79,70,229,0.5)'
-              }} />
-            )}
           </button>
         );
       })}
