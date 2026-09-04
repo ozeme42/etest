@@ -430,7 +430,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     matchedBookTest = {
       id: testIdCandidate,
       name: rawSubTitle || genName,
-      subjectName: rawSub.subject || (isExamHint ? 'Genel' : 'Genel')
+      subjectName: rawSub.subject || (isExamHint ? 'Genel' : 'Genel'),
+      isFallback: true
     };
   }
 
@@ -613,40 +614,44 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   const expCorrect = rawSub.correctCount ?? rawSub.correct_count ?? rawSub.correct ?? raw.correctCount ?? raw.correct_count;
   const expWrong = rawSub.wrongCount ?? rawSub.wrong_count ?? rawSub.wrong ?? raw.wrongCount ?? raw.wrong_count;
   const expEmpty = rawSub.emptyCount ?? rawSub.empty_count ?? rawSub.blankCount ?? rawSub.blank_count ?? rawSub.empty ?? raw.emptyCount ?? raw.empty_count;
-  const derivedQuestionsCount = (Number(expCorrect) || 0) + (Number(expWrong) || 0) + (Number(expEmpty) || 0);
 
-  let totalQuestions = Math.max(
-    matchedBookTest?.question_count || matchedBookTest?.questionCount || 0,
-    rawSub.totalQuestions || raw.totalQuestions || 0,
-    derivedQuestionsCount,
-    Object.keys(studentAnswersMap).length,
-    Object.keys(answerKey).length,
-    Array.isArray(rawSub.answers) ? rawSub.answers.filter(a => a && a.type !== 'metadata').length : 0,
-    1
-  );
+  const answersList = Array.isArray(rawSub.answers) ? rawSub.answers.filter(a => a && a.type !== 'metadata') : [];
+  const actualAnswersCount = answersList.length;
+  const hwTotal = Number(matchedHw?.totalQuestions || matchedHw?.questionCount || 0);
+  const rawTotal = Number(rawSub.totalQuestions || raw.totalQuestions || 0);
+  const btTotal = Number(matchedBookTest?.question_count || matchedBookTest?.questionCount || 0);
+  const numCorrect = (expCorrect !== undefined && expCorrect !== null) ? Number(expCorrect) : 0;
+  const numWrong = (expWrong !== undefined && expWrong !== null) ? Number(expWrong) : 0;
+  const numEmpty = (expEmpty !== undefined && expEmpty !== null) ? Number(expEmpty) : 0;
+  const derivedQuestionsCount = numCorrect + numWrong + numEmpty;
 
-  if (derivedQuestionsCount > 0 && totalQuestions < derivedQuestionsCount) {
-    totalQuestions = derivedQuestionsCount;
+  let totalQuestions = 0;
+  if (actualAnswersCount > 0) {
+    totalQuestions = actualAnswersCount;
+  } else if (rawTotal > 0) {
+    totalQuestions = rawTotal;
+  } else if (hwTotal > 0) {
+    totalQuestions = hwTotal;
+  } else if (btTotal > 0 && !matchedBookTest?.isFallback) {
+    totalQuestions = btTotal;
+  } else {
+    totalQuestions = Math.max(
+      derivedQuestionsCount,
+      Object.keys(studentAnswersMap).length,
+      Object.keys(answerKey).length,
+      1
+    );
   }
 
-  // 🛡️ CRITICAL FIX: Prevent artificial blank questions inflating total questions!
-  // If the submission explicitly provides correctCount and wrongCount (and optionally blankCount),
-  // e.g. 47D + 7Y + 0B = 54, do not let an unpruned template or answer-key length (e.g. 60 or 90)
-  // invent fake blank questions that unfairly depress the student's success rate.
-  if (expCorrect !== undefined && expCorrect !== null && expWrong !== undefined && expWrong !== null) {
-    const numCorr = Number(expCorrect) || 0;
-    const numWrg = Number(expWrong) || 0;
-    const hasExplicitBlank = expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty));
-    const numEmp = hasExplicitBlank ? Number(expEmpty) : 0;
-    const explicitQ = numCorr + numWrg + numEmp;
+  // 🛡️ Total questions cannot be smaller than confirmed answered questions
+  if (numCorrect + numWrong > totalQuestions && numCorrect + numWrong > 0) {
+    totalQuestions = numCorrect + numWrong + (numEmpty > 0 && numCorrect + numWrong + numEmpty <= 100 ? numEmpty : 0);
+  }
 
-    if (explicitQ > 0) {
-      if (hasExplicitBlank && numEmp === 0) {
-        totalQuestions = explicitQ;
-      } else if (explicitQ < totalQuestions && (rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam || rawSub.isPhysical)) {
-        totalQuestions = explicitQ;
-      }
-    }
+  // If explicit correct and wrong count are present and numCorrect + numWrong <= totalQuestions,
+  // do not let stale derived count artificially inflate total questions.
+  if (totalQuestions <= 0) {
+    totalQuestions = Math.max(derivedQuestionsCount, 1);
   }
 
   // 4. Mistake Reasons Map
@@ -793,17 +798,14 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   if (expWrong !== undefined && expWrong !== null && !isNaN(Number(expWrong))) {
     wrongCount = Number(expWrong);
   }
-  if (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) {
+  if (totalQuestions > 0) {
+    if (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty)) && (correctCount + wrongCount + Number(expEmpty) === totalQuestions)) {
+      blankCount = Number(expEmpty);
+    } else {
+      blankCount = Math.max(0, totalQuestions - correctCount - wrongCount);
+    }
+  } else if (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty))) {
     blankCount = Number(expEmpty);
-  } else if (totalQuestions > 0 && (correctCount > 0 || wrongCount > 0)) {
-    if (blankCount === 0 && (correctCount + wrongCount) < totalQuestions) {
-      blankCount = (expEmpty !== undefined && expEmpty !== null && !isNaN(Number(expEmpty)))
-        ? Number(expEmpty)
-        : Math.max(0, totalQuestions - correctCount - wrongCount);
-    }
-    if (expEmpty !== undefined && expEmpty !== null && Number(expEmpty) === 0) {
-      blankCount = 0;
-    }
   }
 
   // If student marked answers were not recorded letter-by-letter, align detailedAnswers with explicit correct/wrong counts
@@ -905,9 +907,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     String(rawSub.hwId || '').startsWith('me_')
   );
 
-  const isBookTest = !isPhysicalExam && Boolean(
+  const isHomework = Boolean(
+    rawSub.hwId ||
+    rawSub.homeworkId ||
+    rawSub.homework_id ||
+    raw.hwId ||
+    raw.homeworkId ||
+    raw.homework_id ||
+    meta.hwId ||
+    matchedHw
+  );
+
+  const isBookTest = !isPhysicalExam && !isHomework && Boolean(
     matchedBook ||
-    matchedBookTest ||
+    (matchedBookTest && !matchedBookTest.isFallback) ||
     rawSub.bookId ||
     rawSub.bookTestId ||
     rawSub.sourceType === 'trackedBook' ||
@@ -920,11 +933,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const typeKey = isPhysicalExam
     ? 'physicalExam'
-    : (isBookTest ? 'book' : (matchedHw ? 'homework' : 'individual'));
+    : (isHomework ? 'homework' : (isBookTest ? 'book' : 'individual'));
 
   const sourceType = isPhysicalExam
     ? 'physicalExam'
-    : (isBookTest ? 'book' : (matchedHw ? 'homework' : 'submission'));
+    : (isHomework ? 'homework' : (isBookTest ? 'book' : 'submission'));
 
   const calculatedSubjectKey = getSubjectKey({ fullTitle, subjectName });
 
