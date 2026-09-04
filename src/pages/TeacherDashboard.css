@@ -450,3 +450,235 @@
   align-items: center;
   gap: 0.45rem;
 }
+
+/* ── 8. SUB-TABS (ALT SEKMELER) ── */
+.teacher-subtab-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1.5px solid var(--color-border, #e2e8f0);
+}
+
+.teacher-subtab-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.teacher-subtab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.teacher-subtab-pill:hover {
+  border-color: #6366f1;
+  color: var(--color-text, #0f172a);
+  background: var(--color-surface-hover, #f8fafc);
+}
+
+.teacher-subtab-pill.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+.teacher-subtab-count {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-border, #e2e8f0);
+  color: var(--color-text-muted, #64748b);
+}
+
+.teacher-subtab-pill.active .teacher-subtab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.teacher-subtab-count.error {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.teacher-subtab-pill.active .teacher-subtab-count.error {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* ── 9. GELİŞMİŞ FİLTRELEME ÇUBUĞU ── */
+.teacher-advanced-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: var(--color-surface-hover, #f8fafc);
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+
+.teacher-remedial-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.22rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.teacher-remedial-badge-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+}
+
+.teacher-program-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.teacher-program-badge-btn:hover {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+}
+
+/* ── 10. ÖĞRENCİ ÇALIŞMA PROGRAMI GÖRÜNÜMÜ ── */
+.teacher-program-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.teacher-program-header-card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 0.85rem;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.program-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.65rem;
+}
+
+@media (max-width: 1080px) {
+  .program-day-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .program-day-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.program-day-column {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  overflow: hidden;
+}
+
+.program-day-header {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.program-day-body {
+  padding: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.program-task-card {
+  padding: 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-surface-hover, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  transition: all 0.12s ease;
+}
+
+.program-task-card.completed {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.program-day-pill {
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-border, #cbd5e1);
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-muted, #64748b);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.program-day-pill:hover {
+  border-color: #6366f1;
+  color: var(--color-text, #0f172a);
+}
+
+.program-day-pill.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}

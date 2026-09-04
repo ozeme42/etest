@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   Plus, X, Edit2, Users, BookOpen, ClipboardCheck,
   Search, BarChart3, TrendingUp, UserPlus, CheckCircle2,
-  AlertCircle, Scissors, Sparkles, Map, Bell, ArrowRight
+  AlertCircle, Scissors, Sparkles, Map, Bell, ArrowRight,
+  Calendar, RotateCcw, CheckSquare, Layers, Eye, Filter,
+  SlidersHorizontal, ChevronLeft, ChevronRight, Check
 } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
@@ -12,6 +14,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
+import { useTheme } from '../context/ThemeContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { getAvatarBg } from '../config/subjectThemes';
 import { timeAgo } from '../utils/dateHelpers';
@@ -20,6 +23,10 @@ import TeacherClassAnalytics from '../components/teacher/TeacherClassAnalytics';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
+import TeacherStudentMistakesPool from '../components/teacher/TeacherStudentMistakesPool';
+import TeacherRemedialTracker from '../components/teacher/TeacherRemedialTracker';
+import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
+import { DAYS, normalizeWeeklyProgram, TASK_TYPES } from '../components/ProgramCenter';
 import { getSubmissionScorePct } from '../utils/scoreHelpers';
 import './TeacherDashboard.css';
 
@@ -48,7 +55,13 @@ export default function TeacherDashboard() {
   const { submissions = [] } = useEvaluation();
   const { users = [], addStudentForTeacher, updateUser } = useUser();
   const { currentUser } = useAuth();
-  const { toggleCoachedStudent, getCoachedStudentIds, mockExams = [] } = useCoaching();
+  const { isDark } = useTheme();
+  const {
+    toggleCoachedStudent,
+    getCoachedStudentIds,
+    getCoachingProfileForStudent,
+    mockExams = []
+  } = useCoaching();
   const navigate = useNavigate();
 
   /* ── State ── */
@@ -56,6 +69,28 @@ export default function TeacherDashboard() {
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedGradeFilter, setSelectedGradeFilter] = useState('');
   const [hwSearch, setHwSearch] = useState('');
+
+  // Sub-view inside 'submissions' tab: 'feed' | 'remedials' | 'programs'
+  const [submissionSubTab, setSubmissionSubTab] = useState('feed');
+
+  // Submissions Feed Filters
+  const [feedStudentFilter, setFeedStudentFilter] = useState('all');
+  const [feedSubjectFilter, setFeedSubjectFilter] = useState('all');
+  const [feedTypeFilter, setFeedTypeFilter] = useState('all'); // 'all' | 'remedial' | 'book' | 'exam'
+  const [feedScoreFilter, setFeedScoreFilter] = useState('all'); // 'all' | 'high' | 'mid' | 'low'
+  const [feedSearch, setFeedSearch] = useState('');
+  const [feedPage, setFeedPage] = useState(1);
+  const itemsPerPage = 20;
+
+  // Telafi & Hata Havuzu State
+  const [selectedRemedialStudentId, setSelectedRemedialStudentId] = useState(null);
+  const [remedialSubMode, setRemedialSubMode] = useState('mistakes'); // 'mistakes' | 'tracker'
+  const [isSlicerOpen, setIsSlicerOpen] = useState(false);
+  const [slicerConfig, setSlicerConfig] = useState(null);
+
+  // Öğrenci Programları State
+  const [selectedProgramStudentId, setSelectedProgramStudentId] = useState(null);
+  const [programDayFilter, setProgramDayFilter] = useState('all');
 
   // Modals
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
@@ -308,14 +343,144 @@ export default function TeacherDashboard() {
     });
   }, [students, studentSearch, selectedGradeFilter]);
 
-  // Recent Solved Submissions
-  const recentSubmissions = useMemo(() => {
-    return [...teacherSubmissions].sort((a, b) => {
+  // Ensure default selected student for remedials and programs
+  useEffect(() => {
+    if (students.length > 0) {
+      if (!selectedRemedialStudentId) setSelectedRemedialStudentId(students[0].id);
+      if (!selectedProgramStudentId) setSelectedProgramStudentId(students[0].id);
+    }
+  }, [students, selectedRemedialStudentId, selectedProgramStudentId]);
+
+  // Available subjects from submissions
+  const availableSubjects = useMemo(() => {
+    const set = new Set();
+    teacherSubmissions.forEach(s => {
+      const subj = s.subject || s.raw_data?.subject;
+      if (subj && subj !== 'Genel' && subj !== 'null' && subj !== 'undefined') {
+        set.add(subj);
+      }
+    });
+    return Array.from(set).sort();
+  }, [teacherSubmissions]);
+
+  // Advanced Filtered Submissions (all 266+ submissions)
+  const filteredSubmissions = useMemo(() => {
+    return teacherSubmissions.filter(sub => {
+      if (!sub) return false;
+      const std = students.find(s => s.id === sub.studentId || toUUID(s.id) === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
+
+      // 1. Student filter
+      if (feedStudentFilter !== 'all' && String(sub.studentId) !== String(feedStudentFilter) && String(toUUID(sub.studentId)) !== String(feedStudentFilter)) {
+        return false;
+      }
+
+      // 2. Subject filter
+      if (feedSubjectFilter !== 'all') {
+        const subSubj = String(sub.subject || '').toLowerCase();
+        if (!subSubj.includes(feedSubjectFilter.toLowerCase())) return false;
+      }
+
+      // 3. Type filter
+      if (feedTypeFilter !== 'all') {
+        const titleLower = String(sub.title || sub.testName || '').toLowerCase();
+        const isRemedial = titleLower.includes('telafi') || sub.isRemedial || sub.sourceType === 'remedial';
+        const isBook = sub.sourceType === 'trackedBook' || sub.bookId || titleLower.includes('ünite') || titleLower.includes('kitap');
+        const isExam = sub.type === 'physicalExam' || sub.isManual || titleLower.includes('deneme');
+
+        if (feedTypeFilter === 'remedial' && !isRemedial) return false;
+        if (feedTypeFilter === 'book' && (!isBook || isRemedial)) return false;
+        if (feedTypeFilter === 'exam' && !isExam) return false;
+      }
+
+      // 4. Score filter
+      const score = getSubmissionScorePct(sub);
+      if (feedScoreFilter === 'high' && score < 70) return false;
+      if (feedScoreFilter === 'mid' && (score < 45 || score >= 70)) return false;
+      if (feedScoreFilter === 'low' && score >= 45) return false;
+
+      // 5. Search
+      if (feedSearch.trim()) {
+        const q = feedSearch.trim().toLowerCase();
+        const titleMatch = (sub.title || sub.testName || '').toLowerCase().includes(q);
+        const nameMatch = (std.name || '').toLowerCase().includes(q);
+        const subjMatch = (sub.subject || '').toLowerCase().includes(q);
+        if (!titleMatch && !nameMatch && !subjMatch) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
       const tA = new Date(a.submittedAt || a.createdAt || a.date || 0).getTime();
       const tB = new Date(b.submittedAt || b.createdAt || b.date || 0).getTime();
       return tB - tA;
-    }).slice(0, 25);
+    });
+  }, [teacherSubmissions, feedStudentFilter, feedSubjectFilter, feedTypeFilter, feedScoreFilter, feedSearch, students]);
+
+  // Paginated submissions to show all smoothly
+  const paginatedSubmissions = useMemo(() => {
+    return filteredSubmissions.slice(0, feedPage * itemsPerPage);
+  }, [filteredSubmissions, feedPage, itemsPerPage]);
+
+  // Total mistakes in pool across teacher's students
+  const totalMistakesInPool = useMemo(() => {
+    let count = 0;
+    teacherSubmissions.forEach(s => {
+      count += Number(s.wrongCount ?? s.wrong ?? 0);
+    });
+    return count;
   }, [teacherSubmissions]);
+
+  // Student mistake stats
+  const studentMistakeStats = useMemo(() => {
+    const stats = {};
+    students.forEach(st => {
+      stats[st.id] = { mistakes: 0, submissions: 0 };
+    });
+    teacherSubmissions.forEach(s => {
+      const sid = s.studentId;
+      if (stats[sid]) {
+        stats[sid].submissions += 1;
+        stats[sid].mistakes += Number(s.wrongCount ?? s.wrong ?? 0);
+      }
+    });
+    return stats;
+  }, [students, teacherSubmissions]);
+
+  // Active Remedial Student
+  const activeRemedialStudent = useMemo(() => {
+    return students.find(s => s.id === selectedRemedialStudentId || toUUID(s.id) === selectedRemedialStudentId) || students[0] || null;
+  }, [students, selectedRemedialStudentId]);
+
+  // Active Program Student & Profiles
+  const activeProgramStudent = useMemo(() => {
+    return students.find(s => s.id === selectedProgramStudentId || toUUID(s.id) === selectedProgramStudentId) || students[0] || null;
+  }, [students, selectedProgramStudentId]);
+
+  const activeStudentProfile = useMemo(() => {
+    if (!activeProgramStudent?.id) return {};
+    return getCoachingProfileForStudent(activeProgramStudent.id) || {};
+  }, [activeProgramStudent, getCoachingProfileForStudent]);
+
+  const activeWeeklyProgram = useMemo(() => {
+    return normalizeWeeklyProgram(activeStudentProfile?.weeklyProgram);
+  }, [activeStudentProfile]);
+
+  const programStats = useMemo(() => {
+    let totalItems = 0;
+    let completedItems = 0;
+    activeWeeklyProgram.forEach(d => {
+      (d.items || []).forEach(it => {
+        totalItems++;
+        if (it.completed) completedItems++;
+      });
+    });
+    const pct = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+    return { totalItems, completedItems, pct };
+  }, [activeWeeklyProgram]);
+
+  const handleLaunchSlicer = (config) => {
+    setSlicerConfig(config);
+    setIsSlicerOpen(true);
+  };
 
   // Filtered Homeworks List
   const filteredHomeworks = useMemo(() => {
@@ -789,96 +954,622 @@ export default function TeacherDashboard() {
           )}
 
           {/* ═══════════════════════════════════════════════════
-              SEKME 2: SON ÇÖZÜLEN SINAVLAR (CANLI AKIŞ)
+              SEKME 2: SON ÇÖZÜLEN SINAVLAR, TELAFİ HAVUZU & ÖĞRENCİ PROGRAMLARI
               ═══════════════════════════════════════════════════ */}
           {activeTab === 'submissions' && (
             <div className="teacher-simple-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.75rem' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Son Tamamlanan Sınavlar</h3>
-                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                    Öğrencilerin çözdüğü son testler ve anlık başarı durumları
-                  </p>
+              {/* 🧭 ÜÇLÜ ALT SEKME KONTROLÜ */}
+              <div className="teacher-subtab-container">
+                <div className="teacher-subtab-nav">
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionSubTab('feed')}
+                    className={`teacher-subtab-pill ${submissionSubTab === 'feed' ? 'active' : ''}`}
+                  >
+                    <CheckCircle2 size={15} />
+                    <span>Sınav Çözüm Akışı</span>
+                    <span className="teacher-subtab-count">{teacherSubmissions.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionSubTab('remedials')}
+                    className={`teacher-subtab-pill ${submissionSubTab === 'remedials' ? 'active' : ''}`}
+                  >
+                    <Scissors size={15} />
+                    <span>Telafi &amp; Hata Havuzu</span>
+                    {totalMistakesInPool > 0 ? (
+                      <span className="teacher-subtab-count error">{totalMistakesInPool} Hata</span>
+                    ) : (
+                      <span className="teacher-subtab-count">0 Hata</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionSubTab('programs')}
+                    className={`teacher-subtab-pill ${submissionSubTab === 'programs' ? 'active' : ''}`}
+                  >
+                    <Calendar size={15} />
+                    <span>Öğrenci Çalışma Programları</span>
+                    <span className="teacher-subtab-count">{students.length} Öğrenci</span>
+                  </button>
                 </div>
-                <span className="teacher-badge-pill">{recentSubmissions.length} Sınav Çözümü</span>
+
+                <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  {submissionSubTab === 'feed' && `Gösterilen: ${paginatedSubmissions.length} / ${filteredSubmissions.length} Sınav`}
+                  {submissionSubTab === 'remedials' && `Aktif Öğrenci: ${activeRemedialStudent?.name || 'Seçilmedi'}`}
+                  {submissionSubTab === 'programs' && `Haftalık İlerleme: %${programStats.pct}`}
+                </div>
               </div>
 
-              {recentSubmissions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)' }}>
-                  Henüz çözülmüş bir sınav veya test kaydı bulunmuyor.
-                </div>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="teacher-simple-table">
-                    <thead>
-                      <tr>
-                        <th>Öğrenci</th>
-                        <th>Sınav / Test Adı</th>
-                        <th>Doğru / Yanlış / Boş</th>
-                        <th>Başarı</th>
-                        <th>Zaman</th>
-                        <th style={{ textAlign: 'right' }}>İşlem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentSubmissions.map((sub, idx) => {
-                        const std = students.find(s => s.id === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
-                        const c = Number(sub.correctCount ?? sub.correct ?? 0);
-                        const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
-                        const b = Number(sub.emptyCount ?? sub.blankCount ?? 0);
-                        const score = getSubmissionScorePct(sub);
-                        const subDate = sub.submittedAt || sub.createdAt || sub.date;
+              {/* ────────────────────────────────────────────────
+                  ALT GÖRÜNÜM 1: GELİŞMİŞ SINAV ÇÖZÜM AKIŞI (266)
+                  ──────────────────────────────────────────────── */}
+              {submissionSubTab === 'feed' && (
+                <>
+                  {/* GELİŞMİŞ FİLTRELEME ÇUBUĞU */}
+                  <div className="teacher-advanced-filter-row">
+                    <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+                      <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                      <input
+                        type="text"
+                        placeholder="Sınav, ders veya öğrenci ara..."
+                        value={feedSearch}
+                        onChange={e => { setFeedSearch(e.target.value); setFeedPage(1); }}
+                        className="teacher-form-input"
+                        style={{ paddingLeft: '1.9rem', fontSize: '0.8rem', padding: '0.45rem 0.75rem 0.45rem 1.9rem' }}
+                      />
+                    </div>
 
-                        return (
-                          <tr key={sub.id || idx}>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                <StudentAvatar name={std.name} index={idx} size={30} />
-                                <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{std.name}</span>
-                              </div>
-                            </td>
-                            <td>
-                              <div>
-                                <strong style={{ color: 'var(--color-text)' }}>
-                                  {sub.title || sub.testName || sub.bookTitle || 'Test'}
-                                </strong>
-                                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
-                                  {sub.subject || 'Genel Ders'}
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <span style={{ color: '#10b981', fontWeight: 800 }}>{c}D</span>{' '}
-                              <span style={{ color: '#ef4444', fontWeight: 800 }}>{w}Y</span>{' '}
-                              <span style={{ color: '#64748b', fontWeight: 600 }}>{b}B</span>
-                            </td>
-                            <td>
-                              <span style={{
-                                fontWeight: 800,
-                                color: score >= 70 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444'
-                              }}>
-                                %{score}
-                              </span>
-                            </td>
-                            <td>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                                {timeAgo(subDate)}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <button
-                                onClick={() => setSelectedReportStudent(std)}
-                                className="btn-secondary-action"
-                                style={{ padding: '0.3rem 0.6rem', fontSize: '0.74rem' }}
-                              >
-                                Karne Aç
-                              </button>
-                            </td>
+                    <select
+                      value={feedStudentFilter}
+                      onChange={e => { setFeedStudentFilter(e.target.value); setFeedPage(1); }}
+                      className="teacher-form-input"
+                      style={{ width: 'auto', minWidth: 150, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
+                    >
+                      <option value="all">Tüm Öğrenciler ({students.length})</option>
+                      {students.map(st => (
+                        <option key={st.id} value={st.id}>
+                          {st.name} ({studentMistakeStats[st.id]?.submissions || 0} Çözüm)
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={feedSubjectFilter}
+                      onChange={e => { setFeedSubjectFilter(e.target.value); setFeedPage(1); }}
+                      className="teacher-form-input"
+                      style={{ width: 'auto', minWidth: 120, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
+                    >
+                      <option value="all">Tüm Dersler</option>
+                      {availableSubjects.map(subj => (
+                        <option key={subj} value={subj}>{subj}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={feedTypeFilter}
+                      onChange={e => { setFeedTypeFilter(e.target.value); setFeedPage(1); }}
+                      className="teacher-form-input"
+                      style={{ width: 'auto', minWidth: 120, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
+                    >
+                      <option value="all">Tüm Türler</option>
+                      <option value="remedial">⚡ Telafi Testleri</option>
+                      <option value="book">📚 Kitap Testleri</option>
+                      <option value="exam">📊 Deneme Sınavları</option>
+                    </select>
+
+                    <select
+                      value={feedScoreFilter}
+                      onChange={e => { setFeedScoreFilter(e.target.value); setFeedPage(1); }}
+                      className="teacher-form-input"
+                      style={{ width: 'auto', minWidth: 125, fontSize: '0.8rem', padding: '0.45rem 0.75rem' }}
+                    >
+                      <option value="all">Tüm Başarılar</option>
+                      <option value="high">🟢 Yüksek (%70+)</option>
+                      <option value="mid">🟡 Orta (%45-69)</option>
+                      <option value="low">🔴 Destek Gereken (&lt;%45)</option>
+                    </select>
+
+                    {(feedStudentFilter !== 'all' || feedSubjectFilter !== 'all' || feedTypeFilter !== 'all' || feedScoreFilter !== 'all' || feedSearch) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeedStudentFilter('all');
+                          setFeedSubjectFilter('all');
+                          setFeedTypeFilter('all');
+                          setFeedScoreFilter('all');
+                          setFeedSearch('');
+                          setFeedPage(1);
+                        }}
+                        className="btn-secondary-action"
+                        style={{ padding: '0.45rem 0.75rem', fontSize: '0.74rem' }}
+                        title="Tüm filtreleri kaldır"
+                      >
+                        ✕ Temizle
+                      </button>
+                    )}
+                  </div>
+
+                  {filteredSubmissions.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)' }}>
+                      Arama ve filtreleme kriterlerine uygun sınav çözümü bulunamadı.
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="teacher-simple-table">
+                        <thead>
+                          <tr>
+                            <th>Öğrenci</th>
+                            <th>Sınav / Test Adı</th>
+                            <th>Sonuç (D/Y/B)</th>
+                            <th>Başarı</th>
+                            <th>Telafi Havuzu</th>
+                            <th>Zaman</th>
+                            <th style={{ textAlign: 'right' }}>İşlemler</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {paginatedSubmissions.map((sub, idx) => {
+                            const std = students.find(s => s.id === sub.studentId || toUUID(s.id) === sub.studentId) || { name: sub.studentName || 'Öğrenci' };
+                            const c = Number(sub.correctCount ?? sub.correct ?? 0);
+                            const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
+                            const b = Number(sub.emptyCount ?? sub.blankCount ?? 0);
+                            const score = getSubmissionScorePct(sub);
+                            const subDate = sub.submittedAt || sub.createdAt || sub.date;
+                            const title = sub.title || sub.testName || sub.bookTitle || 'Test';
+                            const isRemedial = title.toLowerCase().includes('telafi') || sub.isRemedial || sub.sourceType === 'remedial';
+
+                            return (
+                              <tr key={sub.id || idx}>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                    <StudentAvatar name={std.name} index={idx} size={32} />
+                                    <div>
+                                      <div style={{ fontWeight: 800, color: 'var(--color-text)' }}>{std.name}</div>
+                                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>{std.email || ''}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                      <strong style={{ color: 'var(--color-text)' }}>{title}</strong>
+                                      {isRemedial && (
+                                        <span style={{ fontSize: '0.64rem', fontWeight: 900, padding: '1px 5px', borderRadius: 4, background: '#fee2e2', color: '#dc2626' }}>
+                                          ⚡ Telafi
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                      {sub.subject || 'Genel Ders'}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <span style={{ color: '#10b981', fontWeight: 800 }}>{c}D</span>{' '}
+                                  <span style={{ color: '#ef4444', fontWeight: 800 }}>{w}Y</span>{' '}
+                                  <span style={{ color: '#64748b', fontWeight: 600 }}>{b}B</span>
+                                </td>
+                                <td>
+                                  <span style={{
+                                    fontWeight: 800,
+                                    fontSize: '0.82rem',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '0.45rem',
+                                    background: score >= 70 ? 'rgba(16, 185, 129, 0.12)' : score >= 45 ? 'rgba(245, 158, 11, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                                    color: score >= 70 ? '#059669' : score >= 45 ? '#d97706' : '#dc2626'
+                                  }}>
+                                    %{score}
+                                  </span>
+                                </td>
+                                <td>
+                                  {w > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (sub.studentId) {
+                                          setSelectedRemedialStudentId(sub.studentId);
+                                          setSubmissionSubTab('remedials');
+                                          setRemedialSubMode('mistakes');
+                                        }
+                                      }}
+                                      className="teacher-remedial-badge-btn"
+                                      title="Bu öğrencinin hatalarını telafi havuzunda gör ve test oluştur"
+                                    >
+                                      ⚠️ {w} Hata Havuzda
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: '#10b981', fontSize: '0.74rem', fontWeight: 800 }}>
+                                      ✓ Tam Başarı
+                                    </span>
+                                  )}
+                                </td>
+                                <td>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                                    {timeAgo(subDate)}
+                                  </span>
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                    <button
+                                      onClick={() => setSelectedReportStudent(std)}
+                                      className="btn-secondary-action"
+                                      style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem' }}
+                                      title="Öğrencinin detaylı gelişim karnesini aç"
+                                    >
+                                      Karne Aç
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (sub.studentId) {
+                                          setSelectedProgramStudentId(sub.studentId);
+                                          setSubmissionSubTab('programs');
+                                        }
+                                      }}
+                                      className="teacher-program-badge-btn"
+                                      title="Öğrencinin haftalık çalışma programını gör"
+                                    >
+                                      <Calendar size={12} /> Program
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* DAHA FAZLA GÖSTER / TÜMÜNÜ YÜKLE */}
+                  {paginatedSubmissions.length < filteredSubmissions.length && (
+                    <div style={{ textAlign: 'center', paddingTop: '0.85rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => setFeedPage(p => p + 1)}
+                        className="btn-secondary-action"
+                        style={{
+                          padding: '0.6rem 1.4rem',
+                          fontWeight: 800,
+                          fontSize: '0.82rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <RotateCcw size={14} />
+                        Daha Fazla Sınav Göster (+{Math.min(itemsPerPage, filteredSubmissions.length - paginatedSubmissions.length)} / Kalan: {filteredSubmissions.length - paginatedSubmissions.length})
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ────────────────────────────────────────────────
+                  ALT GÖRÜNÜM 2: TELAFİ & HATA HAVUZU MERKEZİ
+                  ──────────────────────────────────────────────── */}
+              {submissionSubTab === 'remedials' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  {/* ÖĞRENCİ SEÇİCİ ÇUBUĞU */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.65rem',
+                    borderBottom: '1px solid var(--color-border)'
+                  }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                      👨‍🎓 Öğrenci Seçin:
+                    </span>
+                    {students.map((st, idx) => {
+                      const isSel = String(st.id) === String(selectedRemedialStudentId);
+                      const stMistakes = studentMistakeStats[st.id]?.mistakes || 0;
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setSelectedRemedialStudentId(st.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '0.65rem',
+                            border: isSel ? '2px solid #f43f5e' : '1px solid var(--color-border)',
+                            background: isSel ? (isDark ? 'rgba(244,63,94,0.18)' : '#fff1f2') : 'var(--color-surface)',
+                            color: isSel ? '#f43f5e' : 'var(--color-text)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <StudentAvatar name={st.name} index={idx} size={22} />
+                          <span>{st.name}</span>
+                          {stMistakes > 0 && (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 900,
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: 999,
+                              background: '#fee2e2',
+                              color: '#dc2626'
+                            }}>
+                              {stMistakes}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* ALT MOD GEÇİŞİ VE HIZLI EYLEMLER */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setRemedialSubMode('mistakes')}
+                        style={{
+                          padding: '0.45rem 0.9rem',
+                          borderRadius: '0.65rem',
+                          border: remedialSubMode === 'mistakes' ? '2px solid #f43f5e' : '1px solid var(--color-border)',
+                          background: remedialSubMode === 'mistakes' ? '#f43f5e' : 'var(--color-surface)',
+                          color: remedialSubMode === 'mistakes' ? '#ffffff' : 'var(--color-text-muted)',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <AlertCircle size={14} />
+                        <span>⚠️ Yanlışlar Havuzu &amp; Telafi Testi Hazırla</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRemedialSubMode('tracker')}
+                        style={{
+                          padding: '0.45rem 0.9rem',
+                          borderRadius: '0.65rem',
+                          border: remedialSubMode === 'tracker' ? '2px solid #6366f1' : '1px solid var(--color-border)',
+                          background: remedialSubMode === 'tracker' ? '#6366f1' : 'var(--color-surface)',
+                          color: remedialSubMode === 'tracker' ? '#ffffff' : 'var(--color-text-muted)',
+                          fontSize: '0.8rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <Sparkles size={14} />
+                        <span>📅 Atanan Telafi Testleri &amp; Ustalık Takvimi</span>
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate('/remedials')}
+                      className="btn-secondary-action"
+                      style={{ padding: '0.45rem 0.85rem', fontSize: '0.76rem', fontWeight: 700 }}
+                    >
+                      Tam Telafi Merkezini Aç ↗
+                    </button>
+                  </div>
+
+                  {/* GÖMÜLÜ TELAFİ MODÜLLERİ */}
+                  {remedialSubMode === 'mistakes' && activeRemedialStudent ? (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <TeacherStudentMistakesPool
+                        student={activeRemedialStudent}
+                        isDark={isDark}
+                        onLaunchSlicer={handleLaunchSlicer}
+                      />
+                    </div>
+                  ) : remedialSubMode === 'tracker' ? (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <TeacherRemedialTracker
+                        isDark={isDark}
+                        targetStudentId={selectedRemedialStudentId !== 'all' ? selectedRemedialStudentId : null}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--color-text-muted)' }}>
+                      Lütfen yukarıdan bir öğrenci seçin.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ────────────────────────────────────────────────
+                  ALT GÖRÜNÜM 3: ÖĞRENCİ ÇALIŞMA PROGRAMLARI
+                  ──────────────────────────────────────────────── */}
+              {submissionSubTab === 'programs' && (
+                <div className="teacher-program-container">
+                  {/* ÖĞRENCİ SEÇİCİ ÇUBUĞU */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.65rem',
+                    borderBottom: '1px solid var(--color-border)'
+                  }}>
+                    <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                      👨‍🎓 Öğrenci Seçin:
+                    </span>
+                    {students.map((st, idx) => {
+                      const isSel = String(st.id) === String(selectedProgramStudentId);
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setSelectedProgramStudentId(st.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.45rem',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '0.65rem',
+                            border: isSel ? '2px solid #8b5cf6' : '1px solid var(--color-border)',
+                            background: isSel ? (isDark ? 'rgba(139,92,246,0.18)' : '#f5f3ff') : 'var(--color-surface)',
+                            color: isSel ? '#8b5cf6' : 'var(--color-text)',
+                            fontSize: '0.78rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <StudentAvatar name={st.name} index={idx} size={22} />
+                          <span>{st.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* ÖĞRENCİ ÇALIŞMA PROGRAMI ÖZET BAŞLIĞI */}
+                  <div className="teacher-program-header-card">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                      <StudentAvatar name={activeProgramStudent?.name} size={44} />
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                          {activeProgramStudent?.name || 'Öğrenci'} — Haftalık Çalışma Programı
+                        </h4>
+                        <p style={{ margin: '0.2rem 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted)' }}>
+                          {activeProgramStudent?.email || ''} · {programStats.totalItems} Planlanan Görev
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                      <div style={{
+                        background: 'var(--color-surface-hover, #f8fafc)',
+                        border: '1px solid var(--color-border, #e2e8f0)',
+                        borderRadius: '0.75rem',
+                        padding: '0.45rem 0.95rem',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{
+                          fontSize: '1.15rem',
+                          fontWeight: 900,
+                          color: programStats.pct >= 70 ? '#10b981' : '#6366f1',
+                          lineHeight: 1
+                        }}>
+                          %{programStats.pct}
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
+                          {programStats.completedItems} / {programStats.totalItems} Tamamlandı
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/my-program?studentId=${activeProgramStudent?.id}`)}
+                        className="btn-primary-action"
+                        style={{ padding: '0.55rem 1.05rem', fontSize: '0.78rem' }}
+                      >
+                        <Calendar size={14} /> ✏️ Program Merkezinde Düzenle
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* GÜN FİLTRE HAPLARI */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => setProgramDayFilter('all')}
+                      className={`program-day-pill ${programDayFilter === 'all' ? 'active' : ''}`}
+                    >
+                      Tüm Hafta (Pzt – Paz)
+                    </button>
+                    {DAYS.map(d => (
+                      <button
+                        key={d.key}
+                        type="button"
+                        onClick={() => setProgramDayFilter(d.key)}
+                        className={`program-day-pill ${programDayFilter === d.key ? 'active' : ''}`}
+                      >
+                        {d.long}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 7 GÜNLÜK DERS & ÇALIŞMA PROGRAMI GRİDİ */}
+                  <div className="program-day-grid">
+                    {DAYS.filter(d => programDayFilter === 'all' || programDayFilter === d.key).map(d => {
+                      const dayData = activeWeeklyProgram.find(r => r.day === d.key) || { items: [] };
+                      const items = dayData.items || [];
+                      return (
+                        <div key={d.key} className="program-day-column">
+                          <div className="program-day-header">
+                            <span>{d.long}</span>
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 800,
+                              padding: '0.1rem 0.45rem',
+                              borderRadius: 999,
+                              background: items.length > 0 ? '#e0e7ff' : 'var(--color-border)',
+                              color: items.length > 0 ? '#4338ca' : 'var(--color-text-muted)'
+                            }}>
+                              {items.length} Görev
+                            </span>
+                          </div>
+                          <div className="program-day-body">
+                            {items.length === 0 ? (
+                              <div style={{ textAlign: 'center', padding: '1.5rem 0.5rem', color: 'var(--color-text-muted)', fontSize: '0.72rem' }}>
+                                Planlanan görev yok
+                              </div>
+                            ) : (
+                              items.map((it, itIdx) => {
+                                const isDone = Boolean(it.completed);
+                                const taskTypeObj = TASK_TYPES.find(t => t.id === it.taskType || t.id === it.type) || { icon: '📌', label: 'Görev' };
+                                return (
+                                  <div key={it.id || itIdx} className={`program-task-card ${isDone ? 'completed' : ''}`}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <span style={{
+                                        fontSize: '0.65rem',
+                                        fontWeight: 800,
+                                        padding: '1px 5px',
+                                        borderRadius: 4,
+                                        background: isDone ? '#dcfce7' : '#e0e7ff',
+                                        color: isDone ? '#15803d' : '#4338ca'
+                                      }}>
+                                        {taskTypeObj.icon} {it.subject || 'Ders'}
+                                      </span>
+                                      {isDone ? (
+                                        <span style={{ color: '#10b981', fontWeight: 800, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                          <Check size={11} /> Bitti
+                                        </span>
+                                      ) : (
+                                        <span style={{ color: '#94a3b8', fontSize: '0.68rem' }}>
+                                          Bekliyor
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '0.74rem', marginTop: 2 }}>
+                                      {it.topic || it.title || it.name || 'Konu Çalışması'}
+                                    </div>
+                                    {it.targetQuestion > 0 && (
+                                      <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', marginTop: 1 }}>
+                                        🎯 Hedef: {it.targetQuestion} Soru
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -1370,6 +2061,27 @@ export default function TeacherDashboard() {
               </form>
             </div>
           </div>
+        )}
+
+        {/* ✂️ AKILLI PDF TELAFİ TESTİ KIRPICI MODAL */}
+        {isSlicerOpen && (
+          <PdfQuestionSlicerModal
+            isOpen={isSlicerOpen}
+            onClose={() => {
+              setIsSlicerOpen(false);
+              setSlicerConfig(null);
+            }}
+            onSaveQuestions={() => {
+              setRemedialSubMode('tracker');
+            }}
+            mode="mistakes"
+            studentId={slicerConfig?.studentId || activeRemedialStudent?.id}
+            initialBook={slicerConfig?.book}
+            initialBookId={slicerConfig?.bookId}
+            initialPdfUrl={slicerConfig?.pdfUrl}
+            initialMistakes={slicerConfig?.mistakes}
+            subject={slicerConfig?.subject || 'Matematik'}
+          />
         )}
 
       </div>
