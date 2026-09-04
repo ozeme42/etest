@@ -2203,11 +2203,11 @@ export default function StudentDashboard() {
       if (!it) return [];
       const keys = [];
 
+      const hasSpecificTest = Boolean(it.testId || it.bookTestId || it.realTestId);
+
       const rawIds = [
         it.id,
         it.testId,
-        it.hwId,
-        it.homeworkId,
         it.realTestId,
         it.bookTestId,
         it.sourceTestId,
@@ -2218,15 +2218,23 @@ export default function StudentDashboard() {
         it.uniqueKey
       ];
 
+      // Only include hwId as standalone key if it's a pure homework without a specific test
+      if (!hasSpecificTest) {
+        if (it.hwId) rawIds.push(it.hwId);
+        if (it.homeworkId) rawIds.push(it.homeworkId);
+      } else if (it.hwId && it.testId) {
+        keys.push(`hw_test:${it.hwId}_${it.testId}`);
+      }
+
       rawIds.forEach(id => {
         if (!id) return;
         const s = String(id).trim();
         if (!s) return;
         keys.push(`id:${s}`);
-        const clean = s.replace(/^hw_|^test_|^bt_|^tbt_|^q_|^item_/, '');
+        const clean = s.replace(/^hw_|^test_|^bt_|^tbt_|^q_|^item_|^catchup_bt_|^catchup_hw_/, '');
         if (clean && clean !== s) keys.push(`cleanId:${clean}`);
-        const u = toUUID(s);
-        if (u) keys.push(`uuid:${u}`);
+        if (isValidUUID(s)) keys.push(`uuid:${s.toLowerCase()}`);
+        if (isValidUUID(clean)) keys.push(`uuid:${clean.toLowerCase()}`);
       });
 
       const tName = String(it.testName || it.title || it.name || '')
