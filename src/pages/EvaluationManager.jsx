@@ -73,12 +73,7 @@ export default function EvaluationManager() {
     if (tabParam) {
       setActiveTab(tabParam);
     }
-    const subIdParam = searchParams.get('submissionId') || searchParams.get('id');
-    if (subIdParam && enrichedSubmissions && enrichedSubmissions.length > 0 && !activeSubmission) {
-      const found = enrichedSubmissions.find(s => String(s.id) === String(subIdParam) || String(s.submissionId) === String(subIdParam));
-      if (found) setActiveSubmission(found);
-    }
-  }, [searchParams, enrichedSubmissions, activeSubmission]);
+  }, [searchParams]);
 
   // Kitap takibi / "Tüm Kitap Görevi" tipindeki ödevleri gizle
   const isTrackedBookHw = (hw) => {
@@ -415,6 +410,14 @@ export default function EvaluationManager() {
       };
     });
   }, [combinedSubmissions, users, homeworks, allBankQuestions, bookTests, curriculumData]);
+
+  useEffect(() => {
+    const subIdParam = searchParams.get('submissionId') || searchParams.get('id');
+    if (subIdParam && enrichedSubmissions && enrichedSubmissions.length > 0 && !activeSubmission) {
+      const found = enrichedSubmissions.find(s => String(s.id) === String(subIdParam) || String(s.submissionId) === String(subIdParam));
+      if (found) setActiveSubmission(found);
+    }
+  }, [searchParams, enrichedSubmissions, activeSubmission]);
 
   const scopedSubmissions = useMemo(() => {
     return enrichedSubmissions.filter(sub => {

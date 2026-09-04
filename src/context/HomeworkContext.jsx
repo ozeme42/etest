@@ -262,7 +262,14 @@ export function HomeworkProvider({ children }) {
     } catch (err) {
       if (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
         try {
-          // Minimal payload without heavy nested lists
+          // Clean up stale large cache items from localStorage
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('pdf_cache_') || key.startsWith('temp_') || key.startsWith('raw_pdf_') || key.includes('_temp_cache'))) {
+              localStorage.removeItem(key);
+            }
+          }
+          // Minimal payload without heavy nested lists or data URLs
           const minimal = homeworks.map(h => ({
             id: h.id, title: h.title, dueDate: h.dueDate, targetType: h.targetType, targetIds: h.targetIds, bookId: h.bookId, tests: h.tests, optionCount: h.optionCount,
             // Preserve structural fields but drop payloads
@@ -272,7 +279,7 @@ export function HomeworkProvider({ children }) {
             sections: Array.isArray(h.sections) ? h.sections.map(s => ({
               id: s.id, questionId: s.questionId, title: s.title, contentType: s.contentType,
               formatType: s.formatType, questionCount: s.questionCount, questionType: s.questionType,
-              answerKey: s.answerKey, pdfUrl: s.pdfUrl, imageUrls: s.imageUrls
+              answerKey: s.answerKey
             })) : undefined
           }));
           localStorage.setItem('eTestHomeworks', JSON.stringify(minimal.slice(-20)));
