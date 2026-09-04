@@ -206,9 +206,13 @@ export default function StudentHomeworksPage() {
             try { bookSubjects = JSON.parse(bookSubjects); } catch {}
           }
 
+          const seenCleanIds = new Set();
           return Object.entries(testDates).map(([tIdKey, dStr]) => {
             if (!dStr) return null;
             const cleanTestId = String(tIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+            if (seenCleanIds.has(cleanTestId)) return null;
+            seenCleanIds.add(cleanTestId);
+
             const bt = (bookTests || []).find(b => {
               const bId = String(b.id);
               return bId === cleanTestId || bId === String(tIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));

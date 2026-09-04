@@ -2443,13 +2443,18 @@ export default function StudentDashboard() {
         .trim();
 
       if (hasTestDueDates) {
+        const seenCleanTestIds = new Set();
         Object.entries(testDates).forEach(([testIdKey, dStr]) => {
           if (!dStr) return;
+          const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+          if (seenCleanTestIds.has(cleanTestId)) return;
+          seenCleanTestIds.add(cleanTestId);
+
           const due = new Date(dStr);
           const dueTime = due.getTime();
-          if (isNaN(dueTime) || dueTime >= nowTime) return;
-
-          const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+          const dueYMD = String(dStr).slice(0, 10);
+          const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
+          if (!isOverdue) return;
           const bt = (bookTests || []).find(b => {
             const bId = String(b.id);
             return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
