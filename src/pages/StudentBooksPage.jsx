@@ -19,6 +19,7 @@ import {
 import { toUUID } from '../services/supabaseService';
 import { isDeletedItem } from '../services/unifiedResultAdapter';
 import { useTheme } from '../context/ThemeContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import ManualTestModal from '../components/ManualTestModal';
 
 const DEBUG_PROGRESS = false;
@@ -37,43 +38,43 @@ const BOOK_PALETTES = [
 const palette = (idx) => BOOK_PALETTES[idx % BOOK_PALETTES.length];
 
 /* ── Stat Card ─── */
-function StatCard({ icon, label, value, gradient, shadow, border, sub, iconBg = 'rgba(99,102,241,0.12)', iconColor = '#6366f1' }) {
+function StatCard({ icon, label, value, gradient, shadow, border, sub, iconBg = 'rgba(99,102,241,0.12)', iconColor = '#6366f1', isMobile = false }) {
   return (
     <div style={{
       background: 'var(--color-surface)',
       border: `1.5px solid ${border || 'var(--color-border)'}`,
-      borderRadius: 16,
-      padding: '1.1rem 1.25rem',
+      borderRadius: isMobile ? 14 : 16,
+      padding: isMobile ? '0.75rem 0.85rem' : '1.1rem 1.25rem',
       display: 'flex',
       alignItems: 'center',
-      gap: 14,
+      gap: isMobile ? 10 : 14,
       boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
       position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+        width: isMobile ? 36 : 44,
+        height: isMobile ? 36 : 44,
+        borderRadius: isMobile ? 10 : 12,
         background: iconBg,
         color: iconColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        fontSize: '1.2rem'
+        fontSize: isMobile ? '1rem' : '1.2rem'
       }}>
-        {icon}
+        {React.isValidElement(icon) ? React.cloneElement(icon, { size: isMobile ? 18 : 22 }) : icon}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div style={{ fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {label}
         </div>
-        <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2, marginTop: 2 }}>
+        <div style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2, marginTop: 2 }}>
           {value}
         </div>
         {sub && (
-          <div style={{ fontSize: '0.72rem', color: iconColor, fontWeight: 700, marginTop: 1 }}>
+          <div style={{ fontSize: isMobile ? '0.66rem' : '0.72rem', color: iconColor, fontWeight: 700, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {sub}
           </div>
         )}
@@ -98,6 +99,7 @@ function CircularProgress({ pct, size = 56, stroke = 5, color = '#6366f1' }) {
 export default function StudentBooksPage() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { currentUser } = useAuth();
   const { users = [] } = useUser();
   const { homeworks = [], addHomework } = useHomework();
@@ -737,32 +739,32 @@ export default function StudentBooksPage() {
      RENDER
   ════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: '1.5rem 1.25rem', fontFamily: "'Inter', sans-serif", color: 'var(--color-text)' }}>
+    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: isMobile ? '0.85rem 0.75rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.5rem 1.25rem', fontFamily: "'Inter', sans-serif", color: 'var(--color-text)' }}>
       <div style={{ width: '100%', maxWidth: '100%', margin: 0 }}>
 
         {/* ── HEADER ── */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'flex-start', gap: isMobile ? 12 : 14, marginBottom: isMobile ? 16 : 24 }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: 99, padding: '0.3rem 0.9rem', marginBottom: 10 }}>
-              <MapIcon size={14} color="#3b82f6" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(37,99,235,0.12)', border: '1.5px solid #3b82f6', borderRadius: 99, padding: isMobile ? '0.2rem 0.65rem' : '0.3rem 0.9rem', marginBottom: isMobile ? 6 : 10 }}>
+              <MapIcon size={isMobile ? 12 : 14} color="#3b82f6" />
+              <span style={{ fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 900, color: '#60a5fa', letterSpacing: '0.05em' }}>KİTAP HARİTASI</span>
             </div>
-            <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? '1.35rem' : '2rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.2 }}>
               Kitaplarım ve İlerlemem 📚
             </h1>
-            <p style={{ margin: '6px 0 0', color: 'var(--color-text-muted)', fontSize: '0.92rem', fontWeight: 600 }}>
+            <p style={{ margin: '4px 0 0', color: 'var(--color-text-muted)', fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 600 }}>
               Atanan kitapları adım adım çöz, başarı oranını izle ve hedeflerine ulaş! 🚀
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'auto auto', alignItems: 'center', gap: 8, width: isMobile ? '100%' : 'auto' }}>
             {currentUser?.role !== 'student' && studentMembers.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 12, padding: '0.4rem 0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                <User size={16} style={{ color: '#6366f1' }} />
-                <label style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Öğrenci:</label>
+              <div style={{ gridColumn: isMobile ? 'span 2' : 'auto', display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 12, padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <User size={15} style={{ color: '#6366f1', flexShrink: 0 }} />
+                <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Öğrenci:</label>
                 <select
                   value={activeStudent?.id || ''}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', outline: 'none' }}
+                  style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.8rem', cursor: 'pointer', outline: 'none' }}
                 >
                   {studentMembers.map(st => (
                     <option key={st.id} value={st.id} style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}>
@@ -774,19 +776,19 @@ export default function StudentBooksPage() {
             )}
             <button
               onClick={() => setIsManualTestModalOpen(true)}
-              style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)', transition: 'transform 0.15s' }}
+              style={{ padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1.4rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: isMobile ? 11 : 14, fontWeight: 900, fontSize: isMobile ? '0.76rem' : '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.25)', transition: 'transform 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
-              <Edit3 size={18} /> Manuel Test Girişi
+              <Edit3 size={isMobile ? 15 : 18} /> {isMobile ? 'Manuel Giriş' : 'Manuel Test Girişi'}
             </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              style={{ padding: '0.75rem 1.4rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 900, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)', transition: 'transform 0.15s' }}
+              style={{ padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1.4rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: isMobile ? 11 : 14, fontWeight: 900, fontSize: isMobile ? '0.76rem' : '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.25)', transition: 'transform 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}
             >
-              <Plus size={18} /> Kendi Kitabını Ekle
+              <Plus size={isMobile ? 15 : 18} /> {isMobile ? 'Kitap Ekle' : 'Kendi Kitabını Ekle'}
             </button>
           </div>
         </div>
@@ -794,28 +796,28 @@ export default function StudentBooksPage() {
         {/* ── STAT CARDS ── */}
         {assignedBooks.length > 0 && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 12, marginBottom: 20 }}>
-              <StatCard icon={<BookOpen />} label="Toplam Kitap" value={overallStats.totalBooks} iconBg="#eff6ff" iconColor="#3b82f6" sub={`${overallStats.completedBooks} tamamlandı`} />
-              <StatCard icon={<Target />}   label="Genel Başarı" value={`%${overallStats.successRate}`} iconBg="#f0fdf4" iconColor="#10b981" sub={`${overallStats.totalD} doğru`} />
-              <StatCard icon={<Activity />} label="Test İlerlemesi" value={`%${overallStats.progressRate}`} iconBg="#f5f3ff" iconColor="#8b5cf6" sub={`${overallStats.totalSolved}/${overallStats.totalAssigned} test`} />
-              <StatCard icon={<CheckCircle2 />} label="Tamamlanan" value={overallStats.totalSolved} iconBg="#ecfdf5" iconColor="#059669" sub="test çözüldü" />
-              <StatCard icon={<Trophy />} label="Toplam Doğru" value={overallStats.totalD} iconBg="#fffbeb" iconColor="#d97706" />
-              <StatCard icon={<Zap />} label="Toplam Yanlış" value={overallStats.totalY} iconBg="#fff1f2" iconColor="#e11d48" />
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(165px, 1fr))', gap: isMobile ? 8 : 12, marginBottom: isMobile ? 16 : 20 }}>
+              <StatCard isMobile={isMobile} icon={<BookOpen />} label="Toplam Kitap" value={overallStats.totalBooks} iconBg="#eff6ff" iconColor="#3b82f6" sub={`${overallStats.completedBooks} tamamlandı`} />
+              <StatCard isMobile={isMobile} icon={<Target />}   label="Genel Başarı" value={`%${overallStats.successRate}`} iconBg="#f0fdf4" iconColor="#10b981" sub={`${overallStats.totalD} doğru`} />
+              <StatCard isMobile={isMobile} icon={<Activity />} label="Test İlerlemesi" value={`%${overallStats.progressRate}`} iconBg="#f5f3ff" iconColor="#8b5cf6" sub={`${overallStats.totalSolved}/${overallStats.totalAssigned} test`} />
+              <StatCard isMobile={isMobile} icon={<CheckCircle2 />} label="Tamamlanan" value={overallStats.totalSolved} iconBg="#ecfdf5" iconColor="#059669" sub="test çözüldü" />
+              <StatCard isMobile={isMobile} icon={<Trophy />} label="Toplam Doğru" value={overallStats.totalD} iconBg="#fffbeb" iconColor="#d97706" />
+              <StatCard isMobile={isMobile} icon={<Zap />} label="Toplam Yanlış" value={overallStats.totalY} iconBg="#fff1f2" iconColor="#e11d48" />
             </div>
 
             {/* ── CHART PANEL ── */}
-            <div style={{ background: 'var(--color-surface)', borderRadius: 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: 22, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 20, border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', marginBottom: isMobile ? 16 : 22, overflow: 'hidden' }}>
               <div
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0.75rem 0.85rem' : '1.1rem 1.4rem', borderBottom: showChart ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: 10 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, flexWrap: 'wrap' }}>
                   <div
                     onClick={() => setShowChart(c => !c)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 900, fontSize: isMobile ? '0.86rem' : '1rem', color: 'var(--color-text)', cursor: 'pointer' }}
                   >
-                    <BarChart2 size={20} color="#6366f1" /> 
-                    {bookChartViewMode === 'books' ? 'Kitaplara Göre Soru Dağılımı' : 'Derslere Göre Soru Dağılımı'}
-                    <ChevronRight size={18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+                    <BarChart2 size={isMobile ? 18 : 20} color="#6366f1" /> 
+                    {bookChartViewMode === 'books' ? 'Kitaplara Göre Dağılım' : 'Derslere Göre Dağılım'}
+                    <ChevronRight size={isMobile ? 16 : 18} color="var(--color-text-muted)" style={{ transform: showChart ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
                   </div>
 
                   {showChart && (
@@ -823,10 +825,10 @@ export default function StudentBooksPage() {
                       <button
                         onClick={() => setBookChartViewMode('books')}
                         style={{
-                          padding: '0.3rem 0.75rem',
+                          padding: isMobile ? '0.25rem 0.55rem' : '0.3rem 0.75rem',
                           borderRadius: 8,
                           border: 'none',
-                          fontSize: '0.74rem',
+                          fontSize: isMobile ? '0.68rem' : '0.74rem',
                           fontWeight: 800,
                           cursor: 'pointer',
                           background: bookChartViewMode === 'books' ? '#4f46e5' : 'transparent',
@@ -835,15 +837,15 @@ export default function StudentBooksPage() {
                           transition: 'all 0.15s'
                         }}
                       >
-                        📚 Kitaplara Göre
+                        📚 Kitaplar
                       </button>
                       <button
                         onClick={() => setBookChartViewMode('subjects')}
                         style={{
-                          padding: '0.3rem 0.75rem',
+                          padding: isMobile ? '0.25rem 0.55rem' : '0.3rem 0.75rem',
                           borderRadius: 8,
                           border: 'none',
-                          fontSize: '0.74rem',
+                          fontSize: isMobile ? '0.68rem' : '0.74rem',
                           fontWeight: 800,
                           cursor: 'pointer',
                           background: bookChartViewMode === 'subjects' ? '#4f46e5' : 'transparent',
@@ -852,7 +854,7 @@ export default function StudentBooksPage() {
                           transition: 'all 0.15s'
                         }}
                       >
-                        🎓 Derslere Göre
+                        🎓 Dersler
                       </button>
                     </div>
                   )}
@@ -863,10 +865,10 @@ export default function StudentBooksPage() {
                     <button
                       onClick={() => setBookChartMetric('grouped')}
                       style={{
-                        padding: '0.35rem 0.8rem',
+                        padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.8rem',
                         borderRadius: 8,
                         border: 'none',
-                        fontSize: '0.74rem',
+                        fontSize: isMobile ? '0.68rem' : '0.74rem',
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: bookChartMetric === 'grouped' ? '#6366f1' : 'transparent',
@@ -875,15 +877,15 @@ export default function StudentBooksPage() {
                         transition: 'all 0.15s'
                       }}
                     >
-                      📊 Soru Dağılımı (D / Y / B)
+                      {isMobile ? '📊 D / Y / B' : '📊 Soru Dağılımı (D / Y / B)'}
                     </button>
                     <button
                       onClick={() => setBookChartMetric('rate')}
                       style={{
-                        padding: '0.35rem 0.8rem',
+                        padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.8rem',
                         borderRadius: 8,
                         border: 'none',
-                        fontSize: '0.74rem',
+                        fontSize: isMobile ? '0.68rem' : '0.74rem',
                         fontWeight: 800,
                         cursor: 'pointer',
                         background: bookChartMetric === 'rate' ? '#6366f1' : 'transparent',
@@ -892,16 +894,16 @@ export default function StudentBooksPage() {
                         transition: 'all 0.15s'
                       }}
                     >
-                      🎯 Başarı Yüzdesi (%)
+                      {isMobile ? '🎯 Başarı (%)' : '🎯 Başarı Yüzdesi (%)'}
                     </button>
                   </div>
                 )}
               </div>
 
               {showChart && (
-                <div style={{ padding: '1.25rem 1.4rem' }}>
+                <div style={{ padding: isMobile ? '0.85rem 0.75rem' : '1.25rem 1.4rem' }}>
                   {/* Interactive Mini Cards (Books or Subjects) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(auto-fit, minmax(135px, 1fr))' : 'repeat(auto-fit, minmax(210px, 1fr))', gap: isMobile ? 8 : 10, marginBottom: isMobile ? '0.85rem' : '1.25rem' }}>
                     {activeChartData.map((item, idx) => {
                       const rateColor = item.rate >= 70 ? '#10b981' : item.rate >= 50 ? '#f59e0b' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
                       const rateBg = item.rate >= 70 ? '#f0fdf4' : item.rate >= 50 ? '#fffbeb' : item.totalQ === 0 ? '#f8fafc' : '#fff1f2';
@@ -923,11 +925,11 @@ export default function StudentBooksPage() {
                           style={{
                             background: rateBg,
                             border: `1.5px solid ${rateBorder}`,
-                            borderRadius: '1rem',
-                            padding: '0.85rem 1rem',
+                            borderRadius: isMobile ? '0.75rem' : '1rem',
+                            padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: 6,
+                            gap: 5,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                             cursor: bookChartViewMode === 'books' && item.id ? 'pointer' : 'default',
                             transition: 'all 0.18s ease'
@@ -935,16 +937,16 @@ export default function StudentBooksPage() {
                           title={bookChartViewMode === 'books' && item.id ? `${item.fullName} detaylarına gitmek için tıkla` : item.fullName}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <span style={{ fontSize: isMobile ? '0.76rem' : '0.85rem', fontWeight: 900, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {item.fullName}
                             </span>
-                            <span style={{ fontSize: '0.92rem', fontWeight: 900, color: rateColor }}>
+                            <span style={{ fontSize: isMobile ? '0.82rem' : '0.92rem', fontWeight: 900, color: rateColor }}>
                               %{item.rate}
                             </span>
                           </div>
 
                           {/* Multi-segment mini progress bar */}
-                          <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
+                          <div style={{ width: '100%', height: 5, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden', display: 'flex', gap: 1 }}>
                             {totalQ > 0 ? (
                               <>
                                 {pctD > 0 && <div style={{ width: `${pctD}%`, background: '#10b981', height: '100%' }} title={`Doğru: ${item.Doğru}`} />}
@@ -956,9 +958,9 @@ export default function StudentBooksPage() {
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? '0.66rem' : '0.72rem', color: '#64748b', fontWeight: 700 }}>
                             <span>%{item.progress} İlerleme</span>
-                            <span style={{ display: 'flex', gap: 6, fontWeight: 800 }}>
+                            <span style={{ display: 'flex', gap: 4, fontWeight: 800 }}>
                               <span style={{ color: '#10b981' }}>{item.Doğru}D</span>
                               <span style={{ color: '#ef4444' }}>{item.Yanlış}Y</span>
                               <span style={{ color: '#64748b' }}>{item.Boş}B</span>
@@ -970,7 +972,7 @@ export default function StudentBooksPage() {
                   </div>
 
                   {/* Recharts Bar Chart */}
-                  <div style={{ width: '100%', height: 280 }}>
+                  <div style={{ width: '100%', height: isMobile ? 210 : 280 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={activeChartData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
                         <defs>
@@ -992,8 +994,8 @@ export default function StudentBooksPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text)', fontWeight: 800 }} dy={8} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text)', fontWeight: 800 }} dy={8} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: isMobile ? 9 : 11, fill: 'var(--color-text-muted)', fontWeight: 700 }} tickFormatter={v => bookChartMetric === 'rate' ? `%${v}` : v} domain={bookChartMetric === 'rate' ? [0, 100] : ['auto', 'auto']} />
                         <Tooltip
                           cursor={{ fill: 'rgba(99, 102, 241, 0.05)' }}
                           contentStyle={{ background: 'var(--color-surface)', borderRadius: 14, border: '1.5px solid var(--color-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontWeight: 800, fontSize: '0.82rem', color: 'var(--color-text)' }}
@@ -1002,7 +1004,7 @@ export default function StudentBooksPage() {
                             name
                           ]}
                         />
-                        <Legend wrapperStyle={{ paddingTop: 10, fontSize: '0.8rem', fontWeight: 800 }} />
+                        <Legend wrapperStyle={{ paddingTop: 10, fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 800 }} />
 
                         {bookChartMetric === 'grouped' ? (
                           <>
@@ -1065,39 +1067,40 @@ export default function StudentBooksPage() {
             <div style={{
               background: 'var(--color-surface)',
               border: '1.5px solid var(--color-border)',
-              borderRadius: 20,
-              padding: '1.4rem 1.6rem',
-              marginBottom: 22,
+              borderRadius: isMobile ? 16 : 20,
+              padding: isMobile ? '1rem 0.85rem' : '1.4rem 1.6rem',
+              marginBottom: isMobile ? 16 : 22,
               boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 12,
+                    width: isMobile ? 30 : 36,
+                    height: isMobile ? 30 : 36,
+                    borderRadius: 10,
                     background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 4px 12px rgba(217,119,6,0.3)'
+                    boxShadow: '0 4px 12px rgba(217,119,6,0.3)',
+                    flexShrink: 0
                   }}>
-                    <Zap size={20} />
+                    <Zap size={isMobile ? 16 : 20} />
                   </div>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                      🤔 Kitap & Test Hata & Yanlış Sebepleri Analizi
+                    <h3 style={{ margin: 0, fontSize: isMobile ? '0.9rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                      🤔 {isMobile ? 'Hata & Yanlış Analizi' : 'Kitap & Test Hata & Yanlış Sebepleri Analizi'}
                     </h3>
-                    <p style={{ margin: '3px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                      Kitap testlerinde işaretlediğiniz yanlış ve boş soruların teşhis analizi
+                    <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.68rem' : '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      Yanlış ve boş soruların teşhis analizi
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.75rem', fontWeight: 800 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: isMobile ? '0.68rem' : '0.75rem', fontWeight: 800, flexWrap: 'wrap' }}>
                   <span style={{ color: 'var(--color-text-muted)' }}>
-                    Toplam Yanlış & Boş: <strong style={{ color: 'var(--color-text)' }}>{bookMistakeStats.totalWrongAndBlank}</strong>
+                    Yanlış & Boş: <strong style={{ color: 'var(--color-text)' }}>{bookMistakeStats.totalWrongAndBlank}</strong>
                   </span>
                   <span>•</span>
                   <span style={{ color: '#10b981' }}>
@@ -1112,10 +1115,10 @@ export default function StudentBooksPage() {
 
               {/* Multi-segment Progress Bar */}
               {bookMistakeStats.totalClassified > 0 && (
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: isMobile ? 12 : 16 }}>
                   <div style={{
                     width: '100%',
-                    height: 10,
+                    height: isMobile ? 8 : 10,
                     borderRadius: 99,
                     background: 'var(--color-surface-hover, #f1f5f9)',
                     overflow: 'hidden',
@@ -1153,24 +1156,24 @@ export default function StudentBooksPage() {
                       style={{
                         background: r.count > 0 ? r.bg : 'var(--color-surface-hover, #f8fafc)',
                         border: `1.5px solid ${r.count > 0 ? r.border : 'var(--color-border, #e2e8f0)'}`,
-                        borderRadius: 14,
-                        padding: '0.85rem 1rem',
+                        borderRadius: isMobile ? 10 : 14,
+                        padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 4,
+                        gap: 3,
                         transition: 'all 0.18s ease'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                        <span className="sb-mistake-card-title" style={{ fontSize: '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                        <span className="sb-mistake-card-title" style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
                           {r.key}
                         </span>
-                        <span className="sb-mistake-card-pct" style={{ fontSize: '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
+                        <span className="sb-mistake-card-pct" style={{ fontSize: isMobile ? '0.82rem' : '0.9rem', fontWeight: 900, color: r.count > 0 ? r.color : 'var(--color-text-muted)' }}>
                           %{pct}
                         </span>
                       </div>
-                      <div className="sb-mistake-card-val" style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                        {r.count} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>soru</span>
+                      <div className="sb-mistake-card-val" style={{ fontSize: isMobile ? '1.05rem' : '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        {r.count} <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>soru</span>
                       </div>
                     </div>
                   );
@@ -1183,29 +1186,29 @@ export default function StudentBooksPage() {
                   background: 'var(--color-surface-hover, #f8fafc)',
                   border: '1.5px dashed var(--color-border, #cbd5e1)',
                   borderRadius: 12,
-                  padding: '0.75rem 1rem',
+                  padding: isMobile ? '0.65rem 0.75rem' : '0.75rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  fontSize: '0.82rem',
+                  gap: 8,
+                  fontSize: isMobile ? '0.74rem' : '0.82rem',
                   color: 'var(--color-text)',
-                  marginBottom: bookMistakeStats.questionsList.length > 0 ? 12 : 0
+                  marginBottom: bookMistakeStats.questionsList.length > 0 ? (isMobile ? 8 : 12) : 0
                 }}>
-                  <span style={{ fontSize: '1.2rem' }}>💡</span>
+                  <span style={{ fontSize: isMobile ? '1rem' : '1.2rem', flexShrink: 0 }}>💡</span>
                   <div>
-                    <strong>Kitap Çalışma İpucu:</strong> Testlerdeki en yaygın hata nedeniniz <strong style={{ color: bookMistakeStats.topReason.color }}>{bookMistakeStats.topReason.key}</strong> (%{Math.round((bookMistakeStats.topReason.count / bookMistakeStats.totalClassified) * 100)}).
-                    {bookMistakeStats.topReason.key.includes('Dikkat') && ' Sorulardaki kök kelimelere ve altı çizili ifadelere odaklanarak test çözmek dikkat kaynaklı kayıpları sıfıra indirecektir.'}
-                    {bookMistakeStats.topReason.key.includes('İşlem') && ' Karalama alanını düzenli kullanarak işlem basamaklarını alt alta yazmanız işlem hatası oranını düşürecektir.'}
-                    {bookMistakeStats.topReason.key.includes('Konu') && ' Bu konudaki konu özetlerini ve çözümlü test örneklerini tekrar çalıştıktan sonra yeni teste geçmeniz önerilir.'}
-                    {bookMistakeStats.topReason.key.includes('Formül') && ' Formül özet kağıdınızı masanıza asarak test çözmeden önce 2 dakika gözden geçirebilirsiniz.'}
-                    {bookMistakeStats.topReason.key.includes('Zaman') && ' Test çözerken soru başına 1-1.5 dakika kuralı koyup süre tutarak çalışmanız pratikliğinizi artıracaktır.'}
+                    <strong>Kitap Çalışma İpucu:</strong> En yaygın hata nedeniniz <strong style={{ color: bookMistakeStats.topReason.color }}>{bookMistakeStats.topReason.key}</strong> (%{Math.round((bookMistakeStats.topReason.count / bookMistakeStats.totalClassified) * 100)}).
+                    {bookMistakeStats.topReason.key.includes('Dikkat') && ' Soru köklerine ve altı çizili ifadelere odaklanarak test çözmeniz dikkat hatalarını sıfırlayacaktır.'}
+                    {bookMistakeStats.topReason.key.includes('İşlem') && ' Karalama alanında adımları alt alta düzenli yazmanız işlem hatalarını önler.'}
+                    {bookMistakeStats.topReason.key.includes('Konu') && ' Konu özetlerini ve çözümlü örnekleri tekrar çalıştıktan sonra yeni teste geçmeniz önerilir.'}
+                    {bookMistakeStats.topReason.key.includes('Formül') && ' Formül özetlerini test öncesi 2 dakika gözden geçirebilirsiniz.'}
+                    {bookMistakeStats.topReason.key.includes('Zaman') && ' Soru başına süre tutarak çalışmanız pratikliğinizi artıracaktır.'}
                   </div>
                 </div>
               ) : null}
 
               {/* Collapsible Classified Questions List */}
               {bookMistakeStats.questionsList.length > 0 && (
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 8 }}>
                   <button
                     type="button"
                     onClick={() => setShowClassifiedQuestions(p => !p)}
@@ -1213,7 +1216,7 @@ export default function StudentBooksPage() {
                       background: 'transparent',
                       border: 'none',
                       color: '#6366f1',
-                      fontSize: '0.78rem',
+                      fontSize: isMobile ? '0.72rem' : '0.78rem',
                       fontWeight: 800,
                       cursor: 'pointer',
                       display: 'flex',
@@ -1227,15 +1230,15 @@ export default function StudentBooksPage() {
 
                   {showClassifiedQuestions && (
                     <div style={{
-                      marginTop: 10,
+                      marginTop: 8,
                       background: 'var(--color-surface-hover, #f8fafc)',
                       borderRadius: 12,
                       border: '1px solid var(--color-border, #e2e8f0)',
-                      padding: '0.75rem',
+                      padding: isMobile ? '0.5rem' : '0.75rem',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 6,
-                      maxHeight: 280,
+                      maxHeight: 250,
                       overflowY: 'auto'
                     }}>
                       {bookMistakeStats.questionsList.map(item => (
@@ -1245,29 +1248,31 @@ export default function StudentBooksPage() {
                             background: 'var(--color-surface, #ffffff)',
                             border: `1.5px solid ${item.def.border}`,
                             borderRadius: 8,
-                            padding: '0.45rem 0.75rem',
+                            padding: isMobile ? '0.4rem 0.6rem' : '0.45rem 0.75rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: 8,
-                            fontSize: '0.75rem'
+                            gap: 6,
+                            fontSize: isMobile ? '0.7rem' : '0.75rem'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>{item.bookTitle}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+                            <span style={{ fontWeight: 800, color: 'var(--color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.bookTitle}</span>
                             <span style={{ color: 'var(--color-text-muted)' }}>•</span>
-                            <span style={{ color: 'var(--color-text-muted)', fontWeight: 700 }}>{item.subject}</span>
+                            <span style={{ color: 'var(--color-text-muted)', fontWeight: 700, whiteSpace: 'nowrap' }}>{item.subject}</span>
                             <span style={{ color: 'var(--color-text-muted)' }}>•</span>
-                            <span style={{ fontWeight: 800, color: 'var(--color-text)' }}>Soru {item.qNo}</span>
+                            <span style={{ fontWeight: 800, color: 'var(--color-text)', whiteSpace: 'nowrap' }}>S.{item.qNo}</span>
                           </div>
                           <span style={{
-                            padding: '0.2rem 0.55rem',
+                            padding: '0.15rem 0.45rem',
                             borderRadius: 6,
                             background: item.def.bg,
                             color: item.def.color,
                             fontWeight: 800,
-                            fontSize: '0.7rem',
-                            border: `1px solid ${item.def.border}`
+                            fontSize: isMobile ? '0.65rem' : '0.7rem',
+                            border: `1px solid ${item.def.border}`,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0
                           }}>
                             {item.reason}
                           </span>
@@ -1283,52 +1288,52 @@ export default function StudentBooksPage() {
 
         {/* ── SEARCH + SORT ── */}
         {assignedBooks.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: '1 1 220px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: isMobile ? 8 : 10, marginBottom: isMobile ? 14 : 18, alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: isMobile ? '1 1 100%' : '1 1 220px' }}>
               <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
               <input
                 value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Kitap ara..."
-                style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, borderRadius: 12, border: '1.5px solid var(--color-border-input)', fontSize: '0.84rem', fontWeight: 700, background: 'var(--color-surface)', outline: 'none', color: 'var(--color-text)', boxSizing: 'border-box' }}
+                style={{ width: '100%', paddingLeft: 34, paddingRight: 12, paddingTop: isMobile ? 7 : 9, paddingBottom: isMobile ? 7 : 9, borderRadius: 10, border: '1.5px solid var(--color-border-input)', fontSize: isMobile ? '0.8rem' : '0.84rem', fontWeight: 700, background: 'var(--color-surface)', outline: 'none', color: 'var(--color-text)', boxSizing: 'border-box' }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 6, background: 'var(--color-surface)', padding: 4, borderRadius: 12, border: '1.5px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--color-surface)', padding: 3, borderRadius: 10, border: '1.5px solid var(--color-border)', flex: isMobile ? '1 1 auto' : 'none' }}>
               {[
                 { key: 'progress', label: '📊 İlerleme' },
                 { key: 'success',  label: '🏆 Başarı' },
                 { key: 'title',    label: '🔤 A-Z' },
               ].map(s => (
-                <button key={s.key} onClick={() => setSortBy(s.key)} style={{ padding: '0.4rem 0.85rem', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: '0.76rem', cursor: 'pointer', background: sortBy === s.key ? 'rgba(37,99,235,0.12)' : 'transparent', color: sortBy === s.key ? '#60a5fa' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                <button key={s.key} onClick={() => setSortBy(s.key)} style={{ flex: isMobile ? 1 : 'none', padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.85rem', borderRadius: 7, border: 'none', fontWeight: 800, fontSize: isMobile ? '0.7rem' : '0.76rem', cursor: 'pointer', background: sortBy === s.key ? 'rgba(37,99,235,0.12)' : 'transparent', color: sortBy === s.key ? '#60a5fa' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                   {s.label}
                 </button>
               ))}
             </div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>{displayedBooks.length} kitap</span>
+            <span style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', marginLeft: isMobile ? 'auto' : 0 }}>{displayedBooks.length} kitap</span>
           </div>
         )}
 
         {/* ── BOOK GRID ── */}
         {assignedBooks.length === 0 ? (
           booksLoading ? (
-            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
-              <div style={{ width: 44, height: 44, border: '4px solid var(--color-border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 16px' }} />
-              <div style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>Kitaplar yükleniyor…</div>
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 20, padding: isMobile ? '3rem 1.25rem' : '4rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)' }}>
+              <div style={{ width: 38, height: 38, border: '4px solid var(--color-border)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.9s linear infinite', margin: '0 auto 14px' }} />
+              <div style={{ fontWeight: 800, fontSize: isMobile ? '0.84rem' : '0.92rem', color: 'var(--color-text-muted)' }}>Kitaplar yükleniyor…</div>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : (
-            <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '5rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
-              <div style={{ width: 90, height: 90, background: 'rgba(37,99,235,0.12)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', border: '1.5px solid #3b82f6' }}>
-                <BookOpen size={40} color="#3b82f6" />
+            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 20, padding: isMobile ? '3rem 1.25rem' : '5rem 2rem', textAlign: 'center', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+              <div style={{ width: isMobile ? 64 : 90, height: isMobile ? 64 : 90, background: 'rgba(37,99,235,0.12)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1.5px solid #3b82f6' }}>
+                <BookOpen size={isMobile ? 28 : 40} color="#3b82f6" />
               </div>
-              <h2 style={{ margin: '0 0 8px', color: 'var(--color-text)', fontWeight: 900 }}>Henüz Atanmış Kitap Yok</h2>
-              <p style={{ color: 'var(--color-text-muted)', margin: '0 0 20px', fontSize: '0.92rem' }}>Öğretmenin sana bir kitap atadığında burada görünecek.</p>
-              <button onClick={() => setIsAddModalOpen(true)} style={{ padding: '0.75rem 1.6rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: 14, fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
-                <Plus size={16} /> Kendi Kitabını Ekle
+              <h2 style={{ margin: '0 0 6px', color: 'var(--color-text)', fontWeight: 900, fontSize: isMobile ? '1.15rem' : '1.5rem' }}>Henüz Atanmış Kitap Yok</h2>
+              <p style={{ color: 'var(--color-text-muted)', margin: '0 0 18px', fontSize: isMobile ? '0.8rem' : '0.92rem' }}>Öğretmenin sana bir kitap atadığında burada görünecek.</p>
+              <button onClick={() => setIsAddModalOpen(true)} style={{ padding: isMobile ? '0.65rem 1.25rem' : '0.75rem 1.6rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: 'white', border: 'none', borderRadius: isMobile ? 11 : 14, fontWeight: 800, fontSize: isMobile ? '0.8rem' : '0.88rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}>
+                <Plus size={15} /> Kendi Kitabını Ekle
               </button>
             </div>
           )
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))', gap: isMobile ? 12 : 18 }}>
             {displayedBooks.map((book, bookIdx) => {
               const pal = palette(bookIdx);
               const isCompleted = book.progressPct >= 100;
@@ -1341,9 +1346,9 @@ export default function StudentBooksPage() {
                   onClick={() => navigate(`/student/books/${book.id}`)}
                   style={{
                     background: 'var(--color-surface)',
-                    borderRadius: 20,
+                    borderRadius: isMobile ? 16 : 20,
                     border: isCompleted ? '2px solid #86efac' : '1.5px solid var(--color-border)',
-                    padding: '1.4rem',
+                    padding: isMobile ? '1rem 0.95rem' : '1.4rem',
                     cursor: 'pointer',
                     position: 'relative',
                     overflow: 'hidden',
@@ -1356,77 +1361,77 @@ export default function StudentBooksPage() {
                   <div style={{ height: 4, background: `linear-gradient(90deg, ${pal.from}, ${pal.to})`, position: 'absolute', top: 0, left: 0, right: 0 }} />
 
                   {isCompleted ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Star size={11} fill="#10b981" color="#10b981" /> TAMAMLANDI
+                    <div style={{ position: 'absolute', top: isMobile ? 10 : 14, right: isMobile ? 10 : 14, background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#f0fdf4', color: '#10b981', border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0', padding: isMobile ? '0.2rem 0.55rem' : '0.25rem 0.75rem', borderRadius: 99, fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={10} fill="#10b981" color="#10b981" /> TAMAMLANDI
                     </div>
                   ) : urgentDue ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fff1f2', color: '#ef4444', border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecdd3', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
+                    <div style={{ position: 'absolute', top: isMobile ? 10 : 14, right: isMobile ? 10 : 14, background: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fff1f2', color: '#ef4444', border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecdd3', padding: isMobile ? '0.2rem 0.55rem' : '0.25rem 0.75rem', borderRadius: 99, fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 900 }}>
                       ⚡ {book.remainingDays} gün kaldı
                     </div>
                   ) : book.remainingDays !== undefined ? (
-                    <div style={{ position: 'absolute', top: 14, right: 14, background: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb', color: '#f59e0b', border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a', padding: '0.25rem 0.75rem', borderRadius: 99, fontSize: '0.68rem', fontWeight: 900 }}>
-                      <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />{book.remainingDays} gün
+                    <div style={{ position: 'absolute', top: isMobile ? 10 : 14, right: isMobile ? 10 : 14, background: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb', color: '#f59e0b', border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a', padding: isMobile ? '0.2rem 0.55rem' : '0.25rem 0.75rem', borderRadius: 99, fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 900 }}>
+                      <Clock size={10} style={{ display: 'inline', marginRight: 3 }} />{book.remainingDays} gün
                     </div>
                   ) : null}
 
-                  <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 16, marginTop: 8 }}>
-                    <div style={{ width: 60, height: 84, borderRadius: 12, background: `linear-gradient(160deg, ${pal.from}, ${pal.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 14px ${pal.shadow}`, flexShrink: 0 }}>
-                      <BookMarked size={28} color="#ffffff" />
+                  <div style={{ display: 'flex', gap: isMobile ? 10 : 14, alignItems: 'flex-start', marginBottom: isMobile ? 12 : 16, marginTop: isMobile ? 4 : 8 }}>
+                    <div style={{ width: isMobile ? 46 : 60, height: isMobile ? 64 : 84, borderRadius: 10, background: `linear-gradient(160deg, ${pal.from}, ${pal.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 14px ${pal.shadow}`, flexShrink: 0 }}>
+                      <BookMarked size={isMobile ? 22 : 28} color="#ffffff" />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
-                      <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--color-text)', lineHeight: 1.25, marginBottom: 4, paddingRight: book.remainingDays !== undefined || isCompleted ? 80 : 0 }}>
+                    <div style={{ flex: 1, minWidth: 0, paddingTop: 1 }}>
+                      <div style={{ fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text)', lineHeight: 1.25, marginBottom: 3, paddingRight: book.remainingDays !== undefined || isCompleted ? (isMobile ? 68 : 80) : 0 }}>
                         {book.title}
                       </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{book.publisher}</div>
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: isMobile ? '0.72rem' : '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>{book.publisher}</div>
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
                         {(book.subjects || []).slice(0, 3).map((s, i) => (
-                          <span key={i} style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>{s.name}</span>
+                          <span key={i} style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)', borderRadius: 6, padding: isMobile ? '0.15rem 0.45rem' : '0.2rem 0.55rem', fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800 }}>{s.name}</span>
                         ))}
                         {(book.subjects || []).length > 3 && (
-                          <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '0.2rem 0.55rem', fontSize: '0.68rem', fontWeight: 800 }}>+{(book.subjects || []).length - 3}</span>
+                          <span style={{ background: 'var(--color-surface)', color: 'var(--color-text-muted)', border: '1px solid var(--color-border)', borderRadius: 6, padding: isMobile ? '0.15rem 0.45rem' : '0.2rem 0.55rem', fontSize: isMobile ? '0.62rem' : '0.68rem', fontWeight: 800 }}>+{(book.subjects || []).length - 3}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ background: 'var(--color-surface-hover)', borderRadius: 16, padding: '1rem', marginBottom: 14, border: '1px solid var(--color-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ background: 'var(--color-surface-hover)', borderRadius: isMobile ? 12 : 16, padding: isMobile ? '0.75rem 0.85rem' : '1rem', marginBottom: isMobile ? 10 : 14, border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div>
-                        <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test İlerlemesi</div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text)', marginTop: 2 }}>{book.totalSolvedTests} / {book.totalAssignedTests} test</div>
+                        <div style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Test İlerlemesi</div>
+                        <div style={{ fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 800, color: 'var(--color-text)', marginTop: 2 }}>{book.totalSolvedTests} / {book.totalAssignedTests} test</div>
                       </div>
-                      <div style={{ position: 'relative', width: 56, height: 56 }}>
-                        <CircularProgress pct={pct} size={56} stroke={5} color={isCompleted ? '#10b981' : pal.to} />
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.74rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text)' }}>
+                      <div style={{ position: 'relative', width: isMobile ? 44 : 56, height: isMobile ? 44 : 56 }}>
+                        <CircularProgress pct={pct} size={isMobile ? 44 : 56} stroke={isMobile ? 4 : 5} color={isCompleted ? '#10b981' : pal.to} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text)' }}>
                           %{pct}
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ height: 7, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`, borderRadius: 99, transition: 'width 0.7s ease' }} />
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginBottom: isMobile ? 10 : 14 }}>
                     {[
                       { label: 'Doğru',  value: book.totalCorrect, color: '#10b981', bg: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.35)' : '#bbf7d0' },
                       { label: 'Yanlış', value: book.totalWrong,   color: '#ef4444', bg: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', border: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca' },
                       { label: 'Boş',    value: book.totalBlank,   color: 'var(--color-text-muted, #64748b)', bg: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? 'rgba(148, 163, 184, 0.3)' : '#e2e8f0' },
                       { label: 'Başarı', value: `%${book.successRate}`, color: '#3b82f6', bg: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff', border: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe' },
                     ].map((s, i) => (
-                      <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: '0.45rem 0.3rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.62rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
-                        <div style={{ fontSize: '0.92rem', fontWeight: 900, color: s.color }}>{s.value}</div>
+                      <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 8, padding: isMobile ? '0.35rem 0.2rem' : '0.45rem 0.3rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: isMobile ? '0.58rem' : '0.62rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
+                        <div style={{ fontSize: isMobile ? '0.84rem' : '0.92rem', fontWeight: 900, color: s.color }}>{s.value}</div>
                       </div>
                     ))}
                   </div>
 
                   <button
                     onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                    style={{ width: '100%', padding: '0.75rem', background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`, color: isCompleted ? 'var(--color-text, #334155)' : 'white', border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none', borderRadius: 12, fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`, transition: 'all 0.2s ease' }}
+                    style={{ width: '100%', padding: isMobile ? '0.62rem' : '0.75rem', background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`, color: isCompleted ? 'var(--color-text, #334155)' : 'white', border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none', borderRadius: isMobile ? 10 : 12, fontWeight: 900, fontSize: isMobile ? '0.8rem' : '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`, transition: 'all 0.2s ease' }}
                   >
-                    {isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'} <ArrowRight size={16} />
+                    {isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'} <ArrowRight size={isMobile ? 14 : 16} />
                   </button>
                 </div>
               );
@@ -1441,41 +1446,41 @@ export default function StudentBooksPage() {
           ADD BOOK MODAL
       ══════════════════════ */}
       {isAddModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(6px)', padding: '1rem' }}>
-          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: 20, width: '100%', maxWidth: 480, padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(6px)', padding: isMobile ? '0.75rem' : '1rem' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', borderRadius: isMobile ? 16 : 20, width: '100%', maxWidth: 480, maxHeight: isMobile ? '90vh' : 'auto', overflowY: isMobile ? 'auto' : 'visible', padding: isMobile ? '1.25rem 1rem' : '1.75rem', display: 'flex', flexDirection: 'column', gap: isMobile ? '1rem' : '1.25rem', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', animation: 'scaleIn 0.2s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: '0 0 4px', fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>Kendi Kitabını Ekle</h2>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Çalışmak istediğin kitabı kaydet ve ilerlemeni takip et</p>
+                <h2 style={{ margin: '0 0 4px', fontSize: isMobile ? '1.15rem' : '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>Kendi Kitabını Ekle</h2>
+                <p style={{ margin: 0, fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Çalışmak istediğin kitabı kaydet ve ilerlemeni takip et</p>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 8, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-                <X size={18} />
+              <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'var(--color-surface-hover)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+                <X size={16} />
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {[
                 { label: 'Kitap Adı', key: 'title', placeholder: 'Örn: TYT Matematik Soru Bankası' },
                 { label: 'Yayınevi', key: 'publisher', placeholder: 'Örn: 3D Yayınları' },
               ].map(field => (
                 <div key={field.key}>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>{field.label}</label>
+                  <label style={{ display: 'block', marginBottom: 5, fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>{field.label}</label>
                   <input
                     type="text"
                     value={newBook[field.key]}
                     onChange={e => setNewBook(p => ({ ...p, [field.key]: e.target.value }))}
                     placeholder={field.placeholder}
-                    style={{ width: '100%', padding: '0.75rem 0.9rem', borderRadius: 10, border: '1.5px solid var(--color-border-input)', fontSize: '0.9rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: isMobile ? '0.65rem 0.8rem' : '0.75rem 0.9rem', borderRadius: 10, border: '1.5px solid var(--color-border-input)', fontSize: isMobile ? '0.84rem' : '0.9rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)', boxSizing: 'border-box' }}
                   />
                 </div>
               ))}
 
               <div>
-                <label style={{ display: 'block', marginBottom: 6, fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>
                   Optik Form Seçenek Sayısı (Seviye)
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 4 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 4 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '0.5rem 0.65rem' : '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 4 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 4 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
                     <input
                       type="radio" name="studentBookOptionCount" value={4}
                       checked={newBook.optionCount === 4}
@@ -1483,11 +1488,11 @@ export default function StudentBooksPage() {
                       style={{ accentColor: '#2563eb' }}
                     />
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>4 Seçenek (A-D)</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ortaokul / LGS</div>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>4 Seçenek (A-D)</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ortaokul / LGS</div>
                     </div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 5 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 5 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '0.5rem 0.65rem' : '0.6rem 0.8rem', borderRadius: 10, border: `1.5px solid ${newBook.optionCount === 5 ? '#3b82f6' : 'var(--color-border)'}`, background: newBook.optionCount === 5 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)', color: 'var(--color-text)', cursor: 'pointer' }}>
                     <input
                       type="radio" name="studentBookOptionCount" value={5}
                       checked={newBook.optionCount === 5}
@@ -1495,54 +1500,54 @@ export default function StudentBooksPage() {
                       style={{ accentColor: '#2563eb' }}
                     />
                     <div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>5 Seçenek (A-E)</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Lise / YKS</div>
+                      <div style={{ fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, color: 'var(--color-text)' }}>5 Seçenek (A-E)</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Lise / YKS</div>
                     </div>
                   </label>
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--color-border)' }}>
+                <label style={{ display: 'block', fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, color: 'var(--color-text)', marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--color-border)' }}>
                   Dersler / Bölümler
                 </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {newBook.subjects.map((subj, idx) => (
-                    <div key={subj.id} style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+                    <div key={subj.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       <input
                         type="text" value={subj.name} placeholder={`Ders ${idx + 1}`}
                         onChange={e => { const s = [...newBook.subjects]; s[idx].name = e.target.value; setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ flex: 2, padding: '0.6rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
+                        style={{ flex: 2, padding: isMobile ? '0.5rem 0.65rem' : '0.6rem 0.75rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 700, outline: 'none', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <input
                         type="number" min="1" value={subj.testCount} title="Test Sayısı"
                         onChange={e => { const s = [...newBook.subjects]; s[idx].testCount = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
+                        style={{ width: isMobile ? 54 : 62, padding: isMobile ? '0.5rem 0.4rem' : '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <input
                         type="number" min="1" value={subj.questionsPerTest} title="Test başına soru"
                         onChange={e => { const s = [...newBook.subjects]; s[idx].questionsPerTest = Number(e.target.value); setNewBook({ ...newBook, subjects: s }); }}
-                        style={{ width: 62, padding: '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
+                        style={{ width: isMobile ? 54 : 62, padding: isMobile ? '0.5rem 0.4rem' : '0.6rem 0.5rem', borderRadius: 8, border: '1.5px solid var(--color-border-input)', fontSize: isMobile ? '0.78rem' : '0.82rem', fontWeight: 700, outline: 'none', textAlign: 'center', background: 'var(--color-surface-hover)', color: 'var(--color-text)' }}
                       />
                       <button
                         onClick={() => { const s = newBook.subjects.filter((_, i) => i !== idx); setNewBook({ ...newBook, subjects: s }); }}
                         disabled={newBook.subjects.length <= 1}
-                        style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : 'var(--color-surface-hover)', color: newBook.subjects.length > 1 ? '#ef4444' : 'var(--color-text-muted)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                        style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: newBook.subjects.length > 1 ? '#fee2e2' : 'var(--color-surface-hover)', color: newBook.subjects.length > 1 ? '#ef4444' : 'var(--color-text-muted)', cursor: newBook.subjects.length > 1 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                       >
                         <X size={14} />
                       </button>
                     </div>
                   ))}
-                  <div style={{ display: 'flex', gap: 4, fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
+                  <div style={{ display: 'flex', gap: 4, fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
                     <span style={{ flex: 2 }}>Ders Adı</span>
-                    <span style={{ width: 62, textAlign: 'center' }}>Test Sayısı</span>
-                    <span style={{ width: 62, textAlign: 'center' }}>Soru/Test</span>
-                    <span style={{ width: 34 }} />
+                    <span style={{ width: isMobile ? 54 : 62, textAlign: 'center' }}>Test</span>
+                    <span style={{ width: isMobile ? 54 : 62, textAlign: 'center' }}>Soru</span>
+                    <span style={{ width: 32 }} />
                   </div>
                   <button
                     type="button"
                     onClick={() => setNewBook(p => ({ ...p, subjects: [...p.subjects, { id: `sub_${Date.now()}`, name: '', testCount: 20, questionsPerTest: 20 }] }))}
-                    style={{ padding: '0.55rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1.5px dashed #3b82f6', borderRadius: 8, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}
+                    style={{ padding: '0.5rem', background: 'rgba(37,99,235,0.12)', color: '#60a5fa', border: '1.5px dashed #3b82f6', borderRadius: 8, cursor: 'pointer', fontSize: isMobile ? '0.76rem' : '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 4 }}
                   >
                     <Plus size={14} /> Yeni Ders Ekle
                   </button>
@@ -1553,7 +1558,7 @@ export default function StudentBooksPage() {
             <button
               onClick={handleSaveNewBook}
               disabled={isSaving || !newBook.title || !newBook.publisher || newBook.subjects.every(s => !s.name)}
-              style={{ padding: '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 900, fontSize: '0.9rem', cursor: (isSaving || !newBook.title || !newBook.publisher) ? 'not-allowed' : 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher) ? 0.65 : 1, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
+              style={{ padding: isMobile ? '0.75rem' : '0.85rem', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 12, fontWeight: 900, fontSize: isMobile ? '0.84rem' : '0.9rem', cursor: (isSaving || !newBook.title || !newBook.publisher) ? 'not-allowed' : 'pointer', opacity: (isSaving || !newBook.title || !newBook.publisher) ? 0.65 : 1, boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
             >
               {isSaving ? '⏳ Harita Oluşturuluyor…' : '🗺️ Kitabı Haritama Ekle'}
             </button>
