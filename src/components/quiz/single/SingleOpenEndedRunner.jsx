@@ -4,7 +4,6 @@ import { useTheme } from '../../../context/ThemeContext';
 import OpenEndedRunner from '../runner/OpenEndedRunner';
 import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import { idbGetPayload } from '../../../services/indexedDbService';
@@ -52,8 +51,6 @@ export default function SingleOpenEndedRunner({
 
   const [idbPayloadMap, setIdbPayloadMap] = useState({});
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [submissionPayload, setSubmissionPayload] = useState([]);
   const saveTimeoutRef = useRef(null);
 
   const totalQuestions = questions.length || test.questionCount || 1;
@@ -132,6 +129,13 @@ export default function SingleOpenEndedRunner({
   };
 
   const handleFinishExam = () => {
+    try {
+      localStorage.removeItem(`${draftKey}_txt`);
+      if (test.id) {
+        localStorage.removeItem(`draft_quiz_${test.id}_txt`);
+      }
+    } catch {}
+
     const formatted = questions.map((q, idx) => {
       const num = idx + 1;
       const txt = openEndedText[num] ?? '';
@@ -150,21 +154,9 @@ export default function SingleOpenEndedRunner({
       };
     });
 
-    setSubmissionPayload(formatted);
-    setShowResultModal(true);
-  };
-
-  const handleConfirmClose = () => {
-    setShowResultModal(false);
-    try {
-      localStorage.removeItem(`${draftKey}_txt`);
-    } catch {}
-    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: false });
-  };
-
-  const handleConfirmReview = () => {
-    setShowResultModal(false);
-    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: true });
+    if (onSubmit) {
+      onSubmit(formatted, { isOpenEnded: true });
+    }
   };
 
   const answeredCount = Object.values(openEndedText).filter(v => typeof v === 'string' && v.trim() !== '').length;
@@ -536,29 +528,6 @@ export default function SingleOpenEndedRunner({
           onClose={() => setIsDrawingOpen(false)}
         />
       </div>
-
-      {/* Result Modal */}
-      {showResultModal && (
-        <QuizResultModal
-          isOpen={showResultModal}
-          isOpenEnded={true}
-          onClose={() => setShowResultModal(false)}
-          onConfirmClose={handleConfirmClose}
-          onConfirmReview={handleConfirmReview}
-          test={test}
-          submission={{
-            ...test,
-            answers: submissionPayload,
-            score: 0,
-            correctCount: 0,
-            wrongCount: 0,
-            blankCount: submissionPayload.filter(a => !a.userAnswerText).length,
-            totalQuestions,
-            isOpenEnded: true,
-            isEvaluated: false
-          }}
-        />
-      )}
     </div>
   );
 }

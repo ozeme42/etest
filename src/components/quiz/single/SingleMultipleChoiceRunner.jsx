@@ -4,7 +4,6 @@ import { useTheme } from '../../../context/ThemeContext';
 import MultipleChoiceRunner from '../runner/MultipleChoiceRunner';
 import OpticalBubblePanel from '../panels/OpticalBubblePanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
-import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../common/ImageLightbox';
 import { normalizeUnifiedTest, normalizeOptionIndex } from '../../../services/unifiedQuizAdapter';
@@ -98,9 +97,6 @@ export default function SingleMultipleChoiceRunner({
     return {};
   });
 
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [resultStats, setResultStats] = useState(null);
-  const [submissionPayload, setSubmissionPayload] = useState([]);
   const saveTimeoutRef = React.useRef(null);
 
   const triggerAutoSave = React.useCallback((currentAnswers) => {
@@ -171,33 +167,18 @@ export default function SingleMultipleChoiceRunner({
       };
     });
 
-    const scorePct = totalQuestions > 0 ? Math.round((cCount / totalQuestions) * 100) : 0;
-    const rawNet = Math.max(0, cCount - (wCount * 0.25));
-
-    setResultStats({
-      correct: cCount,
-      wrong: wCount,
-      blank: bCount,
-      score: scorePct,
-      net: Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2),
-      totalQuestions: totalQuestions
-    });
-
-    setSubmissionPayload(formattedAnswers);
-    setShowResultModal(true);
-  };
-
-  const handleConfirmClose = () => {
-    setShowResultModal(false);
     try {
       localStorage.removeItem(`${draftKey}_ans`);
+      localStorage.removeItem(`${draftKey}_time`);
+      if (test.id) {
+        localStorage.removeItem(`draft_quiz_${test.id}_ans`);
+        localStorage.removeItem(`draft_quiz_${test.id}_time`);
+      }
     } catch {}
-    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: false });
-  };
 
-  const handleConfirmReview = () => {
-    setShowResultModal(false);
-    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: true });
+    if (onSubmit) {
+      onSubmit(formattedAnswers);
+    }
   };
 
   const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] !== '' && answers[k] !== 'empty').length;
@@ -583,15 +564,6 @@ export default function SingleMultipleChoiceRunner({
           onClose={() => setIsDrawingOpen(false)}
         />
       </div>
-
-      <QuizResultModal
-        isOpen={showResultModal}
-        title={unifiedTest.title || 'Çoktan Seçmeli Test Sonucu'}
-        stats={resultStats || {}}
-        isOpenEnded={false}
-        onClose={handleConfirmClose}
-        onReview={handleConfirmReview}
-      />
     </div>
   );
 }

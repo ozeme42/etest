@@ -12,7 +12,6 @@ import CompositeMultipleChoiceSection from './sections/CompositeMultipleChoiceSe
 import CompositeOpenEndedSection from './sections/CompositeOpenEndedSection';
 import CompositePdfSection from './sections/CompositePdfSection';
 import CompositeHtmlSection from './sections/CompositeHtmlSection';
-import QuizResultModal from '../modals/QuizResultModal';
 import DrawingCanvas from '../common/DrawingCanvas';
 import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 
@@ -60,10 +59,6 @@ export default function CompositeHomeworkRunner({
   const { payload: activePayload } = useQuizPayloads(activeSec, test);
 
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [overallResultStats, setOverallResultStats] = useState(null);
-  const [sectionBreakdownStats, setSectionBreakdownStats] = useState([]);
-  const [submissionPayload, setSubmissionPayload] = useState([]);
 
   // Determine section format from unified schema & detector
   const isSecOE = activeSec.type === 'open_ended' || activeSec.isOpenEnded === true || activeSec.is_open_ended === true || isSectionOpenEnded(activeSec, test);
@@ -149,34 +144,10 @@ export default function CompositeHomeworkRunner({
       });
     });
 
-    const score = totalScoredQuestions > 0 ? Math.round((totalCorrect / totalScoredQuestions) * 100) : 0;
-    const net = Math.max(0, totalCorrect - (totalWrong * 0.25));
-
-    setOverallResultStats({
-      correct: totalCorrect,
-      wrong: totalWrong,
-      blank: totalBlank,
-      pending: totalPending,
-      score,
-      net,
-      total: totalQuestions,
-      scoredTotal: totalScoredQuestions
-    });
-    setSectionBreakdownStats(breakdown);
-    setSubmissionPayload(formattedAnswers);
-    setShowResultModal(true);
-  };
-
-  const handleConfirmClose = () => {
     clearDraft();
-    setShowResultModal(false);
-    if (onSubmit) onSubmit(submissionPayload, { isCloseAction: true });
-  };
-
-  const handleConfirmReview = () => {
-    clearDraft();
-    setShowResultModal(false);
-    if (onSubmit) onSubmit(submissionPayload, { isReviewAction: true });
+    if (onSubmit) {
+      onSubmit(formattedAnswers);
+    }
   };
 
   return (
@@ -347,18 +318,6 @@ export default function CompositeHomeworkRunner({
           )}
         </div>
       )}
-
-      {/* Results Modal */}
-      <QuizResultModal
-        isOpen={showResultModal}
-        title={unifiedTest.title || 'Sınav Sonucu'}
-        stats={overallResultStats || {}}
-        sectionBreakdown={sectionBreakdownStats}
-        isOpenEnded={rawSections.every(s => s.type === 'open_ended')}
-        test={unifiedTest}
-        onClose={handleConfirmClose}
-        onReview={handleConfirmReview}
-      />
     </div>
   );
 }
