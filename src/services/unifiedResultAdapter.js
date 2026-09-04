@@ -320,8 +320,26 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   });
 
   const matchedHw = (homeworks || []).find(h =>
-    String(h.id) === String(rawSub.hwId || rawSub.homeworkId || raw.hwId || raw.homeworkId) ||
+    String(h.id) === String(rawSub.hwId || rawSub.homeworkId || rawSub.homework_id || raw.hwId || raw.homeworkId || raw.homework_id || meta.hwId) ||
     String(h.id) === testIdCandidate
+  );
+
+  const hwRawData = typeof matchedHw?.raw_data === 'string'
+    ? (() => { try { return JSON.parse(matchedHw.raw_data); } catch { return {}; } })()
+    : (matchedHw?.raw_data || {});
+
+  const isPhysHw = Boolean(
+    matchedHw && (
+      matchedHw.type === 'physicalExam' ||
+      matchedHw.contentType === 'physicalExam' ||
+      matchedHw.isPhysical === true ||
+      matchedHw.isPhysicalExam === true ||
+      hwRawData.type === 'physicalExam' ||
+      hwRawData.contentType === 'physicalExam' ||
+      hwRawData.isPhysical === true ||
+      hwRawData.isPhysicalExam === true ||
+      isExamBook(matchedHw)
+    )
   );
 
   const bookId = String(
@@ -421,9 +439,12 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     const candMatch = testIdCandidate.match(/_(\d+)$/);
     const i = candMatch ? parseInt(candMatch[1], 10) : 1;
     const isExamHint = Boolean(
-      rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
-      rawSub.isExam || matchedHw?.type === 'physicalExam' || matchedBook?.bookType === 'exam' ||
-      /deneme|sınav/i.test(String(rawSubTitle || matchedHw?.title || cleanBookTitle || ''))
+      isPhysHw ||
+      (!matchedHw && (
+        rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
+        matchedBook?.bookType === 'exam' ||
+        String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_')
+      ))
     );
     const fallbackTestName = isExamHint ? (rawSubTitle || matchedHw?.title || cleanBookTitle || 'Deneme Sınavı') : 'Test-1';
     const genName = (!isNaN(i) && i >= 1 && !isExamHint) ? (i <= 12 ? `Test-${i}` : (i <= 16 ? `Yeni Nesil ${i - 12}` : `Ü. Değ. ${i - 16}`)) : fallbackTestName;
@@ -502,20 +523,21 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     }
   }
 
-  // Detect if this item is an Exam / Deneme
+  // Detect if this item is a true Physical Exam / Mock Exam (Deneme Sınavı)
+  // Sadece fiziki denemeden atananlar veya fiziki deneme modülü sınavları Deneme Sınavı olmalıdır!
   const isDirectExam = Boolean(
-    rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
-    raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
-    rawSub.isExam || raw.isExam ||
-    matchedHw?.type === 'physicalExam' || matchedHw?.contentType === 'physicalExam' || matchedHw?.isPhysical === true ||
-    (matchedHw && isExamBook(matchedHw)) ||
-    (matchedBook && isExamBook(matchedBook)) ||
-    matchedBook?.bookType === 'exam' ||
-    String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_') ||
-    String(rawSub.hwId || '').startsWith('me_') ||
-    /deneme|sınav|hazır bulunuşluk|hazir bulunusluk|lgs|tyt|ayt|kpss|yks/i.test(
-      String(rawSub.title || rawSub.testTitle || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || matchedBook?.title || '')
-    )
+    isPhysHw ||
+    (!matchedHw && (
+      rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam || rawSub.isPhysical ||
+      raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam || raw.isPhysical ||
+      (matchedBook && isExamBook(matchedBook)) ||
+      matchedBook?.bookType === 'exam' ||
+      matchedBook?.isPhysicalExam === true ||
+      String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_') ||
+      String(rawSub.hwId || '').startsWith('me_') ||
+      rawSub.sourceType === 'mockExam' || rawSub.sourceType === 'physicalExam' ||
+      (rawSub.isExam && !matchedBook)
+    ))
   );
 
   // 2. Resolve exact unit name (1. Ünite, 2. Ünite, 3. Ünite, 4. Ünite, 5. Ünite...)
@@ -526,6 +548,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     if (!topicName || topicName === 'Genel Konu' || topicName === '1. Ünite') {
       const unitMatch = allIdAndTitleStrings.match(/top_subj_\d+_(\d+)/i) ||
                         allIdAndTitleStrings.match(/top_\w+_(\d+)/i) ||
+                        allIdAndTitleStrings.match(/(\d+)[\._\s]*[uüÜU]nite/i) ||
                         allIdAndTitleStrings.match(/(\d+)\.\s*Ünite/i);
       if (unitMatch) {
         topicName = `${unitMatch[1]}. Ünite`;
@@ -895,17 +918,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   const realTestId = matchedBookTest?.id || testIdCandidate;
   const uniqueId = String(rawSub.id || rawSub.submissionId || `${rawSub.hwId || 'sub'}_${studentId}_${realTestId}`);
 
-  const isPhysicalExam = Boolean(
-    rawSub.type === 'physicalExam' || rawSub.typeKey === 'physicalExam' || rawSub.isPhysicalExam ||
-    raw.type === 'physicalExam' || raw.typeKey === 'physicalExam' || raw.isPhysicalExam ||
-    rawSub.isExam || raw.isExam ||
-    matchedHw?.type === 'physicalExam' || matchedHw?.contentType === 'physicalExam' || matchedHw?.isPhysical === true ||
-    (matchedHw && isExamBook(matchedHw)) ||
-    (matchedBook && isExamBook(matchedBook)) ||
-    matchedBook?.bookType === 'exam' ||
-    String(rawSub.id || '').startsWith('me_') || String(testIdCandidate).startsWith('me_') ||
-    String(rawSub.hwId || '').startsWith('me_')
-  );
+  const isPhysicalExam = isDirectExam;
 
   const isHomework = Boolean(
     rawSub.hwId ||
@@ -998,10 +1011,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     submissionId: uniqueId,
     scores,
     supabaseId: rawSub.supabaseId || (toUUID(rawSub.id) ? rawSub.id : null),
-    sourceType: matchedHw ? 'homework' : (matchedBook ? 'book' : 'submission'),
-    typeKey: isDirectExam ? 'physicalExam' : typeKey,
-    isPhysicalExam: isDirectExam || isPhysicalExam,
-    isExam: isDirectExam || isPhysicalExam,
+    sourceType,
+    typeKey,
+    isPhysicalExam,
+    isExam: isPhysicalExam,
     
     testId: realTestId,
     bookTestId: realTestId,
