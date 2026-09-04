@@ -2893,7 +2893,12 @@ export default function StudentDashboard() {
     title: 'Acemi',
     icon: '🥉',
     bgGradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-    color: '#6366f1'
+    color: '#6366f1',
+    progressPercent: 0,
+    inTierXp: 0,
+    tierSpan: 150,
+    totalXp: 0,
+    nextTierTitle: 'Çırak'
   };
 
   const completedCount = taskStats.completedCount;
@@ -2909,7 +2914,6 @@ export default function StudentDashboard() {
   const dailyGoalProgress = useMemo(() => {
     const total = dayProgramInfo?.totalCount || 0;
     const completed = dayProgramInfo?.completedCount || 0;
-    const remedial = catchUpTasks?.length || 0;
 
     if (total > 0) {
       const pct = Math.min(100, Math.round((completed / total) * 100));
@@ -2917,29 +2921,20 @@ export default function StudentDashboard() {
         pct,
         completed,
         total,
-        isAllDone: completed >= total && remedial === 0,
+        isAllDone: completed >= total,
         label: `${completed}/${total} Görev`
       };
     }
 
-    if (remedial === 0) {
-      return {
-        pct: 100,
-        completed: 0,
-        total: 0,
-        isAllDone: true,
-        label: 'Tümü Tamam'
-      };
-    }
-
+    // Bugünün planlanan görevi yoksa veya hepsi tamamlandıysa
     return {
-      pct: 0,
+      pct: 100,
       completed: 0,
-      total: remedial,
-      isAllDone: false,
-      label: `${remedial} Telafi Bekliyor`
+      total: 0,
+      isAllDone: true,
+      label: 'Bugün Tamam'
     };
-  }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount, catchUpTasks?.length]);
+  }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount]);
 
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
@@ -3175,7 +3170,7 @@ export default function StudentDashboard() {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              {/* Circular Progress SVG Ring */}
+              {/* Circular Progress SVG Ring (Seviye / XP İlerleme Halkası) */}
               <svg
                 width={isMobile ? 66 : 82}
                 height={isMobile ? 66 : 82}
@@ -3183,18 +3178,9 @@ export default function StudentDashboard() {
               >
                 <defs>
                   <linearGradient id="avatarProgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    {dailyGoalProgress.isAllDone ? (
-                      <>
-                        <stop offset="0%" stopColor="#10b981" />
-                        <stop offset="100%" stopColor="#34d399" />
-                      </>
-                    ) : (
-                      <>
-                        <stop offset="0%" stopColor="#818cf8" />
-                        <stop offset="50%" stopColor="#c084fc" />
-                        <stop offset="100%" stopColor="#f472b6" />
-                      </>
-                    )}
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="50%" stopColor="#ec4899" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
                   </linearGradient>
                 </defs>
                 {/* Background track circle */}
@@ -3206,7 +3192,7 @@ export default function StudentDashboard() {
                   stroke="rgba(255, 255, 255, 0.16)"
                   strokeWidth={isMobile ? 3.5 : 4.5}
                 />
-                {/* Animated circular progress circle */}
+                {/* Animated circular progress circle for Level XP */}
                 <circle
                   cx={isMobile ? 33 : 41}
                   cy={isMobile ? 33 : 41}
@@ -3216,11 +3202,11 @@ export default function StudentDashboard() {
                   strokeWidth={isMobile ? 3.5 : 4.5}
                   strokeLinecap="round"
                   strokeDasharray={`${2 * Math.PI * (isMobile ? 29 : 36.5)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 29 : 36.5) * (1 - dailyGoalProgress.pct / 100)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 29 : 36.5) * (1 - (studentRank.progressPercent || 0) / 100)}`}
                   transform={`rotate(-90 ${isMobile ? 33 : 41} ${isMobile ? 33 : 41})`}
                   style={{
                     transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                    filter: dailyGoalProgress.pct > 0 ? 'drop-shadow(0 0 4px rgba(192, 132, 252, 0.6))' : 'none'
+                    filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.6))' : 'none'
                   }}
                 />
               </svg>
@@ -3243,7 +3229,7 @@ export default function StudentDashboard() {
                   boxShadow: `0 4px 16px ${studentRank.color || avatarColor}60`,
                   userSelect: 'none'
                 }}
-                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • Günlük İlerleme: %${dailyGoalProgress.pct}`}
+                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
               >
                 <span>{studentRank.icon || '🛡️'}</span>
               </div>
@@ -3295,20 +3281,19 @@ export default function StudentDashboard() {
                   whiteSpace: 'nowrap',
                   lineHeight: 1.2
                 }}
+                title={`Mevcut Seviye: Lv. ${studentRank.level} (${studentRank.title})`}
               >
                 Lv.{studentRank.level}
               </div>
 
-              {/* Bottom-Left: Daily Progress % Badge */}
+              {/* Bottom-Left: Level (XP) Progress % Badge */}
               <div
                 style={{
                   position: 'absolute',
                   bottom: -2,
                   left: -2,
                   zIndex: 5,
-                  background: dailyGoalProgress.isAllDone
-                    ? 'linear-gradient(135deg, #10b981, #059669)'
-                    : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
@@ -3319,9 +3304,9 @@ export default function StudentDashboard() {
                   whiteSpace: 'nowrap',
                   lineHeight: 1.2
                 }}
-                title={`Günün İlerlemesi: %${dailyGoalProgress.pct} (${dailyGoalProgress.label})`}
+                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP) • Sonraki Seviye: ${studentRank.nextTierTitle || 'Zirve'}`}
               >
-                %{dailyGoalProgress.pct}
+                %{studentRank.progressPercent || 0}
               </div>
             </div>
 
