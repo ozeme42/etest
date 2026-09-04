@@ -842,8 +842,51 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   // 7. Date Resolution
   const dateVal = extractItemDate(rawSub);
-  const [y, m, d] = dateVal.split('-').map(Number);
-  const resolvedSubmittedAt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
+
+  // Extract genuine timestamp if available, otherwise fallback to noon UTC on dateVal
+  const rawTimestampCandidate = (
+    meta?.submittedAt || meta?.completedAt || meta?.createdAt ||
+    rawSub.submittedAt || rawSub.submitted_at || rawSub.completedAt || rawSub.completed_at ||
+    rawSub.createdAt || rawSub.created_at || rawSub.date ||
+    raw.submittedAt || raw.submitted_at || raw.completedAt || raw.completed_at ||
+    raw.createdAt || raw.created_at || raw.date
+  );
+
+  let resolvedSubmittedAt = null;
+  if (rawTimestampCandidate) {
+    if (typeof rawTimestampCandidate === 'number') {
+      const ts = rawTimestampCandidate < 10000000000 ? rawTimestampCandidate * 1000 : rawTimestampCandidate;
+      resolvedSubmittedAt = new Date(ts).toISOString();
+    } else if (typeof rawTimestampCandidate === 'string' && (rawTimestampCandidate.includes('T') || /^\d{10,13}$/.test(rawTimestampCandidate.trim()))) {
+      const parsed = new Date(/^\d{10,13}$/.test(rawTimestampCandidate.trim()) ? Number(rawTimestampCandidate.trim()) : rawTimestampCandidate).toISOString();
+      if (parsed && parsed !== 'Invalid Date') resolvedSubmittedAt = parsed;
+    }
+  }
+
+  // Also check if ID contains epoch timestamp (e.g. sub_1787..., me_1787...)
+  if (!resolvedSubmittedAt) {
+    const idCandidates = [
+      String(meta?.realId || ''),
+      String(meta?.submissionId || ''),
+      String(rawSub.submissionId || ''),
+      String(rawSub.id || '')
+    ];
+    for (const cid of idCandidates) {
+      const match = cid.match(/(?:sub_|me_)?(1[6-9]\d{11,12})/);
+      if (match) {
+        const num = Number(match[1]);
+        if (!isNaN(num) && num > 1600000000000) {
+          resolvedSubmittedAt = new Date(num).toISOString();
+          break;
+        }
+      }
+    }
+  }
+
+  if (!resolvedSubmittedAt) {
+    const [y, m, d] = dateVal.split('-').map(Number);
+    resolvedSubmittedAt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
+  }
 
   // 8. Unique Clean ID & Subject/Type Keys
   const studentId = String(rawSub.studentId ?? rawSub.userId ?? rawSub.student_id ?? '');
@@ -1153,20 +1196,14 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     });
 
     // Intelligent Deduplication Pass
-    // Sort newest first by date, but within same day, prioritize Deneme/Exam over generic test!
+    // Sort strictly newest first by genuine timestamp (en yeniden en eskiye)
     results.sort((a, b) => {
       const timeB = new Date(b.submittedAt || b.date || b.createdAt || 0).getTime();
       const timeA = new Date(a.submittedAt || a.date || a.createdAt || 0).getTime();
-      if (Math.abs(timeB - timeA) > 1000 * 60 * 60 * 24) {
+      if (timeB !== timeA) {
         return timeB - timeA;
       }
-      const aTitle = String(a.fullTitle || a.testTitle || a.title || '');
-      const bTitle = String(b.fullTitle || b.testTitle || b.title || '');
-      const aIsDeneme = Boolean(a.isPhysicalExam || a.typeKey === 'physicalExam' || /deneme|sınav/i.test(aTitle) || a.subject === 'Genel');
-      const bIsDeneme = Boolean(b.isPhysicalExam || b.typeKey === 'physicalExam' || /deneme|sınav/i.test(bTitle) || b.subject === 'Genel');
-      if (aIsDeneme && !bIsDeneme) return -1;
-      if (!aIsDeneme && bIsDeneme) return 1;
-      return timeB - timeA;
+      return 0;
     });
 
     const finalSeen = new Set();

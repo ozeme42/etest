@@ -512,12 +512,21 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
       if (bankMatch) {
         if (bankMatch.questionsList && Array.isArray(bankMatch.questionsList) && bankMatch.questionsList.length > 0) {
           bankMatch.questionsList.forEach((subQ, subIdx) => {
+            let subCorrect = subQ.correctAnswer ?? subQ.correct_answer ?? subQ.answer;
+            if (subCorrect === undefined || subCorrect === null) {
+              if (bankMatch.imageAnswers && bankMatch.imageAnswers[subIdx] !== undefined) {
+                subCorrect = bankMatch.imageAnswers[subIdx];
+              } else if (Array.isArray(bankMatch.answerKey) && bankMatch.answerKey[subIdx] !== undefined) {
+                subCorrect = bankMatch.answerKey[subIdx];
+              }
+            }
             unbundled.push({
               ...subQ,
               id: subQ.id || `${bankMatch.id || rawId}_sub_${subIdx + 1}`,
               questionNo: subIdx + 1,
               questionText: extractQuestionText(subQ, bankMatch, subIdx),
-              options: extractQuestionOptions(subQ, bankMatch)
+              options: extractQuestionOptions(subQ, bankMatch),
+              correctAnswer: subCorrect
             });
           });
         } else if (typeof bankMatch.contentPayload === 'string' && (bankMatch.contentPayload.trim().startsWith('[') || bankMatch.contentPayload.trim().startsWith('{'))) {
@@ -549,11 +558,40 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
             });
           }
         } else {
-          unbundled.push({
-            ...bankMatch,
-            questionText: extractQuestionText(bankMatch, foundTest, idx),
-            options: extractQuestionOptions(bankMatch, foundTest)
-          });
+          const bankImgs = Array.from(new Set(extractImageUrls(bankMatch)));
+          if (bankImgs.length > 1) {
+            bankImgs.forEach((imgUrl, imgIdx) => {
+              let subCorrect = null;
+              if (bankMatch.imageAnswers && bankMatch.imageAnswers[imgIdx] !== undefined) {
+                subCorrect = bankMatch.imageAnswers[imgIdx];
+              } else if (Array.isArray(bankMatch.answerKey) && bankMatch.answerKey[imgIdx] !== undefined) {
+                subCorrect = bankMatch.answerKey[imgIdx];
+              } else if (typeof bankMatch.answerKey === 'string' && bankMatch.answerKey.length > imgIdx) {
+                subCorrect = bankMatch.answerKey[imgIdx];
+              } else if (imgIdx === 0) {
+                subCorrect = bankMatch.correctAnswer;
+              }
+
+              unbundled.push({
+                ...bankMatch,
+                id: `${bankMatch.id || rawId}_sub_${imgIdx + 1}`,
+                questionNo: imgIdx + 1,
+                questionText: `Soru ${imgIdx + 1}`,
+                imageUrl: imgUrl,
+                imageUrls: [imgUrl],
+                images: [imgUrl],
+                contentPayload: imgUrl,
+                options: extractQuestionOptions(bankMatch, foundTest),
+                correctAnswer: subCorrect
+              });
+            });
+          } else {
+            unbundled.push({
+              ...bankMatch,
+              questionText: extractQuestionText(bankMatch, foundTest, idx),
+              options: extractQuestionOptions(bankMatch, foundTest)
+            });
+          }
         }
       } else {
         unbundled.push({
@@ -595,17 +633,43 @@ export function resolveTestQuestions(foundTest, allBankQuestions = []) {
     ]));
 
     if (extractedImgs.length > 1) {
-      rawQuestions = extractedImgs.map((imgUrl, imgIdx) => ({
-        ...singleQ,
-        id: `${singleQ.id || 'q'}_sub_${imgIdx + 1}`,
-        questionNo: imgIdx + 1,
-        questionText: `Soru ${imgIdx + 1}`,
-        imageUrl: imgUrl,
-        imageUrls: [imgUrl],
-        images: [imgUrl],
-        contentPayload: imgUrl,
-        options: singleQ.options || ['A', 'B', 'C', 'D', 'E']
-      }));
+      rawQuestions = extractedImgs.map((imgUrl, imgIdx) => {
+        let subCorrect = null;
+        const imageAns = singleQ.imageAnswers || foundTest.imageAnswers || singleQ.bankQ?.imageAnswers || foundTest.bankQ?.imageAnswers;
+        if (imageAns && (imageAns[imgIdx] !== undefined || imageAns[String(imgIdx)] !== undefined)) {
+          subCorrect = imageAns[imgIdx] ?? imageAns[String(imgIdx)];
+        }
+        const ansKey = singleQ.answerKey || foundTest.answerKey || singleQ.bankQ?.answerKey || foundTest.bankQ?.answerKey;
+        if (subCorrect === null && ansKey) {
+          if (Array.isArray(ansKey) && ansKey[imgIdx] !== undefined) {
+            subCorrect = ansKey[imgIdx];
+          } else if (typeof ansKey === 'object' && (imgIdx in ansKey || String(imgIdx) in ansKey)) {
+            subCorrect = ansKey[imgIdx] ?? ansKey[String(imgIdx)];
+          } else if (typeof ansKey === 'string' && ansKey.replace(/[^A-Ea-e0-4]/g, '').length > imgIdx) {
+            subCorrect = ansKey.replace(/[^A-Ea-e0-4]/g, '')[imgIdx];
+          }
+        }
+        const subQList = singleQ.questionsList || foundTest.questionsList || singleQ.bankQ?.questionsList || foundTest.bankQ?.questionsList;
+        if (subCorrect === null && Array.isArray(subQList) && subQList[imgIdx]) {
+          subCorrect = subQList[imgIdx].correctAnswer ?? subQList[imgIdx].correct_answer ?? subQList[imgIdx].answer;
+        }
+        if (subCorrect === null && imgIdx === 0) {
+          subCorrect = singleQ.correctAnswer;
+        }
+
+        return {
+          ...singleQ,
+          id: `${singleQ.id || 'q'}_sub_${imgIdx + 1}`,
+          questionNo: imgIdx + 1,
+          questionText: `Soru ${imgIdx + 1}`,
+          imageUrl: imgUrl,
+          imageUrls: [imgUrl],
+          images: [imgUrl],
+          contentPayload: imgUrl,
+          options: singleQ.options || ['A', 'B', 'C', 'D', 'E'],
+          correctAnswer: subCorrect
+        };
+      });
     } else if (extractedImgs.length === 1) {
       rawQuestions = [{
         ...singleQ,

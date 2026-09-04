@@ -215,13 +215,13 @@ export default function ModularQuizReviewPage() {
 
     // 4. Search test in homeworks
     if (!foundTest && homeworks && Array.isArray(homeworks)) {
-      const searchHwId = explicitHwId || resolvedTestId;
+      const candidateHwId = explicitHwId || foundSubmission?.hwId || foundSubmission?.homeworkId || extractedHwId || (String(targetId || '').startsWith('hw_') ? targetId : null) || resolvedTestId;
       foundTest = homeworks.find(h =>
-        String(h.id) === String(searchHwId) ||
+        String(h.id) === String(candidateHwId) ||
         String(h.id) === String(targetId) ||
-        toUUID(h.id) === String(searchHwId) ||
+        toUUID(h.id) === String(candidateHwId) ||
         toUUID(h.id) === String(targetId) ||
-        normalizeId(h.id) === normalizeId(searchHwId) ||
+        normalizeId(h.id) === normalizeId(candidateHwId) ||
         normalizeId(h.id) === normalizeId(targetId)
       );
     }
@@ -334,6 +334,21 @@ export default function ModularQuizReviewPage() {
 
     if (!foundTest && unifiedTest) {
       foundTest = unifiedTest;
+    }
+
+    // If foundTest has no sections, but foundSubmission has an associated parent homework with multiple sections, link to parent homework:
+    if (foundTest && (!foundTest.sections || foundTest.sections.length <= 1) && homeworks && Array.isArray(homeworks)) {
+      const parentHwId = foundSubmission?.hwId || foundSubmission?.homeworkId || extractedHwId;
+      if (parentHwId) {
+        const parentHw = homeworks.find(h =>
+          String(h.id) === String(parentHwId) ||
+          toUUID(h.id) === String(parentHwId) ||
+          normalizeId(h.id) === normalizeId(parentHwId)
+        );
+        if (parentHw && (parentHw.sections?.length > 1 || parentHw.questionIds?.length > 1 || parentHw.tests?.length > 1)) {
+          foundTest = parentHw;
+        }
+      }
     }
 
     // 11. Synthetic test fallback if submission exists but test object was deleted/missing
@@ -901,10 +916,13 @@ export default function ModularQuizReviewPage() {
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
     (test.tests && Array.isArray(test.tests) && test.tests.length > 1) ||
     (test.questionIds && Array.isArray(test.questionIds) && test.questionIds.length > 1) ||
-    (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 1)
+    (test.items && Array.isArray(test.items) && test.items.length > 1) ||
+    (test.selectedQuestions && Array.isArray(test.selectedQuestions) && test.selectedQuestions.length > 1) ||
+    (submission.sections && Array.isArray(submission.sections) && submission.sections.length > 1) ||
+    (submission.answers && Array.isArray(submission.answers) && new Set(submission.answers.map(a => a.sectionId || a.sectionIndex).filter(x => x !== undefined && x !== null)).size > 1)
   );
 
-  const isMultiSection = !isExplicitOpenEnded && !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
+  const isMultiSection = !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
     test.isBulk ||
     test.isMulti ||
     test.isComposite

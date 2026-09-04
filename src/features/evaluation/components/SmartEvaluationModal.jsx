@@ -480,9 +480,9 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
         studentWritten,
         studentImage,
         isOE,
-        imageUrl: (isHtmlType || isPdfType) ? null : (resolvedImagesMap[i] || (qObj.imageUrl && !qObj.imageUrl.startsWith('idb:') ? qObj.imageUrl : null)),
-        pdfPayload: qObj.pdfPayload || resolvedPdfPayload || null,
-        htmlPayload: qObj.htmlPayload || resolvedHtmlPayload || null,
+        imageUrl: resolvedImagesMap[i] || (qObj.imageUrl && !qObj.imageUrl.startsWith('idb:') ? qObj.imageUrl : null),
+        pdfPayload: qObj.pdfPayload || (!resolvedImagesMap[i] && !qObj.imageUrl ? resolvedPdfPayload : null),
+        htmlPayload: qObj.htmlPayload || (!resolvedImagesMap[i] && !qObj.imageUrl ? resolvedHtmlPayload : null),
         title: qObj.title || `Soru ${i}`,
         sectionTitle: qObj.sectionTitle || test?.title || null
       };
@@ -627,9 +627,15 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
   const activeItem = oeList[safeActiveIndex] || null;
 
   // Active Document Payload (PDF / HTML)
-  const currentPdf = activeItem?.pdfPayload || resolvedPdfPayload || null;
-  const currentHtml = activeItem?.htmlPayload || resolvedHtmlPayload || null;
-  const hasDocument = Boolean(currentPdf || currentHtml || isHtmlType || isPdfType);
+  const questionImage = activeItem?.imageUrl || activeItem?.question?.imageUrl || activeItem?.question?.image;
+  const hasItemSpecificImage = Boolean(questionImage && typeof questionImage === 'string' && !questionImage.includes('[STORED_IN_INDEXEDDB]'));
+
+  const isItemHtml = Boolean(activeItem?.htmlPayload || (!hasItemSpecificImage && resolvedHtmlPayload));
+  const isItemPdf = Boolean(activeItem?.pdfPayload || (!hasItemSpecificImage && !isItemHtml && resolvedPdfPayload));
+
+  const currentPdf = isItemPdf ? (activeItem?.pdfPayload || resolvedPdfPayload) : null;
+  const currentHtml = isItemHtml ? (activeItem?.htmlPayload || resolvedHtmlPayload) : null;
+  const hasDocument = Boolean((currentPdf && isItemPdf) || (currentHtml && isItemHtml));
 
   // ── Step-by-Step Evaluation Panel Content ──
   const evaluationPanelContent = (
@@ -825,7 +831,7 @@ export default function SmartEvaluationModal({ submission, allBankQuestions, hom
               </div>
 
               {/* Question Image (Only show if genuine image is available and NOT in PDF/HTML mode) */}
-              {questionImage && !hasDocument && !isHtmlType && !isPdfType && (
+              {questionImage && !hasDocument && (
                 <div style={{ maxWidth: '650px', borderRadius: '0.85rem', overflow: 'hidden', border: '1.5px solid var(--color-border)', margin: '0 auto', width: '100%', background: '#f8fafc' }}>
                   <img
                     src={questionImage}

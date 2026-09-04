@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Award, CheckCircle, Clock, Edit3, Eye, MessageSquare, XCircle, Sparkles } from 'lucide-react';
 import { idbGetPayload } from '../../../services/indexedDbService';
-import ImageLightbox from '../common/ImageLightbox';
+import ImageLightbox, { isValidImageUrl } from '../common/ImageLightbox';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
 import AiUsageBadge from '../ai/AiUsageBadge';
 
@@ -17,7 +17,8 @@ const MISTAKE_REASON_OPTIONS = [
  * StandardImageFrame Component
  */
 const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFullscreen }) {
-  if (!src) return null;
+  const [hasError, setHasError] = useState(false);
+  if (!src || hasError || !isValidImageUrl(src)) return null;
   return (
     <div style={{
       position: 'relative',
@@ -35,6 +36,7 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
       <img
         src={src}
         alt={alt || 'Soru Görseli'}
+        onError={() => setHasError(true)}
         style={{
           maxWidth: '100%',
           maxHeight: '65vh',
@@ -127,7 +129,7 @@ export default function OpenEndedReview({
         for (const k of variants) {
           try {
             const val = await idbGetPayload(k);
-            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+            if (val && typeof val === 'string' && isValidImageUrl(val) && isMounted) {
               setIdbImage(val);
               return;
             }
@@ -155,16 +157,26 @@ export default function OpenEndedReview({
 
   // Collect all resolved images with single-source priority to avoid duplicate stacked images
   const resolvedImages = useMemo(() => {
-    const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
+    const isExplicitPureText = Boolean(
+      question?.formatType === 'text' ||
+      question?.sourceFormat === 'text' ||
+      question?.contentType === 'text' ||
+      question?.type === 'metin' ||
+      (question?.type === 'yazili' && !question?.imageUrl && !question?.imageUrls?.length) ||
+      (question?.type === 'acik_uclu' && !question?.imageUrl && !question?.imageUrls?.length && question?.contentType !== 'gorsel' && question?.contentType !== 'gorsel_klasik')
+    );
+    if (isExplicitPureText) {
+      return [];
+    }
 
     const urls = [];
     const addVal = (val) => {
       if (!val) return;
       if (Array.isArray(val)) {
         val.forEach(addVal);
-      } else if (isValidImg(val)) {
+      } else if (typeof val === 'string' && isValidImageUrl(val)) {
         if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
-          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImg);
+          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImageUrl);
           urls.push(...parts);
         } else {
           urls.push(val.trim());
@@ -178,7 +190,7 @@ export default function OpenEndedReview({
     }
 
     // 2. Direct question.imageUrl (specific to this single question)
-    if (urls.length === 0 && question?.imageUrl) {
+    if (urls.length === 0 && question?.imageUrl && isValidImageUrl(question.imageUrl)) {
       addVal(question.imageUrl);
     }
 
@@ -195,14 +207,14 @@ export default function OpenEndedReview({
       }
     }
 
-    // 4. Content payload or image payload
+    // 4. Content payload or image payload ONLY if valid image
     if (urls.length === 0) {
-      addVal(question?.imagePayload);
-      addVal(question?.contentPayload);
+      if (question?.imagePayload && isValidImageUrl(question.imagePayload)) addVal(question.imagePayload);
+      if (question?.contentPayload && isValidImageUrl(question.contentPayload)) addVal(question.contentPayload);
     }
 
-    // 5. IndexedDB fallback only if still empty
-    if (urls.length === 0 && idbImage) {
+    // 5. IndexedDB fallback only if still empty and valid
+    if (urls.length === 0 && idbImage && isValidImageUrl(idbImage)) {
       addVal(idbImage);
     }
 

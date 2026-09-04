@@ -1148,7 +1148,15 @@ export default function ModularQuizPage() {
       isSubmittingRef.current = false;
       
       if (options.isReviewAction) {
-         navigate(`/quiz-review/${testId}?studentId=${studentId}`, { replace: true });
+         navigate(`/quiz-review/${testId}?studentId=${studentId}&submissionId=${submissionData.id}&hwId=${submissionData.hwId || ''}`, {
+           replace: true,
+           state: {
+             submission: submissionData,
+             test: effectiveTest,
+             hwId: submissionData.hwId,
+             from: returnUrl || '/student'
+           }
+         });
       } else if (options.isCloseAction) {
          navigate('/student', { replace: true });
       }
@@ -2095,9 +2103,11 @@ export default function ModularQuizPage() {
                 <button
                    type="button"
                    onClick={() => {
-                     navigate(`/quiz-review/${submittedResult.testId}?studentId=${studentId}&submissionId=${submittedResult.id}`, {
+                     navigate(`/quiz-review/${submittedResult.testId || testId}?studentId=${studentId}&submissionId=${submittedResult.id}&hwId=${submittedResult.hwId || ''}`, {
                        state: {
                          submission: submittedResult,
+                         test: effectiveTest,
+                         hwId: submittedResult.hwId,
                          from: returnUrl || (submittedResult.bookId ? `/student/books/${submittedResult.bookId}` : '/student')
                        }
                      });

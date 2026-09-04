@@ -22,6 +22,7 @@ import HtmlQuizReview from '../components/quiz/review/HtmlQuizReview';
 import ImageQuizReview from '../components/quiz/review/ImageQuizReview';
 import StandardQuizReview from '../components/quiz/review/StandardQuizReview';
 import PhysicalQuizReview from '../components/quiz/review/PhysicalQuizReview';
+import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomeworkReview';
 import MultiHomeworkRunner, { resolveExactQuestionCount } from '../components/quiz/runner/MultiHomeworkRunner';
 import ImageLightbox, { StandardImageFrame } from '../components/quiz/common/ImageLightbox';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
@@ -72,7 +73,12 @@ export default function EvaluationManager() {
     if (tabParam) {
       setActiveTab(tabParam);
     }
-  }, [searchParams]);
+    const subIdParam = searchParams.get('submissionId') || searchParams.get('id');
+    if (subIdParam && enrichedSubmissions && enrichedSubmissions.length > 0 && !activeSubmission) {
+      const found = enrichedSubmissions.find(s => String(s.id) === String(subIdParam) || String(s.submissionId) === String(subIdParam));
+      if (found) setActiveSubmission(found);
+    }
+  }, [searchParams, enrichedSubmissions, activeSubmission]);
 
   // Kitap takibi / "Tüm Kitap Görevi" tipindeki ödevleri gizle
   const isTrackedBookHw = (hw) => {
@@ -185,6 +191,14 @@ export default function EvaluationManager() {
         (h.submissions && h.submissions.some(s => String(s.id) === String(sub.id)))
       );
 
+      if (!matchedHw && (sub.testTitle || sub.title || sub.homeworkTitle)) {
+        const subTitle = String(sub.testTitle || sub.title || sub.homeworkTitle).trim().toLowerCase();
+        matchedHw = (homeworks || []).find(h => {
+          const hTitle = String(h.title || h.name || '').trim().toLowerCase();
+          return hTitle && (hTitle === subTitle || hTitle.includes(subTitle) || subTitle.includes(hTitle));
+        });
+      }
+
       let matchedBankQ = (sub.sourceType === 'bank' || sub.sourceType === 'question' || targetId.startsWith('q_'))
         ? (allBankQuestions || []).find(q =>
             String(q.id) === targetId ||
@@ -192,6 +206,14 @@ export default function EvaluationManager() {
             String(q.questionId) === targetId
           )
         : null;
+
+      if (!matchedBankQ && (sub.testTitle || sub.title)) {
+        const subTitle = String(sub.testTitle || sub.title).trim().toLowerCase();
+        matchedBankQ = (allBankQuestions || []).find(q => {
+          const qTitle = String(q.title || q.name || q.questionText || '').trim().toLowerCase();
+          return qTitle && (qTitle === subTitle || qTitle.includes(subTitle) || subTitle.includes(qTitle));
+        });
+      }
 
       let matchedBookTest = (bookTests || []).find(bt =>
         String(bt.id) === targetId ||
@@ -331,6 +353,50 @@ export default function EvaluationManager() {
         ? isManualPending
         : (!isAlreadyEvaluated && isEvaluationTarget);
 
+      // Multi-section composite homework determination
+      const rawSections = (matchedHw && Array.isArray(matchedHw.sections) && matchedHw.sections.length > 0)
+        ? matchedHw.sections
+        : (matchedHw && Array.isArray(matchedHw.tests) && matchedHw.tests.length > 0)
+          ? matchedHw.tests
+          : (matchedHw && Array.isArray(matchedHw.questionIds) && matchedHw.questionIds.length > 0)
+            ? matchedHw.questionIds
+            : (sub.sections && Array.isArray(sub.sections) && sub.sections.length > 0)
+              ? sub.sections
+              : (sub.sections && typeof sub.sections === 'object' && Object.keys(sub.sections).length > 0)
+                ? Object.values(sub.sections)
+                : (matchedBankQ && Array.isArray(matchedBankQ.sections) && matchedBankQ.sections.length > 0)
+                  ? matchedBankQ.sections
+                  : (matchedBankQ && Array.isArray(matchedBankQ.tests) && matchedBankQ.tests.length > 0)
+                    ? matchedBankQ.tests
+                    : (matchedBankQ && Array.isArray(matchedBankQ.questionIds) && matchedBankQ.questionIds.length > 0)
+                      ? matchedBankQ.questionIds
+                      : (matchedBankQ && Array.isArray(matchedBankQ.items) && matchedBankQ.items.length > 0)
+                        ? matchedBankQ.items
+                        : (sub.test?.sections || sub.homework?.sections || []);
+
+      const hasMultipleAnswerSections = Boolean(
+        Array.isArray(sub.answers) &&
+        new Set(sub.answers.map(a => a.sectionId || a.sectionIndex).filter(x => x !== undefined && x !== null && x !== '')).size > 1
+      );
+
+      const isMultiSection = Boolean(
+        sub.isComposite === true ||
+        sub.isMulti === true ||
+        (matchedHw && (matchedHw.isComposite || matchedHw.isMulti)) ||
+        (matchedBankQ && (matchedBankQ.isComposite || matchedBankQ.isMulti)) ||
+        (Array.isArray(rawSections) && rawSections.length > 1) ||
+        hasMultipleAnswerSections
+      );
+
+      const resolvedTest = {
+        ...(matchedHw || matchedCurTest || matchedBookTest || matchedBankQ || sub.test || sub.homework || {}),
+        id: targetId || sub.testId || sub.hwId || sub.id,
+        title: title || matchedHw?.title || sub.testTitle || sub.title,
+        sections: Array.isArray(rawSections) ? rawSections : Object.values(rawSections || {}),
+        ...sub,
+        ...(Array.isArray(rawSections) && rawSections.length > 0 ? { sections: rawSections } : {})
+      };
+
       return {
         ...sub,
         studentName,
@@ -343,7 +409,9 @@ export default function EvaluationManager() {
         isManualApproved,
         isManualRejected,
         isEvaluationTarget,
-        isPending
+        isPending,
+        isMultiSection,
+        resolvedTest
       };
     });
   }, [combinedSubmissions, users, homeworks, allBankQuestions, bookTests, curriculumData]);
@@ -442,16 +510,28 @@ export default function EvaluationManager() {
     }}>
 
       {activeSubmission && (
-        <SmartEvaluationModal
-          submission={activeSubmission}
-          allBankQuestions={allBankQuestions}
-          homeworks={homeworks}
-          curriculumData={curriculumData}
-          bookTests={bookTests}
-          books={books}
-          onClose={() => setActiveSubmission(null)}
-          onSaveSuccess={() => setActiveSubmission(null)}
-        />
+        activeSubmission.isMultiSection ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-bg)', overflow: 'hidden' }}>
+            <CompositeHomeworkReview
+              submission={activeSubmission}
+              test={activeSubmission.resolvedTest || activeSubmission}
+              questions={allBankQuestions}
+              isTeacher={true}
+              onClose={() => setActiveSubmission(null)}
+            />
+          </div>
+        ) : (
+          <SmartEvaluationModal
+            submission={activeSubmission}
+            allBankQuestions={allBankQuestions}
+            homeworks={homeworks}
+            curriculumData={curriculumData}
+            bookTests={bookTests}
+            books={books}
+            onClose={() => setActiveSubmission(null)}
+            onSaveSuccess={() => setActiveSubmission(null)}
+          />
+        )
       )}
 
       {/* Manuel Test Onay Merkezi Yönlendirme Bildirimi */}

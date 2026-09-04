@@ -55,7 +55,7 @@ export default memo(function OpticalBubblePanel({
     // Determine correct answer
     let cAnsRaw = (Array.isArray(correctAnswers) && correctAnswers[idx] !== undefined)
       ? correctAnswers[idx]
-      : (subAnsObj?.correctAnswer ?? subAnsObj?.correctAnswerLetter ?? q.correctAnswer ?? q.answer ?? q.correctOption ?? q.correctAnswerLetter ?? testCtx?.answerKey?.[idx]);
+      : (testCtx?.imageAnswers?.[idx] ?? testCtx?.imageAnswers?.[String(idx)] ?? testCtx?.bankQ?.imageAnswers?.[idx] ?? testCtx?.bankQ?.imageAnswers?.[String(idx)] ?? testCtx?.answerKey?.[idx] ?? testCtx?.bankQ?.answerKey?.[idx] ?? q.correctAnswer ?? q.answer ?? q.correctOption ?? q.correctAnswerLetter ?? subAnsObj?.correctAnswer ?? subAnsObj?.correctAnswerLetter);
 
     let correctAns = normalizeAns(cAnsRaw);
     if (correctAns === null && Array.isArray(q.options)) {

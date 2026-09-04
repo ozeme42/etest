@@ -41,6 +41,33 @@ const markHomeworkIdAsDeleted = (...ids) => {
   } catch {}
 };
 
+const isHomeworkDeleted = (h, deletedIds) => {
+  if (!h || !deletedIds || deletedIds.size === 0) return false;
+  const hId = String(h.id || '').trim();
+  const hSup = String(h.supabaseId || '').trim();
+  const hStr = String(h.stringId || '').trim();
+  let rawId = '';
+  let rawStrId = '';
+  let rawSupId = '';
+  try {
+    const raw = typeof h.raw_data === 'string' ? JSON.parse(h.raw_data) : (h.raw_data || {});
+    rawId = String(raw.id || '').trim();
+    rawStrId = String(raw.stringId || '').trim();
+    rawSupId = String(raw.supabaseId || '').trim();
+  } catch {}
+
+  const candidates = [
+    hId, hSup, hStr, rawId, rawStrId, rawSupId,
+    hId.replace(/^hw_/, ''),
+    hStr.replace(/^hw_/, ''),
+    rawId.replace(/^hw_/, ''),
+    rawStrId.replace(/^hw_/, ''),
+    toUUID(hId), toUUID(hSup), toUUID(hStr), toUUID(rawId), toUUID(rawStrId)
+  ].filter(Boolean);
+
+  return candidates.some(c => deletedIds.has(String(c)));
+};
+
 export function HomeworkProvider({ children }) {
   const [homeworks, setHomeworks] = useState(() => {
     try {
@@ -49,10 +76,7 @@ export function HomeworkProvider({ children }) {
       const parsed = saved ? JSON.parse(saved) : [];
       return (parsed || []).filter(h => {
         if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
-        const hId = String(h.id || '');
-        const hSup = String(h.supabaseId || '');
-        const hU = toUUID(hId);
-        return !deletedIds.has(hId) && !deletedIds.has(hSup) && (!hU || !deletedIds.has(hU));
+        return !isHomeworkDeleted(h, deletedIds);
       });
     } catch {
       return [];
@@ -84,10 +108,7 @@ export function HomeworkProvider({ children }) {
         const deletedIds = getDeletedHomeworkIds();
         const cleanDbHws = dbHws.filter(h => {
           if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
-          const hId = String(h.id || '');
-          const hSup = String(h.supabaseId || '');
-          const hU = toUUID(hId);
-          return !deletedIds.has(hId) && !deletedIds.has(hSup) && (!hU || !deletedIds.has(hU));
+          return !isHomeworkDeleted(h, deletedIds);
         });
         
         // The database is the source of truth; set cleanDbHws directly
@@ -411,28 +432,44 @@ export function HomeworkProvider({ children }) {
   const deleteHomework = async (id) => {
     if (!id) return;
     const idStr = String(id).trim();
+    const idClean = idStr.replace(/^hw_/, '');
     const idUuid = toUUID(idStr);
 
     // Find any related IDs from existing state
     const target = (homeworks || []).find(h => 
       String(h.id) === idStr || 
+      String(h.id) === idClean || 
       String(h.supabaseId || '') === idStr || 
+      String(h.stringId || '') === idStr ||
       (idUuid && toUUID(h.id) === idUuid) ||
       (idUuid && toUUID(h.supabaseId || '') === idUuid)
     );
     const targetSupabaseId = target?.supabaseId ? String(target.supabaseId) : null;
     const targetRawId = target?.raw_data?.id ? String(target.raw_data.id) : null;
-    const targetStringId = target?.raw_data?.stringId ? String(target.raw_data.stringId) : null;
+    const targetStringId = target?.raw_data?.stringId || target?.stringId ? String(target.raw_data?.stringId || target.stringId) : null;
 
-    const allIdsToPurge = Array.from(new Set([idStr, idUuid, targetSupabaseId, targetRawId, targetStringId].filter(Boolean)));
+    const allIdsToPurge = Array.from(new Set([
+      idStr, idClean, idUuid, toUUID(idClean),
+      targetSupabaseId, targetRawId, targetStringId,
+      targetSupabaseId && toUUID(targetSupabaseId),
+      targetRawId && toUUID(targetRawId),
+      targetStringId && toUUID(targetStringId)
+    ].filter(Boolean)));
+    
     markHomeworkIdAsDeleted(allIdsToPurge);
 
     setHomeworks(prev => {
       const next = prev.filter(hw => {
-        const hId = String(hw.id);
+        const hId = String(hw.id || '');
         const hSup = String(hw.supabaseId || '');
+        const hStr = String(hw.stringId || '');
+        const hRawId = String(hw.raw_data?.id || '');
         const hU = toUUID(hId);
-        const isMatch = allIdsToPurge.includes(hId) || allIdsToPurge.includes(hSup) || (hU && allIdsToPurge.includes(hU));
+        const isMatch = allIdsToPurge.includes(hId) || 
+                        allIdsToPurge.includes(hSup) || 
+                        allIdsToPurge.includes(hStr) ||
+                        allIdsToPurge.includes(hRawId) ||
+                        (hU && allIdsToPurge.includes(hU));
         return !isMatch;
       });
       try {
@@ -444,7 +481,10 @@ export function HomeworkProvider({ children }) {
     invalidateCache('homeworks');
 
     // Supabase DB delete
-    await dbDeleteHomework(id);
+    await dbDeleteHomework(idStr);
+    if (idClean && idClean !== idStr) {
+      await dbDeleteHomework(idClean);
+    }
     if (targetSupabaseId && targetSupabaseId !== idStr) {
       await dbDeleteHomework(targetSupabaseId);
     }
@@ -468,7 +508,7 @@ export function HomeworkProvider({ children }) {
 
   const deleteAllHomeworks = async () => {
     const currentHomeworks = [...homeworks];
-    const allIds = currentHomeworks.map(h => [h.id, h.supabaseId, toUUID(h.id)]).flat().filter(Boolean);
+    const allIds = currentHomeworks.flatMap(h => [h.id, h.supabaseId, h.stringId, toUUID(h.id)]).filter(Boolean);
     markHomeworkIdAsDeleted(allIds);
 
     setHomeworks([]);
@@ -480,6 +520,7 @@ export function HomeworkProvider({ children }) {
     for (const hw of currentHomeworks) {
       await dbDeleteHomework(hw.id);
       if (hw.supabaseId) await dbDeleteHomework(hw.supabaseId);
+      if (hw.stringId) await dbDeleteHomework(hw.stringId);
       try {
         localStorage.removeItem(`quiz_draft_${hw.id}`);
         localStorage.removeItem(`homework_sub_${hw.id}`);

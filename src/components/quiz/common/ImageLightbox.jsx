@@ -37,14 +37,22 @@ export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   const trimmed = url.trim();
   if (
+    trimmed.length < 5 ||
     trimmed.startsWith('[STORED_IN_') ||
     trimmed.startsWith('[LOCALSTORAGE_') ||
     trimmed.startsWith('<!DOCTYPE') ||
     trimmed.startsWith('<html') ||
+    trimmed.startsWith('<div') ||
+    trimmed.startsWith('<p') ||
+    trimmed.startsWith('<span') ||
+    trimmed.startsWith('{') ||
+    trimmed.startsWith('[') ||
     trimmed.startsWith('data:text/html') ||
     trimmed.startsWith('data:application/pdf') ||
+    trimmed.startsWith('data:application/json') ||
     trimmed.startsWith('%PDF-') ||
-    trimmed.includes('|')
+    trimmed.includes('|') ||
+    (trimmed.includes(' ') && !trimmed.startsWith('data:image/'))
   ) {
     return false;
   }
@@ -61,9 +69,9 @@ export function isValidImageUrl(url) {
     return true;
   }
   if (trimmed.startsWith('/') || trimmed.startsWith('./')) {
-    return true;
+    return /\.(png|jpe?g|webp|gif|svg|bmp|ico)(\?.*)?$/i.test(trimmed);
   }
-  if (/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(trimmed)) {
+  if (/\.(png|jpe?g|webp|gif|svg|bmp|ico)(\?.*)?$/i.test(trimmed)) {
     return true;
   }
   return false;

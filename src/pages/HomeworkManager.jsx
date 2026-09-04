@@ -13,10 +13,108 @@ import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useTheme } from '../context/ThemeContext';
 import { idbGetPayload } from '../services/indexedDbService';
 import { toUUID } from '../services/supabaseService';
-import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
+import { extractImageUrls, isValidImageUrl, normalizeImageUrl } from '../components/quiz/common/ImageLightbox';
+import { getEmbeddablePdfUrl as getEmbeddableUrl } from '../utils/pdfUtils';
+import PdfViewerWithControls from '../components/PdfViewerWithControls';
+import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
 import './HomeworkManager.css';
+
+export function normalizeAnswerKey(rawKey) {
+  if (!rawKey) return [];
+  if (Array.isArray(rawKey)) return rawKey;
+  if (typeof rawKey === 'string') {
+    const trimmed = rawKey.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') return Object.values(parsed);
+      } catch {}
+    }
+    if (trimmed.includes(',')) {
+      return trimmed.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+    }
+    return trimmed.split('');
+  }
+  if (typeof rawKey === 'object') {
+    return Object.values(rawKey);
+  }
+  return [];
+}
+
+const contentConfig = {
+  gorsel: { label: 'Görselli Test',   icon: '🖼️', bgFrom: '#f0fdf4', bgTo: '#dcfce7', border: '#bbf7d0', accent: '#15803d', iconBg: 'linear-gradient(135deg,#10b981,#059669)' },
+  pdf:    { label: 'PDF Test',        icon: '📄', bgFrom: '#fff1f2', bgTo: '#ffe4e6', border: '#fecdd3', accent: '#be123c', iconBg: 'linear-gradient(135deg,#f43f5e,#e11d48)' },
+  html:   { label: 'Web Test',        icon: '🌐', bgFrom: '#f0f9ff', bgTo: '#e0f2fe', border: '#bae6fd', accent: '#0369a1', iconBg: 'linear-gradient(135deg,#38bdf8,#0284c7)' },
+  json:   { label: 'Metin Testi',     icon: '📚', bgFrom: '#faf5ff', bgTo: '#f3e8ff', border: '#e9d5ff', accent: '#6d28d9', iconBg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)' },
+  text:   { label: 'Tek Soru',        icon: '📝', bgFrom: '#fffbeb', bgTo: '#fef3c7', border: '#fde68a', accent: '#b45309', iconBg: 'linear-gradient(135deg,#f59e0b,#d97706)' },
+};
+
+const getAnswerKeyCount = (answerKey) => {
+  if (!answerKey) return 0;
+  const list = normalizeAnswerKey(answerKey);
+  return list.filter(k => k && String(k).trim() !== '').length;
+};
+
+const getQuestionHierarchyBadge = (q, curData) => {
+  if (!curData) return null;
+  let topicName = '';
+  let unitName = '';
+  let subjectName = '';
+  let gradeName = '';
+
+  const topicObj = curData.topics?.find(t => t.id === q.topicId);
+  if (topicObj) {
+    topicName = topicObj.name;
+    const unitObj = curData.units?.find(u => u.id === topicObj.unitId);
+    if (unitObj) {
+      unitName = unitObj.name;
+      const subjectObj = curData.subjects?.find(s => s.id === unitObj.subjectId);
+      if (subjectObj) {
+        subjectName = subjectObj.name;
+        const gradeObj = curData.grades?.find(g => g.id === subjectObj.gradeId);
+        if (gradeObj) gradeName = gradeObj.name;
+      }
+    }
+  } else if (q.topicId?.startsWith('unit_')) {
+    const uId = q.topicId.replace('unit_', '').replace('_all', '');
+    const unitObj = curData.units?.find(u => u.id === uId);
+    if (unitObj) {
+      unitName = unitObj.name;
+      const subjectObj = curData.subjects?.find(s => s.id === unitObj.subjectId);
+      if (subjectObj) {
+        subjectName = subjectObj.name;
+        const gradeObj = curData.grades?.find(g => g.id === subjectObj.gradeId);
+        if (gradeObj) gradeName = gradeObj.name;
+      }
+    }
+  } else if (q.topicId?.startsWith('sub_')) {
+    const sId = q.topicId.replace('sub_', '').replace('_all', '');
+    const subjectObj = curData.subjects?.find(s => s.id === sId);
+    if (subjectObj) {
+      subjectName = subjectObj.name;
+      const gradeObj = curData.grades?.find(g => g.id === subjectObj.gradeId);
+      if (gradeObj) gradeName = gradeObj.name;
+    }
+  } else if (q.subjectId) {
+    const subjectObj = curData.subjects?.find(s => s.id === q.subjectId);
+    if (subjectObj) {
+      subjectName = subjectObj.name;
+      const gradeObj = curData.grades?.find(g => g.id === subjectObj.gradeId);
+      if (gradeObj) gradeName = gradeObj.name;
+    }
+  }
+
+  if (!subjectName && q.subject) subjectName = q.subject;
+  if (!unitName && (q.unitName || q.unit)) unitName = q.unitName || q.unit;
+  if (!topicName && (q.topicName || q.topic)) topicName = q.topicName || q.topic;
+
+  const path = [gradeName, subjectName, unitName, topicName].filter(Boolean).join(' ➔ ');
+  return path ? `📌 ${path}` : (subjectName ? `📌 ${subjectName}` : null);
+};
 
 const subjectThemes = {
   'Matematik': { bg: 'linear-gradient(135deg,#3b82f6,#1d4ed8)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.4)' },
@@ -71,6 +169,7 @@ function GlassProgressBar({ value, max, color, customPct, customLabel }) {
 export default function HomeworkManager() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark } = useTheme();
   const { currentUser } = useAuth();
   const { data: curData } = useCurriculum();
   const { questions: allQuestions } = useQuestionBank();
@@ -99,7 +198,17 @@ export default function HomeworkManager() {
       return !isBook;
     });
   }, [allHomeworks, currentUser, students]);
-  const questions = useMemo(() => currentUser?.role === 'admin' ? (allQuestions || []) : (allQuestions || []).filter(q => q.createdBy === currentUser?.id), [allQuestions, currentUser]);
+
+  // Question Bank list: Exclude remedial/telafi tests and filter by teacher if not admin (100% same as QuestionBank.jsx)
+  const questions = useMemo(() => {
+    const rawList = (allQuestions || []).filter(q => {
+      if (!q) return false;
+      const isRem = q.isRemedialTest || q.isRemedial || q.isTeacherRemedial || q.type === 'remedial' || q.type === 'remedialTest' || q.sourceType === 'pdfSlicerRemedial' || /telafi/i.test(q.title || q.name || '');
+      return !isRem;
+    });
+    if (currentUser?.role === 'admin') return rawList;
+    return rawList.filter(q => q.createdBy === currentUser?.id);
+  }, [allQuestions, currentUser]);
 
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'create' | 'edit'
   const [subViewMode, setSubViewMode] = useState('homeworks'); // 'homeworks' | 'students'
@@ -132,6 +241,42 @@ export default function HomeworkManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [assignmentMode, setAssignmentMode] = useState('separate');
   const [selectedHwListIds, setSelectedHwListIds] = useState([]);
+  const [previewQuestion, setPreviewQuestion] = useState(null);
+
+  const handlePreviewQuestion = async (q) => {
+    let richPayload = q.contentPayload;
+    const isMissing = !richPayload || (typeof richPayload === 'string' && (richPayload.includes('[STORED_IN_INDEXEDDB]') || richPayload.includes('[LOCALSTORAGE_CACHE]')));
+
+    if (isMissing || q.contentType === 'pdf' || q.contentType === 'html' || q.contentType === 'gorsel') {
+      const candidates = [
+        q.id,
+        String(q.id).replace(/^q_?/, ''),
+        `q_${String(q.id).replace(/^q_?/, '')}`,
+        `q${String(q.id).replace(/^q_?/, '')}`,
+        q.realTestId,
+        q.testId,
+        ...(q.questionIds || [])
+      ].filter(Boolean);
+
+      for (const key of candidates) {
+        try {
+          const idbData = await idbGetPayload(key);
+          if (idbData && typeof idbData === 'string' && idbData.length > 30 && !idbData.includes('[STORED_IN_INDEXEDDB]')) {
+            richPayload = idbData;
+            break;
+          }
+        } catch (e) {
+          console.warn('[HomeworkManager] idbGetPayload check error:', e);
+        }
+      }
+    }
+
+    if (richPayload) {
+      setPreviewQuestion({ ...q, contentPayload: richPayload, htmlPayload: richPayload });
+    } else {
+      setPreviewQuestion(q);
+    }
+  };
 
   useEffect(() => {
     if (location.state?.autoSelectQuestionId) {
@@ -147,25 +292,7 @@ export default function HomeworkManager() {
 
   const filteredQuestions = useMemo(() => {
     return questions.filter(q => {
-      if (selGrade !== 'all') {
-        const gS = curData.subjects.filter(s => s.gradeId === selGrade).map(s => s.id);
-        const gU = curData.units.filter(u => gS.includes(u.subjectId)).map(u => u.id);
-        const gT = curData.topics.filter(t => gU.includes(t.unitId)).map(t => t.id);
-        if (!gT.includes(q.topicId) && !gU.some(id => q.topicId === 'unit_' + id + '_all') && !gS.some(id => q.topicId === 'sub_' + id + '_all') && q.topicId !== 'grade_' + selGrade + '_all') return false;
-      }
-      if (selSubject !== 'all') {
-        const sU = curData.units.filter(u => u.subjectId === selSubject).map(u => u.id);
-        const sT = curData.topics.filter(t => sU.includes(t.unitId)).map(t => t.id);
-        if (!sT.includes(q.topicId) && !sU.some(id => q.topicId === 'unit_' + id + '_all') && q.topicId !== 'sub_' + selSubject + '_all') return false;
-      }
-      if (selUnit !== 'all') {
-        const uT = curData.topics.filter(t => t.unitId === selUnit).map(t => t.id);
-        if (!uT.includes(q.topicId) && q.topicId !== 'unit_' + selUnit + '_all' && q.topicId !== selUnit) return false;
-      }
-      if (selTopic !== 'all' && q.topicId !== selTopic) return false;
-      if (selQuestionType === 'coktan_secmeli' && q.type !== 'coktan_secmeli') return false;
-      if (selQuestionType === 'acik_uclu' && q.type !== 'acik_uclu') return false;
-      if (selQuestionType === 'bundle' && !q.isBundle) return false;
+      // 1. Content type filter
       if (selContentType !== 'all') {
         const ct = (q.contentType || '').toLowerCase();
         if (selContentType === 'pdf' && !ct.includes('pdf')) return false;
@@ -174,10 +301,65 @@ export default function HomeworkManager() {
         if (selContentType === 'gorsel' && !ct.includes('gorsel') && !ct.includes('image')) return false;
         if (selContentType === 'json' && !ct.includes('json') && !q.questionsList) return false;
       }
-      if (searchQuery.trim()) {
-        const sq = searchQuery.toLowerCase().trim();
-        if (!(q.title || q.name || '').toLowerCase().includes(sq) && !(q.questionText || '').toLowerCase().includes(sq)) return false;
+
+      // 2. Question type filter
+      if (selQuestionType === 'coktan_secmeli' && q.type !== 'coktan_secmeli') return false;
+      if (selQuestionType === 'acik_uclu' && q.type !== 'acik_uclu') return false;
+      if (selQuestionType === 'bundle' && !q.isBundle) return false;
+
+      // 3. Dropdown Grade Filter
+      if (selGrade && selGrade !== 'all') {
+        const gradeSubjects = (curData.subjects || []).filter(s => s.gradeId === selGrade).map(s => s.id);
+        const gradeUnits = (curData.units || []).filter(u => gradeSubjects.includes(u.subjectId)).map(u => u.id);
+        const gradeTopics = (curData.topics || []).filter(t => gradeUnits.includes(t.unitId)).map(t => t.id);
+        
+        const belongsToGrade = q.gradeId === selGrade ||
+          gradeTopics.includes(q.topicId) || 
+          gradeUnits.some(uId => q.topicId === `unit_${uId}_all` || q.unitId === uId) || 
+          gradeSubjects.some(sId => q.topicId === `sub_${sId}_all` || q.subjectId === sId) || 
+          q.topicId === `grade_${selGrade}_all`;
+
+        if (!belongsToGrade) return false;
       }
+
+      // 4. Dropdown Subject Filter
+      if (selSubject && selSubject !== 'all') {
+        const subjectUnits = (curData.units || []).filter(u => u.subjectId === selSubject).map(u => u.id);
+        const subjectTopics = (curData.topics || []).filter(t => subjectUnits.includes(t.unitId)).map(t => t.id);
+        const dropSubObj = (curData.subjects || []).find(s => s.id === selSubject);
+        const dropSubName = (dropSubObj?.name || '').toLowerCase().trim();
+        const qSubName = (q.subject || '').toLowerCase().trim();
+
+        const belongsToSubject = q.subjectId === selSubject ||
+          subjectTopics.includes(q.topicId) || 
+          subjectUnits.some(uId => q.topicId === `unit_${uId}_all` || q.unitId === uId) || 
+          q.topicId === `sub_${selSubject}_all` ||
+          (dropSubName && qSubName && qSubName === dropSubName);
+
+        if (!belongsToSubject) return false;
+      }
+
+      // 5. Dropdown Unit Filter
+      if (selUnit && selUnit !== 'all') {
+        const unitTopics = (curData.topics || []).filter(t => t.unitId === selUnit).map(t => t.id);
+        const belongsToUnit = q.unitId === selUnit || unitTopics.includes(q.topicId) || q.topicId === `unit_${selUnit}_all` || q.topicId === selUnit;
+        if (!belongsToUnit) return false;
+      }
+
+      // 6. Dropdown Topic Filter
+      if (selTopic && selTopic !== 'all') {
+        if (q.topicId !== selTopic) return false;
+      }
+
+      // 7. Search Query Filter
+      if (searchQuery.trim() !== '') {
+        const qStr = searchQuery.toLowerCase().trim();
+        const titleMatch = (q.title || q.name || '').toLowerCase().includes(qStr);
+        const textMatch = (q.questionText || '').toLowerCase().includes(qStr);
+        const subMatch = (q.subject || '').toLowerCase().includes(qStr);
+        if (!titleMatch && !textMatch && !subMatch) return false;
+      }
+
       return true;
     });
   }, [questions, selGrade, selSubject, selUnit, selTopic, selQuestionType, selContentType, searchQuery, curData]);
@@ -2743,21 +2925,33 @@ export default function HomeworkManager() {
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)' }}>Bu filtreye uygun soru bulunamadı.</div>
               </div>
             ) : (
-              <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.45rem', marginTop: '0.75rem', paddingRight: 4 }}>
+              <div style={{ maxHeight: 440, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.55rem', marginTop: '0.75rem', paddingRight: 4 }}>
                 {filteredQuestions.map(q => {
                   const isSel = selectedQuestionIds.includes(q.id);
+                  const cfg = contentConfig[q.contentType] || contentConfig.text;
+                  const hierarchyBadge = getQuestionHierarchyBadge(q, curData);
+                  const imgCount = Array.isArray(q.imageUrls) && q.imageUrls.length > 0
+                    ? q.imageUrls.length
+                    : (q.contentType === 'gorsel' ? 1 : 0);
+                  const qCount = q.questionsList?.length
+                    || q.questionCount
+                    || getAnswerKeyCount(q.answerKey)
+                    || (imgCount > 0 ? imgCount : 1);
+
                   return (
                     <div
                       key={q.id}
                       onClick={() => toggleQ(q.id)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '0.75rem',
-                        padding: '0.75rem 1rem', borderRadius: '0.85rem',
-                        border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
-                        background: isSel ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover)',
-                        cursor: 'pointer', transition: 'all 0.1s'
+                        padding: '0.85rem 1rem', borderRadius: '1rem',
+                        border: isSel ? '2px solid #6366f1' : `1.5px solid ${cfg.border || 'var(--color-border)'}`,
+                        background: isSel ? 'rgba(99,102,241,0.12)' : 'var(--color-surface)',
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        boxShadow: isSel ? '0 4px 14px rgba(99,102,241,0.2)' : 'none'
                       }}
                     >
+                      {/* Checkbox indicator */}
                       <div style={{
                         width: 22, height: 22, borderRadius: '0.45rem', flexShrink: 0,
                         border: isSel ? 'none' : '2px solid var(--color-border-input)',
@@ -2766,24 +2960,85 @@ export default function HomeworkManager() {
                       }}>
                         {isSel && <Check size={14} color="#fff" strokeWidth={3} />}
                       </div>
-                      <div style={{ width: 34, height: 34, borderRadius: '0.6rem', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--color-border)' }}>
-                        {getQIcon(q.contentType)}
+
+                      {/* Content Type Icon */}
+                      <div style={{
+                        width: 38, height: 38, borderRadius: '0.85rem',
+                        background: cfg.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '1.25rem', flexShrink: 0, boxShadow: `0 3px 10px ${cfg.accent}33`
+                      }}>
+                        {cfg.icon}
                       </div>
+
+                      {/* Info & Badges */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {q.title || q.name || 'Başlıksız Soru'}
+                        <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {q.title || q.name || cfg.label}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 2, display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {q.isBundle && <span style={{ background: 'rgba(124,58,237,0.12)', color: '#c084fc', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(124,58,237,0.25)' }}>{(q.questionCount || q.questionsList?.length || 1)} Soru Seti</span>}
-                          {q.type === 'acik_uclu' && <span style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', fontWeight: 800, padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(245,158,11,0.25)' }}>Açık Uçlu</span>}
-                          {q.contentType && <span>Format: {q.contentType}</span>}
+                        
+                        {hierarchyBadge && (
+                          <div style={{ fontSize: '0.71rem', color: cfg.accent, fontWeight: 800, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {hierarchyBadge}
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: 4, display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{
+                            background: cfg.iconBg, color: 'white',
+                            fontSize: '0.65rem', fontWeight: 900, padding: '0.12rem 0.45rem', borderRadius: '12px'
+                          }}>
+                            {cfg.label}
+                          </span>
+                          <span style={{
+                            background: q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: q.type === 'coktan_secmeli' ? '#10b981' : '#f59e0b',
+                            border: `1px solid ${q.type === 'coktan_secmeli' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                            fontSize: '0.65rem', fontWeight: 900, padding: '0.12rem 0.45rem', borderRadius: '12px'
+                          }}>
+                            {q.type === 'coktan_secmeli' ? '🔘 Çoktan Seçmeli' : '📝 Açık Uçlu'}
+                          </span>
+                          {qCount > 0 && (
+                            <span style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '0.12rem 0.45rem', fontWeight: 800, fontSize: '0.65rem', color: cfg.accent }}>
+                              📊 {qCount} Soru
+                            </span>
+                          )}
+                          {q.contentType === 'gorsel' && imgCount > 1 && (
+                            <span style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '0.12rem 0.45rem', fontWeight: 800, fontSize: '0.65rem', color: cfg.accent }}>
+                              🖼️ {imgCount} Görsel
+                            </span>
+                          )}
+                          {getAnswerKeyCount(q.answerKey) > 0 && (
+                            <span style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '0.12rem 0.45rem', fontWeight: 800, fontSize: '0.65rem', color: cfg.accent }}>
+                              🗝️ Cevap Anahtarlı
+                            </span>
+                          )}
                         </div>
                       </div>
-                      {isSel && (
-                        <span style={{ background: '#4f46e5', color: '#fff', fontWeight: 900, fontSize: '0.65rem', padding: '0.15rem 0.55rem', borderRadius: 99, flexShrink: 0, boxShadow: '0 2px 8px rgba(79,70,229,0.3)' }}>
-                          SEÇİLDİ
-                        </span>
-                      )}
+
+                      {/* Right Action: Preview button & selected chip */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewQuestion(q);
+                          }}
+                          style={{
+                            padding: '0.35rem 0.7rem', borderRadius: '0.6rem',
+                            border: `1px solid ${cfg.border || 'var(--color-border)'}`,
+                            background: 'var(--color-surface-hover)', color: cfg.accent,
+                            cursor: 'pointer', fontWeight: 800, fontSize: '0.74rem',
+                            display: 'flex', alignItems: 'center', gap: 4
+                          }}
+                        >
+                          <Eye size={13} /> Önizle
+                        </button>
+                        {isSel && (
+                          <span style={{ background: '#4f46e5', color: '#fff', fontWeight: 900, fontSize: '0.65rem', padding: '0.2rem 0.6rem', borderRadius: 99, flexShrink: 0, boxShadow: '0 2px 8px rgba(79,70,229,0.3)' }}>
+                            SEÇİLDİ
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -2908,6 +3163,196 @@ export default function HomeworkManager() {
 
         </div>
       )}
+
+      {/* ── RICH FULL QUESTION & TEST PREVIEW MODAL ── */}
+      {previewQuestion && (() => {
+        const q = previewQuestion;
+        const cfg = contentConfig[q.contentType] || contentConfig.text;
+        const hierarchyBadge = getQuestionHierarchyBadge(q, curData);
+        const isQSelected = selectedQuestionIds.includes(q.id);
+
+        return (
+          <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
+            <div className="modal-content" style={{ width: '96vw', maxWidth: '1150px', maxHeight: '92vh', overflowY: 'auto', padding: '2.25rem', borderRadius: '1.75rem', background: isDark ? '#0f172a' : '#ffffff', border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0', boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.6)' : '0 25px 60px rgba(0,0,0,0.15)', color: isDark ? '#f8fafc' : '#0f172a' }}>
+              
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    {(q.title || q.name) && (
+                      <span style={{ fontSize: '0.85rem', fontWeight: 900, padding: '0.25rem 0.75rem', borderRadius: '8px', background: isDark ? 'rgba(59,130,246,0.2)' : '#eff6ff', color: isDark ? '#93c5fd' : '#1d4ed8', border: isDark ? '1px solid rgba(59,130,246,0.3)' : '1px solid #bfdbfe' }}>
+                        🏷️ {q.title || q.name}
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: isDark ? 'rgba(99,102,241,0.2)' : '#eff6ff', color: isDark ? '#a5b4fc' : '#4f46e5', border: isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid #bfdbfe' }}>
+                      {cfg.label}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.65rem', borderRadius: '8px', background: q.type === 'coktan_secmeli' ? (isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4') : (isDark ? 'rgba(245,158,11,0.15)' : '#fffbeb'), color: q.type === 'coktan_secmeli' ? (isDark ? '#34d399' : '#16a34a') : (isDark ? '#fbbf24' : '#d97706'), border: `1px solid ${q.type === 'coktan_secmeli' ? (isDark ? 'rgba(52,211,153,0.3)' : '#bbf7d0') : (isDark ? 'rgba(251,191,36,0.3)' : '#fde68a')}` }}>
+                      {q.type === 'coktan_secmeli' ? '🔘 Optikli / Çoktan Seçmeli' : '📝 Açık Uçlu (Yazılı)'}
+                    </span>
+                  </div>
+
+                  {hierarchyBadge && (
+                    <div style={{ fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
+                      {hierarchyBadge}
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={() => setPreviewQuestion(null)} style={{ borderRadius: '50%', padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', color: isDark ? '#cbd5e1' : '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Status & Action Banner */}
+              <div style={{ background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4', border: isDark ? '1px solid rgba(52,211,153,0.3)' : '1px solid #bbf7d0', borderRadius: '1rem', padding: '0.85rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: isDark ? '#34d399' : '#16a34a', fontSize: '0.95rem', fontWeight: 800 }}>
+                  <CheckCircle2 size={20} />
+                  <span>Soru Önizleme &amp; İçerik Kontrolü</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleQ(q.id);
+                  }}
+                  style={{
+                    background: isQSelected ? 'linear-gradient(135deg,#e11d48,#be123c)' : 'linear-gradient(135deg,#059669,#10b981)',
+                    color: 'white', border: 'none', padding: '0.55rem 1.15rem', borderRadius: '0.65rem',
+                    fontSize: '0.85rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    boxShadow: isQSelected ? '0 4px 12px rgba(225,29,72,0.3)' : '0 4px 12px rgba(16,185,129,0.3)'
+                  }}
+                >
+                  {isQSelected ? <X size={16} /> : <Check size={16} />}
+                  {isQSelected ? 'Ödev Seçiminden Çıkar' : 'Bu Testi Ödeve Ekle'}
+                </button>
+              </div>
+
+              {/* QUESTION BODY PREVIEW */}
+              <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: '1.25rem', padding: '1.5rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                
+                {/* 1. PDF PREVIEW */}
+                {q.contentType === 'pdf' && (
+                  <div>
+                    <div style={{ width: '100%', height: '600px', borderRadius: '0.85rem', overflow: 'hidden', border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #cbd5e1' }}>
+                      <PdfViewerWithControls
+                        fileUrl={getEmbeddableUrl(q.contentPayload || q.pdfPayload || q.pdfUrl) || q.contentPayload}
+                        isDark={isDark}
+                        initialScale={1.1}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. HTML PREVIEW */}
+                {q.contentType === 'html' && (
+                  <div>
+                    <div style={{ width: '100%', height: '600px', borderRadius: '0.85rem', overflow: 'hidden', border: isDark ? '1.5px solid rgba(255,255,255,0.12)' : '1.5px solid #cbd5e1' }}>
+                      <HtmlViewerWithControls
+                        htmlContent={q.contentPayload || q.htmlPayload || ''}
+                        isDark={isDark}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. IMAGE PREVIEW */}
+                {(q.contentType === 'gorsel' || (q.imageUrls && q.imageUrls.length > 0)) && (
+                  <div style={{ textAlign: 'center' }}>
+                    {q.questionText && (
+                      <p style={{ fontWeight: 800, fontSize: '1.1rem', color: isDark ? '#ffffff' : '#0f172a', marginBottom: '1.25rem', textAlign: 'left' }}>{q.questionText}</p>
+                    )}
+                    {(() => {
+                      const subQList = (q.questionsList && Array.isArray(q.questionsList) && q.questionsList.length > 0) ? q.questionsList : [];
+                      let rawImages = [];
+                      if (subQList.length > 0) {
+                        rawImages = subQList.map(sq => normalizeImageUrl(sq.imageUrl || sq.contentPayload)).filter(isValidImageUrl);
+                      } else if (Array.isArray(q.imageUrls) && q.imageUrls.length > 0) {
+                        rawImages = q.imageUrls.filter(Boolean).filter(isValidImageUrl).map(normalizeImageUrl);
+                      } else if (q.contentPayload) {
+                        const splitted = q.contentPayload.split(/\n\n|\n|\|/).map(p => p.trim()).filter(isValidImageUrl).map(normalizeImageUrl);
+                        rawImages = splitted.length > 0 ? splitted : [normalizeImageUrl(q.contentPayload)].filter(isValidImageUrl);
+                      }
+                      const uniqueImages = [];
+                      rawImages.forEach(url => { if (url && !uniqueImages.includes(url)) uniqueImages.push(url); });
+                      const targetCount = Number(q.questionCount) || (uniqueImages.length > 0 ? uniqueImages.length : 1);
+                      const imageList = (uniqueImages.length > targetCount) ? uniqueImages.slice(0, targetCount) : (uniqueImages.length > 0 ? uniqueImages : (q.contentPayload ? [q.contentPayload] : ['']));
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                          {imageList.map((imgUrl, imgIdx) => (
+                            <div key={imgIdx} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', padding: '1.25rem', borderRadius: '1.25rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
+                              <div style={{ fontWeight: 900, color: isDark ? '#818cf8' : '#4f46e5', marginBottom: '0.85rem', fontSize: '0.95rem', textAlign: 'left' }}>
+                                🖼️ Görsel / Soru {imgIdx + 1} / {imageList.length}
+                              </div>
+                              <img src={imgUrl} alt={`Soru Görseli ${imgIdx + 1}`} style={{ maxWidth: '100%', maxHeight: '550px', borderRadius: '0.75rem', objectFit: 'contain' }} onError={(e) => { e.target.alt = "Görsel yüklenemedi."; }} />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* 4. TEXT / WRITTEN PREVIEW */}
+                {q.contentType !== 'pdf' && q.contentType !== 'html' && q.contentType !== 'gorsel' && !q.imageUrls?.length && (
+                  <div>
+                    {q.questionText && (
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: isDark ? '#ffffff' : '#0f172a', margin: '0 0 1.25rem 0', lineHeight: 1.6 }}>
+                        {q.questionText}
+                      </h4>
+                    )}
+                    {q.options && Array.isArray(q.options) && q.options.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                        {q.options.map((opt, oIdx) => {
+                          const isCorrect = q.correctAnswer === oIdx;
+                          return (
+                            <div key={oIdx} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', border: isCorrect ? '2px solid #10b981' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid #e2e8f0'), background: isCorrect ? (isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5') : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'), display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontWeight: 900, width: '24px', height: '24px', borderRadius: '50%', background: isCorrect ? '#10b981' : (isDark ? 'rgba(255,255,255,0.15)' : '#e2e8f0'), color: isCorrect ? 'white' : (isDark ? '#ffffff' : '#334155'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>
+                                {String.fromCharCode(65 + oIdx)}
+                              </span>
+                              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isCorrect ? (isDark ? '#34d399' : '#047857') : (isDark ? '#ffffff' : '#0f172a') }}>{opt}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Optic Answer Key Preview if available */}
+              {q.answerKey && normalizeAnswerKey(q.answerKey).length > 0 && (
+                <div style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', borderRadius: '1.25rem', padding: '1.25rem', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', marginBottom: '0.75rem' }}>
+                    🗝️ Cevap Anahtarı:
+                  </h4>
+                  <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+                    {normalizeAnswerKey(q.answerKey).map((keyLetter, idx) => (
+                      <div key={idx} style={{ padding: '0.4rem 0.65rem', borderRadius: '0.65rem', background: keyLetter && String(keyLetter).trim() !== '' ? (isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7') : (isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'), border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{idx + 1}:</span>
+                        <span style={{ color: isDark ? '#34d399' : '#15803d', fontWeight: 900 }}>{keyLetter || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '1rem', borderTop: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewQuestion(null)}
+                  style={{ padding: '0.6rem 1.4rem', borderRadius: '0.75rem', background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1', color: isDark ? '#f8fafc' : '#334155', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  Kapat
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

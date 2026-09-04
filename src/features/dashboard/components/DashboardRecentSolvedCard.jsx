@@ -12,13 +12,42 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
   const displayTests = React.useMemo(() => {
     const list = [];
     const seen = new Set();
+    const getExactTime = (item) => {
+      if (!item) return 0;
+      const candidates = [
+        item.submittedAt,
+        item.completedAt,
+        item.createdAt,
+        item.updatedAt,
+        item.evaluatedAt,
+        item.date,
+        item.raw_data?.submittedAt,
+        item.raw_data?.completedAt,
+        item.raw_data?.createdAt,
+        item.raw_data?.date,
+        item.timestamp
+      ];
+      for (const c of candidates) {
+        if (!c) continue;
+        if (typeof c === 'number' && c > 1000000000) return c > 1e11 ? c : c * 1000;
+        if (typeof c === 'string') {
+          const parsed = new Date(c).getTime();
+          if (!isNaN(parsed) && parsed > 1000000000) return parsed;
+        }
+      }
+      const idStr = String(item.id || item.submissionId || item.supabaseId || item.testId || '');
+      const match = idStr.match(/(?:sub_|me_)?(1[6-9]\d{11,12})/);
+      if (match) {
+        const num = Number(match[1]);
+        if (!isNaN(num) && num > 1600000000000) return num;
+      }
+      return 0;
+    };
+
     const sorted = [...(recentSolvedTests || [])].sort((a, b) => {
-      const aTitle = String(a.fullTitle || a.testTitle || a.title || '');
-      const bTitle = String(b.fullTitle || b.testTitle || b.title || '');
-      const aIsExam = Boolean(a.isPhysicalExam || a.typeKey === 'physicalExam' || /deneme|sınav/i.test(aTitle) || a.subject === 'Genel');
-      const bIsExam = Boolean(b.isPhysicalExam || b.typeKey === 'physicalExam' || /deneme|sınav/i.test(bTitle) || b.subject === 'Genel');
-      if (aIsExam && !bIsExam) return -1;
-      if (!aIsExam && bIsExam) return 1;
+      const timeB = getExactTime(b);
+      const timeA = getExactTime(a);
+      if (timeB !== timeA) return timeB - timeA;
       return 0;
     });
 

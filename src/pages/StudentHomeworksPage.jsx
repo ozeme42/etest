@@ -13,7 +13,7 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import {
   BookMarked, CheckCircle2, Clock, PlayCircle, AlertCircle,
   Search, ArrowLeft, ChevronRight, Eye, Sparkles, Filter,
-  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target, RefreshCw
+  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target, RefreshCw, Trash2
 } from 'lucide-react';
 
 const SUBJECT_ROW_THEMES = {
@@ -56,7 +56,7 @@ const getRowTheme = (subject, idx) => {
 export default function StudentHomeworksPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { homeworks, refreshHomeworks } = useHomework();
+  const { homeworks, refreshHomeworks, deleteHomework } = useHomework();
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
   const { submissions, syncFromSupabase } = useEvaluation();
   const { data: curData } = useCurriculum();
@@ -250,38 +250,13 @@ export default function StudentHomeworksPage() {
         }];
       }
 
-      if (Array.isArray(hw.tests) && hw.tests.length > 1) {
-        return hw.tests.map((tItem, tIdx) => {
-          const tId = typeof tItem === 'object' ? (tItem.id || tItem.testId) : tItem;
-          const subForTest = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId)) ||
-            (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId));
-
-          const testTitle = (typeof tItem === 'object' ? (tItem.title || tItem.name) : null) || `${hw.title || 'Ödev'} - Test ${tIdx + 1}`;
-          const qCount = (typeof tItem === 'object' ? (tItem.questionCount || tItem.qCount) : null) || 12;
-
-          return {
-            ...hw,
-            id: `${hw.id}_${tId || tIdx}`,
-            realTestId: tId || hw.id,
-            testId: tId || hw.id,
-            hwId: hw.id,
-            title: `${hw.title || 'Ödev'} › ${testTitle}`,
-            testName: testTitle,
-            status: subForTest ? 'Sonuçlandı' : 'Atandı',
-            isDone: !!subForTest,
-            questionCount: qCount,
-            totalScoreQuestions: qCount,
-            scorePct: subForTest ? (subForTest.scorePercentage !== undefined && subForTest.scorePercentage !== null ? Math.round(Number(subForTest.scorePercentage)) : (typeof subForTest.score === 'number' && subForTest.score <= 100 ? Math.round(subForTest.score) : null)) : null,
-            submissionId: subForTest?.id,
-            submittedAt: subForTest?.submittedAt || subForTest?.createdAt
-          };
-        });
-      }
-
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
         (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
 
       let qCount = hw.totalQuestions || hw.questionCount || 0;
+      if (!qCount && Array.isArray(hw.tests) && hw.tests.length > 0) {
+        qCount = hw.tests.reduce((acc, t) => acc + (typeof t === 'object' ? (t.questionCount || t.qCount || 12) : 12), 0);
+      }
       if (!qCount && Array.isArray(hw.sections) && hw.sections.length > 0) {
         qCount = hw.sections.reduce((acc, sec) => acc + (sec.qCount || sec.questionCount || 0), 0);
       }
@@ -289,6 +264,12 @@ export default function StudentHomeworksPage() {
         qCount = hw.questionIds.length;
       }
       if (!qCount) qCount = 1;
+
+      const sectionCount = (Array.isArray(hw.tests) && hw.tests.length > 1)
+        ? hw.tests.length
+        : (Array.isArray(hw.sections) && hw.sections.length > 1)
+        ? hw.sections.length
+        : 1;
 
       let correctCount = 0;
       if (sub) {
@@ -337,6 +318,7 @@ export default function StudentHomeworksPage() {
         status: sub ? 'Sonuçlandı' : 'Atandı',
         isDone: !!sub,
         questionCount: qCount,
+        sectionCount,
         correctAnswers: correctCount,
         totalScoreQuestions: qCount,
         scorePct,
@@ -576,10 +558,15 @@ export default function StudentHomeworksPage() {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${sId}`, { state: { from: '/student/homeworks', isReview: true } });
       return;
     }
+    const stateData = {
+      from: '/student/homeworks',
+      hwId: task.hwId || task.id,
+      test: task.raw_data || task
+    };
     if (task.submissionId) {
-      navigate(`/review/${task.submissionId}?studentId=${sId}`);
+      navigate(`/review/${task.submissionId}?studentId=${sId}&hwId=${task.hwId || task.id}`, { state: stateData });
     } else if (task.bookTestId || task.realTestId || task.hwId || task.id) {
-      navigate(`/quiz-review/${task.bookTestId || task.realTestId || task.hwId || task.id}?studentId=${sId}`);
+      navigate(`/quiz-review/${task.bookTestId || task.realTestId || task.hwId || task.id}?studentId=${sId}&hwId=${task.hwId || task.id}`, { state: stateData });
     } else {
       navigate('/student-results');
     }
@@ -1129,6 +1116,11 @@ export default function StudentHomeworksPage() {
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: task.isPhysical ? '#92400e' : task.isBookAssignment ? '#065f46' : '#4c1d95', background: task.isPhysical ? '#fef3c7' : task.isBookAssignment ? '#d1fae5' : '#ede9fe', padding: '2px 8px', borderRadius: 99, border: task.isPhysical ? '1px solid #fde68a' : task.isBookAssignment ? '1px solid #6ee7b7' : '1px solid #ddd6fe', whiteSpace: 'nowrap' }}>
                               {task.isPhysical ? '📋 Deneme' : task.isBookAssignment ? '📖 Kitap' : '🎯 Dijital'}
                             </span>
+                            {task.sectionCount > 1 && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', fontWeight: 800, color: '#6d28d9', background: '#f3e8ff', padding: '2px 8px', borderRadius: 99, border: '1px solid #d8b4fe', whiteSpace: 'nowrap' }}>
+                                📚 {task.sectionCount} Test / Bölüm
+                              </span>
+                            )}
                           </div>
 
                           {/* Başlık */}
@@ -1187,7 +1179,7 @@ export default function StudentHomeworksPage() {
                         </div>
 
                         {/* SAĞ: Aksiyon */}
-                        <div className="hw-row-actions" style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                        <div className="hw-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {task.isDone ? (
                             <button
                               type="button"
@@ -1239,6 +1231,39 @@ export default function StudentHomeworksPage() {
                             >
                               <PlayCircle size={14} />
                               {isOverdue ? 'Hemen Çöz' : isDueToday ? 'Bugün Çöz' : 'Çöz'}
+                            </button>
+                          )}
+
+                          {/* Delete Button for Teacher/Admin/Author */}
+                          {(currentUser?.role === 'admin' || currentUser?.role === 'teacher' || currentUser?.role === 'coach') && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const delTitle = task.title || task.name || 'bu ödevi';
+                                if (window.confirm(`"${delTitle}" ödevini veritabanından tamamen silmek istediğinize emin misiniz?`)) {
+                                  if (task.hwId) await deleteHomework(task.hwId);
+                                  else if (task.id) await deleteHomework(task.id);
+                                  if (task.supabaseId && task.supabaseId !== task.hwId && task.supabaseId !== task.id) {
+                                    await deleteHomework(task.supabaseId);
+                                  }
+                                }
+                              }}
+                              title="Ödevi Tamamen Sil"
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.08)',
+                                color: '#ef4444',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                borderRadius: 8,
+                                padding: '0.5rem 0.55rem',
+                                fontSize: '0.75rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>

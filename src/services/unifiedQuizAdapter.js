@@ -196,11 +196,29 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
 
   // 1. Resolve raw sections
   let rawSectionsList = [];
-  const candidateSections = (Array.isArray(rawTest.sections) && rawTest.sections.length > 1)
+  const rawSectionsArr = (Array.isArray(rawTest.sections) && rawTest.sections.length > 0)
     ? rawTest.sections
-    : (Array.isArray(rawTest.tests) && rawTest.tests.length > 1
-        ? rawTest.tests
-        : (Array.isArray(rawTest.items) && rawTest.items.length > 1 ? rawTest.items : null));
+    : (rawTest.sections && typeof rawTest.sections === 'object' && Object.keys(rawTest.sections).length > 0)
+      ? Object.values(rawTest.sections)
+      : null;
+
+  const rawTestsArr = (Array.isArray(rawTest.tests) && rawTest.tests.length > 0)
+    ? rawTest.tests
+    : (rawTest.tests && typeof rawTest.tests === 'object' && Object.keys(rawTest.tests).length > 0)
+      ? Object.values(rawTest.tests)
+      : null;
+
+  const candidateSections = (rawSectionsArr && rawSectionsArr.length > 1)
+    ? rawSectionsArr
+    : (rawTestsArr && rawTestsArr.length > 1
+        ? rawTestsArr
+        : (Array.isArray(rawTest.items) && rawTest.items.length > 1
+            ? rawTest.items
+            : (Array.isArray(rawTest.questionIds) && rawTest.questionIds.length > 1
+                ? rawTest.questionIds
+                : (Array.isArray(rawTest.selectedQuestions) && rawTest.selectedQuestions.length > 1
+                    ? rawTest.selectedQuestions
+                    : null))));
 
   if (candidateSections && candidateSections.length > 1) {
     rawSectionsList = candidateSections.map((item, idx) => {
@@ -311,65 +329,71 @@ export function normalizeUnifiedTest(rawTest = {}, allBankQuestions = []) {
       }
 
       // Correct Answer normalization:
-      // Priority 1: If individual raw question object exists for this index (multi-question array): qObj.correctAnswer
-      // Correct Answer normalization:
-      // Priority 1: qObj.correctAnswer / qObj.correct_answer / qObj.bankQ.correctAnswer
-      // Priority 2: sec.questionsList?.[i]?.correctAnswer
-      // Priority 3: If targetCount === 1, sec.correctAnswer / sec.bankQ.correctAnswer
-      // Priority 4: sec.answerKey / sec.bankQ.answerKey / rawTest.answerKey
       let rawCorrect = null;
       const isValidVal = (v) => v !== undefined && v !== null && (typeof v === 'string' ? v.trim() !== '' && v.trim() !== 'empty' : true);
 
-      if (isValidVal(qObj.correctAnswer)) {
-        rawCorrect = qObj.correctAnswer;
-      } else if (isValidVal(qObj.correct_answer)) {
-        rawCorrect = qObj.correct_answer;
-      } else if (isValidVal(qObj.bankQ?.correctAnswer)) {
-        rawCorrect = qObj.bankQ.correctAnswer;
-      } else if (isValidVal(qObj.bankQ?.correct_answer)) {
-        rawCorrect = qObj.bankQ.correct_answer;
-      } else if (isValidVal(sec.questionsList?.[i]?.correctAnswer)) {
-        rawCorrect = sec.questionsList[i].correctAnswer;
-      } else if (targetCount === 1 && isValidVal(sec.correctAnswer)) {
-        rawCorrect = sec.correctAnswer;
-      } else if (targetCount === 1 && isValidVal(sec.bankQ?.correctAnswer)) {
-        rawCorrect = sec.bankQ.correctAnswer;
-      } else {
-        const keySources = [
-          sec.answerKey,
-          sec.answer_key,
-          sec.opticAnswers,
-          sec.imageAnswers,
-          sec.bankQ?.answerKey,
-          sec.bankQ?.answer_key,
-          sec.bankQ?.opticAnswers,
-          sec.bankQ?.imageAnswers,
-          rawTest.answerKey,
-          rawTest.answer_key,
-          rawTest.opticAnswers
-        ];
-        for (const ks of keySources) {
-          if (!ks) continue;
-          if (Array.isArray(ks)) {
-            const val = ks[i] ?? ks[String(i)] ?? (ks[0] === null ? ks[qNo] : undefined);
-            if (isValidVal(val)) {
-              rawCorrect = val;
-              break;
-            }
-          } else if (typeof ks === 'object' && ks !== null) {
-            const isZeroIndexed = (0 in ks) || ('0' in ks);
-            const val = isZeroIndexed ? (ks[i] ?? ks[String(i)]) : (ks[qNo] ?? ks[String(qNo)] ?? ks[i]);
-            if (isValidVal(val)) {
-              rawCorrect = val;
-              break;
-            }
-          } else if (typeof ks === 'string') {
-            const clean = ks.replace(/[^A-Ea-e0-4]/g, '');
-            if (clean.length > i) {
-              rawCorrect = clean[i];
-              break;
-            }
-          }
+      // Priority 1: Check section/bankQ's imageAnswers map specifically for question i
+      const imageAnsMap = sec.imageAnswers || sec.bankQ?.imageAnswers || rawTest.imageAnswers;
+      if (imageAnsMap) {
+        if (isValidVal(imageAnsMap[i])) rawCorrect = imageAnsMap[i];
+        else if (isValidVal(imageAnsMap[String(i)])) rawCorrect = imageAnsMap[String(i)];
+        else if (isValidVal(imageAnsMap[qNo])) rawCorrect = imageAnsMap[qNo];
+        else if (isValidVal(imageAnsMap[String(qNo)])) rawCorrect = imageAnsMap[String(qNo)];
+      }
+
+      // Priority 2: Check section/bankQ's answerKey specifically for question i
+      if (!isValidVal(rawCorrect)) {
+        const secKeys = sec.answerKey || sec.answer_key || sec.bankQ?.answerKey || sec.bankQ?.answer_key;
+        if (Array.isArray(secKeys)) {
+          if (isValidVal(secKeys[i])) rawCorrect = secKeys[i];
+          else if (secKeys[0] === null && isValidVal(secKeys[qNo])) rawCorrect = secKeys[qNo];
+        } else if (typeof secKeys === 'object' && secKeys !== null) {
+          if (isValidVal(secKeys[i])) rawCorrect = secKeys[i];
+          else if (isValidVal(secKeys[String(i)])) rawCorrect = secKeys[String(i)];
+          else if (isValidVal(secKeys[qNo])) rawCorrect = secKeys[qNo];
+          else if (isValidVal(secKeys[String(qNo)])) rawCorrect = secKeys[String(qNo)];
+        } else if (typeof secKeys === 'string') {
+          const clean = secKeys.replace(/[^A-Ea-e0-4]/g, '');
+          if (clean.length > i) rawCorrect = clean[i];
+        }
+      }
+
+      // Priority 3: Check sec.questionsList / subQuestions at index i
+      if (!isValidVal(rawCorrect)) {
+        const qList = sec.questionsList || sec.bankQ?.questionsList || sec.subQuestions || sec.bankQ?.subQuestions;
+        if (Array.isArray(qList) && qList[i]) {
+          const cand = qList[i].correctAnswer ?? qList[i].correct_answer ?? qList[i].answer ?? qList[i].correctOption;
+          if (isValidVal(cand)) rawCorrect = cand;
+        }
+      }
+
+      // Priority 4: Individual qObj.correctAnswer
+      if (!isValidVal(rawCorrect)) {
+        if (isValidVal(qObj.correctAnswer)) rawCorrect = qObj.correctAnswer;
+        else if (isValidVal(qObj.correct_answer)) rawCorrect = qObj.correct_answer;
+        else if (isValidVal(qObj.bankQ?.correctAnswer)) rawCorrect = qObj.bankQ.correctAnswer;
+        else if (isValidVal(qObj.bankQ?.correct_answer)) rawCorrect = qObj.bankQ.correct_answer;
+      }
+
+      // Priority 5: Single question container fallback
+      if (!isValidVal(rawCorrect) && targetCount === 1) {
+        if (isValidVal(sec.correctAnswer)) rawCorrect = sec.correctAnswer;
+        else if (isValidVal(sec.bankQ?.correctAnswer)) rawCorrect = sec.bankQ.correctAnswer;
+      }
+
+      // Priority 6: Global test-level answerKey fallback
+      if (!isValidVal(rawCorrect)) {
+        const rawTestKeys = rawTest.answerKey || rawTest.answer_key || rawTest.opticAnswers;
+        if (Array.isArray(rawTestKeys) && isValidVal(rawTestKeys[i])) {
+          rawCorrect = rawTestKeys[i];
+        } else if (typeof rawTestKeys === 'object' && rawTestKeys !== null) {
+          if (isValidVal(rawTestKeys[i])) rawCorrect = rawTestKeys[i];
+          else if (isValidVal(rawTestKeys[String(i)])) rawCorrect = rawTestKeys[String(i)];
+          else if (isValidVal(rawTestKeys[qNo])) rawCorrect = rawTestKeys[qNo];
+          else if (isValidVal(rawTestKeys[String(qNo)])) rawCorrect = rawTestKeys[String(qNo)];
+        } else if (typeof rawTestKeys === 'string') {
+          const clean = rawTestKeys.replace(/[^A-Ea-e0-4]/g, '');
+          if (clean.length > i) rawCorrect = clean[i];
         }
       }
 

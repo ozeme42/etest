@@ -6,7 +6,7 @@ import QuizPanelLayout from '../runner/QuizPanelLayout';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
-import { ArrowLeft, Save, Clock, Award, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Clock, Award, CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * SingleOpenEndedReview
@@ -22,6 +22,9 @@ export default function SingleOpenEndedReview({
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { updateSubmission } = useEvaluation();
   const { updateHomeworkSubmission } = useHomework();
+
+  const [activeQIdx, setActiveQIdx] = useState(0);
+  const [viewMode, setViewMode] = useState('single');
 
   const answers = submission.answers || [];
 
@@ -511,33 +514,200 @@ export default function SingleOpenEndedReview({
           defaultSize={300}
           defaultOpenOnMobile={false}
           documentContent={
-            <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {effectiveQuestions.map((q, idx) => {
-                const qNo = idx + 1;
-                const userText = q.userAnswerText || textMap[qNo] || '';
-                const teacherScore = teacherScores.sec_1?.[qNo];
-                const teacherNote = teacherNotes.sec_1?.[qNo] || '';
-                const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
+            <div style={{ padding: isMobile ? '0.75rem 0.65rem' : '1.25rem 1.5rem', overflowY: 'auto', height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Question Bubbles Navigator & View Mode Toggle */}
+              {totalQuestions > 1 && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  background: 'var(--color-surface, #ffffff)',
+                  border: '1.5px solid var(--color-border, #e2e8f0)',
+                  borderRadius: '0.85rem',
+                  padding: '0.45rem 0.75rem',
+                  flexShrink: 0
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                    {effectiveQuestions.map((q, idx) => {
+                      const qNo = idx + 1;
+                      const score = teacherScores.sec_1?.[qNo];
+                      const text = q.userAnswerText || textMap[qNo] || '';
+                      const isSelected = viewMode === 'single' && activeQIdx === idx;
+                      const isGraded = score !== undefined && score !== null && score !== '' && score !== 'empty';
+                      const isBlank = !text || text.trim() === '';
 
-                return (
-                  <OpenEndedReview
-                    key={q.id || idx}
-                    question={{ ...q, imageUrl: qImage || q.imageUrl }}
-                    qNo={qNo}
-                    totalQuestions={totalQuestions}
-                    userAnswerText={userText}
-                    studentAnswerText={userText}
-                    teacherScore={teacherScore}
-                    teacherNote={teacherNote}
-                    isTrulyEvaluated={isTrulyEvaluated}
-                    onScoreChange={(sc) => handleScoreChange('sec_1', qNo, sc)}
-                    onNoteChange={(nt) => handleNoteChange('sec_1', qNo, nt)}
-                    isTeacher={isTeacher}
-                    isTeacherMode={isTeacher}
-                    isMobile={isMobile}
-                  />
-                );
-              })}
+                      return (
+                        <button
+                          key={q.id || idx}
+                          type="button"
+                          onClick={() => {
+                            setViewMode('single');
+                            setActiveQIdx(idx);
+                          }}
+                          style={{
+                            minWidth: '32px',
+                            height: '32px',
+                            borderRadius: '0.5rem',
+                            border: isSelected ? '2px solid #7c3aed' : '1px solid #cbd5e1',
+                            background: isSelected ? '#7c3aed' : (isGraded ? '#dcfce7' : (isBlank ? '#ffffff' : '#faf5ff')),
+                            color: isSelected ? '#ffffff' : (isGraded ? '#15803d' : (isBlank ? '#94a3b8' : '#7c3aed')),
+                            fontWeight: 900,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {qNo}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode(prev => prev === 'single' ? 'list' : 'single')}
+                    style={{
+                      padding: '0.3rem 0.6rem',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {viewMode === 'single' ? 'Tüm Liste' : 'Tek Soru'}
+                  </button>
+                </div>
+              )}
+
+              {/* Question Content */}
+              {viewMode === 'single' && totalQuestions > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(() => {
+                    const q = effectiveQuestions[activeQIdx] || effectiveQuestions[0];
+                    const qNo = activeQIdx + 1;
+                    const userText = q.userAnswerText || textMap[qNo] || '';
+                    const teacherScore = teacherScores.sec_1?.[qNo];
+                    const teacherNote = teacherNotes.sec_1?.[qNo] || '';
+                    const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
+
+                    return (
+                      <OpenEndedReview
+                        key={q.id || activeQIdx}
+                        question={{ ...q, imageUrl: qImage || q.imageUrl }}
+                        qNo={qNo}
+                        totalQuestions={totalQuestions}
+                        userAnswerText={userText}
+                        studentAnswerText={userText}
+                        teacherScore={teacherScore}
+                        teacherNote={teacherNote}
+                        isTrulyEvaluated={isTrulyEvaluated}
+                        onScoreChange={(sc) => handleScoreChange('sec_1', qNo, sc)}
+                        onNoteChange={(nt) => handleNoteChange('sec_1', qNo, nt)}
+                        isTeacher={isTeacher}
+                        isTeacherMode={isTeacher}
+                        isMobile={isMobile}
+                      />
+                    );
+                  })()}
+
+                  {/* Stepper Bottom Action */}
+                  {totalQuestions > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--color-surface, #ffffff)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '0.85rem',
+                      padding: '0.5rem 0.85rem',
+                      marginTop: '0.25rem'
+                    }}>
+                      <button
+                        type="button"
+                        disabled={activeQIdx === 0}
+                        onClick={() => setActiveQIdx(prev => Math.max(0, prev - 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.4rem 0.75rem',
+                          borderRadius: '0.6rem',
+                          border: '1.5px solid #cbd5e1',
+                          background: activeQIdx === 0 ? '#f1f5f9' : '#ffffff',
+                          color: activeQIdx === 0 ? '#94a3b8' : '#0f172a',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          cursor: activeQIdx === 0 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx === 0 ? 0.45 : 1
+                        }}
+                      >
+                        <ChevronLeft size={15} />
+                        <span>Önceki Soru</span>
+                      </button>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'var(--color-text-secondary, #64748b)' }}>
+                        {activeQIdx + 1} / {totalQuestions}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={activeQIdx >= totalQuestions - 1}
+                        onClick={() => setActiveQIdx(prev => Math.min(totalQuestions - 1, prev + 1))}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '0.6rem',
+                          border: 'none',
+                          background: activeQIdx >= totalQuestions - 1 ? '#f1f5f9' : 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                          color: activeQIdx >= totalQuestions - 1 ? '#94a3b8' : '#ffffff',
+                          fontSize: '0.78rem',
+                          fontWeight: 900,
+                          cursor: activeQIdx >= totalQuestions - 1 ? 'not-allowed' : 'pointer',
+                          opacity: activeQIdx >= totalQuestions - 1 ? 0.45 : 1
+                        }}
+                      >
+                        <span>Sonraki Soru</span>
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                effectiveQuestions.map((q, idx) => {
+                  const qNo = idx + 1;
+                  const userText = q.userAnswerText || textMap[qNo] || '';
+                  const teacherScore = teacherScores.sec_1?.[qNo];
+                  const teacherNote = teacherNotes.sec_1?.[qNo] || '';
+                  const qImage = idbPayloadMap[q.id] || idbPayloadMap[test.id] || q.imageUrl || (Array.isArray(q.imageUrls) ? q.imageUrls[0] : null);
+
+                  return (
+                    <OpenEndedReview
+                      key={q.id || idx}
+                      question={{ ...q, imageUrl: qImage || q.imageUrl }}
+                      qNo={qNo}
+                      totalQuestions={totalQuestions}
+                      userAnswerText={userText}
+                      studentAnswerText={userText}
+                      teacherScore={teacherScore}
+                      teacherNote={teacherNote}
+                      isTrulyEvaluated={isTrulyEvaluated}
+                      onScoreChange={(sc) => handleScoreChange('sec_1', qNo, sc)}
+                      onNoteChange={(nt) => handleNoteChange('sec_1', qNo, nt)}
+                      isTeacher={isTeacher}
+                      isTeacherMode={isTeacher}
+                      isMobile={isMobile}
+                    />
+                  );
+                })
+              )}
 
               {/* Overall Feedback Box */}
               {isTeacher ? (

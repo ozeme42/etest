@@ -1623,14 +1623,24 @@ export async function dbGetHomeworks() {
     return (data || [])
       .filter(h => {
         if (!h || h.id === 'global_ai_config' || h.subject === 'SYSTEM' || String(h.title || '').includes('GLOBAL_AI_CONFIG')) return false;
-        const hId = String(h.id || '');
+        const hId = String(h.id || '').trim();
         let rawId = '';
+        let rawStrId = '';
+        let rawSupId = '';
         try {
           const raw = typeof h.raw_data === 'string' ? JSON.parse(h.raw_data) : (h.raw_data || {});
-          rawId = String(raw.id || raw.stringId || '');
+          rawId = String(raw.id || '').trim();
+          rawStrId = String(raw.stringId || '').trim();
+          rawSupId = String(raw.supabaseId || '').trim();
         } catch {}
-        if (deletedIdSet.has(hId) || (rawId && deletedIdSet.has(rawId))) return false;
-        return true;
+        const isDel = deletedIdSet.has(hId) || 
+          (rawId && deletedIdSet.has(rawId)) || 
+          (rawStrId && deletedIdSet.has(rawStrId)) || 
+          (rawSupId && deletedIdSet.has(rawSupId)) ||
+          (toUUID(hId) && deletedIdSet.has(toUUID(hId))) ||
+          (rawId && toUUID(rawId) && deletedIdSet.has(toUUID(rawId))) ||
+          (rawStrId && toUUID(rawStrId) && deletedIdSet.has(toUUID(rawStrId)));
+        return !isDel;
       })
       .map(h => {
       let raw = {};
@@ -1900,57 +1910,85 @@ export async function dbDeleteHomework(hwId) {
   if (!isSupabaseConfigured() || !hwId) return null;
   try {
     const hwStr = String(hwId).trim();
-    const validHwUuids = ensureUUIDs([hwStr, hwStr.replace(/^hw_?/, '')]);
+    const cleanId = hwStr.replace(/^hw_?/, '');
+    const validHwUuids = ensureUUIDs([hwStr, cleanId]);
 
     // 1. Fetch matching rows to ensure exact deletion from homeworks table
     const matchingRowIds = new Set(validHwUuids);
     if (isValidUUID(hwStr)) matchingRowIds.add(hwStr);
+    if (isValidUUID(cleanId)) matchingRowIds.add(cleanId);
+    matchingRowIds.add(hwStr);
+    matchingRowIds.add(cleanId);
 
     try {
       const { data: rows } = await supabase.from('homeworks').select('id, raw_data');
       (rows || []).forEach(r => {
-        const rId = String(r.id);
-        const rawId = String(r.raw_data?.id || '');
-        const rawStrId = String(r.raw_data?.stringId || '');
+        let raw = r.raw_data;
+        if (typeof raw === 'string') {
+          try { raw = JSON.parse(raw); } catch {}
+        }
+        const rId = String(r.id || '').trim();
+        const rawId = String(raw?.id || '').trim();
+        const rawStrId = String(raw?.stringId || '').trim();
+        const rawSupId = String(raw?.supabaseId || '').trim();
+
         if (
           rId === hwStr ||
+          rId === cleanId ||
           validHwUuids.includes(rId) ||
           rawId === hwStr ||
+          rawId === cleanId ||
           rawStrId === hwStr ||
+          rawStrId === cleanId ||
+          rawSupId === hwStr ||
+          rawSupId === cleanId ||
           toUUID(rawId) === hwStr ||
           toUUID(rawStrId) === hwStr ||
           validHwUuids.includes(toUUID(rawId)) ||
-          validHwUuids.includes(toUUID(rawStrId))
+          validHwUuids.includes(toUUID(rawStrId)) ||
+          validHwUuids.includes(toUUID(rawSupId))
         ) {
           matchingRowIds.add(rId);
+          if (rawId) matchingRowIds.add(rawId);
+          if (rawStrId) matchingRowIds.add(rawStrId);
         }
       });
     } catch (e) {}
 
-      const deleteIdsList = Array.from(matchingRowIds);
-      const allSubTestIds = Array.from(new Set([hwStr, ...validHwUuids, hwStr.replace(/^hw_?/, ''), ...deleteIdsList]));
+    const deleteIdsList = Array.from(matchingRowIds).filter(Boolean);
+    const allSubTestIds = Array.from(new Set([hwStr, cleanId, ...validHwUuids, ...deleteIdsList]));
 
-      // 1. Decouple related submissions rather than deleting them, ensuring student test results and book progress are preserved
-      if (allSubTestIds.length > 0) {
-        try {
-          await supabase.from('submissions').update({ homework_id: null }).in('homework_id', allSubTestIds);
-        } catch (e) {}
-      }
+    // 1. Decouple related submissions rather than deleting them, ensuring student test results and book progress are preserved
+    if (allSubTestIds.length > 0) {
+      try {
+        await supabase.from('submissions').update({ homework_id: null }).in('homework_id', allSubTestIds);
+      } catch (e) {}
+    }
 
-      // 2. Now delete the homework itself
-      if (deleteIdsList.length > 0) {
-        try {
-          const res = await supabase.from('homeworks').delete().in('id', deleteIdsList);
-          if (res.error) console.error('[Supabase] dbDeleteHomework API Error:', res.error);
-        } catch (e) {
-          console.error('[Supabase] dbDeleteHomework try/catch Error:', e);
-        }
+    // 2. Now delete the homework itself from homeworks table using multiple strategies
+    if (deleteIdsList.length > 0) {
+      try {
+        await supabase.from('homeworks').delete().in('id', deleteIdsList);
+      } catch (e) {
+        console.error('[Supabase] dbDeleteHomework try/catch Error:', e);
       }
+    }
+    try {
+      if (hwStr) await supabase.from('homeworks').delete().eq('id', hwStr);
+      if (cleanId && cleanId !== hwStr) await supabase.from('homeworks').delete().eq('id', cleanId);
+      if (validHwUuids[0]) await supabase.from('homeworks').delete().eq('id', validHwUuids[0]);
+    } catch (e) {}
 
     // 3. Record deletion in deleted_records for audit / tombstoning
     try {
       await dbRecordDeletedItem(hwStr, 'homework');
-      if (validHwUuids[0]) await dbRecordDeletedItem(validHwUuids[0], 'homework');
+      if (cleanId && cleanId !== hwStr) await dbRecordDeletedItem(cleanId, 'homework');
+      for (const u of validHwUuids) {
+        if (u) await dbRecordDeletedItem(u, 'homework');
+      }
+      for (const did of deleteIdsList) {
+        if (did) await dbRecordDeletedItem(did, 'homework');
+      }
     } catch (e) {}
 
     return true;

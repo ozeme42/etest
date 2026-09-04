@@ -2,7 +2,7 @@ import React, { memo, useMemo, useState, useEffect } from 'react';
 import { Eye, Key, Check, X, HelpCircle, Lightbulb, Sparkles, BookOpen } from 'lucide-react';
 import { extractQuestionText, extractQuestionOptions, hasMeaningfulOptions } from '../../../utils/testResolver';
 import { idbGetPayload } from '../../../services/indexedDbService';
-import ImageLightbox from '../common/ImageLightbox';
+import ImageLightbox, { isValidImageUrl } from '../common/ImageLightbox';
 import ScreenSnipperAndSolverModal from '../ai/ScreenSnipperAndSolverModal';
 import AiUsageBadge from '../ai/AiUsageBadge';
 
@@ -15,7 +15,8 @@ const MISTAKE_REASON_OPTIONS = [
 ];
 
 const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFullscreen }) {
-  if (!src) return null;
+  const [hasError, setHasError] = useState(false);
+  if (!src || hasError || !isValidImageUrl(src)) return null;
   return (
     <div style={{
       position: 'relative',
@@ -34,6 +35,7 @@ const StandardImageFrame = memo(function StandardImageFrame({ src, alt, onOpenFu
       <img
         src={src}
         alt={alt || 'Soru Görseli'}
+        onError={() => setHasError(true)}
         style={{
           maxWidth: '100%',
           maxHeight: '65vh',
@@ -111,7 +113,7 @@ export default function MultipleChoiceReview({
         for (const k of variants) {
           try {
             const val = await idbGetPayload(k);
-            if (val && typeof val === 'string' && (val.startsWith('data:image') || val.startsWith('http') || val.length > 100) && !val.includes('[STORED_IN_INDEXEDDB]') && isMounted) {
+            if (val && typeof val === 'string' && isValidImageUrl(val) && isMounted) {
               setIdbImage(val);
               return;
             }
@@ -180,16 +182,25 @@ export default function MultipleChoiceReview({
   const topicName = question?.topic || question?.topicName || '';
 
   const resolvedImages = useMemo(() => {
-    const isValidImg = (v) => typeof v === 'string' && v && !v.includes('[STORED_IN_INDEXEDDB]') && !v.includes('[LOCALSTORAGE_CACHE]') && (v.startsWith('data:image') || v.startsWith('http') || v.startsWith('blob:') || /\.(png|jpe?g|webp|gif|svg)/i.test(v) || v.length > 100);
+    const isExplicitPureText = Boolean(
+      question?.formatType === 'text' ||
+      question?.sourceFormat === 'text' ||
+      question?.contentType === 'text' ||
+      question?.type === 'metin' ||
+      (!question?.imageUrl && !question?.imageUrls?.length && !question?.images?.length && question?.format === 'text')
+    );
+    if (isExplicitPureText) {
+      return [];
+    }
 
     const urls = [];
     const addVal = (val) => {
       if (!val) return;
       if (Array.isArray(val)) {
         val.forEach(addVal);
-      } else if (isValidImg(val)) {
+      } else if (typeof val === 'string' && isValidImageUrl(val)) {
         if (val.includes('\n\n') || val.includes('\n') || val.includes('|')) {
-          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImg);
+          const parts = val.split(/\n\n|\n|\|/).map(s => s.trim()).filter(isValidImageUrl);
           urls.push(...parts);
         } else {
           urls.push(val.trim());
@@ -198,7 +209,7 @@ export default function MultipleChoiceReview({
     };
 
     if (Array.isArray(imageUrls) && imageUrls.length > 0) imageUrls.forEach(addVal);
-    if (urls.length === 0 && question?.imageUrl) addVal(question.imageUrl);
+    if (urls.length === 0 && question?.imageUrl && isValidImageUrl(question.imageUrl)) addVal(question.imageUrl);
     if (urls.length === 0) {
       const qImages = question?.images || question?.imageUrls;
       if (Array.isArray(qImages) && qImages.length > 0) {
@@ -211,10 +222,10 @@ export default function MultipleChoiceReview({
       }
     }
     if (urls.length === 0) {
-      addVal(question?.imagePayload);
-      addVal(question?.contentPayload);
+      if (question?.imagePayload && isValidImageUrl(question.imagePayload)) addVal(question.imagePayload);
+      if (question?.contentPayload && isValidImageUrl(question.contentPayload)) addVal(question.contentPayload);
     }
-    if (urls.length === 0 && idbImage) addVal(idbImage);
+    if (urls.length === 0 && idbImage && isValidImageUrl(idbImage)) addVal(idbImage);
 
     return Array.from(new Set(urls.filter(Boolean)));
   }, [imageUrls, question, qNo, idbImage]);

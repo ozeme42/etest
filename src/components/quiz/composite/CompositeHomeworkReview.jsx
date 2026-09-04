@@ -17,6 +17,7 @@ import QuizPanelLayout from '../runner/QuizPanelLayout';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
 import HtmlViewerWithControls from '../../HtmlViewerWithControls';
 import { useEvaluation } from '../../../context/EvaluationContext';
+import { useQuestionBank } from '../../../context/QuestionBankContext';
 import { ArrowLeft, Save, Award, CheckCircle2, XCircle, HelpCircle, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
@@ -32,6 +33,7 @@ export default function CompositeHomeworkReview({
 }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { deleteSubmission, deleteSubmissionsByTestId } = useEvaluation();
+  const { questions: allBankQuestions } = useQuestionBank();
 
   const handleDeleteThisSubmission = async () => {
     if (!window.confirm(`"${unifiedTest.title || 'Bu sınav'}" sonucunu kalıcı olarak silmek istediğinizden emin misiniz?`)) return;
@@ -48,8 +50,9 @@ export default function CompositeHomeworkReview({
 
   // 1. Standardize test & submission schemas
   const unifiedTest = useMemo(() => {
-    return normalizeUnifiedTest(test, questions);
-  }, [test, questions]);
+    const bankPool = (allBankQuestions && allBankQuestions.length > 0) ? allBankQuestions : questions;
+    return normalizeUnifiedTest(test, bankPool);
+  }, [test, questions, allBankQuestions]);
   const rawSections = (unifiedTest.sections && unifiedTest.sections.length > 0)
     ? unifiedTest.sections
     : (Array.isArray(test?.sections) && test.sections.length > 0 ? test.sections : (test?.tests || []));
@@ -89,11 +92,29 @@ export default function CompositeHomeworkReview({
                             (activeSec.raw?.id && sectionAnswersMap[activeSec.raw.id]) ||
                             (activeSec.raw?.questionId && sectionAnswersMap[activeSec.raw.questionId]) ||
                             { answers: {}, openEndedText: {}, teacherScores: {}, teacherNotes: {} };
-  const currentSecQuestions = activeSec.questions || [];
+  const currentSecQuestions = activeSec.questions?.length > 0
+    ? activeSec.questions
+    : (activeSec.resolvedQuestions?.length > 0 ? activeSec.resolvedQuestions : (activeSec.questionsList || []));
+
+  const currentSecCorrectAnswers = useMemo(() => {
+    return currentSecQuestions.map(q => q.correctAnswer);
+  }, [currentSecQuestions]);
 
   const isSecOE = activeSec.type === 'open_ended' || activeSec.isOpenEnded === true || activeSec.is_open_ended === true || isSectionOpenEnded(activeSec, test);
-  const isSecPdf = activeSec.format === 'pdf' || Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf')));
-  const isSecHtml = !isSecPdf && (activeSec.format === 'html' || Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html'))));
+  const isSecPdf = activeSec.format === 'pdf' ||
+                   activeSec.contentType === 'pdf' ||
+                   activeSec.sourceFormat === 'pdf' ||
+                   activeSec.formatType === 'pdf' ||
+                   Boolean(activeSec.pdfUrl || activeSec.pdfPayload) ||
+                   Boolean(activePayload && (String(activePayload).startsWith('data:application/pdf') || String(activePayload).includes('.pdf') || String(activePayload).startsWith('JVBERi0') || String(activePayload).startsWith('%PDF')));
+  const isSecHtml = !isSecPdf && (
+                   activeSec.format === 'html' ||
+                   activeSec.contentType === 'html' ||
+                   activeSec.sourceFormat === 'html' ||
+                   activeSec.formatType === 'html' ||
+                   Boolean(activeSec.htmlPayload) ||
+                   Boolean(activePayload && (String(activePayload).includes('<!DOCTYPE') || String(activePayload).includes('<html')))
+  );
 
   const sectionImages = useMemo(() => {
     const list = [];
@@ -467,7 +488,7 @@ export default function CompositeHomeworkReview({
             documentContent={
               <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <PdfViewerWithControls
-                  payload={activePayload || activeSec.documentPayload || activeSec.pdfUrl}
+                  payload={activePayload || activeSec.documentPayload || activeSec.pdfPayload || activeSec.pdfUrl || activeSec.contentPayload}
                   id={activeSec.id}
                   testId={unifiedTest.id}
                   title={activeSec.title || 'PDF Dokümanı'}
@@ -494,6 +515,7 @@ export default function CompositeHomeworkReview({
                 <OpticalBubblePanel
                   qCount={activeSec.qCount || 1}
                   answers={currentSecAnswers.answers}
+                  correctAnswers={currentSecCorrectAnswers}
                   isReviewMode={true}
                   resolvedQuestions={currentSecQuestions}
                   testCtx={activeSec.raw || activeSec}
@@ -511,7 +533,7 @@ export default function CompositeHomeworkReview({
             documentContent={
               <div style={{ flex: 1, height: '100%', minHeight: 0 }}>
                 <HtmlViewerWithControls
-                  payload={activePayload || activeSec.documentPayload || activeSec.htmlPayload}
+                  payload={activePayload || activeSec.documentPayload || activeSec.htmlPayload || activeSec.contentPayload}
                   id={activeSec.id}
                   title={activeSec.title || 'HTML Dokümanı'}
                   height="100%"
@@ -537,6 +559,7 @@ export default function CompositeHomeworkReview({
                 <OpticalBubblePanel
                   qCount={activeSec.qCount || 1}
                   answers={currentSecAnswers.answers}
+                  correctAnswers={currentSecCorrectAnswers}
                   isReviewMode={true}
                   resolvedQuestions={currentSecQuestions}
                   testCtx={activeSec.raw || activeSec}
@@ -750,6 +773,13 @@ export default function CompositeHomeworkReview({
                 openEndedText={currentSecAnswers.openEndedText}
                 resolvedQuestions={currentSecQuestions}
                 isReviewMode={true}
+                isTeacher={isTeacher}
+                teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
+                teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
+                submissionAnswers={submission?.answers || []}
+                isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
+                onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
               />
             }
           />
@@ -950,6 +980,7 @@ export default function CompositeHomeworkReview({
               <OpticalBubblePanel
                 qCount={activeSec.qCount || currentSecQuestions.length}
                 answers={currentSecAnswers.answers}
+                correctAnswers={currentSecCorrectAnswers}
                 isReviewMode={true}
                 resolvedQuestions={currentSecQuestions}
                 testCtx={activeSec.raw || activeSec}

@@ -809,8 +809,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
       const scoreB = getItemScore(b);
       const totQA = (Number(a.correctCount) || 0) + (Number(a.wrongCount) || 0) + (Number(a.blankCount ?? a.emptyCount) || 0) || Number(a.totalQuestions) || 0;
       const totQB = (Number(b.correctCount) || 0) + (Number(b.wrongCount) || 0) + (Number(b.blankCount ?? b.emptyCount) || 0) || Number(b.totalQuestions) || 0;
-      const dateA = new Date(a.date || a.submittedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.date || b.submittedAt || b.createdAt || 0).getTime();
+      const dateA = new Date(a.submittedAt || a.date || a.createdAt || 0).getTime();
+      const dateB = new Date(b.submittedAt || b.date || b.createdAt || 0).getTime();
       const titleA = String(a.testTitle || a.bookTitle || a.title || '');
       const titleB = String(b.testTitle || b.bookTitle || b.title || '');
 
