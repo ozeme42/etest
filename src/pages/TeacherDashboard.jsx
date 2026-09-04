@@ -24,7 +24,7 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import AiQuestionGeneratorModal from '../components/question-bank/AiQuestionGeneratorModal';
 import TeacherStudentQuickReportModal from '../components/teacher/TeacherStudentQuickReportModal';
 import { DAYS, normalizeWeeklyProgram, TASK_TYPES, checkHasItemBeenAttempted } from '../components/ProgramCenter';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { getSubmissionScorePct } from '../utils/scoreHelpers';
 import './TeacherDashboard.css';
 
@@ -136,11 +136,15 @@ export default function TeacherDashboard() {
   const teacherStudentIds = useMemo(() => students.map(s => s.id), [students]);
 
   const teacherHomeworks = useMemo(() => {
+    if (!currentUser) return [];
     if (currentUser?.role === 'admin') return homeworks || [];
     return (homeworks || []).filter(h =>
-      h.assignedBy === currentUser?.id || h.createdBy === currentUser?.id || h.teacherId === currentUser?.id
+      h.assignedBy === currentUser?.id ||
+      h.createdBy === currentUser?.id ||
+      h.teacherId === currentUser?.id ||
+      (students || []).some(st => isHomeworkForStudent(h, st, data?.grades || []))
     );
-  }, [homeworks, currentUser]);
+  }, [homeworks, currentUser, students, data?.grades]);
 
   const teacherHwIds = useMemo(() => teacherHomeworks.map(h => h.id), [teacherHomeworks]);
 
@@ -498,72 +502,185 @@ export default function TeacherDashboard() {
       });
     });
 
-    // 2. Süresi Dolan & Teslim Edilmemiş Ödevler
+    // 2. Süresi Dolan & Teslim Edilmemiş Ödevler (ve Kitap Testleri)
     teacherHomeworks.forEach((hw) => {
-      if (!hw.dueDate) return;
-      const due = new Date(hw.dueDate);
-      const dueTime = due.getTime();
-      if (isNaN(dueTime) || dueTime >= todayZero) return;
+      const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+      const hasTestDueDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
+      const bookObj = (books || []).find(b =>
+        String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
+        (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+      );
 
-      const diffDays = Math.max(1, Math.round((todayZero - dueTime) / (1000 * 60 * 60 * 24)));
+      if (hasTestDueDates) {
+        students.forEach((st) => {
+          const isAssigned = isHomeworkForStudent(hw, st, data?.grades || []);
+          if (!isAssigned) return;
 
-      students.forEach((st) => {
-        const isAssigned = isHomeworkForStudent(hw, st, data?.grades || []);
-        if (!isAssigned) return;
+          const stIdStr = String(st.id);
+          const stUuidStr = String(toUUID(st.id) || '');
+          const seenTestKeysForStudent = new Set();
 
-        const stIdStr = String(st.id);
-        const stUuidStr = String(toUUID(st.id) || '');
+          Object.entries(testDates).forEach(([testIdKey, dStr]) => {
+            if (!dStr) return;
+            const due = new Date(dStr);
+            const dueTime = due.getTime();
+            if (isNaN(dueTime) || dueTime >= todayZero) return;
 
-        // Check embedded submissions
-        const embeddedSubs = Array.isArray(hw.submissions)
-          ? hw.submissions
-          : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
-        const submittedInHw = embeddedSubs.some(s => {
-          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-          const sSid = String(s.studentId || s.student_id || '');
-          return sSid === stIdStr || sSid === stUuidStr;
+            const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+            if (seenTestKeysForStudent.has(cleanTestId)) return;
+            seenTestKeysForStudent.add(cleanTestId);
+
+            const bt = (bookTests || []).find(b => {
+              const bId = String(b.id);
+              return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+            });
+
+            // Check if solved
+            const targetTestMatcher = bt || { id: cleanTestId, testId: cleanTestId };
+
+            // Embedded in hw
+            const embeddedSubs = Array.isArray(hw.submissions)
+              ? hw.submissions
+              : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+            const submittedInHw = embeddedSubs.some(s => {
+              if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+              const sSid = String(s.studentId || s.student_id || '');
+              if (sSid !== stIdStr && sSid !== stUuidStr) return false;
+              return isSubmissionMatchingBookTest(s, targetTestMatcher, bookTests, books);
+            });
+            if (submittedInHw) return;
+
+            // Global teacher submissions
+            const submittedInGlobal = teacherSubmissions.some(s => {
+              if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+              const sSid = String(s.studentId || s.student_id || s.raw_data?.studentId || '');
+              if (sSid !== stIdStr && sSid !== stUuidStr) return false;
+              return isSubmissionMatchingBookTest(s, targetTestMatcher, bookTests, books);
+            });
+            if (submittedInGlobal) return;
+
+            const diffDays = Math.max(1, Math.round((todayZero - dueTime) / (1000 * 60 * 60 * 24)));
+            const bookTitle = (bookObj?.title || hw.title || 'Kitap')
+              .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+              .replace(/\s*\(Tüm Kitap\)/gi, '')
+              .trim();
+            const testTitle = bt?.name || bt?.title || 'Kitap Testi';
+
+            // Resolve subject & unit
+            let resolvedSubject = bt?.subject || bt?.subjectName || bookObj?.subject || hw.subject || '';
+            let resolvedUnit = bt?.unit || bt?.unitName || '';
+            if (bookObj?.subjects) {
+              for (const subj of bookObj.subjects) {
+                if (String(subj.id) === String(bt?.subjectId)) {
+                  if (!resolvedSubject) resolvedSubject = subj.name;
+                }
+                for (const top of (subj.topics || [])) {
+                  if (String(top.id) === String(bt?.topicId) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                    resolvedUnit = top.name;
+                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    break;
+                  }
+                }
+                if (resolvedUnit) break;
+              }
+            }
+
+            const displayTitle = `${bookTitle} — ${resolvedUnit ? resolvedUnit + ': ' : ''}${testTitle}`;
+
+            list.push({
+              uniqueId: `hw_bt_${st.id}_${hw.id}_${cleanTestId}`,
+              id: cleanTestId,
+              testId: cleanTestId,
+              bookTestId: cleanTestId,
+              bookId: hw.bookId || bookObj?.id,
+              bookTitle: bookTitle,
+              studentId: st.id,
+              studentName: st.name,
+              studentGrade: st.grade || st.gradeId || '',
+              title: displayTitle,
+              testName: testTitle,
+              unit: resolvedUnit,
+              subject: resolvedSubject || 'Genel Ders',
+              taskType: 'kitap',
+              taskTypeLabel: 'Kitap Testi',
+              taskTypeIcon: '📖',
+              sourceType: 'homework',
+              sourceLabel: 'Kitap Ödevi',
+              dueDate: dStr,
+              daysOverdue: diffDays,
+              delayText: `Son teslim: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`,
+              rawHomework: hw,
+              rawBookTest: bt
+            });
+          });
         });
-        if (submittedInHw) return;
+      } else {
+        // Standart Ödev
+        if (!hw.dueDate) return;
+        const due = new Date(hw.dueDate);
+        const dueTime = due.getTime();
+        if (isNaN(dueTime) || dueTime >= todayZero) return;
 
-        // Check global teacher submissions
-        const submittedInGlobal = teacherSubmissions.some(s => {
-          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-          const sSid = String(s.studentId || s.student_id || s.raw_data?.studentId || '');
-          if (sSid !== stIdStr && sSid !== stUuidStr) return false;
+        const diffDays = Math.max(1, Math.round((todayZero - dueTime) / (1000 * 60 * 60 * 24)));
 
-          const hwIdStr = String(hw.id || '');
-          const subHwId = String(s.homework_id || s.hw_id || s.hwId || s.homeworkId || '');
-          if (subHwId && (subHwId === hwIdStr || toUUID(subHwId) === toUUID(hwIdStr))) return true;
-          if (hw.title && (s.title === hw.title || s.testName === hw.title)) return true;
+        students.forEach((st) => {
+          const isAssigned = isHomeworkForStudent(hw, st, data?.grades || []);
+          if (!isAssigned) return;
 
-          return false;
+          const stIdStr = String(st.id);
+          const stUuidStr = String(toUUID(st.id) || '');
+
+          // Check embedded submissions
+          const embeddedSubs = Array.isArray(hw.submissions)
+            ? hw.submissions
+            : (Array.isArray(hw.raw_data?.submissions) ? hw.raw_data.submissions : []);
+          const submittedInHw = embeddedSubs.some(s => {
+            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+            const sSid = String(s.studentId || s.student_id || '');
+            return sSid === stIdStr || sSid === stUuidStr;
+          });
+          if (submittedInHw) return;
+
+          // Check global teacher submissions
+          const submittedInGlobal = teacherSubmissions.some(s => {
+            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+            const sSid = String(s.studentId || s.student_id || s.raw_data?.studentId || '');
+            if (sSid !== stIdStr && sSid !== stUuidStr) return false;
+
+            const hwIdStr = String(hw.id || '');
+            const subHwId = String(s.homework_id || s.hw_id || s.hwId || s.homeworkId || '');
+            if (subHwId && (subHwId === hwIdStr || toUUID(subHwId) === toUUID(hwIdStr))) return true;
+            if (hw.title && (s.title === hw.title || s.testName === hw.title)) return true;
+
+            return false;
+          });
+          if (submittedInGlobal) return;
+
+          list.push({
+            uniqueId: `hw_${st.id}_${hw.id}`,
+            id: hw.id,
+            studentId: st.id,
+            studentName: st.name,
+            studentGrade: st.grade || st.gradeId || '',
+            title: hw.title || 'Ödev',
+            subject: hw.subject || 'Genel Ders',
+            taskType: 'ödev',
+            taskTypeLabel: 'Ödev',
+            taskTypeIcon: '📝',
+            sourceType: 'homework',
+            sourceLabel: 'Ödev',
+            dueDate: hw.dueDate,
+            daysOverdue: diffDays,
+            delayText: `Son teslim: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`,
+            rawHomework: hw
+          });
         });
-        if (submittedInGlobal) return;
-
-        list.push({
-          uniqueId: `hw_${st.id}_${hw.id}`,
-          id: hw.id,
-          studentId: st.id,
-          studentName: st.name,
-          studentGrade: st.grade || st.gradeId || '',
-          title: hw.title || 'Ödev',
-          subject: hw.subject || 'Genel Ders',
-          taskType: 'ödev',
-          taskTypeLabel: 'Ödev',
-          taskTypeIcon: '📝',
-          sourceType: 'homework',
-          sourceLabel: 'Ödev',
-          dueDate: hw.dueDate,
-          daysOverdue: diffDays,
-          delayText: `Son teslim: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`,
-          rawHomework: hw
-        });
-      });
+      }
     });
 
     // En çok gecikenler üstte olacak şekilde sırala
     return list.sort((a, b) => b.daysOverdue - a.daysOverdue);
-  }, [students, getCoachingProfileForStudent, teacherSubmissions, teacherHomeworks, data?.grades]);
+  }, [students, getCoachingProfileForStudent, teacherSubmissions, teacherHomeworks, data?.grades, books, bookTests]);
 
   // Filtered Overdue Tasks for Telafi Havuzu
   const filteredOverdueTasks = useMemo(() => {
@@ -1839,18 +1956,38 @@ export default function TeacherDashboard() {
                                         </button>
                                       </>
                                     ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setActiveTab('homeworks');
-                                          setHwSearch(task.title || '');
-                                        }}
-                                        className="btn-secondary-action"
-                                        style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
-                                        title="Ödev detaylarını ve teslimleri yönet"
-                                      >
-                                        Ödevi Yönet ↗
-                                      </button>
+                                      <>
+                                        {task.bookId && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              navigate(`/student-book/${task.bookId}?studentId=${task.studentId}`);
+                                            }}
+                                            className="teacher-program-badge-btn"
+                                            style={{
+                                              background: '#eff6ff',
+                                              color: '#2563eb',
+                                              borderColor: '#bfdbfe'
+                                            }}
+                                            title="Öğrencinin kitap ve test detaylarını aç"
+                                          >
+                                            <BookOpen size={12} />
+                                            Kitap
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setActiveTab('homeworks');
+                                            setHwSearch(task.title || '');
+                                          }}
+                                          className="btn-secondary-action"
+                                          style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem' }}
+                                          title="Ödev detaylarını ve teslimleri yönet"
+                                        >
+                                          Ödevi Yönet ↗
+                                        </button>
+                                      </>
                                     )}
                                   </div>
                                 </td>

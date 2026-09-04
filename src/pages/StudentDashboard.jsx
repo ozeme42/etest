@@ -1706,6 +1706,29 @@ export default function StudentDashboard() {
     };
   }, [books, bookTests, bookTestInfoCache]);
 
+  /* ─── Day Key Resolver Helper ─── */
+  const resolveDayKey = useCallback((input) => {
+    if (!input) return null;
+    const str = String(input).trim().toLowerCase();
+    if (str.includes('-') || str.includes('t') || str.includes('.')) {
+      const parsed = new Date(input);
+      if (!isNaN(parsed.getTime())) {
+        const map = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+        return map[parsed.getDay()];
+      }
+    }
+    const dayKeyMap = {
+      pazartesi: 'Pzt', pzt: 'Pzt',
+      sali: 'Sal', salı: 'Sal', sal: 'Sal',
+      carsamba: 'Çrş', çarşamba: 'Çrş', çrş: 'Çrş', crs: 'Çrş',
+      persembe: 'Prş', perşembe: 'Prş', prş: 'Prş', prs: 'Prş',
+      cuma: 'Cum', cum: 'Cum',
+      cumartesi: 'Cts', cts: 'Cts',
+      pazar: 'Paz', paz: 'Paz'
+    };
+    return dayKeyMap[str] || null;
+  }, []);
+
   /* ─── Computed Day Program (Instant O(1) Pre-indexed Memo) ─── */
   const fullProcessedWeekMap = useMemo(() => {
     try {
@@ -1953,8 +1976,86 @@ export default function StudentDashboard() {
           });
         });
 
+        // Scheduled book tests for this day (hw.testDueDates)
+        const scheduledBookItems = [];
+        const seenDayBtKeys = new Set();
+        (studentHomeworks || []).forEach(hw => {
+          const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+          if (typeof testDates !== 'object' || Object.keys(testDates).length === 0) return;
+
+          const bookObj = (books || []).find(b =>
+            String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
+            (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+          );
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .trim();
+
+          Object.entries(testDates).forEach(([testIdKey, tDateStr]) => {
+            if (!tDateStr) return;
+            const targetDayKey = resolveDayKey(tDateStr);
+            const isMatchDate = (dayYMD && String(tDateStr).startsWith(dayYMD)) || (targetDayKey === dayMeta.key);
+            if (!isMatchDate) return;
+
+            const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+            const dedupeKey = `bt_${cleanTestId}`;
+            if (seenDayBtKeys.has(dedupeKey)) return;
+            seenDayBtKeys.add(dedupeKey);
+
+            const bt = (bookTests || []).find(b => {
+              const bId = String(b.id);
+              return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+            });
+
+            let resolvedSubject = bt?.subject || bt?.subjectName || bookObj?.subject || hw.subject || '';
+            let resolvedUnit = bt?.unit || bt?.unitName || '';
+            if (bookObj?.subjects) {
+              for (const subj of bookObj.subjects) {
+                if (String(subj.id) === String(bt?.subjectId)) {
+                  if (!resolvedSubject) resolvedSubject = subj.name;
+                }
+                for (const top of (subj.topics || [])) {
+                  if (String(top.id) === String(bt?.topicId) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                    resolvedUnit = top.name;
+                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    break;
+                  }
+                }
+                if (resolvedUnit) break;
+              }
+            }
+
+            const testTitle = bt?.name || bt?.title || 'Kitap Testi';
+            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 15);
+
+            scheduledBookItems.push({
+              id: dedupeKey,
+              testId: cleanTestId,
+              bookTestId: cleanTestId,
+              realTestId: cleanTestId,
+              hwId: hw.id,
+              bookId: hw.bookId || bookObj?.id,
+              bookTitle: cleanBookTitle,
+              title: testTitle,
+              testName: testTitle,
+              subject: resolvedSubject || 'Genel Ders',
+              unitTopic: resolvedUnit,
+              topic: resolvedUnit,
+              questionCount: qCount,
+              targetQuestionCount: qCount,
+              categoryType: 'kitap',
+              isBookTask: true,
+              isAutoHomework: true,
+              dueDateStr: tDateStr,
+              time: `Son Teslim: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`,
+              done: false
+            });
+          });
+        });
+
         // ID, testId ve içerik (kitap + ders + test adı) bazında tam tekilleştirme — done:true ve testId içerenleri önceliklendir
-        const rawAllItems = sortItemsByBookOrder([...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
+        const rawAllItems = sortItemsByBookOrder([...scheduledBookItems, ...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
         const seenIds = new Map();
         rawAllItems.forEach(item => {
           const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
@@ -2181,12 +2282,15 @@ export default function StudentDashboard() {
 
     const now = new Date();
     now.setHours(0, 0, 0, 0);
+    const nowTime = now.getTime();
+    const todayYMD = getTurkeyYMD();
 
     // 1. HAFTALIK PROGRAMDAN GÜNÜ GEÇMİŞ (PAZARTESİ, SALI VB.) ÇÖZÜLMEMİŞ GÖREVLER
     const todayIdx = DAYS_OF_WEEK.findIndex(d => d.key === todayDayKey);
     DAYS_OF_WEEK.forEach((d, idx) => {
-      if (idx < todayIdx) {
-        const dData = fullProcessedWeekMap[d.key];
+      const dData = fullProcessedWeekMap[d.key];
+      const isPastDay = idx < todayIdx || (dData?.ymd && todayYMD && dData.ymd < todayYMD);
+      if (isPastDay) {
         (dData?.items || []).forEach(item => {
           if (!item.done && !isItemSolved(item) && !isTaskDismissed(item)) {
             if (!isAlreadySeen(item)) {
@@ -2198,7 +2302,7 @@ export default function StudentDashboard() {
                 sourceDayKey: d.key,
                 isCatchUp: true,
                 time: item.time || `Hedef: ${d.name}`,
-                dueDateStr: item.dueDateStr || dData.dateLabel || d.name,
+                dueDateStr: item.dueDateStr || dData?.dateLabel || d.name,
                 reason: `${d.name} gününden kalan görev`
               });
             }
@@ -2207,8 +2311,141 @@ export default function StudentDashboard() {
       }
     });
 
+    // 2. ATANMIŞ KİTAP ÖDEVLERİNDEN (hw.testDueDates) VE ÖDEVLERDEN TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ TESTLER
+    const gradesList = curData?.grades || [];
+    (homeworks || []).filter(hw => {
+      if (!selectedStudent || !hw) return false;
+      return isHomeworkForStudent(hw, selectedStudent, gradesList);
+    }).forEach(hw => {
+      const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+      const hasTestDueDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
+      const bookObj = (books || []).find(b =>
+        String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
+        (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+      );
+      const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .trim();
+
+      if (hasTestDueDates) {
+        Object.entries(testDates).forEach(([testIdKey, dStr]) => {
+          if (!dStr) return;
+          const due = new Date(dStr);
+          const dueTime = due.getTime();
+          if (isNaN(dueTime) || dueTime >= nowTime) return;
+
+          const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+          const bt = (bookTests || []).find(b => {
+            const bId = String(b.id);
+            return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+          });
+
+          let resolvedSubject = bt?.subject || bt?.subjectName || bookObj?.subject || hw.subject || '';
+          let resolvedUnit = bt?.unit || bt?.unitName || '';
+          if (bookObj?.subjects) {
+            for (const subj of bookObj.subjects) {
+              if (String(subj.id) === String(bt?.subjectId)) {
+                if (!resolvedSubject) resolvedSubject = subj.name;
+              }
+              for (const top of (subj.topics || [])) {
+                if (String(top.id) === String(bt?.topicId) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                  resolvedUnit = top.name;
+                  if (!resolvedSubject) resolvedSubject = subj.name;
+                  break;
+                }
+              }
+              if (resolvedUnit) break;
+            }
+          }
+
+          const testTitle = bt?.name || bt?.title || 'Kitap Testi';
+          const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 15);
+          const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+
+          const candidateItem = {
+            id: `catchup_bt_${hw.id}_${cleanTestId}`,
+            testId: cleanTestId,
+            bookTestId: cleanTestId,
+            realTestId: cleanTestId,
+            hwId: hw.id,
+            bookId: hw.bookId || bookObj?.id,
+            bookTitle: cleanBookTitle,
+            title: testTitle,
+            testName: testTitle,
+            subject: resolvedSubject || 'Genel Ders',
+            unitTopic: resolvedUnit,
+            topic: resolvedUnit,
+            categoryType: 'kitap',
+            isCatchUp: true,
+            isBookTask: true,
+            dueDate: dStr,
+            dueDateStr: due.toLocaleDateString('tr-TR'),
+            time: `Son Teslim: ${due.toLocaleDateString('tr-TR')}`,
+            reason: `${diffDays} gün geciken kitap ödevi`,
+            daysOverdue: diffDays,
+            questionCount: qCount,
+            targetQuestionCount: qCount
+          };
+
+          if (isItemSolved(candidateItem)) return;
+
+          const isSolvedInSubs = (studentSubmissions || submissions || []).some(s => {
+            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+            return isSubmissionMatchingBookTest(s, bt || { id: cleanTestId, testId: cleanTestId }, bookTests, books);
+          });
+          if (isSolvedInSubs) return;
+
+          if (isTaskDismissed(candidateItem)) return;
+
+          if (!isAlreadySeen(candidateItem)) {
+            addKeysToSeen(candidateItem);
+            list.push(candidateItem);
+          }
+        });
+      } else {
+        if (!hw.dueDate) return;
+        const due = new Date(hw.dueDate);
+        const dueTime = due.getTime();
+        if (isNaN(dueTime) || dueTime >= nowTime) return;
+
+        const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+        const hwCandidate = {
+          id: `catchup_hw_${hw.id}`,
+          hwId: hw.id,
+          testId: hw.id,
+          realTestId: hw.id,
+          title: hw.title || 'Ödev',
+          testName: hw.title || 'Ödev',
+          subject: hw.subject || 'Genel Ders',
+          categoryType: 'ödev',
+          isCatchUp: true,
+          dueDate: hw.dueDate,
+          dueDateStr: due.toLocaleDateString('tr-TR'),
+          time: `Son Teslim: ${due.toLocaleDateString('tr-TR')}`,
+          reason: `${diffDays} gün geciken ödev`,
+          daysOverdue: diffDays
+        };
+
+        if (isItemSolved(hwCandidate)) return;
+        if (isTaskDismissed(hwCandidate)) return;
+
+        const isSubmitted = (studentSubmissions || submissions || []).some(s => {
+          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+          const sHwId = String(s.hwId || s.homeworkId || s.homework_id || s.testId || '');
+          return sHwId === String(hw.id) || toUUID(sHwId) === toUUID(hw.id);
+        });
+        if (isSubmitted) return;
+
+        if (!isAlreadySeen(hwCandidate)) {
+          addKeysToSeen(hwCandidate);
+          list.push(hwCandidate);
+        }
+      }
+    });
+
     return sortItemsByBookOrder(list, books, bookTests);
-  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, curData]);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, curData, homeworks, studentSubmissions, submissions]);
 
   // ── 📱 3 AYRI ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
   useEffect(() => {
@@ -2585,10 +2822,10 @@ export default function StudentDashboard() {
       totalCount,
       completedCount,
       pendingCount,
-      overdueCount,
+      overdueCount: Math.max(overdueCount, catchUpTasks.length),
       completionRate
     };
-  }, [dayProgramInfo, tests]);
+  }, [dayProgramInfo, tests, catchUpTasks.length]);
 
   
   const studentGamification = useMemo(() => {
