@@ -937,96 +937,7 @@ export default function StudentDashboard() {
       );
 
       if (isBook) {
-        const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
-        const hasSpecificDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
-
-        if (hasSpecificDates) {
-          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
-            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-            .replace(/\s*\(Tüm Kitap\)/gi, '')
-            .trim();
-
-          let bookSubjects = bookObj?.subjects || [];
-          if (typeof bookSubjects === 'string') {
-            try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-          }
-
-          return Object.entries(testDates).map(([tIdKey, dStr]) => {
-            if (!dStr) return null;
-            const cleanTestId = String(tIdKey).replace(/^bt_/, '').replace(/^q_/, '');
-            const bt = (bookTests || []).find(b => {
-              const bId = String(b.id);
-              return bId === cleanTestId || bId === String(tIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
-            });
-
-            let resolvedSubject = bt?.subject || bt?.subjectName || '';
-            let resolvedUnit = bt?.unit || bt?.unitName || '';
-            const sId = bt?.subjectId || bt?.subject_id;
-            const tId = bt?.topicId || bt?.topic_id;
-
-            if (Array.isArray(bookSubjects)) {
-              for (const subj of bookSubjects) {
-                const isSubjMatch = sId && String(subj.id) === String(sId);
-                let isTopicMatch = false;
-                for (const top of (subj.topics || [])) {
-                  if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
-                    resolvedUnit = top.name;
-                    isTopicMatch = true;
-                    break;
-                  }
-                }
-                if (isSubjMatch || isTopicMatch) {
-                  resolvedSubject = subj.name;
-                  break;
-                }
-              }
-            }
-
-            if (!resolvedSubject) {
-              resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
-            }
-
-            const testTitle = bt?.name || bt?.title || 'Kitap Testi';
-            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
-
-            const candidateItem = {
-              id: `${hw.id}_${cleanTestId}`,
-              testId: cleanTestId,
-              bookTestId: cleanTestId,
-              realTestId: cleanTestId,
-              hwId: hw.id,
-              bookId: hw.bookId || bookObj?.id,
-              bookTitle: cleanBookTitle,
-              title: `${cleanBookTitle} › ${resolvedUnit ? resolvedUnit + ': ' : ''}${testTitle}`,
-              testName: testTitle,
-              subject: resolvedSubject,
-              unitTopic: resolvedUnit,
-              topic: resolvedUnit,
-              dueDate: dStr,
-              categoryType: 'kitap',
-              sourceType: 'trackedBook',
-              isBookAssignment: true,
-              questionCount: qCount,
-              totalScoreQuestions: qCount
-            };
-
-            const subForTest = (studentSubmissions || []).find(s => {
-              if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-              return isSubmissionMatchingBookTest(s, candidateItem, bookTests, books);
-            });
-
-            return {
-              ...hw,
-              ...candidateItem,
-              status: subForTest ? 'Sonuçlandı' : 'Atandı',
-              isDone: !!subForTest,
-              correctAnswers: subForTest?.correctCount || (subForTest?.score ? Math.round((subForTest.score / 100) * qCount) : 0),
-              submissionId: subForTest?.id
-            };
-          }).filter(Boolean);
-        }
-
-        return []; // Tarihsiz serbest kitap ödevlerini gizle
+        return []; // Kitap takibi testleri Ödevlerim'de gösterilmez; Haftalık Program'da ve Kitaplarım'da takip edilir
       }
 
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
@@ -2537,10 +2448,13 @@ export default function StudentDashboard() {
           }
         });
       } else {
-        if (!hw.dueDate) return;
-        const due = new Date(hw.dueDate);
+        const hwDueDate = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.raw_data?.due_date;
+        if (!hwDueDate) return;
+        const due = new Date(hwDueDate);
         const dueTime = due.getTime();
-        if (isNaN(dueTime) || dueTime >= nowTime) return;
+        const dueYMD = String(hwDueDate).slice(0, 10);
+        const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
+        if (!isOverdue) return;
 
         const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
         const hwCandidate = {
@@ -2553,7 +2467,7 @@ export default function StudentDashboard() {
           subject: hw.subject || 'Genel Ders',
           categoryType: 'ödev',
           isCatchUp: true,
-          dueDate: hw.dueDate,
+          dueDate: hwDueDate,
           dueDateStr: due.toLocaleDateString('tr-TR'),
           time: `Son Teslim: ${due.toLocaleDateString('tr-TR')}`,
           reason: `${diffDays} gün geciken ödev`,
