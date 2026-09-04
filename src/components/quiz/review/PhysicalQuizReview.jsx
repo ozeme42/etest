@@ -65,24 +65,36 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const testKey = String(testId).replace(/^bt_/, '');
   const { isDark = false } = useTheme();
 
+  const metaAnswer = useMemo(() => {
+    const raw = submission?.answers || [];
+    return Array.isArray(raw) ? raw.find(a => a && a.type === 'metadata') : null;
+  }, [submission]);
+
   // ── Resolve Book & PDF ──
   const resolvedBook = useMemo(() => {
     if (test?.book) return test.book;
-    if (test?.bookId && books) {
-      return books.find(b => String(b.id) === String(test.bookId) || toUUID(b.id) === toUUID(test.bookId)) || null;
+    const targetBookId = test?.bookId || test?.book_id || submission?.bookId || submission?.book_id || metaAnswer?.bookId;
+    if (targetBookId && books) {
+      const found = books.find(b => String(b.id) === String(targetBookId) || toUUID(b.id) === toUUID(targetBookId));
+      if (found) return found;
+    }
+    const targetBookTitle = submission?.bookTitle || metaAnswer?.bookTitle || test?.bookTitle;
+    if (targetBookTitle && books) {
+      const found = books.find(b => b.title && b.title.trim().toLowerCase() === targetBookTitle.trim().toLowerCase());
+      if (found) return found;
     }
     if (books && Array.isArray(books)) {
-      return books.find(b => (bookTests || []).some(bt => String(bt.bookId) === String(b.id) && (String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId)))) || null;
+      return books.find(b => (bookTests || []).some(bt => (String(bt.bookId) === String(b.id) || String(bt.book_id) === String(b.id)) && (String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId)))) || null;
     }
     return null;
-  }, [test, books, bookTests, testId]);
+  }, [test, books, bookTests, testId, submission, metaAnswer]);
 
   // ── Full Metadata Resolution (Book, Subject, Unit/Topic, Test Name) ──
   const resolvedMeta = useMemo(() => {
-    let bookTitle = resolvedBook?.title || submission?.bookTitle || test?.bookTitle || '';
-    let subjectName = submission?.subjectName || submission?.subject || test?.subjectName || test?.subject || '';
-    let topicName = submission?.topicName || submission?.unitTopic || submission?.topic || test?.topicName || test?.unitTopic || test?.topic || '';
-    let testName = test?.name || test?.title || submission?.testName || submission?.title || 'Test';
+    let bookTitle = resolvedBook?.title || submission?.bookTitle || metaAnswer?.bookTitle || test?.bookTitle || '';
+    let subjectName = submission?.subjectName || submission?.subject || metaAnswer?.subject || test?.subjectName || test?.subject || '';
+    let topicName = submission?.topicName || submission?.unitTopic || metaAnswer?.unitTopic || submission?.topic || test?.topicName || test?.unitTopic || test?.topic || '';
+    let testName = test?.name || test?.title || submission?.testName || metaAnswer?.testName || submission?.title || 'Test';
 
     // Try finding matching bookTest
     const matchedBt = (bookTests || []).find(bt => String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId));

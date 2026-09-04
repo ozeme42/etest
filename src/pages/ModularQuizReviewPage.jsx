@@ -19,7 +19,7 @@ import CompositeHomeworkReview from '../components/quiz/composite/CompositeHomew
 import RemedialQuizReview from '../components/quiz/remedial/RemedialQuizReview';
 import { isSectionOpenEnded, isMultipleChoice } from '../components/quiz/utils/quizTypeDetector';
 
-import { resolveTestQuestions, isExamBook } from '../utils/testResolver';
+import { resolveTestQuestions, isExamBook, hasMeaningfulOptions, hasMeaningfulQuestionText } from '../utils/testResolver';
 import { findUnifiedSubmissionOrTest, normalizeUnifiedSubmission } from '../services/unifiedResultAdapter';
 import { extractImageUrls } from '../components/quiz/common/ImageLightbox';
 import { idbGetPayload } from '../services/indexedDbService';
@@ -336,8 +336,20 @@ export default function ModularQuizReviewPage() {
       foundTest = unifiedTest;
     }
 
-    // If foundTest has no sections, but foundSubmission has an associated parent homework with multiple sections, link to parent homework:
-    if (foundTest && (!foundTest.sections || foundTest.sections.length <= 1) && homeworks && Array.isArray(homeworks)) {
+    // If foundTest has no sections, but foundSubmission has an associated parent homework with multiple sections, link to parent homework (unless it's a book test):
+    const isSubOrTestBook = Boolean(
+      foundTest?.bookId ||
+      foundTest?.book_id ||
+      foundTest?.sourceType === 'trackedBook' ||
+      foundTest?.sourceType === 'bookTest' ||
+      foundSubmission?.bookTestId ||
+      foundSubmission?.bookId ||
+      foundSubmission?.sourceType === 'trackedBook' ||
+      foundSubmission?.sourceType === 'bookTest' ||
+      (foundSubmission?.answers && Array.isArray(foundSubmission.answers) && foundSubmission.answers.some(a => a?.type === 'metadata' && (a?.sourceType === 'trackedBook' || a?.bookTestId)))
+    );
+
+    if (!isSubOrTestBook && foundTest && (!foundTest.sections || foundTest.sections.length <= 1) && homeworks && Array.isArray(homeworks)) {
       const parentHwId = foundSubmission?.hwId || foundSubmission?.homeworkId || extractedHwId;
       if (parentHwId) {
         const parentHw = homeworks.find(h =>
@@ -855,12 +867,17 @@ export default function ModularQuizReviewPage() {
   );
 
   const hasDigitalQuestions = Boolean(
-    (questions && questions.length > 0 && questions.some(q => (q.questionText && q.questionText.trim().length > 0) || (Array.isArray(q.options) && q.options.length > 1))) ||
-    test.questionText ||
-    (Array.isArray(test.options) && test.options.length > 1) ||
+    (questions && questions.length > 0 && questions.some(q => 
+      hasMeaningfulQuestionText(q.questionText || q.text) || 
+      hasMeaningfulOptions(q.options)
+    )) ||
+    hasMeaningfulQuestionText(test.questionText || test.text) ||
+    hasMeaningfulOptions(test.options) ||
     test.contentType === 'text' ||
     test.contentType === 'json' ||
-    (test.questionsList && test.questionsList.length > 0)
+    (test.questionsList && test.questionsList.length > 0 && test.questionsList.some(q => 
+      typeof q === 'object' && (hasMeaningfulQuestionText(q.questionText || q.text) || hasMeaningfulOptions(q.options))
+    ))
   );
 
   const isHomework = Boolean(
@@ -870,8 +887,8 @@ export default function ModularQuizReviewPage() {
     test.questionIds?.length > 0
   );
 
-  // Paper book tests, optical form tests, and tracked book tests (ONLY if not written / open-ended, NOT homework, NO digital questions, and NOT digital/image/remedial/pdf)
-  const isBookOrOptical = !isHomework && !hasDigitalQuestions && !isExplicitOpenEnded && !isExplicitImageOrDigital && !isWritten && !isPdf && !isHtml && !isSectionOpenEnded(test) && Boolean(
+  // Paper book tests, optical form tests, and tracked book tests
+  const isBookOrOptical = !isExplicitOpenEnded && !hasExplicitImageQuestions && !isSectionOpenEnded(test) && Boolean(
     test.isBookAssignment ||
     test.sourceType === 'trackedBook' ||
     test.sourceType === 'bookTest' ||
@@ -896,8 +913,15 @@ export default function ModularQuizReviewPage() {
     String(submission?.testId || '').startsWith('tbt_') ||
     String(submission?.id || '').startsWith('bt_') ||
     String(submission?.id || '').startsWith('tbt_') ||
-    (test.bookId && test.bookId !== null && String(test.bookId).trim() !== '' && !String(test.id).startsWith('hw_')) ||
-    (submission?.bookId && submission?.bookId !== null && String(submission?.bookId).trim() !== '' && !String(submission?.testId).startsWith('hw_')) ||
+    (test.bookId && test.bookId !== null && String(test.bookId).trim() !== '') ||
+    (test.book_id && test.book_id !== null && String(test.book_id).trim() !== '') ||
+    (submission?.bookId && submission?.bookId !== null && String(submission?.bookId).trim() !== '') ||
+    (submission?.book_id && submission?.book_id !== null && String(submission?.book_id).trim() !== '') ||
+    (submission?.bookTestId && String(submission.bookTestId).trim() !== '') ||
+    (test?.bookTestId && String(test.bookTestId).trim() !== '') ||
+    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => 
+      a?.type === 'metadata' && (a?.sourceType === 'trackedBook' || a?.bookTestId || a?.bookTitle || (a?.compositeKey && String(a.compositeKey).includes('___')))
+    )) ||
     (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
       String(bt.id) === String(test.id) || 
       String(bt.id) === String(submission?.testId) || 
@@ -905,7 +929,7 @@ export default function ModularQuizReviewPage() {
     ))
   );
 
-  const isPhysical = !isHomework && !hasDigitalQuestions && !isExplicitOpenEnded && !isExplicitImageOrDigital && !isHtml && !isPdf && !isWritten && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
+  const isPhysical = !isExplicitOpenEnded && !hasExplicitImageQuestions && !isSectionOpenEnded(test) && (isBookOrOptical || Boolean(
     test.sourceFormat === 'physical' ||
     test.formatType === 'physical' ||
     test.questionType === 'optik_form' ||
@@ -1040,10 +1064,10 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 6. Single Digital Multiple Choice Review (For Question Bank questions/homeworks with text & options)
-  if (hasDigitalQuestions || isMultipleChoiceTest) {
+  // 6. Physical & Tracked Book Review (Supports Optical Multiple Choice for paper books)
+  if (isPhysical || isBookOrOptical) {
     return (
-      <SingleMultipleChoiceReview
+      <PhysicalQuizReview
         submission={submission}
         test={test}
         questions={questions}
@@ -1052,10 +1076,10 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 7. Physical & Tracked Book Review (Supports Optical Multiple Choice for paper books)
-  if (isPhysical || isBookOrOptical) {
+  // 7. Single Digital Multiple Choice Review (For Question Bank questions/homeworks with text & options)
+  if (hasDigitalQuestions || isMultipleChoiceTest) {
     return (
-      <PhysicalQuizReview
+      <SingleMultipleChoiceReview
         submission={submission}
         test={test}
         questions={questions}

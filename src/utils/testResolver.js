@@ -270,13 +270,39 @@ export function extractQuestionText(qObj, testObj = {}, index = 0) {
   return `Soru ${index + 1}`;
 }
 
+export const hasMeaningfulQuestionText = (text) => {
+  if (!text || typeof text !== 'string') return false;
+  const clean = text.trim();
+  if (!clean) return false;
+  // Patterns like "Soru 1", "Soru 12", "Soru-1", "Soru 1 / 12", "Question 1", "1. Soru", "1. Bölüm"
+  if (/^(?:soru|question)[\s_.:-]*\d+$/i.test(clean)) return false;
+  if (/^(?:soru|question)[\s_.:-]*\d+[\s/]+\d+$/i.test(clean)) return false;
+  if (/^\d+\.\s*(?:soru|bölüm|bolum)/i.test(clean)) return false;
+  return true;
+};
+
 export const hasMeaningfulOptions = (opts) => {
   if (!Array.isArray(opts) || opts.length === 0) return false;
   return opts.some((opt, idx) => {
     const text = typeof opt === 'string' ? opt : (opt?.text || opt?.optionText || opt?.label || opt?.title || '');
     const clean = text.trim().toLowerCase();
     const letter = String.fromCharCode(65 + idx).toLowerCase();
-    return clean && clean !== letter && clean !== `şık ${letter}` && clean !== `sik ${letter}` && clean !== `seçenek ${letter}` && clean !== `secenek ${letter}`;
+    const isDummy = !clean ||
+      clean === letter ||
+      clean === `${letter})` ||
+      clean === `${letter}.` ||
+      clean === `(${letter})` ||
+      clean === `[${letter}]` ||
+      clean === `şık ${letter}` ||
+      clean === `sik ${letter}` ||
+      clean === `seçenek ${letter}` ||
+      clean === `secenek ${letter}` ||
+      clean === `${letter} seçeneği` ||
+      clean === `${letter} secenegi` ||
+      clean === `${letter} şıkkı` ||
+      clean === `${letter} sikki` ||
+      clean === `option ${letter}`;
+    return !isDummy;
   });
 };
 
