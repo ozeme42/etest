@@ -42,7 +42,6 @@ import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsC
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
-import StudentTodayFocusCard from '../components/student/StudentTodayFocusCard';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
@@ -3434,34 +3433,6 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
-        {/* 🎯 HERO ALANI (SOL: BUGÜNÜN ODAK KARTI | SAĞ: SEVİYE & OYUNLAŞTIRMA) */}
-        <div className="sd-hero-grid">
-          <StudentTodayFocusCard
-            studentName={selectedStudent?.name || currentUser?.name || 'Öğrenci'}
-            dayProgramInfo={dayProgramInfo}
-            catchUpTasks={catchUpTasks}
-            focusModeOnly={focusModeOnly}
-            onToggleFocusMode={handleToggleFocusMode}
-            onStartFirstPendingTask={handleTaskAction}
-            isMobile={isMobile}
-            isDark={isDark}
-          />
-
-          {!focusModeOnly && (
-            <StudentGamificationCard
-              student={selectedStudent}
-              submissions={studentSubmissions}
-              homeworks={homeworks}
-              books={books}
-              bookTests={bookTests}
-              mockExams={studentMockExams}
-              studySessions={[]}
-              users={users}
-              gamificationData={studentGamification}
-            />
-          )}
-        </div>
-
         <div className="sd-grid-layout">
 
           {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
@@ -3604,6 +3575,19 @@ export default function StudentDashboard() {
           {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
           {!focusModeOnly && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+
+              {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
+              <StudentGamificationCard
+                student={selectedStudent}
+                submissions={studentSubmissions}
+                homeworks={homeworks}
+                books={books}
+                bookTests={bookTests}
+                mockExams={studentMockExams}
+                studySessions={[]}
+                users={users}
+                gamificationData={studentGamification}
+              />
 
               {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
               <div>
