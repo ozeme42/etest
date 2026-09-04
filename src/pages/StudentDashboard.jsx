@@ -3234,34 +3234,6 @@ export default function StudentDashboard() {
                 <span>{studentRank.icon || '🛡️'}</span>
               </div>
 
-              {/* Top-Left: Mini Streak Flame Badge on Avatar (if streak > 0) */}
-              {studentStreak > 0 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: -3,
-                    left: -3,
-                    zIndex: 5,
-                    background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
-                    color: '#ffffff',
-                    border: '2px solid #ffffff',
-                    borderRadius: 99,
-                    padding: isMobile ? '1px 5px' : '1px 6px',
-                    fontSize: isMobile ? '0.56rem' : '0.66rem',
-                    fontWeight: 900,
-                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.45)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2
-                  }}
-                  title={`Günlük Kesintisiz Seri: ${studentStreak} Gün`}
-                >
-                  <span>🔥</span>
-                  <span>{studentStreak}</span>
-                </div>
-              )}
 
               {/* Bottom-Right: Level (Lv) Badge */}
               <div
