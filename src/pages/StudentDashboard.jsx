@@ -3149,18 +3149,18 @@ export default function StudentDashboard() {
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '1rem 0.85rem 0.75rem' : '1.5rem clamp(1rem, 2vw, 2rem) 1rem',
+          padding: isMobile ? '0.85rem 0.65rem 0.65rem' : '1.5rem clamp(1rem, 2vw, 2rem) 1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? '0.75rem' : '1.5rem',
+          gap: isMobile ? '0.5rem' : '1.5rem',
           position: 'relative',
           zIndex: 1,
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {/* SOL: Avatar + İsim + Rozetler */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.5rem' : '1.25rem', minWidth: 0, flex: 1 }}>
 
             {/* Avatar with circular progress ring & badges */}
             <div
@@ -3168,8 +3168,8 @@ export default function StudentDashboard() {
               style={{
                 position: 'relative',
                 flexShrink: 0,
-                width: isMobile ? 66 : 82,
-                height: isMobile ? 66 : 82,
+                width: isMobile ? 60 : 82,
+                height: isMobile ? 60 : 82,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -3180,8 +3180,8 @@ export default function StudentDashboard() {
             >
               {/* Circular Progress SVG Ring (Seviye / XP İlerleme Halkası) */}
               <svg
-                width={isMobile ? 66 : 82}
-                height={isMobile ? 66 : 82}
+                width={isMobile ? 60 : 82}
+                height={isMobile ? 60 : 82}
                 style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
               >
                 <defs>
@@ -3193,25 +3193,25 @@ export default function StudentDashboard() {
                 </defs>
                 {/* Background track circle */}
                 <circle
-                  cx={isMobile ? 33 : 41}
-                  cy={isMobile ? 33 : 41}
-                  r={isMobile ? 29 : 36.5}
+                  cx={isMobile ? 30 : 41}
+                  cy={isMobile ? 30 : 41}
+                  r={isMobile ? 26 : 36.5}
                   fill="none"
                   stroke="rgba(255, 255, 255, 0.16)"
-                  strokeWidth={isMobile ? 3.5 : 4.5}
+                  strokeWidth={isMobile ? 3 : 4.5}
                 />
                 {/* Animated circular progress circle for Level XP */}
                 <circle
-                  cx={isMobile ? 33 : 41}
-                  cy={isMobile ? 33 : 41}
-                  r={isMobile ? 29 : 36.5}
+                  cx={isMobile ? 30 : 41}
+                  cy={isMobile ? 30 : 41}
+                  r={isMobile ? 26 : 36.5}
                   fill="none"
                   stroke="url(#avatarProgGrad)"
-                  strokeWidth={isMobile ? 3.5 : 4.5}
+                  strokeWidth={isMobile ? 3 : 4.5}
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 29 : 36.5)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 29 : 36.5) * (1 - (studentRank.progressPercent || 0) / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 33 : 41} ${isMobile ? 33 : 41})`}
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 26 : 36.5)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 26 : 36.5) * (1 - (studentRank.progressPercent || 0) / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 30 : 41} ${isMobile ? 30 : 41})`}
                   style={{
                     transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
                     filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.6))' : 'none'
@@ -3222,14 +3222,14 @@ export default function StudentDashboard() {
               {/* Inner Avatar */}
               <div
                 style={{
-                  width: isMobile ? 52 : 64,
-                  height: isMobile ? 52 : 64,
+                  width: isMobile ? 46 : 64,
+                  height: isMobile ? 46 : 64,
                   borderRadius: '50%',
                   background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isMobile ? '1.7rem' : '2.15rem',
+                  fontSize: isMobile ? '1.5rem' : '2.15rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   position: 'relative',
@@ -3242,6 +3242,28 @@ export default function StudentDashboard() {
                 <span>{studentRank.icon || '🛡️'}</span>
               </div>
 
+              {/* Top-Right: Rank Shield Icon Badge */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  zIndex: 5,
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  border: '1.5px solid rgba(255,255,255,0.4)',
+                  borderRadius: '50%',
+                  width: isMobile ? 18 : 22,
+                  height: isMobile ? 18 : 22,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: isMobile ? '0.62rem' : '0.78rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)'
+                }}
+                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
+              >
+                <span>{studentRank.icon || '🛡️'}</span>
+              </div>
 
               {/* Bottom-Right: Level (Lv) Badge */}
               <div
@@ -3254,8 +3276,8 @@ export default function StudentDashboard() {
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
-                  padding: isMobile ? '1px 5px' : '1px 7px',
-                  fontSize: isMobile ? '0.56rem' : '0.66rem',
+                  padding: isMobile ? '1px 4px' : '1px 7px',
+                  fontSize: isMobile ? '0.52rem' : '0.66rem',
                   fontWeight: 900,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                   whiteSpace: 'nowrap',
@@ -3277,8 +3299,8 @@ export default function StudentDashboard() {
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
-                  padding: isMobile ? '1px 4px' : '1px 6px',
-                  fontSize: isMobile ? '0.54rem' : '0.62rem',
+                  padding: isMobile ? '1px 3px' : '1px 6px',
+                  fontSize: isMobile ? '0.5rem' : '0.62rem',
                   fontWeight: 900,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                   whiteSpace: 'nowrap',
@@ -3306,7 +3328,7 @@ export default function StudentDashboard() {
               </div>
 
               <h1 style={{
-                fontSize: isMobile ? '1.2rem' : '1.75rem',
+                fontSize: isMobile ? '1.15rem' : '1.75rem',
                 fontWeight: 900,
                 color:'#ffffff',
                 margin:'0 0 4px 0',
@@ -3319,7 +3341,7 @@ export default function StudentDashboard() {
               </h1>
 
               {/* Pill badges */}
-              <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 4 : 6, flexWrap:'nowrap', whiteSpace:'nowrap', overflowX:'visible' }}>
                 {/* Günlük Kesintisiz Seri Rozeti */}
                 <div
                   style={{
@@ -3330,22 +3352,24 @@ export default function StudentDashboard() {
                       ? '1.5px solid rgba(245, 158, 11, 0.6)'
                       : '1px solid rgba(255,255,255,0.2)',
                     borderRadius: 999,
-                    padding: isMobile ? '2px 8px' : '4px 12px',
-                    fontSize: isMobile ? '0.64rem' : '0.76rem',
+                    padding: isMobile ? '2px 7px' : '4px 12px',
+                    fontSize: isMobile ? '0.62rem' : '0.76rem',
                     fontWeight: 900,
                     color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: isMobile ? 3 : 4,
                     boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
-                    backdropFilter: 'blur(16px)'
+                    backdropFilter: 'blur(16px)',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap'
                   }}
                   title="Günlük Kesintisiz Seri"
                 >
-                  <Flame size={isMobile ? 12 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8' }} />
+                  <Flame size={isMobile ? 11 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8', flexShrink: 0 }} />
                   <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
                   {streakMultiplier > 1.0 && (
-                    <span style={{ fontSize: '0.6rem', background: '#f59e0b', color: '#ffffff', padding: '0 4px', borderRadius: 4, fontWeight: 900 }}>
+                    <span style={{ fontSize: isMobile ? '0.55rem' : '0.6rem', background: '#f59e0b', color: '#ffffff', padding: '0 3px', borderRadius: 4, fontWeight: 900, lineHeight: 1.2 }}>
                       {streakMultiplier}x
                     </span>
                   )}
@@ -3359,20 +3383,22 @@ export default function StudentDashboard() {
                     background: 'linear-gradient(135deg, #10b981, #059669)',
                     border: '1.5px solid rgba(255,255,255,0.35)',
                     borderRadius: 999,
-                    padding: isMobile ? '2px 9px' : '4px 14px',
-                    fontSize: isMobile ? '0.64rem' : '0.78rem',
+                    padding: isMobile ? '2px 7px' : '4px 14px',
+                    fontSize: isMobile ? '0.62rem' : '0.78rem',
                     fontWeight: 900,
                     color: '#ffffff',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: isMobile ? 3 : 4,
                     cursor: 'pointer',
                     boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap'
                   }}
                   title="Çalışma Odasını Aç"
                 >
-                  <Headphones size={isMobile ? 12 : 14} />
+                  <Headphones size={isMobile ? 11 : 14} style={{ flexShrink: 0 }} />
                   <span>Çalışma Odası</span>
                 </button>
               </div>
@@ -3386,12 +3412,12 @@ export default function StudentDashboard() {
             style={{ flexShrink:0 }}
           >
             <div style={{
-              width: isMobile ? 64 : 80,
-              height: isMobile ? 64 : 80,
+              width: isMobile ? 56 : 80,
+              height: isMobile ? 56 : 80,
               position:'relative',
               display:'flex', alignItems:'center', justifyContent:'center'
             }}>
-              <svg width={isMobile ? 64 : 80} height={isMobile ? 64 : 80} style={{ position:'absolute', inset:0 }}>
+              <svg width={isMobile ? 56 : 80} height={isMobile ? 56 : 80} style={{ position:'absolute', inset:0 }}>
                 <defs>
                   <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#c084fc" />
@@ -3400,28 +3426,28 @@ export default function StudentDashboard() {
                   </linearGradient>
                 </defs>
                 <circle
-                  cx={isMobile ? 32 : 40} cy={isMobile ? 32 : 40}
-                  r={isMobile ? 26 : 33}
+                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
+                  r={isMobile ? 23 : 33}
                   fill="none"
                   stroke="rgba(255,255,255,0.12)"
-                  strokeWidth={isMobile ? 4 : 5}
+                  strokeWidth={isMobile ? 3.5 : 5}
                 />
                 <circle
-                  cx={isMobile ? 32 : 40} cy={isMobile ? 32 : 40}
-                  r={isMobile ? 26 : 33}
+                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
+                  r={isMobile ? 23 : 33}
                   fill="none"
                   stroke="url(#ringGrad)"
-                  strokeWidth={isMobile ? 4 : 5}
+                  strokeWidth={isMobile ? 3.5 : 5}
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 26 : 33)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 26 : 33) * (1 - overallSuccessRate / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 32 : 40} ${isMobile ? 32 : 40})`}
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 23 : 33)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 23 : 33) * (1 - overallSuccessRate / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 28 : 40} ${isMobile ? 28 : 40})`}
                   style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
                 />
               </svg>
               <div style={{
-                width: isMobile ? 48 : 62,
-                height: isMobile ? 48 : 62,
+                width: isMobile ? 42 : 62,
+                height: isMobile ? 42 : 62,
                 borderRadius:'50%',
                 background:'rgba(255,255,255,0.1)',
                 backdropFilter:'blur(12px)',
@@ -3429,10 +3455,10 @@ export default function StudentDashboard() {
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                 boxShadow:'0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
               }}>
-                <div style={{ fontSize: isMobile ? '0.94rem' : '1.25rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
+                <div style={{ fontSize: isMobile ? '0.86rem' : '1.25rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
                   %{overallSuccessRate}
                 </div>
-                <div style={{ fontSize: isMobile ? '0.42rem' : '0.56rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase' }}>
+                <div style={{ fontSize: isMobile ? '0.4rem' : '0.56rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase' }}>
                   BAŞARI
                 </div>
               </div>
