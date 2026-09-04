@@ -121,14 +121,14 @@ export default function ApprovalsPage() {
       })
       .filter(sub => {
         if (!isAdmin) {
-          if (!teacherId) return true;
+          if (!teacherId) return false;
           if (sub.id && String(sub.id).startsWith('sub_sample')) return false;
           const sId = String(sub.studentId);
           const matchedStudent = (users || []).find(u => String(u.id) === sId || String(u.studentId) === sId);
           const teacherObj = (users || []).find(u => String(u.id) === String(teacherId));
+          if (matchedStudent?.teacherId && String(matchedStudent.teacherId) === String(teacherId)) return true;
           if (teacherObj?.studentIds && teacherObj.studentIds.includes(sId)) return true;
-          if (teacherObj?.grade && matchedStudent?.grade && String(teacherObj.grade) === String(matchedStudent.grade)) return true;
-          return true;
+          return false;
         }
         return true;
       })
@@ -180,13 +180,13 @@ export default function ApprovalsPage() {
       })
       .filter(exam => {
         if (!isAdmin) {
-          if (!teacherId) return true;
+          if (!teacherId) return false;
           const sId = String(exam.studentId);
           const matchedStudent = (users || []).find(u => String(u.id) === sId || String(u.studentId) === sId);
           const teacherObj = (users || []).find(u => String(u.id) === String(teacherId));
+          if (matchedStudent?.teacherId && String(matchedStudent.teacherId) === String(teacherId)) return true;
           if (teacherObj?.studentIds && teacherObj.studentIds.includes(sId)) return true;
-          if (teacherObj?.grade && matchedStudent?.grade && String(teacherObj.grade) === String(matchedStudent.grade)) return true;
-          return true;
+          return false;
         }
         return true;
       })

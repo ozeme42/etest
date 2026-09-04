@@ -186,10 +186,10 @@ export default function HomeworkManager() {
       const studentIds = new Set((students || []).map(s => String(s.id)));
       list = list.filter(hw => {
         if (!hw) return false;
-        if (hw.assignedBy === teacherId || hw.teacherId === teacherId || hw.teacher_id === teacherId || hw.assignedBy === 'teacher_1') return true;
+        if (hw.assignedBy === teacherId || hw.teacherId === teacherId || hw.teacher_id === teacherId || hw.createdBy === teacherId) return true;
         if (Array.isArray(hw.targetIds) && hw.targetIds.some(tid => studentIds.has(String(tid)))) return true;
         if (hw.studentId && studentIds.has(String(hw.studentId))) return true;
-        if (!hw.assignedBy && !hw.teacherId) return true;
+        if (teacherId === 'teacher_1' && (hw.assignedBy === 'teacher_1' || hw.teacherId === 'teacher_1')) return true;
         return false;
       });
     }

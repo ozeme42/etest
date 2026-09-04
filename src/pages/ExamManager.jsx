@@ -198,7 +198,16 @@ export default function ExamManager() {
       const bPub = String(b.publisher || '').toUpperCase();
       const isExamType = bType === 'exam' || bType === 'physical_exam' || b.isExam === true || b.isExamBook === true || b.isPhysicalExam === true;
       const isPresetPub = ['LGS', 'TYT', 'AYT', 'CUSTOM', 'ÖZEL', 'OZEL'].includes(bPub);
-      return isExamType || isPresetPub;
+      if (!isExamType && !isPresetPub) return false;
+
+      // Teacher isolation: If current user is a teacher, hide exams created by other teachers
+      if (currentUser?.role === 'teacher') {
+        const teacherId = String(currentUser?.id || '');
+        const isAnotherTeacher = (b.createdBy && String(b.createdBy) !== teacherId && String(b.createdBy) !== 'admin') ||
+                                 (b.teacherId && String(b.teacherId) !== teacherId && String(b.teacherId) !== 'admin');
+        if (isAnotherTeacher) return false;
+      }
+      return true;
     });
 
     const examMap = new Map();
@@ -273,6 +282,15 @@ export default function ExamManager() {
       if (!hw) return;
       const isPhysHw = hw.type === 'physicalExam' || hw.contentType === 'physicalExam' || hw.isPhysical === true || hw.isPhysicalExam === true;
       if (!isPhysHw) return;
+
+      if (currentUser?.role === 'teacher') {
+        const teacherId = String(currentUser?.id || '');
+        const isOwner = hw.assignedBy === teacherId || hw.teacherId === teacherId || hw.createdBy === teacherId;
+        const studentIds = new Set((students || []).map(s => String(s.id)));
+        const isAssignedToMyStudents = (Array.isArray(hw.targetIds) && hw.targetIds.some(tid => studentIds.has(String(tid)))) ||
+                                       (hw.studentId && studentIds.has(String(hw.studentId)));
+        if (!isOwner && !isAssignedToMyStudents) return;
+      }
 
       const hwBookId = String(hw.bookId || hw.id || '');
       const hwUuid = toUUID(hwBookId);
@@ -763,6 +781,15 @@ export default function ExamManager() {
 
   const handleSaveExamEdits = async () => {
     if (!viewingExamDetails) return;
+    if (currentUser?.role !== 'admin') {
+      const teacherId = String(currentUser?.id || '');
+      const isOwner = (viewingExamDetails.createdBy && String(viewingExamDetails.createdBy) === teacherId) || 
+                      (viewingExamDetails.teacherId && String(viewingExamDetails.teacherId) === teacherId);
+      if (!isOwner) {
+        alert('⚠️ Bu deneme sınavı üzerinde yalnızca oluşturan öğretmen veya yönetici değişiklik yapabilir.');
+        return;
+      }
+    }
     const finalPdfUrl = editingExamMeta.pdfUrl ? editingExamMeta.pdfUrl.trim() : '';
     const finalOptionCount = Number(editingExamMeta.optionCount) || 4;
     const finalTimePerQuestion = Number(editingExamMeta.timePerQuestion) || 2;
@@ -859,6 +886,14 @@ export default function ExamManager() {
 
   const handleDeleteExam = async (exam) => {
     if (!exam) return;
+    if (currentUser?.role !== 'admin') {
+      const teacherId = String(currentUser?.id || '');
+      const isOwner = (exam.createdBy && String(exam.createdBy) === teacherId) || (exam.teacherId && String(exam.teacherId) === teacherId);
+      if (!isOwner) {
+        alert('⚠️ Bu deneme sınavı yalnızca oluşturan öğretmen veya yönetici tarafından silinebilir.');
+        return;
+      }
+    }
     const title = exam.title || 'Deneme';
     if (!window.confirm(`"${title}" denemesini havuzdan, atanmış tüm ödevlerden ve öğrenci sonuçlarından tamamen silmek istediğinize emin misiniz?`)) return;
 
@@ -1686,22 +1721,26 @@ export default function ExamManager() {
                                   {isAssignedOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                 </button>
 
-                                <button
-                                  onClick={() => handleDeleteExam(m)}
-                                  style={{
-                                    background: '#fef2f2',
-                                    border: '1px solid #fecaca',
-                                    borderRadius: '0.55rem',
-                                    padding: '0.35rem 0.45rem',
-                                    cursor: 'pointer',
-                                    color: '#dc2626',
-                                    display: 'inline-flex',
-                                    alignItems: 'center'
-                                  }}
-                                  title="Denemeyi Sil"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
+                                {(currentUser?.role === 'admin' ||
+                                  (m.createdBy && String(m.createdBy) === String(currentUser?.id)) ||
+                                  (m.teacherId && String(m.teacherId) === String(currentUser?.id))) && (
+                                  <button
+                                    onClick={() => handleDeleteExam(m)}
+                                    style={{
+                                      background: '#fef2f2',
+                                      border: '1px solid #fecaca',
+                                      borderRadius: '0.55rem',
+                                      padding: '0.35rem 0.45rem',
+                                      cursor: 'pointer',
+                                      color: '#dc2626',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                    title="Denemeyi Sil"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -2118,13 +2157,17 @@ export default function ExamManager() {
                         >
                           Ödev Ata
                         </button>
-                        <button
-                          onClick={() => handleDeleteExam(m)}
-                          style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer', color: '#dc2626', display: 'flex' }}
-                          title="Denemeyi Sil"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {(currentUser?.role === 'admin' ||
+                          (m.createdBy && String(m.createdBy) === String(currentUser?.id)) ||
+                          (m.teacherId && String(m.teacherId) === String(currentUser?.id))) && (
+                          <button
+                            onClick={() => handleDeleteExam(m)}
+                            style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.35rem', cursor: 'pointer', color: '#dc2626', display: 'flex' }}
+                            title="Denemeyi Sil"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
