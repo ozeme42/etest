@@ -18,7 +18,7 @@ export default function StudentTodayFocusCard({
   const pending = Math.max(0, total - completed);
   const remedialCount = catchUpTasks.length || 0;
   const completionPct = total > 0 ? Math.round((completed / total) * 100) : (remedialCount === 0 ? 100 : 0);
-  const isAllDone = total > 0 ? pending === 0 : remedialCount === 0;
+  const isAllDone = total > 0 ? (pending === 0 && remedialCount === 0) : remedialCount === 0;
 
   const firstPendingItem = (dayProgramInfo.items || []).find(t => !t.done) || catchUpTasks[0] || null;
   const pendingTitle = firstPendingItem
@@ -81,8 +81,8 @@ export default function StudentTodayFocusCard({
             {isAllDone ? <CheckCircle2 size={18} /> : <Target size={18} />}
           </div>
           <div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.06em', textTransform: 'uppercase', color: isAllDone ? '#10b981' : '#6366f1' }}>
-              {isAllDone ? '🌟 Günlük Hedef Tamam' : '🎯 Bugünün Odak Modu'}
+            <div style={{ fontSize: '0.68rem', fontWeight: 900, letterSpacing: '0.06em', textTransform: 'uppercase', color: isAllDone ? '#10b981' : (pending === 0 && remedialCount > 0 ? '#f59e0b' : '#6366f1') }}>
+              {isAllDone ? '🌟 Günlük Hedef Tamam' : (pending === 0 && remedialCount > 0 ? '🔥 Telafi Görevleri Bekliyor' : '🎯 Bugünün Odak Modu')}
             </div>
             <h3 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)' }}>
               Merhaba, {firstName}! {isAllDone ? '🎉' : '👋'}
@@ -123,6 +123,10 @@ export default function StudentTodayFocusCard({
       <p style={{ margin: '0 0 0.85rem 0', fontSize: isMobile ? '0.82rem' : '0.88rem', color: 'var(--color-text-muted)', lineHeight: 1.45, fontWeight: 600 }}>
         {isAllDone ? (
           <span>Harika iş çıkardın! Bugün planlanan tüm çalışma hedeflerini tamamladın. Kendine ödül verebilir veya serbest soru çözebilirsin.</span>
+        ) : pending === 0 && remedialCount > 0 ? (
+          <span>
+            Bugünün planlanan görevleri tamamlandı, ancak geçmişten kalan <strong style={{ color: '#ef4444' }}>{remedialCount} telafi testi</strong> seni bekliyor.
+          </span>
         ) : (
           <span>
             Bugün hedefine yaklaşmak için <strong style={{ color: 'var(--color-text)' }}>{pending} görev</strong>
@@ -169,7 +173,7 @@ export default function StudentTodayFocusCard({
             }}
           >
             <Sparkles size={16} />
-            <span>Güne Başla: {pendingTitle.length > 28 ? pendingTitle.slice(0, 28) + '…' : pendingTitle}</span>
+            <span>{pending === 0 && remedialCount > 0 ? 'Telafi Çöz: ' : 'Güne Başla: '}{pendingTitle.length > 26 ? pendingTitle.slice(0, 26) + '…' : pendingTitle}</span>
             <ArrowRight size={16} />
           </Button>
         </div>

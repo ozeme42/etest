@@ -6,7 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
-import { isHomeworkForStudent, normalizeId } from '../utils/testResolver';
+import { isHomeworkForStudent, normalizeId, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
@@ -192,62 +192,98 @@ export default function StudentHomeworksPage() {
       const isBook = hw.isBookAssignment || hw.sourceType === 'trackedBook' || (hw.bookId && bookObj);
 
       if (isBook) {
-        return []; // Sadece soru bankası ödevlerini göstermek için kitap takibi ödevlerini gizliyoruz
-        const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||
-          (submissions || []).find(s => isMatchHwSub(s, hw, bookObj));
+        const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+        const hasSpecificDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
 
-        if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-          return hw.tests.map((tItem, tIdx) => {
-            const tId = typeof tItem === 'object' ? (tItem.id || tItem.testId) : tItem;
-            const bookTestObj = (bookTests || []).find(bt => String(bt.id) === String(tId) || normalizeId(bt.id) === normalizeId(tId));
-            const subForTest = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId)) ||
-              (submissions || []).find(s => isMatchHwSub(s, hw, bookObj, tId));
+        if (hasSpecificDates) {
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .trim();
 
-            const testTitle = (typeof tItem === 'object' ? (tItem.title || tItem.name) : null) || bookTestObj?.name || bookTestObj?.title || `${hw.title || 'Kitap Ödevi'} - Test ${tIdx + 1}`;
-            const qCount = (typeof tItem === 'object' ? (tItem.questionCount || tItem.qCount) : null) || bookTestObj?.question_count || bookTestObj?.questionCount || 12;
+          let bookSubjects = bookObj?.subjects || [];
+          if (typeof bookSubjects === 'string') {
+            try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+          }
+
+          return Object.entries(testDates).map(([tIdKey, dStr]) => {
+            if (!dStr) return null;
+            const cleanTestId = String(tIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+            const bt = (bookTests || []).find(b => {
+              const bId = String(b.id);
+              return bId === cleanTestId || bId === String(tIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+            });
+
+            let resolvedSubject = bt?.subject || bt?.subjectName || '';
+            let resolvedUnit = bt?.unit || bt?.unitName || '';
+            const sId = bt?.subjectId || bt?.subject_id;
+            const tId = bt?.topicId || bt?.topic_id;
+
+            if (Array.isArray(bookSubjects)) {
+              for (const subj of bookSubjects) {
+                const isSubjMatch = sId && String(subj.id) === String(sId);
+                let isTopicMatch = false;
+                for (const top of (subj.topics || [])) {
+                  if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                    resolvedUnit = top.name;
+                    isTopicMatch = true;
+                    break;
+                  }
+                }
+                if (isSubjMatch || isTopicMatch) {
+                  resolvedSubject = subj.name;
+                  break;
+                }
+              }
+            }
+
+            if (!resolvedSubject) {
+              resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
+            }
+
+            const testTitle = bt?.name || bt?.title || 'Kitap Testi';
+            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+
+            const candidateItem = {
+              id: `${hw.id}_${cleanTestId}`,
+              testId: cleanTestId,
+              bookTestId: cleanTestId,
+              realTestId: cleanTestId,
+              hwId: hw.id,
+              bookId: hw.bookId || bookObj?.id,
+              bookTitle: cleanBookTitle,
+              title: `${cleanBookTitle} › ${resolvedUnit ? resolvedUnit + ': ' : ''}${testTitle}`,
+              testName: testTitle,
+              subject: resolvedSubject,
+              unitTopic: resolvedUnit,
+              topic: resolvedUnit,
+              dueDate: dStr,
+              categoryType: 'kitap',
+              sourceType: 'trackedBook',
+              isBookAssignment: true,
+              questionCount: qCount,
+              totalScoreQuestions: qCount
+            };
+
+            const subForTest = (submissions || []).find(s => {
+              if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return false;
+              return isSubmissionMatchingBookTest(s, candidateItem, bookTests, books);
+            });
 
             return {
               ...hw,
-              id: `${hw.id}_${tId || tIdx}`,
-              realTestId: tId || hw.id,
-              bookTestId: tId,
-              testId: tId || hw.id,
-              hwId: hw.id,
-              title: `${hw.title || 'Kitap Ödevi'} › ${testTitle}`,
-              testName: testTitle,
+              ...candidateItem,
               status: subForTest ? 'Sonuçlandı' : 'Atandı',
               isDone: !!subForTest,
-              questionCount: qCount,
-              totalScoreQuestions: qCount,
+              correctAnswers: subForTest?.correctCount || (subForTest?.score ? Math.round((subForTest.score / 100) * qCount) : 0),
               scorePct: subForTest ? (subForTest.scorePercentage !== undefined && subForTest.scorePercentage !== null ? Math.round(Number(subForTest.scorePercentage)) : (typeof subForTest.score === 'number' && subForTest.score <= 100 ? Math.round(subForTest.score) : null)) : null,
               submissionId: subForTest?.id,
-              submittedAt: subForTest?.submittedAt || subForTest?.createdAt,
-              bookId: hw.bookId || bookObj?.id,
-              bookTitle: bookObj?.title || hw.bookTitle,
-              sourceType: 'trackedBook'
+              submittedAt: subForTest?.submittedAt || subForTest?.createdAt
             };
-          });
+          }).filter(Boolean);
         }
 
-        return [{
-          ...hw,
-          id: hw.id,
-          realTestId: hw.id,
-          testId: hw.id,
-          hwId: hw.id,
-          title: hw.title || hw.name || bookObj?.title || 'Kitap Ödevi',
-          status: sub ? 'Sonuçlandı' : 'Atandı',
-          isDone: !!sub,
-          questionCount: hw.totalQuestions || hw.questionCount || 12,
-          correctAnswers: sub?.correctCount || 0,
-          totalScoreQuestions: hw.totalQuestions || 12,
-          scorePct: sub ? (sub.scorePercentage !== undefined && sub.scorePercentage !== null ? Math.round(Number(sub.scorePercentage)) : (typeof sub.score === 'number' && sub.score <= 100 ? Math.round(sub.score) : null)) : null,
-          submissionId: sub?.id,
-          submittedAt: sub?.submittedAt || sub?.createdAt,
-          bookId: hw.bookId || (bookObj ? bookObj.id : undefined),
-          bookTitle: bookObj?.title || hw.bookTitle,
-          sourceType: 'trackedBook'
-        }];
+        return []; // Sadece serbest tarih atanmamış tüm kitap ödevlerini gizle
       }
 
       const sub = (hw.submissions || []).find(s => isMatchHwSub(s, hw, bookObj)) ||

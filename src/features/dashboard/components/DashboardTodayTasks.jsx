@@ -15,7 +15,7 @@ export default memo(function DashboardTodayTasks({
   getRowTheme,
   onAddTask
 }) {
-  const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(false);
+  const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(true);
 
   const headerGradient = dayProgramInfo.isToday
     ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
@@ -525,12 +525,29 @@ export default memo(function DashboardTodayTasks({
             </div>
           ) : (
             <div style={{ padding: '2rem 1.5rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>🎉</div>
-              <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.92rem', marginBottom: 3 }}>
-                {dayProgramInfo.isToday ? 'Bugün için planlanan tüm görevler bitti veya görev yok!' : `${dayProgramInfo.dayName} günü için kayıtlı görev bulunamadı.`}
+              <div style={{ fontSize: '1.8rem', marginBottom: 4 }}>{hasCatchUp ? '🔥' : '🎉'}</div>
+              <div style={{ fontWeight: 800, color: hasCatchUp ? '#f59e0b' : '#10b981', fontSize: '0.95rem', marginBottom: 6 }}>
+                {dayProgramInfo.isToday
+                  ? (hasCatchUp ? 'Bugünün planlanan görevleri tamam!' : 'Bugün için planlanan tüm görevler bitti veya görev yok!')
+                  : `${dayProgramInfo.dayName} günü için kayıtlı görev bulunamadı.`}
               </div>
+              {hasCatchUp && (
+                <div style={{
+                  fontSize: '0.82rem',
+                  color: '#ef4444',
+                  fontWeight: 800,
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  padding: '0.55rem 0.95rem',
+                  borderRadius: 10,
+                  margin: '0.5rem auto 0.75rem',
+                  maxWidth: 440
+                }}>
+                  ⚠️ Geçmiş günlerden tamamlanması gereken {catchUpTasks.length} geciken telafi görevin bulunuyor. Hemen aşağıdaki Telafi Havuzundan çözmeye başlayabilirsin:
+                </div>
+              )}
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: onAddTask ? 12 : 0 }}>
-                Harika gidiyorsun! Haftalık programından yeni hedefler ekleyebilirsin.
+                {hasCatchUp ? 'Geciken eksiklerini tamamlayarak haftalık hedeflerini yakala!' : 'Harika gidiyorsun! Haftalık programından yeni hedefler ekleyebilirsin.'}
               </div>
               {onAddTask && (
                 <button
