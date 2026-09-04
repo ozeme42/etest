@@ -100,6 +100,14 @@ export default function CompositeHomeworkReview({
     return currentSecQuestions.map(q => q.correctAnswer);
   }, [currentSecQuestions]);
 
+  const activeSecSubmissionAnswers = useMemo(() => {
+    if (!Array.isArray(submission?.answers)) return [];
+    return submission.answers.filter(a =>
+      (a.sectionId && (String(a.sectionId) === String(activeSec.id) || String(a.sectionId) === String(activeSec.raw?.id))) ||
+      (a.sectionIndex !== undefined && Number(a.sectionIndex) === activeSecIdx)
+    );
+  }, [submission?.answers, activeSec.id, activeSec.raw?.id, activeSecIdx]);
+
   const isSecOE = activeSec.type === 'open_ended' || activeSec.isOpenEnded === true || activeSec.is_open_ended === true || isSectionOpenEnded(activeSec, test);
   const isSecPdf = activeSec.format === 'pdf' ||
                    activeSec.contentType === 'pdf' ||
@@ -163,19 +171,6 @@ export default function CompositeHomeworkReview({
   //    MC sections: userAnswer vs correctAnswer per question.
   //    OE sections: teacherScores (live hook state OR DB).
   const overallStats = useMemo(() => {
-    // If submission is already evaluated and stored direct counts, and no live hook edits:
-    const hasLiveEdits = Object.values(teacherScores).some(sec => sec && Object.values(sec).some(v => v !== undefined && v !== null));
-    if (!hasLiveEdits && submission?.isEvaluatedByTeacher && submission?.correctCount !== undefined && submission?.wrongCount !== undefined) {
-      const correct = Number(submission.correctCount || 0);
-      const wrong = Number(submission.wrongCount || 0);
-      const blank = Number(submission.blankCount || 0);
-      const total = Number(submission.totalQuestions || (correct + wrong + blank) || 27);
-      const scorePct = submission.scorePercentage ?? (total > 0 ? Math.round((correct / total) * 100) : 0);
-      const rawNet = Math.max(0, correct - wrong * 0.25);
-      const netScore = Number.isInteger(rawNet) ? rawNet : rawNet.toFixed(2);
-      return { total, correct, wrong, blank, pending: 0, scorePct, netScore };
-    }
-
     let totalQuestions = 0;
     let correctCount   = 0;
     let wrongCount     = 0;
@@ -183,6 +178,12 @@ export default function CompositeHomeworkReview({
     let pendingCount   = 0;
 
     const dbTS = submission?.teacherScores || {};
+    const isAlreadyEvaluated = Boolean(
+      submission?.isEvaluatedByTeacher ||
+      submission?.isEvaluated ||
+      submission?.status === 'evaluated' ||
+      submission?.evalStatus === 'evaluated'
+    );
 
     const secOffsets = [];
     let acc = 0;
@@ -198,7 +199,7 @@ export default function CompositeHomeworkReview({
       const isSecOE = sec.type === 'open_ended' || sec.isOpenEnded === true || sec.is_open_ended === true || isSectionOpenEnded(sec, test);
       const secStart = secOffsets[sIdx] || 0;
 
-      const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[String(sIdx)] || {};
+      const dbSecScores = dbTS[sec.id] || dbTS[rawId] || dbTS[sIdx] || dbTS[String(sIdx)] || {};
 
       for (let i = 1; i <= count; i++) {
         totalQuestions++;
@@ -209,6 +210,8 @@ export default function CompositeHomeworkReview({
         const rawAnsItem = Array.isArray(submission?.answers)
           ? submission.answers.find(a =>
               (a.sectionId && (String(a.sectionId) === String(sec.id) || String(a.sectionId) === String(rawId)) && Number(a.questionNoInSection) === i) ||
+              (a.sectionIndex !== undefined && Number(a.sectionIndex) === sIdx && Number(a.questionNoInSection || a.questionNo) === i) ||
+              (qObj.id && a.questionId && String(a.questionId) === String(qObj.id)) ||
               Number(a.questionNo) === globalQNo ||
               (sIdx === 0 && Number(a.questionNo) === i)
             )
@@ -216,22 +219,46 @@ export default function CompositeHomeworkReview({
 
         if (isQOE) {
           const sa = sectionAnswersMap[sIdx] ?? sectionAnswersMap[String(sIdx)] ?? {};
-          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText;
+          const textVal = sa.openEndedText?.[i] ?? sa.openEndedText?.[String(i)] ?? rawAnsItem?.userAnswerText ?? rawAnsItem?.textAns ?? submission?.openEndedText?.[globalQNo] ?? submission?.openEndedText?.[String(globalQNo)];
           const hasText = Boolean(textVal && String(textVal).trim());
 
-          const directTeacherSc = teacherScores[sec.id]?.[i] ?? teacherScores[rawId]?.[i] ?? teacherScores[sIdx]?.[i] ?? dbSecScores[i] ?? dbSecScores[String(i)];
+          const directTeacherSc = teacherScores[sec.id]?.[i] ?? 
+                                  teacherScores[sec.id]?.[String(i)] ?? 
+                                  teacherScores[rawId]?.[i] ?? 
+                                  teacherScores[rawId]?.[String(i)] ?? 
+                                  teacherScores[sIdx]?.[i] ?? 
+                                  teacherScores[sIdx]?.[String(i)] ?? 
+                                  teacherScores[String(sIdx)]?.[i] ?? 
+                                  teacherScores[String(sIdx)]?.[String(i)] ?? 
+                                  teacherScores[globalQNo] ?? 
+                                  teacherScores[String(globalQNo)] ?? 
+                                  sa.teacherScores?.[i] ?? 
+                                  sa.teacherScores?.[String(i)] ?? 
+                                  dbSecScores[i] ?? 
+                                  dbSecScores[String(i)] ?? 
+                                  dbTS[globalQNo] ?? 
+                                  dbTS[String(globalQNo)] ?? 
+                                  rawAnsItem?.teacherScore ?? 
+                                  rawAnsItem?.score;
+
           const isExplicitEmpty = directTeacherSc === 'empty' || rawAnsItem?.score === 'empty' || rawAnsItem?.evalStatus === 'empty' || (rawAnsItem?.score === 0 && rawAnsItem?.isCorrect === null);
-          const hasExplicitTeacherScore = !isExplicitEmpty && directTeacherSc !== undefined && directTeacherSc !== null && directTeacherSc !== 'empty';
+          const hasExplicitTeacherScore = !isExplicitEmpty && directTeacherSc !== undefined && directTeacherSc !== null && directTeacherSc !== '' && !isNaN(Number(directTeacherSc));
 
           if (isExplicitEmpty) {
             blankCount++;
           } else if (hasExplicitTeacherScore) {
             if (Number(directTeacherSc) >= 5) correctCount++;
             else wrongCount++;
-          } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null) {
+          } else if (rawAnsItem && (rawAnsItem.evaluatedByTeacher || rawAnsItem.evaluatedAt) && rawAnsItem.score !== undefined && rawAnsItem.score !== null && rawAnsItem.score !== '') {
             if (Number(rawAnsItem.score) >= 5) correctCount++;
             else if (Number(rawAnsItem.score) > 0 || hasText) wrongCount++;
             else blankCount++;
+          } else if (rawAnsItem && typeof rawAnsItem.isCorrect === 'boolean') {
+            if (rawAnsItem.isCorrect) correctCount++;
+            else wrongCount++;
+          } else if (isAlreadyEvaluated && hasText) {
+            // Evaluated test: student text is counted as evaluated (correct)
+            correctCount++;
           } else if (hasText) {
             pendingCount++;
           } else {
@@ -514,10 +541,10 @@ export default function CompositeHomeworkReview({
                   resolvedQuestions={currentSecQuestions}
                   isReviewMode={true}
                   isTeacher={isTeacher}
-                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
-                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
-                  submissionAnswers={submission?.answers || []}
-                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || teacherScores[activeSecIdx] || teacherScores[String(activeSecIdx)] || currentSecAnswers.teacherScores || {}}
+                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || teacherNotes[activeSecIdx] || teacherNotes[String(activeSecIdx)] || currentSecAnswers.teacherNotes || {}}
+                  submissionAnswers={activeSecSubmissionAnswers.length > 0 ? activeSecSubmissionAnswers : (submission?.answers || [])}
+                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated' || submission?.isEvaluated)}
                   onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
                   onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
                 />
@@ -558,10 +585,10 @@ export default function CompositeHomeworkReview({
                   resolvedQuestions={currentSecQuestions}
                   isReviewMode={true}
                   isTeacher={isTeacher}
-                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
-                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
-                  submissionAnswers={submission?.answers || []}
-                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                  teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || teacherScores[activeSecIdx] || teacherScores[String(activeSecIdx)] || currentSecAnswers.teacherScores || {}}
+                  teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || teacherNotes[activeSecIdx] || teacherNotes[String(activeSecIdx)] || currentSecAnswers.teacherNotes || {}}
+                  submissionAnswers={activeSecSubmissionAnswers.length > 0 ? activeSecSubmissionAnswers : (submission?.answers || [])}
+                  isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated' || submission?.isEvaluated)}
                   onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
                   onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
                 />
@@ -602,7 +629,12 @@ export default function CompositeHomeworkReview({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
                       {currentSecQuestions.map((q, idx) => {
                         const qNo = idx + 1;
-                        const score = teacherScores[activeSec.id]?.[qNo];
+                        const score = teacherScores[activeSec.id]?.[qNo] ?? 
+                                      teacherScores[activeSec.raw?.id]?.[qNo] ?? 
+                                      teacherScores[activeSecIdx]?.[qNo] ?? 
+                                      teacherScores[String(activeSecIdx)]?.[qNo] ?? 
+                                      currentSecAnswers.teacherScores?.[qNo] ?? 
+                                      currentSecAnswers.teacherScores?.[String(qNo)];
                         const text = currentSecAnswers.openEndedText[qNo] || '';
                         const isSelected = viewMode === 'single' && activeQIdx === idx;
                         const isGraded = score !== undefined && score !== null && score !== '' && score !== 'empty';
@@ -665,8 +697,18 @@ export default function CompositeHomeworkReview({
                       const q = currentSecQuestions[activeQIdx] || currentSecQuestions[0];
                       const qNo = activeQIdx + 1;
                       const text = currentSecAnswers.openEndedText[qNo] || '';
-                      const score = teacherScores[activeSec.id]?.[qNo];
-                      const note = teacherNotes[activeSec.id]?.[qNo] || '';
+                      const score = teacherScores[activeSec.id]?.[qNo] ?? 
+                                    teacherScores[activeSec.raw?.id]?.[qNo] ?? 
+                                    teacherScores[activeSecIdx]?.[qNo] ?? 
+                                    teacherScores[String(activeSecIdx)]?.[qNo] ?? 
+                                    currentSecAnswers.teacherScores?.[qNo] ?? 
+                                    currentSecAnswers.teacherScores?.[String(qNo)];
+                      const note = teacherNotes[activeSec.id]?.[qNo] ?? 
+                                   teacherNotes[activeSec.raw?.id]?.[qNo] ?? 
+                                   teacherNotes[activeSecIdx]?.[qNo] ?? 
+                                   teacherNotes[String(activeSecIdx)]?.[qNo] ?? 
+                                   currentSecAnswers.teacherNotes?.[qNo] ?? 
+                                   currentSecAnswers.teacherNotes?.[String(qNo)] ?? '';
 
                       return (
                         <OpenEndedReview
@@ -678,7 +720,7 @@ export default function CompositeHomeworkReview({
                           userAnswerText={text}
                           teacherScore={score}
                           teacherNote={note}
-                          isTrulyEvaluated={unifiedSub.isEvaluated}
+                          isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated' || submission?.isEvaluated || unifiedSub.isEvaluated)}
                           onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
                           onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
                           isTeacher={isTeacher}
@@ -753,8 +795,18 @@ export default function CompositeHomeworkReview({
                   currentSecQuestions.map((q, idx) => {
                     const qNo = idx + 1;
                     const text = currentSecAnswers.openEndedText[qNo] || '';
-                    const score = teacherScores[activeSec.id]?.[qNo];
-                    const note = teacherNotes[activeSec.id]?.[qNo] || '';
+                    const score = teacherScores[activeSec.id]?.[qNo] ?? 
+                                  teacherScores[activeSec.raw?.id]?.[qNo] ?? 
+                                  teacherScores[activeSecIdx]?.[qNo] ?? 
+                                  teacherScores[String(activeSecIdx)]?.[qNo] ?? 
+                                  currentSecAnswers.teacherScores?.[qNo] ?? 
+                                  currentSecAnswers.teacherScores?.[String(qNo)];
+                    const note = teacherNotes[activeSec.id]?.[qNo] ?? 
+                                 teacherNotes[activeSec.raw?.id]?.[qNo] ?? 
+                                 teacherNotes[activeSecIdx]?.[qNo] ?? 
+                                 teacherNotes[String(activeSecIdx)]?.[qNo] ?? 
+                                 currentSecAnswers.teacherNotes?.[qNo] ?? 
+                                 currentSecAnswers.teacherNotes?.[String(qNo)] ?? '';
 
                     return (
                       <OpenEndedReview
@@ -766,7 +818,7 @@ export default function CompositeHomeworkReview({
                         userAnswerText={text}
                         teacherScore={score}
                         teacherNote={note}
-                        isTrulyEvaluated={unifiedSub.isEvaluated}
+                        isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated' || submission?.isEvaluated || unifiedSub.isEvaluated)}
                         onScoreChange={(sc) => handleScoreChange(activeSec.id, qNo, sc)}
                         onNoteChange={(nt) => handleNoteChange(activeSec.id, qNo, nt)}
                         isTeacher={isTeacher}
@@ -784,10 +836,10 @@ export default function CompositeHomeworkReview({
                 resolvedQuestions={currentSecQuestions}
                 isReviewMode={true}
                 isTeacher={isTeacher}
-                teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || currentSecAnswers.teacherScores || {}}
-                teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || currentSecAnswers.teacherNotes || {}}
-                submissionAnswers={submission?.answers || []}
-                isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated')}
+                teacherScores={teacherScores[activeSec.id] || teacherScores[activeSec.raw?.id] || teacherScores[activeSecIdx] || teacherScores[String(activeSecIdx)] || currentSecAnswers.teacherScores || {}}
+                teacherNotes={teacherNotes[activeSec.id] || teacherNotes[activeSec.raw?.id] || teacherNotes[activeSecIdx] || teacherNotes[String(activeSecIdx)] || currentSecAnswers.teacherNotes || {}}
+                submissionAnswers={activeSecSubmissionAnswers.length > 0 ? activeSecSubmissionAnswers : (submission?.answers || [])}
+                isTrulyEvaluated={Boolean(submission?.isEvaluatedByTeacher || submission?.status === 'evaluated' || submission?.isEvaluated)}
                 onSetTeacherScore={(qNo, sc) => handleScoreChange && handleScoreChange(activeSec.id, qNo, sc)}
                 onSetTeacherNote={(qNo, note) => handleNoteChange && handleNoteChange(activeSec.id, qNo, note)}
               />

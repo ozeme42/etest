@@ -229,15 +229,16 @@ export default function OpenEndedReview({
     }
   };
 
-  const hasTeacherGraded = Boolean(
-    isTrulyEvaluated &&
+  const hasExplicitScore = Boolean(
     teacherScore !== undefined &&
     teacherScore !== null &&
+    teacherScore !== '' &&
     teacherScore !== 'pending' &&
     teacherScore !== 'unevaluated'
   );
+  const hasTeacherGraded = hasExplicitScore || Boolean(isTrulyEvaluated);
   
-  const numScore = hasTeacherGraded && teacherScore !== 'empty' ? Number(teacherScore) : null;
+  const numScore = hasExplicitScore && teacherScore !== 'empty' ? Number(teacherScore) : (isTrulyEvaluated ? 10 : null);
   const isGenericText = (txt) => !txt || typeof txt !== 'string' || txt.trim() === '' || /^(soru\s*\d+|\d+\.\s*bölüm|bölüm\s*\d+|genel test|toplu yazılı test)/i.test(txt.trim());
   const qText = !isGenericText(question?.questionText) ? question.questionText :
                 !isGenericText(question?.text) ? question.text :

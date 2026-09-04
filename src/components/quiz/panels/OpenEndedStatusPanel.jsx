@@ -51,11 +51,11 @@ export default memo(function OpenEndedStatusPanel({
     let rawScore = teacherScores?.[qNo] ?? teacherScores?.[String(qNo)];
     let ansMatch = null;
     if (Array.isArray(submissionAnswers)) {
-      ansMatch = submissionAnswers.find(a => Number(a?.questionNo) === qNo || Number(a?.questionNoInSection) === qNo || String(a?.questionId).endsWith(`_${qNo}`));
+      ansMatch = submissionAnswers.find(a => Number(a?.questionNoInSection) === qNo || Number(a?.questionNo) === qNo || String(a?.questionId).endsWith(`_${qNo}`));
     }
 
     if ((rawScore === undefined || rawScore === null) && ansMatch) {
-      if (ansMatch.score !== undefined && ansMatch.score !== null) {
+      if (ansMatch.score !== undefined && ansMatch.score !== null && ansMatch.score !== '') {
         rawScore = ansMatch.score;
       }
     }
@@ -64,15 +64,15 @@ export default memo(function OpenEndedStatusPanel({
 
     const isExplicitEmpty = rawScore === 'empty' || ansMatch?.evalStatus === 'empty' || (!hasText && rawScore === null);
     const hasNumericScore = rawScore !== undefined && rawScore !== null && rawScore !== '' && rawScore !== 'empty' && !isNaN(Number(rawScore));
-    const scoreVal = hasNumericScore ? Number(rawScore) : null;
-    const isPending = hasText && scoreVal === null && !isExplicitEmpty;
+    const scoreVal = hasNumericScore ? Number(rawScore) : (isTrulyEvaluated && hasText ? 10 : null);
+    const isPending = hasText && !hasNumericScore && !isExplicitEmpty && !isTrulyEvaluated;
 
     return {
       score: scoreVal,
       isExplicitEmpty,
       isPending,
       teacherNote: String(rawNote || '').trim(),
-      hasEvaluated: hasNumericScore
+      hasEvaluated: hasNumericScore || isTrulyEvaluated
     };
   };
 
