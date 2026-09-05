@@ -3049,8 +3049,10 @@ export async function dbGetScales(teacherId) {
 export async function dbSaveScale(scale) {
   if (!isSupabaseConfigured()) return null;
   try {
+    const scaleTitle = String(scale.name || scale.title || 'Ölçek');
     const payload = {
       id: String(scale.id),
+      title: scaleTitle,
       teacher_id: String(scale.teacherId || scale.createdBy || ''),
       data: JSON.stringify(scale),
     };

@@ -7,7 +7,8 @@ export default function ScalePage() {
   const { currentUser } = useAuth();
   const { users } = useUser();
 
-  const students = (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
+  const teacherStudents = (users || []).filter(u => u.role === 'student' && (currentUser?.role === 'admin' || u.teacherId === currentUser?.id));
+  const students = teacherStudents.length > 0 ? teacherStudents : (users || []).filter(u => u.role === 'student');
 
   return (
     <ScaleModule students={students} teacherId={currentUser?.id || 'teacher_default'} />

@@ -238,39 +238,72 @@ export default function ExamManager() {
         subjectArray.push({ name: subName, count: Number(t.questionCount) || 20, testId: t.id, subjectId: t.subjectId || t.subject_id });
       });
 
-      const rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
-        ? b.subjects.map(s => typeof s === 'string' ? { name: s, count: 20 } : s)
+      // Find any linked homework for this book to help recover subjects or question counts
+      const linkedHw = (homeworks || []).find(h => {
+        if (!h) return false;
+        const hBookId = String(h.bookId || h.raw_data?.bookId || '');
+        const hId = String(h.id || '');
+        const matchesId = hBookId === bId || (bUuid && (hBookId === bUuid || toUUID(hBookId) === bUuid)) ||
+                          hId === bId || (bUuid && (hId === bUuid || toUUID(hId) === bUuid));
+        const matchesTitle = String(h.title || '').trim().toLowerCase() === String(b.title || '').trim().toLowerCase();
+        return matchesId || matchesTitle;
+      });
+
+      const hwSubs = Array.isArray(linkedHw?.raw_data?.subjects) && linkedHw.raw_data.subjects.length > 0
+        ? linkedHw.raw_data.subjects
+        : (Array.isArray(linkedHw?.subjects) && linkedHw.subjects.length > 0 ? linkedHw.subjects : []);
+
+      const rawDataSubs = Array.isArray(b.raw_data?.subjects) && b.raw_data.subjects.length > 0
+        ? b.raw_data.subjects
         : [];
+
+      let rawSubjects = (Array.isArray(b.subjects) && b.subjects.length > 0)
+        ? b.subjects
+        : (rawDataSubs.length > 0 ? rawDataSubs : (hwSubs.length > 0 ? hwSubs : []));
+
+      // Filter out meta header if present
+      rawSubjects = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
 
       let effectiveSubjects = [];
       if (rawSubjects.length > 0) {
         effectiveSubjects = rawSubjects.map((s, idx) => {
-          const sName = s.name || `Ders ${idx + 1}`;
-          const sId = String(s.id || '');
+          const sName = typeof s === 'string' ? s : (s.name || `Ders ${idx + 1}`);
+          const sId = typeof s === 'object' && s ? String(s.id || '') : '';
           const matchedTest = testsForBook.find(t => {
             if (sId && String(t.subjectId || t.subject_id) === sId) return true;
             const tSubName = String(t.name || '').replace(' Testi', '').trim();
             return tSubName.toLowerCase() === sName.toLowerCase() || String(t.name || '').toLowerCase().includes(sName.toLowerCase());
           });
+          const matchedHwSub = hwSubs.find(hs =>
+            String(hs.name || '').trim().toLowerCase() === sName.toLowerCase() ||
+            String(hs.name || '').trim().toLowerCase().includes(sName.toLowerCase()) ||
+            sName.toLowerCase().includes(String(hs.name || '').trim().toLowerCase())
+          );
           return {
-            ...s,
+            ...(typeof s === 'object' ? s : {}),
             name: sName,
-            count: Number(s.count || s.questionCount || matchedTest?.questionCount || 20),
-            testId: matchedTest?.id || s.testId
+            count: Number(s.count || s.questionCount || matchedTest?.questionCount || matchedHwSub?.count || matchedHwSub?.questionCount || 15),
+            testId: matchedTest?.id || matchedHwSub?.testId || (typeof s === 'object' ? s.testId : undefined)
           };
         });
       } else if (subjectArray.length > 0) {
         effectiveSubjects = sortSubjectsByTeacherOrder(subjectArray, []);
       }
 
-      const totalQuestions = effectiveSubjects.reduce((acc, curr) => acc + (Number(curr.count) || 20), 0);
+      const totalQuestions = effectiveSubjects.length > 0
+        ? effectiveSubjects.reduce((acc, curr) => acc + (Number(curr.count) || 0), 0)
+        : Number(b.totalQuestions || b.total_questions || b.raw_data?.totalQuestions || linkedHw?.raw_data?.totalQuestions || linkedHw?.totalQuestions || 54);
+
+      const resolvedAnswerKey = Object.keys(builtAnswerKey).length > 0
+        ? builtAnswerKey
+        : (b.answerKey || b.raw_data?.answerKey || linkedHw?.raw_data?.answerKey || linkedHw?.answerKey || {});
 
       const examObj = {
         ...b,
         bookType: 'exam',
-        answerKey: Object.keys(builtAnswerKey).length > 0 ? builtAnswerKey : (b.answerKey || {}),
+        answerKey: resolvedAnswerKey,
         subjects: effectiveSubjects,
-        totalQuestions: totalQuestions || b.totalQuestions || 90
+        totalQuestions: totalQuestions
       };
 
       examMap.set(bId, examObj);
@@ -720,7 +753,8 @@ export default function ExamManager() {
     const createdBook = await addTrackedBook({
       title: examTitle.trim(),
       publisher: examType,
-      subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name })),
+      subjects: subjects.map((s, idx) => ({ id: `sub_${idx}`, name: s.name, count: Number(s.count) || 15 })),
+      totalQuestions: subjects.reduce((a, s) => a + (Number(s.count) || 0), 0),
       bookType: 'exam',
       penaltyRatio,
       optionCount,
@@ -732,7 +766,7 @@ export default function ExamManager() {
 
     const testPromises = [];
     subjects.forEach((subject, idx) => {
-       const subId = createdBook.subjects[idx].id;
+       const subId = createdBook?.subjects?.[idx]?.id || `sub_${idx}`;
        const ak = {};
        const srcAnswers = answerKey[subject.name] || [];
        srcAnswers.forEach((ans, i) => {
