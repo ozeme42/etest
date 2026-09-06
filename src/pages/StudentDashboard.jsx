@@ -7,7 +7,8 @@ import {
   ChevronRight, ChevronDown, ChevronUp, Star, TrendingUp, BookMarked, CalendarDays,
   Ruler, TestTube2, BookCopy, Globe, MessageSquare,
   FileText, ClipboardList, ArrowRight, RefreshCw, ClipboardCheck, Eye, RotateCcw,
-  CheckSquare, Award, ArrowUpRight, Brain, Headphones
+  CheckSquare, Award, ArrowUpRight, Brain, Headphones,
+  Backpack, School, Globe2, Users, Crown, Compass, Map as MapIcon, Gift
 } from 'lucide-react';
 import { parse, isPast, isToday, differenceInDays, format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -2938,6 +2939,54 @@ export default function StudentDashboard() {
     };
   }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount]);
 
+  const studentRankings = useMemo(() => {
+    if (!selectedStudent) {
+      return { generalRank: 1, classRank: 1, branchRank: 1, topStudents: [] };
+    }
+    const studentList = (users || []).filter(u => u.role === 'student' || (!u.role && u.className));
+    const sorted = [...studentList].sort((a, b) => {
+      const scoreA = Number(a.score || a.points || a.totalXp || 0);
+      const scoreB = Number(b.score || b.points || b.totalXp || 0);
+      return scoreB - scoreA;
+    });
+
+    const myIndex = sorted.findIndex(s => String(s.id) === String(selectedStudent.id));
+    const generalRank = myIndex !== -1 ? myIndex + 1 : 1;
+
+    const sameClass = sorted.filter(s => s.className === selectedStudent.className || (selectedStudent.gradeId && s.gradeId === selectedStudent.gradeId));
+    const myClassIndex = sameClass.findIndex(s => String(s.id) === String(selectedStudent.id));
+    const classRank = myClassIndex !== -1 ? myClassIndex + 1 : 1;
+
+    const sameBranch = sorted.filter(s => s.className && s.className === selectedStudent.className);
+    const myBranchIndex = sameBranch.findIndex(s => String(s.id) === String(selectedStudent.id));
+    const branchRank = myBranchIndex !== -1 ? myBranchIndex + 1 : 1;
+
+    let topStudents = sorted.slice(0, 3).map((s, idx) => {
+      const rawScore = Number(s.score || s.points || s.totalXp || 0);
+      const displayScore = rawScore > 0 ? rawScore : (idx === 0 ? 120 : idx === 1 ? 85 : 50);
+      return {
+        id: s.id,
+        name: s.name || s.displayName || 'Öğrenci',
+        className: s.className || '',
+        score: displayScore,
+        avatar: s.avatar || s.photoURL || null
+      };
+    });
+
+    if (topStudents.length === 0 && selectedStudent) {
+      topStudents = [
+        { id: selectedStudent.id, name: selectedStudent.name || 'Öğrenci', className: selectedStudent.className || '8-A', score: Math.max(120, studentRank.totalXp || 0), avatar: null }
+      ];
+    }
+
+    return {
+      generalRank,
+      classRank,
+      branchRank,
+      topStudents
+    };
+  }, [users, selectedStudent, studentRank.totalXp]);
+
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
 
@@ -3124,352 +3173,225 @@ export default function StudentDashboard() {
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px) + 0.85rem)' }}>
       {/* styles are in StudentDashboard.css */}
+      {/* Cosmic Space Ambient Glows */}
+      <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -140, left: '50%', transform: 'translateX(-50%)', width: isMobile ? 380 : 800, height: isMobile ? 280 : 480, background: isDark ? 'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)', filter: 'blur(110px)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', top: '35%', right: -80, width: isMobile ? 240 : 440, height: isMobile ? 240 : 440, background: isDark ? 'radial-gradient(circle, rgba(168,85,247,0.16) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)', filter: 'blur(100px)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '25%', left: -80, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, background: isDark ? 'radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)', filter: 'blur(100px)', borderRadius: '50%' }} />
+      </div>
+
       {/* ══════════════════════════════════════════════════════
-          PREMIUM VIBRANT HEADER
+          1. YAPIŞIK ÜST BAR (STICKY HEADER)
       ══════════════════════════════════════════════════════ */}
-      <div style={{
-        background: isDark
-          ? 'linear-gradient(135deg, #07090e 0%, #0f172a 35%, #1e1b4b 70%, #312e81 100%)'
-          : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
-        position: 'relative',
-        overflow: 'hidden',
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
         width: '100%',
-        boxSizing: 'border-box',
-        paddingBottom: isMobile ? '2.2rem' : '3.2rem'
+        background: isDark ? 'rgba(9, 7, 26, 0.82)' : 'rgba(255, 255, 255, 0.88)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(226, 232, 240, 0.9)',
       }}>
-        {/* Decorative subtle ambient glows */}
-        <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.18) 0%, transparent 68%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom: -60, left: '15%', width: 260, height: 260, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top: '10%', left: isMobile ? -40 : 0, width: 160, height: 160, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
-
-        {/* Top glowing line */}
-        <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent 0%, rgba(196,91,253,0.8) 30%, rgba(99,102,241,0.9) 55%, rgba(196,91,253,0.8) 75%, transparent 100%)', pointerEvents:'none' }} />
-
-        {/* ── Profil Satırı ── */}
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '0.85rem 0.65rem 0.65rem' : '1.5rem clamp(1rem, 2vw, 2rem) 1rem',
+          padding: isMobile ? '0.65rem 0.85rem' : '0.85rem clamp(1rem, 2.5vw, 2.5rem)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? '0.5rem' : '1.5rem',
-          position: 'relative',
-          zIndex: 1,
+          gap: isMobile ? 8 : 16,
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {/* SOL: Avatar + İsim + Rozetler */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.5rem' : '1.25rem', minWidth: 0, flex: 1 }}>
+          {/* Sol: Avatar + İsim + Seviye */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14, minWidth: 0, flex: 1 }}>
+            <div
+              onClick={() => setIsGamificationModalOpen(true)}
+              style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+              title="Seviye ve Rozetleri Görüntüle"
+            >
+              <div style={{
+                width: isMobile ? 42 : 48,
+                height: isMobile ? 42 : 48,
+                borderRadius: 16,
+                padding: 2,
+                background: 'linear-gradient(135deg, #fbbf24, #f97316, #e11d48)',
+                boxShadow: '0 0 16px rgba(251, 146, 60, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 14,
+                  background: isDark ? '#0b0f1e' : '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '1.15rem' : '1.35rem',
+                  color: isDark ? '#ffffff' : '#0f172a'
+                }}>
+                  {selectedStudent?.avatar ? (
+                    <img src={selectedStudent.avatar} alt="avatar" style={{ width: '100%', height: '100%', borderRadius: 14, objectFit: 'cover' }} />
+                  ) : (
+                    <span>{studentRank.icon || '🛡️'}</span>
+                  )}
+                </div>
+              </div>
+              {/* Seviye rozeti */}
+              <div style={{
+                position: 'absolute',
+                bottom: -4,
+                right: -4,
+                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                color: '#ffffff',
+                fontSize: '0.6rem',
+                fontWeight: 900,
+                padding: '1px 5px',
+                borderRadius: 999,
+                border: isDark ? '1.5px solid #09071a' : '1.5px solid #ffffff',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                lineHeight: 1.2
+              }}>
+                Sv.{studentRank.level || 1}
+              </div>
+            </div>
 
-            {/* Avatar with circular progress ring & badges */}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                color: isDark ? '#94a3b8' : '#64748b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                lineHeight: 1,
+                marginBottom: 3
+              }}>
+                Hoş geldin
+              </div>
+              <div style={{
+                fontSize: isMobile ? '0.95rem' : '1.2rem',
+                fontWeight: 900,
+                color: isDark ? '#ffffff' : '#0f172a',
+                lineHeight: 1.15,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+              }}>
+                {selectedStudent?.name || 'Öğrenci'}
+              </div>
+            </div>
+
+            {/* Öğretmen için Öğrenci Değiştirici */}
+            {currentUser?.role !== 'student' && studentMembers.length > 1 && (
+              <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', whiteSpace: 'nowrap' }}>Öğrenci:</span>
+                <select
+                  value={selectedStudent?.id || ''}
+                  onChange={e => {
+                    const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+                    if (s) {
+                      setSelectedStudent(s);
+                      try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
+                    }
+                  }}
+                  style={{
+                    background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(241, 245, 249, 0.9)',
+                    color: isDark ? '#ffffff' : '#0f172a',
+                    border: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.15)',
+                    borderRadius: 10,
+                    padding: '0.3rem 0.6rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    outline: 'none'
+                  }}
+                >
+                  {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Sağ: İstatistik Hapları + Butonlar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, flexShrink: 0 }}>
+            {/* Streak flame pill */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: isDark ? 'rgba(249, 115, 22, 0.15)' : 'rgba(249, 115, 22, 0.1)',
+              border: isDark ? '1px solid rgba(249, 115, 22, 0.3)' : '1px solid rgba(249, 115, 22, 0.25)',
+              borderRadius: 12,
+              padding: isMobile ? '0.32rem 0.55rem' : '0.4rem 0.8rem',
+              boxShadow: '0 0 12px rgba(249, 115, 22, 0.15)'
+            }}>
+              <Flame size={isMobile ? 14 : 16} style={{ color: '#f97316', flexShrink: 0 }} />
+              <span style={{ fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', fontSize: isMobile ? '0.8rem' : '0.9rem', lineHeight: 1 }}>
+                {studentStreak}
+              </span>
+              {streakMultiplier > 1.0 && (
+                <span style={{ fontSize: '0.62rem', background: '#f59e0b', color: '#fff', padding: '1px 4px', borderRadius: 4, fontWeight: 900 }}>
+                  {streakMultiplier}x
+                </span>
+              )}
+            </div>
+
+            {/* Live XP pill */}
             <div
               onClick={() => setIsGamificationModalOpen(true)}
               style={{
-                position: 'relative',
-                flexShrink: 0,
-                width: isMobile ? 60 : 82,
-                height: isMobile ? 60 : 82,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.18s ease'
+                gap: 5,
+                background: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+                border: isDark ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(245, 158, 11, 0.25)',
+                borderRadius: 12,
+                padding: isMobile ? '0.32rem 0.55rem' : '0.4rem 0.8rem',
+                boxShadow: '0 0 12px rgba(245, 158, 11, 0.15)',
+                cursor: 'pointer'
               }}
-              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • Rozetleri ve Seviyeyi Görüntüle`}
+              title="Toplam XP"
             >
-              {/* Circular Progress SVG Ring (Seviye / XP İlerleme Halkası) */}
-              <svg
-                width={isMobile ? 60 : 82}
-                height={isMobile ? 60 : 82}
-                style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
-              >
-                <defs>
-                  <linearGradient id="avatarProgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#f59e0b" />
-                    <stop offset="50%" stopColor="#ec4899" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-                {/* Background track circle */}
-                <circle
-                  cx={isMobile ? 30 : 41}
-                  cy={isMobile ? 30 : 41}
-                  r={isMobile ? 26 : 36.5}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.16)"
-                  strokeWidth={isMobile ? 3 : 4.5}
-                />
-                {/* Animated circular progress circle for Level XP */}
-                <circle
-                  cx={isMobile ? 30 : 41}
-                  cy={isMobile ? 30 : 41}
-                  r={isMobile ? 26 : 36.5}
-                  fill="none"
-                  stroke="url(#avatarProgGrad)"
-                  strokeWidth={isMobile ? 3 : 4.5}
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 26 : 36.5)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 26 : 36.5) * (1 - (studentRank.progressPercent || 0) / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 30 : 41} ${isMobile ? 30 : 41})`}
-                  style={{
-                    transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                    filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.6))' : 'none'
-                  }}
-                />
-              </svg>
-
-              {/* Inner Avatar */}
-              <div
-                style={{
-                  width: isMobile ? 46 : 64,
-                  height: isMobile ? 46 : 64,
-                  borderRadius: '50%',
-                  background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isMobile ? '1.5rem' : '2.15rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  position: 'relative',
-                  zIndex: 2,
-                  boxShadow: `0 4px 16px ${studentRank.color || avatarColor}60`,
-                  userSelect: 'none'
-                }}
-                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
-              >
-                <span>{studentRank.icon || '🛡️'}</span>
-              </div>
-
-              {/* Top-Right: Rank Shield Icon Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  zIndex: 5,
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1.5px solid rgba(255,255,255,0.4)',
-                  borderRadius: '50%',
-                  width: isMobile ? 18 : 22,
-                  height: isMobile ? 18 : 22,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isMobile ? '0.62rem' : '0.78rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)'
-                }}
-                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
-              >
-                <span>{studentRank.icon || '🛡️'}</span>
-              </div>
-
-              {/* Bottom-Right: Level (Lv) Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  zIndex: 5,
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  color: '#ffffff',
-                  border: '2px solid #ffffff',
-                  borderRadius: 99,
-                  padding: isMobile ? '1px 4px' : '1px 7px',
-                  fontSize: isMobile ? '0.52rem' : '0.66rem',
-                  fontWeight: 900,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2
-                }}
-                title={`Mevcut Seviye: Lv. ${studentRank.level} (${studentRank.title})`}
-              >
-                Lv.{studentRank.level}
-              </div>
-
-              {/* Bottom-Left: Level (XP) Progress % Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  left: -2,
-                  zIndex: 5,
-                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-                  color: '#ffffff',
-                  border: '2px solid #ffffff',
-                  borderRadius: 99,
-                  padding: isMobile ? '1px 3px' : '1px 6px',
-                  fontSize: isMobile ? '0.5rem' : '0.62rem',
-                  fontWeight: 900,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2
-                }}
-                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP) • Sonraki Seviye: ${studentRank.nextTierTitle || 'Zirve'}`}
-              >
-                %{studentRank.progressPercent || 0}
-              </div>
+              <Zap size={isMobile ? 14 : 16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+              <span style={{ fontWeight: 900, color: '#f59e0b', fontSize: isMobile ? '0.8rem' : '0.9rem', lineHeight: 1 }}>
+                {(studentRank.totalXp || 0).toLocaleString()}
+              </span>
             </div>
 
-            {/* İsim + Rozetler */}
-            <div style={{ minWidth:0, flex:1 }}>
-              <div style={{
-                fontSize: isMobile ? '0.62rem' : '0.72rem',
-                fontWeight: 800,
-                color:'rgba(196,181,253,0.95)',
-                textTransform:'uppercase',
-                letterSpacing:'0.12em',
-                marginBottom: 2,
-                display:'flex', alignItems:'center', gap:5
-              }}>
-                <span style={{ opacity:0.85 }}>HOŞ GELDİN</span>
-                <span>👏</span>
-              </div>
-
-              <h1 style={{
-                fontSize: isMobile ? '1.15rem' : '1.75rem',
+            {/* Çalışma Odası */}
+            <button
+              type="button"
+              onClick={() => navigate('/study-room')}
+              className="sd-btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                borderRadius: 12,
+                padding: isMobile ? '0.35rem 0.6rem' : '0.45rem 0.9rem',
+                color: '#ffffff',
                 fontWeight: 900,
-                color:'#ffffff',
-                margin:'0 0 4px 0',
-                lineHeight:1.15,
-                letterSpacing:'-0.025em',
-                textShadow:'0 3px 18px rgba(0,0,0,0.35)',
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
-              }}>
-                {selectedStudent?.name || 'Öğrenci'}
-              </h1>
-
-              {/* Pill badges */}
-              <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 4 : 6, flexWrap:'nowrap', whiteSpace:'nowrap', overflowX:'visible' }}>
-                {/* Günlük Kesintisiz Seri Rozeti */}
-                <div
-                  style={{
-                    background: studentStreak > 0
-                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.22))'
-                      : 'rgba(255,255,255,0.1)',
-                    border: studentStreak > 0
-                      ? '1.5px solid rgba(245, 158, 11, 0.6)'
-                      : '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: 999,
-                    padding: isMobile ? '2px 7px' : '4px 12px',
-                    fontSize: isMobile ? '0.62rem' : '0.76rem',
-                    fontWeight: 900,
-                    color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMobile ? 3 : 4,
-                    boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
-                    backdropFilter: 'blur(16px)',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Günlük Kesintisiz Seri"
-                >
-                  <Flame size={isMobile ? 11 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8', flexShrink: 0 }} />
-                  <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
-                  {streakMultiplier > 1.0 && (
-                    <span style={{ fontSize: isMobile ? '0.55rem' : '0.6rem', background: '#f59e0b', color: '#ffffff', padding: '0 3px', borderRadius: 4, fontWeight: 900, lineHeight: 1.2 }}>
-                      {streakMultiplier}x
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/study-room')}
-                  className="sd-btn"
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    border: '1.5px solid rgba(255,255,255,0.35)',
-                    borderRadius: 999,
-                    padding: isMobile ? '2px 7px' : '4px 14px',
-                    fontSize: isMobile ? '0.62rem' : '0.78rem',
-                    fontWeight: 900,
-                    color: '#ffffff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMobile ? 3 : 4,
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
-                    textDecoration: 'none',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Çalışma Odasını Aç"
-                >
-                  <Headphones size={isMobile ? 11 : 14} style={{ flexShrink: 0 }} />
-                  <span>Çalışma Odası</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* SAĞ: Premium Başarı Halkası */}
-          <div
-            onClick={() => navigate('/student/results')}
-            className="sd-success"
-            style={{ flexShrink:0 }}
-          >
-            <div style={{
-              width: isMobile ? 56 : 80,
-              height: isMobile ? 56 : 80,
-              position:'relative',
-              display:'flex', alignItems:'center', justifyContent:'center'
-            }}>
-              <svg width={isMobile ? 56 : 80} height={isMobile ? 56 : 80} style={{ position:'absolute', inset:0 }}>
-                <defs>
-                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#c084fc" />
-                    <stop offset="50%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#67e8f9" />
-                  </linearGradient>
-                </defs>
-                <circle
-                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
-                  r={isMobile ? 23 : 33}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.12)"
-                  strokeWidth={isMobile ? 3.5 : 5}
-                />
-                <circle
-                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
-                  r={isMobile ? 23 : 33}
-                  fill="none"
-                  stroke="url(#ringGrad)"
-                  strokeWidth={isMobile ? 3.5 : 5}
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 23 : 33)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 23 : 33) * (1 - overallSuccessRate / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 28 : 40} ${isMobile ? 28 : 40})`}
-                  style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
-                />
-              </svg>
-              <div style={{
-                width: isMobile ? 42 : 62,
-                height: isMobile ? 42 : 62,
-                borderRadius:'50%',
-                background:'rgba(255,255,255,0.1)',
-                backdropFilter:'blur(12px)',
-                border:'1.5px solid rgba(255,255,255,0.22)',
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                boxShadow:'0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
-              }}>
-                <div style={{ fontSize: isMobile ? '0.86rem' : '1.25rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
-                  %{overallSuccessRate}
-                </div>
-                <div style={{ fontSize: isMobile ? '0.4rem' : '0.56rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase' }}>
-                  BAŞARI
-                </div>
-              </div>
-            </div>
+                fontSize: isMobile ? '0.72rem' : '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                cursor: 'pointer',
+                boxShadow: '0 3px 12px rgba(16, 185, 129, 0.35)'
+              }}
+              title="Çalışma Odasını Aç"
+            >
+              <Headphones size={isMobile ? 13 : 15} />
+              <span style={{ display: isMobile ? 'none' : 'inline' }}>Çalışma Odası</span>
+            </button>
           </div>
         </div>
 
-        {/* Teacher Selector */}
-        {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth:1440, margin:'0 auto', padding: isMobile ? '0 0.85rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:8, position:'relative', zIndex:1, width:'100%', boxSizing:'border-box' }}>
-            <span style={{ fontSize:'0.72rem', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>👁️ Öğrenci:</span>
+        {/* Mobile Teacher Selector */}
+        {currentUser?.role !== 'student' && studentMembers.length > 1 && isMobile && (
+          <div style={{ padding: '0 0.85rem 0.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f59e0b', whiteSpace: 'nowrap' }}>Öğrenci:</span>
             <select
               value={selectedStudent?.id || ''}
               onChange={e => {
@@ -3479,38 +3401,382 @@ export default function StudentDashboard() {
                   try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
                 }
               }}
-              style={{ background:'rgba(15,23,42,0.85)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.65rem', fontSize:'0.76rem', fontWeight:700, backdropFilter:'blur(8px)', flex: 1, minWidth: 0 }}
+              style={{
+                background: isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(241, 245, 249, 0.9)',
+                color: isDark ? '#ffffff' : '#0f172a',
+                border: isDark ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.15)',
+                borderRadius: 8,
+                padding: '0.25rem 0.5rem',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                flex: 1,
+                outline: 'none'
+              }}
             >
               {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
             </select>
           </div>
         )}
-      </div>
+      </header>
 
-      {/* ── KPI Kartları — yarısı header'a biner, yarısı içeriğe taşar (Overlap) ── */}
-      <div style={{
+      {/* ══════════════════════════════════════════════════════
+          2. ANA İÇERİK KONTEYNERİ
+      ══════════════════════════════════════════════════════ */}
+      <main style={{
         maxWidth: 1440,
         margin: '0 auto',
-        padding: isMobile ? '0 0.65rem' : '0 clamp(1rem, 2.5vw, 2.5rem)',
-        marginTop: isMobile ? '-26px' : '-34px',
+        padding: isMobile ? '1rem 0.75rem 2rem' : '1.75rem clamp(1rem, 2.5vw, 2.5rem) 3rem',
         position: 'relative',
         zIndex: 10,
         width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: isMobile ? '1.25rem' : '1.75rem'
       }}>
+
+        {/* ── BÜYÜK PROFİL HERO KARTI ── */}
+        <section className="sd-hero-container">
+          {/* Conic Spinning Outer Border */}
+          <div
+            className="sd-conic-spin"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'conic-gradient(from 0deg at 50% 50%, rgba(99,102,241,0.6) 0%, rgba(168,85,247,0.6) 33%, rgba(6,182,212,0.6) 66%, rgba(99,102,241,0.6) 100%)',
+              opacity: isDark ? 0.35 : 0.22,
+              pointerEvents: 'none'
+            }}
+          />
+
+          <div
+            className="sd-glass-panel"
+            style={{
+              position: 'relative',
+              borderRadius: '2.4rem',
+              overflow: 'hidden',
+              padding: isMobile ? '1.25rem 1rem' : '2rem 2.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem'
+            }}
+          >
+            {/* İç arka plan parlama efektleri */}
+            <div style={{ position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)', width: 360, height: 360, background: 'rgba(99, 102, 241, 0.2)', filter: 'blur(90px)', borderRadius: '50%', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 260, height: 260, background: 'rgba(236, 72, 153, 0.12)', filter: 'blur(80px)', borderRadius: '50%', pointerEvents: 'none' }} />
+
+            <div style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              gap: isMobile ? '1.5rem' : '2.5rem',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {/* SOL KISIM: Seviye ve İlerleme */}
+              <div style={{ flex: '1 1 45%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                {/* Okul & Sınıf Etiketleri */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: isDark ? 'rgba(99, 102, 241, 0.12)' : 'rgba(99, 102, 241, 0.08)',
+                    border: isDark ? '1px solid rgba(129, 140, 248, 0.25)' : '1px solid rgba(99, 102, 241, 0.2)',
+                    borderRadius: 999,
+                    padding: '0.35rem 0.85rem',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <Backpack size={15} style={{ color: '#818cf8' }} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isDark ? '#ffffff' : '#1e1b4b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {selectedStudent?.className || gradeLabel || 'Sınıf'}
+                    </span>
+                  </div>
+
+                  {selectedStudent?.schoolName && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: isDark ? 'rgba(6, 182, 212, 0.12)' : 'rgba(6, 182, 212, 0.08)',
+                      border: isDark ? '1px solid rgba(34, 211, 238, 0.25)' : '1px solid rgba(6, 182, 212, 0.2)',
+                      borderRadius: 999,
+                      padding: '0.35rem 0.85rem',
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <School size={15} style={{ color: '#22d3ee' }} />
+                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', letterSpacing: '0.02em', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedStudent.schoolName}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Seviye Numarası ve Crown */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <div style={{
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      color: isDark ? '#a5b4fc' : '#4f46e5',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.12em',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      marginBottom: 4
+                    }}>
+                      <Sparkles size={13} />
+                      Mevcut Seviye
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                      <span style={{
+                        fontSize: isMobile ? '3.5rem' : '4.8rem',
+                        fontWeight: 900,
+                        lineHeight: 1,
+                        letterSpacing: '-0.04em',
+                        color: isDark ? '#ffffff' : '#0f172a',
+                        textShadow: isDark ? '0 0 30px rgba(99,102,241,0.5)' : 'none'
+                      }}>
+                        {studentRank.level || 1}
+                      </span>
+                      <div style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: '50%',
+                        background: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                        border: isDark ? '1px solid rgba(129, 140, 248, 0.4)' : '1px solid rgba(99, 102, 241, 0.3)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 16px rgba(99,102,241,0.35)'
+                      }}>
+                        <Crown size={19} style={{ color: '#818cf8' }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.45)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>
+                      Sonraki Seviyeye
+                    </span>
+                    <div style={{
+                      background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+                      borderRadius: 12,
+                      padding: '0.35rem 0.75rem',
+                      display: 'inline-block'
+                    }}>
+                      <span style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                        {Math.max(0, (studentRank.tierSpan || 150) - (studentRank.inTierXp || 0))} <span style={{ fontSize: '0.75rem', color: '#818cf8' }}>XP</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Striped Animated Progress Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{
+                    height: 16,
+                    width: '100%',
+                    background: isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.08)',
+                    borderRadius: 999,
+                    overflow: 'hidden',
+                    border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.06)',
+                    padding: 2,
+                    boxSizing: 'border-box'
+                  }}>
+                    <div
+                      className="sd-progress-striped"
+                      style={{
+                        height: '100%',
+                        borderRadius: 999,
+                        width: `${Math.min(100, Math.max(0, studentRank.progressPercent || 0))}%`,
+                        transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800 }}>
+                    <span style={{ color: isDark ? '#cbd5e1' : '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{studentRank.icon}</span> {studentRank.title}
+                    </span>
+                    <span style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+                      Hedef: <strong style={{ color: isDark ? '#c084fc' : '#7c3aed' }}>{studentRank.nextTierTitle || 'Zirve'}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ORTA AYIRICI ÇİZGİ */}
+              <div style={{
+                width: isMobile ? '100%' : 1,
+                height: isMobile ? 1 : 160,
+                background: isDark ? 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.15), transparent)' : 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.1), transparent)',
+                flexShrink: 0
+              }} />
+
+              {/* SAĞ KISIM: Günlük Hedef & Sıralama Rozetleri */}
+              <div style={{ flex: '1 1 55%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* Günlük Hedef Box */}
+                <div style={{
+                  borderRadius: 22,
+                  border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+                  background: isDark
+                    ? (solvedQuestionsStats.today >= 50 ? 'rgba(6, 78, 59, 0.25)' : 'rgba(15, 23, 42, 0.6)')
+                    : (solvedQuestionsStats.today >= 50 ? 'rgba(236, 253, 245, 0.9)' : 'rgba(248, 250, 252, 0.9)'),
+                  padding: isMobile ? '0.85rem 1rem' : '1.1rem 1.4rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  boxShadow: solvedQuestionsStats.today >= 50 ? '0 0 30px rgba(16, 185, 129, 0.15)' : 'none'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 16,
+                      background: solvedQuestionsStats.today >= 50
+                        ? 'rgba(16, 185, 129, 0.2)'
+                        : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(99, 102, 241, 0.1)'),
+                      border: solvedQuestionsStats.today >= 50
+                        ? '1.5px solid #10b981'
+                        : (isDark ? '1.5px solid rgba(255, 255, 255, 0.15)' : '1.5px solid rgba(99, 102, 241, 0.25)'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Target size={24} style={{ color: solvedQuestionsStats.today >= 50 ? '#10b981' : (isDark ? '#cbd5e1' : '#6366f1') }} />
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a' }}>
+                          Günlük Hedef
+                        </h3>
+                        {solvedQuestionsStats.today >= 50 && (
+                          <span style={{ fontSize: '0.62rem', background: '#10b981', color: '#ffffff', fontWeight: 900, padding: '1px 6px', borderRadius: 999 }}>
+                            Tamamlandı
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: isDark ? 'rgba(255,255,255,0.45)' : '#64748b', fontWeight: 700 }}>
+                        Bugün Çözülen Soru
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)',
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: 12,
+                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: 3
+                    }}>
+                      <span style={{ fontSize: '1.35rem', fontWeight: 900, color: solvedQuestionsStats.today >= 50 ? '#10b981' : (isDark ? '#ffffff' : '#0f172a') }}>
+                        {solvedQuestionsStats.today}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? 'rgba(255,255,255,0.4)' : '#94a3b8' }}>
+                        /50
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsGamificationModalOpen(true)}
+                      className="sd-btn"
+                      style={{
+                        background: 'linear-gradient(135deg, #f97316, #e11d48)',
+                        border: 'none',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: '0.78rem',
+                        padding: '0.5rem 0.9rem',
+                        borderRadius: 12,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        boxShadow: '0 4px 14px rgba(244, 63, 94, 0.35)'
+                      }}
+                    >
+                      <Gift size={15} />
+                      <span>Ödüller</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3 Sıralama Rozeti Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: isMobile ? 8 : 12
+                }}>
+                  {[
+                    { label: 'Dünya Geneli', value: studentRankings.generalRank, icon: <Globe2 size={18} style={{ color: '#38bdf8' }} />, border: isDark ? 'rgba(56, 189, 248, 0.25)' : 'rgba(56, 189, 248, 0.2)', bg: isDark ? 'rgba(8, 47, 73, 0.3)' : 'rgba(240, 249, 255, 0.8)' },
+                    { label: 'Okul Sıralaması', value: studentRankings.classRank, icon: <School size={18} style={{ color: '#e879f9' }} />, border: isDark ? 'rgba(232, 121, 249, 0.25)' : 'rgba(232, 121, 249, 0.2)', bg: isDark ? 'rgba(74, 4, 78, 0.3)' : 'rgba(253, 244, 255, 0.8)' },
+                    { label: 'Sınıf Şubesi', value: studentRankings.branchRank, icon: <Users size={18} style={{ color: '#fbbf24' }} />, border: isDark ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.2)', bg: isDark ? 'rgba(69, 26, 3, 0.3)' : 'rgba(254, 252, 232, 0.8)' },
+                  ].map(item => (
+                    <div
+                      key={item.label}
+                      style={{
+                        borderRadius: 20,
+                        border: `1px solid ${item.border}`,
+                        background: item.bg,
+                        padding: isMobile ? '0.75rem 0.4rem' : '1rem 0.75rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        gap: 6,
+                        backdropFilter: 'blur(8px)',
+                        transition: 'transform 0.2s ease'
+                      }}
+                    >
+                      <div style={{
+                        padding: 6,
+                        borderRadius: 12,
+                        background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {item.icon}
+                      </div>
+                      <span style={{ fontSize: isMobile ? '1.35rem' : '1.75rem', fontWeight: 900, color: isDark ? '#ffffff' : '#0f172a', lineHeight: 1 }}>
+                        #{item.value || 1}
+                      </span>
+                      <span style={{ fontSize: isMobile ? '0.58rem' : '0.68rem', fontWeight: 800, color: isDark ? 'rgba(255,255,255,0.55)' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1.1 }}>
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── KPI ÖZET ÇUBUĞU ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(5, minmax(0, 1fr))' : 'repeat(5, 1fr)',
-          gap: isMobile ? '0.25rem' : '0.75rem',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: isMobile ? 6 : 12,
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.4)',   route:'/student/homeworks' },
-            { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.4)',  route:'/student/results' },
-            { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.4)',  route:'/student/homeworks' },
-            { label:'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.4)',   route:'/student/homeworks' },
-            { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.4)', route:'/student/results' },
+            { label: 'TOPLAM',     value: taskStats.totalCount,           emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5, #3730a3)',  glow: 'rgba(79,70,229,0.35)',   route: '/student/homeworks' },
+            { label: 'TAMAMLANDI', value: taskStats.completedCount,       emoji: '✅', grad: 'linear-gradient(145deg, #059669, #047857)',  glow: 'rgba(16,185,129,0.35)',  route: '/student/results' },
+            { label: 'BEKLİYOR',   value: taskStats.pendingCount,         emoji: '⏳', grad: 'linear-gradient(145deg, #d97706, #b45309)',  glow: 'rgba(245,158,11,0.35)',  route: '/student/homeworks' },
+            { label: 'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #e11d48, #be123c)',  glow: 'rgba(239,68,68,0.35)',   route: '/student/homeworks' },
+            { label: 'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji: '🏆', grad: 'linear-gradient(145deg, #7c3aed, #6d28d9)',  glow: 'rgba(139,92,246,0.35)', route: '/student/results' },
           ].map((kpi) => (
             <div
               key={kpi.label}
@@ -3518,64 +3784,308 @@ export default function StudentDashboard() {
               className="sd-kpi"
               style={{
                 background: kpi.grad,
-                border: '1.5px solid rgba(255,255,255,0.25)',
-                borderRadius: isMobile ? 12 : 16,
-                padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 0.5rem',
+                border: '1.5px solid rgba(255,255,255,0.22)',
+                borderRadius: isMobile ? 14 : 18,
+                padding: isMobile ? '0.55rem 0.25rem' : '0.85rem 0.6rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                boxShadow: `0 8px 22px ${kpi.glow}, 0 1px 0 rgba(255,255,255,0.2) inset`,
-                minHeight: isMobile ? 62 : 82,
+                boxShadow: `0 8px 20px ${kpi.glow}`,
+                minHeight: isMobile ? 64 : 80,
                 minWidth: 0,
                 overflow: 'hidden'
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.85rem' : '1.25rem', lineHeight: 1, marginBottom: 3 }}>{kpi.emoji}</div>
-              <div style={{
-                fontSize: isMobile ? '1.05rem' : '1.65rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                lineHeight: 1.1,
-                letterSpacing: '-0.03em'
-              }}>
+              <div style={{ fontSize: isMobile ? '0.9rem' : '1.25rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '1.05rem' : '1.55rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.1 }}>
                 {kpi.value}
               </div>
-              <div style={{
-                fontSize: isMobile ? '0.42rem' : '0.64rem',
-                fontWeight: 900,
-                color: 'rgba(255,255,255,0.92)',
-                letterSpacing: isMobile ? '0.01em' : '0.06em',
-                marginTop: 3,
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '100%'
-              }}>
+              <div style={{ fontSize: isMobile ? '0.44rem' : '0.62rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
                 {kpi.label}
               </div>
             </div>
           ))}
         </div>
-      </div>
 
-      {/* ════════════════════════════════════════════
-          ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
-      ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
-
-
-
-
-        {/* ════════════════════════════════════════════
-            4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
-        ════════════════════════════════════════════ */}
+        {/* ══════════════════════════════════════════════════════
+            3. ANA GRID (SOL: BÜYÜK İŞLEM KARTLARI, KEŞFET, TAKVİM, ÖDEVLER, KİTAPLAR | SAĞ: LİDERLİK, ANALİZ, HEDEFLER)
+        ══════════════════════════════════════════════════════ */}
         <div className="sd-grid-layout">
 
-          {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          {/* ──── SOL KOLON ──── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+
+            {/* ── BÜYÜK İŞLEM KARTLARI ("BAŞLA") ── */}
+            <section>
+              <h2 style={{
+                fontSize: '0.75rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: isDark ? '#ffffff' : '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: '0.85rem',
+                padding: '0 4px'
+              }}>
+                <span style={{ width: 4, height: 16, background: '#6366f1', borderRadius: 99, display: 'inline-block' }} />
+                Başla
+              </h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.75rem' : '1rem' }}>
+                {/* 1. Macera Haritası */}
+                <div
+                  onClick={() => navigate('/student/books')}
+                  className="sd-action-banner"
+                  style={{
+                    position: 'relative',
+                    borderRadius: 24,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(14, 165, 233, 0.35)',
+                    background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 50%, #4338ca 100%)',
+                    boxShadow: '0 12px 36px rgba(14, 165, 233, 0.32)',
+                    cursor: 'pointer',
+                    padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16
+                  }}
+                >
+                  <div style={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.12, pointerEvents: 'none' }}>
+                    <MapIcon size={130} style={{ color: '#ffffff' }} />
+                  </div>
+                  <div style={{
+                    width: isMobile ? 52 : 64,
+                    height: isMobile ? 52 : 64,
+                    borderRadius: 20,
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)'
+                  }}>
+                    <MapIcon size={isMobile ? 26 : 32} style={{ color: '#ffffff' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+                    <div style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.15 }}>
+                      Macera Haritası
+                    </div>
+                    <div style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 600, color: 'rgba(224, 242, 254, 0.85)', marginTop: 4 }}>
+                      Kitaplarım & Testler: Soruları çöz, bölümleri tamamla
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <ArrowRight size={18} style={{ color: '#ffffff' }} />
+                  </div>
+                </div>
+
+                {/* 2. Görev Yolculuğu */}
+                <div
+                  onClick={() => navigate('/student/program')}
+                  className="sd-action-banner"
+                  style={{
+                    position: 'relative',
+                    borderRadius: 24,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(192, 38, 211, 0.35)',
+                    background: 'linear-gradient(135deg, #c026d3 0%, #7e22ce 50%, #5b21b6 100%)',
+                    boxShadow: '0 12px 36px rgba(192, 38, 211, 0.32)',
+                    cursor: 'pointer',
+                    padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16
+                  }}
+                >
+                  <div style={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.12, pointerEvents: 'none' }}>
+                    <Compass size={130} style={{ color: '#ffffff' }} />
+                  </div>
+                  <div style={{
+                    width: isMobile ? 52 : 64,
+                    height: isMobile ? 52 : 64,
+                    borderRadius: 20,
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: '1px solid rgba(255, 255, 255, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)'
+                  }}>
+                    <Compass size={isMobile ? 26 : 32} style={{ color: '#ffffff' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, position: 'relative', zIndex: 1 }}>
+                    <div style={{ fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.15 }}>
+                      Görev Yolculuğu
+                    </div>
+                    <div style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 600, color: 'rgba(250, 232, 255, 0.85)', marginTop: 4 }}>
+                      Haftalık Çalışma & Görev Programı
+                    </div>
+                  </div>
+                  <div style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <ArrowRight size={18} style={{ color: '#ffffff' }} />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ── HIZLI KARTLAR ("KEŞFET") ── */}
+            <section>
+              <h2 style={{
+                fontSize: '0.75rem',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: isDark ? '#ffffff' : '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: '0.85rem',
+                padding: '0 4px'
+              }}>
+                <span style={{ width: 4, height: 16, background: '#a855f7', borderRadius: 99, display: 'inline-block' }} />
+                Keşfet
+              </h2>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: isMobile ? 10 : 14
+              }}>
+                {[
+                  {
+                    title: 'Denemeler',
+                    sub: 'Sınav Merkezi',
+                    icon: <Award size={24} style={{ color: '#ffffff' }} />,
+                    grad: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                    glow: 'rgba(139, 92, 246, 0.35)',
+                    border: 'rgba(139, 92, 246, 0.4)',
+                    badge: generalTrialExams?.length || 0,
+                    onClick: () => navigate('/student/results')
+                  },
+                  {
+                    title: 'Akıllı Yanlışlar',
+                    sub: 'Hata Havuzu & Analiz',
+                    icon: <Brain size={24} style={{ color: '#ffffff' }} />,
+                    grad: 'linear-gradient(135deg, #06b6d4, #0284c7)',
+                    glow: 'rgba(6, 182, 212, 0.35)',
+                    border: 'rgba(6, 182, 212, 0.4)',
+                    badge: 0,
+                    onClick: () => navigate('/student/results')
+                  },
+                  {
+                    title: 'Ödevlerim',
+                    sub: 'Ödev Listesi & Takip',
+                    icon: <ClipboardList size={24} style={{ color: '#ffffff' }} />,
+                    grad: 'linear-gradient(135deg, #6366f1, #4338ca)',
+                    glow: 'rgba(99, 102, 241, 0.35)',
+                    border: 'rgba(99, 102, 241, 0.4)',
+                    badge: taskStats.pendingCount || 0,
+                    onClick: () => navigate('/student/homeworks')
+                  },
+                  {
+                    title: 'Hedefler',
+                    sub: 'Hedef Takip Panosu',
+                    icon: <Target size={24} style={{ color: '#ffffff' }} />,
+                    grad: 'linear-gradient(135deg, #10b981, #047857)',
+                    glow: 'rgba(16, 185, 129, 0.35)',
+                    border: 'rgba(16, 185, 129, 0.4)',
+                    badge: 0,
+                    onClick: () => navigate('/goals')
+                  },
+                ].map(card => (
+                  <div
+                    key={card.title}
+                    onClick={card.onClick}
+                    className="sd-action-card-sm"
+                    style={{
+                      position: 'relative',
+                      borderRadius: 22,
+                      overflow: 'hidden',
+                      border: `1px solid ${card.border}`,
+                      background: card.grad,
+                      boxShadow: `0 8px 24px ${card.glow}`,
+                      cursor: 'pointer',
+                      padding: isMobile ? '1rem 0.85rem' : '1.2rem 1.1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12
+                    }}
+                  >
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 14,
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(8px)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4)',
+                      flexShrink: 0
+                    }}>
+                      {card.icon}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: isMobile ? '1rem' : '1.15rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.15 }}>
+                        {card.title}
+                      </div>
+                      <div style={{ fontSize: isMobile ? '0.68rem' : '0.76rem', fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginTop: 2 }}>
+                        {card.sub}
+                      </div>
+                    </div>
+                    {card.badge > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '0.64rem',
+                        fontWeight: 900,
+                        minWidth: 20,
+                        height: 20,
+                        borderRadius: 999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        boxShadow: '0 0 10px rgba(239, 68, 68, 0.6)',
+                        border: '1.5px solid rgba(255, 255, 255, 0.6)'
+                      }}>
+                        {card.badge}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
 
             {/* 🎯 BİRLEŞİK TAKVİM & GÜNÜN GÖREVLERİ KARTI */}
             <div
@@ -3715,6 +4225,135 @@ export default function StudentDashboard() {
           {!focusModeOnly && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
+              {/* ── GÜNÜN EFSANELERİ ── */}
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', padding: '0 4px' }}>
+                  <h2 style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.15em',
+                    color: isDark ? '#ffffff' : '#0f172a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    margin: 0
+                  }}>
+                    <span style={{ width: 4, height: 16, background: '#f59e0b', borderRadius: 99, display: 'inline-block' }} />
+                    Günün Efsaneleri
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsGamificationModalOpen(true)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: isDark ? '#818cf8' : '#4f46e5',
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2
+                    }}
+                  >
+                    Tümü <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div style={{
+                  borderRadius: 22,
+                  overflow: 'hidden',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)',
+                  background: isDark
+                    ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(10, 15, 30, 0.95) 100%)'
+                    : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                  backdropFilter: 'blur(20px)',
+                  boxShadow: isDark ? '0 16px 40px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.05)',
+                }}>
+                  {studentRankings.topStudents.map((st, idx) => {
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const isFirst = idx === 0;
+                    return (
+                      <div
+                        key={st.id || idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.85rem 1rem',
+                          borderBottom: idx < studentRankings.topStudents.length - 1
+                            ? (isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)')
+                            : 'none',
+                          background: isFirst && isDark ? 'rgba(245, 158, 11, 0.05)' : 'transparent',
+                          gap: 8
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <span style={{ fontSize: '1.35rem', flexShrink: 0 }}>{medals[idx]}</span>
+                          <div style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 12,
+                            background: isFirst ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(99, 102, 241, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.95rem',
+                            fontWeight: 900,
+                            color: '#ffffff',
+                            flexShrink: 0,
+                            border: isFirst ? '2px solid rgba(251, 191, 36, 0.6)' : '1px solid rgba(255,255,255,0.1)'
+                          }}>
+                            {(st.name || 'Ö')[0].toUpperCase()}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              color: isDark ? '#ffffff' : '#0f172a',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {st.name}
+                            </p>
+                            <p style={{
+                              margin: 0,
+                              fontSize: '0.66rem',
+                              color: isDark ? 'rgba(255,255,255,0.35)' : '#64748b',
+                              fontWeight: 600
+                            }}>
+                              {st.className || 'Öğrenci'} • Bugün
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{
+                          padding: '3px 10px',
+                          borderRadius: 999,
+                          border: isFirst
+                            ? (isDark ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #f59e0b')
+                            : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
+                          background: isFirst
+                            ? (isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)')
+                            : (isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'),
+                          flexShrink: 0
+                        }}>
+                          <p style={{
+                            margin: 0,
+                            fontSize: '0.74rem',
+                            fontWeight: 900,
+                            color: isFirst ? '#fbbf24' : (isDark ? '#94a3b8' : '#475569')
+                          }}>
+                            +{st.score} XP
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
               {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
               <StudentGamificationCard
                 student={selectedStudent}
@@ -3815,7 +4454,7 @@ export default function StudentDashboard() {
 
         </div>
 
-      </div>
+      </main>
 
       {/* GOAL MODAL */}
       {showGoalModal && (

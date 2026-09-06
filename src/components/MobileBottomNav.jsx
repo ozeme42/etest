@@ -69,63 +69,97 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="mobile-bottom-nav sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
+      className="mobile-bottom-nav sm:hidden fixed bottom-0 left-0 right-0 z-50 overflow-hidden"
       style={{
-        background: isDark ? 'rgb(15, 23, 42)' : 'rgb(255, 255, 255)',
-        borderTop: isDark ? '1.5px solid rgba(51, 65, 85, 0.7)' : '1.5px solid rgba(226, 232, 240, 0.9)',
-        boxShadow: isDark ? '0 -4px 16px rgba(0,0,0,0.4)' : '0 -2px 12px rgba(0,0,0,0.06)',
-        paddingTop: '0.35rem',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.35rem)',
-        paddingLeft: '0.5rem',
-        paddingRight: '0.5rem',
+        background: isDark ? 'rgba(9, 7, 26, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(226, 232, 240, 0.85)',
+        boxShadow: isDark ? '0 -10px 40px rgba(0, 0, 0, 0.65)' : '0 -4px 20px rgba(0, 0, 0, 0.06)',
       }}
     >
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = isTabActive(tab.path);
-        return (
-          <button
-            key={tab.path}
-            onClick={() => handleTabClick(tab.path)}
-            type="button"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: 1,
-              padding: '0.1rem 0',
-              cursor: 'pointer',
-              position: 'relative',
-              outline: 'none',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              transform: isActive ? 'translateY(-2px)' : 'none',
-            }}
-          >
-            {isActive && (
-              <div style={{ position: 'absolute', top: -6, width: 24, height: 3, borderRadius: 99, background: isDark ? '#818cf8' : '#6366f1' }} />
-            )}
-            <div style={{
-              width: 36, height: 36, borderRadius: 11,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: isActive ? (isDark ? 'linear-gradient(135deg,#818cf8,#6366f1)' : 'linear-gradient(135deg,#6366f1,#4f46e5)') : 'transparent',
-              boxShadow: isActive ? (isDark ? '0 4px 14px rgba(99,102,241,0.55)' : '0 3px 10px rgba(99,102,241,0.35)') : 'none',
-            }}>
-              <Icon size={19} strokeWidth={isActive ? 2.5 : 2} color={isActive ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b')} />
-            </div>
-            <span style={{
-              fontSize: '0.64rem', fontWeight: isActive ? 900 : 700,
-              marginTop: '0.15rem', letterSpacing: '0.02em',
-              color: isActive ? (isDark ? '#a5b4fc' : '#4f46e5') : (isDark ? '#94a3b8' : '#64748b')
-            }}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
+      <div
+        className="relative flex items-stretch justify-around px-1 pt-1.5"
+        style={{ paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 8px) + 0.35rem)' }}
+      >
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = isTabActive(tab.path);
+          return (
+            <button
+              key={tab.path}
+              onClick={() => handleTabClick(tab.path)}
+              type="button"
+              className="group relative flex flex-col items-center justify-center w-full py-1 cursor-pointer transition-all duration-200 outline-none"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              {/* Aktiflik Üst Işık Çizgisi */}
+              {isActive && (
+                <span
+                  className="absolute top-0 w-11 h-[3px] rounded-b-full transition-all duration-300"
+                  style={{
+                    background: isDark ? '#22d3ee' : '#0284c7',
+                    boxShadow: isDark
+                      ? '0 0 12px rgba(34, 211, 238, 0.9), 0 0 4px rgba(34, 211, 238, 0.6)'
+                      : '0 0 10px rgba(2, 132, 199, 0.5)',
+                  }}
+                />
+              )}
+
+              {/* İkon Kutusu */}
+              <div
+                className="relative p-1.5 rounded-xl transition-all duration-300"
+                style={{
+                  transform: isActive ? 'translateY(-2px)' : 'none',
+                  background: isActive
+                    ? (isDark ? 'rgba(6, 182, 212, 0.14)' : 'rgba(2, 132, 199, 0.1)')
+                    : 'transparent',
+                }}
+              >
+                {isActive && (
+                  <div
+                    className="absolute inset-0 rounded-full blur-md"
+                    style={{ background: isDark ? 'rgba(34, 211, 238, 0.3)' : 'rgba(2, 132, 199, 0.18)' }}
+                  />
+                )}
+                <Icon
+                  size={21}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    color: isActive
+                      ? (isDark ? '#22d3ee' : '#0284c7')
+                      : (isDark ? '#64748b' : '#94a3b8'),
+                    transition: 'color 0.2s ease',
+                  }}
+                />
+              </div>
+
+              {/* Etiket */}
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  fontWeight: isActive ? 900 : 600,
+                  marginTop: '0.15rem',
+                  letterSpacing: '0.02em',
+                  color: isActive
+                    ? (isDark ? '#cffafe' : '#0284c7')
+                    : (isDark ? '#64748b' : '#94a3b8'),
+                  transition: 'color 0.2s ease',
+                }}
+              >
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 }
