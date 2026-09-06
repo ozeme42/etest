@@ -104,20 +104,67 @@ export default function OpenEndedReview({
   const [idbImage, setIdbImage] = useState(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [mistakeReason, setMistakeReason] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`mistake_oe_${question?.id || qNo}`);
-      return saved || '';
-    } catch {
-      return '';
+    if (question?.mistakeReason) return question.mistakeReason;
+    if (question?.reason) return question.reason;
+    const hasValidQId = Boolean(question?.id && String(question.id).length >= 4 && !/^\d+$/.test(String(question.id)));
+    if (hasValidQId) {
+      try {
+        return localStorage.getItem(`mistake_oe_${question.id}`) || '';
+      } catch {}
     }
+    return '';
   });
+
+  // Sync mistakeReason when question or question reason changes
+  useEffect(() => {
+    if (question?.mistakeReason) {
+      setMistakeReason(question.mistakeReason);
+      return;
+    }
+    if (question?.reason) {
+      setMistakeReason(question.reason);
+      return;
+    }
+    const hasValidQId = Boolean(question?.id && String(question.id).length >= 4 && !/^\d+$/.test(String(question.id)));
+    if (hasValidQId) {
+      try {
+        const saved = localStorage.getItem(`mistake_oe_${question.id}`);
+        if (saved) {
+          setMistakeReason(saved);
+          return;
+        }
+      } catch {}
+    }
+    setMistakeReason('');
+  }, [question?.id, question?.mistakeReason, question?.reason, qNo]);
+
+  // Clean up legacy generic keys like mistake_oe_1, mistake_oe_2 if found
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && /^mistake_oe_\d+$/.test(k)) {
+            localStorage.removeItem(k);
+          }
+        }
+      }
+    } catch {}
+  }, []);
 
   const handleSetMistakeReason = (reason) => {
     const next = mistakeReason === reason ? '' : reason;
     setMistakeReason(next);
-    try {
-      localStorage.setItem(`mistake_oe_${question?.id || qNo}`, next);
-    } catch {}
+    const hasValidQId = Boolean(question?.id && String(question.id).length >= 4 && !/^\d+$/.test(String(question.id)));
+    if (hasValidQId) {
+      try {
+        if (next) {
+          localStorage.setItem(`mistake_oe_${question.id}`, next);
+        } else {
+          localStorage.removeItem(`mistake_oe_${question.id}`);
+        }
+      } catch {}
+    }
   };
 
   // Load IndexedDB image if stored locally
@@ -616,7 +663,8 @@ export default function OpenEndedReview({
             </span>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {MISTAKE_REASON_OPTIONS.map(r => {
-                const isSelected = mistakeReason === r.label || (mistakeReason && String(mistakeReason).includes(r.label.slice(2).trim()));
+                const cleanLabel = r.label.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim();
+                const isSelected = Boolean(mistakeReason && (mistakeReason === r.label || mistakeReason === cleanLabel));
                 return (
                   <button
                     key={r.label}

@@ -291,22 +291,8 @@ export default function PhysicalExamRunner() {
   };
 
   // Mistake reasons state: { "Türkçe_1": "⚡ İşlem Hatası", "Matematik_1": "⚠️ Dikkat Kaybı", ... }
-  const [mistakeReasons, setMistakeReasons] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`mistake_reasons_${hwId}_${studentId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          const cleaned = {};
-          Object.entries(parsed).forEach(([k, v]) => {
-            if (k && k.includes('_')) cleaned[k] = v;
-          });
-          return cleaned;
-        }
-      }
-    } catch {}
-    return {};
-  });
+  // Always starts empty {} so no reasons are pre-selected before student clicks
+  const [mistakeReasons, setMistakeReasons] = useState({});
 
   const handleSetMistakeReason = useCallback((subjectName, qNo, reason) => {
     const key = `${subjectName}_${qNo}`;
@@ -827,7 +813,7 @@ export default function PhysicalExamRunner() {
         totalQuestions: homework.totalQuestions,
         subjectStats: calculated.subjectStats,
         studentAnswers: answers,
-        mistakeReasons: mistakeReasons,
+        mistakeReasons: {},
         answers: []
       });
     } catch(e) {
@@ -838,6 +824,7 @@ export default function PhysicalExamRunner() {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
       localStorage.removeItem(`${draftKey}_started`);
+      localStorage.removeItem(`mistake_reasons_${hwId}_${studentId}`);
       localStorage.setItem(`submission_physical_exam_${hwId}_${studentId}`, JSON.stringify({
         hwId,
         studentId,
@@ -849,11 +836,12 @@ export default function PhysicalExamRunner() {
         blankCount: calculated.totalBlank,
         subjectStats: calculated,
         studentAnswers: answers,
-        mistakeReasons: mistakeReasons,
+        mistakeReasons: {},
         submittedAt: new Date().toISOString()
       }));
     } catch {}
 
+    setMistakeReasons({});
     setResults(calculated);
     setIsSubmitted(true);
     setShowOptikForm(true);
@@ -2278,7 +2266,7 @@ export default function PhysicalExamRunner() {
                                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                                         {MISTAKE_REASON_OPTIONS.map(r => {
                                           const key = `${activeSubject.name}_${qNo}`;
-                                          const isSelected = mistakeReasons[key] === r.label;
+                                          const isSelected = Boolean(mistakeReasons && mistakeReasons[key] && mistakeReasons[key] === r.label);
                                           return (
                                             <button
                                               key={r.label}
@@ -2643,7 +2631,7 @@ export default function PhysicalExamRunner() {
                           <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                             {MISTAKE_REASON_OPTIONS.map(r => {
                               const key = `${activeSubject.name}_${qNo}`;
-                              const isSelected = mistakeReasons[key] === r.label;
+                              const isSelected = Boolean(mistakeReasons && mistakeReasons[key] && mistakeReasons[key] === r.label);
                               return (
                                 <button
                                   key={r.label}

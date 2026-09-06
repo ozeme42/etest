@@ -844,14 +844,14 @@ export default function StudentBookDetailsPage() {
           String(s.metadata?.realTestId || ''),
           String(s.metadata?.bookTestId || ''),
           String(s.metadata?.realId || '')
-        ].filter(f => Boolean(f) && f.length >= 2);
+        ].filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1');
         if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2));
+          matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1'));
         }
 
         return matchFields.some(f => (
-          f === tIdStr ||
-          (tCleanId && tCleanId.length >= 2 && f === tCleanId) ||
+          (tIdStr !== 'test_1' && f === tIdStr) ||
+          (tCleanId && tCleanId.length >= 2 && tCleanId !== 'test_1' && f === tCleanId) ||
           (tUuidStr && f === tUuidStr) ||
           (toUUID(f) && toUUID(f) === tIdStr) ||
           (tUuidStr && toUUID(f) === tUuidStr)
@@ -904,18 +904,30 @@ export default function StudentBookDetailsPage() {
       });
 
       // C. Check strictly from localStorage entries matching this test ID and student
-      const validLocalKeys = [
-        `mistake_reasons_${tIdStr}_${studentIdStr}`,
-        `mistake_reasons_bt_${tIdStr}_${studentIdStr}`,
-        `mistake_reasons_${tCleanId}_${studentIdStr}`,
-        `mistake_reasons_bt_${tCleanId}_${studentIdStr}`,
-        `mistake_reasons_${tUuidStr}_${studentIdStr}`,
-        `mistake_reasons_bt_${tUuidStr}_${studentIdStr}`,
-        `mistake_reasons_${tIdStr}_${currentUserIdStr}`,
-        `mistake_reasons_bt_${tIdStr}_${currentUserIdStr}`,
-        `mistake_reasons_${tCleanId}_${currentUserIdStr}`,
-        `mistake_reasons_bt_${tCleanId}_${currentUserIdStr}`,
-      ];
+      const validLocalKeys = [];
+      const isValidSpecificId = (id) => Boolean(id && id !== 'test_1' && id !== '1' && String(id).trim().length >= 2);
+
+      if (isValidSpecificId(tIdStr)) {
+        if (studentIdStr) {
+          validLocalKeys.push(`mistake_reasons_${tIdStr}_${studentIdStr}`, `mistake_reasons_bt_${tIdStr}_${studentIdStr}`);
+        }
+        if (currentUserIdStr) {
+          validLocalKeys.push(`mistake_reasons_${tIdStr}_${currentUserIdStr}`, `mistake_reasons_bt_${tIdStr}_${currentUserIdStr}`);
+        }
+      }
+      if (isValidSpecificId(tCleanId) && tCleanId !== tIdStr) {
+        if (studentIdStr) {
+          validLocalKeys.push(`mistake_reasons_${tCleanId}_${studentIdStr}`, `mistake_reasons_bt_${tCleanId}_${studentIdStr}`);
+        }
+        if (currentUserIdStr) {
+          validLocalKeys.push(`mistake_reasons_${tCleanId}_${currentUserIdStr}`, `mistake_reasons_bt_${tCleanId}_${currentUserIdStr}`);
+        }
+      }
+      if (tUuidStr && tUuidStr !== 'null' && tUuidStr !== 'undefined' && tUuidStr.length > 5) {
+        if (studentIdStr) {
+          validLocalKeys.push(`mistake_reasons_${tUuidStr}_${studentIdStr}`, `mistake_reasons_bt_${tUuidStr}_${studentIdStr}`);
+        }
+      }
 
       validLocalKeys.forEach(vk => {
         if (localMap[vk]) {

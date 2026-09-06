@@ -335,23 +335,52 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
     if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
       return submission.mistakeReasons;
     }
-    try {
-      const keysToTry = [
-        `mistake_reasons_${testId}_${studentId}`,
-        `mistake_reasons_bt_${testKey}_${studentId}`,
-        `mistake_reasons_${testKey}_${studentId}`,
-        `mistake_reasons_${testId}`
-      ];
-      for (const k of keysToTry) {
-        const saved = localStorage.getItem(k);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object') return parsed;
+    if (testId && testId !== 'test_1' && studentId) {
+      try {
+        const keysToTry = [
+          `mistake_reasons_${testId}_${studentId}`,
+          `mistake_reasons_bt_${testKey}_${studentId}`,
+          `mistake_reasons_${testKey}_${studentId}`
+        ];
+        for (const k of keysToTry) {
+          const saved = localStorage.getItem(k);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') return parsed;
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
     return {};
   });
+
+  // Sync mistakeReasons when active submission or test changes
+  useEffect(() => {
+    if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
+      setMistakeReasons(submission.mistakeReasons);
+      return;
+    }
+    if (testId && testId !== 'test_1' && studentId) {
+      try {
+        const keysToTry = [
+          `mistake_reasons_${testId}_${studentId}`,
+          `mistake_reasons_bt_${testKey}_${studentId}`,
+          `mistake_reasons_${testKey}_${studentId}`
+        ];
+        for (const k of keysToTry) {
+          const saved = localStorage.getItem(k);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+              setMistakeReasons(parsed);
+              return;
+            }
+          }
+        }
+      } catch {}
+    }
+    setMistakeReasons({});
+  }, [submission?.id, submission?.mistakeReasons, testId, testKey, studentId]);
 
   const handleSetMistakeReason = (qNo, reason) => {
     const next = { ...mistakeReasons, [qNo]: mistakeReasons[qNo] === reason ? null : reason };
@@ -1207,8 +1236,9 @@ export default function ImageQuizReview({ submission, test, questions = [], onCl
                 </span>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   {MISTAKE_REASON_OPTIONS.map(r => {
-                    const currentVal = mistakeReasons[currentQNo];
-                    const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
+                    const currentVal = mistakeReasons ? mistakeReasons[currentQNo] : null;
+                    const cleanLabel = r.label.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim();
+                    const isSelected = Boolean(currentVal && (currentVal === r.label || currentVal === cleanLabel));
                     return (
                       <button
                         key={r.label}

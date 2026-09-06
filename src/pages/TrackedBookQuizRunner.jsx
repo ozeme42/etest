@@ -308,16 +308,8 @@ export default function TrackedBookQuizRunner() {
     return Object.values(flagged).filter(Boolean).length;
   }, [flagged]);
 
-  const [mistakeReasons, setMistakeReasons] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') return parsed;
-      }
-    } catch {}
-    return {};
-  });
+  // Mistake reasons must start empty {} so no error reasons are pre-selected before student clicks
+  const [mistakeReasons, setMistakeReasons] = useState({});
 
   const [isSavingDb, setIsSavingDb] = useState(false);
   const [saveToast, setSaveToast] = useState(null);
@@ -582,7 +574,12 @@ export default function TrackedBookQuizRunner() {
     if (isRetake) {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
+      try {
+        localStorage.removeItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`);
+        localStorage.removeItem(`mistake_reasons_bt_${resolvedTest?.id || testKey}_${studentId}`);
+      } catch {}
       setAnswers({});
+      setMistakeReasons({});
       setIsSubmitted(false);
       setResults(null);
       initializedRef.current = true;
@@ -740,6 +737,8 @@ export default function TrackedBookQuizRunner() {
 
       if (existingSub.mistakeReasons && typeof existingSub.mistakeReasons === 'object') {
         setMistakeReasons(existingSub.mistakeReasons);
+      } else {
+        setMistakeReasons({});
       }
 
       const calculated = calculateTestResults(loadedAnswers || answers);
@@ -749,6 +748,7 @@ export default function TrackedBookQuizRunner() {
       // In-progress test (not yet submitted) -> restore draft answers if available
       setIsSubmitted(false);
       setResults(null);
+      setMistakeReasons({});
       let draftAnswers = {};
       try {
         const draftStr = localStorage.getItem(draftKey) || 
@@ -1032,7 +1032,7 @@ export default function TrackedBookQuizRunner() {
           }
         ],
         studentAnswers: answers,
-        mistakeReasons: mistakeReasons,
+        mistakeReasons: {},
         sourceType: isExam ? 'physicalExam' : 'trackedBook'
       });
     } catch (e) {
@@ -1083,12 +1083,15 @@ export default function TrackedBookQuizRunner() {
       }
     }
 
-    // 3. Clear draft
+    // 3. Clear draft and reset mistake reasons so none are pre-selected
     try {
       localStorage.removeItem(draftKey);
       localStorage.removeItem(`${draftKey}_time`);
+      localStorage.removeItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`);
+      localStorage.removeItem(`mistake_reasons_bt_${resolvedTest?.id || testKey}_${studentId}`);
     } catch {}
 
+    setMistakeReasons({});
     setResults(calculated);
     setIsSubmitted(true);
     setShowOptikForm(true);
@@ -1107,9 +1110,12 @@ export default function TrackedBookQuizRunner() {
       }
     }
     setAnswers(newAnswers);
+    setMistakeReasons({});
     setIsSubmitted(false);
     setResults(null);
     try {
+      localStorage.removeItem(`mistake_reasons_${resolvedTest?.id || testKey}_${studentId}`);
+      localStorage.removeItem(`mistake_reasons_bt_${resolvedTest?.id || testKey}_${studentId}`);
       localStorage.setItem(draftKey, JSON.stringify(newAnswers));
       localStorage.setItem(`${draftKey}_time`, String(totalSeconds));
       setTimeLeft(totalSeconds);
@@ -2433,7 +2439,7 @@ export default function TrackedBookQuizRunner() {
                                       </span>
                                       <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                         {MISTAKE_REASON_OPTIONS.map(r => {
-                                          const isSelected = mistakeReasons[qNo] === r.label;
+                                          const isSelected = Boolean(mistakeReasons && mistakeReasons[qNo] && mistakeReasons[qNo] === r.label);
                                           return (
                                             <button
                                               key={r.label}

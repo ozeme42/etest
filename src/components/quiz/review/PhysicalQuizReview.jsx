@@ -162,24 +162,54 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
       return submission.mistakeReasons;
     }
-    try {
-      const keysToTry = [
-        `mistake_reasons_${testId}_${studentId}`,
-        `mistake_reasons_bt_${testKey}_${studentId}`,
-        `mistake_reasons_${testKey}_${studentId}`,
-        `mistake_reasons_${toUUID(testId)}_${toUUID(studentId)}`,
-        `mistake_reasons_${testId}`
-      ];
-      for (const k of keysToTry) {
-        const saved = localStorage.getItem(k);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object') return parsed;
+    if (testId && testId !== 'test_1' && studentId) {
+      try {
+        const keysToTry = [
+          `mistake_reasons_${testId}_${studentId}`,
+          `mistake_reasons_bt_${testKey}_${studentId}`,
+          `mistake_reasons_${testKey}_${studentId}`,
+          `mistake_reasons_${toUUID(testId)}_${toUUID(studentId)}`
+        ];
+        for (const k of keysToTry) {
+          const saved = localStorage.getItem(k);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') return parsed;
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
     return {};
   });
+
+  // Sync mistakeReasons whenever the active submission or test changes
+  useEffect(() => {
+    if (submission?.mistakeReasons && typeof submission.mistakeReasons === 'object') {
+      setMistakeReasons(submission.mistakeReasons);
+      return;
+    }
+    if (testId && testId !== 'test_1' && studentId) {
+      try {
+        const keysToTry = [
+          `mistake_reasons_${testId}_${studentId}`,
+          `mistake_reasons_bt_${testKey}_${studentId}`,
+          `mistake_reasons_${testKey}_${studentId}`,
+          `mistake_reasons_${toUUID(testId)}_${toUUID(studentId)}`
+        ];
+        for (const k of keysToTry) {
+          const saved = localStorage.getItem(k);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+              setMistakeReasons(parsed);
+              return;
+            }
+          }
+        }
+      } catch {}
+    }
+    setMistakeReasons({});
+  }, [submission?.id, submission?.mistakeReasons, testId, testKey, studentId]);
 
   // ── Save Mistake Reason Handler ──
   const handleSetMistakeReason = useCallback(async (qNo, reason) => {
@@ -365,7 +395,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     let classified = 0;
     Object.entries(mistakeReasons).forEach(([q, r]) => {
       if (r) {
-        let matched = MISTAKE_REASON_OPTIONS.find(opt => opt.label === r || r.includes(opt.label.slice(2).trim()));
+        let matched = MISTAKE_REASON_OPTIONS.find(opt => opt.label === r || r === opt.label.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim());
         if (matched) {
           counts[matched.label] = (counts[matched.label] || 0) + 1;
           classified++;
@@ -1103,8 +1133,9 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                                   </span>
                                   <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                                     {MISTAKE_REASON_OPTIONS.map(r => {
-                                      const currentVal = mistakeReasons[qNo];
-                                      const isSelected = currentVal === r.label || (currentVal && String(currentVal).includes(r.label.slice(2).trim()));
+                                      const currentVal = mistakeReasons ? mistakeReasons[qNo] : null;
+                                      const cleanLabel = r.label.replace(/^[^\w\s\u00C0-\u017F]+/, '').trim();
+                                      const isSelected = Boolean(currentVal && (currentVal === r.label || currentVal === cleanLabel));
                                       return (
                                         <button
                                           key={r.label}
