@@ -69,9 +69,10 @@ export default function PhysicalExamRunner() {
   const { users } = useUser();
   const isMobile = useMediaQuery('(max-width: 768px)');
   
-  // Optional: Extract studentId from URL if teacher is viewing, otherwise use currentUser
+  // Optional: Extract studentId and submissionId from URL if teacher is viewing, otherwise use currentUser
   const queryParams = new URLSearchParams(window.location.search);
   const paramStudentId = queryParams.get('studentId');
+  const paramSubmissionId = queryParams.get('submissionId');
   const isRetake = queryParams.get('retake') === 'true';
   const returnUrl = location.state?.from || location.state?.returnUrl || queryParams.get('from');
   const studentId = paramStudentId || currentUser?.id;
@@ -94,13 +95,23 @@ export default function PhysicalExamRunner() {
 
   const homework = useMemo(() => {
     const cleanId = String(hwId || '');
-    const matchedSub = (evalSubmissions || []).find(s => String(s.id) === cleanId || String(s.submissionId) === cleanId || (toUUID(s.id) && toUUID(s.id) === cleanId));
+    const matchedSub = (evalSubmissions || []).find(s => 
+      (paramSubmissionId && (String(s.id) === String(paramSubmissionId) || String(s.submissionId) === String(paramSubmissionId))) ||
+      String(s.id) === cleanId || 
+      String(s.submissionId) === cleanId || 
+      (toUUID(s.id) && toUUID(s.id) === cleanId)
+    ) || location.state?.submission;
     const effectiveHwId = matchedSub?.hwId || matchedSub?.bookId || matchedSub?.testId || cleanId;
 
-    let hw = (homeworks || []).find(h => String(h.id) === String(effectiveHwId) || toUUID(h.id) === String(effectiveHwId) || String(h.id) === cleanId);
+    let hw = (homeworks || []).find(h => 
+      String(h.id) === String(effectiveHwId) || 
+      toUUID(h.id) === String(effectiveHwId) || 
+      String(h.id) === cleanId || 
+      toUUID(h.id) === cleanId
+    );
     
     // Find matching book in books (e.g. physical exam created from ExamManager)
-    const matchingBook = (books || []).find(b => 
+    let matchingBook = (books || []).find(b => 
       String(b.id) === String(effectiveHwId) || 
       toUUID(b.id) === String(effectiveHwId) || 
       String(b.id) === cleanId || 
@@ -108,6 +119,20 @@ export default function PhysicalExamRunner() {
       String(b.id) === String(hw?.bookId) || 
       toUUID(b.id) === String(hw?.bookId)
     );
+
+    if (!matchingBook && !hw) {
+      const matchingTest = (bookTests || []).find(t => 
+        String(t.id) === String(effectiveHwId) || 
+        toUUID(t.id) === String(effectiveHwId) || 
+        String(t.id) === cleanId
+      );
+      if (matchingTest) {
+        matchingBook = (books || []).find(b => 
+          String(b.id) === String(matchingTest.bookId || matchingTest.book_id) ||
+          toUUID(b.id) === String(matchingTest.bookId || matchingTest.book_id)
+        );
+      }
+    }
 
     const pdfUrl = hw?.pdfUrl || matchingBook?.pdfUrl || hw?.pdfPayload || '';
 
@@ -222,8 +247,34 @@ export default function PhysicalExamRunner() {
       };
     }
 
+    if (!hw && !matchingBook && matchedSub) {
+      const subStats = matchedSub.subjectStats?.subjectStats || (Array.isArray(matchedSub.subjectStats) ? matchedSub.subjectStats : null);
+      const subList = Array.isArray(matchedSub.subjects) && matchedSub.subjects.length > 0
+        ? matchedSub.subjects
+        : (subStats && subStats.length > 0
+            ? subStats.map(s => ({ name: s.name || s.subjectName || 'Ders', count: Number(s.totalCount || s.count || 20) }))
+            : (matchedSub.sections && matchedSub.sections.length > 0
+                ? matchedSub.sections.map(s => ({ name: s.name || 'Ders', count: Number(s.count || 20) }))
+                : [{ name: 'Genel', count: Number(matchedSub.totalQuestions || 20) }]
+              )
+          );
+      return {
+        id: matchedSub.hwId || matchedSub.bookId || matchedSub.testId || cleanId,
+        title: matchedSub.title || matchedSub.testTitle || 'Fiziki Deneme',
+        examType: formatExamType(matchedSub.examType || 'Özel'),
+        type: 'physicalExam',
+        optionCount: matchedSub.optionCount || 4,
+        timePerQuestion: 2,
+        subjects: subList,
+        answerKey: matchedSub.answerKey || {},
+        penaltyRatio: matchedSub.penaltyRatio !== undefined ? matchedSub.penaltyRatio : 3,
+        totalQuestions: matchedSub.totalQuestions || subList.reduce((a, s) => a + (Number(s.count) || 20), 0) || 20,
+        pdfUrl: matchedSub.pdfUrl || ''
+      };
+    }
+
     return null;
-  }, [homeworks, books, bookTests, evalSubmissions, hwId]);
+  }, [homeworks, books, bookTests, evalSubmissions, hwId, paramSubmissionId, location.state?.submission]);
 
   const hasPdf = Boolean(homework?.pdfUrl);
 
@@ -474,11 +525,13 @@ export default function PhysicalExamRunner() {
     ];
     const hwSub = allSubs.find(s => String(s.studentId) === String(studentId));
     const evalSub = (evalSubmissions || []).find(s => (
+      (paramSubmissionId && (String(s.id) === String(paramSubmissionId) || String(s.submissionId) === String(paramSubmissionId))) ||
       String(s.id) === cleanHwId ||
       String(s.submissionId) === cleanHwId ||
       String(s.hwId) === cleanHwId ||
       String(s.testId) === cleanHwId ||
-      (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id)))
+      String(s.bookId) === cleanHwId ||
+      (homework.id && (String(s.hwId) === String(homework.id) || String(s.testId) === String(homework.id) || String(s.bookId) === String(homework.id)))
     ) && (!studentId || String(s.studentId) === String(studentId)));
 
     let localSub = null;

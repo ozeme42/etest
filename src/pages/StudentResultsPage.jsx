@@ -25,7 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, computeStudentAnalyticsData, computeUnifiedSubmissionStats } from '../utils/testResolver';
+import { isHomeworkForStudent, computeStudentAnalyticsData, computeUnifiedSubmissionStats, isExamBook } from '../utils/testResolver';
 import { normalizeUnifiedTest, normalizeUnifiedSubmission } from '../services/unifiedQuizAdapter';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter, normalizeAnswerIndex } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
@@ -994,8 +994,13 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
 
   const handleOpenReview = (s) => {
     if (!s) return;
-    if (s.type === 'physicalExam' || s.typeKey === 'physicalExam' || s.isPhysicalExam) {
-      navigate(`/physical-exam/${s.hwId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}`);
+    const matchingBook = books?.find(b => String(b.id) === String(s.bookId));
+    const titleToCheck = String(s.title || s.testTitle || s.name || '').toLowerCase();
+    const isPhysical = s.type === 'physicalExam' || s.typeKey === 'physicalExam' || s.isPhysicalExam || s.isPhysical || s.contentType === 'physicalExam' || isExamBook(s) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
+    if (isPhysical) {
+      navigate(`/physical-exam/${s.hwId || s.bookId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}&submissionId=${s.submissionId || s.id || ''}`, {
+        state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }
+      });
       return;
     }
     const isBookTest = Boolean(s.bookId || s.bookTestId || s.taskType === 'kitap' || s.sourceType === 'bookTest' || s.metadata?.bookTestId);

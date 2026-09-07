@@ -3062,6 +3062,14 @@ export default function ProgramCenter({
       (hwObj?.title && /deneme|sınav|hazır bulunuşluk|hazir bulunusluk/i.test(hwObj.title))
     );
 
+    // 0. Physical Exam Check: ALWAYS route to PhysicalExamRunner whether completed or not!
+    if (isExam) {
+      const examTargetId = item.hwId || item.bookId || item.realTestId || item.testId || item.id;
+      const subId = item.submissionId || item.submission?.id;
+      navigate(`/physical-exam/${examTargetId}${sId ? `?studentId=${sId}` : ''}${subId ? `&submissionId=${subId}` : ''}`, { state: { from: fromPath } });
+      return;
+    }
+
     // 1. If item is marked completed or done -> open review
     if (item.done || item.isCompleted || item.status === 'completed') {
       if (item.submissionId) {

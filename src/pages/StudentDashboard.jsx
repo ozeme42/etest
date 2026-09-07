@@ -2659,21 +2659,22 @@ export default function StudentDashboard() {
       return;
     }
 
+    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
+    const taskTitle = String(task.title || hwObj?.title || '').toLowerCase();
+    const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || task.contentType === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical || taskTitle.includes('deneme') || taskTitle.includes('hazır bulunuşluk') || taskTitle.includes('hazir bulunusluk');
+    
+    if (isExam) {
+      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
+      return;
+    }
+
     if (task.done) {
       const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId || task.id;
       if (reviewTargetId) {
         navigate(`/quiz-review/${reviewTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
         return;
       }
-    }
-
-    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
-    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
-    const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-    
-    if (isExam) {
-      navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
-      return;
     }
 
     const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
@@ -3763,6 +3764,15 @@ export default function StudentDashboard() {
                 onNavigateResults={() => navigate('/student/results')}
                 onReviewTest={(test) => {
                   const targetId = test.testId || test.submissionId || test.id;
+                  const matchingBook = books?.find(b => String(b.id) === String(test.bookId));
+                  const titleToCheck = String(test.title || test.testTitle || '').toLowerCase();
+                  const isPhysical = test.type === 'physicalExam' || test.isPhysical || test.contentType === 'physicalExam' || isExamBook(test) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
+                  if (isPhysical) {
+                    navigate(`/physical-exam/${test.hwId || test.bookId || targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+                      state: { from: '/student', submission: test }
+                    });
+                    return;
+                  }
                   navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
                     state: { from: '/student' }
                   });

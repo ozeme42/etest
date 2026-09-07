@@ -6,7 +6,7 @@ import { useHomework } from '../context/HomeworkContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
-import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey } from '../utils/testResolver';
+import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey, isExamBook } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID } from '../services/supabaseService';
@@ -279,6 +279,13 @@ export default function StudentBookDetailsPage() {
 
   const handleReviewTest = useCallback((test) => {
     if (!test) return;
+    const isExam = isExamBook(book) || test.type === 'physicalExam' || test.contentType === 'physicalExam' || (test.title && test.title.toLowerCase().includes('deneme'));
+    if (isExam) {
+      navigate(`/physical-exam/${test.hwId || book?.id || test.id}?studentId=${studentId}&submissionId=${test.bestSub?.id || test.latestSubId || test.submissionId || test.submission?.id || ''}&fromTeacher=${isFromTeacher}`, {
+        state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` }
+      });
+      return;
+    }
     const subId = test.bestSub?.id || test.latestSubId || test.submissionId || test.submission?.id;
     const fromState = { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` };
     if (subId) {
@@ -286,7 +293,7 @@ export default function StudentBookDetailsPage() {
     } else {
       navigate(`/quiz-review/${test.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}`, { state: fromState });
     }
-  }, [book?.id, studentId, isFromTeacher, navigate]);
+  }, [book, studentId, isFromTeacher, navigate]);
 
   // Compute test completion logic and lock statuses
   // Hierarchy: For each Subject -> ordered list of assigned tests.

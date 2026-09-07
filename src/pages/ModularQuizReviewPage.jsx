@@ -55,6 +55,19 @@ export default function ModularQuizReviewPage() {
 
     // 0. Single Source of Truth Resolution via Unified Result Adapter
     const effectiveStudentId = studentId || location.state?.submission?.studentId || currentUser?.id;
+
+    // Early Check: If targetId points directly to a physical exam or exam book, redirect immediately
+    const earlyHw = (homeworks || []).find(h => String(h.id) === String(targetId) || toUUID(h.id) === String(targetId));
+    const earlyBook = (books || []).find(b => String(b.id) === String(targetId) || toUUID(b.id) === String(targetId));
+    if (earlyHw && (earlyHw.type === 'physicalExam' || earlyHw.contentType === 'physicalExam' || earlyHw.isPhysical || isExamBook(earlyHw))) {
+      navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
+      return;
+    }
+    if (earlyBook && isExamBook(earlyBook)) {
+      navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
+      return;
+    }
+
     const { submission: unifiedSub, test: unifiedTest } = findUnifiedSubmissionOrTest(targetId, {
       studentId: effectiveStudentId,
       submissions,
@@ -599,29 +612,63 @@ export default function ModularQuizReviewPage() {
 
     if (foundSubmission) {
       // If this submission belongs to a physical exam or deneme, redirect to /physical-exam/:hwId
-      const isBookTest = Boolean(
-        foundTest?.bookTestId ||
-        foundSubmission.bookTestId ||
-        foundTest?.book_id ||
-        foundTest?.bookId ||
-        foundSubmission.bookId
+      const matchedBook = (books || []).find(b => 
+        String(b.id) === String(foundSubmission?.bookId || foundTest?.bookId) ||
+        (toUUID(b.id) && toUUID(b.id) === String(foundSubmission?.bookId || foundTest?.bookId))
       );
-      const isPhysicalExam = !isBookTest && Boolean(
+      const matchedHw = (homeworks || []).find(h => 
+        String(h.id) === String(foundSubmission?.hwId || foundTest?.hwId || targetId) ||
+        (toUUID(h.id) && toUUID(h.id) === String(foundSubmission?.hwId || foundTest?.hwId || targetId))
+      );
+
+      const titleToCheck = String(
+        foundSubmission?.title ||
+        foundSubmission?.testTitle ||
+        foundSubmission?.name ||
+        foundTest?.title ||
+        foundTest?.name ||
+        matchedHw?.title ||
+        matchedBook?.title ||
+        ''
+      ).toLowerCase();
+
+      const hasExamKeywords = titleToCheck.includes('deneme') || 
+        titleToCheck.includes('hazır bulunuşluk') || 
+        titleToCheck.includes('hazir bulunusluk') ||
+        titleToCheck.includes('lgs') ||
+        titleToCheck.includes('tyt') ||
+        titleToCheck.includes('ayt') ||
+        titleToCheck.includes('yks') ||
+        titleToCheck.includes('msü') ||
+        titleToCheck.includes('kpss') ||
+        titleToCheck.includes('dgs');
+
+      const isPhysicalExam = Boolean(
         foundTest?.type === 'physicalExam' ||
-        foundSubmission.type === 'physicalExam' ||
-        foundSubmission.contentType === 'physicalExam' ||
+        foundSubmission?.type === 'physicalExam' ||
+        foundSubmission?.contentType === 'physicalExam' ||
         foundTest?.contentType === 'physicalExam' ||
-        foundSubmission.isPhysical ||
+        foundSubmission?.isPhysical ||
         foundTest?.isPhysical ||
-        (isExamBook(foundTest) && !foundTest?.bookId) ||
-        (isExamBook(foundSubmission) && !foundSubmission?.bookId) ||
-        (foundSubmission.title && !foundSubmission.bookId && (foundSubmission.title.toLowerCase().includes('deneme') || foundSubmission.title.toLowerCase().includes('hazır bulunuşluk') || foundSubmission.title.toLowerCase().includes('hazir bulunusluk')))
+        foundSubmission?.isPhysicalExam ||
+        foundTest?.isPhysicalExam ||
+        matchedHw?.type === 'physicalExam' ||
+        matchedHw?.contentType === 'physicalExam' ||
+        matchedHw?.isPhysical ||
+        isExamBook(foundTest) ||
+        isExamBook(foundSubmission) ||
+        isExamBook(matchedBook) ||
+        isExamBook(matchedHw) ||
+        hasExamKeywords ||
+        (Array.isArray(foundSubmission?.sections) && foundSubmission.sections.length > 1) ||
+        (Array.isArray(foundTest?.sections) && foundTest.sections.length > 1) ||
+        (Array.isArray(foundSubmission?.subjectStats) && foundSubmission.subjectStats.length > 1)
       );
 
       if (isPhysicalExam) {
-        const physHwId = foundSubmission.hwId || foundSubmission.bookId || foundTest?.id || foundSubmission.testId || targetId;
+        const physHwId = foundSubmission.hwId || matchedHw?.id || foundSubmission.bookId || matchedBook?.id || foundTest?.id || foundSubmission.testId || targetId;
         if (physHwId) {
-          navigate(`/physical-exam/${physHwId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, {
+          navigate(`/physical-exam/${physHwId}?studentId=${effectiveStudentId}&submissionId=${foundSubmission.id || ''}&from=${fromPath || '/student'}`, {
             replace: true,
             state: { from: fromPath || '/student', submission: foundSubmission }
           });
