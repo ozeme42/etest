@@ -2432,6 +2432,8 @@ export async function dbUpdateTrackedBook(bookId, updates) {
     const pub = (updates.publisher !== undefined) ? updates.publisher : (existingMeta?.publisher || currentBook?.publisher || currentBook?.raw_data?.publisher || '');
     const title = (updates.title !== undefined) ? updates.title : (existingMeta?.title || currentBook?.title || currentBook?.raw_data?.title || '');
 
+    const examDateVal = (updates.examDate !== undefined) ? updates.examDate : (existingMeta?.examDate || currentBook?.raw_data?.examDate || null);
+
     const metaHeader = {
       id: '__book_meta__',
       __meta: true,
@@ -2439,7 +2441,8 @@ export async function dbUpdateTrackedBook(bookId, updates) {
       publisher: pub,
       optionCount: optCount,
       bookType: bType,
-      pdfUrl: pdf
+      pdfUrl: pdf,
+      examDate: examDateVal
     };
     const subjectsWithMeta = [metaHeader, ...cleanSubs];
 
@@ -2452,7 +2455,8 @@ export async function dbUpdateTrackedBook(bookId, updates) {
       publisher: pub,
       optionCount: optCount,
       bookType: bType,
-      pdfUrl: pdf
+      pdfUrl: pdf,
+      examDate: examDateVal
     };
 
     const payload = {

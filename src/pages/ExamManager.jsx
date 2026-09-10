@@ -802,7 +802,8 @@ export default function ExamManager() {
       pdfUrl: exam.pdfUrl || '',
       penaltyRatio: exam.penaltyRatio !== undefined ? exam.penaltyRatio : 3,
       optionCount: exam.optionCount || (exam.publisher === 'LGS' ? 4 : 5),
-      timePerQuestion: Number(exam.timePerQuestion) || 2
+      timePerQuestion: Number(exam.timePerQuestion) || 2,
+      examDate: exam.examDate || ''
     });
     
     const inlines = {};
@@ -828,6 +829,7 @@ export default function ExamManager() {
     const finalOptionCount = Number(editingExamMeta.optionCount) || 4;
     const finalTimePerQuestion = Number(editingExamMeta.timePerQuestion) || 2;
     const finalPenaltyRatio = editingExamMeta.penaltyRatio !== undefined ? Number(editingExamMeta.penaltyRatio) : 3;
+    const finalExamDate = editingExamMeta.examDate || null;
 
     const testPromises = [];
     (viewingExamDetails.subjects || []).forEach(sub => {
@@ -853,7 +855,8 @@ export default function ExamManager() {
       pdfUrl: finalPdfUrl,
       penaltyRatio: finalPenaltyRatio,
       optionCount: finalOptionCount,
-      timePerQuestion: finalTimePerQuestion
+      timePerQuestion: finalTimePerQuestion,
+      examDate: finalExamDate
     });
 
     // Also update any assigned homeworks for this book so students immediately get the new settings
@@ -877,7 +880,8 @@ export default function ExamManager() {
       pdfUrl: finalPdfUrl,
       penaltyRatio: finalPenaltyRatio,
       optionCount: finalOptionCount,
-      timePerQuestion: finalTimePerQuestion
+      timePerQuestion: finalTimePerQuestion,
+      examDate: finalExamDate
     } : null);
 
     setIsEditingExam(false);
@@ -2723,6 +2727,23 @@ export default function ExamManager() {
               <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Ders Sayısı</span>
                 <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#818cf8' }}>{viewingExamDetails.subjects?.length || 0} Ders</span>
+              </div>
+
+              {/* Deneme Tarihi */}
+              <div style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', padding: '0.65rem 0.5rem', borderRadius: '0.85rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'block', textTransform: 'uppercase' }}>Deneme Tarihi</span>
+                {isEditingExam ? (
+                  <input
+                    type="date"
+                    value={editingExamMeta.examDate || ''}
+                    onChange={(e) => setEditingExamMeta(p => ({ ...p, examDate: e.target.value }))}
+                    style={{ marginTop: 4, width: '100%', padding: '0.25rem 0.1rem', borderRadius: '0.45rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 900, outline: 'none' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    {viewingExamDetails.examDate ? new Date(viewingExamDetails.examDate).toLocaleDateString('tr-TR') : '—'}
+                  </span>
+                )}
               </div>
             </div>
 
