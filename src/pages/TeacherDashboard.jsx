@@ -181,7 +181,16 @@ export default function TeacherDashboard() {
       });
     });
 
-    return [...globalList, ...embeddedList];
+    const merged = [...globalList, ...embeddedList];
+
+    // Deduplicate: same student + same test + same submit time = same result
+    const seen = new Map();
+    return merged.filter(sub => {
+      const key = `${sub.studentId}__${sub.testId || sub.homework_id || sub.bookId || ''}__${sub.submittedAt || sub.createdAt || sub.date || ''}`;
+      if (seen.has(key)) return false;
+      seen.set(key, true);
+      return true;
+    });
   }, [submissions, teacherStudentIds, teacherHwIds, teacherHomeworks, currentUser]);
 
   // Comprehensive homework submission matcher
