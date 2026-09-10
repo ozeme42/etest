@@ -2620,7 +2620,7 @@ export default function ExamManager() {
                     </span>
                   )}
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                    {viewingExamDetails.examDate || viewingExamDetails.date || (viewingExamDetails.createdAt ? new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR') : '—')}
+                    {viewingExamDetails.examDate ? new Date(viewingExamDetails.examDate).toLocaleDateString('tr-TR') : viewingExamDetails.date ? new Date(viewingExamDetails.date).toLocaleDateString('tr-TR') : (viewingExamDetails.createdAt ? new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR') : '—')}
                   </span>
                 </div>
                 {isEditingExam ? (

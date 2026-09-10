@@ -2199,7 +2199,8 @@ export async function dbGetTrackedBooks() {
         pdfUrl: pdf,
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
         raw_data: b.raw_data || {},
-        createdAt: b.created_at
+        createdAt: b.created_at,
+        examDate: metaObj?.examDate || b.raw_data?.examDate || null,
       };
 
       const titleNorm = title.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -2357,6 +2358,8 @@ export async function dbAddTrackedBook(book) {
     const rawSubjects = Array.isArray(book.subjects) ? book.subjects : [];
     const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
     
+    const examDate = book.examDate || book.exam_date || null;
+
     const metaHeader = {
       id: '__book_meta__',
       __meta: true,
@@ -2364,7 +2367,8 @@ export async function dbAddTrackedBook(book) {
       publisher: pub,
       optionCount: optCount,
       bookType: bType,
-      pdfUrl: pdf
+      pdfUrl: pdf,
+      examDate: examDate,
     };
     const subjectsWithMeta = [metaHeader, ...cleanSubs];
 
@@ -2375,7 +2379,8 @@ export async function dbAddTrackedBook(book) {
       title: title,
       publisher: pub,
       bookType: bType,
-      pdfUrl: pdf
+      pdfUrl: pdf,
+      examDate: examDate,
     };
 
     const bookId = String(book.id || `tb_${Date.now()}`);
