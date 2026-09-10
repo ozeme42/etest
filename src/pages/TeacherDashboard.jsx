@@ -184,11 +184,11 @@ export default function TeacherDashboard() {
     const merged = [...globalList, ...embeddedList];
 
     // Deduplicate: same student + same test + same submit time = same result
-    const seen = new Map();
+    const seenKeys = {};
     return merged.filter(sub => {
       const key = `${sub.studentId}__${sub.testId || sub.homework_id || sub.bookId || ''}__${sub.submittedAt || sub.createdAt || sub.date || ''}`;
-      if (seen.has(key)) return false;
-      seen.set(key, true);
+      if (seenKeys[key]) return false;
+      seenKeys[key] = true;
       return true;
     });
   }, [submissions, teacherStudentIds, teacherHwIds, teacherHomeworks, currentUser]);
