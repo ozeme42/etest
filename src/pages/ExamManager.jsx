@@ -1625,7 +1625,7 @@ export default function ExamManager() {
                             {/* 5. Tarih */}
                             <td>
                               <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                                {m.createdAt ? new Date(m.createdAt).toLocaleDateString('tr-TR') : '—'}
+                                {m.examDate ? new Date(m.examDate).toLocaleDateString('tr-TR') : (m.createdAt ? new Date(m.createdAt).toLocaleDateString('tr-TR') : '—')}
                               </span>
                             </td>
 
@@ -2620,7 +2620,7 @@ export default function ExamManager() {
                     </span>
                   )}
                   <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                    {viewingExamDetails.date || new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR')}
+                    {viewingExamDetails.examDate || viewingExamDetails.date || (viewingExamDetails.createdAt ? new Date(viewingExamDetails.createdAt).toLocaleDateString('tr-TR') : '—')}
                   </span>
                 </div>
                 {isEditingExam ? (
