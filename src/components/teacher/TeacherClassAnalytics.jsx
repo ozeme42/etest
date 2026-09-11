@@ -186,7 +186,7 @@ export default function TeacherClassAnalytics({
         subjectMap[subj].total += qCount;
       });
 
-      const avgScore = validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : (totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0);
+      const avgScore = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : (validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : 0);
 
       let topSubject = 'Ders verisi bekleniyor';
       let topSubjectPct = 0;
@@ -266,7 +266,7 @@ export default function TeacherClassAnalytics({
       }
     });
 
-    const avgScorePct = validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : (totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0);
+    const avgScorePct = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : (validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : 0);
     const activeCount = activeStudentSet.size;
     const activeRatio = activeStudents.length > 0 ? Math.round((activeCount / activeStudents.length) * 100) : 0;
 
@@ -370,7 +370,7 @@ export default function TeacherClassAnalytics({
           }
         });
 
-        const avgScore = validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : (totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0);
+        const avgScore = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : (validScoreCount > 0 ? Math.round(validScoreSum / validScoreCount) : 0);
         const gradeInfo = getStudentGradeInfo(std);
 
         return {

@@ -2643,9 +2643,9 @@ export default function TeacherDashboard() {
           {activeTab === 'analytics' && (
             <div className="teacher-simple-card">
               <TeacherClassAnalytics
-                submissions={teacherSubmissions}
+                submissions={submissions}
                 students={students}
-                homeworks={teacherHomeworks}
+                homeworks={homeworks}
                 curData={data}
                 books={books}
                 bookTests={bookTests}
