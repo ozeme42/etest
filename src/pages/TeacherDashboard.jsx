@@ -156,7 +156,7 @@ export default function TeacherDashboard() {
       teacherHwIds.includes(sub.testId)
     );
 
-    // 2. Also collect valid embedded submissions inside teacherHomeworks
+    // 2. Also collect valid embedded submissions inside teacherHomeworks ONLY if not already in globalList
     const seenIds = new Set(globalList.map(s => String(s.id)));
     const embeddedList = [];
     teacherHomeworks.forEach(hw => {
@@ -166,7 +166,49 @@ export default function TeacherDashboard() {
       subs.forEach(s => {
         if (!s || s.status === 'in_progress' || s.status === 'draft') return;
         const sId = String(s.id || `hwsub_${hw.id}_${s.studentId}`);
-        if (!seenIds.has(sId)) {
+        if (seenIds.has(sId)) return;
+
+        const sStudentId = String(s.studentId || s.student_id || '');
+        const sStudentUuid = toUUID(sStudentId);
+        const hwIdStr = String(hw.id || '');
+        const hwUuid = toUUID(hwIdStr);
+        const sTestIdStr = String(s.testId || hw.id || '');
+        const sTestUuid = toUUID(sTestIdStr);
+        const sTitle = String(s.title || hw.title || '').trim().toLowerCase();
+        const sDateMs = new Date(s.submittedAt || s.completedAt || 0).getTime();
+        const sCorrect = Number(s.correctCount ?? s.correct ?? 0);
+        const sWrong = Number(s.wrongCount ?? s.wrong ?? 0);
+
+        // Check if globalList already contains this submission
+        const alreadyInGlobal = globalList.some(g => {
+          if (String(g.id) === sId) return true;
+          const gStudentId = String(g.studentId || '');
+          if (gStudentId !== sStudentId && toUUID(gStudentId) !== sStudentUuid) return false;
+
+          const gHwId = String(g.hwId || g.homework_id || g.homeworkId || '');
+          const gTestId = String(g.testId || g.realTestId || '');
+
+          const isSameHw = (gHwId && (gHwId === hwIdStr || toUUID(gHwId) === hwUuid)) ||
+                           (gTestId && (gTestId === hwIdStr || toUUID(gTestId) === hwUuid || gTestId === sTestIdStr || toUUID(gTestId) === sTestUuid));
+
+          if (isSameHw) return true;
+
+          const gTitle = String(g.title || g.testTitle || g.testName || '').trim().toLowerCase();
+          if (gTitle && sTitle && gTitle === sTitle) {
+            const gDateMs = new Date(g.submittedAt || g.createdAt || g.date || 0).getTime();
+            if (sDateMs && gDateMs && Math.abs(gDateMs - sDateMs) < 7200 * 1000) {
+              return true;
+            }
+            const gCorrect = Number(g.correctCount ?? g.correct ?? 0);
+            const gWrong = Number(g.wrongCount ?? g.wrong ?? 0);
+            if (gCorrect === sCorrect && gWrong === sWrong) {
+              return true;
+            }
+          }
+          return false;
+        });
+
+        if (!alreadyInGlobal) {
           seenIds.add(sId);
           embeddedList.push({
             ...s,
@@ -175,7 +217,7 @@ export default function TeacherDashboard() {
             subject: s.subject || hw.subject || 'Genel',
             homework_id: hw.id,
             testId: s.testId || hw.id,
-            studentId: s.studentId || s.student_id
+            studentId: sStudentId
           });
         }
       });
@@ -183,12 +225,23 @@ export default function TeacherDashboard() {
 
     const merged = [...globalList, ...embeddedList];
 
-    // Deduplicate: same student + same test + same submit time = same result
-    const seenKeys = {};
+    // Deduplicate: same student + same exam/title/hw + same scores within same time window
+    const seenFingerprints = new Set();
     return merged.filter(sub => {
-      const key = `${sub.studentId}__${sub.testId || sub.homework_id || sub.bookId || ''}__${sub.submittedAt || sub.createdAt || sub.date || ''}`;
-      if (seenKeys[key]) return false;
-      seenKeys[key] = true;
+      const stdId = String(sub.studentId || '');
+      const stdUuid = toUUID(stdId);
+      const title = String(sub.title || sub.testTitle || sub.testName || '').trim().toLowerCase();
+      const hwOrTestId = String(sub.hwId || sub.homework_id || sub.testId || sub.realTestId || sub.bookId || '');
+      const c = Number(sub.correctCount ?? sub.correct ?? 0);
+      const w = Number(sub.wrongCount ?? sub.wrong ?? 0);
+      const b = Number(sub.blankCount ?? sub.emptyCount ?? 0);
+      const timeMs = new Date(sub.submittedAt || sub.createdAt || sub.date || 0).getTime();
+      // 10-minute bucket for minor timing skews
+      const timeBucket = isNaN(timeMs) || timeMs === 0 ? 'no_time' : Math.round(timeMs / (10 * 60 * 1000));
+
+      const fp = `${stdUuid}__${title || hwOrTestId}__${c}_${w}_${b}__${timeBucket}`;
+      if (seenFingerprints.has(fp)) return false;
+      seenFingerprints.add(fp);
       return true;
     });
   }, [submissions, teacherStudentIds, teacherHwIds, teacherHomeworks, currentUser]);
