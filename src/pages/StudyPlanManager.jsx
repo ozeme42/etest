@@ -10,6 +10,7 @@ import {
   ArrowUpRight, BookmarkCheck, Award, Eye, Flame, Share2
 } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { STANDARD_SUBJECTS, getSubjectTheme } from './StudyPlanDetail';
 import './StudyPlanManager.css';
 
 // Curated Ready-Made Templates for Teachers
@@ -19,10 +20,12 @@ const PRESET_TEMPLATES = [
     title: '8. Sınıf LGS Matematik Tam Müfredat Yol Haritası',
     desc: 'LGS sınavına hazırlık için tüm ünite ve kazanımları kapsayan eksiksiz çalışma programı.',
     category: 'LGS / 8. Sınıf',
+    definedSubjects: ['Matematik'],
     subjects: [
       {
         id: 'sub_m1',
         name: '1. Ünite: Çarpanlar ve Katlar & Üslü İfadeler',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m1_1', name: 'Çarpanlar ve Asal Çarpanlara Ayırma', day: '1' },
@@ -35,6 +38,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_m2',
         name: '2. Ünite: Kareköklü İfadeler & Veri Analizi',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m2_1', name: 'Tam Kare Sayılar ve Karekök Kavramı', day: '6' },
@@ -47,6 +51,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_m3',
         name: '3. Ünite: Basit Olayların Olasılığı & Cebirsel İfadeler',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m3_1', name: 'Olasılık Kavramı ve Hesaplamaları', day: '11' },
@@ -58,6 +63,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_m4',
         name: '4. Ünite: Doğrusal Denklemler & Eşitsizlikler',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m4_1', name: 'Birinci Dereceden Bir Bilinmeyenli Denklemler', day: '15' },
@@ -69,6 +75,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_m5',
         name: '5. Ünite: Üçgenler & Eşlik ve Benzerlik',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m5_1', name: 'Üçgende Kenarortay, Açıortay ve Yükseklik', day: '19' },
@@ -80,6 +87,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_m6',
         name: '6. Ünite: Dönüşüm Geometrisi & Geometrik Cisimler',
+        subject: 'Matematik',
         dueDate: '',
         topics: [
           { id: 'top_m6_1', name: 'Öteleme ve Yansıma Hareketleri', day: '23' },
@@ -94,10 +102,12 @@ const PRESET_TEMPLATES = [
     title: '8. Sınıf LGS Fen Bilimleri Adım Adım Kamp',
     desc: 'LGS Fen Bilimleri dersinin 7 ünitesini aşama aşama kavramayı sağlayan özel koçluk planı.',
     category: 'LGS / 8. Sınıf',
+    definedSubjects: ['Fen Bilimleri'],
     subjects: [
       {
         id: 'sub_f1',
         name: '1. Ünite: Mevsimler ve İklim',
+        subject: 'Fen Bilimleri',
         dueDate: '',
         topics: [
           { id: 'top_f1_1', name: 'Mevsimlerin Oluşumu ve Eksen Eğikliği', day: '1' },
@@ -107,6 +117,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_f2',
         name: '2. Ünite: DNA ve Genetik Kod',
+        subject: 'Fen Bilimleri',
         dueDate: '',
         topics: [
           { id: 'top_f2_1', name: 'DNA ve Genetik Kod Yapısı, Nükleotidler', day: '3' },
@@ -119,6 +130,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_f3',
         name: '3. Ünite: Basınç',
+        subject: 'Fen Bilimleri',
         dueDate: '',
         topics: [
           { id: 'top_f3_1', name: 'Katı Basıncı ve Etki Eden Değişkenler', day: '8' },
@@ -129,6 +141,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_f4',
         name: '4. Ünite: Madde ve Endüstri',
+        subject: 'Fen Bilimleri',
         dueDate: '',
         topics: [
           { id: 'top_f4_1', name: 'Periyodik Sistem ve Elementlerin Sınıflandırılması', day: '11' },
@@ -141,6 +154,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_f5',
         name: '5. Ünite: Basit Makineler',
+        subject: 'Fen Bilimleri',
         dueDate: '',
         topics: [
           { id: 'top_f5_1', name: 'Makaralar (Sabit, Hareketli ve Palanga)', day: '16' },
@@ -155,10 +169,12 @@ const PRESET_TEMPLATES = [
     title: '30 Günde LGS / TYT Paragraf ve Sözel Mantık Kampı',
     desc: 'Okuduğunu anlama, çıkarım yapma, sözel mantık ve hızlı soru çözme stratejileri.',
     category: 'Türkçe / Paragraf',
+    definedSubjects: ['Türkçe'],
     subjects: [
       {
         id: 'sub_p1',
         name: '1. Hafta: Sözcük ve Cümlede Anlam Temelleri',
+        subject: 'Türkçe',
         dueDate: '',
         topics: [
           { id: 'top_p1_1', name: 'Gün 1: Sözcükte Anlam, Mecaz & Terim Anlamlar', day: '1' },
@@ -171,6 +187,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_p2',
         name: '2. Hafta: Paragrafta Yapı ve Anlatım Teknikleri',
+        subject: 'Türkçe',
         dueDate: '',
         topics: [
           { id: 'top_p2_1', name: 'Gün 6: Paragrafın Ana Düşüncesi ve Başlık', day: '6' },
@@ -183,6 +200,7 @@ const PRESET_TEMPLATES = [
       {
         id: 'sub_p3',
         name: '3. Hafta: Sözel Mantık ve Grafik/Görsel Yorumlama',
+        subject: 'Türkçe',
         dueDate: '',
         topics: [
           { id: 'top_p3_1', name: 'Gün 11: Tablo ve Grafik Yorumlama Taktikleri', day: '11' },
@@ -255,6 +273,9 @@ export default function StudyPlanManager() {
   // Form State
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newSubject, setNewSubject] = useState('Matematik');
+  const [customSubjectInput, setCustomSubjectInput] = useState('');
+  const [isCustomSubject, setIsCustomSubject] = useState(false);
 
   // Toast
   const [toast, setToast] = useState(null);
@@ -286,7 +307,8 @@ export default function StudyPlanManager() {
     return studyPlans.filter(plan => {
       const matchesSearch = (plan.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (plan.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (plan.subjects || []).some(s => (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()));
+        (plan.definedSubjects || []).some(d => d.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (plan.subjects || []).some(s => (s.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (s.subject || '').toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesSearch;
     });
   }, [studyPlans, searchQuery]);
@@ -299,9 +321,13 @@ export default function StudyPlanManager() {
       return;
     }
 
+    const activeDers = isCustomSubject ? customSubjectInput.trim() : (newSubject || '').trim();
+
     const created = await addStudyPlan({
       title: newTitle.trim(),
       description: newDescription.trim(),
+      category: activeDers || 'Genel',
+      definedSubjects: activeDers ? [activeDers] : [],
       subjects: [],
       createdBy: currentUser?.id || currentUser?.username,
       teacherId: currentUser?.id || currentUser?.username,
@@ -313,6 +339,8 @@ export default function StudyPlanManager() {
     setIsAddModalOpen(false);
     setNewTitle('');
     setNewDescription('');
+    setCustomSubjectInput('');
+    setIsCustomSubject(false);
     showToast('Yeni yol haritası başarıyla oluşturuldu! ✨');
     if (created?.id) {
       navigate(`/study-plans/${created.id}`);
@@ -325,6 +353,7 @@ export default function StudyPlanManager() {
       title: template.title,
       description: template.desc || template.description,
       category: template.category,
+      definedSubjects: template.definedSubjects || [],
       subjects: template.subjects,
       createdBy: currentUser?.id || currentUser?.username,
       teacherId: currentUser?.id || currentUser?.username,
@@ -594,6 +623,12 @@ export default function StudyPlanManager() {
               a => String(a.planId || a.studyPlanId) === String(plan.id)
             ).length;
 
+            const planDersSet = new Set(plan.definedSubjects || []);
+            planSubjects.forEach(s => {
+              if (s.subject) planDersSet.add(s.subject);
+            });
+            const planDersler = Array.from(planDersSet);
+
             return (
               <div key={plan.id} className="roadmap-card">
                 
@@ -627,24 +662,58 @@ export default function StudyPlanManager() {
                     {plan.title}
                   </h3>
                   {plan.description && (
-                    <p style={{ margin: '0 0 0.65rem 0', fontSize: isMobile ? '0.78rem' : '0.84rem', color: 'var(--color-text-muted, #64748b)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <p style={{ margin: '0 0 0.5rem 0', fontSize: isMobile ? '0.78rem' : '0.84rem', color: 'var(--color-text-muted, #64748b)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {plan.description}
                     </p>
                   )}
 
+                  {/* Ders Badges */}
+                  {planDersler.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.65rem' }}>
+                      {planDersler.map(d => {
+                        const theme = getSubjectTheme(d);
+                        return (
+                          <span
+                            key={d}
+                            style={{
+                              fontSize: isMobile ? '0.66rem' : '0.72rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '0.45rem',
+                              background: theme.bg,
+                              color: theme.color,
+                              border: `1px solid ${theme.border}`,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }}
+                          >
+                            <span>{theme.icon}</span> {d}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Mini Stats Bar */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.35rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '0.75rem', padding: '0.55rem 0.35rem', margin: '0.65rem 0', textAlign: 'center' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: planDersler.length > 0 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: '0.35rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '0.75rem', padding: '0.55rem 0.35rem', margin: '0.65rem 0', textAlign: 'center' }}>
+                    {planDersler.length > 0 && (
+                      <div style={{ borderRight: '1px solid var(--color-border, #e2e8f0)' }}>
+                        <div style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, color: '#8b5cf6' }}>{planDersler.length}</div>
+                        <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Ders</div>
+                      </div>
+                    )}
                     <div>
                       <div style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, color: '#6366f1' }}>{planSubjects.length}</div>
-                      <div style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Ünite</div>
+                      <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Ünite</div>
                     </div>
                     <div style={{ borderLeft: '1px solid var(--color-border, #e2e8f0)', borderRight: '1px solid var(--color-border, #e2e8f0)' }}>
                       <div style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, color: '#16a34a' }}>{planTopicsCount}</div>
-                      <div style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Konu / Adım</div>
+                      <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Konu / Adım</div>
                     </div>
                     <div>
                       <div style={{ fontSize: isMobile ? '1rem' : '1.2rem', fontWeight: 900, color: '#db2777' }}>{assignedStudentsCount}</div>
-                      <div style={{ fontSize: isMobile ? '0.62rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Öğrenci</div>
+                      <div style={{ fontSize: isMobile ? '0.6rem' : '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase' }}>Öğrenci</div>
                     </div>
                   </div>
 
@@ -655,7 +724,7 @@ export default function StudyPlanManager() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
                         {planSubjects.slice(0, isMobile ? 2 : 3).map((subj, idx) => (
                           <span key={subj.id || idx} style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', fontWeight: 700, background: 'var(--color-surface-hover, #f8fafc)', color: 'var(--color-text, #334155)', padding: '0.15rem 0.45rem', borderRadius: '0.45rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
-                            📚 {subj.name}
+                            {subj.subject ? `${subj.subject}: ${subj.name}` : `📚 ${subj.name}`}
                           </span>
                         ))}
                         {planSubjects.length > (isMobile ? 2 : 3) && (
@@ -830,6 +899,82 @@ export default function StudyPlanManager() {
                 />
               </div>
 
+              {/* Ders Seçimi */}
+              <div>
+                <label style={{ display: 'block', fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>
+                  Başlangıç Dersi *
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.45rem' }}>
+                  {STANDARD_SUBJECTS.slice(0, 7).map(subj => {
+                    const isSelected = !isCustomSubject && newSubject === subj;
+                    const theme = getSubjectTheme(subj);
+                    return (
+                      <button
+                        key={subj}
+                        type="button"
+                        onClick={() => {
+                          setIsCustomSubject(false);
+                          setNewSubject(subj);
+                        }}
+                        style={{
+                          fontSize: isMobile ? '0.72rem' : '0.76rem',
+                          fontWeight: 800,
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '0.55rem',
+                          background: isSelected ? theme.color : theme.bg,
+                          color: isSelected ? '#ffffff' : theme.color,
+                          border: `1.5px solid ${isSelected ? theme.color : theme.border}`,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span>{theme.icon}</span> {subj}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomSubject(!isCustomSubject)}
+                    style={{
+                      fontSize: isMobile ? '0.72rem' : '0.76rem',
+                      fontWeight: 800,
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '0.55rem',
+                      background: isCustomSubject ? '#4f46e5' : 'var(--color-surface-hover, #f8fafc)',
+                      color: isCustomSubject ? '#ffffff' : 'var(--color-text-muted, #64748b)',
+                      border: `1.5px solid ${isCustomSubject ? '#4f46e5' : 'var(--color-border, #cbd5e1)'}`,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    + Farklı Ders
+                  </button>
+                </div>
+
+                {isCustomSubject && (
+                  <input
+                    type="text"
+                    value={customSubjectInput}
+                    onChange={(e) => setCustomSubjectInput(e.target.value)}
+                    placeholder="Ders adını yazınız (Örn: Biyoloji, Mantık, Geometri...)"
+                    style={{
+                      width: '100%',
+                      padding: isMobile ? '0.6rem 0.8rem' : '0.75rem 0.95rem',
+                      borderRadius: '0.75rem',
+                      background: 'var(--color-surface, #ffffff)',
+                      border: '1.5px solid var(--color-border-input, #cbd5e1)',
+                      color: 'var(--color-text, #0f172a)',
+                      fontSize: isMobile ? '0.82rem' : '0.88rem',
+                      fontWeight: 700,
+                      boxSizing: 'border-box',
+                      marginTop: '0.35rem'
+                    }}
+                  />
+                )}
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: isMobile ? '0.78rem' : '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>
                   Açıklama / Hedef (İsteğe Bağlı)
@@ -859,11 +1004,21 @@ export default function StudyPlanManager() {
                   💡 Veya hazır şablon başlıklarından seçin:
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                  {['8. Sınıf LGS Matematik', '8. Sınıf LGS Fen Bilimleri', 'LGS Türkçe & Paragraf', '7. Sınıf Matematik', 'TYT Matematik Kampı'].map(tag => (
+                  {[
+                    { tag: '8. Sınıf LGS Matematik', subj: 'Matematik' },
+                    { tag: '8. Sınıf LGS Fen Bilimleri', subj: 'Fen Bilimleri' },
+                    { tag: 'LGS Türkçe & Paragraf', subj: 'Türkçe' },
+                    { tag: '7. Sınıf Matematik', subj: 'Matematik' },
+                    { tag: 'TYT Matematik Kampı', subj: 'Matematik' }
+                  ].map(item => (
                     <button
-                      key={tag}
+                      key={item.tag}
                       type="button"
-                      onClick={() => setNewTitle(tag)}
+                      onClick={() => {
+                        setNewTitle(item.tag);
+                        setNewSubject(item.subj);
+                        setIsCustomSubject(false);
+                      }}
                       style={{
                         fontSize: '0.72rem',
                         fontWeight: 800,
@@ -875,7 +1030,7 @@ export default function StudyPlanManager() {
                         cursor: 'pointer'
                       }}
                     >
-                      + {tag}
+                      + {item.tag}
                     </button>
                   ))}
                 </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
@@ -6,10 +6,56 @@ import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, Users, Plus, Edit2, Trash2, ChevronDown, ChevronUp, ChevronRight,
   Link as LinkIcon, Calendar, FileJson, X, ListPlus, Sparkles, Hash,
-  Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check, Lock
+  Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check, Lock,
+  Compass, FolderPlus
 } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import './StudyPlan.css';
+
+export const STANDARD_SUBJECTS = [
+  'Matematik',
+  'Türkçe',
+  'Fen Bilimleri',
+  'Sosyal Bilgiler',
+  'İnkılap Tarihi',
+  'İngilizce',
+  'Din Kültürü',
+  'Fizik',
+  'Kimya',
+  'Biyoloji',
+  'Geometri',
+  'Tarih',
+  'Coğrafya',
+  'Felsefe'
+];
+
+export const SUBJECT_THEMES = {
+  'Türkçe': { color: '#d97706', bg: 'rgba(217, 119, 6, 0.08)', border: 'rgba(217, 119, 6, 0.3)', icon: '📖' },
+  'Matematik': { color: '#2563eb', bg: 'rgba(37, 99, 235, 0.08)', border: 'rgba(37, 99, 235, 0.3)', icon: '📐' },
+  'Fen Bilimleri': { color: '#059669', bg: 'rgba(5, 150, 105, 0.08)', border: 'rgba(5, 150, 105, 0.3)', icon: '🔬' },
+  'Sosyal Bilgiler': { color: '#dc2626', bg: 'rgba(220, 38, 38, 0.08)', border: 'rgba(220, 38, 38, 0.3)', icon: '🌍' },
+  'İnkılap Tarihi': { color: '#b91c1c', bg: 'rgba(185, 28, 28, 0.08)', border: 'rgba(185, 28, 28, 0.3)', icon: '🇹🇷' },
+  'İngilizce': { color: '#0891b2', bg: 'rgba(8, 145, 178, 0.08)', border: 'rgba(8, 145, 178, 0.3)', icon: '🇬🇧' },
+  'Din Kültürü': { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.08)', border: 'rgba(124, 58, 237, 0.3)', icon: '🕌' },
+  'Fizik': { color: '#0284c7', bg: 'rgba(2, 132, 199, 0.08)', border: 'rgba(2, 132, 199, 0.3)', icon: '⚡' },
+  'Kimya': { color: '#db2777', bg: 'rgba(219, 39, 119, 0.08)', border: 'rgba(219, 39, 119, 0.3)', icon: '🧪' },
+  'Biyoloji': { color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.3)', icon: '🧬' },
+  'Geometri': { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.08)', border: 'rgba(99, 102, 241, 0.3)', icon: '📏' },
+  'Tarih': { color: '#b45309', bg: 'rgba(180, 83, 9, 0.08)', border: 'rgba(180, 83, 9, 0.3)', icon: '📜' },
+  'Coğrafya': { color: '#047857', bg: 'rgba(4, 120, 87, 0.08)', border: 'rgba(4, 120, 87, 0.3)', icon: '🗺️' },
+  'Felsefe': { color: '#6b21a8', bg: 'rgba(107, 33, 168, 0.08)', border: 'rgba(107, 33, 168, 0.3)', icon: '💭' },
+  'Genel': { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.08)', border: 'rgba(99, 102, 241, 0.3)', icon: '📚' }
+};
+
+export function getSubjectTheme(subjName) {
+  if (!subjName) return SUBJECT_THEMES['Genel'];
+  for (const [key, val] of Object.entries(SUBJECT_THEMES)) {
+    if (subjName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(subjName.toLowerCase())) {
+      return val;
+    }
+  }
+  return { color: '#6366f1', bg: 'rgba(99, 102, 241, 0.08)', border: 'rgba(99, 102, 241, 0.3)', icon: '📚' };
+}
 
 export default function StudyPlanDetail() {
   const { id: planId } = useParams();
@@ -52,12 +98,56 @@ export default function StudyPlanDetail() {
   // Responsive
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Expanded Units State (default closed/collapsed for clarity, or user toggle)
+  // Collect all unique Ders (subjects) defined in this plan
+  const planDersList = useMemo(() => {
+    const list = [];
+    if (Array.isArray(plan?.definedSubjects)) {
+      plan.definedSubjects.forEach(d => {
+        const trimmed = (d || '').trim();
+        if (trimmed && !list.includes(trimmed)) list.push(trimmed);
+      });
+    }
+    subjects.forEach(u => {
+      const sName = (u.subject || '').trim();
+      if (sName && !list.includes(sName)) {
+        list.push(sName);
+      }
+    });
+    if (list.length === 0 && subjects.length > 0) {
+      list.push('Genel');
+    }
+    return list;
+  }, [plan?.definedSubjects, subjects]);
+
+  const unitsByDers = useMemo(() => {
+    const map = {};
+    planDersList.forEach(d => {
+      map[d] = [];
+    });
+    subjects.forEach(unit => {
+      const d = (unit.subject || '').trim() || (planDersList[0] || 'Genel');
+      if (!map[d]) map[d] = [];
+      map[d].push(unit);
+    });
+    return map;
+  }, [planDersList, subjects]);
+
+  // Expanded Units & Ders State
   const [expandedUnits, setExpandedUnits] = useState([]);
+  const [expandedDersler, setExpandedDersler] = useState([]);
+  const [isDerslerInitialized, setIsDerslerInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!isDerslerInitialized && planDersList.length > 0) {
+      setExpandedDersler([...planDersList]);
+      setIsDerslerInitialized(true);
+    }
+  }, [planDersList, isDerslerInitialized]);
 
   // Modals
-  const [unitModal, setUnitModal] = useState({ isOpen: false, unit: null }); // null = add, else edit
-  const [topicModal, setTopicModal] = useState({ isOpen: false, unitId: null, topic: null }); // topic null = add, else edit
+  const [dersModal, setDersModal] = useState({ isOpen: false, isEditing: false, oldDersName: '', dersName: '', initialUnitName: '1. Ünite' });
+  const [unitModal, setUnitModal] = useState({ isOpen: false, unit: null, defaultSubject: '' });
+  const [topicModal, setTopicModal] = useState({ isOpen: false, unitId: null, topic: null });
   const [bulkTopicModal, setBulkTopicModal] = useState({ isOpen: false, unitId: null });
   const [assignModal, setAssignModal] = useState(false);
   const [jsonModal, setJsonModal] = useState(false);
@@ -65,7 +155,9 @@ export default function StudyPlanDetail() {
   const [bulkText, setBulkText] = useState('');
 
   // Form states
-  const [unitForm, setUnitForm] = useState({ name: '', dueDate: '', resourceUrl: '' });
+  const [isCustomSubject, setIsCustomSubject] = useState(false);
+  const [customSubjectInput, setCustomSubjectInput] = useState('');
+  const [unitForm, setUnitForm] = useState({ subject: '', name: '', dueDate: '', resourceUrl: '' });
   const [topicForm, setTopicForm] = useState({ name: '', day: '', dueDate: '', resourceUrl: '' });
   const [bulkTopicText, setBulkTopicText] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -137,32 +229,158 @@ export default function StudyPlanDetail() {
     );
   };
 
+  const toggleDers = (dersName) => {
+    setExpandedDersler((prev) =>
+      prev.includes(dersName) ? prev.filter(d => d !== dersName) : [...prev, dersName]
+    );
+  };
+
   const handleExpandAll = () => {
+    setExpandedDersler([...planDersList]);
     setExpandedUnits(subjects.map(s => s.id));
   };
 
   const handleCollapseAll = () => {
+    setExpandedDersler([]);
     setExpandedUnits([]);
   };
 
+  // Ders Actions
+  const openDersModal = (dersToEdit = null) => {
+    if (dersToEdit) {
+      setDersModal({
+        isOpen: true,
+        isEditing: true,
+        oldDersName: dersToEdit,
+        dersName: dersToEdit,
+        initialUnitName: ''
+      });
+    } else {
+      setDersModal({
+        isOpen: true,
+        isEditing: false,
+        oldDersName: '',
+        dersName: '',
+        initialUnitName: '1. Ünite'
+      });
+    }
+  };
+
+  const saveDers = () => {
+    const trimmedDers = dersModal.dersName.trim();
+    if (!trimmedDers) {
+      showToast('Lütfen bir ders adı giriniz.', 'error');
+      return;
+    }
+
+    if (dersModal.isEditing) {
+      const oldName = dersModal.oldDersName;
+      if (oldName === trimmedDers) {
+        setDersModal({ isOpen: false, isEditing: false, oldDersName: '', dersName: '', initialUnitName: '' });
+        return;
+      }
+      const currentDefined = Array.isArray(plan.definedSubjects) ? plan.definedSubjects : planDersList;
+      const newDefined = currentDefined.map(d => d === oldName ? trimmedDers : d);
+      if (!newDefined.includes(trimmedDers)) newDefined.push(trimmedDers);
+
+      const newSubjects = subjects.map(u => {
+        const uSub = (u.subject || '').trim() || (planDersList[0] || 'Genel');
+        if (uSub === oldName) {
+          return { ...u, subject: trimmedDers };
+        }
+        return u;
+      });
+
+      updateStudyPlan(plan.id, { definedSubjects: newDefined, subjects: newSubjects });
+      showToast(`Ders adı "${trimmedDers}" olarak güncellendi.`);
+    } else {
+      const currentDefined = Array.isArray(plan.definedSubjects) ? [...plan.definedSubjects] : [...planDersList];
+      if (!currentDefined.includes(trimmedDers)) {
+        currentDefined.push(trimmedDers);
+      }
+
+      let newSubjects = [...subjects];
+      const initialUnit = dersModal.initialUnitName.trim();
+      if (initialUnit) {
+        const newUnitId = `sub_${Date.now()}`;
+        newSubjects.push({
+          id: newUnitId,
+          subject: trimmedDers,
+          name: initialUnit,
+          dueDate: '',
+          resourceUrl: '',
+          topics: []
+        });
+        setExpandedUnits(prev => [...prev, newUnitId]);
+      }
+
+      updateStudyPlan(plan.id, { definedSubjects: currentDefined, subjects: newSubjects });
+      if (!expandedDersler.includes(trimmedDers)) {
+        setExpandedDersler(prev => [...prev, trimmedDers]);
+      }
+      showToast(`"${trimmedDers}" dersi başarıyla eklendi! 📚`);
+    }
+
+    setDersModal({ isOpen: false, isEditing: false, oldDersName: '', dersName: '', initialUnitName: '' });
+  };
+
+  const deleteDers = (dersName) => {
+    const dersUnits = unitsByDers[dersName] || [];
+    const confirmMsg = dersUnits.length > 0
+      ? `"${dersName}" dersini ve bu derse ait ${dersUnits.length} üniteyi (tüm konularıyla birlikte) silmek istediğinize emin misiniz?`
+      : `"${dersName}" dersini silmek istediğinize emin misiniz?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const currentDefined = Array.isArray(plan.definedSubjects) ? plan.definedSubjects : planDersList;
+    const newDefined = currentDefined.filter(d => d !== dersName);
+    const newSubjects = subjects.filter(u => {
+      const uSub = (u.subject || '').trim() || (planDersList[0] || 'Genel');
+      return uSub !== dersName;
+    });
+
+    updateStudyPlan(plan.id, { definedSubjects: newDefined, subjects: newSubjects });
+    showToast(`"${dersName}" dersi silindi.`);
+  };
+
   // Unit Actions
-  const openUnitModal = (unit = null) => {
-    setUnitForm(unit ? { name: unit.name, dueDate: unit.dueDate || '', resourceUrl: unit.resourceUrl || '' } : { name: '', dueDate: '', resourceUrl: '' });
-    setUnitModal({ isOpen: true, unit });
+  const openUnitModal = (unit = null, defaultSubject = '') => {
+    const activeSubject = unit?.subject || defaultSubject || planDersList[0] || 'Matematik';
+    setUnitForm(unit ? { 
+      subject: activeSubject,
+      name: unit.name, 
+      dueDate: unit.dueDate || '', 
+      resourceUrl: unit.resourceUrl || '' 
+    } : { 
+      subject: activeSubject,
+      name: '', 
+      dueDate: '', 
+      resourceUrl: '' 
+    });
+    setIsCustomSubject(false);
+    setCustomSubjectInput('');
+    setUnitModal({ isOpen: true, unit, defaultSubject });
   };
 
   const saveUnit = () => {
     if (!unitForm.name.trim()) return;
+    const finalSubject = (isCustomSubject && customSubjectInput.trim()) 
+      ? customSubjectInput.trim() 
+      : (unitForm.subject.trim() || planDersList[0] || 'Matematik');
     
     let newSubjects = [...subjects];
     if (unitModal.unit) {
-      newSubjects = newSubjects.map(s => s.id === unitModal.unit.id ? { ...s, ...unitForm } : s);
+      newSubjects = newSubjects.map(s => s.id === unitModal.unit.id ? { 
+        ...s, 
+        ...unitForm,
+        subject: finalSubject 
+      } : s);
       showToast('Ünite başarıyla güncellendi.');
     } else {
       const newUnitId = `sub_${Date.now()}`;
       newSubjects.push({
         id: newUnitId,
-        name: unitForm.name,
+        subject: finalSubject,
+        name: unitForm.name.trim(),
         dueDate: unitForm.dueDate,
         resourceUrl: unitForm.resourceUrl,
         topics: []
@@ -171,7 +389,12 @@ export default function StudyPlanDetail() {
       showToast('Yeni ünite başarıyla eklendi.');
     }
     
-    updateStudyPlan(plan.id, { subjects: newSubjects });
+    const currentDefined = Array.isArray(plan.definedSubjects) ? [...plan.definedSubjects] : [...planDersList];
+    if (!currentDefined.includes(finalSubject)) {
+      currentDefined.push(finalSubject);
+    }
+
+    updateStudyPlan(plan.id, { definedSubjects: currentDefined, subjects: newSubjects });
     setUnitModal({ isOpen: false, unit: null });
   };
 
@@ -327,12 +550,53 @@ export default function StudyPlanDetail() {
   const parseBulkText = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     const units = [];
+    let currentDers = planDersList[0] || 'Genel';
     let currentUnit = null;
 
     lines.forEach(line => {
       const lower = line.toLowerCase();
       if ((lower.includes('gün') && lower.includes('içerik')) || /^gün\s*içerik/i.test(line)) {
         return;
+      }
+
+      // Check if line is a Ders header: e.g. "Ders: Matematik" or "[Matematik]" or "# Matematik"
+      if (/^ders\s*[:=]/i.test(line) || (/^\[.+\]$/.test(line) && !line.includes(':')) || /^#\s+/i.test(line)) {
+        const dersName = line.replace(/^(ders\s*[:=]|#+\s*|\[)/i, '').replace(/\]$/, '').trim();
+        if (dersName) {
+          currentDers = dersName;
+          currentUnit = null;
+          return;
+        }
+      }
+
+      if (line.includes('>')) {
+        const parts = line.split('>').map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 3) {
+          const dName = parts[0];
+          const uName = parts[1];
+          const tName = parts.slice(2).join('>').trim();
+          let uObj = units.find(u => (u.subject || '').toLowerCase() === dName.toLowerCase() && u.name.toLowerCase() === uName.toLowerCase());
+          if (!uObj) {
+            uObj = { id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, subject: dName, name: uName, topics: [] };
+            units.push(uObj);
+          }
+          if (tName) {
+            uObj.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, name: tName });
+          }
+          return;
+        } else if (parts.length === 2) {
+          const uName = parts[0];
+          const tName = parts[1];
+          let uObj = units.find(u => u.name.toLowerCase() === uName.toLowerCase());
+          if (!uObj) {
+            uObj = { id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, subject: currentDers, name: uName, topics: [] };
+            units.push(uObj);
+          }
+          if (tName) {
+            uObj.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, name: tName });
+          }
+          return;
+        }
       }
 
       const isUnitLine = (
@@ -346,6 +610,7 @@ export default function StudyPlanDetail() {
         const unitName = line.replace(/:$/, '').trim();
         currentUnit = {
           id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
+          subject: currentDers,
           name: unitName,
           topics: []
         };
@@ -363,6 +628,7 @@ export default function StudyPlanDetail() {
         if (!currentUnit) {
           currentUnit = {
             id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
+            subject: currentDers,
             name: '1. Ünite',
             topics: []
           };
@@ -376,21 +642,6 @@ export default function StudyPlanDetail() {
         return;
       }
 
-      if (line.includes('>')) {
-        const parts = line.split('>').map(p => p.trim());
-        const uName = parts[0];
-        const tName = parts.slice(1).join('>').trim();
-        let uObj = units.find(u => u.name.toLowerCase() === uName.toLowerCase());
-        if (!uObj) {
-          uObj = { id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, name: uName, topics: [] };
-          units.push(uObj);
-        }
-        if (tName) {
-          uObj.topics.push({ id: `top_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, name: tName });
-        }
-        return;
-      }
-
       const isBullet = line.startsWith('-') || line.startsWith('*') || line.startsWith('•');
       const cleanLine = line.replace(/^[-*•\d+\.\s]+/, '').trim();
 
@@ -398,6 +649,7 @@ export default function StudyPlanDetail() {
         if (!currentUnit) {
           currentUnit = {
             id: `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
+            subject: currentDers,
             name: 'Genel Ünite',
             topics: []
           };
@@ -425,6 +677,7 @@ export default function StudyPlanDetail() {
         if (Array.isArray(parsed)) {
           importedSubjects = parsed.map(unit => ({
             ...unit,
+            subject: unit.subject || planDersList[0] || 'Genel',
             id: unit.id || `sub_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`,
             topics: (unit.topics || []).map(t => typeof t === 'string' ? { id: `top_${Math.random().toString(36).substring(2, 9)}_${Date.now()}`, name: t } : {
               ...t,
@@ -447,7 +700,12 @@ export default function StudyPlanDetail() {
     }
 
     const newSubjects = [...subjects, ...importedSubjects];
-    updateStudyPlan(plan.id, { subjects: newSubjects });
+    const newDefined = Array.from(new Set([
+      ...(plan.definedSubjects || []),
+      ...planDersList,
+      ...importedSubjects.map(u => u.subject).filter(Boolean)
+    ]));
+    updateStudyPlan(plan.id, { definedSubjects: newDefined, subjects: newSubjects });
     setJsonModal(false);
     setBulkText('');
     setJsonText('');
@@ -513,7 +771,7 @@ export default function StudyPlanDetail() {
                 {plan.title}
               </h1>
               <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: '1rem', border: '1px solid rgba(165,180,252,0.3)' }}>
-                {subjects.length} Ünite • {totalTopicsCount} Konu
+                {planDersList.length > 0 ? `${planDersList.length} Ders • ` : ''}{subjects.length} Ünite • {totalTopicsCount} Konu
               </span>
               {assignedCount > 0 && (
                 <span style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', fontWeight: 900, background: 'rgba(236,72,153,0.12)', color: '#ec4899', padding: '0.15rem 0.55rem', borderRadius: '1rem', border: '1px solid rgba(244,114,182,0.3)' }}>
@@ -523,7 +781,7 @@ export default function StudyPlanDetail() {
             </div>
             {!isMobile && (
               <p style={{ margin: '0.35rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem', fontWeight: 600 }}>
-                {plan.description || 'Yol haritasındaki üniteleri, konuları, hedef tarihleri ve ders kaynaklarını düzenleyin.'}
+                {plan.description || 'Yol haritasındaki dersleri, üniteleri, konuları, hedef tarihleri ve ders kaynaklarını düzenleyin.'}
               </p>
             )}
           </div>
@@ -531,6 +789,27 @@ export default function StudyPlanDetail() {
 
         {/* Action Buttons */}
         <div style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? (subjects.length > 0 ? '1fr 1fr' : '1fr') : 'auto', width: isMobile ? '100%' : 'auto', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => openDersModal()}
+            style={{
+              padding: isMobile ? '0.5rem 0.65rem' : '0.65rem 1.15rem',
+              borderRadius: '0.75rem',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+              border: 'none',
+              color: '#ffffff',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.74rem' : '0.84rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.35rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(37,99,235,0.35)'
+            }}
+          >
+            <BookOpen size={14} /> + Yeni Ders Ekle
+          </button>
+
           {subjects.length > 0 && (
             <button
               onClick={() => handleAutoNumberDays()}
@@ -612,22 +891,22 @@ export default function StudyPlanDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', paddingBottom: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
             <h2 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.15rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Layers size={isMobile ? 17 : 19} style={{ color: '#6366f1' }} /> Üniteler ve Konular
+              <BookOpen size={isMobile ? 18 : 20} style={{ color: '#2563eb' }} /> Dersler ve Üniteler
             </h2>
-            <span style={{ fontSize: '0.72rem', color: '#6366f1', background: 'rgba(99,102,241,0.12)', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 800 }}>
-              {subjects.length}
+            <span style={{ fontSize: '0.72rem', color: '#2563eb', background: 'rgba(37,99,235,0.12)', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 800 }}>
+              {planDersList.length} Ders • {subjects.length} Ünite
             </span>
           </div>
 
           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
-            {subjects.length > 0 && (
+            {(planDersList.length > 0 || subjects.length > 0) && (
               <>
                 <button
                   type="button"
                   onClick={handleExpandAll}
                   style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', padding: '0.35rem 0.6rem', fontWeight: 800, borderRadius: '0.55rem', background: 'var(--color-surface-hover, #f1f5f9)', color: 'var(--color-text, #0f172a)', border: '1px solid var(--color-border, #cbd5e1)', cursor: 'pointer' }}
                 >
-                  📂 Aç
+                  📂 Tümünü Aç
                 </button>
                 <button
                   type="button"
@@ -639,27 +918,38 @@ export default function StudyPlanDetail() {
               </>
             )}
             <button
+              onClick={() => openDersModal()}
+              style={{ flex: isMobile ? 1 : 'none', fontSize: isMobile ? '0.76rem' : '0.82rem', padding: '0.4rem 0.85rem', fontWeight: 900, borderRadius: '0.55rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}
+            >
+              <BookOpen size={15} /> + Yeni Ders Ekle
+            </button>
+            <button
               onClick={() => openUnitModal()}
               style={{ flex: isMobile ? 1 : 'none', fontSize: isMobile ? '0.76rem' : '0.82rem', padding: '0.4rem 0.85rem', fontWeight: 900, borderRadius: '0.55rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
             >
-              <Plus size={15} /> Yeni Ünite Ekle
+              <Plus size={15} /> + Yeni Ünite Ekle
             </button>
           </div>
         </div>
 
-
-        {/* Units List */}
-        {subjects.length === 0 ? (
+        {/* Units List Grouped by Ders */}
+        {planDersList.length === 0 && subjects.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: '1rem', border: '1.5px dashed var(--color-border, #cbd5e1)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
             <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.95rem', margin: 0, fontWeight: 700 }}>
-              Bu yol haritasına henüz bir ünite veya konu eklenmemiş.
+              Bu yol haritasına henüz bir ders, ünite veya konu eklenmemiş.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
-                onClick={() => openUnitModal()}
-                style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.65rem', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                onClick={() => openDersModal()}
+                style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: 'none', borderRadius: '0.65rem', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}
               >
-                <Plus size={16} /> Önce Ünite Ekle
+                <BookOpen size={16} /> + Önce Ders Ekle
+              </button>
+              <button
+                onClick={() => openUnitModal()}
+                style={{ padding: '0.65rem 1.25rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.65rem', color: '#ffffff', fontWeight: 900, fontSize: '0.88rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}
+              >
+                <Plus size={16} /> Direkt Ünite Ekle
               </button>
               <button
                 onClick={() => { setBulkTopicModal({ isOpen: true, unitId: 'auto_create' }); setBulkTopicText(''); }}
@@ -670,199 +960,338 @@ export default function StudyPlanDetail() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-            {subjects.map((unit) => {
-              const isExpanded = expandedUnits.includes(unit.id);
-              const topics = unit.topics || [];
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {planDersList.map((dersName) => {
+              const theme = getSubjectTheme(dersName);
+              const dersUnits = unitsByDers[dersName] || [];
+              const isDersExpanded = expandedDersler.includes(dersName);
+              const dersTopicsCount = dersUnits.reduce((sum, u) => sum + (u.topics?.length || 0), 0);
 
               return (
-                <div key={unit.id} style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface, #ffffff)' }}>
-                  
-                  {/* Unit Header */}
-                  <div 
-                    onClick={() => toggleUnit(unit.id)}
+                <div 
+                  key={dersName} 
+                  style={{
+                    border: `1.5px solid ${theme.border || 'var(--color-border, #e2e8f0)'}`,
+                    borderRadius: '1.15rem',
+                    overflow: 'hidden',
+                    background: 'var(--color-surface, #ffffff)',
+                    boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  {/* Ders Header */}
+                  <div
+                    onClick={() => toggleDers(dersName)}
                     style={{
-                      background: 'var(--color-surface-hover, #f8fafc)',
-                      padding: '0.9rem 1.25rem',
+                      background: theme.bg || 'var(--color-surface-hover, #f8fafc)',
+                      borderBottom: isDersExpanded ? `1.5px solid ${theme.border || 'var(--color-border, #e2e8f0)'}` : 'none',
+                      padding: isMobile ? '0.75rem 0.95rem' : '0.95rem 1.35rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       cursor: 'pointer',
-                      borderBottom: isExpanded ? '1px solid var(--color-border, #e2e8f0)' : 'none',
                       flexWrap: 'wrap',
                       gap: '0.65rem'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1 }}>
-                      {isExpanded ? <ChevronDown size={20} style={{ color: '#6366f1' }} /> : <ChevronRight size={20} style={{ color: '#6366f1' }} />}
-                      <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                      {isDersExpanded ? (
+                        <ChevronDown size={20} style={{ color: theme.color || '#6366f1', flexShrink: 0 }} />
+                      ) : (
+                        <ChevronRight size={20} style={{ color: theme.color || '#6366f1', flexShrink: 0 }} />
+                      )}
+                      
+                      <div style={{ width: 34, height: 34, borderRadius: '0.65rem', background: '#ffffff', border: `1.5px solid ${theme.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+                        {theme.icon || '📚'}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <h3 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Layers size={17} style={{ color: '#6366f1' }} /> {unit.name}
-                          </h3>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 800, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.15rem 0.55rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)' }}>
-                            {topics.length} Konu Adımı
+                          <span style={{ fontSize: '0.66rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: theme.color, background: '#ffffff', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: `1px solid ${theme.border}` }}>
+                            DERS
                           </span>
-                        </div>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
-                          {unit.dueDate && (
-                            <span style={{ fontSize: '0.74rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
-                              <Calendar size={13} /> Hedef: {unit.dueDate}
-                            </span>
-                          )}
-                          {unit.resourceUrl && (
-                            <a
-                              href={unit.resourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              style={{ fontSize: '0.74rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800, textDecoration: 'none' }}
-                            >
-                              <Globe size={13} /> Genel Kaynak Linki ↗
-                            </a>
-                          )}
+                          <h3 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                            {dersName}
+                          </h3>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: theme.color, background: '#ffffff', padding: '0.12rem 0.5rem', borderRadius: '0.45rem', border: `1px solid ${theme.border}` }}>
+                            {dersUnits.length} Ünite • {dersTopicsCount} Konu
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Unit Toolbar Buttons */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }} onClick={e => e.stopPropagation()}>
+                    {/* Ders Toolbar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => { setBulkTopicModal({ isOpen: true, unitId: unit.id }); setBulkTopicText(''); }}
-                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', borderRadius: '0.5rem', color: '#0284c7', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                        title="Toplu Konu Ekle (Satır Satır)"
+                        onClick={() => openUnitModal(null, dersName)}
+                        style={{
+                          padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.85rem',
+                          borderRadius: '0.55rem',
+                          background: theme.color,
+                          border: 'none',
+                          color: '#ffffff',
+                          fontWeight: 900,
+                          fontSize: isMobile ? '0.74rem' : '0.8rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          boxShadow: `0 3px 8px ${theme.color}35`
+                        }}
+                        title={`${dersName} dersine yeni ünite ekle`}
                       >
-                        <ListPlus size={14} /> Toplu Ekle
+                        <Plus size={14} /> {isMobile ? 'Ünite Ekle' : '+ Bu Derse Ünite Ekle'}
                       </button>
+
                       <button
-                        onClick={() => openTopicModal(unit.id)}
-                        style={{ padding: '0.35rem 0.65rem', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.5rem', color: '#10b981', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-                        title="Konu Ekle"
+                        onClick={() => openDersModal(dersName)}
+                        style={{
+                          padding: '0.4rem 0.55rem',
+                          borderRadius: '0.55rem',
+                          background: 'var(--color-surface, #ffffff)',
+                          border: '1px solid var(--color-border, #cbd5e1)',
+                          color: 'var(--color-text, #0f172a)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Ders Adını Düzenle"
                       >
-                        <Plus size={14} /> Konu Ekle
+                        <Edit2 size={13} />
                       </button>
+
                       <button
-                        onClick={() => openUnitModal(unit)}
-                        style={{ padding: '0.35rem 0.55rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.5rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
-                        title="Üniteyi Düzenle"
+                        onClick={() => deleteDers(dersName)}
+                        style={{
+                          padding: '0.4rem 0.55rem',
+                          borderRadius: '0.55rem',
+                          background: 'rgba(239,68,68,0.1)',
+                          border: '1px solid rgba(239,68,68,0.25)',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Dersi ve Ünitelerini Sil"
                       >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => deleteUnit(unit.id)}
-                        style={{ padding: '0.35rem 0.55rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer' }}
-                        title="Üniteyi Sil"
-                      >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Topics List (Expanded Only) */}
-                  {isExpanded && (
-                    <div style={{ padding: '1.15rem', background: 'var(--color-surface-hover, #f8fafc)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      {topics.length === 0 ? (
-                        <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>
-                          Bu ünitede henüz konu bulunmuyor. Yukarıdaki "Konu Ekle" butonunu kullanabilirsiniz.
-                        </p>
-                      ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
-                          {topics.map(topic => (
-                            <div 
-                              key={topic.id}
-                              style={{
-                                padding: '0.75rem 0.95rem',
-                                borderRadius: '0.75rem',
-                                background: 'var(--color-surface, #ffffff)',
-                                border: '1px solid var(--color-border, #e2e8f0)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '0.65rem'
-                              }}
-                            >
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                                  {topic.day && (
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
-                                      {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
-                                    </span>
-                                  )}
-                                  <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {topic.name}
-                                  </span>
-                                </div>
-
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                  {topic.dueDate && (
-                                    <span style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
-                                      <Calendar size={12} /> {topic.dueDate}
-                                    </span>
-                                  )}
-                                  {topic.resourceUrl && (
-                                    <a
-                                      href={topic.resourceUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
-                                    >
-                                      <LinkIcon size={12} /> Link ↗
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Day Stepper & Actions */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.45rem', border: '1px solid var(--color-border, #cbd5e1)', padding: '0.1rem 0.25rem' }}>
-                                  <button
-                                    onClick={() => {
-                                      const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
-                                      handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
-                                    }}
-                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
-                                    title="Günü Azalt"
-                                  >
-                                    -
-                                  </button>
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6366f1', padding: '0 0.2rem' }}>
-                                    {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `G${topic.day}`) : '+G'}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
-                                      handleSetTopicDay(unit.id, topic.id, String(cur + 1));
-                                    }}
-                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
-                                    title="Günü Artır"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-
-                                <button
-                                  onClick={() => openTopicModal(unit.id, topic)}
-                                  style={{ padding: '0.3rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.45rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
-                                  title="Konuyu Düzenle"
-                                >
-                                  <Edit2 size={13} />
-                                </button>
-                                <button
-                                  onClick={() => deleteTopic(unit.id, topic.id)}
-                                  style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }}
-                                  title="Konuyu Sil"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                  {/* Units of this Ders */}
+                  {isDersExpanded && (
+                    <div style={{ padding: isMobile ? '0.75rem' : '1.15rem', display: 'flex', flexDirection: 'column', gap: '0.9rem', background: 'var(--color-surface-hover, #f8fafc)' }}>
+                      {dersUnits.length === 0 ? (
+                        <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--color-surface, #ffffff)', borderRadius: '0.85rem', border: '1.5px dashed var(--color-border, #cbd5e1)' }}>
+                          <p style={{ margin: '0 0 0.75rem 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem', fontWeight: 700 }}>
+                            "{dersName}" dersi için henüz bir ünite eklenmedi.
+                          </p>
+                          <button
+                            onClick={() => openUnitModal(null, dersName)}
+                            style={{ padding: '0.5rem 1rem', borderRadius: '0.6rem', background: theme.color, color: '#ffffff', border: 'none', fontWeight: 900, fontSize: '0.82rem', cursor: 'pointer' }}
+                          >
+                            <Plus size={14} /> + İlk Üniteyi Ekle
+                          </button>
                         </div>
+                      ) : (
+                        dersUnits.map((unit) => {
+                          const isExpanded = expandedUnits.includes(unit.id);
+                          const topics = unit.topics || [];
+
+                          return (
+                            <div key={unit.id} style={{ border: '1.5px solid var(--color-border, #e2e8f0)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface, #ffffff)' }}>
+                              {/* Unit Header */}
+                              <div 
+                                onClick={() => toggleUnit(unit.id)}
+                                style={{
+                                  background: 'var(--color-surface, #ffffff)',
+                                  padding: '0.85rem 1.15rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  cursor: 'pointer',
+                                  borderBottom: isExpanded ? '1px solid var(--color-border, #e2e8f0)' : 'none',
+                                  flexWrap: 'wrap',
+                                  gap: '0.65rem'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1 }}>
+                                  {isExpanded ? <ChevronDown size={18} style={{ color: theme.color || '#6366f1' }} /> : <ChevronRight size={18} style={{ color: theme.color || '#6366f1' }} />}
+                                  <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                      <h4 style={{ margin: 0, fontSize: '0.98rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        <Layers size={16} style={{ color: theme.color || '#6366f1' }} /> {unit.name}
+                                      </h4>
+                                      <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(99,102,241,0.1)', color: '#818cf8', padding: '0.12rem 0.5rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)' }}>
+                                        {topics.length} Konu Adımı
+                                      </span>
+                                    </div>
+                                    
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
+                                      {unit.dueDate && (
+                                        <span style={{ fontSize: '0.74rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
+                                          <Calendar size={13} /> Hedef: {unit.dueDate}
+                                        </span>
+                                      )}
+                                      {unit.resourceUrl && (
+                                        <a
+                                          href={unit.resourceUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          onClick={e => e.stopPropagation()}
+                                          style={{ fontSize: '0.74rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800, textDecoration: 'none' }}
+                                        >
+                                          <Globe size={13} /> Genel Kaynak Linki ↗
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Unit Toolbar Buttons */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => { setBulkTopicModal({ isOpen: true, unitId: unit.id }); setBulkTopicText(''); }}
+                                    style={{ padding: '0.32rem 0.6rem', background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.35)', borderRadius: '0.5rem', color: '#0284c7', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                    title="Toplu Konu Ekle (Satır Satır)"
+                                  >
+                                    <ListPlus size={13} /> Toplu Ekle
+                                  </button>
+                                  <button
+                                    onClick={() => openTopicModal(unit.id)}
+                                    style={{ padding: '0.32rem 0.6rem', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(52,211,153,0.35)', borderRadius: '0.5rem', color: '#10b981', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                    title="Konu Ekle"
+                                  >
+                                    <Plus size={13} /> Konu Ekle
+                                  </button>
+                                  <button
+                                    onClick={() => openUnitModal(unit)}
+                                    style={{ padding: '0.32rem 0.5rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.5rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
+                                    title="Üniteyi Düzenle"
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteUnit(unit.id)}
+                                    style={{ padding: '0.32rem 0.5rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.5rem', color: '#ef4444', cursor: 'pointer' }}
+                                    title="Üniteyi Sil"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Topics List (Expanded Only) */}
+                              {isExpanded && (
+                                <div style={{ padding: '1rem', background: 'var(--color-surface-hover, #f8fafc)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                                  {topics.length === 0 ? (
+                                    <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.4rem 0' }}>
+                                      Bu ünitede henüz konu bulunmuyor. Yukarıdaki "Konu Ekle" butonunu kullanabilirsiniz.
+                                    </p>
+                                  ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                                      {topics.map(topic => (
+                                        <div 
+                                          key={topic.id}
+                                          style={{
+                                            padding: '0.75rem 0.95rem',
+                                            borderRadius: '0.75rem',
+                                            background: 'var(--color-surface, #ffffff)',
+                                            border: '1px solid var(--color-border, #e2e8f0)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: '0.65rem'
+                                          }}
+                                        >
+                                          <div style={{ minWidth: 0, flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                              {topic.day && (
+                                                <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
+                                                  {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
+                                                </span>
+                                              )}
+                                              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {topic.name}
+                                              </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                                              {topic.dueDate && (
+                                                <span style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
+                                                  <Calendar size={12} /> {topic.dueDate}
+                                                </span>
+                                              )}
+                                              {topic.resourceUrl && (
+                                                <a
+                                                  href={topic.resourceUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
+                                                >
+                                                  <LinkIcon size={12} /> Link ↗
+                                                </a>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Day Stepper & Actions */}
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.45rem', border: '1px solid var(--color-border, #cbd5e1)', padding: '0.1rem 0.25rem' }}>
+                                              <button
+                                                onClick={() => {
+                                                  const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
+                                                  handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                                title="Günü Azalt"
+                                              >
+                                                -
+                                              </button>
+                                              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6366f1', padding: '0 0.2rem' }}>
+                                                {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `G${topic.day}`) : '+G'}
+                                              </span>
+                                              <button
+                                                onClick={() => {
+                                                  const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
+                                                  handleSetTopicDay(unit.id, topic.id, String(cur + 1));
+                                                }}
+                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                                title="Günü Artır"
+                                              >
+                                                +
+                                              </button>
+                                            </div>
+
+                                            <button
+                                              onClick={() => openTopicModal(unit.id, topic)}
+                                              style={{ padding: '0.3rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.45rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
+                                              title="Konuyu Düzenle"
+                                            >
+                                              <Edit2 size={13} />
+                                            </button>
+                                            <button
+                                              onClick={() => deleteTopic(unit.id, topic.id)}
+                                              style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }}
+                                              title="Konuyu Sil"
+                                            >
+                                              <Trash2 size={13} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   )}
-
                 </div>
               );
             })}
@@ -870,6 +1299,106 @@ export default function StudyPlanDetail() {
         )}
 
       </div>
+
+      {/* ── MODAL: DERS EKLE / DÜZENLE ── */}
+      {dersModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-modal-overlay, rgba(0, 0, 0, 0.75))', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ width: '96vw', maxWidth: '480px', borderRadius: '1.5rem', background: 'var(--color-surface, #ffffff)', border: '1.5px solid var(--color-border, #e2e8f0)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text, #0f172a)', overflow: 'hidden' }}>
+            <div style={{ padding: '1.35rem 1.6rem', borderBottom: '1px solid var(--color-border, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <BookOpen size={20} style={{ color: '#2563eb' }} />
+                {dersModal.isEditing ? 'Ders Adını Düzenle' : 'Yeni Ders Ekle'}
+              </h3>
+              <button onClick={() => setDersModal({ isOpen: false, isEditing: false, oldDersName: '', dersName: '', initialUnitName: '' })} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.35rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Quick select chips */}
+              {!dersModal.isEditing && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', marginBottom: '0.4rem' }}>
+                    ⚡ Hızlı Ders Seçimi:
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {STANDARD_SUBJECTS.map(sub => {
+                      const th = getSubjectTheme(sub);
+                      const isSelected = dersModal.dersName.toLowerCase() === sub.toLowerCase();
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => setDersModal(prev => ({ ...prev, dersName: sub }))}
+                          style={{
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.76rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            background: isSelected ? th.color : th.bg,
+                            color: isSelected ? '#ffffff' : th.color,
+                            border: `1.5px solid ${th.border}`
+                          }}
+                        >
+                          {th.icon} {sub}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>
+                  Ders Adı *
+                </label>
+                <input
+                  type="text"
+                  value={dersModal.dersName}
+                  onChange={(e) => setDersModal(prev => ({ ...prev, dersName: e.target.value }))}
+                  placeholder="Örn: Matematik, Fen Bilimleri, Türkçe..."
+                  autoFocus
+                  style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {!dersModal.isEditing && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>
+                    İlk Ünite Adı (İsteğe Bağlı)
+                  </label>
+                  <input
+                    type="text"
+                    value={dersModal.initialUnitName}
+                    onChange={(e) => setDersModal(prev => ({ ...prev, initialUnitName: e.target.value }))}
+                    placeholder="Örn: 1. Ünite (Boş bırakılabilir)"
+                    style={{ width: '100%', padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', marginTop: '0.2rem', display: 'block' }}>
+                    Dersi oluştururken ilk ünitesini de otomatik ekleyebilirsiniz.
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '1.15rem 1.6rem', borderTop: '1px solid var(--color-border, #e2e8f0)', display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+              <button
+                onClick={() => setDersModal({ isOpen: false, isEditing: false, oldDersName: '', dersName: '', initialUnitName: '' })}
+                style={{ padding: '0.6rem 1.15rem', borderRadius: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                İptal
+              </button>
+              <button
+                onClick={saveDers}
+                style={{ padding: '0.6rem 1.4rem', borderRadius: '0.6rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', border: 'none', color: '#ffffff', fontWeight: 900, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(37,99,235,0.35)' }}
+              >
+                {dersModal.isEditing ? 'Değişiklikleri Kaydet' : 'Dersi Ekle'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL: ÜNİTE EKLE / DÜZENLE ── */}
       {unitModal.isOpen && (
@@ -885,6 +1414,70 @@ export default function StudyPlanDetail() {
             </div>
             
             <div style={{ padding: '1.35rem 1.6rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Ders Seçimi */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>
+                  Bağlı Olduğu Ders *
+                </label>
+                
+                {!isCustomSubject ? (
+                  <div style={{ display: 'flex', gap: '0.45rem' }}>
+                    <select
+                      value={unitForm.subject}
+                      onChange={(e) => {
+                        if (e.target.value === '__NEW__') {
+                          setIsCustomSubject(true);
+                          setCustomSubjectInput('');
+                        } else {
+                          setUnitForm({ ...unitForm, subject: e.target.value });
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 800, boxSizing: 'border-box' }}
+                    >
+                      <optgroup label="Bu Plandaki Dersler">
+                        {planDersList.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Standart Müfredat Dersleri">
+                        {STANDARD_SUBJECTS.filter(s => !planDersList.includes(s)).map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </optgroup>
+                      <option value="__NEW__">+ Yeni Ders Yaz...</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomSubject(true);
+                        setCustomSubjectInput('');
+                      }}
+                      style={{ padding: '0 0.85rem', borderRadius: '0.65rem', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(165,180,252,0.3)', color: '#6366f1', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    >
+                      + Farklı Ders
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '0.45rem' }}>
+                    <input
+                      type="text"
+                      value={customSubjectInput}
+                      onChange={(e) => setCustomSubjectInput(e.target.value)}
+                      placeholder="Yeni Ders Adını Yazın (Örn: Matematik)"
+                      autoFocus
+                      style={{ flex: 1, padding: '0.75rem 0.95rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f8fafc)', border: '1.5px solid var(--color-border-input, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontSize: '0.9rem', fontWeight: 800, boxSizing: 'border-box' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomSubject(false)}
+                      style={{ padding: '0 0.85rem', borderRadius: '0.65rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border, #cbd5e1)', color: 'var(--color-text, #0f172a)', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                    >
+                      Listeden Seç
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-text, #0f172a)', marginBottom: '0.35rem' }}>Ünite Adı *</label>
                 <input
