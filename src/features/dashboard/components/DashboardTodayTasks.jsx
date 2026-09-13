@@ -161,7 +161,8 @@ export default memo(function DashboardTodayTasks({
                 {(showAllDayTasks || !isMobile ? dayProgramInfo.items : dayProgramInfo.items.slice(0, 5)).map((task, idx) => {
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
                   const isLast = idx === (showAllDayTasks || !isMobile ? dayProgramInfo.items.length : Math.min(dayProgramInfo.items.length, 5)) - 1;
-                  const rowTheme = getRowTheme ? getRowTheme(task.subject, idx) : {};
+                  const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : task.subject;
+                  const rowTheme = getRowTheme ? getRowTheme(cleanSubj, idx) : {};
                   const isExamItem = task.isExamTask || task.taskType === 'deneme';
 
                   const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
@@ -278,7 +279,7 @@ export default memo(function DashboardTodayTasks({
                                 borderRadius: 6,
                                 flexShrink: 0
                               }}>
-                                {task.subject}
+                                {cleanSubj}
                               </span>
                             )}
                             {isRemedialTask && (
@@ -679,7 +680,8 @@ export default memo(function DashboardTodayTasks({
                 {catchUpTasks.map((task, cIdx) => {
                   const isLast = cIdx === catchUpTasks.length - 1;
                   const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
-                  const rowTheme = getRowTheme ? getRowTheme(task.subject, cIdx) : {};
+                  const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : task.subject;
+                  const rowTheme = getRowTheme ? getRowTheme(cleanSubj, cIdx) : {};
                   const catBadge = getCatchUpCategoryBadge(task);
                   const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
                   let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
@@ -766,7 +768,7 @@ export default memo(function DashboardTodayTasks({
                                 borderRadius: 6,
                                 flexShrink: 0
                               }}>
-                                {task.subject}
+                                {cleanSubj}
                               </span>
                             )}
                             <span style={{

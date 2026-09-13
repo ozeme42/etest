@@ -1953,7 +1953,8 @@ export default function StudentDashboard() {
             const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
             const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
 
-            const dersName = getDersNameForRoadmap(subject, plan);
+            const dersNameRaw = getDersNameForRoadmap(subject, plan);
+            const dersName = (dersNameRaw && dersNameRaw.toLowerCase() === 'geometri') ? 'Matematik' : dersNameRaw;
 
             if (!hasChildTopics && subject?.dueDate) {
               const sYMD = extractItemYMD(subject.dueDate);

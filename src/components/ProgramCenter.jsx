@@ -63,20 +63,211 @@ export const DAY_THEMES = {
 
 export const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-export const getDersNameForRoadmap = (subject, plan) => {
-  if (subject?.subject && subject.subject.trim()) return subject.subject.trim();
-  if (Array.isArray(plan?.definedSubjects) && plan.definedSubjects.length > 0 && plan.definedSubjects[0]?.trim()) {
-    return plan.definedSubjects[0].trim();
+export const detectSubjectFromText = (text) => {
+  if (!text || typeof text !== 'string') return '';
+  const lower = text.toLowerCase().trim();
+  
+  // Explicit high-school Geometri course
+  if (lower === 'geometri' || lower === 'ayt geometri' || lower === 'tyt geometri' || lower === 'yks geometri') {
+    return 'Geometri';
   }
+
+  // Matematik (includes geometry topics, units, middle school math, numbers, algebra, etc.)
+  if (
+    lower.includes('matematik') ||
+    lower.includes('geometri') ||
+    lower.includes('geometrik') ||
+    lower.includes('sayılar') ||
+    lower.includes('çarpan') ||
+    lower.includes('üslü') ||
+    lower.includes('köklü') ||
+    lower.includes('karekök') ||
+    lower.includes('cebir') ||
+    lower.includes('denklem') ||
+    lower.includes('eşitsizlik') ||
+    lower.includes('üçgen') ||
+    lower.includes('dörtgen') ||
+    lower.includes('çember') ||
+    lower.includes('daire') ||
+    lower.includes('açı') ||
+    lower.includes('açılar') ||
+    lower.includes('doğru ve açı') ||
+    lower.includes('doğru parçası') ||
+    lower.includes('ışın') ||
+    lower.includes('veri analizi') ||
+    lower.includes('olasılık') ||
+    lower.includes('oran') ||
+    lower.includes('kesir') ||
+    lower.includes('pisagor') ||
+    lower.includes('trigonometri')
+  ) {
+    return 'Matematik';
+  }
+
+  // Türkçe
+  if (
+    lower.includes('türkçe') ||
+    lower.includes('turkce') ||
+    lower.includes('edebiyat') ||
+    lower.includes('paragraf') ||
+    lower.includes('dil bilgisi') ||
+    lower.includes('fiilimsi') ||
+    lower.includes('cümlede anlam') ||
+    lower.includes('sözcükte anlam') ||
+    lower.includes('metin türleri') ||
+    lower.includes('cümlenin ögeleri') ||
+    lower.includes('fiilde çatı') ||
+    lower.includes('cümle türleri') ||
+    lower.includes('yazım kuralları') ||
+    lower.includes('noktalama') ||
+    lower.includes('söz sanatları')
+  ) {
+    if (lower.includes('edebiyat')) return 'Türk Dili ve Edebiyatı';
+    if (lower.includes('paragraf')) return 'Paragraf';
+    return 'Türkçe';
+  }
+
+  // Fen Bilimleri
+  if (
+    lower.includes('fen bilim') ||
+    lower.includes('fen ve tek') ||
+    lower.includes('fen lisesi fen') ||
+    lower.includes('fen ') ||
+    lower === 'fen' ||
+    lower.includes('dna') ||
+    lower.includes('genetik') ||
+    lower.includes('fotosentez') ||
+    lower.includes('solunum') ||
+    lower.includes('basınç') ||
+    lower.includes('asit') ||
+    lower.includes('baz') ||
+    lower.includes('periyodik') ||
+    lower.includes('mevsimler ve iklim') ||
+    lower.includes('madde ve endüstri') ||
+    lower.includes('basit makineler') ||
+    lower.includes('elektrik yükleri') ||
+    lower.includes('hücre') ||
+    lower.includes('kuvvet ve hareket') ||
+    lower.includes('ışık ve ses') ||
+    lower.includes('canlılar')
+  ) {
+    return 'Fen Bilimleri';
+  }
+
+  // İnkılap / Sosyal
+  if (
+    lower.includes('inkılap') ||
+    lower.includes('inkilap') ||
+    lower.includes('t.c.') ||
+    lower.includes('bir kahraman doğuyor') ||
+    lower.includes('milli uyanış') ||
+    lower.includes('ya istiklal ya ölüm') ||
+    lower.includes('atatürkçülük') ||
+    lower.includes('çağdaşlaşan türkiye')
+  ) {
+    return 'T.C. İnkılap Tarihi';
+  }
+  if (
+    lower.includes('sosyal bilim') ||
+    lower.includes('sosyal bilg') ||
+    lower.includes('sosyal') ||
+    lower.includes('birey ve toplum') ||
+    lower.includes('kültür ve miras') ||
+    lower.includes('etkin vatandaşlık') ||
+    lower.includes('küresel bağlantılar')
+  ) {
+    return 'Sosyal Bilgiler';
+  }
+
+  // İngilizce
+  if (
+    lower.includes('ingilizce') ||
+    lower.includes('english') ||
+    lower.includes('yabancı dil') ||
+    lower.includes('yabanci dil') ||
+    lower.includes('friendship') ||
+    lower.includes('teen life') ||
+    lower.includes('in the kitchen') ||
+    lower.includes('on the phone') ||
+    lower.includes('the internet') ||
+    lower.includes('chores')
+  ) {
+    return 'İngilizce';
+  }
+
+  // Din Kültürü
+  if (
+    lower.includes('din kültür') ||
+    lower.includes('din kultur') ||
+    lower.includes('din ve ahlak') ||
+    lower.includes('din ') ||
+    lower === 'din' ||
+    lower.includes('kader inancı') ||
+    lower.includes('zekat') ||
+    lower.includes('sadaka') ||
+    lower.includes('hac') ||
+    lower.includes('kurban')
+  ) {
+    return 'Din Kültürü';
+  }
+
+  if (lower.includes('fizik')) return 'Fizik';
+  if (lower.includes('kimya')) return 'Kimya';
+  if (lower.includes('biyoloji')) return 'Biyoloji';
+  if (lower.includes('tarih')) return 'Tarih';
+  if (lower.includes('coğrafya') || lower.includes('cografya')) return 'Coğrafya';
+  if (lower.includes('felsefe') || lower.includes('mantık') || lower.includes('sosyoloji') || lower.includes('psikoloji')) return 'Felsefe';
+  if (lower.includes('hayat bilgisi') || lower.includes('hayat bil')) return 'Hayat Bilgisi';
+  if (lower.includes('bilişim') || lower.includes('bilisim') || lower.includes('kodlama')) return 'Bilişim';
+  if (lower.includes('almanca')) return 'Almanca';
+  if (lower.includes('fransızca') || lower.includes('fransizca')) return 'Fransızca';
+  return '';
+};
+
+export const getDersNameForRoadmap = (subject, plan) => {
+  // 1. Explicit subject on unit object (if set and not 'Genel')
+  if (subject?.subject && subject.subject.trim() && !/^genel$/i.test(subject.subject.trim())) {
+    const sTrim = subject.subject.trim();
+    if (/^geometri$/i.test(sTrim)) return 'Matematik';
+    return sTrim;
+  }
+
+  // 2. Explicit definedSubjects on plan
+  if (Array.isArray(plan?.definedSubjects) && plan.definedSubjects.length > 0) {
+    const firstDef = plan.definedSubjects.find(s => s?.trim() && !/^genel$/i.test(s.trim()));
+    if (firstDef) {
+      if (/^geometri$/i.test(firstDef.trim())) return 'Matematik';
+      return firstDef.trim();
+    }
+  }
+
+  // 3. Plan Category
   if (plan?.category && plan.category.trim() && !/^yol\s*haritası$/i.test(plan.category.trim())) {
     const parts = plan.category.split('/');
     for (const p of parts) {
       const pt = p.trim();
-      if (['matematik', 'türkçe', 'fen', 'fen bilimleri', 'sosyal', 'sosyal bilgiler', 'ingilizce', 'din', 'fizik', 'kimya', 'biyoloji', 'geometri', 'tarih', 'coğrafya', 'felsefe'].some(k => pt.toLowerCase().includes(k))) {
-        return pt;
-      }
+      const detected = detectSubjectFromText(pt);
+      if (detected) return detected === 'Geometri' ? 'Matematik' : detected;
     }
   }
+
+  // 4. Plan Title
+  const detectedFromTitle = detectSubjectFromText(plan?.title || '');
+  if (detectedFromTitle) return detectedFromTitle === 'Geometri' ? 'Matematik' : detectedFromTitle;
+
+  // 5. Unit Name (subject.name)
+  const detectedFromUnit = detectSubjectFromText(subject?.name || '');
+  if (detectedFromUnit) return detectedFromUnit === 'Geometri' ? 'Matematik' : detectedFromUnit;
+
+  // 6. Child Topics
+  if (Array.isArray(subject?.topics)) {
+    for (const t of subject.topics) {
+      const detectedFromTopic = detectSubjectFromText(t?.name || '');
+      if (detectedFromTopic) return detectedFromTopic === 'Geometri' ? 'Matematik' : detectedFromTopic;
+    }
+  }
+
+  // Fallback to title keywords
   const title = (plan?.title || '').toLowerCase();
   if (title.includes('matematik') || title.includes('geometri')) return 'Matematik';
   if (title.includes('fen') || title.includes('fizik') || title.includes('kimya') || title.includes('biyoloji')) return 'Fen Bilimleri';
@@ -463,33 +654,7 @@ export const KNOWN_PUBLISHERS = [
   'puan', 'kültür', 'kultur', 'doğa', 'doga', 'uğur', 'ugur', 'bahçeşehir', 'final', 'açı', 'aci'
 ];
 
-export const detectSubjectFromText = (text) => {
-  if (!text || typeof text !== 'string') return '';
-  const lower = text.toLowerCase();
-  
-  if (lower.includes('matematik') || lower.includes('geometri')) return lower.includes('geometri') ? 'Geometri' : 'Matematik';
-  if (lower.includes('türkçe') || lower.includes('turkce') || lower.includes('edebiyat') || lower.includes('paragraf') || lower.includes('dil bilgisi')) {
-    if (lower.includes('edebiyat')) return 'Türk Dili ve Edebiyatı';
-    if (lower.includes('paragraf')) return 'Paragraf';
-    return 'Türkçe';
-  }
-  if (lower.includes('fen bilim') || lower.includes('fen ve tek') || lower.includes('fen lisesi fen') || lower.includes('fen ')) return 'Fen Bilimleri';
-  if (lower.includes('inkılap') || lower.includes('inkilap') || lower.includes('t.c.')) return 'T.C. İnkılap Tarihi';
-  if (lower.includes('sosyal bilim') || lower.includes('sosyal bilg') || lower.includes('sosyal')) return 'Sosyal Bilgiler';
-  if (lower.includes('ingilizce') || lower.includes('english') || lower.includes('yabancı dil') || lower.includes('yabanci dil')) return 'İngilizce';
-  if (lower.includes('din kültür') || lower.includes('din kultur') || lower.includes('din ve ahlak') || lower.includes('din ')) return 'Din Kültürü';
-  if (lower.includes('fizik')) return 'Fizik';
-  if (lower.includes('kimya')) return 'Kimya';
-  if (lower.includes('biyoloji')) return 'Biyoloji';
-  if (lower.includes('tarih')) return 'Tarih';
-  if (lower.includes('coğrafya') || lower.includes('cografya')) return 'Coğrafya';
-  if (lower.includes('felsefe') || lower.includes('mantık') || lower.includes('sosyoloji') || lower.includes('psikoloji')) return 'Felsefe';
-  if (lower.includes('hayat bilgisi') || lower.includes('hayat bil')) return 'Hayat Bilgisi';
-  if (lower.includes('bilişim') || lower.includes('bilisim') || lower.includes('kodlama')) return 'Bilişim';
-  if (lower.includes('almanca')) return 'Almanca';
-  if (lower.includes('fransızca') || lower.includes('fransizca')) return 'Fransızca';
-  return '';
-};
+
 
 /* ─── resolveBookTestInfo Helper ─── */
 export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
@@ -586,6 +751,11 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
   // Resolve REAL Subject (Ders Adı)
   let subject = '';
 
+  // 0. If item already has an explicit dersName
+  if (item.dersName && !/^genel$/i.test(item.dersName) && !/^ders$/i.test(item.dersName)) {
+    subject = /^geometri$/i.test(item.dersName) ? 'Matematik' : item.dersName;
+  }
+
   // 1. From matched test
   if (matchedTest?.subject && !KNOWN_PUBLISHERS.includes(matchedTest.subject.toLowerCase()) && matchedTest.subject.toLowerCase() !== publisher.toLowerCase()) {
     subject = matchedTest.subject;
@@ -628,6 +798,8 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
 
   // 7. Smart Default for Turkish curriculum books
   if (!subject) {
+    subject = 'Matematik';
+  } else if (/^geometri$/i.test(subject)) {
     subject = 'Matematik';
   }
 
@@ -2504,7 +2676,13 @@ export function MonthlyListPanel({
                             ? bookInfo.unit
                             : (item.unit || item.unitName || null);
 
-                          const subjectName = bookInfo?.subject || item.dersName || item.subject || 'Ders';
+                          let resolvedSubj = (item.dersName && item.dersName !== 'Genel' && item.dersName !== 'Ders')
+                            ? item.dersName
+                            : (bookInfo?.subject || item.dersName || item.subject || 'Ders');
+                          if (resolvedSubj && resolvedSubj.toLowerCase() === 'geometri') {
+                            resolvedSubj = 'Matematik';
+                          }
+                          const subjectName = resolvedSubj;
 
                           // Subject-based theme
                           const getSubjTheme = (sub) => {
@@ -4781,7 +4959,13 @@ export default function ProgramCenter({
                                           ? bookInfo.unit
                                           : (item.unit || item.unitName || null);
 
-                                        const subjectName = bookInfo?.subject || item.dersName || item.subject || 'Ders';
+                                        let resolvedSubj = (item.dersName && item.dersName !== 'Genel' && item.dersName !== 'Ders')
+                                          ? item.dersName
+                                          : (bookInfo?.subject || item.dersName || item.subject || 'Ders');
+                                        if (resolvedSubj && resolvedSubj.toLowerCase() === 'geometri') {
+                                          resolvedSubj = 'Matematik';
+                                        }
+                                        const subjectName = resolvedSubj;
 
                                         // Subject-based theme
                                         const getSubjTheme = (sub) => {
