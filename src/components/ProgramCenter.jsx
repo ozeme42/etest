@@ -63,6 +63,30 @@ export const DAY_THEMES = {
 
 export const uid = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
+export const getDersNameForRoadmap = (subject, plan) => {
+  if (subject?.subject && subject.subject.trim()) return subject.subject.trim();
+  if (Array.isArray(plan?.definedSubjects) && plan.definedSubjects.length > 0 && plan.definedSubjects[0]?.trim()) {
+    return plan.definedSubjects[0].trim();
+  }
+  if (plan?.category && plan.category.trim() && !/^yol\s*haritası$/i.test(plan.category.trim())) {
+    const parts = plan.category.split('/');
+    for (const p of parts) {
+      const pt = p.trim();
+      if (['matematik', 'türkçe', 'fen', 'fen bilimleri', 'sosyal', 'sosyal bilgiler', 'ingilizce', 'din', 'fizik', 'kimya', 'biyoloji', 'geometri', 'tarih', 'coğrafya', 'felsefe'].some(k => pt.toLowerCase().includes(k))) {
+        return pt;
+      }
+    }
+  }
+  const title = (plan?.title || '').toLowerCase();
+  if (title.includes('matematik') || title.includes('geometri')) return 'Matematik';
+  if (title.includes('fen') || title.includes('fizik') || title.includes('kimya') || title.includes('biyoloji')) return 'Fen Bilimleri';
+  if (title.includes('türkçe') || title.includes('paragraf') || title.includes('edebiyat')) return 'Türkçe';
+  if (title.includes('sosyal') || title.includes('tarih') || title.includes('inkılap') || title.includes('coğrafya')) return 'Sosyal Bilgiler';
+  if (title.includes('ingilizce')) return 'İngilizce';
+  if (title.includes('din')) return 'Din Kültürü';
+  return 'Genel';
+};
+
 export function canStudentDeleteItem(item, currentUser) {
   if (!item) return false;
   // Teachers and admins can delete anything
@@ -1716,6 +1740,8 @@ export function MonthlyListPanel({
           const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
           const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
 
+          const dersName = getDersNameForRoadmap(subject, plan);
+
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
             if (ymd === sYMD) {
@@ -1728,9 +1754,19 @@ export function MonthlyListPanel({
                   isAutoHomework: true,
                   isRoadmapTask: true,
                   taskType: 'konu',
-                  subject: `${plan.title} • ${subject.name}`,
+                  subject: dersName,
+                  dersName: dersName,
+                  bookName: plan.title,
+                  bookTitle: plan.title,
+                  roadmapTitle: plan.title,
+                  planTitle: plan.title,
+                  unit: subject.name,
+                  unitName: subject.name,
                   topic: subject.name,
+                  title: subject.name,
+                  topicId: subject.id,
                   time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                  dueDate: subject.dueDate,
                   done: isSubjectCompleted
                 });
               }
@@ -1751,9 +1787,19 @@ export function MonthlyListPanel({
                     isAutoHomework: true,
                     isRoadmapTask: true,
                     taskType: 'konu',
-                    subject: `${plan.title} • ${subject.name}`,
+                    subject: dersName,
+                    dersName: dersName,
+                    bookName: plan.title,
+                    bookTitle: plan.title,
+                    roadmapTitle: plan.title,
+                    planTitle: plan.title,
+                    unit: subject.name,
+                    unitName: subject.name,
                     topic: topic.name,
+                    title: topic.name,
+                    topicId: topic.id,
                     time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                    dueDate: topic.dueDate,
                     done: isCompleted
                   });
                 }
@@ -2447,28 +2493,29 @@ export function MonthlyListPanel({
                             rawTitle = rawTitle.substring(pageMatch[0].length).trim();
                           }
 
-                          const rawBook = (bookInfo?.bookTitle || item.bookName || '')
+                          const isRoadmap = Boolean(item.isRoadmapTask || item.roadmapAssignmentId);
+                          const rawBook = (bookInfo?.bookTitle || item.roadmapTitle || item.planTitle || item.bookName || '')
                             .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
                             .replace(/\s*\(Tüm Kitap\)/gi, '')
                             .replace(/\s*\(Kendi Eklediğim\)/gi, '')
                             .trim();
 
-                          const unitText = bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase())
+                          const unitText = (bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase()))
                             ? bookInfo.unit
-                            : null;
+                            : (item.unit || item.unitName || null);
 
-                          const subjectName = bookInfo?.subject || item.subject || 'Ders';
+                          const subjectName = bookInfo?.subject || item.dersName || item.subject || 'Ders';
 
                           // Subject-based theme
                           const getSubjTheme = (sub) => {
                             const s = (sub || '').toLowerCase();
-                            if (s.includes('türkçe') || s.includes('paragraf')) return { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', border: 'rgba(59,130,246,0.3)' };
-                            if (s.includes('matematik')) return { color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(245,158,11,0.3)' };
-                            if (s.includes('fen')) return { color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(16,185,129,0.3)' };
-                            if (s.includes('sosyal') || s.includes('tarih')) return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', border: 'rgba(139,92,246,0.3)' };
-                            if (s.includes('ingilizce') || s.includes('dil')) return { color: '#db2777', bg: 'rgba(219,39,119,0.12)', border: 'rgba(236,72,153,0.3)' };
-                            if (s.includes('din')) return { color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(6,182,212,0.3)' };
-                            return { color: '#4f46e5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(99,102,241,0.3)' };
+                            if (s.includes('türkçe') || s.includes('paragraf')) return { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', border: 'rgba(59,130,246,0.3)', icon: '📖' };
+                            if (s.includes('matematik') || s.includes('geometri')) return { color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(245,158,11,0.3)', icon: '📐' };
+                            if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return { color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(16,185,129,0.3)', icon: '🔬' };
+                            if (s.includes('sosyal') || s.includes('tarih') || s.includes('inkılap') || s.includes('coğrafya')) return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', border: 'rgba(139,92,246,0.3)', icon: '🌍' };
+                            if (s.includes('ingilizce') || s.includes('dil')) return { color: '#db2777', bg: 'rgba(219,39,119,0.12)', border: 'rgba(236,72,153,0.3)', icon: '🌐' };
+                            if (s.includes('din')) return { color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(6,182,212,0.3)', icon: '🕌' };
+                            return { color: '#4f46e5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(99,102,241,0.3)', icon: '📚' };
                           };
                           const subjTheme = getSubjTheme(subjectName);
 
@@ -2546,7 +2593,7 @@ export function MonthlyListPanel({
                                         borderRadius: 5,
                                         flexShrink: 0
                                       }}>
-                                        {subjectName}
+                                        {subjTheme.icon} {subjectName}
                                       </span>
 
                                       {(item.type === 'remedialTest' || item.isTeacherRemedial || String(item.text || '').includes('Tekrar')) && (
@@ -2595,25 +2642,35 @@ export function MonthlyListPanel({
                                     </div>
 
                                     {/* Meta info: Book, Unit, Question count */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.68rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.68rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 1 }}>
                                       {rawBook && (
                                         <span style={{
-                                          color: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
-                                          fontWeight: 700,
+                                          color: isRoadmap ? '#7c3aed' : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'),
+                                          fontWeight: 800,
                                           overflow: 'hidden',
                                           textOverflow: 'ellipsis',
                                           whiteSpace: 'nowrap',
                                           maxWidth: isMobile ? 180 : 300,
-                                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
-                                          padding: '1px 5px',
-                                          borderRadius: 4,
-                                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                                          background: isRoadmap ? (isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
+                                          padding: '1px 6px',
+                                          borderRadius: 5,
+                                          border: isRoadmap ? '1px solid rgba(124,58,237,0.35)' : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3
                                         }}>
-                                          📖 {rawBook}
+                                          {isRoadmap ? `🗺️ ${rawBook}` : `📖 ${rawBook}`}
                                         </span>
                                       )}
                                       {unitText && (
-                                        <span style={{ color: isDark ? '#93c5fd' : '#1d4ed8', fontWeight: 700 }}>
+                                        <span style={{
+                                          color: isRoadmap ? (isDark ? '#a5b4fc' : '#4338ca') : (isDark ? '#93c5fd' : '#1d4ed8'),
+                                          fontWeight: 700,
+                                          background: isRoadmap ? (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff') : 'transparent',
+                                          padding: isRoadmap ? '1px 5px' : 0,
+                                          borderRadius: 4,
+                                          border: isRoadmap ? '1px solid rgba(165,180,252,0.3)' : 'none'
+                                        }}>
                                           📌 {unitText}
                                         </span>
                                       )}
@@ -3578,6 +3635,8 @@ export default function ProgramCenter({
           const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
           const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
 
+          const dersName = getDersNameForRoadmap(subject, plan);
+
           if (!hasChildTopics && subject.dueDate) {
             const sYMD = subject.dueDate.split('T')[0];
             if (dayInfo.ymd === sYMD) {
@@ -3590,9 +3649,19 @@ export default function ProgramCenter({
                   isAutoHomework: true,
                   isRoadmapTask: true,
                   taskType: 'konu',
-                  subject: `${plan.title} • ${subject.name}`,
+                  subject: dersName,
+                  dersName: dersName,
+                  bookName: plan.title,
+                  bookTitle: plan.title,
+                  roadmapTitle: plan.title,
+                  planTitle: plan.title,
+                  unit: subject.name,
+                  unitName: subject.name,
                   topic: subject.name,
+                  title: subject.name,
+                  topicId: subject.id,
                   time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+                  dueDate: subject.dueDate,
                   done: isSubjectCompleted
                 });
               }
@@ -3613,9 +3682,19 @@ export default function ProgramCenter({
                     isAutoHomework: true,
                     isRoadmapTask: true,
                     taskType: 'konu',
-                    subject: `${plan.title} • ${subject.name}`,
+                    subject: dersName,
+                    dersName: dersName,
+                    bookName: plan.title,
+                    bookTitle: plan.title,
+                    roadmapTitle: plan.title,
+                    planTitle: plan.title,
+                    unit: subject.name,
+                    unitName: subject.name,
                     topic: topic.name,
+                    title: topic.name,
+                    topicId: topic.id,
                     time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+                    dueDate: topic.dueDate,
                     done: isCompleted
                   });
                 }
@@ -4691,28 +4770,29 @@ export default function ProgramCenter({
                                           rawTitle = rawTitle.substring(pageMatch[0].length).trim();
                                         }
 
-                                        const rawBook = (bookInfo?.bookTitle || item.bookName || '')
+                                        const isRoadmap = Boolean(item.isRoadmapTask || item.roadmapAssignmentId);
+                                        const rawBook = (bookInfo?.bookTitle || item.roadmapTitle || item.planTitle || item.bookName || '')
                                           .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
                                           .replace(/\s*\(Tüm Kitap\)/gi, '')
                                           .replace(/\s*\(Kendi Eklediğim\)/gi, '')
                                           .trim();
 
-                                        const unitText = bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase())
+                                        const unitText = (bookInfo?.unit && rawBook && bookInfo.unit.toLowerCase() !== rawBook.toLowerCase() && !rawBook.toLowerCase().includes(bookInfo.unit.toLowerCase()))
                                           ? bookInfo.unit
-                                          : null;
+                                          : (item.unit || item.unitName || null);
 
-                                        const subjectName = bookInfo?.subject || item.subject || 'Ders';
+                                        const subjectName = bookInfo?.subject || item.dersName || item.subject || 'Ders';
 
                                         // Subject-based theme
                                         const getSubjTheme = (sub) => {
                                           const s = (sub || '').toLowerCase();
-                                          if (s.includes('türkçe') || s.includes('paragraf')) return { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', border: 'rgba(59,130,246,0.3)' };
-                                          if (s.includes('matematik')) return { color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(245,158,11,0.3)' };
-                                          if (s.includes('fen')) return { color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(16,185,129,0.3)' };
-                                          if (s.includes('sosyal') || s.includes('tarih')) return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', border: 'rgba(139,92,246,0.3)' };
-                                          if (s.includes('ingilizce') || s.includes('dil')) return { color: '#db2777', bg: 'rgba(219,39,119,0.12)', border: 'rgba(236,72,153,0.3)' };
-                                          if (s.includes('din')) return { color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(6,182,212,0.3)' };
-                                          return { color: '#4f46e5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(99,102,241,0.3)' };
+                                          if (s.includes('türkçe') || s.includes('paragraf')) return { color: '#2563eb', bg: 'rgba(37,99,235,0.12)', border: 'rgba(59,130,246,0.3)', icon: '📖' };
+                                          if (s.includes('matematik') || s.includes('geometri')) return { color: '#d97706', bg: 'rgba(217,119,6,0.12)', border: 'rgba(245,158,11,0.3)', icon: '📐' };
+                                          if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return { color: '#059669', bg: 'rgba(5,150,105,0.12)', border: 'rgba(16,185,129,0.3)', icon: '🔬' };
+                                          if (s.includes('sosyal') || s.includes('tarih') || s.includes('inkılap') || s.includes('coğrafya')) return { color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', border: 'rgba(139,92,246,0.3)', icon: '🌍' };
+                                          if (s.includes('ingilizce') || s.includes('dil')) return { color: '#db2777', bg: 'rgba(219,39,119,0.12)', border: 'rgba(236,72,153,0.3)', icon: '🌐' };
+                                          if (s.includes('din')) return { color: '#0891b2', bg: 'rgba(8,145,178,0.12)', border: 'rgba(6,182,212,0.3)', icon: '🕌' };
+                                          return { color: '#4f46e5', bg: 'rgba(79,70,229,0.12)', border: 'rgba(99,102,241,0.3)', icon: '📚' };
                                         };
                                         const subjTheme = getSubjTheme(subjectName);
 
@@ -4775,7 +4855,7 @@ export default function ProgramCenter({
                                                       borderRadius: 5,
                                                       flexShrink: 0
                                                     }}>
-                                                      {subjectName}
+                                                      {subjTheme.icon} {subjectName}
                                                     </span>
 
                                                     {pageBadge && (
@@ -4809,22 +4889,32 @@ export default function ProgramCenter({
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.68rem', color: isDark ? 'rgba(255,255,255,0.7)' : '#64748b', fontWeight: 600, marginTop: 1 }}>
                                                     {rawBook && (
                                                       <span style={{
-                                                        color: isDark ? 'rgba(255,255,255,0.85)' : '#334155',
-                                                        fontWeight: 700,
+                                                        color: isRoadmap ? '#7c3aed' : (isDark ? 'rgba(255,255,255,0.85)' : '#334155'),
+                                                        fontWeight: 800,
                                                         overflow: 'hidden',
                                                         textOverflow: 'ellipsis',
                                                         whiteSpace: 'nowrap',
-                                                        maxWidth: isMobile ? 190 : 320,
-                                                        background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
+                                                        maxWidth: isMobile ? 180 : 300,
+                                                        background: isRoadmap ? (isDark ? 'rgba(124,58,237,0.18)' : '#f5f3ff') : (isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc'),
                                                         padding: '1px 6px',
-                                                        borderRadius: 4,
-                                                        border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                                                        borderRadius: 5,
+                                                        border: isRoadmap ? '1px solid rgba(124,58,237,0.35)' : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 3
                                                       }}>
-                                                        📖 {rawBook}
+                                                        {isRoadmap ? `🗺️ ${rawBook}` : `📖 ${rawBook}`}
                                                       </span>
                                                     )}
                                                     {unitText && (
-                                                      <span style={{ color: isDark ? '#93c5fd' : '#1d4ed8', fontWeight: 700 }}>
+                                                      <span style={{
+                                                        color: isRoadmap ? (isDark ? '#a5b4fc' : '#4338ca') : (isDark ? '#93c5fd' : '#1d4ed8'),
+                                                        fontWeight: 700,
+                                                        background: isRoadmap ? (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff') : 'transparent',
+                                                        padding: isRoadmap ? '1px 5px' : 0,
+                                                        borderRadius: 4,
+                                                        border: isRoadmap ? '1px solid rgba(165,180,252,0.3)' : 'none'
+                                                      }}>
                                                         📌 {unitText}
                                                       </span>
                                                     )}

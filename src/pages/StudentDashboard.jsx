@@ -30,7 +30,7 @@ import { checkIsAnswerCorrect, normalizeAnswerIndex } from '../utils/answerEvalu
 import { isSectionOpenEnded, isQuestionOpenEnded } from '../components/quiz/utils/quizTypeDetector';
 import { toUUID, isValidUUID } from '../services/supabaseService';
 import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange } from '../utils/dateHelpers';
-import { checkHasItemBeenAttempted, normalizeWeeklyProgram } from '../components/ProgramCenter';
+import { checkHasItemBeenAttempted, normalizeWeeklyProgram, getDersNameForRoadmap } from '../components/ProgramCenter';
 import AddTaskModal from '../components/program/AddTaskModal';
 import ManualTestModal from '../components/ManualTestModal';
 import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardWeeklyCalendar';
@@ -1949,6 +1949,45 @@ export default function StudentDashboard() {
           const completedTopicsSet = new Set(compTopics.map(String));
 
           (plan.subjects || []).forEach(subject => {
+            const hasChildTopics = Array.isArray(subject?.topics) && subject.topics.length > 0;
+            const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+            const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+
+            const dersName = getDersNameForRoadmap(subject, plan);
+
+            if (!hasChildTopics && subject?.dueDate) {
+              const sYMD = extractItemYMD(subject.dueDate);
+              if (dayYMD === sYMD) {
+                let formattedSubjectTarget = '';
+                try { formattedSubjectTarget = `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`; } catch {}
+                const autoId = `roadmap_sub_${assignment.id}_${subject.id}_${dayYMD}`;
+                if (!autoHwItems.some(x => x.id === autoId)) {
+                  autoHwItems.push({
+                    id: autoId,
+                    roadmapAssignmentId: assignment.id,
+                    isAutoHomework: true,
+                    isRoadmapTask: true,
+                    taskType: 'konu',
+                    subject: dersName,
+                    dersName: dersName,
+                    bookTitle: plan.title,
+                    bookName: plan.title,
+                    roadmapTitle: plan.title,
+                    planTitle: plan.title,
+                    unitTopic: subject.name,
+                    unit: subject.name,
+                    unitName: subject.name,
+                    title: subject.name,
+                    topic: subject.name,
+                    topicId: subject.id,
+                    time: formattedSubjectTarget,
+                    dueDate: subject.dueDate,
+                    done: isSubjectCompleted
+                  });
+                }
+              }
+            }
+
             (subject?.topics || []).forEach(topic => {
               if (topic?.dueDate) {
                 const tYMD = extractItemYMD(topic.dueDate);
@@ -1964,10 +2003,20 @@ export default function StudentDashboard() {
                       isAutoHomework: true,
                       isRoadmapTask: true,
                       taskType: 'konu',
-                      subject: subject.name,
+                      subject: dersName,
+                      dersName: dersName,
                       bookTitle: plan.title,
+                      bookName: plan.title,
+                      roadmapTitle: plan.title,
+                      planTitle: plan.title,
+                      unitTopic: subject.name,
+                      unit: subject.name,
+                      unitName: subject.name,
                       title: topic.name,
+                      topic: topic.name,
+                      topicId: topic.id,
                       time: formattedTopicTarget,
+                      dueDate: topic.dueDate,
                       done: isCompleted
                     });
                   }

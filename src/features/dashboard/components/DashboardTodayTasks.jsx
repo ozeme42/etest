@@ -338,22 +338,29 @@ export default memo(function DashboardTodayTasks({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                             {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
                               <span style={{
-                                color: 'var(--color-text-secondary)',
+                                color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
                                 fontWeight: 700,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                                 maxWidth: isMobile ? 190 : 320,
-                                background: 'var(--color-surface-hover)',
+                                background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
                                 padding: '1px 6px',
                                 borderRadius: 5,
-                                border: '1px solid var(--color-border)'
+                                border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
                               }}>
-                                📖 {task.bookTitle}
+                                {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
                               </span>
                             )}
                             {task.unitTopic && (
-                              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
+                              <span style={{
+                                color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#4338ca' : 'var(--color-text-secondary)',
+                                fontWeight: 700,
+                                background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                                padding: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px 6px' : 0,
+                                borderRadius: 4,
+                                border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(165, 180, 252, 0.3)' : 'none'
+                              }}>
                                 📌 {task.unitTopic}
                               </span>
                             )}
@@ -802,22 +809,29 @@ export default memo(function DashboardTodayTasks({
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                             {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
                               <span style={{
-                                color: 'var(--color-text-secondary)',
+                                color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
                                 fontWeight: 700,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
                                 maxWidth: isMobile ? 190 : 320,
-                                background: 'var(--color-surface-hover)',
+                                background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
                                 padding: '1px 6px',
                                 borderRadius: 5,
-                                border: '1px solid var(--color-border)'
+                                border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
                               }}>
-                                📖 {task.bookTitle}
+                                {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
                               </span>
                             )}
                             {task.unitTopic && (
-                              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
+                              <span style={{
+                                color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#4338ca' : 'var(--color-text-secondary)',
+                                fontWeight: 700,
+                                background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                                padding: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px 6px' : 0,
+                                borderRadius: 4,
+                                border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(165, 180, 252, 0.3)' : 'none'
+                              }}>
                                 📌 {task.unitTopic}
                               </span>
                             )}
