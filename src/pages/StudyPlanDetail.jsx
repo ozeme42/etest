@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import {
   ArrowLeft, Users, Plus, Edit2, Trash2, ChevronDown, ChevronUp, ChevronRight,
   Link as LinkIcon, Calendar, FileJson, X, ListPlus, Sparkles, Hash,
-  Layers, FileText, CheckCircle, Clock, Zap, BookOpen, Search, Globe, Check, Lock,
-  Compass, FolderPlus
+  Layers, FileText, CheckCircle, CheckCircle2, Clock, Zap, BookOpen, Search, Globe, Check, Lock,
+  Compass, FolderPlus, ExternalLink, TrendingUp, Eye, EyeOff, Award
 } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import './StudyPlan.css';
@@ -61,7 +61,7 @@ export default function StudyPlanDetail() {
   const { id: planId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { studyPlans, updateStudyPlan, addStudyAssignment, studyAssignments } = useStudyPlan();
+  const { studyPlans, updateStudyPlan, addStudyAssignment, updateStudyAssignment, deleteStudyAssignment, studyAssignments } = useStudyPlan();
   const { users } = useUser();
 
   const isTeacher = currentUser?.role === 'teacher';
@@ -173,14 +173,138 @@ export default function StudyPlanDetail() {
 
   const students = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
-  // Assigned student count for this plan
-  const assignedCount = useMemo(() => {
-    return (studyAssignments || []).filter(a => String(a.planId || a.studyPlanId) === String(planId)).length;
-  }, [studyAssignments, planId]);
+  // Selected student for detailed curriculum inspection (null = general view)
+  const [selectedStudentProgressId, setSelectedStudentProgressId] = useState(null);
+  const [studentProgressSearch, setStudentProgressSearch] = useState('');
 
+  // Total topics count
   const totalTopicsCount = useMemo(() => {
     return subjects.reduce((sum, s) => sum + (s.topics?.length || 0), 0);
   }, [subjects]);
+
+  // All topics in the plan flattened
+  const allPlanTopics = useMemo(() => {
+    const list = [];
+    subjects.forEach(unit => {
+      (unit.topics || []).forEach(t => {
+        list.push({
+          ...t,
+          unitId: unit.id,
+          unitName: unit.name,
+          subject: unit.subject || 'Genel'
+        });
+      });
+    });
+    return list;
+  }, [subjects]);
+
+  // All assignments for this specific plan
+  const planAssignments = useMemo(() => {
+    return (studyAssignments || []).filter(a => String(a.planId || a.studyPlanId) === String(planId));
+  }, [studyAssignments, planId]);
+
+  // Assigned student count for this plan
+  const assignedCount = useMemo(() => {
+    return planAssignments.length;
+  }, [planAssignments]);
+
+  // Assigned students with their progress calculations
+  const assignedStudentsList = useMemo(() => {
+    return planAssignments.map(assignment => {
+      const student = (users || []).find(u => String(u.id) === String(assignment.studentId)) || {
+        id: assignment.studentId,
+        name: assignment.studentName || 'Öğrenci',
+        surname: assignment.studentSurname || '',
+        username: assignment.studentUsername || assignment.studentId,
+        className: assignment.className || ''
+      };
+
+      let completedTopicsRaw = assignment.completedTopics;
+      if (typeof completedTopicsRaw === 'string') {
+        try {
+          completedTopicsRaw = JSON.parse(completedTopicsRaw);
+        } catch {
+          completedTopicsRaw = [];
+        }
+      }
+      if (!Array.isArray(completedTopicsRaw)) {
+        completedTopicsRaw = [];
+      }
+
+      const completedSet = new Set(completedTopicsRaw.map(String));
+
+      let completedCount = 0;
+      allPlanTopics.forEach(t => {
+        if (completedSet.has(String(t.id)) || (t.name && completedSet.has(t.name))) {
+          completedCount++;
+        }
+      });
+
+      const totalTopics = allPlanTopics.length;
+      const progressPct = totalTopics > 0 ? Math.round((completedCount / totalTopics) * 100) : 0;
+
+      let status = 'not_started';
+      if (progressPct === 100 && totalTopics > 0) {
+        status = 'completed';
+      } else if (progressPct > 0 || completedCount > 0) {
+        status = 'in_progress';
+      }
+
+      return {
+        assignment,
+        student,
+        completedTopicsRaw,
+        completedSet,
+        completedCount,
+        totalTopics,
+        progressPct,
+        status,
+        assignedAt: assignment.createdAt || assignment.assignedAt
+      };
+    });
+  }, [planAssignments, users, allPlanTopics]);
+
+  // Aggregate completion stats
+  const completionStats = useMemo(() => {
+    const total = assignedStudentsList.length;
+    if (total === 0) {
+      return { total: 0, avgProgress: 0, completedCount: 0, inProgressCount: 0, notStartedCount: 0 };
+    }
+    const sumProgress = assignedStudentsList.reduce((acc, s) => acc + s.progressPct, 0);
+    const avgProgress = Math.round(sumProgress / total);
+    const completedCount = assignedStudentsList.filter(s => s.status === 'completed').length;
+    const inProgressCount = assignedStudentsList.filter(s => s.status === 'in_progress').length;
+    const notStartedCount = assignedStudentsList.filter(s => s.status === 'not_started').length;
+
+    return {
+      total,
+      avgProgress,
+      completedCount,
+      inProgressCount,
+      notStartedCount
+    };
+  }, [assignedStudentsList]);
+
+  // Active student being inspected in curriculum tree
+  const activeStudentProgress = useMemo(() => {
+    if (!selectedStudentProgressId) return null;
+    return assignedStudentsList.find(s => 
+      String(s.assignment.id) === String(selectedStudentProgressId) || 
+      String(s.student.id) === String(selectedStudentProgressId)
+    ) || null;
+  }, [selectedStudentProgressId, assignedStudentsList]);
+
+  // Filtered by search in student cards
+  const filteredAssignedStudents = useMemo(() => {
+    if (!studentProgressSearch.trim()) return assignedStudentsList;
+    const q = studentProgressSearch.toLowerCase().trim();
+    return assignedStudentsList.filter(s => {
+      const fullName = `${s.student.name || ''} ${s.student.surname || ''}`.toLowerCase();
+      const username = (s.student.username || '').toLowerCase();
+      const className = (s.student.className || '').toLowerCase();
+      return fullName.includes(q) || username.includes(q) || className.includes(q);
+    });
+  }, [assignedStudentsList, studentProgressSearch]);
 
   if (!plan) {
     return (
@@ -524,20 +648,62 @@ export default function StudyPlanDetail() {
 
   // Assign Actions
   const handleAssign = async () => {
+    const existingAssignments = (studyAssignments || []).filter(a => String(a.planId || a.studyPlanId) === String(plan.id));
+    const existingStudentIds = new Set(existingAssignments.map(a => String(a.studentId)));
+
+    let addedCount = 0;
     for (const studentId of selectedStudents) {
-      await addStudyAssignment({ 
-        studentId, 
-        planId: plan.id, 
-        studyPlanId: plan.id,
-        teacherId: currentUser?.id || currentUser?.username,
-        teacherUsername: currentUser?.username,
-        teacherName: currentUser?.name || currentUser?.username,
-        completedTopics: [] 
-      });
+      if (!existingStudentIds.has(String(studentId))) {
+        await addStudyAssignment({ 
+          studentId, 
+          planId: plan.id, 
+          studyPlanId: plan.id,
+          teacherId: currentUser?.id || currentUser?.username,
+          teacherUsername: currentUser?.username,
+          teacherName: currentUser?.name || currentUser?.username,
+          completedTopics: [] 
+        });
+        addedCount++;
+      }
     }
     setAssignModal(false);
     setSelectedStudents([]);
-    showToast(`${selectedStudents.length} öğrenciye yol haritası başarıyla atandı! 🎉`);
+    showToast(addedCount > 0 ? `${addedCount} yeni öğrenciye yol haritası başarıyla atandı! 🎉` : 'Öğrenci atamaları güncellendi.');
+  };
+
+  const handleToggleStudentTopic = async (assignmentId, topicId, willBeDone) => {
+    const target = assignedStudentsList.find(s => String(s.assignment.id) === String(assignmentId));
+    if (!target) return;
+    const currentList = [...target.completedTopicsRaw];
+    let updatedList;
+    if (willBeDone) {
+      if (!currentList.includes(topicId)) updatedList = [...currentList, topicId];
+      else updatedList = currentList;
+    } else {
+      updatedList = currentList.filter(id => String(id) !== String(topicId));
+    }
+
+    const newPct = allPlanTopics.length > 0 ? Math.round((updatedList.length / allPlanTopics.length) * 100) : 0;
+    const newStatus = (newPct === 100 && allPlanTopics.length > 0) ? 'completed' : (newPct > 0 ? 'in_progress' : 'assigned');
+
+    await updateStudyAssignment(assignmentId, {
+      completedTopics: updatedList,
+      status: newStatus
+    });
+    showToast(willBeDone ? 'Konu tamamlandı olarak işaretlendi! ✅' : 'Konu tamamlanmadı olarak işaretlendi.');
+  };
+
+  const handleUnassignStudent = async (assignmentId, studentName) => {
+    if (!window.confirm(`"${studentName}" adlı öğrencinin bu yol haritası atamasını kaldırmak istediğinize emin misiniz?`)) {
+      return;
+    }
+    if (deleteStudyAssignment) {
+      await deleteStudyAssignment(assignmentId);
+    }
+    if (String(selectedStudentProgressId) === String(assignmentId)) {
+      setSelectedStudentProgressId(null);
+    }
+    showToast(`${studentName} ataması kaldırıldı.`);
   };
 
   const toggleStudent = (studentId) => {
@@ -884,18 +1050,506 @@ export default function StudyPlanDetail() {
 
       </div>
 
+      {/* ── ASSIGNED STUDENTS & COMPLETION STATUS SECTION ── */}
+      <div id="assigned-students-section" className="study-glass-card" style={{ padding: isMobile ? '1rem' : '1.5rem', marginBottom: isMobile ? '0.85rem' : '1.5rem' }}>
+        
+        {/* Header with Search and Assign Button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.15rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.25rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <Users size={isMobile ? 20 : 22} style={{ color: '#ec4899' }} /> Atanan Öğrenciler ve İlerleme Durumu
+              </h2>
+              <span style={{
+                fontSize: '0.75rem',
+                fontWeight: 900,
+                color: '#ec4899',
+                background: 'rgba(236,72,153,0.12)',
+                border: '1px solid rgba(236,72,153,0.3)',
+                padding: '0.15rem 0.55rem',
+                borderRadius: '0.5rem'
+              }}>
+                {assignedStudentsList.length} Öğrenci
+              </span>
+            </div>
+            <p style={{ margin: '0.25rem 0 0 0', color: 'var(--color-text-muted, #64748b)', fontSize: '0.82rem', fontWeight: 600 }}>
+              Öğrencilerin bu yol haritasındaki genel ve konu bazlı tamamlama oranlarını buradan canlı olarak takip edebilirsiniz.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+            {assignedStudentsList.length > 0 && (
+              <div style={{ position: 'relative', flex: isMobile ? 1 : 'none', minWidth: isMobile ? '140px' : '220px' }}>
+                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #94a3b8)' }} />
+                <input
+                  type="text"
+                  placeholder="Öğrenci ara..."
+                  value={studentProgressSearch}
+                  onChange={(e) => setStudentProgressSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 0.75rem 0.45rem 2rem',
+                    fontSize: '0.82rem',
+                    borderRadius: '0.65rem',
+                    border: '1.5px solid var(--color-border, #cbd5e1)',
+                    background: 'var(--color-surface, #ffffff)',
+                    color: 'var(--color-text, #0f172a)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {studentProgressSearch && (
+                  <button
+                    onClick={() => setStudentProgressSearch('')}
+                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                const alreadyAssigned = (studyAssignments || [])
+                  .filter(a => String(a.planId || a.studyPlanId) === String(plan.id))
+                  .map(a => String(a.studentId));
+                setSelectedStudents(alreadyAssigned);
+                setAssignModal(true);
+              }}
+              style={{
+                padding: '0.45rem 0.95rem',
+                borderRadius: '0.65rem',
+                background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 3px 10px rgba(236,72,153,0.3)',
+                flex: isMobile && assignedStudentsList.length === 0 ? 1 : 'none',
+                justifyContent: 'center'
+              }}
+            >
+              <Users size={15} /> + Öğrenci Ata
+            </button>
+          </div>
+        </div>
+
+        {/* Empty State when no students assigned */}
+        {assignedStudentsList.length === 0 ? (
+          <div style={{
+            padding: '2.5rem 1.5rem',
+            textAlign: 'center',
+            background: 'var(--color-surface-hover, #f8fafc)',
+            borderRadius: '1rem',
+            border: '1.5px dashed var(--color-border, #cbd5e1)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(236,72,153,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899' }}>
+              <Users size={26} />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text, #0f172a)' }}>
+                Bu Yol Haritasına Henüz Öğrenci Atanmadı
+              </h4>
+              <p style={{ margin: 0, color: 'var(--color-text-muted, #64748b)', fontSize: '0.86rem', maxWidth: '500px' }}>
+                Öğrencilerinize bu planı atayarak tamamlama durumlarını, yüzdelerini ve adım adım ilerlemelerini bu panelden anlık olarak takip edebilirsiniz.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedStudents([]);
+                setAssignModal(true);
+              }}
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.65rem 1.35rem',
+                borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg, #ec4899 0%, #d946ef 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 900,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(236,72,153,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem'
+              }}
+            >
+              <Users size={16} /> Hemen Öğrenciye Ata
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* KPI Metrics Row */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+              gap: '0.75rem',
+              marginBottom: '1.25rem'
+            }}>
+              {/* Card 1: Total */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
+                borderRadius: '0.85rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '0.65rem', background: 'rgba(99,102,241,0.12)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', lineHeight: 1.1 }}>
+                    {completionStats.total}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Atanan Öğrenci
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Avg Progress */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
+                borderRadius: '0.85rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '0.65rem', background: 'rgba(16,185,129,0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <TrendingUp size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', lineHeight: 1.1 }}>
+                    %{completionStats.avgProgress}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Ortalama İlerleme
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Completed */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
+                borderRadius: '0.85rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '0.65rem', background: 'rgba(5,150,105,0.12)', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#059669', lineHeight: 1.1 }}>
+                    {completionStats.completedCount}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Tamamlayan (%100)
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: In Progress */}
+              <div style={{
+                background: 'var(--color-surface, #ffffff)',
+                border: '1.5px solid var(--color-border, #e2e8f0)',
+                borderRadius: '0.85rem',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: '0.65rem', background: 'rgba(37,99,235,0.12)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2563eb', lineHeight: 1.1 }}>
+                    {completionStats.inProgressCount}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Devam Eden
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Student Cards Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(310px, 1fr))',
+              gap: '0.85rem'
+            }}>
+              {filteredAssignedStudents.map(item => {
+                const isSelected = String(selectedStudentProgressId) === String(item.assignment.id);
+                const sName = `${item.student.name || ''} ${item.student.surname || ''}`.trim() || item.student.username || 'Öğrenci';
+
+                let statusBadge = {
+                  text: `%${item.progressPct} Devam Ediyor`,
+                  bg: 'rgba(37, 99, 235, 0.1)',
+                  color: '#2563eb',
+                  border: 'rgba(37, 99, 235, 0.3)',
+                  icon: '⚡'
+                };
+                if (item.status === 'completed') {
+                  statusBadge = {
+                    text: 'Tamamlandı (%100)',
+                    bg: 'rgba(16, 185, 129, 0.12)',
+                    color: '#059669',
+                    border: 'rgba(16, 185, 129, 0.35)',
+                    icon: '✅'
+                  };
+                } else if (item.status === 'not_started') {
+                  statusBadge = {
+                    text: 'Başlanmadı (%0)',
+                    bg: 'rgba(148, 163, 184, 0.12)',
+                    color: '#64748b',
+                    border: 'rgba(148, 163, 184, 0.3)',
+                    icon: '⏳'
+                  };
+                }
+
+                const barColor = item.status === 'completed'
+                  ? 'linear-gradient(90deg, #10b981, #059669)'
+                  : (item.progressPct > 50
+                    ? 'linear-gradient(90deg, #3b82f6, #10b981)'
+                    : 'linear-gradient(90deg, #6366f1, #3b82f6)');
+
+                return (
+                  <div
+                    key={item.assignment.id}
+                    style={{
+                      border: isSelected ? '2px solid #2563eb' : '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: '1rem',
+                      padding: '1rem',
+                      background: isSelected ? 'rgba(37, 99, 235, 0.03)' : 'var(--color-surface, #ffffff)',
+                      boxShadow: isSelected ? '0 6px 20px rgba(37, 99, 235, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      transition: 'all 0.2s ease',
+                      position: 'relative'
+                    }}
+                  >
+                    {/* Top Row: Avatar + Name + Status */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.65rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 900,
+                          fontSize: '0.95rem',
+                          flexShrink: 0,
+                          boxShadow: '0 2px 6px rgba(99,102,241,0.25)'
+                        }}>
+                          {sName.charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {sName}
+                          </h4>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
+                            {item.student.className ? `${item.student.className} • ` : ''}@{item.student.username || 'ogrenci'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 900,
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '0.45rem',
+                        background: statusBadge.bg,
+                        color: statusBadge.color,
+                        border: `1px solid ${statusBadge.border}`,
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        flexShrink: 0
+                      }}>
+                        <span>{statusBadge.icon}</span> {statusBadge.text}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar & Topic Stats */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', fontSize: '0.75rem', fontWeight: 800 }}>
+                        <span style={{ color: 'var(--color-text-muted, #64748b)' }}>Tamamlama Durumu</span>
+                        <span style={{ color: item.status === 'completed' ? '#059669' : '#2563eb', fontWeight: 900 }}>
+                          {item.completedCount} / {item.totalTopics} Konu (%{item.progressPct})
+                        </span>
+                      </div>
+                      
+                      <div style={{ width: '100%', height: '8px', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--color-border, #e2e8f0)' }}>
+                        <div style={{
+                          width: `${item.progressPct}%`,
+                          height: '100%',
+                          background: barColor,
+                          borderRadius: '999px',
+                          transition: 'width 0.4s ease'
+                        }} />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', borderTop: '1px solid var(--color-border, #f1f5f9)', paddingTop: '0.65rem' }}>
+                      <button
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedStudentProgressId(null);
+                          } else {
+                            setSelectedStudentProgressId(item.assignment.id);
+                            const el = document.getElementById('curriculum-section');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '0.38rem 0.65rem',
+                          borderRadius: '0.55rem',
+                          background: isSelected ? '#2563eb' : 'var(--color-surface-hover, #f8fafc)',
+                          color: isSelected ? '#ffffff' : '#2563eb',
+                          border: isSelected ? 'none' : '1px solid rgba(37, 99, 235, 0.3)',
+                          fontWeight: 900,
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.35rem',
+                          boxShadow: isSelected ? '0 2px 8px rgba(37,99,235,0.3)' : 'none'
+                        }}
+                        title="Bu öğrencinin konu detaylarını aşağıdaki müfredat ağacında aç"
+                      >
+                        {isSelected ? <EyeOff size={13} /> : <Eye size={13} />}
+                        {isSelected ? 'İncelemeyi Kapat' : 'Müfredatta İncele'}
+                      </button>
+
+                      <button
+                        onClick={() => window.open(`/student/study-plan/${item.assignment.id}`, '_blank')}
+                        style={{
+                          padding: '0.38rem 0.65rem',
+                          borderRadius: '0.55rem',
+                          background: 'var(--color-surface-hover, #f8fafc)',
+                          color: 'var(--color-text, #0f172a)',
+                          border: '1px solid var(--color-border, #cbd5e1)',
+                          fontWeight: 800,
+                          fontSize: '0.76rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.25rem'
+                        }}
+                        title="Öğrencinin kendi ekranındaki görünümünü yeni sekmede aç"
+                      >
+                        <ExternalLink size={13} /> Öğrenci Ekranı
+                      </button>
+
+                      <button
+                        onClick={() => handleUnassignStudent(item.assignment.id, sName)}
+                        style={{
+                          padding: '0.38rem 0.5rem',
+                          borderRadius: '0.55rem',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Öğrencinin bu yol haritası atamasını kaldır"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Search Empty Fallback */}
+            {filteredAssignedStudents.length === 0 && studentProgressSearch && (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--color-text-muted, #64748b)', fontSize: '0.88rem' }}>
+                "{studentProgressSearch}" aramasıyla eşleşen atanan öğrenci bulunamadı.
+              </div>
+            )}
+          </>
+        )}
+
+      </div>
+
       {/* ── UNITS & TOPICS SECTION ── */}
-      <div className="study-glass-card" style={{ padding: isMobile ? '0.85rem' : '1.75rem' }}>
+      <div id="curriculum-section" className="study-glass-card" style={{ padding: isMobile ? '0.85rem' : '1.75rem' }}>
         
         {/* Section Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border, #e2e8f0)', paddingBottom: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.15rem', color: 'var(--color-text, #0f172a)', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <BookOpen size={isMobile ? 18 : 20} style={{ color: '#2563eb' }} /> Dersler ve Üniteler
             </h2>
             <span style={{ fontSize: '0.72rem', color: '#2563eb', background: 'rgba(37,99,235,0.12)', padding: '0.15rem 0.5rem', borderRadius: '0.5rem', fontWeight: 800 }}>
               {planDersList.length} Ders • {subjects.length} Ünite
             </span>
+
+            {/* Student Selector in Header */}
+            {assignedStudentsList.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>
+                  İnceleme:
+                </span>
+                <select
+                  value={selectedStudentProgressId || 'all'}
+                  onChange={(e) => setSelectedStudentProgressId(e.target.value === 'all' ? null : e.target.value)}
+                  style={{
+                    padding: '0.25rem 0.55rem',
+                    borderRadius: '0.55rem',
+                    border: '1.5px solid var(--color-border, #cbd5e1)',
+                    background: selectedStudentProgressId ? 'rgba(37, 99, 235, 0.08)' : 'var(--color-surface, #ffffff)',
+                    color: selectedStudentProgressId ? '#2563eb' : 'var(--color-text, #0f172a)',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="all">👥 Genel Müfredat Görünümü</option>
+                  {assignedStudentsList.map(s => {
+                    const name = `${s.student.name || ''} ${s.student.surname || ''}`.trim() || s.student.username;
+                    return (
+                      <option key={s.assignment.id} value={s.assignment.id}>
+                        👤 {name} (%{s.progressPct} - {s.completedCount}/{s.totalTopics})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
@@ -931,6 +1585,58 @@ export default function StudyPlanDetail() {
             </button>
           </div>
         </div>
+
+        {/* Active Student Inspection Banner */}
+        {activeStudentProgress && (
+          <div style={{
+            margin: '0 0 1rem 0',
+            padding: '0.75rem 1rem',
+            borderRadius: '0.85rem',
+            background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(99,102,241,0.08))',
+            border: '1.5px solid rgba(37,99,235,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.65rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.9rem' }}>
+                {(activeStudentProgress.student.name || 'Ö').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 900, color: 'var(--color-text, #0f172a)', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  <span>{activeStudentProgress.student.name} {activeStudentProgress.student.surname}</span>
+                  <span style={{ fontSize: '0.76rem', color: '#2563eb', fontWeight: 800 }}>
+                    • %{activeStudentProgress.progressPct} Tamamlandı ({activeStudentProgress.completedCount} / {activeStudentProgress.totalTopics} Konu)
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600, marginTop: '0.1rem' }}>
+                  💡 Konuların yanındaki "Tamamlandı" butonuna tıklayarak öğrenci adına konuyu anında güncelleyebilirsiniz.
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedStudentProgressId(null)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                borderRadius: '0.55rem',
+                background: 'var(--color-surface, #ffffff)',
+                border: '1px solid var(--color-border, #cbd5e1)',
+                color: 'var(--color-text, #0f172a)',
+                fontSize: '0.76rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem'
+              }}
+            >
+              <X size={13} /> Genel Görünüme Dön
+            </button>
+          </div>
+        )}
 
         {/* Units List Grouped by Ders */}
         {planDersList.length === 0 && subjects.length === 0 ? (
@@ -1127,6 +1833,30 @@ export default function StudyPlanDetail() {
                                       <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(99,102,241,0.1)', color: '#818cf8', padding: '0.12rem 0.5rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)' }}>
                                         {topics.length} Konu Adımı
                                       </span>
+
+                                      {/* If a student is being inspected, show their unit progress */}
+                                      {activeStudentProgress && (() => {
+                                        const unitDoneCount = topics.filter(t => activeStudentProgress.completedSet.has(String(t.id)) || (t.name && activeStudentProgress.completedSet.has(t.name))).length;
+                                        const unitPct = topics.length > 0 ? Math.round((unitDoneCount / topics.length) * 100) : 0;
+                                        const isAllUnitDone = unitDoneCount === topics.length && topics.length > 0;
+                                        return (
+                                          <span style={{
+                                            fontSize: '0.72rem',
+                                            fontWeight: 900,
+                                            background: isAllUnitDone ? 'rgba(16,185,129,0.15)' : (unitDoneCount > 0 ? 'rgba(37,99,235,0.12)' : 'var(--color-surface-hover, #f1f5f9)'),
+                                            color: isAllUnitDone ? '#059669' : (unitDoneCount > 0 ? '#2563eb' : 'var(--color-text-muted, #64748b)'),
+                                            padding: '0.12rem 0.55rem',
+                                            borderRadius: '0.45rem',
+                                            border: `1px solid ${isAllUnitDone ? 'rgba(16,185,129,0.35)' : (unitDoneCount > 0 ? 'rgba(37,99,235,0.3)' : 'var(--color-border, #cbd5e1)')}`,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem'
+                                          }}>
+                                            {isAllUnitDone ? <CheckCircle2 size={12} /> : null}
+                                            {unitDoneCount}/{topics.length} Tamamlandı (%{unitPct})
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', flexWrap: 'wrap' }}>
@@ -1191,98 +1921,174 @@ export default function StudyPlanDetail() {
                                       Bu ünitede henüz konu bulunmuyor. Yukarıdaki "Konu Ekle" butonunu kullanabilirsiniz.
                                     </p>
                                   ) : (
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
-                                      {topics.map(topic => (
-                                        <div 
-                                          key={topic.id}
-                                          style={{
-                                            padding: '0.75rem 0.95rem',
-                                            borderRadius: '0.75rem',
-                                            background: 'var(--color-surface, #ffffff)',
-                                            border: '1px solid var(--color-border, #e2e8f0)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: '0.65rem'
-                                          }}
-                                        >
-                                          <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                                              {topic.day && (
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
-                                                  {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
-                                                </span>
-                                              )}
-                                              <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text, #0f172a)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                {topic.name}
-                                              </span>
-                                            </div>
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.65rem' }}>
+                                        {topics.map(topic => {
+                                          const isTopicDone = activeStudentProgress ? (
+                                            activeStudentProgress.completedSet.has(String(topic.id)) || (topic.name && activeStudentProgress.completedSet.has(topic.name))
+                                          ) : false;
 
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                                              {topic.dueDate && (
-                                                <span style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
-                                                  <Calendar size={12} /> {topic.dueDate}
-                                                </span>
-                                              )}
-                                              {topic.resourceUrl && (
-                                                <a
-                                                  href={topic.resourceUrl}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
+                                          const totalStudentsCompletedThisTopic = (!activeStudentProgress && assignedStudentsList.length > 0)
+                                            ? assignedStudentsList.filter(s => s.completedSet.has(String(topic.id)) || (topic.name && s.completedSet.has(topic.name))).length
+                                            : 0;
+
+                                          return (
+                                            <div 
+                                              key={topic.id}
+                                              style={{
+                                                padding: '0.75rem 0.95rem',
+                                                borderRadius: '0.75rem',
+                                                background: isTopicDone ? 'rgba(16, 185, 129, 0.05)' : 'var(--color-surface, #ffffff)',
+                                                border: isTopicDone ? '1.5px solid rgba(16, 185, 129, 0.45)' : '1px solid var(--color-border, #e2e8f0)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '0.65rem',
+                                                boxShadow: isTopicDone ? '0 2px 8px rgba(16, 185, 129, 0.08)' : 'none',
+                                                transition: 'all 0.2s ease'
+                                              }}
+                                            >
+                                              <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                                                  {topic.day && (
+                                                    <span style={{ fontSize: '0.72rem', fontWeight: 900, background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.1rem 0.45rem', borderRadius: '0.35rem', border: '1px solid rgba(165,180,252,0.3)', flexShrink: 0 }}>
+                                                      {topic.day.toLowerCase().startsWith('gün') ? topic.day : `Gün ${topic.day}`}
+                                                    </span>
+                                                  )}
+                                                  <span style={{
+                                                    fontWeight: 800,
+                                                    fontSize: '0.88rem',
+                                                    color: isTopicDone ? '#047857' : 'var(--color-text, #0f172a)',
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap'
+                                                  }}>
+                                                    {topic.name}
+                                                  </span>
+
+                                                  {/* Active Student Completion Toggle */}
+                                                  {activeStudentProgress && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleToggleStudentTopic(activeStudentProgress.assignment.id, topic.id, !isTopicDone);
+                                                      }}
+                                                      style={{
+                                                        background: isTopicDone ? 'rgba(16, 185, 129, 0.15)' : 'var(--color-surface-hover, #f1f5f9)',
+                                                        color: isTopicDone ? '#059669' : 'var(--color-text-muted, #64748b)',
+                                                        border: `1px solid ${isTopicDone ? 'rgba(16, 185, 129, 0.4)' : 'var(--color-border, #cbd5e1)'}`,
+                                                        borderRadius: '0.4rem',
+                                                        padding: '0.12rem 0.5rem',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 900,
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '0.25rem',
+                                                        transition: 'all 0.15s ease'
+                                                      }}
+                                                      title={isTopicDone ? 'Öğrenci için tamamlanmadı olarak işaretle' : 'Öğrenci için tamamlandı olarak işaretle'}
+                                                    >
+                                                      {isTopicDone ? (
+                                                        <>
+                                                          <CheckCircle2 size={12} style={{ color: '#059669' }} />
+                                                          <span>Tamamlandı</span>
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <Clock size={11} />
+                                                          <span>Bekliyor</span>
+                                                        </>
+                                                      )}
+                                                    </button>
+                                                  )}
+
+                                                  {/* General View: Overall student count */}
+                                                  {!activeStudentProgress && assignedStudentsList.length > 0 && (
+                                                    <span style={{
+                                                      fontSize: '0.68rem',
+                                                      fontWeight: 800,
+                                                      background: totalStudentsCompletedThisTopic === assignedStudentsList.length ? 'rgba(16,185,129,0.12)' : (totalStudentsCompletedThisTopic > 0 ? 'rgba(37,99,235,0.08)' : 'var(--color-surface-hover, #f1f5f9)'),
+                                                      color: totalStudentsCompletedThisTopic === assignedStudentsList.length ? '#059669' : (totalStudentsCompletedThisTopic > 0 ? '#2563eb' : 'var(--color-text-muted, #94a3b8)'),
+                                                      border: `1px solid ${totalStudentsCompletedThisTopic === assignedStudentsList.length ? 'rgba(16,185,129,0.3)' : (totalStudentsCompletedThisTopic > 0 ? 'rgba(37,99,235,0.2)' : 'var(--color-border, #e2e8f0)')}`,
+                                                      padding: '0.1rem 0.4rem',
+                                                      borderRadius: '0.35rem',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '0.2rem'
+                                                    }}>
+                                                      <Users size={10} />
+                                                      {totalStudentsCompletedThisTopic}/{assignedStudentsList.length} öğrenci
+                                                    </span>
+                                                  )}
+                                                </div>
+
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+                                                  {topic.dueDate && (
+                                                    <span style={{ fontSize: '0.72rem', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 800 }}>
+                                                      <Calendar size={12} /> {topic.dueDate}
+                                                    </span>
+                                                  )}
+                                                  {topic.resourceUrl && (
+                                                    <a
+                                                      href={topic.resourceUrl}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      style={{ fontSize: '0.72rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', fontWeight: 800 }}
+                                                    >
+                                                      <LinkIcon size={12} /> Link ↗
+                                                    </a>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {/* Day Stepper & Actions */}
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.45rem', border: '1px solid var(--color-border, #cbd5e1)', padding: '0.1rem 0.25rem' }}>
+                                                  <button
+                                                    onClick={() => {
+                                                      const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
+                                                      handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                                    title="Günü Azalt"
+                                                  >
+                                                    -
+                                                  </button>
+                                                  <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6366f1', padding: '0 0.2rem' }}>
+                                                    {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `G${topic.day}`) : '+G'}
+                                                  </span>
+                                                  <button
+                                                    onClick={() => {
+                                                      const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
+                                                      handleSetTopicDay(unit.id, topic.id, String(cur + 1));
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
+                                                    title="Günü Artır"
+                                                  >
+                                                    +
+                                                  </button>
+                                                </div>
+
+                                                <button
+                                                  onClick={() => openTopicModal(unit.id, topic)}
+                                                  style={{ padding: '0.3rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.45rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
+                                                  title="Konuyu Düzenle"
                                                 >
-                                                  <LinkIcon size={12} /> Link ↗
-                                                </a>
-                                              )}
+                                                  <Edit2 size={13} />
+                                                </button>
+                                                <button
+                                                  onClick={() => deleteTopic(unit.id, topic.id)}
+                                                  style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }}
+                                                  title="Konuyu Sil"
+                                                >
+                                                  <Trash2 size={13} />
+                                                </button>
+                                              </div>
                                             </div>
-                                          </div>
-
-                                          {/* Day Stepper & Actions */}
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface-hover, #f1f5f9)', borderRadius: '0.45rem', border: '1px solid var(--color-border, #cbd5e1)', padding: '0.1rem 0.25rem' }}>
-                                              <button
-                                                onClick={() => {
-                                                  const cur = parseInt(String(topic.day || '1').replace(/\D/g, ''), 10) || 1;
-                                                  handleSetTopicDay(unit.id, topic.id, String(Math.max(1, cur - 1)));
-                                                }}
-                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
-                                                title="Günü Azalt"
-                                              >
-                                                -
-                                              </button>
-                                              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#6366f1', padding: '0 0.2rem' }}>
-                                                {topic.day ? (topic.day.toLowerCase().startsWith('gün') ? topic.day : `G${topic.day}`) : '+G'}
-                                              </span>
-                                              <button
-                                                onClick={() => {
-                                                  const cur = parseInt(String(topic.day || '0').replace(/\D/g, ''), 10) || 0;
-                                                  handleSetTopicDay(unit.id, topic.id, String(cur + 1));
-                                                }}
-                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted, #64748b)', cursor: 'pointer', fontWeight: 900, padding: '0.15rem 0.35rem' }}
-                                                title="Günü Artır"
-                                              >
-                                                +
-                                              </button>
-                                            </div>
-
-                                            <button
-                                              onClick={() => openTopicModal(unit.id, topic)}
-                                              style={{ padding: '0.3rem', background: 'var(--color-surface, #ffffff)', border: '1px solid var(--color-border, #cbd5e1)', borderRadius: '0.45rem', color: 'var(--color-text, #0f172a)', cursor: 'pointer' }}
-                                              title="Konuyu Düzenle"
-                                            >
-                                              <Edit2 size={13} />
-                                            </button>
-                                            <button
-                                              onClick={() => deleteTopic(unit.id, topic.id)}
-                                              style={{ padding: '0.3rem', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }}
-                                              title="Konuyu Sil"
-                                            >
-                                              <Trash2 size={13} />
-                                            </button>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
+                                          );
+                                        })}
+                                      </div>
                                   )}
                                 </div>
                               )}

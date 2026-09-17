@@ -2115,6 +2115,18 @@ export async function dbUpdateStudyAssignment(aId, updates) {
   }
 }
 
+export async function dbDeleteStudyAssignment(aId) {
+  if (!isSupabaseConfigured() || !aId) return null;
+  try {
+    const { error } = await supabase.from('study_assignments').delete().eq('id', String(aId));
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteStudyAssignment error:', err.message);
+    return false;
+  }
+}
+
 // ==========================================
 // 7. KİTAP TAKİBİ (TRACKED BOOKS & TESTS)
 let _trackedBooksColumnsCache = null;

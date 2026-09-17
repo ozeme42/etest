@@ -5,7 +5,8 @@ import {
   dbAddStudyPlan,
   dbDeleteStudyPlan,
   dbAddStudyAssignment,
-  dbUpdateStudyAssignment
+  dbUpdateStudyAssignment,
+  dbDeleteStudyAssignment
 } from '../services/supabaseService';
 import { isCacheValid, touchCache } from '../utils/cacheManager';
 
@@ -14,7 +15,7 @@ const StudyPlanContext = createContext();
 export function useStudyPlan() {
   const context = useContext(StudyPlanContext);
   if (!context) {
-    return { studyPlans: [], studyAssignments: [], addStudyPlan: async () => {}, updateStudyPlan: async () => {}, deleteStudyPlan: async () => {} };
+    return { studyPlans: [], studyAssignments: [], addStudyPlan: async () => {}, updateStudyPlan: async () => {}, deleteStudyPlan: async () => {}, updateStudyAssignment: async () => {}, deleteStudyAssignment: async () => {} };
   }
   return context;
 }
@@ -106,6 +107,11 @@ export function StudyPlanProvider({ children }) {
     await dbUpdateStudyAssignment(id, dbData);
   };
 
+  const deleteStudyAssignment = async (id) => {
+    setStudyAssignments(prev => prev.filter(a => a.id !== id));
+    await dbDeleteStudyAssignment(id);
+  };
+
   const value = useMemo(() => ({
     studyPlans,
     addStudyPlan,
@@ -113,7 +119,8 @@ export function StudyPlanProvider({ children }) {
     deleteStudyPlan,
     studyAssignments,
     addStudyAssignment,
-    updateStudyAssignment
+    updateStudyAssignment,
+    deleteStudyAssignment
   }), [studyPlans, studyAssignments]);
 
   return (
