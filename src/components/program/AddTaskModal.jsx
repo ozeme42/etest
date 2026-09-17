@@ -1,10 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  X, Calendar, Clock, BookOpen, Check, Sparkles, ChevronRight, 
-  RotateCcw, Layers, Hash, FileText, CheckCircle2, Bookmark
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Calendar, Clock, Layers, Hash } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { useTrackedBooks } from '../../context/TrackedBookContext';
+import { useReading } from '../../context/ReadingContext';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { isStandardOrMixedBook } from '../../utils/testResolver';
 
@@ -12,7 +10,8 @@ export const TASK_TYPES = [
   { id: 'konu',   label: 'Konu Çalışması', icon: '📖', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.12)', border: '#818cf8' },
   { id: 'soru',   label: 'Soru Çözme',     icon: '✏️', color: '#10b981', bg: 'rgba(16, 185, 129, 0.12)', border: '#34d399' },
   { id: 'tekrar', label: 'Tekrar',          icon: '🔄', color: '#0891b2', bg: 'rgba(8, 145, 178, 0.12)', border: '#38bdf8' },
-  { id: 'kitap',  label: 'Kitap Takibi',    icon: '📚', color: '#059669', bg: 'rgba(5, 150, 105, 0.12)', border: '#10b981' },
+  { id: 'okuma',  label: 'Kitap Okuma',    icon: '📖', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.12)', border: '#f472b6' },
+  { id: 'kitap',  label: 'Kitap Takibi (Soru Bankası)', icon: '📚', color: '#059669', bg: 'rgba(5, 150, 105, 0.12)', border: '#10b981' },
   { id: 'deneme', label: 'Deneme Sınavı',   icon: '📊', color: '#d97706', bg: 'rgba(217, 119, 6, 0.12)', border: '#fbbf24' },
   { id: 'diger',  label: 'Diğer',           icon: '✨', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.12)', border: '#a78bfa' },
 ];
@@ -35,6 +34,7 @@ const DEFAULT_SUBJECTS = [
 
 const QUICK_DURATION_CHIPS = ['20 dk', '30 dk', '45 dk', '1 saat', '1.5 saat', '2 saat'];
 const QUICK_QUESTION_CHIPS = ['10 Soru', '15 Soru', '20 Soru', '30 Soru', '50 Soru'];
+const QUICK_PAGE_CHIPS = ['10 Sayfa', '15 Sayfa', '20 Sayfa', '30 Sayfa', '50 Sayfa'];
 const QUICK_TIME_SLOTS = [
   { label: 'Sabah (09:00)', start: '09:00', end: '10:00' },
   { label: 'Öğle (14:00)', start: '14:00', end: '15:00' },
@@ -71,8 +71,11 @@ export default function AddTaskModal({
   const [topic, setTopic] = useState(initialItem?.topic || '');
   const [hours, setHours] = useState(initialItem?.hours || '');
   const [questionCount, setQuestionCount] = useState(initialItem?.questionCount || '');
+  const [pageCount, setPageCount] = useState(initialItem?.pageCount || '');
+  const [pageRange, setPageRange] = useState(initialItem?.pageRange || '');
   const [bookName, setBookName] = useState(initialItem?.bookName || initialItem?.bookTitle || '');
   const [selectedBookId, setSelectedBookId] = useState(initialItem?.bookId || '');
+  const [selectedReadingBookId, setSelectedReadingBookId] = useState(initialItem?.readingBookId || '');
   const [selectedTestId, setSelectedTestId] = useState(initialItem?.testId || initialItem?.bookTestId || '');
   const [note, setNote] = useState(initialItem?.note || '');
   const [startTime, setStartTime] = useState(initialItem?.startTime || '');
@@ -81,6 +84,15 @@ export default function AddTaskModal({
   const trackedBooksData = useTrackedBooks();
   const books = trackedBooksData?.books || [];
   const bookTests = trackedBooksData?.bookTests || [];
+
+  let readingTrackerData = null;
+  try {
+    readingTrackerData = useReading();
+  } catch {}
+  const readingBooks = readingTrackerData?.books || [];
+  const activeReadingBooks = useMemo(() => {
+    return readingBooks.filter(b => b.status === 'reading' || b.status === 'to-read');
+  }, [readingBooks]);
 
   const initialRepeatMode = initialItem?.repeatType || (initialItem?.isDaily ? 'daily' : (initialItem?.isRecurring === false ? 'none' : 'weekly'));
   const [repeatType, setRepeatType] = useState(initialRepeatMode);
@@ -105,11 +117,12 @@ export default function AddTaskModal({
   }, [topicPool]);
 
   const canAdd = useMemo(() => {
+    if (taskType === 'okuma') return (bookName && bookName.trim().length > 0) || (pageCount && pageCount.trim().length > 0) || (note && note.trim().length > 0) || (subject && subject.trim().length > 0);
     if (taskType === 'kitap') return bookName.trim().length > 0 || testName.trim().length > 0 || subject.trim().length > 0;
     if (taskType === 'deneme') return subject.trim().length > 0 || note.trim().length > 0;
     if (taskType === 'diger') return note.trim().length > 0 || subject.trim().length > 0;
     return subject.trim().length > 0;
-  }, [taskType, bookName, testName, subject, note]);
+  }, [taskType, bookName, testName, subject, note, pageCount]);
 
   const handleSave = () => {
     if (!canAdd) return;
@@ -117,20 +130,28 @@ export default function AddTaskModal({
     const isRecurring = repeatType !== 'none';
     const isDaily = repeatType === 'daily';
 
+    const resolvedSubject = taskType === 'okuma' ? (subject.trim() || 'Kitap Okuma') : subject.trim();
+    const resolvedTopic = taskType === 'okuma'
+      ? (bookName.trim() ? `${bookName.trim()}${pageRange.trim() ? ` (${pageRange.trim()})` : ''}` : (pageRange.trim() || 'Kitap Okuma'))
+      : (unit.trim() && testName.trim()
+        ? `${unit.trim()} — ${testName.trim()}`
+        : (unit.trim() || testName.trim() || topic.trim()));
+
     const itemData = {
       id: initialItem?.id || uid(),
       taskType,
-      subject: subject.trim(),
+      subject: resolvedSubject,
       unit: unit.trim(),
       testName: testName.trim(),
-      topic: unit.trim() && testName.trim()
-        ? `${unit.trim()} — ${testName.trim()}`
-        : (unit.trim() || testName.trim() || topic.trim()),
+      topic: resolvedTopic,
       hours: hours.trim(),
       questionCount: questionCount.trim(),
+      pageCount: pageCount.trim(),
+      pageRange: pageRange.trim(),
       bookName: bookName.trim(),
       bookTitle: bookName.trim(),
       bookId: selectedBookId || null,
+      readingBookId: selectedReadingBookId || null,
       testId: selectedTestId || null,
       bookTestId: selectedTestId || null,
       note: note.trim(),
@@ -305,12 +326,12 @@ export default function AddTaskModal({
             </div>
           </div>
 
-          {/* 2. GÖREV TİPİ - 6 Interactive Category Cards */}
+          {/* 2. GÖREV TİPİ - Interactive Category Cards */}
           <div>
             <label style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               <Layers size={13} color="#6366f1" /> Görev Tipi
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(115px, 1fr))', gap: '0.5rem' }}>
               {TASK_TYPES.map(t => {
                 const isSelected = taskType === t.id;
 
@@ -318,7 +339,14 @@ export default function AddTaskModal({
                   <button
                     key={t.id}
                     type="button"
-                    onClick={() => setTaskType(t.id)}
+                    onClick={() => {
+                      setTaskType(t.id);
+                      if (t.id === 'okuma') {
+                        if (!subject) setSubject('Kitap Okuma');
+                        if (!hours) setHours('30 dk');
+                        if (!pageCount) setPageCount('20 Sayfa');
+                      }
+                    }}
                     style={{
                       padding: '0.65rem 0.45rem',
                       border: isSelected ? `2px solid ${t.color}` : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1.5px solid #e8ecf0'),
@@ -351,8 +379,150 @@ export default function AddTaskModal({
 
           {/* 3. DİNAMİK FORM ALANLARI */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-            {/* Kitap Takibi Modu */}
-            {taskType === 'kitap' ? (
+            {/* Kitap Okuma Modu */}
+            {taskType === 'okuma' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#f472b6' : '#db2777', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    📖 OKUNACAK KİTAP *
+                  </label>
+                  {activeReadingBooks.length > 0 && (
+                    <select
+                      value={selectedReadingBookId}
+                      onChange={e => {
+                        const bId = e.target.value;
+                        setSelectedReadingBookId(bId);
+                        if (bId) {
+                          const bObj = activeReadingBooks.find(b => String(b.id) === String(bId));
+                          if (bObj) {
+                            setBookName(bObj.title || '');
+                            if (bObj.category) setSubject(bObj.category);
+                            if (!hours) setHours('30 dk');
+                          }
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        border: isDark ? '1.5px solid rgba(244,114,182,0.35)' : '1.5px solid #fbcfe8',
+                        borderRadius: '0.75rem',
+                        fontSize: '0.86rem',
+                        fontWeight: 700,
+                        outline: 'none',
+                        background: isDark ? 'rgba(236,72,153,0.08)' : '#ffffff',
+                        color: isDark ? '#ffffff' : '#0f172a',
+                        fontFamily: 'inherit',
+                        cursor: 'pointer',
+                        marginBottom: 6
+                      }}
+                    >
+                      <option value="" style={{ background: '#0f172a', color: '#ffffff' }}>-- Okuma Listemden Kitap Seç --</option>
+                      {activeReadingBooks.map(b => (
+                        <option key={b.id} value={b.id} style={{ background: '#0f172a', color: '#ffffff' }}>
+                          📚 {b.title} {b.author ? `— ${b.author}` : ''} ({b.currentPage || 0}/{b.totalPages || 0} sf)
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <input
+                    value={bookName}
+                    onChange={e => {
+                      setBookName(e.target.value);
+                      if (selectedReadingBookId) setSelectedReadingBookId('');
+                    }}
+                    placeholder="Veya serbest kitap adı yazın (Örn: Beyaz Diş, Simyacı)..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                      borderRadius: '0.75rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : '#ffffff',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                </div>
+
+                {/* Okunacak Sayfa Sayısı */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#f472b6' : '#db2777', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      📄 HEDEF OKUNACAK SAYFA SAYISI
+                    </label>
+                    {pageCount && (
+                      <span style={{ fontSize: '0.68rem', color: '#ec4899', fontWeight: 800 }}>✓ {pageCount}</span>
+                    )}
+                  </div>
+                  <input
+                    value={pageCount}
+                    onChange={e => setPageCount(e.target.value)}
+                    placeholder="Örn: 20 sayfa, 30 sayfa..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                      borderRadius: '0.75rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : '#ffffff',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                  {/* Hızlı Sayfa Çipleri */}
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+                    {QUICK_PAGE_CHIPS.map(pText => (
+                      <button
+                        key={pText}
+                        type="button"
+                        onClick={() => setPageCount(pText)}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 8,
+                          border: pageCount === pText ? '1.5px solid #ec4899' : '1px solid var(--color-border)',
+                          background: pageCount === pText ? 'rgba(236,72,153,0.2)' : 'var(--color-surface-hover)',
+                          color: pageCount === pText ? '#ec4899' : 'var(--color-text-muted)',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit'
+                        }}
+                      >
+                        {pText}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sayfa / Bölüm Aralığı (İsteğe Bağlı) */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 5 }}>
+                    SAYFA / BÖLÜM ARALIĞI (İSTEĞE BAĞLI)
+                  </label>
+                  <input
+                    value={pageRange}
+                    onChange={e => setPageRange(e.target.value)}
+                    placeholder="Örn: Sayfa 40 - 65 veya 3. Bölüm..."
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.85rem',
+                      border: isDark ? '1.5px solid rgba(255,255,255,0.16)' : '1.5px solid #cbd5e1',
+                      borderRadius: '0.75rem',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      boxSizing: 'border-box',
+                      background: isDark ? 'rgba(255,255,255,0.07)' : '#ffffff',
+                      color: isDark ? '#ffffff' : '#0f172a'
+                    }}
+                  />
+                </div>
+              </div>
+            ) : taskType === 'kitap' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 800, color: isDark ? '#c7d2fe' : '#475569', display: 'block', marginBottom: 5 }}>
@@ -675,7 +845,7 @@ export default function AddTaskModal({
               <input
                 value={hours}
                 onChange={e => setHours(e.target.value)}
-                placeholder={taskType === 'kitap' ? 'Örn: 20 sayfa veya 40 dk...' : 'Örn: 45 dk, 1.5 saat...'}
+                placeholder={taskType === 'okuma' ? 'Örn: 30 dk veya 45 dk...' : (taskType === 'kitap' ? 'Örn: 40 dk, 1 saat...' : 'Örn: 45 dk, 1.5 saat...')}
                 style={{
                   width: '100%',
                   padding: '0.65rem 0.85rem',

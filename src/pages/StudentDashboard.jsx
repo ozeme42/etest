@@ -37,6 +37,7 @@ import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardW
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
 import DashboardHomeworksCard from '../features/dashboard/components/DashboardHomeworksCard';
 import DashboardBooksCard from '../features/dashboard/components/DashboardBooksCard';
+import DashboardReadingCard from '../features/dashboard/components/DashboardReadingCard';
 import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
 import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
@@ -3701,13 +3702,20 @@ export default function StudentDashboard() {
                   getRowTheme={getRowTheme}
                 />
 
-                {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI */}
+                {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI (SORU BANKASI) */}
                 <DashboardBooksCard
                   isMobile={isMobile}
                   isDark={isDark}
                   assignedBooksList={assignedBooksList}
                   onNavigateBooks={() => navigate('/student/books')}
                   onNavigateBookDetail={(id) => navigate(`/student/books/${id}`)}
+                />
+
+                {/* 📚 BÖLÜM 3.5: KİTAP OKUMA & ALIŞKANLIK TAKİBİ */}
+                <DashboardReadingCard
+                  isMobile={isMobile}
+                  isDark={isDark}
+                  onNavigateReading={() => navigate('/student/reading')}
                 />
 
                 {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}

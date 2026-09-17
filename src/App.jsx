@@ -18,6 +18,7 @@ import Landing from './pages/Landing';
 // Code-split lazy loaded pages
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const StudentBooksPage = lazy(() => import('./pages/StudentBooksPage'));
+const ReadingTrackerPage = lazy(() => import('./pages/ReadingTrackerPage'));
 const GoalsAndSchedulePage = lazy(() => import('./pages/GoalsAndSchedulePage'));
 const StudentProgramPage = lazy(() => import('./pages/StudentProgramPage'));
 const StudentResultsPage = lazy(() => import('./pages/StudentResultsPage'));
@@ -115,6 +116,7 @@ const preloadRolePages = (role) => {
     setTimeout(() => { try { import('./pages/TeacherDashboard'); } catch {} }, 700);
   } else {
     setTimeout(() => { try { import('./pages/StudentDashboard'); } catch {} }, 250);
+    setTimeout(() => { try { import('./pages/ReadingTrackerPage'); } catch {} }, 450);
     setTimeout(() => { try { import('./pages/StudentBooksPage'); } catch {} }, 600);
     setTimeout(() => { try { import('./pages/StudentHomeworksPage'); } catch {} }, 1000);
   }
@@ -468,6 +470,12 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
 
               {/* Grup 2: Kütüphane & İçerik */}
               <div className="nav-section-title">📚 Kütüphane &amp; İçerik</div>
+              <NavLink to="/student/reading" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', boxShadow: '0 2px 10px rgba(236,72,153,0.35)' }}>
+                  <BookOpen size={16} color="white" />
+                </div>
+                <span>Kitap Okuma</span>
+              </NavLink>
               <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
                   <BookOpen size={16} color="white" />
@@ -478,7 +486,7 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
-                <span>Kitaplarım</span>
+                <span>Kitaplarım (Soru Bankası)</span>
               </NavLink>
               <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
@@ -565,11 +573,17 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 </div>
                 <span>Soru Bankası</span>
               </NavLink>
+              <NavLink to="/reading" className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', boxShadow: '0 2px 10px rgba(236,72,153,0.35)' }}>
+                  <BookOpen size={16} color="white" />
+                </div>
+                <span>Kitap Okuma</span>
+              </NavLink>
               <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)', boxShadow: '0 2px 10px rgba(2,132,199,0.35)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
-                <span>Kitap Takip</span>
+                <span>Kitap Takip (Soru Bankası)</span>
               </NavLink>
               <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
                 <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', boxShadow: '0 2px 10px rgba(139,92,246,0.35)' }}>
@@ -716,6 +730,8 @@ function AppContent() {
               <Route path="/student/study-room" element={<RequireAuth><StudyRoomPage /></RequireAuth>} />
               <Route path="/student/summaries" element={<RequireAuth><StudentSummaryPage /></RequireAuth>} />
               <Route path="/summaries" element={<RequireRole roles={['teacher', 'admin']}><SummaryManagerPage /></RequireRole>} />
+              <Route path="/student/reading" element={<RequireAuth><ReadingTrackerPage /></RequireAuth>} />
+              <Route path="/reading" element={<RequireAuth><ReadingTrackerPage /></RequireAuth>} />
               <Route path="/student/books" element={<RequireAuth><StudentBooksPage /></RequireAuth>} />
               <Route path="/student/books/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />
               <Route path="/book-details/:bookId" element={<RequireAuth><StudentBookDetailsPage /></RequireAuth>} />

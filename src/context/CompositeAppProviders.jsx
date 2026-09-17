@@ -13,6 +13,7 @@ import { GoalProvider } from './GoalContext.jsx';
 import { ScheduleProvider } from './ScheduleContext.jsx';
 import { CoachingProvider } from './CoachingContext.jsx';
 import { ScaleProvider } from './ScaleContext.jsx';
+import { ReadingProvider } from './ReadingContext.jsx';
 
 const providers = [
   ThemeProvider,
@@ -28,7 +29,8 @@ const providers = [
   GoalProvider,
   ScheduleProvider,
   CoachingProvider,
-  ScaleProvider
+  ScaleProvider,
+  ReadingProvider
 ];
 
 /**
