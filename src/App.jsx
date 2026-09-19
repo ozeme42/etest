@@ -6,7 +6,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { 
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
-  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck, Scissors
+  PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck, Scissors,
+  Compass
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
@@ -459,6 +460,16 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 </div>
                 <span>Ders Programım</span>
               </NavLink>
+              <NavLink 
+                to="/student/roadmap" 
+                className={({ isActive }) => (isActive || location.pathname.startsWith('/student/study-plan') || location.pathname === '/student/roadmap') ? 'nav-link active' : 'nav-link'} 
+                onClick={closeSidebar}
+              >
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', boxShadow: '0 2px 10px rgba(139,92,246,0.35)' }}>
+                  <Compass size={16} color="white" />
+                </div>
+                <span>Yol Haritası</span>
+              </NavLink>
               {isStudentCoached(currentUser?.id) && (
                 <NavLink to="/my-coaching" className="nav-link" onClick={closeSidebar}>
                   <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 2px 10px rgba(217,119,6,0.35)', fontSize: '1rem' }}>
@@ -753,7 +764,10 @@ function AppContent() {
               <Route path="/books/:id" element={<RequireRole roles={['teacher', 'admin']}><BookContentManager /></RequireRole>} />
               <Route path="/study-plans" element={<RequireRole roles={['teacher', 'admin']}><StudyPlanManager /></RequireRole>} />
               <Route path="/study-plans/:id" element={<RequireRole roles={['teacher', 'admin']}><StudyPlanDetail /></RequireRole>} />
+              <Route path="/student/roadmap" element={<RequireAuth><StudentStudyPlanView /></RequireAuth>} />
               <Route path="/student/study-plan/:assignmentId" element={<RequireAuth><StudentStudyPlanView /></RequireAuth>} />
+              <Route path="/student/study-plans" element={<Navigate to="/student/roadmap" replace />} />
+              <Route path="/roadmap" element={<Navigate to="/student/roadmap" replace />} />
               <Route path="/statistics" element={<RequireRole roles={['teacher', 'admin']}><StatisticsDashboard /></RequireRole>} />
               <Route path="/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />
               <Route path="/student/goals" element={<RequireAuth><GoalsAndSchedulePage /></RequireAuth>} />

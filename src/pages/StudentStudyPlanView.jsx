@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronRight, BookOpen, Layers } from 'lucide-react';
 import { isPast, parseISO } from 'date-fns';
@@ -8,15 +9,52 @@ import { getSubjectTheme } from './StudyPlanDetail';
 import './StudyPlan.css';
 
 export default function StudentStudyPlanView() {
-  const { assignmentId } = useParams();
+  const { assignmentId: paramAssignmentId } = useParams();
   const navigate = useNavigate();
+  const { currentUser, users } = useAuth();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
   const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null, topicId: null });
 
-  const assignment = studyAssignments.find(a => String(a.id) === String(assignmentId));
-  const plan = studyPlans.find(p => String(p.id) === String(assignment?.planId || assignment?.studyPlanId));
+  // Effective student (if student, currentUser; if teacher/admin, check selected student)
+  const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
+  const effectiveStudent = useMemo(() => {
+    if (currentUser?.role === 'student') return currentUser;
+    const savedStudentId = localStorage.getItem('etest_selected_student_id');
+    if (savedStudentId) {
+      const found = studentMembers.find(s => String(s.id) === String(savedStudentId));
+      if (found) return found;
+    }
+    return studentMembers[0] || currentUser;
+  }, [currentUser, studentMembers]);
 
-  const completedTopics = useMemo(() => new Set(assignment?.completedTopics || []), [assignment]);
+  const studentId = effectiveStudent?.id;
+
+  const myAssignments = useMemo(() => {
+    return (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
+  }, [studyAssignments, studentId]);
+
+  const [activeAssignmentId, setActiveAssignmentId] = useState(paramAssignmentId || null);
+
+  useEffect(() => {
+    if (paramAssignmentId) {
+      setActiveAssignmentId(paramAssignmentId);
+    } else if (myAssignments.length > 0 && !activeAssignmentId) {
+      setActiveAssignmentId(myAssignments[0].id);
+    }
+  }, [paramAssignmentId, myAssignments, activeAssignmentId]);
+
+  const currentAssignmentId = activeAssignmentId || paramAssignmentId || myAssignments[0]?.id;
+  const assignment = (studyAssignments || []).find(a => String(a.id) === String(currentAssignmentId));
+  const plan = (studyPlans || []).find(p => String(p.id) === String(assignment?.planId || assignment?.studyPlanId));
+
+  const completedTopics = useMemo(() => {
+    let list = assignment?.completedTopics || [];
+    if (typeof list === 'string') {
+      try { list = JSON.parse(list); } catch {}
+    }
+    return new Set(Array.isArray(list) ? list : []);
+  }, [assignment]);
+
   const [expandedDersler, setExpandedDersler] = useState({});
 
   const toggleDers = (dersName) => {
@@ -28,6 +66,7 @@ export default function StudentStudyPlanView() {
 
   // Group units by Ders (Subject)
   const dersGroups = useMemo(() => {
+    if (!plan) return [];
     const map = new Map();
     const defined = plan.definedSubjects || [];
 
@@ -66,18 +105,29 @@ export default function StudentStudyPlanView() {
   if (!assignment || !plan) {
     return (
       <div className="study-plans-page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
-        <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '460px' }}>
-          <Target size={48} style={{ color: '#818cf8', margin: '0 auto 1rem auto' }} />
-          <h2 style={{ color: 'var(--color-text, #0f172a)', fontWeight: 900, fontSize: '1.4rem' }}>Görev Bulunamadı</h2>
-          <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Atanan çalışma planı silinmiş veya süresi dolmuş olabilir.
+        <div className="study-glass-card" style={{ padding: '3rem 2.5rem', maxWidth: '520px' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🗺️</div>
+          <h2 style={{ color: 'var(--color-text, #0f172a)', fontWeight: 900, fontSize: '1.4rem', margin: '0 0 0.5rem' }}>
+            Yol Haritası
+          </h2>
+          <p style={{ color: 'var(--color-text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+            Öğretmeniniz tarafından adınıza özel atanmış bir yol haritası bulunmuyor veya görev süresi dolmuş olabilir.
+            Tüm derslerin ünite ve konularını içeren genel müfredat yol haritanızı açabilirsiniz.
           </p>
-          <button 
-            onClick={() => navigate(-1)}
-            style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, cursor: 'pointer' }}
-          >
-            ← Geri Dön
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => navigate('/my-program?tab=konular')}
+              style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <Compass size={18} /> Müfredat Yol Haritasını Aç
+            </button>
+            <button 
+              onClick={() => navigate('/student')}
+              style={{ padding: '0.75rem 1.25rem', background: 'var(--color-surface-hover, #f1f5f9)', border: '1.5px solid var(--color-border, #cbd5e1)', borderRadius: '0.75rem', color: 'var(--color-text, #0f172a)', fontWeight: 800, cursor: 'pointer' }}
+            >
+              Ana Panele Dön
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -88,17 +138,25 @@ export default function StudentStudyPlanView() {
   const progressPct = totalTopics > 0 ? (completedTopics.size / totalTopics) * 100 : 0;
 
   const handleMarkCompleted = async (topicId) => {
+    if (!assignment) return;
     if (completedTopics.has(topicId)) return;
-    const newCompleted = [...(assignment.completedTopics || []), topicId];
-    await updateStudyAssignment(assignmentId, { completedTopics: newCompleted });
+    let curr = assignment.completedTopics || [];
+    if (typeof curr === 'string') {
+      try { curr = JSON.parse(curr); } catch {}
+    }
+    const newCompleted = [...(Array.isArray(curr) ? curr : []), topicId];
+    await updateStudyAssignment(assignment.id, { completedTopics: newCompleted });
   };
 
   const handleUnmarkCompleted = async (topicId) => {
-    const newCompleted = (assignment.completedTopics || []).filter(id => id !== topicId);
-    await updateStudyAssignment(assignmentId, { completedTopics: newCompleted });
+    if (!assignment) return;
+    let curr = assignment.completedTopics || [];
+    if (typeof curr === 'string') {
+      try { curr = JSON.parse(curr); } catch {}
+    }
+    const newCompleted = (Array.isArray(curr) ? curr : []).filter(id => id !== topicId);
+    await updateStudyAssignment(assignment.id, { completedTopics: newCompleted });
   };
-
-  let hasFoundLocked = false;
 
   return (
     <div className="study-plans-page-container custom-scrollbar">
@@ -137,10 +195,64 @@ export default function StudentStudyPlanView() {
               </div>
             </div>
 
-            <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8', flexShrink: 0 }}>
-              <Target size={28} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/my-program?tab=konular')}
+                style={{
+                  padding: '0.5rem 0.95rem',
+                  borderRadius: '0.75rem',
+                  background: 'rgba(124, 58, 237, 0.12)',
+                  border: '1.5px solid rgba(168, 85, 247, 0.35)',
+                  color: '#8b5cf6',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Compass size={15} /> Müfredat Haritası (Tüm Konular) ↗
+              </button>
+
+              <div style={{ width: '56px', height: '56px', borderRadius: '1rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(236,72,153,0.2))', border: '1.5px solid rgba(165,180,252,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8', flexShrink: 0 }}>
+                <Target size={28} />
+              </div>
             </div>
           </div>
+
+          {/* Birden fazla yol haritası atanmışsa kolay geçiş sekmeleri */}
+          {myAssignments.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted, #64748b)' }}>Haritalarım:</span>
+              {myAssignments.map((asgn) => {
+                const p = (studyPlans || []).find(sp => String(sp.id) === String(asgn.planId || asgn.studyPlanId));
+                const isSelected = String(asgn.id) === String(assignment?.id);
+                return (
+                  <button
+                    key={asgn.id}
+                    type="button"
+                    onClick={() => setActiveAssignmentId(asgn.id)}
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: '0.65rem',
+                      border: isSelected ? '1.5px solid #818cf8' : '1px solid var(--color-border, #cbd5e1)',
+                      background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface, #ffffff)',
+                      color: isSelected ? '#ffffff' : 'var(--color-text, #0f172a)',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: isSelected ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                    }}
+                  >
+                    🗺️ {p?.title || 'Yol Haritası'}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Live Progress Bar */}
           <div style={{ background: 'var(--color-surface-hover, #f8fafc)', padding: '1.25rem 1.5rem', borderRadius: '1rem', border: '1px solid var(--color-border, #e2e8f0)' }}>
@@ -181,6 +293,8 @@ export default function StudentStudyPlanView() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {dersGroups.map((group) => {
                 const isExpanded = expandedDersler[group.dersName] !== false;
+                // ⭐ Her dersin ilk konusu açık olacak, konu tamamlandıkça o derste bir sonraki konu açılacak:
+                let hasFoundIncompleteInDers = false;
 
                 return (
                   <div 
@@ -301,9 +415,9 @@ export default function StudentStudyPlanView() {
                                     let isCurrent = false;
 
                                     if (!isCompleted) {
-                                      if (!hasFoundLocked) {
+                                      if (!hasFoundIncompleteInDers) {
                                         isCurrent = true;
-                                        hasFoundLocked = true;
+                                        hasFoundIncompleteInDers = true;
                                       } else {
                                         isLocked = true;
                                       }
