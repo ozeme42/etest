@@ -9,6 +9,7 @@ import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingC
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import BulkAddBooksModal from '../components/reading/BulkAddBooksModal';
+import CreateReadingScheduleModal from '../components/reading/CreateReadingScheduleModal';
 
 export default function ReadingTrackerPage() {
   const { isDark } = useTheme();
@@ -35,6 +36,8 @@ export default function ReadingTrackerPage() {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInitialBookIds, setScheduleInitialBookIds] = useState([]);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isQuickLogModalOpen, setIsQuickLogModalOpen] = useState(false);
@@ -327,6 +330,33 @@ export default function ReadingTrackerPage() {
               <span>🧹 Yinelenenleri Temizle ({stats.duplicateCount})</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setScheduleInitialBookIds(Array.from(selectedBookIds));
+              setIsScheduleModalOpen(true);
+            }}
+            style={{
+              flex: isMobile ? 1 : 'none',
+              padding: '0.65rem 1.15rem',
+              borderRadius: '0.85rem',
+              border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #a7f3d0',
+              background: isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5',
+              color: isDark ? '#6ee7b7' : '#059669',
+              fontSize: '0.86rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 2px 8px rgba(16,185,129,0.15)'
+            }}
+          >
+            <Calendar size={16} />
+            <span>📅 Çalışma Planına Ekle</span>
+          </button>
 
           <button
             type="button"
@@ -1048,6 +1078,31 @@ export default function ReadingTrackerPage() {
                         {selectedBookIds.size === toReadBooks.length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
                       </button>
 
+                      {selectedBookIds.size > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScheduleInitialBookIds(Array.from(selectedBookIds));
+                            setIsScheduleModalOpen(true);
+                          }}
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '0.65rem',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: '#ffffff',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Calendar size={14} /> Seçilenleri Plana Ekle ({selectedBookIds.size})
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         disabled={selectedBookIds.size === 0}
@@ -1113,6 +1168,29 @@ export default function ReadingTrackerPage() {
                           🧹 Kopyaları Sil ({stats.duplicateCount})
                         </button>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScheduleInitialBookIds([]);
+                          setIsScheduleModalOpen(true);
+                        }}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: isDark ? '1px solid rgba(16,185,129,0.35)' : '1px solid #a7f3d0',
+                          background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5',
+                          color: isDark ? '#6ee7b7' : '#059669',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <Calendar size={14} /> 📅 Plan Oluştur
+                      </button>
 
                       <button
                         type="button"
@@ -2182,6 +2260,15 @@ export default function ReadingTrackerPage() {
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         onAddBulk={handleAddBulk}
+        isDark={isDark}
+        isMobile={isMobile}
+      />
+
+      {/* 6. OTOMATİK OKUMA ÇALIŞMA PLANI MODALI */}
+      <CreateReadingScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        initialBookIds={scheduleInitialBookIds}
         isDark={isDark}
         isMobile={isMobile}
       />
