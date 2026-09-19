@@ -159,7 +159,12 @@ export default memo(function DashboardTodayTasks({
                 overscrollBehavior: 'contain'
               }}>
                 {(showAllDayTasks || !isMobile ? dayProgramInfo.items : dayProgramInfo.items.slice(0, 5)).map((task, idx) => {
-                  const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                  const isReadingTask = task.taskType === 'okuma' ||
+                    task.subject === 'Kitap Okuma' ||
+                    String(task.topic || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.title || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.taskType || '').toLowerCase().includes('okuma');
+                  const isQuizTask = !isReadingTask && Boolean(task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId);
                   const isLast = idx === (showAllDayTasks || !isMobile ? dayProgramInfo.items.length : Math.min(dayProgramInfo.items.length, 5)) - 1;
                   const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : task.subject;
                   const rowTheme = getRowTheme ? getRowTheme(cleanSubj, idx) : {};
@@ -220,7 +225,13 @@ export default memo(function DashboardTodayTasks({
                   return (
                     <div
                       key={`${task.id || 'task'}_${idx}`}
-                      onClick={() => onTaskClick && onTaskClick(task)}
+                      onClick={() => {
+                        if (isReadingTask) {
+                          onToggleTask && onToggleTask(task);
+                        } else {
+                          onTaskClick && onTaskClick(task);
+                        }
+                      }}
                       className="hw-row"
                       style={{
                         background: task.done ? (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)') : 'var(--color-surface)',
@@ -381,27 +392,45 @@ export default memo(function DashboardTodayTasks({
 
                       {/* Right Action */}
                       {task.done ? (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 900,
-                            color: '#10b981',
-                            background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem',
-                            borderRadius: 8,
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <Eye size={13} /> ✓ Tamamlandı • İncele
-                        </button>
+                        isReadingTask || !isQuizTask ? (
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              color: '#10b981',
+                              background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem',
+                              borderRadius: 8,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0
+                            }}
+                          >
+                            ✓ Tamamlandı
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              color: '#10b981',
+                              background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.3)',
+                              padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem',
+                              borderRadius: 8,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <Eye size={13} /> ✓ Tamamlandı • İncele
+                          </button>
+                        )
                       ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
                         (() => {
                           const lockStatus = getRemedialLockStatus(task);
@@ -679,7 +708,12 @@ export default memo(function DashboardTodayTasks({
               }}>
                 {catchUpTasks.map((task, cIdx) => {
                   const isLast = cIdx === catchUpTasks.length - 1;
-                  const isQuizTask = task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId;
+                  const isReadingTask = task.taskType === 'okuma' ||
+                    task.subject === 'Kitap Okuma' ||
+                    String(task.topic || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.title || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.taskType || '').toLowerCase().includes('okuma');
+                  const isQuizTask = !isReadingTask && Boolean(task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId);
                   const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : task.subject;
                   const rowTheme = getRowTheme ? getRowTheme(cleanSubj, cIdx) : {};
                   const catBadge = getCatchUpCategoryBadge(task);
@@ -717,7 +751,13 @@ export default memo(function DashboardTodayTasks({
                   return (
                     <div
                       key={`catchup_${task.id || task.hwId || cIdx}`}
-                      onClick={() => onTaskClick && onTaskClick(task)}
+                      onClick={() => {
+                        if (isReadingTask) {
+                          onToggleTask && onToggleTask(task);
+                        } else {
+                          onTaskClick && onTaskClick(task);
+                        }
+                      }}
                       className="hw-row"
                       style={{
                         padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.15rem',

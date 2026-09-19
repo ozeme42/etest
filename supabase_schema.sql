@@ -318,6 +318,8 @@ CREATE TABLE IF NOT EXISTS public.coaching_profiles (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.coaching_profiles ADD COLUMN IF NOT EXISTS extra_data JSONB;
+
 ALTER TABLE public.coaching_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coaching_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mock_exams ENABLE ROW LEVEL SECURITY;

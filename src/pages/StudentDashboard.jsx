@@ -2690,6 +2690,18 @@ export default function StudentDashboard() {
 
   const handleTaskAction = useCallback((task) => {
     if (!task) return;
+
+    // Kitap Okuma görevleri test değildir, tıklandığında test açmak yerine sadece durumunu değiştirir
+    const isReading = task.taskType === 'okuma' ||
+      task.subject === 'Kitap Okuma' ||
+      String(task.topic || '').toLowerCase().includes('kitap okuma') ||
+      String(task.title || '').toLowerCase().includes('kitap okuma') ||
+      String(task.taskType || '').toLowerCase().includes('okuma');
+    if (isReading) {
+      handleToggleTask(task);
+      return;
+    }
+
     if (task.roadmapAssignmentId) {
       navigate(`/student/study-plan/${task.roadmapAssignmentId}`, { state: { from: '/student' } });
       return;
@@ -2721,7 +2733,7 @@ export default function StudentDashboard() {
     }
 
     if (task.done) {
-      const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId || task.id;
+      const reviewTargetId = task.bookTestId || task.testId || task.realTestId || task.hwId;
       if (reviewTargetId) {
         navigate(`/quiz-review/${reviewTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
         return;
@@ -2737,7 +2749,8 @@ export default function StudentDashboard() {
     }
 
     // Normal Homework Quiz
-    const quizTargetId = task.realTestId || task.hwId || task.id || task.testId;
+    const quizTargetId = task.realTestId || task.hwId || task.testId ||
+      (task.isAutoHomework || (task.id && String(task.id).startsWith('hw_')) ? task.id : null);
     if (quizTargetId) {
       navigate(`/quiz/${quizTargetId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
       return;

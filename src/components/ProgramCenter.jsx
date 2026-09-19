@@ -661,6 +661,14 @@ export const KNOWN_PUBLISHERS = [
 export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
   if (!item) return null;
 
+  // Kitap Okuma görevleri soru bankası testi değildir
+  const isReading = item.taskType === 'okuma' ||
+    item.subject === 'Kitap Okuma' ||
+    String(item.type || '').toLowerCase().includes('okuma') ||
+    String(item.subject || '').toLowerCase().includes('kitap okuma') ||
+    String(item.taskType || '').toLowerCase().includes('okuma');
+  if (isReading) return null;
+
   const isExplicitBook = item.taskType === 'kitap' || item.isBookAssignment || Boolean(item.bookId || item.bookTestId || item.testName || item.unit || item.bookName);
 
   let rawSubject = String(item.subject || '').trim();
@@ -922,9 +930,11 @@ export function DayCard({ dayObj, dayMeta, isToday, onToggle, onDelete, onEditCl
           </div>
         )}
         {visibleItems.map(item => {
-          const tt = TASK_TYPES.find(t => t.id === item.taskType);
-          const accentColor = item.done ? '#22c55e' : (tt?.color || theme.accent);
-          const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+          const isReadingTask = item.taskType === 'okuma' ||
+            item.subject === 'Kitap Okuma' ||
+            String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+            String(item.taskType || '').toLowerCase().includes('okuma');
+          const isQuizTask = !isReadingTask && Boolean(item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_')));
           const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
           return (
@@ -2694,8 +2704,11 @@ export function MonthlyListPanel({
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                     {displayedMonthItems.map((item, idx) => {
                       const icon = taskIcons[item.taskType] || '📌';
-                      const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                      const isClickable = Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
+                      const isReadingTask = item.taskType === 'okuma' ||
+                        item.subject === 'Kitap Okuma' ||
+                        String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+                        String(item.taskType || '').toLowerCase().includes('okuma');
+                      const isClickable = !isReadingTask && Boolean(item.isAutoHomework || item.roadmapAssignmentId || item.testId || item.hwId);
                       const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
                       // Deduplicate titles and extract page numbers
@@ -3291,6 +3304,13 @@ export default function ProgramCenter({
     const sId = effectiveStudentId;
     const fromPath = location.pathname || '/my-program';
 
+    // Kitap Okuma görevleri test değildir, quiz açılmaz!
+    const isReading = item.taskType === 'okuma' ||
+      item.subject === 'Kitap Okuma' ||
+      String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+      String(item.taskType || '').toLowerCase().includes('okuma');
+    if (isReading) return;
+
     if (item.roadmapAssignmentId) {
       navigate(`/student/study-plan/${item.roadmapAssignmentId}`, { state: { from: fromPath } });
       return;
@@ -3425,7 +3445,7 @@ export default function ProgramCenter({
       return;
     }
 
-    if (item.id) {
+    if (item.id && (item.isAutoHomework || item.testId || item.hwId || String(item.id).startsWith('hw_'))) {
       navigate(`/quiz/${item.id}${sId ? `?studentId=${sId}` : ''}`, { state: { from: fromPath } });
       return;
     }
@@ -4988,8 +5008,11 @@ export default function ProgramCenter({
                                   return (
                                     <>
                                       {displayedItems.map(item => {
-                                        const tt = TASK_TYPES.find(t => t.id === item.taskType);
-                                        const isQuizTask = item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_'));
+                                        const isReadingTask = item.taskType === 'okuma' ||
+                                          item.subject === 'Kitap Okuma' ||
+                                          String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+                                          String(item.taskType || '').toLowerCase().includes('okuma');
+                                        const isQuizTask = !isReadingTask && Boolean(item.isAutoHomework || item.testId || item.hwId || item.roadmapAssignmentId || (item.id && String(item.id).startsWith('hw_')));
                                         const bookInfo = resolveBookTestInfo(item, books, bookTests);
 
                                         // Deduplicate titles and extract page numbers
@@ -5192,27 +5215,29 @@ export default function ProgramCenter({
                                                   </span>
                                                 ) : (
                                                   <>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => handleStartInStudyRoom(item)}
-                                                      style={{
-                                                        background: isDark ? 'rgba(245,158,11,0.18)' : '#fef3c7',
-                                                        color: '#d97706',
-                                                        border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a',
-                                                        borderRadius: 7,
-                                                        padding: '0.35rem 0.55rem',
-                                                        fontSize: '0.7rem',
-                                                        fontWeight: 800,
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 3,
-                                                        whiteSpace: 'nowrap'
-                                                      }}
-                                                      title="Çalışma Odası"
-                                                    >
-                                                      <Play size={10} fill="#d97706" /> Oda
-                                                    </button>
+                                                    {!isReadingTask && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleStartInStudyRoom(item)}
+                                                        style={{
+                                                          background: isDark ? 'rgba(245,158,11,0.18)' : '#fef3c7',
+                                                          color: '#d97706',
+                                                          border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a',
+                                                          borderRadius: 7,
+                                                          padding: '0.35rem 0.55rem',
+                                                          fontSize: '0.7rem',
+                                                          fontWeight: 800,
+                                                          cursor: 'pointer',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: 3,
+                                                          whiteSpace: 'nowrap'
+                                                        }}
+                                                        title="Çalışma Odası"
+                                                      >
+                                                        <Play size={10} fill="#d97706" /> Oda
+                                                      </button>
+                                                    )}
 
                                                     {isQuizTask && (
                                                       <button

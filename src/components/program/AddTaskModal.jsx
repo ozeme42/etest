@@ -130,8 +130,9 @@ export default function AddTaskModal({
     const isRecurring = repeatType !== 'none';
     const isDaily = repeatType === 'daily';
 
-    const resolvedSubject = taskType === 'okuma' ? (subject.trim() || 'Kitap Okuma') : subject.trim();
-    const resolvedTopic = taskType === 'okuma'
+    const isReading = taskType === 'okuma';
+    const resolvedSubject = isReading ? (subject.trim() || 'Kitap Okuma') : subject.trim();
+    const resolvedTopic = isReading
       ? (bookName.trim() ? `${bookName.trim()}${pageRange.trim() ? ` (${pageRange.trim()})` : ''}` : (pageRange.trim() || 'Kitap Okuma'))
       : (unit.trim() && testName.trim()
         ? `${unit.trim()} — ${testName.trim()}`
@@ -141,19 +142,19 @@ export default function AddTaskModal({
       id: initialItem?.id || uid(),
       taskType,
       subject: resolvedSubject,
-      unit: unit.trim(),
-      testName: testName.trim(),
+      unit: isReading ? '' : unit.trim(),
+      testName: isReading ? '' : testName.trim(),
       topic: resolvedTopic,
       hours: hours.trim(),
-      questionCount: questionCount.trim(),
+      questionCount: isReading ? '' : questionCount.trim(),
       pageCount: pageCount.trim(),
       pageRange: pageRange.trim(),
       bookName: bookName.trim(),
       bookTitle: bookName.trim(),
-      bookId: selectedBookId || null,
+      bookId: isReading ? null : (selectedBookId || null),
       readingBookId: selectedReadingBookId || null,
-      testId: selectedTestId || null,
-      bookTestId: selectedTestId || null,
+      testId: isReading ? null : (selectedTestId || null),
+      bookTestId: isReading ? null : (selectedTestId || null),
       note: note.trim(),
       startTime,
       endTime,
@@ -345,6 +346,8 @@ export default function AddTaskModal({
                         if (!subject) setSubject('Kitap Okuma');
                         if (!hours) setHours('30 dk');
                         if (!pageCount) setPageCount('20 Sayfa');
+                        setSelectedTestId('');
+                        setSelectedBookId('');
                       }
                     }}
                     style={{

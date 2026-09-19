@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingContext';
 import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import BulkAddBooksModal from '../components/reading/BulkAddBooksModal';
 
 export default function ReadingTrackerPage() {
   const { isDark } = useTheme();
@@ -16,6 +17,7 @@ export default function ReadingTrackerPage() {
     books,
     stats,
     addBook,
+    addBooksBulk,
     updateBook,
     deleteBook,
     startReadingBook,
@@ -28,6 +30,7 @@ export default function ReadingTrackerPage() {
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isQuickLogModalOpen, setIsQuickLogModalOpen] = useState(false);
@@ -110,6 +113,14 @@ export default function ReadingTrackerPage() {
       });
     }
     setIsAddModalOpen(false);
+  };
+
+  const handleAddBulk = (booksList) => {
+    if (!booksList || booksList.length === 0) return;
+    addBooksBulk(booksList);
+    confetti({ particleCount: 75, spread: 65, origin: { y: 0.6 } });
+    const targetStatus = booksList[0]?.status || 'to_read';
+    setActiveTab(targetStatus);
   };
 
   const handleOpenProgress = (book) => {
@@ -242,6 +253,29 @@ export default function ReadingTrackerPage() {
             }}
           >
             <Sparkles size={16} color="#f43f5e" /> Hızlı Sayfa Ekle
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsBulkModalOpen(true)}
+            style={{
+              flex: isMobile ? 1 : 'none',
+              padding: '0.65rem 1.15rem',
+              borderRadius: '0.85rem',
+              border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+              background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+              color: isDark ? '#a5b4fc' : '#4f46e5',
+              fontSize: '0.86rem',
+              fontWeight: 900,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 2px 8px rgba(99,102,241,0.15)'
+            }}
+          >
+            <span>⚡ Toplu Kitap Ekle</span>
           </button>
 
           <button
@@ -789,25 +823,101 @@ export default function ReadingTrackerPage() {
               <p style={{ fontSize: '0.82rem', color: isDark ? '#94a3b8' : '#64748b', maxWidth: 400, margin: '0 auto 1.25rem' }}>
                 Gelecekte okumayı planladığın kitapları buraya ekleyerek bir okuma listesi oluşturabilirsin.
               </p>
-              <button
-                type="button"
-                onClick={() => handleOpenAdd('to_read')}
-                style={{
-                  padding: '0.65rem 1.25rem',
-                  borderRadius: '0.75rem',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                  color: 'white',
-                  fontWeight: 800,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer'
-                }}
-              >
-                + Okunacak Kitap Ekle
-              </button>
+              <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd('to_read')}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '0.75rem',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  + Tek Kitap Ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsBulkModalOpen(true)}
+                  style={{
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '0.75rem',
+                    border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+                    background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff',
+                    color: isDark ? '#a5b4fc' : '#4f46e5',
+                    fontWeight: 900,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>⚡ Toplu Kitap Ekle</span>
+                </button>
+              </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
+            <div>
+              {/* Header Action Bar */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569' }}>
+                  ⏳ Okunacak Kitaplar ({toReadBooks.length})
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkModalOpen(true)}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '0.65rem',
+                      border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+                      background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                      color: isDark ? '#a5b4fc' : '#4f46e5',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    ⚡ Toplu Ekle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAdd('to_read')}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '0.65rem',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Plus size={14} /> Yeni Ekle
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
               {toReadBooks.map(book => {
                 const colorObj = getColorObj(book.color);
                 return (
@@ -919,6 +1029,7 @@ export default function ReadingTrackerPage() {
                   </div>
                 );
               })}
+            </div>
             </div>
           )}
         </div>
@@ -1776,6 +1887,15 @@ export default function ReadingTrackerPage() {
           </div>
         </div>
       )}
+
+      {/* 5. TOPLU KİTAP EKLEME MODALI */}
+      <BulkAddBooksModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onAddBulk={handleAddBulk}
+        isDark={isDark}
+        isMobile={isMobile}
+      />
     </div>
   );
 }

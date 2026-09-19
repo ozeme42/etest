@@ -98,19 +98,28 @@ export function ReadingProvider({ children }) {
       setIsLoading(true);
       try {
         const uuidId = toUUID(studentId) || studentId;
+        const targetIds = [studentId, `cp_${studentId}`];
+        if (uuidId && !targetIds.includes(uuidId)) targetIds.push(uuidId);
+
         const { data, error } = await supabase
           .from('coaching_profiles')
-          .select('extra_data')
-          .in('id', [studentId, `cp_${studentId}`, uuidId])
-          .order('updated_at', { ascending: false })
-          .limit(1);
+          .select('id, student_id, extra_data')
+          .in('id', targetIds);
 
         if (!error && data && data.length > 0 && isMounted) {
-          const extra = data[0]?.extra_data || {};
-          const cloudReading = extra.readingTracker;
-          if (cloudReading && (Array.isArray(cloudReading.books) || Array.isArray(cloudReading.logs))) {
-            setBooks(cloudReading.books || []);
-            setLogs(cloudReading.logs || []);
+          for (const row of data) {
+            let extra = row?.extra_data || row?.data || {};
+            if (typeof extra === 'string') {
+              try {
+                extra = JSON.parse(extra);
+              } catch {}
+            }
+            const cloudReading = extra?.readingTracker;
+            if (cloudReading && (Array.isArray(cloudReading.books) || Array.isArray(cloudReading.logs))) {
+              setBooks(cloudReading.books || []);
+              setLogs(cloudReading.logs || []);
+              break;
+            }
           }
         }
       } catch (err) {
@@ -133,14 +142,23 @@ export function ReadingProvider({ children }) {
 
     try {
       const uuidId = toUUID(studentId) || studentId;
+      const targetIds = [studentId, `cp_${studentId}`];
+      if (uuidId && !targetIds.includes(uuidId)) targetIds.push(uuidId);
+
       // Fetch existing extra_data to avoid clobbering other features
       const { data } = await supabase
         .from('coaching_profiles')
-        .select('id, extra_data')
-        .in('id', [studentId, `cp_${studentId}`, uuidId])
-        .limit(1);
+        .select('id, student_id, extra_data')
+        .in('id', targetIds);
 
-      const existingExtra = data?.[0]?.extra_data || {};
+      const matchedRow = data?.[0];
+      let existingExtra = matchedRow?.extra_data || matchedRow?.data || {};
+      if (typeof existingExtra === 'string') {
+        try {
+          existingExtra = JSON.parse(existingExtra);
+        } catch {}
+      }
+
       const updatedExtra = {
         ...existingExtra,
         readingTracker: {
@@ -150,15 +168,32 @@ export function ReadingProvider({ children }) {
         }
       };
 
-      const payload = {
+      // Upsert to both studentId and cp_${studentId} for full cross-system compatibility
+      const payload1 = {
         id: studentId,
         student_id: studentId,
         extra_data: updatedExtra
       };
+      const payload2 = {
+        id: `cp_${studentId}`,
+        student_id: studentId,
+        extra_data: updatedExtra
+      };
 
-      await supabase
-        .from('coaching_profiles')
-        .upsert([payload], { onConflict: 'id' });
+      try {
+        await supabase
+          .from('coaching_profiles')
+          .upsert([payload1, payload2], { onConflict: 'id' });
+      } catch {
+        // Fallback with stringified extra_data in case table column type is TEXT
+        try {
+          const stringified1 = { ...payload1, extra_data: JSON.stringify(updatedExtra) };
+          const stringified2 = { ...payload2, extra_data: JSON.stringify(updatedExtra) };
+          await supabase
+            .from('coaching_profiles')
+            .upsert([stringified1, stringified2], { onConflict: 'id' });
+        } catch {}
+      }
     } catch (err) {
       console.warn('ReadingContext persistCloud warning:', err);
     }
@@ -191,6 +226,44 @@ export function ReadingProvider({ children }) {
     });
 
     return newBook;
+  }, [studentId, logs, persistCloud]);
+
+  const addBooksBulk = useCallback((booksList) => {
+    if (!Array.isArray(booksList) || booksList.length === 0) return [];
+
+    const newBooks = booksList
+      .filter(b => b && (b.title || '').trim())
+      .map((b, idx) => {
+        const color = b.color || BOOK_COLORS[(Math.floor(Math.random() * BOOK_COLORS.length) + idx) % BOOK_COLORS.length].id;
+        const status = b.status || 'to_read';
+        return {
+          id: b.id || `rb_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`,
+          studentId,
+          title: (b.title || '').trim(),
+          author: (b.author || '').trim(),
+          totalPages: Math.max(1, Number(b.totalPages) || 100),
+          currentPage: 0,
+          status,
+          category: b.category || 'Roman',
+          color,
+          startDate: status === 'reading' ? getTurkeyYMD() : null,
+          finishDate: null,
+          rating: 0,
+          notes: (b.notes || '').trim(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      });
+
+    if (newBooks.length === 0) return [];
+
+    setBooks(prev => {
+      const updated = [...newBooks, ...prev];
+      persistCloud(updated, logs);
+      return updated;
+    });
+
+    return newBooks;
   }, [studentId, logs, persistCloud]);
 
   const updateBook = useCallback((bookId, updates) => {
@@ -425,6 +498,7 @@ export function ReadingProvider({ children }) {
     isLoading,
     stats,
     addBook,
+    addBooksBulk,
     updateBook,
     deleteBook,
     startReadingBook,
@@ -437,6 +511,7 @@ export function ReadingProvider({ children }) {
     isLoading,
     stats,
     addBook,
+    addBooksBulk,
     updateBook,
     deleteBook,
     startReadingBook,
@@ -461,6 +536,7 @@ export function useReading() {
       isLoading: false,
       stats: { todayPages: 0, monthPages: 0, allTimePages: 0, readingCount: 0, completedCount: 0, toReadCount: 0, monthFinishedBooks: 0, streak: 0, last7Days: [] },
       addBook: () => {},
+      addBooksBulk: () => [],
       updateBook: () => {},
       deleteBook: () => {},
       startReadingBook: () => {},

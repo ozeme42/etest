@@ -1,0 +1,10 @@
+# Exclude non-web assets from Vercel deployments
+android/
+mobile/
+scripts/
+backups/
+backup.json
+*.apk
+*.aab
+supabase_schema.sql
+*.sql
