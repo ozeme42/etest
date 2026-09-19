@@ -454,170 +454,13 @@ export default function CreateReadingScheduleModal({
             </div>
           ) : (
             <div>
-              {/* ── BÖLÜM 1: KİTAP SEÇİMİ VE SIRALAMA ── */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
-                    1. Okunacak Kitaplar ve Okuma Sırası ({selectedBooksOrder.length})
-                  </label>
-                  <span style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
-                    Kitapları yukarı/aşağı okuma sırasına göre dizebilirsiniz
-                  </span>
-                </div>
-
-                {selectedBooksOrder.length === 0 ? (
-                  <div style={{
-                    padding: '1.25rem',
-                    borderRadius: '1rem',
-                    border: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1',
-                    textAlign: 'center',
-                    color: isDark ? '#94a3b8' : '#64748b',
-                    fontSize: '0.82rem'
-                  }}>
-                    Aşağıdaki listeden plana dahil etmek istediğiniz kitapları seçin.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', marginBottom: '0.75rem' }}>
-                    {selectedBooksOrder.map((book, idx) => {
-                      const remainPages = Math.max(1, (book.totalPages || 100) - (book.currentPage || 0));
-                      return (
-                        <div
-                          key={book.id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '0.65rem 0.85rem',
-                            borderRadius: '0.85rem',
-                            background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                            border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                            gap: '0.5rem'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
-                            <span style={{
-                              width: 22,
-                              height: 22,
-                              borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                              color: 'white',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '0.72rem',
-                              fontWeight: 800,
-                              flexShrink: 0
-                            }}>
-                              {idx + 1}
-                            </span>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{
-                                fontWeight: 800,
-                                fontSize: '0.85rem',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis'
-                              }}>
-                                {book.title}
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
-                                {book.author ? `${book.author} • ` : ''}Toplam: {book.totalPages} sf {book.currentPage > 0 ? `(${book.currentPage}. sayfadasın, kalan: ${remainPages} sf)` : ''}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <button
-                              type="button"
-                              disabled={idx === 0}
-                              onClick={() => handleMoveBook(idx, -1)}
-                              title="Yukarı taşı"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: idx === 0 ? (isDark ? '#475569' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#475569'),
-                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                padding: 4
-                              }}
-                            >
-                              <ArrowUp size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={idx === selectedBooksOrder.length - 1}
-                              onClick={() => handleMoveBook(idx, 1)}
-                              title="Aşağı taşı"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: idx === selectedBooksOrder.length - 1 ? (isDark ? '#475569' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#475569'),
-                                cursor: idx === selectedBooksOrder.length - 1 ? 'not-allowed' : 'pointer',
-                                padding: 4
-                              }}
-                            >
-                              <ArrowDown size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveBook(book.id)}
-                              title="Listeden çıkar"
-                              style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                                padding: 4,
-                                marginLeft: 4
-                              }}
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Kitap Ekleme Açılır Listesi */}
-                {availableBooks.length > selectedBooksOrder.length && (
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                    {availableBooks
-                      .filter(b => !selectedBooksOrder.some(s => s.id === b.id))
-                      .slice(0, 8)
-                      .map(b => (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => handleToggleBook(b)}
-                          style={{
-                            padding: '0.35rem 0.65rem',
-                            borderRadius: '0.65rem',
-                            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
-                            background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
-                            color: isDark ? '#cbd5e1' : '#475569',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <Plus size={12} /> {b.title} ({b.totalPages} sf)
-                        </button>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── BÖLÜM 2: PLAN AYARLARI ── */}
+              {/* ── BÖLÜM 1: PLAN VE HEDEF AYARLARI (BAŞLANGIÇ TARİHİ & GÜNLÜK SAYFA) ── */}
               <div style={{
                 background: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
                 border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
                 borderRadius: '1.15rem',
                 padding: '1.15rem',
-                marginBottom: '1.5rem'
+                marginBottom: '1.25rem'
               }}>
                 <div style={{
                   display: 'grid',
@@ -627,8 +470,8 @@ export default function CreateReadingScheduleModal({
                 }}>
                   {/* Başlangıç Tarihi */}
                   <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: 800, display: 'block', marginBottom: 6 }}>
-                      📅 Başlangıç Tarihi
+                    <label style={{ fontSize: '0.84rem', fontWeight: 800, display: 'block', marginBottom: 6, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                      📅 1. Başlangıç Tarihi
                     </label>
                     <input
                       type="date"
@@ -647,15 +490,18 @@ export default function CreateReadingScheduleModal({
                         boxSizing: 'border-box'
                       }}
                     />
+                    <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 4 }}>
+                      Kitap okumanın çalışma planınızda başlayacağı tarih
+                    </div>
                   </div>
 
                   {/* Günlük Okunacak Sayfa Sayısı */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <label style={{ fontSize: '0.82rem', fontWeight: 800 }}>
-                        📖 Günlük Okunacak Sayfa
+                      <label style={{ fontSize: '0.84rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                        📖 2. Günde Kaç Sayfa Okunacak?
                       </label>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6366f1' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1' }}>
                         {dailyPages} sayfa / gün
                       </span>
                     </div>
@@ -687,12 +533,12 @@ export default function CreateReadingScheduleModal({
                             type="button"
                             onClick={() => setDailyPages(p)}
                             style={{
-                              padding: '0.4rem 0.6rem',
+                              padding: '0.4rem 0.55rem',
                               borderRadius: '0.55rem',
                               border: dailyPages === p ? '1px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
                               background: dailyPages === p ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
                               color: dailyPages === p ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 800,
                               cursor: 'pointer'
                             }}
@@ -702,6 +548,9 @@ export default function CreateReadingScheduleModal({
                         ))}
                       </div>
                     </div>
+                    <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 4 }}>
+                      Günlük çalışma planınıza eklenecek okuma hedefi
+                    </div>
                   </div>
                 </div>
 
@@ -709,7 +558,7 @@ export default function CreateReadingScheduleModal({
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                     <label style={{ fontSize: '0.82rem', fontWeight: 800 }}>
-                      🗓️ Okuma Yapılacak Günler
+                      🗓️ 3. Okuma Yapılacak Günler
                     </label>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button
@@ -802,6 +651,171 @@ export default function CreateReadingScheduleModal({
                     İlk sıradaki kitabı Okuma Takibi'nde "Şu an Okuyorum" durumuna al
                   </label>
                 </div>
+              </div>
+
+              {/* ── BÖLÜM 2: OKUMA SIRASINDAKİ KİTAPLAR (KOMPAKT & KAYDIRILABİLİR) ── */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <label style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                    📚 4. Okuma Sırasındaki Kitaplar ({selectedBooksOrder.length} Kitap)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+                    Sırayı değiştirebilir veya listeden çıkarabilirsiniz
+                  </span>
+                </div>
+
+                {selectedBooksOrder.length === 0 ? (
+                  <div style={{
+                    padding: '1.25rem',
+                    borderRadius: '1rem',
+                    border: isDark ? '1px dashed rgba(255,255,255,0.15)' : '1.5px dashed #cbd5e1',
+                    textAlign: 'center',
+                    color: isDark ? '#94a3b8' : '#64748b',
+                    fontSize: '0.82rem'
+                  }}>
+                    Plana dahil edilecek kitap bulunamadı.
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    maxHeight: 220,
+                    overflowY: 'auto',
+                    paddingRight: 4,
+                    marginBottom: '0.5rem'
+                  }}>
+                    {selectedBooksOrder.map((book, idx) => {
+                      const remainPages = Math.max(1, (book.totalPages || 100) - (book.currentPage || 0));
+                      return (
+                        <div
+                          key={book.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.55rem 0.75rem',
+                            borderRadius: '0.75rem',
+                            background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                            border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
+                            <span style={{
+                              width: 22,
+                              height: 22,
+                              borderRadius: '50%',
+                              background: idx === 0 ? 'linear-gradient(135deg, #ec4899, #f43f5e)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              flexShrink: 0
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{
+                                fontWeight: 800,
+                                fontSize: '0.84rem',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {book.title}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b' }}>
+                                {book.author ? `${book.author} • ` : ''}Toplam: {book.totalPages} sf {book.currentPage > 0 ? `(${book.currentPage}. sf, kalan: ${remainPages} sf)` : ''}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveBook(idx, -1)}
+                              title="Yukarı taşı"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: idx === 0 ? (isDark ? '#475569' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#475569'),
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                padding: 3
+                              }}
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === selectedBooksOrder.length - 1}
+                              onClick={() => handleMoveBook(idx, 1)}
+                              title="Aşağı taşı"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: idx === selectedBooksOrder.length - 1 ? (isDark ? '#475569' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#475569'),
+                                cursor: idx === selectedBooksOrder.length - 1 ? 'not-allowed' : 'pointer',
+                                padding: 3
+                              }}
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBook(book.id)}
+                              title="Listeden çıkar"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                padding: 3,
+                                marginLeft: 2
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Kitap Ekleme Açılır Listesi */}
+                {availableBooks.length > selectedBooksOrder.length && (
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                    {availableBooks
+                      .filter(b => !selectedBooksOrder.some(s => s.id === b.id))
+                      .slice(0, 6)
+                      .map(b => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => handleToggleBook(b)}
+                          style={{
+                            padding: '0.3rem 0.6rem',
+                            borderRadius: '0.65rem',
+                            border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1',
+                            background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                            color: isDark ? '#cbd5e1' : '#475569',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}
+                        >
+                          <Plus size={11} /> {b.title} ({b.totalPages} sf)
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
 
               {/* ── BÖLÜM 3: ÖZET VE CANLI ÖNİZLEME ── */}
