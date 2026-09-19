@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Plus, CheckCircle2, Bookmark, Flame, Calendar, 
   Award, Star, Trash2, Edit3, Sparkles, 
-  BarChart3, X, Play
+  BarChart3, X, Play, CheckSquare, Square, AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingContext';
@@ -20,6 +20,8 @@ export default function ReadingTrackerPage() {
     addBooksBulk,
     updateBook,
     deleteBook,
+    deleteBooksBulk,
+    removeDuplicateBooks,
     startReadingBook,
     updateReadingProgress,
     completeBook,
@@ -27,6 +29,8 @@ export default function ReadingTrackerPage() {
   } = useReading();
 
   const [activeTab, setActiveTab] = useState('reading'); // 'reading' | 'to_read' | 'completed'
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState(new Set());
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -176,6 +180,50 @@ export default function ReadingTrackerPage() {
     setIsQuickLogModalOpen(false);
   };
 
+  // Mükerrer / Yinelenen kitapları tek tıkla temizleme
+  const handleCleanDuplicates = () => {
+    const dupCount = stats.duplicateCount || 0;
+    if (dupCount <= 0) {
+      alert('Yinelenen (çift) kitap bulunamadı.');
+      return;
+    }
+    const confirmed = window.confirm(
+      `Tespit edilen ${dupCount} adet mükerrer kitap silinecektir.\n\nHer kitabın tek bir orijinal kopyası korunacaktır.\n\nOnaylıyor musunuz?`
+    );
+    if (confirmed) {
+      const removed = removeDuplicateBooks();
+      alert(`${removed || dupCount} adet mükerrer kitap başarıyla temizlendi!`);
+    }
+  };
+
+  // Çoklu seçim handlers
+  const toggleSelectBook = (id) => {
+    setSelectedBookIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllToRead = () => {
+    if (selectedBookIds.size === toReadBooks.length) {
+      setSelectedBookIds(new Set());
+    } else {
+      setSelectedBookIds(new Set(toReadBooks.map(b => b.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedBookIds.size === 0) return;
+    const confirmed = window.confirm(`Seçilen ${selectedBookIds.size} adet kitabı silmek istediğinize emin misiniz?`);
+    if (confirmed) {
+      deleteBooksBulk(Array.from(selectedBookIds));
+      setSelectedBookIds(new Set());
+      setIsSelectMode(false);
+    }
+  };
+
   // Color mapper helper
   const getColorObj = (colorId) => {
     return BOOK_COLORS.find(c => c.id === colorId) || BOOK_COLORS[0];
@@ -254,6 +302,31 @@ export default function ReadingTrackerPage() {
           >
             <Sparkles size={16} color="#f43f5e" /> Hızlı Sayfa Ekle
           </button>
+
+          {stats.duplicateCount > 0 && (
+            <button
+              type="button"
+              onClick={handleCleanDuplicates}
+              style={{
+                flex: isMobile ? 1 : 'none',
+                padding: '0.65rem 1.15rem',
+                borderRadius: '0.85rem',
+                border: isDark ? '1px solid rgba(234,179,8,0.4)' : '1px solid #facc15',
+                background: isDark ? 'rgba(234,179,8,0.18)' : '#fef9c3',
+                color: isDark ? '#fef08a' : '#a16207',
+                fontSize: '0.86rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 2px 8px rgba(202,138,4,0.15)'
+              }}
+            >
+              <span>🧹 Yinelenenleri Temizle ({stats.duplicateCount})</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -863,6 +936,67 @@ export default function ReadingTrackerPage() {
             </div>
           ) : (
             <div>
+              {/* ⚠️ Yinelenen Kitap Bildirimi ve Hızlı Temizlik Banner'ı */}
+              {stats.duplicateCount > 0 && (
+                <div style={{
+                  background: isDark ? 'rgba(234,179,8,0.1)' : '#fefce8',
+                  border: isDark ? '1px solid rgba(234,179,8,0.3)' : '1px solid #fde047',
+                  borderRadius: '1rem',
+                  padding: '0.85rem 1.25rem',
+                  marginBottom: '1.15rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  boxShadow: isDark ? '0 4px 15px rgba(0,0,0,0.2)' : '0 2px 8px rgba(234,179,8,0.1)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: isDark ? 'rgba(234,179,8,0.2)' : '#fef08a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ca8a04',
+                      flexShrink: 0
+                    }}>
+                      <AlertTriangle size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isDark ? '#fef08a' : '#854d0e' }}>
+                        {stats.duplicateCount} Adet Yinelenen (Çift) Kitap Tespit Edildi!
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: isDark ? '#cbd5e1' : '#713f12' }}>
+                        İki kez eklenen kopyaları tek tıkla silebilirsiniz. Her kitabın orijinal 1 kopyası korunacaktır.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCleanDuplicates}
+                    style={{
+                      padding: '0.55rem 1.15rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #eab308, #ca8a04)',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 10px rgba(202,138,4,0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <Trash2 size={14} /> Kopyaları Otomatik Temizle ({stats.duplicateCount})
+                  </button>
+                </div>
+              )}
+
               {/* Header Action Bar */}
               <div style={{
                 display: 'flex',
@@ -872,82 +1006,228 @@ export default function ReadingTrackerPage() {
                 flexWrap: 'wrap',
                 gap: '0.5rem'
               }}>
-                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569' }}>
-                  ⏳ Okunacak Kitaplar ({toReadBooks.length})
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569' }}>
+                    ⏳ Okunacak Kitaplar ({toReadBooks.length})
+                  </div>
+                  {isSelectMode && (
+                    <span style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff',
+                      color: isDark ? '#a5b4fc' : '#4338ca'
+                    }}>
+                      {selectedBookIds.size} seçildi
+                    </span>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsBulkModalOpen(true)}
-                    style={{
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: '0.65rem',
-                      border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
-                      background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
-                      color: isDark ? '#a5b4fc' : '#4f46e5',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    ⚡ Toplu Ekle
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenAdd('to_read')}
-                    style={{
-                      padding: '0.45rem 0.85rem',
-                      borderRadius: '0.65rem',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                      color: 'white',
-                      fontWeight: 800,
-                      fontSize: '0.78rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    <Plus size={14} /> Yeni Ekle
-                  </button>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {isSelectMode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleSelectAllToRead}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f8fafc',
+                          color: isDark ? '#e2e8f0' : '#334155',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        {selectedBookIds.size === toReadBooks.length ? <CheckSquare size={14} /> : <Square size={14} />}
+                        {selectedBookIds.size === toReadBooks.length ? 'Seçimi Kaldır' : 'Tümünü Seç'}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={selectedBookIds.size === 0}
+                        onClick={handleDeleteSelected}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: 'none',
+                          background: selectedBookIds.size > 0 ? '#ef4444' : (isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2'),
+                          color: selectedBookIds.size > 0 ? '#ffffff' : (isDark ? '#f87171' : '#dc2626'),
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: selectedBookIds.size > 0 ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          opacity: selectedBookIds.size > 0 ? 1 : 0.6
+                        }}
+                      >
+                        <Trash2 size={14} /> Seçilenleri Sil ({selectedBookIds.size})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsSelectMode(false);
+                          setSelectedBookIds(new Set());
+                        }}
+                        style={{
+                          padding: '0.45rem 0.75rem',
+                          borderRadius: '0.65rem',
+                          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e2e8f0',
+                          background: 'transparent',
+                          color: isDark ? '#94a3b8' : '#64748b',
+                          fontWeight: 700,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✕ Vazgeç
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {stats.duplicateCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleCleanDuplicates}
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: '0.65rem',
+                            border: isDark ? '1px solid rgba(234,179,8,0.4)' : '1px solid #facc15',
+                            background: isDark ? 'rgba(234,179,8,0.18)' : '#fef9c3',
+                            color: isDark ? '#fef08a' : '#a16207',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          🧹 Kopyaları Sil ({stats.duplicateCount})
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setIsSelectMode(true)}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1',
+                          background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <CheckSquare size={14} /> Çoklu Seç / Sil
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsBulkModalOpen(true)}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+                          background: isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff',
+                          color: isDark ? '#a5b4fc' : '#4f46e5',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        ⚡ Toplu Ekle
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAdd('to_read')}
+                        style={{
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: '0.65rem',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          color: 'white',
+                          fontWeight: 800,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <Plus size={14} /> Yeni Ekle
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
               {toReadBooks.map(book => {
                 const colorObj = getColorObj(book.color);
+                const isSelected = selectedBookIds.has(book.id);
+
                 return (
                   <div
                     key={book.id}
+                    onClick={() => {
+                      if (isSelectMode) toggleSelectBook(book.id);
+                    }}
                     style={{
                       background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
-                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                      border: isSelected
+                        ? '2px solid #6366f1'
+                        : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
                       borderRadius: '1.25rem',
                       padding: '1.15rem',
-                      boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)',
+                      boxShadow: isSelected
+                        ? '0 0 0 3px rgba(99,102,241,0.25)'
+                        : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'),
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      gap: '0.85rem'
+                      gap: '0.85rem',
+                      cursor: isSelectMode ? 'pointer' : 'default',
+                      position: 'relative',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: colorObj.light,
-                          color: colorObj.bg,
-                          border: `1px solid ${colorObj.bg}30`
-                        }}>
-                          {book.category || 'Roman'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {isSelectMode && (
+                            <div style={{ color: isSelected ? '#6366f1' : (isDark ? '#64748b' : '#94a3b8'), display: 'flex', alignItems: 'center' }}>
+                              {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                            </div>
+                          )}
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: colorObj.light,
+                            color: colorObj.bg,
+                            border: `1px solid ${colorObj.bg}30`
+                          }}>
+                            {book.category || 'Roman'}
+                          </span>
+                        </div>
                         <span style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
                           📄 {book.totalPages} Sayfa
                         </span>
@@ -968,64 +1248,73 @@ export default function ReadingTrackerPage() {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => startReadingBook(book.id)}
-                        style={{
-                          flex: 1,
-                          padding: '0.6rem 0.8rem',
-                          borderRadius: '0.75rem',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
-                          color: 'white',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          boxShadow: '0 2px 8px rgba(236,72,153,0.35)'
-                        }}
-                      >
-                        <Play size={14} fill="white" /> Okumaya Başla
-                      </button>
+                    {!isSelectMode && (
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startReadingBook(book.id);
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '0.6rem 0.8rem',
+                            borderRadius: '0.75rem',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                            color: 'white',
+                            fontWeight: 800,
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            boxShadow: '0 2px 8px rgba(236,72,153,0.35)'
+                          }}
+                        >
+                          <Play size={14} fill="white" /> Okumaya Başla
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(book)}
-                        style={{
-                          background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                          border: 'none',
-                          borderRadius: '0.75rem',
-                          padding: '0.6rem 0.75rem',
-                          color: isDark ? '#cbd5e1' : '#475569',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Edit3 size={15} />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEdit(book);
+                          }}
+                          style={{
+                            background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                            border: 'none',
+                            borderRadius: '0.75rem',
+                            padding: '0.6rem 0.75rem',
+                            color: isDark ? '#cbd5e1' : '#475569',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Edit3 size={15} />
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
-                            deleteBook(book.id);
-                          }
-                        }}
-                        style={{
-                          background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
-                          border: 'none',
-                          borderRadius: '0.75rem',
-                          padding: '0.6rem 0.75rem',
-                          color: '#ef4444',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
+                              deleteBook(book.id);
+                            }
+                          }}
+                          style={{
+                            background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                            border: 'none',
+                            borderRadius: '0.75rem',
+                            padding: '0.6rem 0.75rem',
+                            color: '#ef4444',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -289,6 +289,57 @@ export function ReadingProvider({ children }) {
     });
   }, [logs, persistCloud]);
 
+  const deleteBooksBulk = useCallback((bookIds) => {
+    if (!Array.isArray(bookIds) || bookIds.length === 0) return 0;
+    const idSet = new Set(bookIds);
+    let count = 0;
+    setBooks(prev => {
+      const updated = prev.filter(b => {
+        if (idSet.has(b.id)) {
+          count++;
+          return false;
+        }
+        return true;
+      });
+      persistCloud(updated, logs);
+      return updated;
+    });
+    return count;
+  }, [logs, persistCloud]);
+
+  const removeDuplicateBooks = useCallback(() => {
+    let removedCount = 0;
+    setBooks(prev => {
+      const seen = new Set();
+      const updated = [];
+
+      // Sort so books in progress or completed take priority over unread copies
+      const sorted = [...prev].sort((a, b) => {
+        const scoreA = (a.status === 'completed' ? 100 : a.status === 'reading' ? 50 : 0) + (a.currentPage || 0);
+        const scoreB = (b.status === 'completed' ? 100 : b.status === 'reading' ? 50 : 0) + (b.currentPage || 0);
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
+      });
+
+      for (const b of sorted) {
+        const normTitle = (b.title || '').trim().toLowerCase();
+        const normAuthor = (b.author || '').trim().toLowerCase();
+        const key = `${normTitle}___${normAuthor}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          updated.push(b);
+        } else {
+          removedCount++;
+        }
+      }
+
+      persistCloud(updated, logs);
+      return updated;
+    });
+    return removedCount;
+  }, [logs, persistCloud]);
+
   const startReadingBook = useCallback((bookId) => {
     const today = getTurkeyYMD();
     setBooks(prev => {
@@ -479,6 +530,20 @@ export function ReadingProvider({ children }) {
       });
     }
 
+    // Calculate duplicate count
+    const seenTitles = new Set();
+    let duplicateCount = 0;
+    books.forEach(b => {
+      const normTitle = (b.title || '').trim().toLowerCase();
+      const normAuthor = (b.author || '').trim().toLowerCase();
+      const key = `${normTitle}___${normAuthor}`;
+      if (seenTitles.has(key)) {
+        duplicateCount++;
+      } else {
+        seenTitles.add(key);
+      }
+    });
+
     return {
       todayPages,
       monthPages,
@@ -488,7 +553,8 @@ export function ReadingProvider({ children }) {
       completedCount: completed.length,
       monthFinishedBooks,
       streak,
-      last7Days
+      last7Days,
+      duplicateCount
     };
   }, [books, logs]);
 
@@ -501,6 +567,8 @@ export function ReadingProvider({ children }) {
     addBooksBulk,
     updateBook,
     deleteBook,
+    deleteBooksBulk,
+    removeDuplicateBooks,
     startReadingBook,
     updateReadingProgress,
     completeBook,
@@ -514,6 +582,8 @@ export function ReadingProvider({ children }) {
     addBooksBulk,
     updateBook,
     deleteBook,
+    deleteBooksBulk,
+    removeDuplicateBooks,
     startReadingBook,
     updateReadingProgress,
     completeBook,
@@ -534,11 +604,13 @@ export function useReading() {
       books: [],
       logs: [],
       isLoading: false,
-      stats: { todayPages: 0, monthPages: 0, allTimePages: 0, readingCount: 0, completedCount: 0, toReadCount: 0, monthFinishedBooks: 0, streak: 0, last7Days: [] },
+      stats: { todayPages: 0, monthPages: 0, allTimePages: 0, readingCount: 0, completedCount: 0, toReadCount: 0, monthFinishedBooks: 0, streak: 0, last7Days: [], duplicateCount: 0 },
       addBook: () => {},
       addBooksBulk: () => [],
       updateBook: () => {},
       deleteBook: () => {},
+      deleteBooksBulk: () => 0,
+      removeDuplicateBooks: () => 0,
       startReadingBook: () => {},
       updateReadingProgress: () => {},
       completeBook: () => {},
