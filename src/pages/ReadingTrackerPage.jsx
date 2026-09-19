@@ -3,7 +3,7 @@ import {
   Plus, CheckCircle2, Bookmark, Flame, Calendar, 
   Award, Star, Trash2, Edit3, Sparkles, 
   BarChart3, X, Play, CheckSquare, Square, AlertTriangle,
-  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List
+  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List, RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingContext';
@@ -821,55 +821,224 @@ export default function ReadingTrackerPage() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
-              {readingBooks.map(book => {
-                const colorObj = getColorObj(book.color);
-                const progressPct = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
-                const remainingPages = Math.max(0, book.totalPages - book.currentPage);
+            <div>
+              {/* Üst Bilgi ve Buton Çubuğu */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.85rem',
+                flexWrap: 'wrap',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
+                    📖 Şu An Okunan Kitaplar
+                  </span>
+                  <span style={{
+                    background: isDark ? 'rgba(236,72,153,0.18)' : '#fdf2f8',
+                    color: '#ec4899',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 99
+                  }}>
+                    {readingBooks.length} Kitap
+                  </span>
+                </div>
 
-                return (
-                  <div
-                    key={book.id}
-                    style={{
-                      background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
-                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                      borderRadius: '1.25rem',
-                      padding: '1.25rem',
-                      boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 10px rgba(0,0,0,0.03)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '1rem',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    {/* Top Color Accent Line */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: colorObj.bg }} />
+                <button
+                  type="button"
+                  onClick={() => handleOpenAdd('reading')}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '0.65rem',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                    color: 'white',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <Plus size={14} /> Yeni Kitap Ekle
+                </button>
+              </div>
 
-                    {/* Book Details */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 800,
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            background: colorObj.light,
-                            color: colorObj.bg,
-                            border: `1px solid ${colorObj.bg}30`
-                          }}>
-                            {book.category || 'Roman'}
-                          </span>
-                          {book.startDate && (
-                            <span style={{ fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
-                              🗓️ {book.startDate} tarihinde başlandı
+              {/* Okunanlar Tablosu */}
+              <div style={{
+                background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                borderRadius: '1.25rem',
+                overflow: 'hidden',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'
+              }}>
+                {/* Tablo Başlıkları */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 140px' : '1fr 130px 220px 95px 185px',
+                  padding: '0.8rem 1rem',
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                  borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  <div>Kitap &amp; Yazar</div>
+                  {!isMobile && <div>Başlama Tarihi</div>}
+                  {!isMobile && <div>İlerleme</div>}
+                  {!isMobile && <div>Kalan</div>}
+                  <div style={{ textAlign: 'right' }}>İşlem</div>
+                </div>
+
+                {/* Tablo Satırları */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {readingBooks.map((book) => {
+                    const colorObj = getColorObj(book.color);
+                    const progressPct = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
+                    const remainingPages = Math.max(0, book.totalPages - book.currentPage);
+
+                    return (
+                      <div
+                        key={book.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr 140px' : '1fr 130px 220px 95px 185px',
+                          alignItems: 'center',
+                          padding: isMobile ? '0.85rem 0.75rem' : '0.85rem 1rem',
+                          borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9',
+                          background: isDark ? 'rgba(255,255,255,0.01)' : 'transparent',
+                          transition: 'background 0.15s ease',
+                          gap: isMobile ? 8 : 12
+                        }}
+                      >
+                        {/* Kitap & Yazar */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontWeight: 900,
+                              fontSize: '0.86rem',
+                              color: isDark ? '#f8fafc' : '#0f172a',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '100%'
+                            }}>
+                              {book.title}
                             </span>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              background: colorObj.light,
+                              color: colorObj.bg,
+                              fontWeight: 800
+                            }}>
+                              {book.category || 'Roman'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                            {book.author && (
+                              <span style={{ fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                                ✍️ {book.author}
+                              </span>
+                            )}
+                            {isMobile && (
+                              <span style={{ fontSize: '0.7rem', color: colorObj.bg, fontWeight: 800 }}>
+                                Sf. {book.currentPage} / {book.totalPages} (%{progressPct})
+                              </span>
+                            )}
+                          </div>
+                          {isMobile && (
+                            <div style={{ width: '100%', height: 5, background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', borderRadius: 99, marginTop: 5, overflow: 'hidden' }}>
+                              <div style={{ width: `${progressPct}%`, height: '100%', background: `linear-gradient(90deg, ${colorObj.bg}, #f43f5e)`, borderRadius: 99 }} />
+                            </div>
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: 4 }}>
+                        {/* Başlama Tarihi (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                            {book.startDate ? `🗓️ ${book.startDate}` : '—'}
+                          </div>
+                        )}
+
+                        {/* İlerleme (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 800 }}>
+                              <span style={{ color: isDark ? '#f8fafc' : '#0f172a' }}>
+                                {book.currentPage} / {book.totalPages} sf.
+                              </span>
+                              <span style={{ color: colorObj.bg, fontWeight: 900 }}>
+                                %{progressPct}
+                              </span>
+                            </div>
+                            <div style={{ width: '100%', height: 6, background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                              <div style={{ width: `${progressPct}%`, height: '100%', background: `linear-gradient(90deg, ${colorObj.bg}, #f43f5e)`, borderRadius: 99 }} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Kalan Sayfa (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#cbd5e1' : '#475569' }}>
+                            {remainingPages} sf.
+                          </div>
+                        )}
+
+                        {/* İşlemler */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenProgress(book)}
+                            title="Sayfa İlerlemesi Gir"
+                            style={{
+                              padding: isMobile ? '0.35rem 0.5rem' : '0.35rem 0.65rem',
+                              borderRadius: '0.55rem',
+                              border: isDark ? '1px solid rgba(236,72,153,0.3)' : '1px solid #fbcfe8',
+                              background: isDark ? 'rgba(236,72,153,0.12)' : '#fdf2f8',
+                              color: isDark ? '#f472b6' : '#db2777',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <Bookmark size={13} />
+                            {!isMobile && <span>Sayfa</span>}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenFinish(book)}
+                            title="Kitabı Bitir"
+                            style={{
+                              padding: isMobile ? '0.35rem 0.5rem' : '0.35rem 0.65rem',
+                              borderRadius: '0.55rem',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: 'white',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              boxShadow: '0 2px 6px rgba(16,185,129,0.25)'
+                            }}
+                          >
+                            <CheckCircle2 size={13} />
+                            {!isMobile && <span>Bitir</span>}
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(book)}
@@ -882,8 +1051,9 @@ export default function ReadingTrackerPage() {
                               padding: 4
                             }}
                           >
-                            <Edit3 size={15} />
+                            <Edit3 size={14} />
                           </button>
+
                           <button
                             type="button"
                             onClick={() => {
@@ -900,102 +1070,14 @@ export default function ReadingTrackerPage() {
                               padding: 4
                             }}
                           >
-                            <Trash2 size={15} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
-
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 2px', lineHeight: 1.3 }}>
-                        {book.title}
-                      </h3>
-                      {book.author && (
-                        <div style={{ fontSize: '0.8rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
-                          ✍️ {book.author}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Progress Bar & Stats */}
-                    <div style={{
-                      background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                      border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9',
-                      borderRadius: '0.85rem',
-                      padding: '0.75rem 0.85rem'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
-                          Sayfa {book.currentPage} / {book.totalPages}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: colorObj.bg }}>
-                          %{progressPct}
-                        </span>
-                      </div>
-
-                      {/* Bar */}
-                      <div style={{ width: '100%', height: 8, background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
-                        <div style={{
-                          width: `${progressPct}%`,
-                          height: '100%',
-                          background: `linear-gradient(90deg, ${colorObj.bg}, #f43f5e)`,
-                          borderRadius: 99,
-                          transition: 'width 0.3s ease'
-                        }} />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.68rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
-                        <span>Kalan: <strong>{remainingPages} sayfa</strong></span>
-                        {book.notes && <span style={{ fontStyle: 'italic', maxWidth: '55%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📝 {book.notes}</span>}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenProgress(book)}
-                        style={{
-                          flex: 1,
-                          padding: '0.6rem 0.8rem',
-                          borderRadius: '0.75rem',
-                          border: isDark ? '1px solid rgba(236,72,153,0.3)' : '1.5px solid #fbcfe8',
-                          background: isDark ? 'rgba(236,72,153,0.12)' : '#fdf2f8',
-                          color: isDark ? '#f472b6' : '#db2777',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 5
-                        }}
-                      >
-                        <Bookmark size={15} /> Sayfa Güncelle
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpenFinish(book)}
-                        style={{
-                          padding: '0.6rem 0.85rem',
-                          borderRadius: '0.75rem',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: 'white',
-                          fontWeight: 800,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
-                        }}
-                      >
-                        <CheckCircle2 size={15} /> Bitirdim
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1815,121 +1897,213 @@ export default function ReadingTrackerPage() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
-              {completedBooks.map(book => {
-                const colorObj = getColorObj(book.color);
-                return (
-                  <div
-                    key={book.id}
-                    style={{
-                      background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
-                      border: isDark ? '1px solid rgba(16,185,129,0.25)' : '1px solid #bbf7d0',
-                      borderRadius: '1.25rem',
-                      padding: '1.25rem',
-                      boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      gap: '0.85rem'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 800,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: 'rgba(16,185,129,0.15)',
-                          color: '#10b981',
-                          border: '1px solid rgba(16,185,129,0.3)'
-                        }}>
-                          ✓ Tamamlandı
-                        </span>
+            <div>
+              {/* Üst Bilgi */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '0.85rem',
+                flexWrap: 'wrap',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
+                    ✅ Tamamlanan Kitaplar
+                  </span>
+                  <span style={{
+                    background: isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5',
+                    color: '#10b981',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: 99
+                  }}>
+                    {completedBooks.length} Kitap
+                  </span>
+                </div>
+              </div>
 
-                        {/* Stars */}
-                        <div style={{ display: 'flex', gap: 2 }}>
-                          {[1, 2, 3, 4, 5].map(star => (
-                            <Star
-                              key={star}
-                              size={14}
-                              fill={star <= (book.rating || 5) ? '#f59e0b' : 'transparent'}
-                              color={star <= (book.rating || 5) ? '#f59e0b' : '#94a3b8'}
-                            />
-                          ))}
-                        </div>
-                      </div>
+              {/* Bitenler Tablosu */}
+              <div style={{
+                background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                borderRadius: '1.25rem',
+                overflow: 'hidden',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'
+              }}>
+                {/* Tablo Başlıkları */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr 115px' : '1fr 130px 95px 140px 145px',
+                  padding: '0.8rem 1rem',
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                  borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  <div>Kitap &amp; Yazar</div>
+                  {!isMobile && <div>Bitiş Tarihi</div>}
+                  {!isMobile && <div>Sayfa</div>}
+                  {!isMobile && <div>Puan / Not</div>}
+                  <div style={{ textAlign: 'right' }}>İşlem</div>
+                </div>
 
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 2px' }}>
-                        {book.title}
-                      </h3>
-                      {book.author && (
-                        <div style={{ fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
-                          ✍️ {book.author}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
-                        <span>📄 <strong>{book.totalPages}</strong> Sayfa</span>
-                        {book.finishDate && <span>🏁 Bitiş: <strong>{book.finishDate}</strong></span>}
-                      </div>
-
-                      {book.notes && (
-                        <div style={{
-                          marginTop: 10,
-                          padding: '0.6rem 0.75rem',
-                          borderRadius: '0.75rem',
-                          background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                          border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9',
-                          fontSize: '0.75rem',
-                          fontStyle: 'italic',
-                          color: isDark ? '#cbd5e1' : '#334155'
-                        }}>
-                          "{book.notes}"
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9' }}>
-                      <button
-                        type="button"
-                        onClick={() => startReadingBook(book.id)}
+                {/* Tablo Satırları */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {completedBooks.map((book) => {
+                    return (
+                      <div
+                        key={book.id}
                         style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#6366f1',
-                          fontSize: '0.76rem',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'flex',
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr 115px' : '1fr 130px 95px 140px 145px',
                           alignItems: 'center',
-                          gap: 4
+                          padding: isMobile ? '0.85rem 0.75rem' : '0.85rem 1rem',
+                          borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9',
+                          background: isDark ? 'rgba(255,255,255,0.01)' : 'transparent',
+                          transition: 'background 0.15s ease',
+                          gap: isMobile ? 8 : 12
                         }}
                       >
-                        🔄 Tekrar Oku
-                      </button>
+                        {/* Kitap & Yazar */}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontWeight: 900,
+                              fontSize: '0.86rem',
+                              color: isDark ? '#f8fafc' : '#0f172a',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '100%'
+                            }}>
+                              {book.title}
+                            </span>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              background: 'rgba(16,185,129,0.15)',
+                              color: '#10b981',
+                              fontWeight: 800
+                            }}>
+                              ✓ Bitti
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                            {book.author && (
+                              <span style={{ fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                                ✍️ {book.author}
+                              </span>
+                            )}
+                            {isMobile && (
+                              <span style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
+                                📄 {book.totalPages} sf. {book.finishDate ? `• 🏁 ${book.finishDate}` : ''}
+                              </span>
+                            )}
+                          </div>
+                          {book.notes && !isMobile && (
+                            <div style={{ fontSize: '0.72rem', fontStyle: 'italic', color: isDark ? '#a5b4fc' : '#6366f1', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              📝 "{book.notes}"
+                            </div>
+                          )}
+                        </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`"${book.title}" kaydını silmek istiyor musunuz?`)) {
-                            deleteBook(book.id);
-                          }
-                        }}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: 4
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                        {/* Bitiş Tarihi (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.74rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                            {book.finishDate ? `🏁 ${book.finishDate}` : '—'}
+                          </div>
+                        )}
+
+                        {/* Sayfa (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isDark ? '#cbd5e1' : '#334155' }}>
+                            {book.totalPages} sf.
+                          </div>
+                        )}
+
+                        {/* Puan / Stars (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <Star
+                                key={star}
+                                size={13}
+                                fill={star <= (book.rating || 5) ? '#f59e0b' : 'transparent'}
+                                color={star <= (book.rating || 5) ? '#f59e0b' : '#94a3b8'}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* İşlemler */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                          <button
+                            type="button"
+                            onClick={() => startReadingBook(book.id)}
+                            title="Tekrar Okumaya Başla"
+                            style={{
+                              padding: isMobile ? '0.35rem 0.5rem' : '0.35rem 0.65rem',
+                              borderRadius: '0.55rem',
+                              border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+                              background: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff',
+                              color: isDark ? '#a5b4fc' : '#4f46e5',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}
+                          >
+                            <RotateCcw size={12} />
+                            {!isMobile && <span>Tekrar Oku</span>}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(book)}
+                            title="Düzenle"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: isDark ? '#94a3b8' : '#64748b',
+                              cursor: 'pointer',
+                              padding: 4
+                            }}
+                          >
+                            <Edit3 size={14} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`"${book.title}" kaydını silmek istiyor musunuz?`)) {
+                                deleteBook(book.id);
+                              }
+                            }}
+                            title="Sil"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: 4
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
