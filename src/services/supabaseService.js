@@ -2966,8 +2966,28 @@ export async function dbSaveCoachingProfile(profile) {
     const profileId = String(profile.id || `cp_${rawStudentId}`);
     const uuidProfileId = toUUID(profileId) || profileId;
 
-    // Full profile data stored in extra_data
+    // Fetch existing extra_data first so we preserve readingTracker and other data
+    let existingExtra = {};
+    try {
+      const targetIds = [rawStudentId, profileId];
+      if (uuidStudentId && !targetIds.includes(uuidStudentId)) targetIds.push(uuidStudentId);
+      const { data: existingRows } = await supabase
+        .from('coaching_profiles')
+        .select('extra_data')
+        .in('id', targetIds)
+        .limit(1);
+      if (existingRows && existingRows[0]?.extra_data) {
+        let ex = existingRows[0].extra_data;
+        if (typeof ex === 'string') {
+          try { ex = JSON.parse(ex); } catch {}
+        }
+        if (ex && typeof ex === 'object') existingExtra = ex;
+      }
+    } catch {}
+
+    // Full profile data stored in extra_data (merging existing extra_data fields)
     const fullProfileData = {
+      ...existingExtra,
       ...profile,
       studentId: rawStudentId,
       id: profileId,

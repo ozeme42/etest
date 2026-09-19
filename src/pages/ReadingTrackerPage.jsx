@@ -30,6 +30,7 @@ export default function ReadingTrackerPage() {
     startReadingBook,
     updateReadingProgress,
     completeBook,
+    uncompleteBook,
     logManualReading
   } = useReading();
 
@@ -2045,8 +2046,34 @@ export default function ReadingTrackerPage() {
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
                           <button
                             type="button"
+                            onClick={() => {
+                              if (window.confirm(`"${book.title}" kitabının bitti durumunu geri almak ve okunanlara geri taşımak istiyor musunuz?\n\nTamamlanan sayfa istatistiklerden de geri alınacaktır.`)) {
+                                uncompleteBook(book.id);
+                              }
+                            }}
+                            title="Bitti Durumunu Geri Al (Okunanlara Döndür)"
+                            style={{
+                              padding: isMobile ? '0.35rem 0.5rem' : '0.35rem 0.65rem',
+                              borderRadius: '0.55rem',
+                              border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a',
+                              background: isDark ? 'rgba(245,158,11,0.12)' : '#fef3c7',
+                              color: isDark ? '#fbbf24' : '#d97706',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}
+                          >
+                            <RotateCcw size={12} />
+                            {!isMobile && <span>Geri Al</span>}
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => startReadingBook(book.id)}
-                            title="Tekrar Okumaya Başla"
+                            title="Tekrar Baştan Okumaya Başla"
                             style={{
                               padding: isMobile ? '0.35rem 0.5rem' : '0.35rem 0.65rem',
                               borderRadius: '0.55rem',

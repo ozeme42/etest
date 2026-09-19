@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toUUID } from '../services/supabaseService';
@@ -79,9 +79,17 @@ export function ReadingProvider({ children }) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync to localStorage whenever state changes
+  // Keep refs for absolute latest state to avoid race conditions and async batching loss
+  const booksRef = useRef(books);
+  booksRef.current = books;
+  const logsRef = useRef(logs);
+  logsRef.current = logs;
+  const isInitialLoadedRef = useRef(false);
+
+  // Sync to localStorage whenever state changes (only AFTER initial load completed)
   useEffect(() => {
     if (!studentId || studentId === 'guest') return;
+    if (!isInitialLoadedRef.current) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify({ books, logs, updatedAt: new Date().toISOString() }));
     } catch (err) {
@@ -89,11 +97,32 @@ export function ReadingProvider({ children }) {
     }
   }, [books, logs, storageKey, studentId]);
 
-  // Load from Supabase on mount / user change
+  // Load from LocalStorage and Supabase on mount / user change
   useEffect(() => {
-    if (!studentId || studentId === 'guest' || !isSupabaseConfigured()) return;
+    if (!studentId || studentId === 'guest') return;
 
     let isMounted = true;
+    isInitialLoadedRef.current = false;
+
+    // 1. Immediately hydrate from localStorage for this specific studentId
+    try {
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed.books) && parsed.books.length > 0) {
+          setBooks(parsed.books);
+        }
+        if (Array.isArray(parsed.logs)) {
+          setLogs(parsed.logs);
+        }
+      }
+    } catch {}
+
+    if (!isSupabaseConfigured()) {
+      isInitialLoadedRef.current = true;
+      return;
+    }
+
     const fetchCloudData = async () => {
       setIsLoading(true);
       try {
@@ -115,9 +144,20 @@ export function ReadingProvider({ children }) {
               } catch {}
             }
             const cloudReading = extra?.readingTracker;
-            if (cloudReading && (Array.isArray(cloudReading.books) || Array.isArray(cloudReading.logs))) {
-              setBooks(cloudReading.books || []);
-              setLogs(cloudReading.logs || []);
+            if (cloudReading) {
+              if (Array.isArray(cloudReading.books) && cloudReading.books.length > 0) {
+                setBooks(cloudReading.books);
+                try {
+                  localStorage.setItem(storageKey, JSON.stringify({
+                    books: cloudReading.books,
+                    logs: cloudReading.logs || [],
+                    updatedAt: cloudReading.updatedAt || new Date().toISOString()
+                  }));
+                } catch {}
+              }
+              if (Array.isArray(cloudReading.logs)) {
+                setLogs(cloudReading.logs);
+              }
               break;
             }
           }
@@ -125,7 +165,10 @@ export function ReadingProvider({ children }) {
       } catch (err) {
         console.warn('ReadingContext fetchCloudData catch:', err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          isInitialLoadedRef.current = true;
+        }
       }
     };
 
@@ -134,12 +177,31 @@ export function ReadingProvider({ children }) {
     return () => {
       isMounted = false;
     };
-  }, [studentId]);
+  }, [studentId, storageKey]);
 
-  // Helper to persist current state to Supabase in background
+  // Helper to persist current state to Supabase & localStorage safely
   const persistCloud = useCallback(async (newBooks, newLogs) => {
-    if (!studentId || studentId === 'guest' || !isSupabaseConfigured()) return;
+    if (!studentId || studentId === 'guest') return;
+    if (!Array.isArray(newBooks)) return;
 
+    // Safety guard: if newBooks is empty but we currently have books in ref, do NOT wipe out
+    if (newBooks.length === 0 && booksRef.current.length > 0) {
+      console.warn('PersistCloud skipped: prevented accidental empty books write');
+      return;
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    // 1. Instantly write to localStorage
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ books: newBooks, logs: newLogs, updatedAt }));
+    } catch (err) {
+      console.warn('ReadingContext localStorage save warning:', err);
+    }
+
+    if (!isSupabaseConfigured()) return;
+
+    // 2. Persist to Supabase coaching_profiles
     try {
       const uuidId = toUUID(studentId) || studentId;
       const targetIds = [studentId, `cp_${studentId}`];
@@ -164,7 +226,7 @@ export function ReadingProvider({ children }) {
         readingTracker: {
           books: newBooks,
           logs: newLogs,
-          updatedAt: new Date().toISOString()
+          updatedAt
         }
       };
 
@@ -197,7 +259,7 @@ export function ReadingProvider({ children }) {
     } catch (err) {
       console.warn('ReadingContext persistCloud warning:', err);
     }
-  }, [studentId]);
+  }, [studentId, storageKey]);
 
   // Actions
   const addBook = useCallback((bookData) => {
@@ -219,14 +281,11 @@ export function ReadingProvider({ children }) {
       updatedAt: new Date().toISOString(),
     };
 
-    setBooks(prev => {
-      const updated = [newBook, ...prev];
-      persistCloud(updated, logs);
-      return updated;
-    });
-
+    const nextBooks = [newBook, ...booksRef.current];
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
     return newBook;
-  }, [studentId, logs, persistCloud]);
+  }, [studentId, persistCloud]);
 
   const addBooksBulk = useCallback((booksList) => {
     if (!Array.isArray(booksList) || booksList.length === 0) return [];
@@ -257,320 +316,290 @@ export function ReadingProvider({ children }) {
 
     if (newBooks.length === 0) return [];
 
-    setBooks(prev => {
-      const updated = [...newBooks, ...prev];
-      persistCloud(updated, logs);
-      return updated;
-    });
-
+    const nextBooks = [...newBooks, ...booksRef.current];
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
     return newBooks;
-  }, [studentId, logs, persistCloud]);
+  }, [studentId, persistCloud]);
 
   const updateBook = useCallback((bookId, updates) => {
-    setBooks(prev => {
-      const updated = prev.map(b => {
-        if (b.id !== bookId) return b;
-        return {
-          ...b,
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-      });
-      persistCloud(updated, logs);
-      return updated;
+    const nextBooks = booksRef.current.map(b => {
+      if (b.id !== bookId) return b;
+      return {
+        ...b,
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
     });
-  }, [logs, persistCloud]);
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+    return nextBooks;
+  }, [persistCloud]);
 
   const deleteBook = useCallback((bookId) => {
-    setBooks(prev => {
-      const updated = prev.filter(b => b.id !== bookId);
-      persistCloud(updated, logs);
-      return updated;
-    });
-  }, [logs, persistCloud]);
+    const nextBooks = booksRef.current.filter(b => b.id !== bookId);
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+    return nextBooks;
+  }, [persistCloud]);
 
   const deleteBooksBulk = useCallback((bookIds) => {
     if (!Array.isArray(bookIds) || bookIds.length === 0) return 0;
     const idSet = new Set(bookIds);
-    let count = 0;
-    setBooks(prev => {
-      const updated = prev.filter(b => {
-        if (idSet.has(b.id)) {
-          count++;
-          return false;
-        }
-        return true;
-      });
-      persistCloud(updated, logs);
-      return updated;
-    });
+    const nextBooks = booksRef.current.filter(b => !idSet.has(b.id));
+    const count = booksRef.current.length - nextBooks.length;
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
     return count;
-  }, [logs, persistCloud]);
+  }, [persistCloud]);
 
   const removeDuplicateBooks = useCallback(() => {
     let removedCount = 0;
-    setBooks(prev => {
-      const seen = new Set();
-      const updated = [];
+    const seen = new Set();
+    const nextBooks = [];
 
-      // Sort so books in progress or completed take priority over unread copies
-      const sorted = [...prev].sort((a, b) => {
-        const scoreA = (a.status === 'completed' ? 100 : a.status === 'reading' ? 50 : 0) + (a.currentPage || 0);
-        const scoreB = (b.status === 'completed' ? 100 : b.status === 'reading' ? 50 : 0) + (b.currentPage || 0);
-        if (scoreB !== scoreA) return scoreB - scoreA;
-        return (a.createdAt || '').localeCompare(b.createdAt || '');
-      });
-
-      for (const b of sorted) {
-        const normTitle = (b.title || '').trim().toLowerCase();
-        const normAuthor = (b.author || '').trim().toLowerCase();
-        const key = `${normTitle}___${normAuthor}`;
-
-        if (!seen.has(key)) {
-          seen.add(key);
-          updated.push(b);
-        } else {
-          removedCount++;
-        }
-      }
-
-      persistCloud(updated, logs);
-      return updated;
+    // Sort so books in progress or completed take priority over unread copies
+    const sorted = [...booksRef.current].sort((a, b) => {
+      const scoreA = (a.status === 'completed' ? 100 : a.status === 'reading' ? 50 : 0) + (a.currentPage || 0);
+      const scoreB = (b.status === 'completed' ? 100 : b.status === 'reading' ? 50 : 0) + (b.currentPage || 0);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return (a.createdAt || '').localeCompare(b.createdAt || '');
     });
+
+    for (const b of sorted) {
+      const normTitle = (b.title || '').trim().toLowerCase();
+      const normAuthor = (b.author || '').trim().toLowerCase();
+      const key = `${normTitle}___${normAuthor}`;
+
+      if (!seen.has(key)) {
+        seen.add(key);
+        nextBooks.push(b);
+      } else {
+        removedCount++;
+      }
+    }
+
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
     return removedCount;
-  }, [logs, persistCloud]);
+  }, [persistCloud]);
 
   const reorderToReadBooks = useCallback((reorderedBookIds) => {
     if (!Array.isArray(reorderedBookIds) || reorderedBookIds.length === 0) return;
-    setBooks(prev => {
-      const orderMap = new Map();
-      reorderedBookIds.forEach((id, idx) => {
-        orderMap.set(id, idx + 1);
-      });
-
-      const updated = prev.map(b => {
-        if (orderMap.has(b.id)) {
-          return {
-            ...b,
-            order: orderMap.get(b.id),
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return b;
-      });
-
-      persistCloud(updated, logs);
-      return updated;
+    const orderMap = new Map();
+    reorderedBookIds.forEach((id, idx) => {
+      orderMap.set(id, idx + 1);
     });
-  }, [logs, persistCloud]);
+
+    const nextBooks = booksRef.current.map(b => {
+      if (orderMap.has(b.id)) {
+        return {
+          ...b,
+          order: orderMap.get(b.id),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return b;
+    });
+
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+  }, [persistCloud]);
 
   const moveBookOrder = useCallback((bookId, direction) => {
-    setBooks(prev => {
-      const toReadList = prev
-        .filter(b => b.status === 'to_read')
-        .sort((a, b) => {
-          const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
-          const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
-          if (oA !== oB) return oA - oB;
-          return (a.createdAt || '').localeCompare(b.createdAt || '');
-        });
-
-      const index = toReadList.findIndex(b => b.id === bookId);
-      if (index < 0) return prev;
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= toReadList.length) return prev;
-
-      const copyList = [...toReadList];
-      const temp = copyList[index];
-      copyList[index] = copyList[targetIndex];
-      copyList[targetIndex] = temp;
-
-      const orderMap = new Map();
-      copyList.forEach((b, idx) => {
-        orderMap.set(b.id, idx + 1);
+    const toReadList = booksRef.current
+      .filter(b => b.status === 'to_read')
+      .sort((a, b) => {
+        const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+        const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+        if (oA !== oB) return oA - oB;
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
       });
 
-      const updated = prev.map(b => {
-        if (orderMap.has(b.id)) {
-          return {
-            ...b,
-            order: orderMap.get(b.id),
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return b;
-      });
+    const index = toReadList.findIndex(b => b.id === bookId);
+    if (index < 0) return;
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= toReadList.length) return;
 
-      persistCloud(updated, logs);
-      return updated;
+    const copyList = [...toReadList];
+    const temp = copyList[index];
+    copyList[index] = copyList[targetIndex];
+    copyList[targetIndex] = temp;
+
+    const orderMap = new Map();
+    copyList.forEach((b, idx) => {
+      orderMap.set(b.id, idx + 1);
     });
-  }, [logs, persistCloud]);
+
+    const nextBooks = booksRef.current.map(b => {
+      if (orderMap.has(b.id)) {
+        return {
+          ...b,
+          order: orderMap.get(b.id),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return b;
+    });
+
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+  }, [persistCloud]);
 
   const setBookOrderRank = useCallback((bookId, newRank) => {
     const rankNum = parseInt(newRank, 10);
     if (isNaN(rankNum) || rankNum < 1) return;
 
-    setBooks(prev => {
-      const toReadList = prev
-        .filter(b => b.status === 'to_read')
-        .sort((a, b) => {
-          const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
-          const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
-          if (oA !== oB) return oA - oB;
-          return (a.createdAt || '').localeCompare(b.createdAt || '');
-        });
-
-      const currentIndex = toReadList.findIndex(b => b.id === bookId);
-      if (currentIndex < 0) return prev;
-
-      const copyList = [...toReadList];
-      const [targetBook] = copyList.splice(currentIndex, 1);
-      const targetIndex = Math.max(0, Math.min(copyList.length, rankNum - 1));
-      copyList.splice(targetIndex, 0, targetBook);
-
-      const orderMap = new Map();
-      copyList.forEach((b, idx) => {
-        orderMap.set(b.id, idx + 1);
+    const toReadList = booksRef.current
+      .filter(b => b.status === 'to_read')
+      .sort((a, b) => {
+        const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+        const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+        if (oA !== oB) return oA - oB;
+        return (a.createdAt || '').localeCompare(b.createdAt || '');
       });
 
-      const updated = prev.map(b => {
-        if (orderMap.has(b.id)) {
-          return {
-            ...b,
-            order: orderMap.get(b.id),
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return b;
-      });
+    const currentIndex = toReadList.findIndex(b => b.id === bookId);
+    if (currentIndex < 0) return;
 
-      persistCloud(updated, logs);
-      return updated;
+    const copyList = [...toReadList];
+    const [targetBook] = copyList.splice(currentIndex, 1);
+    const targetIndex = Math.max(0, Math.min(copyList.length, rankNum - 1));
+    copyList.splice(targetIndex, 0, targetBook);
+
+    const orderMap = new Map();
+    copyList.forEach((b, idx) => {
+      orderMap.set(b.id, idx + 1);
     });
-  }, [logs, persistCloud]);
+
+    const nextBooks = booksRef.current.map(b => {
+      if (orderMap.has(b.id)) {
+        return {
+          ...b,
+          order: orderMap.get(b.id),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return b;
+    });
+
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+  }, [persistCloud]);
 
   const startReadingBook = useCallback((bookId) => {
     const today = getTurkeyYMD();
-    setBooks(prev => {
-      const updated = prev.map(b => {
-        if (b.id !== bookId) return b;
-        return {
-          ...b,
-          status: 'reading',
-          startDate: b.startDate || today,
-          updatedAt: new Date().toISOString()
-        };
-      });
-      persistCloud(updated, logs);
-      return updated;
+    const nextBooks = booksRef.current.map(b => {
+      if (b.id !== bookId) return b;
+      return {
+        ...b,
+        status: 'reading',
+        startDate: b.startDate || today,
+        finishDate: null,
+        updatedAt: new Date().toISOString()
+      };
     });
-  }, [logs, persistCloud]);
+    setBooks(nextBooks);
+    persistCloud(nextBooks, logsRef.current);
+  }, [persistCloud]);
+
+  const uncompleteBook = useCallback((bookId) => {
+    const currentBooks = booksRef.current;
+    const currentLogs = logsRef.current;
+    const targetBook = currentBooks.find(b => String(b.id) === String(bookId));
+    if (!targetBook) return;
+
+    const isBookLog = (l) => {
+      if (l.bookId && String(l.bookId) === String(bookId)) return true;
+      if (!l.bookId && targetBook.title && l.bookTitle && l.bookTitle.trim().toLowerCase() === targetBook.title.trim().toLowerCase()) return true;
+      return false;
+    };
+
+    const latestLog = currentLogs.find(isBookLog);
+    const totalP = Number(targetBook.totalPages) || 100;
+    const currentP = Number(targetBook.currentPage) || totalP;
+
+    // Eğer bitirme anındaki fromPage biliniyorsa oraya dön, aksi halde 1 sayfa eksiğe dön
+    const restoredPage = (latestLog && typeof latestLog.fromPage === 'number')
+      ? Math.max(0, latestLog.fromPage)
+      : Math.max(0, totalP - 1);
+
+    const pagesToDeduct = Math.max(0, currentP - restoredPage);
+
+    const nextBooks = currentBooks.map(b => {
+      if (String(b.id) !== String(bookId)) return b;
+      return {
+        ...b,
+        status: 'reading',
+        currentPage: restoredPage,
+        finishDate: null,
+        rating: 0,
+        updatedAt: new Date().toISOString()
+      };
+    });
+
+    // İstatistiklerden de düşülmesi için ilgili bitirme logunu sil veya düşür
+    let nextLogs = [...currentLogs];
+    if (pagesToDeduct > 0) {
+      let toDeduct = pagesToDeduct;
+      const updatedLogs = [];
+      for (const l of nextLogs) {
+        if (toDeduct > 0 && isBookLog(l)) {
+          const lPages = Number(l.pagesRead) || 0;
+          if (lPages <= toDeduct) {
+            toDeduct -= lPages;
+            continue; // Logu tamamen kaldır
+          } else {
+            updatedLogs.push({
+              ...l,
+              pagesRead: lPages - toDeduct,
+              toPage: restoredPage
+            });
+            toDeduct = 0;
+            continue;
+          }
+        }
+        updatedLogs.push(l);
+      }
+      nextLogs = updatedLogs;
+    }
+
+    setBooks(nextBooks);
+    setLogs(nextLogs);
+    persistCloud(nextBooks, nextLogs);
+  }, [persistCloud]);
 
   const updateReadingProgress = useCallback((bookId, newPageNumber, durationMinutes = 0) => {
     const targetPage = Math.max(0, Number(newPageNumber) || 0);
     const today = getTurkeyYMD();
+    const currentBooks = booksRef.current;
+    const currentLogs = logsRef.current;
 
-    let bookTitle = '';
-    let oldPage = 0;
-    let totalP = 100;
+    const book = currentBooks.find(b => String(b.id) === String(bookId));
+    if (!book) return;
 
-    let updatedBooks = [];
-    setBooks(prev => {
-      let bookFinished = false;
-      updatedBooks = prev.map(b => {
-        if (b.id !== bookId) return b;
-        bookTitle = b.title;
-        oldPage = b.currentPage || 0;
-        totalP = b.totalPages || 100;
-        const cappedPage = Math.min(targetPage, totalP);
-        const isNowFinished = cappedPage >= totalP;
-        if (isNowFinished) bookFinished = true;
+    const oldPage = Number(book.currentPage) || 0;
+    const totalP = Math.max(1, Number(book.totalPages) || 100);
+    const cappedPage = Math.min(targetPage, totalP);
+    const isNowFinished = cappedPage >= totalP;
 
-        return {
-          ...b,
-          currentPage: cappedPage,
-          status: isNowFinished ? 'completed' : 'reading',
-          finishDate: isNowFinished ? (b.finishDate || today) : null,
-          startDate: b.startDate || today,
-          updatedAt: new Date().toISOString()
-        };
-      });
-
-      // Eğer bu kitap bittiyse ve aktif okunan başka kitap yoksa, sıradaki ilk 'to_read' kitabı otomatik 'reading' yap
-      if (bookFinished) {
-        const hasOtherReading = updatedBooks.some(b => b.id !== bookId && b.status === 'reading');
-        if (!hasOtherReading) {
-          const nextToRead = updatedBooks
-            .filter(b => b.status === 'to_read')
-            .sort((a, b) => {
-              const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
-              const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
-              if (oA !== oB) return oA - oB;
-              return (a.createdAt || '').localeCompare(b.createdAt || '');
-            })[0];
-
-          if (nextToRead) {
-            updatedBooks = updatedBooks.map(b => {
-              if (b.id !== nextToRead.id) return b;
-              return {
-                ...b,
-                status: 'reading',
-                startDate: b.startDate || today,
-                updatedAt: new Date().toISOString()
-              };
-            });
-          }
-        }
-      }
-
-      return updatedBooks;
+    let nextBooks = currentBooks.map(b => {
+      if (String(b.id) !== String(bookId)) return b;
+      return {
+        ...b,
+        currentPage: cappedPage,
+        status: isNowFinished ? 'completed' : (b.status === 'completed' && cappedPage < totalP ? 'reading' : b.status),
+        finishDate: isNowFinished ? (b.finishDate || today) : (cappedPage < totalP ? null : b.finishDate),
+        startDate: b.startDate || today,
+        updatedAt: new Date().toISOString()
+      };
     });
 
-    const pagesRead = Math.max(0, targetPage - oldPage);
-    if (pagesRead > 0) {
-      const newLog = {
-        id: logUid(),
-        studentId,
-        bookId,
-        bookTitle,
-        pagesRead,
-        fromPage: oldPage,
-        toPage: targetPage,
-        date: today,
-        durationMinutes: Number(durationMinutes) || 0,
-        timestamp: new Date().toISOString()
-      };
-
-      setLogs(prev => {
-        const updatedLogs = [newLog, ...prev];
-        persistCloud(updatedBooks, updatedLogs);
-        return updatedLogs;
-      });
-    } else {
-      persistCloud(updatedBooks, logs);
-    }
-  }, [studentId, logs, persistCloud]);
-
-  const completeBook = useCallback((bookId, { rating = 5, review = '', finishDate = null }) => {
-    const today = getTurkeyYMD();
-    setBooks(prev => {
-      let updated = prev.map(b => {
-        if (b.id !== bookId) return b;
-        return {
-          ...b,
-          status: 'completed',
-          currentPage: b.totalPages,
-          rating: Number(rating) || 5,
-          notes: review ? review.trim() : b.notes,
-          finishDate: finishDate || today,
-          updatedAt: new Date().toISOString()
-        };
-      });
-
-      // Sıradaki ilk 'to_read' kitabı otomatik başlat
-      const hasOtherReading = updated.some(b => b.id !== bookId && b.status === 'reading');
+    // Eğer bu kitap bittiyse ve aktif okunan başka kitap yoksa, sıradaki ilk 'to_read' kitabı otomatik 'reading' yap
+    if (isNowFinished) {
+      const hasOtherReading = nextBooks.some(b => String(b.id) !== String(bookId) && b.status === 'reading');
       if (!hasOtherReading) {
-        const nextToRead = updated
+        const nextToRead = nextBooks
           .filter(b => b.status === 'to_read')
           .sort((a, b) => {
             const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
@@ -580,7 +609,7 @@ export function ReadingProvider({ children }) {
           })[0];
 
         if (nextToRead) {
-          updated = updated.map(b => {
+          nextBooks = nextBooks.map(b => {
             if (b.id !== nextToRead.id) return b;
             return {
               ...b,
@@ -591,11 +620,134 @@ export function ReadingProvider({ children }) {
           });
         }
       }
+    }
 
-      persistCloud(updated, logs);
-      return updated;
+    let nextLogs = [...currentLogs];
+
+    if (cappedPage > oldPage) {
+      // 📈 Sayfa ARTTI: Okuma kaydı ekle
+      const pagesRead = cappedPage - oldPage;
+      const newLog = {
+        id: logUid(),
+        studentId,
+        bookId,
+        bookTitle: book.title || '',
+        pagesRead,
+        fromPage: oldPage,
+        toPage: cappedPage,
+        date: today,
+        durationMinutes: Number(durationMinutes) || 0,
+        timestamp: new Date().toISOString()
+      };
+      nextLogs = [newLog, ...nextLogs];
+    } else if (cappedPage < oldPage) {
+      // 📉 Sayfa AZALDI (Geri Alındı): İstatistiklerden de düşülmesi için logları eksilt / geri al
+      let toDeduct = oldPage - cappedPage;
+      const isBookLog = (l) => {
+        if (l.bookId && String(l.bookId) === String(bookId)) return true;
+        if (!l.bookId && book.title && l.bookTitle && l.bookTitle.trim().toLowerCase() === book.title.trim().toLowerCase()) return true;
+        return false;
+      };
+
+      const updatedLogs = [];
+      for (const l of nextLogs) {
+        if (toDeduct > 0 && isBookLog(l)) {
+          const lPages = Number(l.pagesRead) || 0;
+          if (lPages <= toDeduct) {
+            toDeduct -= lPages;
+            // Bu logun tamamını sil (tamamen geri alındı)
+            continue;
+          } else {
+            // Logun bir kısmını düşür
+            updatedLogs.push({
+              ...l,
+              pagesRead: lPages - toDeduct,
+              toPage: cappedPage
+            });
+            toDeduct = 0;
+            continue;
+          }
+        }
+        updatedLogs.push(l);
+      }
+      nextLogs = updatedLogs;
+    }
+
+    setBooks(nextBooks);
+    setLogs(nextLogs);
+    persistCloud(nextBooks, nextLogs);
+  }, [studentId, persistCloud]);
+
+  const completeBook = useCallback((bookId, { rating = 5, review = '', finishDate = null }) => {
+    const today = getTurkeyYMD();
+    const currentBooks = booksRef.current;
+    const currentLogs = logsRef.current;
+    const targetBook = currentBooks.find(b => String(b.id) === String(bookId));
+    if (!targetBook) return;
+
+    const oldPage = Number(targetBook.currentPage) || 0;
+    const totalP = Math.max(1, Number(targetBook.totalPages) || 100);
+    const pagesLeft = Math.max(0, totalP - oldPage);
+
+    let nextBooks = currentBooks.map(b => {
+      if (String(b.id) !== String(bookId)) return b;
+      return {
+        ...b,
+        status: 'completed',
+        currentPage: totalP,
+        rating: Number(rating) || 5,
+        notes: review ? review.trim() : b.notes,
+        finishDate: finishDate || today,
+        updatedAt: new Date().toISOString()
+      };
     });
-  }, [logs, persistCloud]);
+
+    // Sıradaki ilk 'to_read' kitabı otomatik başlat
+    const hasOtherReading = nextBooks.some(b => String(b.id) !== String(bookId) && b.status === 'reading');
+    if (!hasOtherReading) {
+      const nextToRead = nextBooks
+        .filter(b => b.status === 'to_read')
+        .sort((a, b) => {
+          const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+          const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+          if (oA !== oB) return oA - oB;
+          return (a.createdAt || '').localeCompare(b.createdAt || '');
+        })[0];
+
+      if (nextToRead) {
+        nextBooks = nextBooks.map(b => {
+          if (b.id !== nextToRead.id) return b;
+          return {
+            ...b,
+            status: 'reading',
+            startDate: b.startDate || today,
+            updatedAt: new Date().toISOString()
+          };
+        });
+      }
+    }
+
+    let nextLogs = [...currentLogs];
+    if (pagesLeft > 0) {
+      const finishLog = {
+        id: logUid(),
+        studentId,
+        bookId,
+        bookTitle: targetBook.title || '',
+        pagesRead: pagesLeft,
+        fromPage: oldPage,
+        toPage: totalP,
+        date: finishDate || today,
+        durationMinutes: 30,
+        timestamp: new Date().toISOString()
+      };
+      nextLogs = [finishLog, ...nextLogs];
+    }
+
+    setBooks(nextBooks);
+    setLogs(nextLogs);
+    persistCloud(nextBooks, nextLogs);
+  }, [studentId, persistCloud]);
 
   const logManualReading = useCallback((bookTitle, pagesCount, durationMinutes = 0) => {
     const count = Number(pagesCount) || 0;
@@ -615,12 +767,10 @@ export function ReadingProvider({ children }) {
       timestamp: new Date().toISOString()
     };
 
-    setLogs(prev => {
-      const updated = [newLog, ...prev];
-      persistCloud(books, updated);
-      return updated;
-    });
-  }, [studentId, books, persistCloud]);
+    const nextLogs = [newLog, ...logsRef.current];
+    setLogs(nextLogs);
+    persistCloud(booksRef.current, nextLogs);
+  }, [studentId, persistCloud]);
 
   // Statistics calculation
   const stats = useMemo(() => {
@@ -723,11 +873,20 @@ export function ReadingProvider({ children }) {
     };
   }, [books, logs]);
 
+  const activeBook = useMemo(() => books.find(b => b.status === 'reading') || null, [books]);
+  const logReading = useCallback((bookId, pagesToAdd, newCurrent) => {
+    updateReadingProgress(bookId, newCurrent);
+  }, [updateReadingProgress]);
+
   const value = useMemo(() => ({
     books,
     logs,
     isLoading,
     stats,
+    activeBook,
+    todayPages: stats.todayPages,
+    streak: stats.streak,
+    logReading,
     addBook,
     addBooksBulk,
     updateBook,
@@ -740,12 +899,15 @@ export function ReadingProvider({ children }) {
     startReadingBook,
     updateReadingProgress,
     completeBook,
+    uncompleteBook,
     logManualReading
   }), [
     books,
     logs,
     isLoading,
     stats,
+    activeBook,
+    logReading,
     addBook,
     addBooksBulk,
     updateBook,
@@ -758,6 +920,7 @@ export function ReadingProvider({ children }) {
     startReadingBook,
     updateReadingProgress,
     completeBook,
+    uncompleteBook,
     logManualReading
   ]);
 
@@ -776,6 +939,10 @@ export function useReading() {
       logs: [],
       isLoading: false,
       stats: { todayPages: 0, monthPages: 0, allTimePages: 0, readingCount: 0, completedCount: 0, toReadCount: 0, monthFinishedBooks: 0, streak: 0, last7Days: [], duplicateCount: 0 },
+      activeBook: null,
+      todayPages: 0,
+      streak: 0,
+      logReading: () => {},
       addBook: () => {},
       addBooksBulk: () => [],
       updateBook: () => {},
@@ -788,6 +955,7 @@ export function useReading() {
       startReadingBook: () => {},
       updateReadingProgress: () => {},
       completeBook: () => {},
+      uncompleteBook: () => {},
       logManualReading: () => {}
     };
   }
