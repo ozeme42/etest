@@ -203,6 +203,9 @@ export function extractItemYMD(item) {
   if (typeof item !== 'object') return null;
 
   const candidates = [
+    item.singleDate,
+    item.specificDate,
+    item.scheduledDate,
     item.date,
     item.targetDate,
     item.dueDate,
@@ -1868,7 +1871,6 @@ export default function StudentDashboard() {
                 if (readDate && readDate !== dayYMD) return;
               }
               if (itemYMD && itemYMD !== dayYMD) return;
-              if (item.createdYMD && dayYMD < item.createdYMD) return;
               if (item.repeatEndDate && dayYMD > item.repeatEndDate) return;
               dayManualItems.push({ ...item, isWeeklyProgItem: true });
             });
@@ -2272,7 +2274,6 @@ export default function StudentDashboard() {
         it.sourceTestId,
         it.sourceId,
         it.questionId,
-        it.roadmapAssignmentId,
         it.assignmentId,
         it.uniqueKey
       ];
@@ -2283,6 +2284,11 @@ export default function StudentDashboard() {
         if (it.homeworkId) rawIds.push(it.homeworkId);
       } else if (it.hwId && it.testId) {
         keys.push(`hw_test:${it.hwId}_${it.testId}`);
+      }
+
+      if (it.roadmapAssignmentId) {
+        const topPart = it.topicId || it.topic || it.unitTopic || it.title || it.id || '';
+        keys.push(`roadmap_assign_topic:${it.roadmapAssignmentId}_${topPart}`);
       }
 
       rawIds.forEach(id => {
@@ -2550,8 +2556,159 @@ export default function StudentDashboard() {
       }
     });
 
+    // 3. YOL HARİTASINDAN (STUDY PLANS / ASSIGNMENTS) HEDEF TARİHİ GEÇMİŞ TÜM ÇÖZÜLMEMİŞ / TAMAMLANMAMIŞ KONU VE GÖREVLER
+    const studentIdStr = String(selectedStudent?.id || '');
+    const studentUuidStr = String(toUUID(selectedStudent?.id) || '');
+    (studyAssignments || []).filter(a => {
+      if (!a) return false;
+      const aSid = String(a?.studentId || a?.student_id || '');
+      return aSid === studentIdStr || (studentUuidStr && (aSid === studentUuidStr || toUUID(aSid) === studentUuidStr));
+    }).forEach(assignment => {
+      if (!assignment || assignment.status === 'completed' || assignment.status === 'done') return;
+      const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
+
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
+
+      (plan.subjects || []).forEach(subject => {
+        const hasChildTopics = Array.isArray(subject?.topics) && subject.topics.length > 0;
+        const dersNameRaw = getDersNameForRoadmap(subject, plan);
+        const dersName = (dersNameRaw && dersNameRaw.toLowerCase() === 'geometri') ? 'Matematik' : dersNameRaw;
+
+        if (!hasChildTopics && subject?.dueDate) {
+          const sYMD = extractItemYMD(subject.dueDate);
+          const isOverdue = sYMD && todayYMD && sYMD < todayYMD;
+          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name);
+
+          if (isOverdue && !isSubjectCompleted) {
+            const due = new Date(subject.dueDate);
+            const dueTime = due.getTime();
+            const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+            const candidate = {
+              id: `catchup_roadmap_sub_${assignment.id}_${subject.id}`,
+              roadmapAssignmentId: assignment.id,
+              isAutoHomework: true,
+              isRoadmapTask: true,
+              taskType: 'konu',
+              subject: dersName || 'Genel Ders',
+              dersName: dersName || 'Genel Ders',
+              bookTitle: plan.title,
+              bookName: plan.title,
+              roadmapTitle: plan.title,
+              planTitle: plan.title,
+              unitTopic: subject.name,
+              unit: subject.name,
+              unitName: subject.name,
+              title: subject.name,
+              topic: subject.name,
+              topicId: subject.id,
+              categoryType: 'yol_haritasi',
+              dueDate: subject.dueDate,
+              dueDateStr: due.toLocaleDateString('tr-TR'),
+              time: `Hedef: ${due.toLocaleDateString('tr-TR')}`,
+              reason: `${diffDays} gün geciken yol haritası konusu`,
+              daysOverdue: diffDays,
+              isCatchUp: true,
+              done: false
+            };
+
+            if (!isItemSolved(candidate) && !isTaskDismissed(candidate) && !isAlreadySeen(candidate)) {
+              addKeysToSeen(candidate);
+              list.push(candidate);
+            }
+          }
+        }
+
+        (subject?.topics || []).forEach(topic => {
+          if (topic?.dueDate) {
+            const tYMD = extractItemYMD(topic.dueDate);
+            const isOverdue = tYMD && todayYMD && tYMD < todayYMD;
+            const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+
+            if (isOverdue && !isCompleted) {
+              const due = new Date(topic.dueDate);
+              const dueTime = due.getTime();
+              const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+              const candidate = {
+                id: `catchup_roadmap_top_${assignment.id}_${topic.id}`,
+                roadmapAssignmentId: assignment.id,
+                isAutoHomework: true,
+                isRoadmapTask: true,
+                taskType: 'konu',
+                subject: dersName || 'Genel Ders',
+                dersName: dersName || 'Genel Ders',
+                bookTitle: plan.title,
+                bookName: plan.title,
+                roadmapTitle: plan.title,
+                planTitle: plan.title,
+                unitTopic: subject.name,
+                unit: subject.name,
+                unitName: subject.name,
+                title: topic.name,
+                topic: topic.name,
+                topicId: topic.id,
+                categoryType: 'yol_haritasi',
+                dueDate: topic.dueDate,
+                dueDateStr: due.toLocaleDateString('tr-TR'),
+                time: `Hedef: ${due.toLocaleDateString('tr-TR')}`,
+                reason: `${diffDays} gün geciken yol haritası konusu`,
+                daysOverdue: diffDays,
+                isCatchUp: true,
+                done: false
+              };
+
+              if (!isItemSolved(candidate) && !isTaskDismissed(candidate) && !isAlreadySeen(candidate)) {
+                addKeysToSeen(candidate);
+                list.push(candidate);
+              }
+            }
+          }
+        });
+      });
+    });
+
+    // 4. HAFTALIK PROGRAMDA BELİRLİ BİR TARİHE (singleDate / specificDate) ATANMIŞ VE TARİHİ GEÇMİŞ TÜM GÖREVLER
+    const rawWeekly = coachingProfile?.weeklyProgram || (coachingProfiles || []).find(p => {
+      if (!p) return false;
+      const pSid = String(p.studentId || p.userId || p.id || '');
+      return pSid === studentIdStr || (studentUuidStr && (pSid === studentUuidStr || toUUID(pSid) === studentUuidStr));
+    })?.weeklyProgram;
+
+    if (Array.isArray(rawWeekly)) {
+      rawWeekly.forEach(dObj => {
+        (dObj?.items || []).forEach(item => {
+          if (!item || item.done || isItemSolved(item) || isTaskDismissed(item)) return;
+          const sDate = item.singleDate || item.specificDate || item.scheduledDate || (item.repeatType === 'none' || item.isRecurring === false ? (item.date || item.targetDate) : null);
+          if (sDate && todayYMD && sDate < todayYMD) {
+            if (!isAlreadySeen(item)) {
+              addKeysToSeen(item);
+              const due = new Date(sDate);
+              const diffDays = Math.max(1, Math.round((nowTime - due.getTime()) / (1000 * 60 * 60 * 24)));
+              list.push({
+                ...item,
+                categoryType: item.categoryType || (item.taskType === 'okuma' ? 'okuma' : (item.isBookTask ? 'kitap' : 'program')),
+                sourceDayName: dObj.day,
+                sourceDayKey: dObj.day,
+                isCatchUp: true,
+                dueDate: sDate,
+                dueDateStr: sDate,
+                time: item.time || `Hedef: ${sDate}`,
+                reason: `${diffDays} gün geciken program görevi (${sDate})`,
+                daysOverdue: diffDays
+              });
+            }
+          }
+        });
+      });
+    }
+
     return sortItemsByBookOrder(list, books, bookTests);
-  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, curData, homeworks, studentSubmissions, submissions]);
+  }, [selectedStudent, fullProcessedWeekMap, todayDayKey, isTaskDismissed, isItemSolved, books, bookTests, curData, homeworks, studentSubmissions, submissions, studyAssignments, studyPlans, coachingProfile, coachingProfiles]);
 
   // ── 📱 3 AYRI ANDROID ANA EKRAN WIDGET SENKRONİZASYONU ──
   useEffect(() => {
@@ -2629,6 +2786,27 @@ export default function StudentDashboard() {
     if (isScheduleItem) {
       await toggleScheduleDone(taskId);
       return;
+    }
+
+    // Yol haritası görevi toggle edildiğinde atamadaki tamamlanan konuları güncelle
+    if (isObj && taskOrId.roadmapAssignmentId && (taskOrId.topicId || taskOrId.id) && updateStudyAssignment) {
+      const assignment = (studyAssignments || []).find(a => String(a.id) === String(taskOrId.roadmapAssignmentId));
+      if (assignment) {
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = [...assignment.completedTopics];
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch {}
+        }
+        const targetTopicId = String(taskOrId.topicId || taskOrId.id);
+        const idx = compTopics.indexOf(targetTopicId);
+        if (idx >= 0) {
+          compTopics.splice(idx, 1);
+        } else {
+          compTopics.push(targetTopicId);
+        }
+        await updateStudyAssignment(assignment.id, { completedTopics: compTopics });
+        return;
+      }
     }
 
     // Auto-homework görevleri (kitap testleri, ödeve bağlı görevler) virtual'dır —

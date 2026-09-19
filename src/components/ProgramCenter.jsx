@@ -1786,10 +1786,9 @@ export function MonthlyListPanel({
 
         if (item.repeatType === 'none' || item.isRecurring === false) {
           if (itemDate) return itemDate === ymd;
-          if (item.createdYMD) return item.createdYMD === ymd;
+          return true;
         }
 
-        if (item.createdYMD && ymd < item.createdYMD) return false;
         if (item.repeatEndDate && ymd > item.repeatEndDate) return false;
         return true;
       });
@@ -3771,7 +3770,6 @@ export default function ProgramCenter({
           return isSameWeek(dayInfo.ymd, itemCreatedYMD);
         }
 
-        if (item.createdYMD && dayInfo.ymd < item.createdYMD) return false;
         if (item.repeatEndDate && dayInfo.ymd > item.repeatEndDate) return false;
         return true;
       });
