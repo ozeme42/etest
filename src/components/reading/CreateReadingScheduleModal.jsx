@@ -63,7 +63,19 @@ export default function CreateReadingScheduleModal({
     const today = new Date();
     return formatYMD(today);
   });
+  const [paceMode, setPaceMode] = useState('single'); // 'single' | 'split' | 'custom'
   const [dailyPages, setDailyPages] = useState('25');
+  const [weekdayPages, setWeekdayPages] = useState('20');
+  const [weekendPages, setWeekendPages] = useState('40');
+  const [customDailyPages, setCustomDailyPages] = useState({
+    Pzt: '20',
+    Sal: '20',
+    Çrş: '20',
+    Prş: '20',
+    Cum: '20',
+    Cts: '40',
+    Paz: '40'
+  });
   const [activeDays, setActiveDays] = useState(['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz']);
   const [autoStartFirst, setAutoStartFirst] = useState(true);
   const [readingHours, setReadingHours] = useState(''); // e.g. "21:00"
@@ -129,11 +141,17 @@ export default function CreateReadingScheduleModal({
     });
   };
 
+  const handleCustomDayPageChange = (dayKey, val) => {
+    setCustomDailyPages(prev => ({
+      ...prev,
+      [dayKey]: val
+    }));
+  };
+
   // Schedule Calculation Engine
   const schedulePlan = useMemo(() => {
     if (selectedBooksOrder.length === 0) return { items: [], totalPages: 0, totalDays: 0, endDate: null };
 
-    const parsedDailyPages = Math.max(1, Number(dailyPages) || 20);
     const start = new Date(startDate + 'T00:00:00');
     if (isNaN(start.getTime())) return { items: [], totalPages: 0, totalDays: 0, endDate: null };
 
@@ -159,8 +177,19 @@ export default function CreateReadingScheduleModal({
         const ymd = formatYMD(curDate);
         const dayKey = DAY_KEYS_MAP[curDate.getDay()];
 
+        // Determine target pages for this dayKey
+        let targetPagesForDay = 20;
+        if (paceMode === 'single') {
+          targetPagesForDay = Math.max(1, Number(dailyPages) || 20);
+        } else if (paceMode === 'split') {
+          const isWeekend = dayKey === 'Cts' || dayKey === 'Paz';
+          targetPagesForDay = Math.max(1, Number(isWeekend ? weekendPages : weekdayPages) || 20);
+        } else if (paceMode === 'custom') {
+          targetPagesForDay = Math.max(1, Number(customDailyPages[dayKey]) || 20);
+        }
+
         const fromPage = currentP + 1;
-        const toPage = Math.min(total, currentP + parsedDailyPages);
+        const toPage = Math.min(total, currentP + targetPagesForDay);
         const pagesCount = toPage - fromPage + 1;
         currentP = toPage;
         totalScheduledPages += pagesCount;
@@ -187,7 +216,7 @@ export default function CreateReadingScheduleModal({
       totalDays: items.length,
       endDate: lastItem ? lastItem.date : null
     };
-  }, [selectedBooksOrder, startDate, dailyPages, activeDays]);
+  }, [selectedBooksOrder, startDate, dailyPages, weekdayPages, weekendPages, customDailyPages, paceMode, activeDays]);
 
   // Save to Study Plan / weeklyProgram
   const handleSaveToStudyPlan = async () => {
@@ -495,63 +524,382 @@ export default function CreateReadingScheduleModal({
                     </div>
                   </div>
 
-                  {/* Günlük Okunacak Sayfa Sayısı */}
+                  {/* Tercih Edilen Saat Aralığı */}
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <label style={{ fontSize: '0.84rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
-                        📖 2. Günde Kaç Sayfa Okunacak?
-                      </label>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#6366f1' }}>
-                        {dailyPages} sayfa / gün
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                      <input
-                        type="number"
-                        min="1"
-                        max="500"
-                        value={dailyPages}
-                        onChange={(e) => setDailyPages(e.target.value)}
-                        style={{
-                          width: 80,
-                          padding: '0.65rem 0.75rem',
-                          borderRadius: '0.75rem',
-                          border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
-                          background: isDark ? '#131722' : '#ffffff',
-                          color: isDark ? '#f8fafc' : '#0f172a',
-                          fontSize: '0.85rem',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                      <div style={{ display: 'flex', gap: '0.3rem', flex: 1, flexWrap: 'wrap' }}>
-                        {['15', '20', '25', '30', '40', '50'].map(p => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => setDailyPages(p)}
-                            style={{
-                              padding: '0.4rem 0.55rem',
-                              borderRadius: '0.55rem',
-                              border: dailyPages === p ? '1px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
-                              background: dailyPages === p ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
-                              color: dailyPages === p ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
-                              fontSize: '0.74rem',
-                              fontWeight: 800,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 800, display: 'block', marginBottom: 6, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                      ⏰ Tercih Edilen Saat (Opsiyonel)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: 21:00 veya Akşam"
+                      value={readingHours}
+                      onChange={(e) => setReadingHours(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                        background: isDark ? '#131722' : '#ffffff',
+                        color: isDark ? '#f8fafc' : '#0f172a',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
                     <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 4 }}>
-                      Günlük çalışma planınıza eklenecek okuma hedefi
+                      Çalışma planında görevin yanında gösterilecek saat
                     </div>
                   </div>
+                </div>
+
+                {/* Günlük Okuma Hedefi (Modlar) */}
+                <div style={{
+                  marginBottom: '1rem',
+                  padding: '0.9rem',
+                  borderRadius: '0.95rem',
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                  border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                    marginBottom: '0.75rem'
+                  }}>
+                    <label style={{ fontSize: '0.84rem', fontWeight: 800, color: isDark ? '#f8fafc' : '#0f172a' }}>
+                      📖 2. Günlük Okuma Hedefi Belirleme
+                    </label>
+
+                    {/* Mod Seçici Tablar */}
+                    <div style={{
+                      display: 'flex',
+                      background: isDark ? 'rgba(0,0,0,0.3)' : '#f1f5f9',
+                      padding: 3,
+                      borderRadius: '0.7rem',
+                      gap: 2
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setPaceMode('single')}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '0.55rem',
+                          border: 'none',
+                          background: paceMode === 'single' ? '#6366f1' : 'transparent',
+                          color: paceMode === 'single' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        ⚡ Her Gün Aynı
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaceMode('split')}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '0.55rem',
+                          border: 'none',
+                          background: paceMode === 'split' ? '#6366f1' : 'transparent',
+                          color: paceMode === 'split' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        ⚖️ Hafta İçi / Hafta Sonu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaceMode('custom')}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '0.55rem',
+                          border: 'none',
+                          background: paceMode === 'custom' ? '#6366f1' : 'transparent',
+                          color: paceMode === 'custom' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        🗓️ Gün Gün Özel
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* MOD 1: HER GÜN AYNI */}
+                  {paceMode === 'single' && (
+                    <div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ position: 'relative', width: 90 }}>
+                          <input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={dailyPages}
+                            onChange={(e) => setDailyPages(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.55rem 0.65rem',
+                              borderRadius: '0.65rem',
+                              border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                              background: isDark ? '#131722' : '#ffffff',
+                              color: isDark ? '#f8fafc' : '#0f172a',
+                              fontSize: '0.9rem',
+                              fontWeight: 900,
+                              textAlign: 'center',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isDark ? '#94a3b8' : '#64748b' }}>
+                          sayfa / gün
+                        </span>
+
+                        <div style={{ display: 'flex', gap: '0.3rem', flex: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          {['15', '20', '25', '30', '40', '50'].map(p => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setDailyPages(p)}
+                              style={{
+                                padding: '0.35rem 0.55rem',
+                                borderRadius: '0.5rem',
+                                border: dailyPages === p ? '1px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
+                                background: dailyPages === p ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                color: dailyPages === p ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {p} sf
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 6 }}>
+                        Her okuma günü için sabit {dailyPages || 0} sayfa okunacak.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MOD 2: HAFTA İÇİ / HAFTA SONU */}
+                  {paceMode === 'split' && (
+                    <div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+                        gap: '0.75rem'
+                      }}>
+                        {/* Hafta İçi */}
+                        <div style={{
+                          padding: '0.65rem 0.8rem',
+                          borderRadius: '0.75rem',
+                          background: isDark ? 'rgba(99,102,241,0.08)' : '#f0f4ff',
+                          border: isDark ? '1px solid rgba(99,102,241,0.25)' : '1px solid #c7d2fe'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#6366f1' }}>
+                              💼 Hafta İçi (Pzt - Cum)
+                            </span>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#6366f1' }}>
+                              {weekdayPages} sf/gün
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="500"
+                              value={weekdayPages}
+                              onChange={(e) => setWeekdayPages(e.target.value)}
+                              style={{
+                                width: 65,
+                                padding: '0.4rem 0.5rem',
+                                borderRadius: '0.55rem',
+                                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                                background: isDark ? '#131722' : '#ffffff',
+                                color: isDark ? '#f8fafc' : '#0f172a',
+                                fontSize: '0.85rem',
+                                fontWeight: 800,
+                                textAlign: 'center',
+                                outline: 'none'
+                              }}
+                            />
+                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                              {['15', '20', '25', '30', '40'].map(p => (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  onClick={() => setWeekdayPages(p)}
+                                  style={{
+                                    padding: '0.3rem 0.45rem',
+                                    borderRadius: '0.45rem',
+                                    border: weekdayPages === p ? '1px solid #6366f1' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
+                                    background: weekdayPages === p ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                    color: weekdayPages === p ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {p}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Hafta Sonu */}
+                        <div style={{
+                          padding: '0.65rem 0.8rem',
+                          borderRadius: '0.75rem',
+                          background: isDark ? 'rgba(236,72,153,0.08)' : '#fdf2f8',
+                          border: isDark ? '1px solid rgba(236,72,153,0.25)' : '1px solid #fbcfe8'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#ec4899' }}>
+                              🏖️ Hafta Sonu (Cts - Paz)
+                            </span>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#ec4899' }}>
+                              {weekendPages} sf/gün
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              min="1"
+                              max="500"
+                              value={weekendPages}
+                              onChange={(e) => setWeekendPages(e.target.value)}
+                              style={{
+                                width: 65,
+                                padding: '0.4rem 0.5rem',
+                                borderRadius: '0.55rem',
+                                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                                background: isDark ? '#131722' : '#ffffff',
+                                color: isDark ? '#f8fafc' : '#0f172a',
+                                fontSize: '0.85rem',
+                                fontWeight: 800,
+                                textAlign: 'center',
+                                outline: 'none'
+                              }}
+                            />
+                            <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                              {['20', '30', '40', '50', '60'].map(p => (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  onClick={() => setWeekendPages(p)}
+                                  style={{
+                                    padding: '0.3rem 0.45rem',
+                                    borderRadius: '0.45rem',
+                                    border: weekendPages === p ? '1px solid #ec4899' : (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1'),
+                                    background: weekendPages === p ? '#ec4899' : (isDark ? 'rgba(255,255,255,0.04)' : '#ffffff'),
+                                    color: weekendPages === p ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                                    fontSize: '0.7rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {p}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 6 }}>
+                        Hafta içi günde {weekdayPages} sf, hafta sonu günde {weekendPages} sf okunacak.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* MOD 3: GÜN GÜN ÖZEL */}
+                  {paceMode === 'custom' && (
+                    <div>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(7, 1fr)',
+                        gap: '0.45rem'
+                      }}>
+                        {DAYS_LIST.map(d => {
+                          const isActive = activeDays.includes(d.key);
+                          const val = customDailyPages[d.key] || '20';
+                          return (
+                            <div
+                              key={d.key}
+                              style={{
+                                padding: '0.45rem 0.35rem',
+                                borderRadius: '0.65rem',
+                                background: isActive
+                                  ? (isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc')
+                                  : (isDark ? 'rgba(255,255,255,0.01)' : '#f1f5f9'),
+                                border: isActive
+                                  ? (isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1')
+                                  : (isDark ? '1px dashed rgba(255,255,255,0.05)' : '1px dashed #e2e8f0'),
+                                opacity: isActive ? 1 : 0.45,
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                marginBottom: 4,
+                                color: (d.key === 'Cts' || d.key === 'Paz') ? '#ec4899' : (isDark ? '#e0e7ff' : '#334155')
+                              }}>
+                                {d.short}
+                              </div>
+                              {isActive ? (
+                                <div>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="500"
+                                    value={val}
+                                    onChange={(e) => handleCustomDayPageChange(d.key, e.target.value)}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.35rem 0.2rem',
+                                      borderRadius: '0.45rem',
+                                      border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1px solid #cbd5e1',
+                                      background: isDark ? '#131722' : '#ffffff',
+                                      color: isDark ? '#f8fafc' : '#0f172a',
+                                      fontSize: '0.82rem',
+                                      fontWeight: 900,
+                                      textAlign: 'center',
+                                      outline: 'none',
+                                      boxSizing: 'border-box'
+                                    }}
+                                  />
+                                  <div style={{ fontSize: '0.65rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>
+                                    sayfa
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.68rem', color: isDark ? '#64748b' : '#94a3b8', padding: '0.45rem 0' }}>
+                                  İzinli
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 6 }}>
+                        Her gün için ayrı hedef. Pasif günlerde okuma yapılmaz (aşağıdan günleri açıp kapatabilirsiniz).
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Okuma Günleri Seçimi */}
