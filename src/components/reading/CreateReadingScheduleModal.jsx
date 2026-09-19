@@ -51,8 +51,8 @@ export default function CreateReadingScheduleModal({
   // Selected books in order
   const [selectedBooksOrder, setSelectedBooksOrder] = useState(() => {
     if (initialBookIds && initialBookIds.length > 0) {
-      const initSet = new Set(initialBookIds);
-      const matches = availableBooks.filter(b => initSet.has(b.id));
+      const bookMap = new Map(availableBooks.map(b => [b.id, b]));
+      const matches = initialBookIds.map(id => bookMap.get(id)).filter(Boolean);
       return matches.length > 0 ? matches : (availableBooks.slice(0, 1));
     }
     return availableBooks.slice(0, 1);
@@ -78,8 +78,8 @@ export default function CreateReadingScheduleModal({
     if (isOpen) {
       setSuccessInfo(null);
       if (initialBookIds && initialBookIds.length > 0) {
-        const initSet = new Set(initialBookIds);
-        const matches = availableBooks.filter(b => initSet.has(b.id));
+        const bookMap = new Map(availableBooks.map(b => [b.id, b]));
+        const matches = initialBookIds.map(id => bookMap.get(id)).filter(Boolean);
         if (matches.length > 0) setSelectedBooksOrder(matches);
       } else if (selectedBooksOrder.length === 0 && availableBooks.length > 0) {
         setSelectedBooksOrder(availableBooks.slice(0, 1));

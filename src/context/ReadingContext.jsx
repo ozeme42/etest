@@ -340,6 +340,115 @@ export function ReadingProvider({ children }) {
     return removedCount;
   }, [logs, persistCloud]);
 
+  const reorderToReadBooks = useCallback((reorderedBookIds) => {
+    if (!Array.isArray(reorderedBookIds) || reorderedBookIds.length === 0) return;
+    setBooks(prev => {
+      const orderMap = new Map();
+      reorderedBookIds.forEach((id, idx) => {
+        orderMap.set(id, idx + 1);
+      });
+
+      const updated = prev.map(b => {
+        if (orderMap.has(b.id)) {
+          return {
+            ...b,
+            order: orderMap.get(b.id),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return b;
+      });
+
+      persistCloud(updated, logs);
+      return updated;
+    });
+  }, [logs, persistCloud]);
+
+  const moveBookOrder = useCallback((bookId, direction) => {
+    setBooks(prev => {
+      const toReadList = prev
+        .filter(b => b.status === 'to_read')
+        .sort((a, b) => {
+          const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+          const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+          if (oA !== oB) return oA - oB;
+          return (a.createdAt || '').localeCompare(b.createdAt || '');
+        });
+
+      const index = toReadList.findIndex(b => b.id === bookId);
+      if (index < 0) return prev;
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= toReadList.length) return prev;
+
+      const copyList = [...toReadList];
+      const temp = copyList[index];
+      copyList[index] = copyList[targetIndex];
+      copyList[targetIndex] = temp;
+
+      const orderMap = new Map();
+      copyList.forEach((b, idx) => {
+        orderMap.set(b.id, idx + 1);
+      });
+
+      const updated = prev.map(b => {
+        if (orderMap.has(b.id)) {
+          return {
+            ...b,
+            order: orderMap.get(b.id),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return b;
+      });
+
+      persistCloud(updated, logs);
+      return updated;
+    });
+  }, [logs, persistCloud]);
+
+  const setBookOrderRank = useCallback((bookId, newRank) => {
+    const rankNum = parseInt(newRank, 10);
+    if (isNaN(rankNum) || rankNum < 1) return;
+
+    setBooks(prev => {
+      const toReadList = prev
+        .filter(b => b.status === 'to_read')
+        .sort((a, b) => {
+          const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+          const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+          if (oA !== oB) return oA - oB;
+          return (a.createdAt || '').localeCompare(b.createdAt || '');
+        });
+
+      const currentIndex = toReadList.findIndex(b => b.id === bookId);
+      if (currentIndex < 0) return prev;
+
+      const copyList = [...toReadList];
+      const [targetBook] = copyList.splice(currentIndex, 1);
+      const targetIndex = Math.max(0, Math.min(copyList.length, rankNum - 1));
+      copyList.splice(targetIndex, 0, targetBook);
+
+      const orderMap = new Map();
+      copyList.forEach((b, idx) => {
+        orderMap.set(b.id, idx + 1);
+      });
+
+      const updated = prev.map(b => {
+        if (orderMap.has(b.id)) {
+          return {
+            ...b,
+            order: orderMap.get(b.id),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return b;
+      });
+
+      persistCloud(updated, logs);
+      return updated;
+    });
+  }, [logs, persistCloud]);
+
   const startReadingBook = useCallback((bookId) => {
     const today = getTurkeyYMD();
     setBooks(prev => {
@@ -569,6 +678,9 @@ export function ReadingProvider({ children }) {
     deleteBook,
     deleteBooksBulk,
     removeDuplicateBooks,
+    moveBookOrder,
+    setBookOrderRank,
+    reorderToReadBooks,
     startReadingBook,
     updateReadingProgress,
     completeBook,
@@ -584,6 +696,9 @@ export function ReadingProvider({ children }) {
     deleteBook,
     deleteBooksBulk,
     removeDuplicateBooks,
+    moveBookOrder,
+    setBookOrderRank,
+    reorderToReadBooks,
     startReadingBook,
     updateReadingProgress,
     completeBook,
@@ -611,6 +726,9 @@ export function useReading() {
       deleteBook: () => {},
       deleteBooksBulk: () => 0,
       removeDuplicateBooks: () => 0,
+      moveBookOrder: () => {},
+      setBookOrderRank: () => {},
+      reorderToReadBooks: () => {},
       startReadingBook: () => {},
       updateReadingProgress: () => {},
       completeBook: () => {},
