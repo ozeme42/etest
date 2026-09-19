@@ -476,6 +476,7 @@ export function ReadingProvider({ children }) {
 
     let updatedBooks = [];
     setBooks(prev => {
+      let bookFinished = false;
       updatedBooks = prev.map(b => {
         if (b.id !== bookId) return b;
         bookTitle = b.title;
@@ -483,6 +484,7 @@ export function ReadingProvider({ children }) {
         totalP = b.totalPages || 100;
         const cappedPage = Math.min(targetPage, totalP);
         const isNowFinished = cappedPage >= totalP;
+        if (isNowFinished) bookFinished = true;
 
         return {
           ...b,
@@ -493,6 +495,34 @@ export function ReadingProvider({ children }) {
           updatedAt: new Date().toISOString()
         };
       });
+
+      // Eğer bu kitap bittiyse ve aktif okunan başka kitap yoksa, sıradaki ilk 'to_read' kitabı otomatik 'reading' yap
+      if (bookFinished) {
+        const hasOtherReading = updatedBooks.some(b => b.id !== bookId && b.status === 'reading');
+        if (!hasOtherReading) {
+          const nextToRead = updatedBooks
+            .filter(b => b.status === 'to_read')
+            .sort((a, b) => {
+              const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+              const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+              if (oA !== oB) return oA - oB;
+              return (a.createdAt || '').localeCompare(b.createdAt || '');
+            })[0];
+
+          if (nextToRead) {
+            updatedBooks = updatedBooks.map(b => {
+              if (b.id !== nextToRead.id) return b;
+              return {
+                ...b,
+                status: 'reading',
+                startDate: b.startDate || today,
+                updatedAt: new Date().toISOString()
+              };
+            });
+          }
+        }
+      }
+
       return updatedBooks;
     });
 
@@ -524,7 +554,7 @@ export function ReadingProvider({ children }) {
   const completeBook = useCallback((bookId, { rating = 5, review = '', finishDate = null }) => {
     const today = getTurkeyYMD();
     setBooks(prev => {
-      const updated = prev.map(b => {
+      let updated = prev.map(b => {
         if (b.id !== bookId) return b;
         return {
           ...b,
@@ -536,6 +566,32 @@ export function ReadingProvider({ children }) {
           updatedAt: new Date().toISOString()
         };
       });
+
+      // Sıradaki ilk 'to_read' kitabı otomatik başlat
+      const hasOtherReading = updated.some(b => b.id !== bookId && b.status === 'reading');
+      if (!hasOtherReading) {
+        const nextToRead = updated
+          .filter(b => b.status === 'to_read')
+          .sort((a, b) => {
+            const oA = a.order !== undefined && a.order !== null ? a.order : 999999;
+            const oB = b.order !== undefined && b.order !== null ? b.order : 999999;
+            if (oA !== oB) return oA - oB;
+            return (a.createdAt || '').localeCompare(b.createdAt || '');
+          })[0];
+
+        if (nextToRead) {
+          updated = updated.map(b => {
+            if (b.id !== nextToRead.id) return b;
+            return {
+              ...b,
+              status: 'reading',
+              startDate: b.startDate || today,
+              updatedAt: new Date().toISOString()
+            };
+          });
+        }
+      }
+
       persistCloud(updated, logs);
       return updated;
     });

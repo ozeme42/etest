@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
 import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
+import { useReading } from '../context/ReadingContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, sortItemsByBookOrder, computeStudentAnalyticsData, isSubmissionMatchingBookTest, isStandardOrMixedBook, isExamBook, createCompositeTestKey, getSubmissionCompositeKey, computeUnifiedSubmissionStats } from '../utils/testResolver';
 import { normalizeUnifiedTest } from '../services/unifiedQuizAdapter';
@@ -247,6 +248,7 @@ export default function StudentDashboard() {
   const { schedules, addSchedule, toggleScheduleDone, deleteSchedule, refreshSchedules } = useSchedule();
   const { currentUser } = useAuth();
   const { bookTests = [], books = [], refreshTrackedBooks } = useTrackedBooks() || {};
+  const { books: readingBooksList = [], updateReadingProgress } = useReading() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent, refreshCoaching } = useCoaching();
 
   // Background sync when opening the dashboard (runs strictly ONCE on mount)
@@ -2637,15 +2639,41 @@ export default function StudentDashboard() {
 
       let updatedWeeklyProgram;
       if (existingItem) {
+        const nextDone = !existingItem.done;
         updatedWeeklyProgram = rawWeekly.map(dayRow => {
           if (dayRow.day === activeDayKey) {
             return {
               ...dayRow,
-              items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: !item.done } : item)
+              items: (dayRow.items || []).map(item => item.id === taskId ? { ...item, done: nextDone } : item)
             };
           }
           return dayRow;
         });
+
+        // Kitap okuma görevi tamamlandığında veya geri alındığında ReadingContext'i senkronize et
+        const isReadingTask = existingItem.taskType === 'okuma' ||
+          existingItem.subject === 'Kitap Okuma' ||
+          String(existingItem.topic || '').toLowerCase().includes('kitap okuma') ||
+          String(existingItem.taskType || '').toLowerCase().includes('okuma') ||
+          Boolean(existingItem.readingBookId);
+
+        if (isReadingTask && updateReadingProgress) {
+          const targetBookId = existingItem.readingBookId || (readingBooksList || []).find(b =>
+            (existingItem.bookTitle && b.title && b.title.trim().toLowerCase() === existingItem.bookTitle.trim().toLowerCase()) ||
+            (existingItem.bookName && b.title && b.title.trim().toLowerCase() === existingItem.bookName.trim().toLowerCase()) ||
+            (existingItem.topic && b.title && existingItem.topic.toLowerCase().includes(b.title.toLowerCase()))
+          )?.id;
+
+          if (targetBookId) {
+            const toP = Number(existingItem.toPage) || (existingItem.pageCount ? Number(existingItem.pageCount) : 0);
+            const fromP = Number(existingItem.fromPage) || 1;
+            if (nextDone && toP > 0) {
+              updateReadingProgress(targetBookId, toP);
+            } else if (!nextDone && fromP > 0) {
+              updateReadingProgress(targetBookId, Math.max(0, fromP - 1));
+            }
+          }
+        }
       } else {
         // Programda olmayan görevler için ekleme yapma — sadece var olanları güncelle
         return;

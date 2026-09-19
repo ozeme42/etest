@@ -14,6 +14,7 @@ import { toUUID } from '../services/supabaseService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 import AddTaskModal from './program/AddTaskModal';
 import CurriculumRoadmapView from './roadmap/CurriculumRoadmapView';
+import { useReading } from '../context/ReadingContext';
 
 /* ─── Constants ─── */
 export const DAYS = [
@@ -3199,6 +3200,7 @@ export default function ProgramCenter({
   targetStudent = null
 }) {
   const { theme } = useTheme();
+  const { books: trackedReadingBooks = [], updateReadingProgress } = useReading() || {};
   const isDark = propIsDark || theme === 'dark';
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
@@ -3993,12 +3995,55 @@ export default function ProgramCenter({
   const [assigningTopic, setAssigningTopic] = useState(null); // { subject, topic, taskType }
 
   const handleToggle = useCallback((dayKey, itemId) => {
-    setWeeklyProgram(prev => prev.map(d =>
-      d.day === dayKey
-        ? { ...d, items: d.items.map(item => item.id === itemId ? { ...item, done: !item.done } : item) }
-        : d
-    ));
-  }, [setWeeklyProgram]);
+    setWeeklyProgram(prev => {
+      let toggledTask = null;
+      let nextDone = false;
+
+      const newWeekly = prev.map(d => {
+        if (d.day !== dayKey) return d;
+        return {
+          ...d,
+          items: (d.items || []).map(item => {
+            if (item.id === itemId) {
+              toggledTask = item;
+              nextDone = !item.done;
+              return { ...item, done: nextDone };
+            }
+            return item;
+          })
+        };
+      });
+
+      // Kitap okuma görevi tamamlandığında veya geri alındığında ReadingContext'i otomatik güncelle
+      if (toggledTask && updateReadingProgress) {
+        const isReadingTask = toggledTask.taskType === 'okuma' ||
+          toggledTask.subject === 'Kitap Okuma' ||
+          String(toggledTask.topic || '').toLowerCase().includes('kitap okuma') ||
+          String(toggledTask.taskType || '').toLowerCase().includes('okuma') ||
+          Boolean(toggledTask.readingBookId);
+
+        if (isReadingTask) {
+          const targetBookId = toggledTask.readingBookId || (trackedReadingBooks || []).find(b =>
+            (toggledTask.bookTitle && b.title && b.title.trim().toLowerCase() === toggledTask.bookTitle.trim().toLowerCase()) ||
+            (toggledTask.bookName && b.title && b.title.trim().toLowerCase() === toggledTask.bookName.trim().toLowerCase()) ||
+            (toggledTask.topic && b.title && toggledTask.topic.toLowerCase().includes(b.title.toLowerCase()))
+          )?.id;
+
+          if (targetBookId) {
+            const toPage = Number(toggledTask.toPage) || (toggledTask.pageCount ? Number(toggledTask.pageCount) : 0);
+            const fromPage = Number(toggledTask.fromPage) || 1;
+            if (nextDone && toPage > 0) {
+              updateReadingProgress(targetBookId, toPage);
+            } else if (!nextDone && fromPage > 0) {
+              updateReadingProgress(targetBookId, Math.max(0, fromPage - 1));
+            }
+          }
+        }
+      }
+
+      return newWeekly;
+    });
+  }, [setWeeklyProgram, updateReadingProgress, trackedReadingBooks]);
 
     const handleDelete = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d => {
