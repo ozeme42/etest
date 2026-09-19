@@ -3,7 +3,7 @@ import {
   Plus, CheckCircle2, Bookmark, Flame, Calendar, 
   Award, Star, Trash2, Edit3, Sparkles, 
   BarChart3, X, Play, CheckSquare, Square, AlertTriangle,
-  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List, LayoutGrid
+  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingContext';
@@ -36,7 +36,6 @@ export default function ReadingTrackerPage() {
   const [activeTab, setActiveTab] = useState('reading'); // 'reading' | 'to_read' | 'completed'
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState(new Set());
-  const [toReadViewMode, setToReadViewMode] = useState('cards'); // 'cards' | 'list'
   const [draggedBookId, setDraggedBookId] = useState(null);
   const [dragOverBookId, setDragOverBookId] = useState(null);
 
@@ -1240,10 +1239,11 @@ export default function ReadingTrackerPage() {
                 flexWrap: 'wrap',
                 gap: '0.65rem'
               }}>
-                {/* Sol Alan: Başlık + Görünüm Seçici (Kartlar / Sıralama Tablosu) */}
+                {/* Sol Alan: Başlık */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569' }}>
-                    ⏳ Okunacaklar ({toReadBooks.length})
+                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: isDark ? '#cbd5e1' : '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <List size={17} color="#6366f1" />
+                    <span>Okunacak Kitaplar Sıralaması ({toReadBooks.length})</span>
                   </div>
 
                   {isSelectMode && (
@@ -1258,60 +1258,6 @@ export default function ReadingTrackerPage() {
                       {selectedBookIds.size} seçildi
                     </span>
                   )}
-
-                  {/* Görünüm Değiştirici: Kartlar vs Liste Tablosu */}
-                  <div style={{
-                    display: 'inline-flex',
-                    borderRadius: '0.65rem',
-                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                    padding: 2
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => setToReadViewMode('cards')}
-                      title="Kart Görünümü"
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '0.55rem',
-                        border: 'none',
-                        background: toReadViewMode === 'cards' ? (isDark ? '#334155' : '#ffffff') : 'transparent',
-                        color: toReadViewMode === 'cards' ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#94a3b8' : '#64748b'),
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        boxShadow: toReadViewMode === 'cards' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <LayoutGrid size={13} /> Kartlar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setToReadViewMode('list')}
-                      title="Kompakt Sıralama Tablosu (Toplu sıralama için ideal)"
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '0.55rem',
-                        border: 'none',
-                        background: toReadViewMode === 'list' ? (isDark ? '#334155' : '#ffffff') : 'transparent',
-                        color: toReadViewMode === 'list' ? (isDark ? '#f8fafc' : '#0f172a') : (isDark ? '#94a3b8' : '#64748b'),
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        boxShadow: toReadViewMode === 'list' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <List size={13} /> Sıralama Tablosu
-                    </button>
-                  </div>
                 </div>
 
                 {/* Sağ Alan: Butonlar */}
@@ -1517,13 +1463,41 @@ export default function ReadingTrackerPage() {
                 </div>
               </div>
 
-              {/* ── GÖRÜNÜM 1: KART GÖRÜNÜMÜ ── */}
-              {toReadViewMode === 'cards' && (
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: '1rem' }}>
+              {/* ── DOĞRUDAN OKUMA SIRALAMA TABLOSU (KARTLAR KALDIRILDI) ── */}
+              <div style={{
+                background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                borderRadius: '1.25rem',
+                overflow: 'hidden',
+                boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'
+              }}>
+                {/* Tablo Başlıkları */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '52px 1fr 90px' : '65px 75px 1fr 100px 150px 135px',
+                  padding: '0.8rem 1rem',
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                  borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}>
+                  <div>Sıra</div>
+                  {!isMobile && <div>Taşı</div>}
+                  <div>Kitap &amp; Yazar</div>
+                  {!isMobile && <div>Sayfa</div>}
+                  {!isMobile && <div>Plan Aralığı</div>}
+                  <div style={{ textAlign: 'right' }}>İşlem</div>
+                </div>
+
+                {/* Tablo Satırları */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {toReadBooks.map((book, idx) => {
+                    const rankInfo = cumulativeRanges.get(book.id) || { rank: idx + 1, startPage: 1, endPage: book.totalPages || 0 };
                     const colorObj = getColorObj(book.color);
                     const isSelected = selectedBookIds.has(book.id);
-                    const rankInfo = cumulativeRanges.get(book.id) || { rank: idx + 1, startPage: 1, endPage: book.totalPages || 0 };
                     const isDragOver = dragOverBookId === book.id && draggedBookId !== book.id;
 
                     return (
@@ -1538,546 +1512,286 @@ export default function ReadingTrackerPage() {
                           if (isSelectMode) toggleSelectBook(book.id);
                         }}
                         style={{
-                          background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
-                          border: isDragOver
-                            ? '2px dashed #6366f1'
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '52px 1fr 90px' : '65px 75px 1fr 100px 150px 135px',
+                          alignItems: 'center',
+                          padding: isMobile ? '0.75rem 0.65rem' : '0.75rem 1rem',
+                          borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9',
+                          background: isDragOver
+                            ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff')
                             : isSelected
-                              ? '2px solid #6366f1'
-                              : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
-                          borderRadius: '1.25rem',
-                          padding: '1.15rem',
-                          boxShadow: isSelected
-                            ? '0 0 0 3px rgba(99,102,241,0.25)'
-                            : (isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'),
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          gap: '0.85rem',
+                              ? (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff')
+                              : 'transparent',
+                          outline: isDragOver ? '2px dashed #6366f1' : 'none',
                           cursor: isSelectMode ? 'pointer' : 'grab',
-                          position: 'relative',
-                          transition: 'all 0.15s ease',
+                          transition: 'background 0.15s ease',
                           opacity: draggedBookId === book.id ? 0.45 : 1
                         }}
                       >
-                        <div>
-                          {/* Üst Sıra Bilgisi & Okuma Sırası Butonları */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              {isSelectMode && (
-                                <div style={{ color: isSelected ? '#6366f1' : (isDark ? '#64748b' : '#94a3b8'), display: 'flex', alignItems: 'center' }}>
-                                  {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
-                                </div>
-                              )}
+                        {/* Sıra Numarası ve Drag Tutamacı */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                          {!isSelectMode && (
+                            <GripVertical size={13} color={isDark ? '#64748b' : '#94a3b8'} style={{ cursor: 'grab', flexShrink: 0 }} />
+                          )}
+                          {isSelectMode ? (
+                            <div style={{ color: isSelected ? '#6366f1' : (isDark ? '#64748b' : '#94a3b8') }}>
+                              {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePromptOrderRank(book, rankInfo.rank);
+                              }}
+                              title="Sırayı doğrudan değiştirmek için tıkla"
+                              style={{
+                                border: rankInfo.rank === 1 ? '1px solid #f59e0b' : (isDark ? '1px solid rgba(99,102,241,0.3)' : '1px solid #e2e8f0'),
+                                background: rankInfo.rank === 1
+                                  ? (isDark ? 'rgba(245,158,11,0.25)' : '#fef3c7')
+                                  : (isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'),
+                                color: rankInfo.rank === 1
+                                  ? (isDark ? '#fbbf24' : '#b45309')
+                                  : (isDark ? '#e2e8f0' : '#1e293b'),
+                                fontWeight: 900,
+                                fontSize: '0.74rem',
+                                borderRadius: 6,
+                                padding: '2px 5px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {rankInfo.rank === 1 ? '👑 #1' : `#${rankInfo.rank}`}
+                            </button>
+                          )}
+                        </div>
 
-                              {/* Tıklanabilir Sıra Rozeti */}
+                        {/* Taşıma Okları (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveBookOrder(book.id, 'up');
+                              }}
+                              title="Bir yukarı taşı"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: idx === 0 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                padding: 3
+                              }}
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === toReadBooks.length - 1}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveBookOrder(book.id, 'down');
+                              }}
+                              title="Bir aşağı taşı"
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: idx === toReadBooks.length - 1 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
+                                cursor: idx === toReadBooks.length - 1 ? 'not-allowed' : 'pointer',
+                                padding: 3
+                              }}
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+                            {idx > 0 && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handlePromptOrderRank(book, rankInfo.rank);
+                                  setBookOrderRank(book.id, 1);
                                 }}
-                                title="Sıra numarasını değiştirmek için tıkla"
+                                title="En başa taşı"
                                 style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  padding: '3px 8px',
-                                  borderRadius: 8,
-                                  border: rankInfo.rank === 1 ? '1px solid #f59e0b' : (isDark ? '1px solid rgba(99,102,241,0.4)' : '1px solid #c7d2fe'),
-                                  background: rankInfo.rank === 1
-                                    ? 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(234,179,8,0.15))'
-                                    : (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff'),
-                                  color: rankInfo.rank === 1 ? (isDark ? '#fbbf24' : '#b45309') : (isDark ? '#a5b4fc' : '#4338ca'),
-                                  fontSize: '0.72rem',
-                                  fontWeight: 900,
-                                  cursor: 'pointer'
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#6366f1',
+                                  cursor: 'pointer',
+                                  padding: 3
                                 }}
                               >
-                                {rankInfo.rank === 1 ? '👑 #1 Sıradaki' : `#${rankInfo.rank}`}
-                                <Edit3 size={11} style={{ opacity: 0.7 }} />
+                                <ArrowUpToLine size={14} />
                               </button>
-
-                              <span style={{
-                                fontSize: '0.68rem',
-                                fontWeight: 800,
-                                padding: '2px 8px',
-                                borderRadius: 6,
-                                background: colorObj.light,
-                                color: colorObj.bg,
-                                border: `1px solid ${colorObj.bg}30`
-                              }}>
-                                {book.category || 'Roman'}
-                              </span>
-                            </div>
-
-                            {/* Sıralama Okları (Yukarı / Aşağı / En Başa) */}
-                            {!isSelectMode && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <button
-                                  type="button"
-                                  disabled={idx === 0}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveBookOrder(book.id, 'up');
-                                  }}
-                                  title="Bir sıra yukarı taşı"
-                                  style={{
-                                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    padding: '4px 6px',
-                                    color: idx === 0 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
-                                    cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                  }}
-                                >
-                                  <ArrowUp size={13} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  disabled={idx === toReadBooks.length - 1}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveBookOrder(book.id, 'down');
-                                  }}
-                                  title="Bir sıra aşağı taşı"
-                                  style={{
-                                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    padding: '4px 6px',
-                                    color: idx === toReadBooks.length - 1 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
-                                    cursor: idx === toReadBooks.length - 1 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                  }}
-                                >
-                                  <ArrowDown size={13} />
-                                </button>
-
-                                {idx > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setBookOrderRank(book.id, 1);
-                                    }}
-                                    title="En başa (1. sıraya) taşı"
-                                    style={{
-                                      background: isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff',
-                                      border: 'none',
-                                      borderRadius: 6,
-                                      padding: '4px 6px',
-                                      color: isDark ? '#a5b4fc' : '#4f46e5',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center'
-                                    }}
-                                  >
-                                    <ArrowUpToLine size={13} />
-                                  </button>
-                                )}
-                              </div>
                             )}
                           </div>
+                        )}
 
-                          <h3 style={{ fontSize: '1.1rem', fontWeight: 900, margin: '0 0 2px' }}>
-                            {book.title}
-                          </h3>
+                        {/* Kitap Adı & Yazar */}
+                        <div style={{ minWidth: 0, paddingRight: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span style={{
+                              fontWeight: 800,
+                              fontSize: '0.84rem',
+                              color: isDark ? '#f8fafc' : '#0f172a',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '100%'
+                            }}>
+                              {book.title}
+                            </span>
+                            <span style={{
+                              fontSize: '0.65rem',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              background: colorObj.light,
+                              color: colorObj.bg,
+                              fontWeight: 700
+                            }}>
+                              {book.category || 'Roman'}
+                            </span>
+                          </div>
                           {book.author && (
-                            <div style={{ fontSize: '0.78rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 700 }}>
+                            <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
                               ✍️ {book.author}
                             </div>
                           )}
-                          {book.notes && (
-                            <p style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 6, fontStyle: 'italic' }}>
-                              📝 {book.notes}
-                            </p>
+                          {isMobile && (
+                            <div style={{ fontSize: '0.68rem', color: isDark ? '#a5b4fc' : '#4f46e5', fontWeight: 700, marginTop: 2 }}>
+                              📄 {book.totalPages} sf. • Plan: Sf. {rankInfo.startPage}-{rankInfo.endPage}
+                            </div>
                           )}
-
-                          {/* Plana Göre Kümülatif Sayfa Göstergesi */}
-                          <div style={{
-                            marginTop: 10,
-                            padding: '6px 10px',
-                            borderRadius: 8,
-                            background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                            border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: '0.72rem'
-                          }}>
-                            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
-                              🎯 Okuma Planı Aralığı:
-                            </span>
-                            <span style={{ fontWeight: 800, color: isDark ? '#e2e8f0' : '#1e293b' }}>
-                              Sayfa {rankInfo.startPage.toLocaleString('tr-TR')} - {rankInfo.endPage.toLocaleString('tr-TR')} ({book.totalPages} sf.)
-                            </span>
-                          </div>
                         </div>
 
-                        {!isSelectMode && (
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startReadingBook(book.id);
-                              }}
-                              style={{
-                                flex: 1,
-                                padding: '0.6rem 0.8rem',
-                                borderRadius: '0.75rem',
-                                border: 'none',
-                                background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
-                                color: 'white',
-                                fontWeight: 800,
-                                fontSize: '0.8rem',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6,
-                                boxShadow: '0 2px 8px rgba(236,72,153,0.35)'
-                              }}
-                            >
-                              <Play size={14} fill="white" /> Okumaya Başla
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEdit(book);
-                              }}
-                              style={{
-                                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                border: 'none',
-                                borderRadius: '0.75rem',
-                                padding: '0.6rem 0.75rem',
-                                color: isDark ? '#cbd5e1' : '#475569',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Edit3 size={15} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
-                                  deleteBook(book.id);
-                                }
-                              }}
-                              style={{
-                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
-                                border: 'none',
-                                borderRadius: '0.75rem',
-                                padding: '0.6rem 0.75rem',
-                                color: '#ef4444',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                        {/* Sayfa Sayısı (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isDark ? '#cbd5e1' : '#334155' }}>
+                            {book.totalPages} sf.
                           </div>
                         )}
+
+                        {/* Plan Aralığı (Desktop) */}
+                        {!isMobile && (
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#a5b4fc' : '#4f46e5' }}>
+                            Sf. {rankInfo.startPage.toLocaleString('tr-TR')} - {rankInfo.endPage.toLocaleString('tr-TR')}
+                          </div>
+                        )}
+
+                        {/* İşlem Butonları (Desktop + Mobile) */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+                          {!isSelectMode && (
+                            <>
+                              {isMobile && (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={idx === 0}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveBookOrder(book.id, 'up');
+                                    }}
+                                    title="Yukarı taşı"
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: idx === 0 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
+                                      cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                      padding: 2
+                                    }}
+                                  >
+                                    <ArrowUp size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={idx === toReadBooks.length - 1}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      moveBookOrder(book.id, 'down');
+                                    }}
+                                    title="Aşağı taşı"
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: idx === toReadBooks.length - 1 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
+                                      cursor: idx === toReadBooks.length - 1 ? 'not-allowed' : 'pointer',
+                                      padding: 2
+                                    }}
+                                  >
+                                    <ArrowDown size={13} />
+                                  </button>
+                                </>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startReadingBook(book.id);
+                                }}
+                                title="Okumaya Başla"
+                                style={{
+                                  padding: isMobile ? '3px 6px' : '4px 8px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                                  color: 'white',
+                                  fontWeight: 800,
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 2
+                                }}
+                              >
+                                <Play size={10} fill="white" /> {!isMobile && 'Başla'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenEdit(book);
+                                }}
+                                title="Düzenle"
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: isDark ? '#94a3b8' : '#64748b',
+                                  cursor: 'pointer',
+                                  padding: 3
+                                }}
+                              >
+                                <Edit3 size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
+                                    deleteBook(book.id);
+                                  }
+                                }}
+                                title="Sil"
+                                style={{
+                                  background: 'transparent',
+                                  border: 'none',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  padding: 3
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
-
-              {/* ── GÖRÜNÜM 2: KOMPAKT SIRALAMA TABLOSU (Çok Sayıda Kitap İçin İdeal) ── */}
-              {toReadViewMode === 'list' && (
-                <div style={{
-                  background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
-                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                  borderRadius: '1.25rem',
-                  overflow: 'hidden',
-                  boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.2)' : '0 2px 10px rgba(0,0,0,0.03)'
-                }}>
-                  {/* Tablo Başlıkları */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: isMobile ? '55px 1fr 75px' : '65px 75px 1fr 100px 145px 135px',
-                    padding: '0.8rem 1rem',
-                    background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                    borderBottom: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    color: isDark ? '#94a3b8' : '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em'
-                  }}>
-                    <div>Sıra</div>
-                    {!isMobile && <div>Taşı</div>}
-                    <div>Kitap &amp; Yazar</div>
-                    {!isMobile && <div>Sayfa</div>}
-                    {!isMobile && <div>Plan Aralığı</div>}
-                    <div style={{ textAlign: 'right' }}>İşlem</div>
-                  </div>
-
-                  {/* Tablo Satırları */}
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {toReadBooks.map((book, idx) => {
-                      const rankInfo = cumulativeRanges.get(book.id) || { rank: idx + 1, startPage: 1, endPage: book.totalPages || 0 };
-                      const colorObj = getColorObj(book.color);
-                      const isSelected = selectedBookIds.has(book.id);
-                      const isDragOver = dragOverBookId === book.id && draggedBookId !== book.id;
-
-                      return (
-                        <div
-                          key={book.id}
-                          draggable={!isSelectMode}
-                          onDragStart={(e) => handleDragStart(e, book.id)}
-                          onDragOver={(e) => handleDragOver(e, book.id)}
-                          onDrop={(e) => handleDrop(e, book.id)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => {
-                            if (isSelectMode) toggleSelectBook(book.id);
-                          }}
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: isMobile ? '55px 1fr 75px' : '65px 75px 1fr 100px 145px 135px',
-                            alignItems: 'center',
-                            padding: '0.75rem 1rem',
-                            borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9',
-                            background: isDragOver
-                              ? (isDark ? 'rgba(99,102,241,0.25)' : '#e0e7ff')
-                              : isSelected
-                                ? (isDark ? 'rgba(99,102,241,0.15)' : '#eef2ff')
-                                : 'transparent',
-                            outline: isDragOver ? '2px dashed #6366f1' : 'none',
-                            cursor: isSelectMode ? 'pointer' : 'grab',
-                            transition: 'background 0.15s ease',
-                            opacity: draggedBookId === book.id ? 0.45 : 1
-                          }}
-                        >
-                          {/* Sıra Numarası ve Drag Tutamacı */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {!isSelectMode && (
-                              <GripVertical size={14} color={isDark ? '#64748b' : '#94a3b8'} style={{ cursor: 'grab', flexShrink: 0 }} />
-                            )}
-                            {isSelectMode ? (
-                              <div style={{ color: isSelected ? '#6366f1' : (isDark ? '#64748b' : '#94a3b8') }}>
-                                {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePromptOrderRank(book, rankInfo.rank);
-                                }}
-                                title="Sırayı doğrudan değiştirmek için tıkla"
-                                style={{
-                                  border: rankInfo.rank === 1 ? '1px solid #f59e0b' : 'none',
-                                  background: rankInfo.rank === 1
-                                    ? (isDark ? 'rgba(245,158,11,0.25)' : '#fef3c7')
-                                    : (isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'),
-                                  color: rankInfo.rank === 1
-                                    ? (isDark ? '#fbbf24' : '#b45309')
-                                    : (isDark ? '#e2e8f0' : '#1e293b'),
-                                  fontWeight: 900,
-                                  fontSize: '0.74rem',
-                                  borderRadius: 6,
-                                  padding: '2px 6px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                #{rankInfo.rank}
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Taşıma Okları */}
-                          {!isMobile && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <button
-                                type="button"
-                                disabled={idx === 0}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveBookOrder(book.id, 'up');
-                                }}
-                                title="Bir yukarı taşı"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: idx === 0 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
-                                  cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                  padding: 3
-                                }}
-                              >
-                                <ArrowUp size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={idx === toReadBooks.length - 1}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  moveBookOrder(book.id, 'down');
-                                }}
-                                title="Bir aşağı taşı"
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: idx === toReadBooks.length - 1 ? (isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1') : (isDark ? '#cbd5e1' : '#334155'),
-                                  cursor: idx === toReadBooks.length - 1 ? 'not-allowed' : 'pointer',
-                                  padding: 3
-                                }}
-                              >
-                                <ArrowDown size={14} />
-                              </button>
-                              {idx > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setBookOrderRank(book.id, 1);
-                                  }}
-                                  title="En başa taşı"
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#6366f1',
-                                    cursor: 'pointer',
-                                    padding: 3
-                                  }}
-                                >
-                                  <ArrowUpToLine size={14} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Kitap Adı & Yazar */}
-                          <div style={{ minWidth: 0, paddingRight: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{
-                                fontWeight: 800,
-                                fontSize: '0.84rem',
-                                color: isDark ? '#f8fafc' : '#0f172a',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                maxWidth: '100%'
-                              }}>
-                                {book.title}
-                              </span>
-                              <span style={{
-                                fontSize: '0.65rem',
-                                padding: '1px 6px',
-                                borderRadius: 4,
-                                background: colorObj.light,
-                                color: colorObj.bg,
-                                fontWeight: 700
-                              }}>
-                                {book.category || 'Roman'}
-                              </span>
-                            </div>
-                            {book.author && (
-                              <div style={{ fontSize: '0.72rem', color: isDark ? '#94a3b8' : '#64748b' }}>
-                                ✍️ {book.author}
-                              </div>
-                            )}
-                            {isMobile && (
-                              <div style={{ fontSize: '0.7rem', color: isDark ? '#94a3b8' : '#64748b', marginTop: 2 }}>
-                                📄 {book.totalPages} sf. • Plan: {rankInfo.startPage}-{rankInfo.endPage} sf.
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Sayfa Sayısı */}
-                          {!isMobile && (
-                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isDark ? '#cbd5e1' : '#334155' }}>
-                              {book.totalPages} sf.
-                            </div>
-                          )}
-
-                          {/* Plan Aralığı */}
-                          {!isMobile && (
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isDark ? '#a5b4fc' : '#4f46e5' }}>
-                              Sf. {rankInfo.startPage.toLocaleString('tr-TR')} - {rankInfo.endPage.toLocaleString('tr-TR')}
-                            </div>
-                          )}
-
-                          {/* İşlem Butonları */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                            {!isSelectMode && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    startReadingBook(book.id);
-                                  }}
-                                  title="Okumaya Başla"
-                                  style={{
-                                    padding: '4px 8px',
-                                    borderRadius: 6,
-                                    border: 'none',
-                                    background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
-                                    color: 'white',
-                                    fontWeight: 800,
-                                    fontSize: '0.72rem',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 3
-                                  }}
-                                >
-                                  <Play size={10} fill="white" /> {isMobile ? '' : 'Başla'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenEdit(book);
-                                  }}
-                                  title="Düzenle"
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: isDark ? '#94a3b8' : '#64748b',
-                                    cursor: 'pointer',
-                                    padding: 3
-                                  }}
-                                >
-                                  <Edit3 size={13} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
-                                      deleteBook(book.id);
-                                    }
-                                  }}
-                                  title="Sil"
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#ef4444',
-                                    cursor: 'pointer',
-                                    padding: 3
-                                  }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
         </div>
