@@ -1702,6 +1702,7 @@ export function MonthlyListPanel({
   onEditClick,
   onOpenResult,
   onStartStudy,
+  onCleanDuplicates,
   isDark = false
 }) {
   const effectiveStudentId = studentId || currentUser?.id;
@@ -2592,26 +2593,29 @@ export function MonthlyListPanel({
                   <span>{showAllMonthDays ? `▲ İlk ${initialDaysCount} Gün` : `▼ Tüm Ayı Aç (${filteredDays.length} Gün)`}</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={handleCleanDuplicateTasks}
-                style={{
-                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
-                  borderRadius: 99,
-                  background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2',
-                  border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1.5px solid #fecaca',
-                  color: '#ef4444',
-                  fontWeight: 800,
-                  fontSize: isMobile ? '0.7rem' : '0.75rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}
-                title="Yinelenen veya mükerrer görevleri temizler"
-              >
-                🧹 Yinelenenleri Temizle
-              </button>
+
+              {onCleanDuplicates && (
+                <button
+                  type="button"
+                  onClick={onCleanDuplicates}
+                  style={{
+                    padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                    borderRadius: 99,
+                    background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2',
+                    border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1.5px solid #fecaca',
+                    color: '#ef4444',
+                    fontWeight: 800,
+                    fontSize: isMobile ? '0.7rem' : '0.75rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                  title="Yinelenen veya mükerrer görevleri temizler"
+                >
+                  🧹 Yinelenenleri Temizle
+                </button>
+              )}
             </div>
 
             {/* Print Buttons */}
@@ -4125,7 +4129,10 @@ export default function ProgramCenter({
         const seen = new Set();
         const cleanedItems = [];
         (dObj.items || []).forEach(item => {
-          const isReading = item.taskType === 'okuma' || Boolean(item.readingBookId);
+          const isReading = item.taskType === 'okuma' ||
+            item.subject === 'Kitap Okuma' ||
+            Boolean(item.readingBookId) ||
+            (item.id && String(item.id).startsWith('read_task_'));
           let dedupeKey = '';
           if (isReading) {
             const bName = String(item.bookTitle || item.bookName || item.topic || '').trim().toLowerCase();
@@ -4142,10 +4149,12 @@ export default function ProgramCenter({
             dedupeKey = `manual_${subj}_${topic}`;
           }
 
-          if (dedupeKey && seen.has(dedupeKey)) {
+          const isDuplicate = (dedupeKey && seen.has(dedupeKey)) || (item.id && seen.has(`id_${item.id}`));
+          if (isDuplicate) {
             removedCount++;
           } else {
             if (dedupeKey) seen.add(dedupeKey);
+            if (item.id) seen.add(`id_${item.id}`);
             cleanedItems.push(item);
           }
         });
@@ -5572,6 +5581,7 @@ export default function ProgramCenter({
           onEditClick={(dayKey, item) => setEditingItem({ dayKey, item })}
           onOpenResult={handleOpenTaskResult}
           onStartStudy={handleStartInStudyRoom}
+          onCleanDuplicates={handleCleanDuplicateTasks}
           isDark={isDark}
         />
       )}
