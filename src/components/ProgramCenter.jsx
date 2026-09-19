@@ -1765,10 +1765,31 @@ export function MonthlyListPanel({
       
       // All items belonging to this weekday in weeklyProgram reflect on this day
       let manualItems = rawManualItems.filter(item => {
+        // 1. Reading tasks or tasks with specific dates should ONLY appear on their exact scheduled date
+        const isReading = item.taskType === 'okuma' || Boolean(item.readingBookId) || String(item.subject || '').includes('Okuma');
+        const itemDate = item.singleDate || item.specificDate || item.scheduledDate || item.date || item.targetDate;
+
+        if (isReading) {
+          if (itemDate) {
+            return itemDate === ymd;
+          }
+          if (item.createdYMD) {
+            return item.createdYMD === ymd;
+          }
+        }
+
+        if (item.singleDate || item.specificDate || item.scheduledDate) {
+          const sDate = item.singleDate || item.specificDate || item.scheduledDate;
+          return sDate === ymd;
+        }
+
+        if (item.repeatType === 'none' || item.isRecurring === false) {
+          if (itemDate) return itemDate === ymd;
+          if (item.createdYMD) return item.createdYMD === ymd;
+        }
+
         if (item.createdYMD && ymd < item.createdYMD) return false;
         if (item.repeatEndDate && ymd > item.repeatEndDate) return false;
-        if (item.singleDate && item.singleDate !== ymd) return false;
-        if (item.specificDate && item.specificDate !== ymd) return false;
         return true;
       });
 
@@ -2571,6 +2592,26 @@ export function MonthlyListPanel({
                   <span>{showAllMonthDays ? `▲ İlk ${initialDaysCount} Gün` : `▼ Tüm Ayı Aç (${filteredDays.length} Gün)`}</span>
                 </button>
               )}
+              <button
+                type="button"
+                onClick={handleCleanDuplicateTasks}
+                style={{
+                  padding: isMobile ? '0.25rem 0.55rem' : '0.35rem 0.75rem',
+                  borderRadius: 99,
+                  background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2',
+                  border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1.5px solid #fecaca',
+                  color: '#ef4444',
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.7rem' : '0.75rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+                title="Yinelenen veya mükerrer görevleri temizler"
+              >
+                🧹 Yinelenenleri Temizle
+              </button>
             </div>
 
             {/* Print Buttons */}
@@ -3702,12 +3743,32 @@ export default function ProgramCenter({
       if (!dayInfo) return dayObj;
 
       let manualItems = (dayObj.items || []).filter(item => {
-        if (item.createdYMD && dayInfo.ymd < item.createdYMD) return false;
-        if (item.repeatEndDate && dayInfo.ymd > item.repeatEndDate) return false;
+        // 1. Reading tasks or tasks with specific dates should ONLY appear on their exact scheduled date
+        const isReading = item.taskType === 'okuma' || Boolean(item.readingBookId) || String(item.subject || '').includes('Okuma');
+        const itemDate = item.singleDate || item.specificDate || item.scheduledDate || item.date || item.targetDate;
+
+        if (isReading) {
+          if (itemDate) {
+            return itemDate === dayInfo.ymd;
+          }
+          if (item.createdYMD) {
+            return item.createdYMD === dayInfo.ymd;
+          }
+        }
+
+        if (item.singleDate || item.specificDate || item.scheduledDate) {
+          const sDate = item.singleDate || item.specificDate || item.scheduledDate;
+          return sDate === dayInfo.ymd;
+        }
+
         if (item.repeatType === 'none' || item.isRecurring === false) {
+          if (itemDate) return itemDate === dayInfo.ymd;
           const itemCreatedYMD = item.createdYMD || getLocalYMD(new Date());
           return isSameWeek(dayInfo.ymd, itemCreatedYMD);
         }
+
+        if (item.createdYMD && dayInfo.ymd < item.createdYMD) return false;
+        if (item.repeatEndDate && dayInfo.ymd > item.repeatEndDate) return false;
         return true;
       });
 
@@ -4057,6 +4118,56 @@ export default function ProgramCenter({
     }));
   }, [setWeeklyProgram, currentUser]);
 
+  const handleCleanDuplicateTasks = useCallback(() => {
+    let removedCount = 0;
+    setWeeklyProgram(prev => {
+      const updated = prev.map(dObj => {
+        const seen = new Set();
+        const cleanedItems = [];
+        (dObj.items || []).forEach(item => {
+          const isReading = item.taskType === 'okuma' || Boolean(item.readingBookId);
+          let dedupeKey = '';
+          if (isReading) {
+            const bName = String(item.bookTitle || item.bookName || item.topic || '').trim().toLowerCase();
+            const pRange = String(item.pageRange || `${item.fromPage}-${item.toPage}` || '').trim();
+            const sDate = String(item.singleDate || item.specificDate || item.scheduledDate || item.date || item.targetDate || item.createdYMD || '').trim();
+            dedupeKey = `read_${bName}_${pRange}_${sDate}`;
+          } else if (item.testId) {
+            dedupeKey = `test_${item.testId}`;
+          } else if (item.hwId) {
+            dedupeKey = `hw_${item.hwId}`;
+          } else {
+            const subj = String(item.subject || '').trim().toLowerCase();
+            const topic = String(item.topic || item.title || '').trim().toLowerCase();
+            dedupeKey = `manual_${subj}_${topic}`;
+          }
+
+          if (dedupeKey && seen.has(dedupeKey)) {
+            removedCount++;
+          } else {
+            if (dedupeKey) seen.add(dedupeKey);
+            cleanedItems.push(item);
+          }
+        });
+
+        return {
+          ...dObj,
+          items: cleanedItems
+        };
+      });
+
+      return updated;
+    });
+
+    setTimeout(() => {
+      if (removedCount > 0) {
+        alert(`${removedCount} adet mükerrer / çakışan görev başarıyla temizlendi!`);
+      } else {
+        alert('Tebrikler, programınızda mükerrer görev bulunamadı.');
+      }
+    }, 60);
+  }, [setWeeklyProgram]);
+
   const handleAddItem = useCallback((newItem, targetDayKey) => {
     const dayToUse = targetDayKey || addingToDay || getTodayKey();
     setWeeklyProgram(prev => prev.map(d =>
@@ -4358,6 +4469,27 @@ export default function ProgramCenter({
                 title="Yazdır / PDF Olarak Kaydet"
               >
                 <Printer size={13} /> {!isMobile && 'Yazdır'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCleanDuplicateTasks}
+                style={{
+                  padding: isMobile ? '0.3rem 0.5rem' : '0.35rem 0.65rem',
+                  borderRadius: 8,
+                  background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2',
+                  border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca',
+                  color: '#ef4444',
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+                title="Yinelenen / mükerrer görevleri temizler"
+              >
+                🧹 {!isMobile && 'Yinelenenleri Temizle'}
               </button>
             </div>
           </div>

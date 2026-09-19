@@ -79,6 +79,7 @@ export default function CreateReadingScheduleModal({
   const [activeDays, setActiveDays] = useState(['Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts', 'Paz']);
   const [autoStartFirst, setAutoStartFirst] = useState(true);
   const [readingHours, setReadingHours] = useState(''); // e.g. "21:00"
+  const [replaceExistingReadingTasks, setReplaceExistingReadingTasks] = useState(true);
   
   // UI states
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -232,9 +233,17 @@ export default function CreateReadingScheduleModal({
       const normalizedWeekly = normalizeWeeklyProgram(rawProfile.weeklyProgram);
 
       // 2. Generate task items and distribute into weeklyProgram by dayKey
+      // If replaceExistingReadingTasks is true, clear old reading tasks first so tasks don't accumulate into hundreds
       const newWeekly = normalizedWeekly.map(dayObj => ({
         ...dayObj,
-        items: [...(dayObj.items || [])]
+        items: (dayObj.items || []).filter(item => {
+          if (!replaceExistingReadingTasks) return true;
+          const isOldReadingTask = item.taskType === 'okuma' ||
+            item.subject === 'Kitap Okuma' ||
+            Boolean(item.readingBookId) ||
+            (item.id && String(item.id).startsWith('read_task_'));
+          return !isOldReadingTask;
+        })
       }));
 
       schedulePlan.items.forEach((planItem, idx) => {
@@ -259,6 +268,10 @@ export default function CreateReadingScheduleModal({
           date: planItem.date,
           targetDate: planItem.date,
           createdYMD: planItem.date,
+          singleDate: planItem.date,
+          specificDate: planItem.date,
+          repeatType: 'none',
+          isRecurring: false,
           done: false
         };
 
@@ -997,6 +1010,16 @@ export default function CreateReadingScheduleModal({
                       style={{ width: 16, height: 16, accentColor: '#6366f1' }}
                     />
                     İlk sıradaki kitabı Okuma Takibi'nde "Şu an Okuyorum" durumuna al
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 700, marginTop: '0.5rem', color: isDark ? '#cbd5e1' : '#334155' }}>
+                    <input
+                      type="checkbox"
+                      checked={replaceExistingReadingTasks}
+                      onChange={(e) => setReplaceExistingReadingTasks(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: '#6366f1' }}
+                    />
+                    Önceki okuma planı görevlerini temizle ve bu yeni planla güncelle (Çakışmaları önler)
                   </label>
                 </div>
               </div>

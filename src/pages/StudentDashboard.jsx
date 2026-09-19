@@ -1861,7 +1861,12 @@ export default function StudentDashboard() {
                 dayManualItems.push({ ...item, isWeeklyProgItem: true });
                 return;
               }
-              const itemYMD = extractItemYMD(item);
+              const isReading = item.taskType === 'okuma' || Boolean(item.readingBookId) || String(item.subject || '').includes('Okuma');
+              const itemYMD = item.singleDate || item.specificDate || item.scheduledDate || extractItemYMD(item) || (item.repeatType === 'none' || item.isRecurring === false ? (item.date || item.targetDate) : null);
+              if (isReading) {
+                const readDate = itemYMD || item.date || item.targetDate || item.createdYMD;
+                if (readDate && readDate !== dayYMD) return;
+              }
               if (itemYMD && itemYMD !== dayYMD) return;
               if (item.createdYMD && dayYMD < item.createdYMD) return;
               if (item.repeatEndDate && dayYMD > item.repeatEndDate) return;
