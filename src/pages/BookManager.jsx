@@ -68,7 +68,18 @@ export default function BookManager() {
       );
     }
     return filteredBooks.map(book => {
-      const tests = bookTests.filter(bt => bt.bookId === book.id);
+      const bookIdStr = String(book.id || '');
+      const bookUuid = toUUID(bookIdStr);
+      const bookTitleNorm = String(book.title || '').trim().toLowerCase();
+
+      const tests = bookTests.filter(bt => {
+        if (!bt) return false;
+        const btBId = String(bt.bookId || bt.book_id || '');
+        if (btBId === bookIdStr) return true;
+        if (bookUuid && (btBId === bookUuid || toUUID(btBId) === bookUuid)) return true;
+        if (bookTitleNorm && bt.bookTitle && String(bt.bookTitle).trim().toLowerCase() === bookTitleNorm) return true;
+        return false;
+      });
       
       const solvedSubmissions = submissions.filter(s => tests.some(t => t.id === s.testId) && s.status === 'completed');
       
@@ -264,14 +275,17 @@ export default function BookManager() {
         const subject = { 
           id: existingSub?.id || genId("s"), 
           name: subjData.name, 
-          topics: [] 
+          topics: [],
+          tests: []
         };
         updatedSubjects.push(subject);
 
         // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
           for (const testData of subjData.tests) {
-            allTestsToSave.push(formatTestPayload(testData, subject.id, null));
+            const formatted = formatTestPayload(testData, subject.id, null);
+            allTestsToSave.push(formatted);
+            subject.tests.push(formatted);
           }
         }
 
@@ -283,13 +297,16 @@ export default function BookManager() {
             const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
             const topic = { 
               id: existingTop?.id || genId("t"), 
-              name: topicData.name 
+              name: topicData.name,
+              tests: []
             };
             subject.topics.push(topic);
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
-                allTestsToSave.push(formatTestPayload(testData, subject.id, topic.id));
+                const formatted = formatTestPayload(testData, subject.id, topic.id);
+                allTestsToSave.push(formatted);
+                topic.tests.push(formatted);
               }
             }
           }
@@ -305,7 +322,13 @@ export default function BookManager() {
         newBookType = 'open_ended';
       }
 
-      await updateTrackedBook(targetBook.id, { subjects: updatedSubjects, bookType: newBookType, updatedAt: new Date().toISOString() });
+      await updateTrackedBook(targetBook.id, { 
+        title: targetBook.title,
+        publisher: targetBook.publisher,
+        subjects: updatedSubjects, 
+        bookType: newBookType, 
+        updatedAt: new Date().toISOString() 
+      });
       
       if (allTestsToSave.length > 0) {
         await batchSaveTrackedBookTests(allTestsToSave);

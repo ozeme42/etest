@@ -771,6 +771,28 @@ export default function BookContentManager() {
       }
 
       const topicsList = subj.topics || [];
+      topicsList.forEach(tp => {
+        const tpId = String(tp.id || '');
+        const tpUuid = toUUID(tpId);
+        const tpNameNorm = String(tp.name || '').trim().toLowerCase();
+        (tests || []).forEach(t => {
+          const tTopId = String(t.topicId || t.topic_id || '');
+          const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
+          const matches = (tTopId && (tTopId === tpId || tTopId === tpUuid || toUUID(tTopId) === tpUuid)) ||
+                          (tpNameNorm && tTopName === tpNameNorm);
+          if (matches) {
+            if (!byTopic.has(tpId)) byTopic.set(tpId, []);
+            const arr = byTopic.get(tpId);
+            if (!arr.some(et => String(et.id) === String(t.id))) arr.push(t);
+            if (tpUuid && tpUuid !== tpId) {
+              if (!byTopic.has(tpUuid)) byTopic.set(tpUuid, []);
+              const arrU = byTopic.get(tpUuid);
+              if (!arrU.some(et => String(et.id) === String(t.id))) arrU.push(t);
+            }
+          }
+        });
+      });
+
       if (topicsList.length === 0) {
         if (!directBySubject.has(subjId)) directBySubject.set(subjId, []);
         const directExisting = directBySubject.get(subjId);
@@ -1116,8 +1138,8 @@ export default function BookContentManager() {
   }, [mistakeList, mistakeFilterSubject, mistakeFilterTopic, mistakeFilterStudent, students]);
 
   // --- HANDLERS ---
-  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === false ? true : false }));
-  const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === false ? true : false }));
+  const toggleSubject = (subjId) => setCollapsedSubjects(p => ({ ...p, [subjId]: p[subjId] === true ? false : true }));
+  const toggleTopic = (topicId) => setCollapsedTopics(p => ({ ...p, [topicId]: p[topicId] === true ? false : true }));
   const toggleTestSelection = (testId) => setSelectedTests(p => p.includes(testId) ? p.filter(id => id !== testId) : [...p, testId]);
   const toggleHwDetails = (hwId) => setExpandedHomeworkDetails(p => ({ ...p, [hwId]: !p[hwId] }));
 
@@ -1331,20 +1353,32 @@ export default function BookContentManager() {
 
       // Also persist to embedded subjects inside the book object
       const updatedSubjects = (book.subjects || []).map(s => {
-        const newTests = (s.tests || []).map(t => {
-          if (currentTest && (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase())) {
-            return { ...t, ...testPayload };
-          }
-          return t;
-        });
-
-        const newTopics = (s.topics || []).map(tp => {
-          const newTpTests = (tp.tests || []).map(t => {
-            if (currentTest && (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase())) {
-              return { ...t, ...testPayload };
+        const isTargetSubj = String(s.id) === String(targetSubjectId);
+        let newTests = [...(s.tests || [])];
+        if (currentTest) {
+          newTests = newTests.map(t => {
+            if (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase()) {
+              return { ...t, ...testPayload, id: t.id || currentTest.id };
             }
             return t;
           });
+        } else if (isTargetSubj && !targetTopicId) {
+          newTests.push({ ...testPayload, id: added?.id || testPayload.id });
+        }
+
+        const newTopics = (s.topics || []).map(tp => {
+          const isTargetTopic = String(tp.id) === String(targetTopicId);
+          let newTpTests = [...(tp.tests || [])];
+          if (currentTest) {
+            newTpTests = newTpTests.map(t => {
+              if (String(t.id) === String(currentTest.id) || String(t.name).trim().toLowerCase() === String(currentTest.name).trim().toLowerCase()) {
+                return { ...t, ...testPayload, id: t.id || currentTest.id };
+              }
+              return t;
+            });
+          } else if (isTargetTopic) {
+            newTpTests.push({ ...testPayload, id: added?.id || testPayload.id });
+          }
           return { ...tp, tests: newTpTests };
         });
 
@@ -1745,14 +1779,17 @@ export default function BookContentManager() {
         const subject = {
           id: existingSub?.id || genId("s"),
           name: subjData.name,
-          topics: []
+          topics: [],
+          tests: []
         };
         updatedSubjects.push(subject);
 
         // 1. Direct tests under subject (Ders > Test)
         if (subjData.tests && Array.isArray(subjData.tests)) {
           for (const testData of subjData.tests) {
-            allTestsToSave.push(formatTestPayload(testData, subject.id, null));
+            const formatted = formatTestPayload(testData, subject.id, null);
+            allTestsToSave.push(formatted);
+            subject.tests.push(formatted);
           }
         }
 
@@ -1764,13 +1801,16 @@ export default function BookContentManager() {
             const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
             const topic = {
               id: existingTop?.id || genId("t"),
-              name: topicData.name
+              name: topicData.name,
+              tests: []
             };
             subject.topics.push(topic);
 
             if (topicData.tests && Array.isArray(topicData.tests)) {
               for (const testData of topicData.tests) {
-                allTestsToSave.push(formatTestPayload(testData, subject.id, topic.id));
+                const formatted = formatTestPayload(testData, subject.id, topic.id);
+                allTestsToSave.push(formatted);
+                topic.tests.push(formatted);
               }
             }
           }
@@ -1787,7 +1827,13 @@ export default function BookContentManager() {
       }
 
       setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects, bookType: newBookType }) : prev);
-      await updateTrackedBook(book.id, { subjects: updatedSubjects, bookType: newBookType, updatedAt: new Date().toISOString() });
+      await updateTrackedBook(book.id, { 
+        title: book.title,
+        publisher: book.publisher,
+        subjects: updatedSubjects, 
+        bookType: newBookType, 
+        updatedAt: new Date().toISOString() 
+      });
 
       if (allTestsToSave.length > 0) {
         setLocalLiveTests(prev => {
@@ -2361,6 +2407,7 @@ export default function BookContentManager() {
                 const directTests = sortTestsNaturally(
                   testLookup.directBySubject.get(sId) ||
                   (sIdUuid ? testLookup.directBySubject.get(sIdUuid) : null) ||
+                  (Array.isArray(subject.tests) && subject.tests.length > 0 ? subject.tests : null) ||
                   (topicsList.length === 0 ? (
                     testLookup.bySubject.get(sId) ||
                     (sIdUuid ? testLookup.bySubject.get(sIdUuid) : null) ||
@@ -2374,8 +2421,8 @@ export default function BookContentManager() {
                   totalSubjectTopicTests += tList.length;
                 });
 
-                // Closed by default unless explicitly toggled to false (open)
-                const isExpanded = collapsedSubjects[subject.id] === false;
+                // Open by default unless explicitly toggled to true (closed)
+                const isExpanded = collapsedSubjects[subject.id] !== true;
 
                 return (
                   <div key={subject.id} style={{ border: '1.5px solid var(--color-border)', borderRadius: '1rem', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
@@ -2479,10 +2526,17 @@ export default function BookContentManager() {
                           const topicTests = sortTestsNaturally(
                             testLookup.byTopic.get(topId) || 
                             (topIdUuid ? testLookup.byTopic.get(topIdUuid) : null) || 
-                            []
+                            (Array.isArray(topic.tests) && topic.tests.length > 0 ? topic.tests : null) ||
+                            tests.filter(t => {
+                              const tTopId = String(t.topicId || t.topic_id || '');
+                              const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
+                              const tpName = String(topic.name || '').trim().toLowerCase();
+                              return (tTopId && (tTopId === topId || tTopId === topIdUuid || toUUID(tTopId) === topIdUuid)) ||
+                                     (tpName && tTopName === tpName);
+                            })
                           );
-                          // Closed by default unless explicitly toggled to false (open)
-                          const isTopicExpanded = collapsedTopics[topic.id] === false;
+                          // Open by default unless explicitly toggled to true (closed)
+                          const isTopicExpanded = collapsedTopics[topic.id] !== true;
 
                           return (
                             <div key={topic.id} style={{ borderLeft: '3.5px solid #6366f1', margin: '0.5rem 0.25rem 1.25rem 0.25rem', paddingLeft: '1rem' }}>

@@ -18,7 +18,7 @@ import {
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
   Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard,
-  FileText, CheckSquare
+  FileText, CheckSquare, Target
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
@@ -942,6 +942,90 @@ export default function TrackedBookQuizRunner() {
       } catch (e) {}
       return updated;
     });
+  };
+
+  // Açık uçlu testler için soru numaraları gizlenmiş, karıştırılmış Cevap Havuzu (Eşleştirme Modu)
+  const [isPoolCollapsed, setIsPoolCollapsed] = useState(false);
+  const [isMobilePoolDrawerOpen, setIsMobilePoolDrawerOpen] = useState(false);
+
+  const openEndedAnswerPool = useMemo(() => {
+    if (!isOpenEnded) return [];
+    const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+    const rawItems = [];
+
+    if (Array.isArray(answerKey)) {
+      answerKey.forEach((val, idx) => {
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          rawItems.push({ id: `key_${idx + 1}`, text: String(val).trim() });
+        }
+      });
+    } else if (typeof answerKey === 'object') {
+      Object.entries(answerKey).forEach(([k, val]) => {
+        if (k !== '__meta' && val !== undefined && val !== null && String(val).trim() !== '') {
+          rawItems.push({ id: `key_${k}`, text: String(val).trim() });
+        }
+      });
+    }
+
+    if (rawItems.length === 0) return [];
+
+    // Test kimliğine göre deterministik karıştırma (aynı testte her render'da yer değiştirmez)
+    const seedStr = String(resolvedTest?.id || resolvedBook?.id || 'open_ended_pool');
+    let hash = 0;
+    for (let i = 0; i < seedStr.length; i++) {
+      hash = ((hash << 5) - hash + seedStr.charCodeAt(i)) | 0;
+    }
+
+    const shuffled = [...rawItems].map((item, i) => {
+      const pseudoRand = Math.abs(Math.sin(hash + (i + 1) * 7919));
+      return { item, sortKey: pseudoRand };
+    }).sort((a, b) => a.sortKey - b.sortKey).map(x => x.item);
+
+    return shuffled;
+  }, [isOpenEnded, resolvedTest, resolvedBook]);
+
+  const handleSelectPoolAnswer = (answerText, targetQuestion = null) => {
+    if (isSubmitted || isTeacherReviewing) return;
+
+    let targetQ = targetQuestion || activeFocusedQ;
+    if (!targetQ) {
+      for (let i = 1; i <= (questionCount || 20); i++) {
+        if (!answers[i] && !answers[String(i)]) {
+          targetQ = i;
+          break;
+        }
+      }
+      if (!targetQ) targetQ = 1;
+    }
+
+    // Toggle: Eğer bu soruya zaten aynı cevap atanmışsa kaldır
+    const currentAns = answers[targetQ] || answers[String(targetQ)] || '';
+    if (String(currentAns).trim() === String(answerText).trim()) {
+      handleOpenEndedChange(targetQ, '');
+      return;
+    }
+
+    // Cevabı soruya ata
+    handleOpenEndedChange(targetQ, answerText);
+
+    // Sıradaki boş soruya otomatik geç (eğer yoksa bir sonraki soruya)
+    let nextQ = null;
+    for (let i = targetQ + 1; i <= (questionCount || 20); i++) {
+      if (!answers[i] && !answers[String(i)]) {
+        nextQ = i;
+        break;
+      }
+    }
+    if (!nextQ && targetQ < (questionCount || 20)) {
+      nextQ = targetQ + 1;
+    }
+
+    if (nextQ) {
+      setActiveFocusedQ(nextQ);
+      scrollToQuestion(nextQ);
+    } else {
+      setActiveFocusedQ(targetQ);
+    }
   };
 
   const isSubmittingRef = useRef(false);
@@ -1988,6 +2072,162 @@ export default function TrackedBookQuizRunner() {
                   </div>
                 </div>
 
+                {/* 🎯 AÇIK UÇLU TESTLER İÇİN CEVAP HAVUZU (EŞLEŞTİRME PANELİ) */}
+                {isOpenEnded && openEndedAnswerPool.length > 0 && !isSubmitted && (
+                  <div
+                    id="oe-answer-pool-card"
+                    style={{
+                      background: isDark 
+                        ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%)' 
+                        : 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                      borderRadius: '1rem',
+                      border: '1.5px solid rgba(139, 92, 246, 0.35)',
+                      padding: isMobile ? '0.75rem 0.85rem' : '0.95rem 1.15rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                      boxShadow: '0 4px 14px rgba(124, 58, 237, 0.08)'
+                    }}
+                  >
+                    {/* Üst Başlık ve Aktif Soru Durumu */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{
+                          background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                          color: 'white',
+                          padding: '0.3rem 0.55rem',
+                          borderRadius: '0.5rem',
+                          fontWeight: 900,
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          <Target size={13} />
+                          <span>CEVAP HAVUZU</span>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                          {openEndedAnswerPool.length} Karışık Seçenek
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {activeFocusedQ ? (
+                          <div style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 900,
+                            color: isDark ? '#c4b5fd' : '#5b21b6',
+                            background: isDark ? 'rgba(124, 58, 237, 0.3)' : 'rgba(124, 58, 237, 0.15)',
+                            border: '1.5px solid rgba(124, 58, 237, 0.35)',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: 99,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
+                          }}>
+                            <span>👉 Aktif Hedef:</span>
+                            <span style={{ fontWeight: 900, color: isDark ? '#ffffff' : '#4c1d95' }}>{activeFocusedQ}. Soru</span>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                            💡 Bulduğunuz sonuca tıklayıp eşleştirin
+                          </span>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setIsPoolCollapsed(prev => !prev)}
+                          style={{
+                            background: 'none',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '0.5rem',
+                            padding: '0.2rem 0.45rem',
+                            color: '#7c3aed',
+                            cursor: 'pointer',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3
+                          }}
+                          title={isPoolCollapsed ? 'Havuzu Genişlet' : 'Havuzu Daralt'}
+                        >
+                          {isPoolCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                          <span>{isPoolCollapsed ? 'Göster' : 'Gizle'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Havuzdaki Karışık Çipler (Açıkken) */}
+                    {!isPoolCollapsed && (
+                      <div>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.73rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          Soru numaraları gizlenmiştir. Soruyu çözüp sonucunuza dokunun; seçili soruya atanıp otomatik sonraki soruya geçer.
+                        </p>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '0.45rem',
+                          maxHeight: isMobile ? '200px' : '260px',
+                          overflowY: 'auto',
+                          paddingRight: '0.25rem'
+                        }}>
+                          {openEndedAnswerPool.map((item, idx) => {
+                            const matchedQuestions = Object.entries(answers)
+                              .filter(([k, v]) => String(v).trim() === item.text)
+                              .map(([k]) => Number(k))
+                              .sort((a, b) => a - b);
+                            const isAssigned = matchedQuestions.length > 0;
+                            const isAssignedToActive = activeFocusedQ && matchedQuestions.includes(activeFocusedQ);
+
+                            return (
+                              <button
+                                key={item.id || idx}
+                                type="button"
+                                onClick={() => handleSelectPoolAnswer(item.text)}
+                                style={{
+                                  padding: '0.45rem 0.75rem',
+                                  borderRadius: '0.65rem',
+                                  border: isAssignedToActive
+                                    ? '2px solid #7c3aed'
+                                    : (isAssigned ? '1.5px solid #a78bfa' : '1.5px solid var(--color-border)'),
+                                  background: isAssignedToActive
+                                    ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
+                                    : (isAssigned ? (isDark ? 'rgba(124, 58, 237, 0.25)' : '#e0e7ff') : 'var(--color-surface)'),
+                                  color: isAssignedToActive ? '#ffffff' : (isAssigned ? (isDark ? '#c4b5fd' : '#4338ca') : 'var(--color-text)'),
+                                  fontWeight: 800,
+                                  fontSize: isMobile ? '0.82rem' : '0.88rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  boxShadow: isAssignedToActive ? '0 3px 10px rgba(124, 58, 237, 0.35)' : 'none',
+                                  transition: 'all 0.15s ease',
+                                  userSelect: 'none'
+                                }}
+                              >
+                                <span>{item.text}</span>
+                                {isAssigned && (
+                                  <span style={{
+                                    fontSize: '0.65rem',
+                                    fontWeight: 900,
+                                    padding: '0.1rem 0.35rem',
+                                    borderRadius: 99,
+                                    background: isAssignedToActive ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(124,58,237,0.4)' : '#c7d2fe'),
+                                    color: isAssignedToActive ? '#ffffff' : (isDark ? '#e9d5ff' : '#3730a3')
+                                  }}>
+                                    ✓ {matchedQuestions.map(q => `${q}. Soru`).join(', ')}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Natural Question Columns Grid (Dynamic 1 or 2 Columns based on container width) */}
                 {(() => {
                   const isVeryNarrow = !isMobile && containerWidth < 460;
@@ -2103,41 +2343,101 @@ export default function TrackedBookQuizRunner() {
 
                                   {/* Cevap input alanı + Hızlı İleri Butonu */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <input
-                                      ref={el => { inputRefs.current[qNo] = el; }}
-                                      type="text"
-                                      inputMode="text"
-                                      autoCapitalize="sentences"
-                                      autoCorrect="on"
-                                      spellCheck="true"
-                                      enterKeyHint={qNo === (questionCount || 20) ? "done" : "next"}
-                                      disabled={isSubmitted || isTeacherReviewing}
-                                      value={selected || ''}
-                                      onFocus={() => handleInputFocus(qNo)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.preventDefault();
-                                          goToNextQuestion(qNo);
-                                        }
-                                      }}
-                                      onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                      placeholder={isSubmitted ? (selected ? '' : '— boş —') : 'Cevap giriniz (sayı veya metin)...'}
-                                      style={{
-                                        flex: 1,
-                                        width: '100%',
-                                        background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
-                                        border: `1.5px solid ${isFocused ? '#6366f1' : (isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)')}`,
-                                        borderRadius: 8,
-                                        padding: '0.55rem 0.75rem',
-                                        color: 'var(--color-text)',
-                                        fontSize: '1rem',
-                                        fontWeight: 700,
-                                        fontFamily: 'inherit',
-                                        boxSizing: 'border-box',
-                                        outline: 'none',
-                                        letterSpacing: 'normal'
-                                      }}
-                                    />
+                                    <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                                      <input
+                                        ref={el => { inputRefs.current[qNo] = el; }}
+                                        type="text"
+                                        inputMode="text"
+                                        autoCapitalize="sentences"
+                                        autoCorrect="on"
+                                        spellCheck="true"
+                                        enterKeyHint={qNo === (questionCount || 20) ? "done" : "next"}
+                                        disabled={isSubmitted || isTeacherReviewing}
+                                        value={selected || ''}
+                                        onFocus={() => handleInputFocus(qNo)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            goToNextQuestion(qNo);
+                                          }
+                                        }}
+                                        onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                        placeholder={isSubmitted ? (selected ? '' : '— boş —') : (openEndedAnswerPool.length > 0 ? 'Havuzdan seçin veya yazın...' : 'Cevap giriniz (sayı veya metin)...')}
+                                        style={{
+                                          width: '100%',
+                                          background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                                          border: `1.5px solid ${isFocused ? '#6366f1' : (isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)')}`,
+                                          borderRadius: 8,
+                                          padding: selected && !isSubmitted ? '0.55rem 2rem 0.55rem 0.75rem' : '0.55rem 0.75rem',
+                                          color: 'var(--color-text)',
+                                          fontSize: '1rem',
+                                          fontWeight: 700,
+                                          fontFamily: 'inherit',
+                                          boxSizing: 'border-box',
+                                          outline: 'none',
+                                          letterSpacing: 'normal'
+                                        }}
+                                      />
+                                      {selected && !isSubmitted && !isTeacherReviewing && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenEndedChange(qNo, '')}
+                                          style={{
+                                            position: 'absolute',
+                                            right: 6,
+                                            background: 'var(--color-surface-hover)',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: 22,
+                                            height: 22,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            color: 'var(--color-text-muted)'
+                                          }}
+                                          title="Cevabı Temizle"
+                                        >
+                                          <XIcon size={13} />
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {openEndedAnswerPool.length > 0 && !isSubmitted && (
+                                      <button
+                                        type="button"
+                                        tabIndex={-1}
+                                        onClick={() => {
+                                          setActiveFocusedQ(qNo);
+                                          if (isMobile) {
+                                            setIsMobilePoolDrawerOpen(true);
+                                          } else {
+                                            const poolEl = document.getElementById('oe-answer-pool-card');
+                                            if (poolEl) {
+                                              poolEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                            }
+                                          }
+                                        }}
+                                        style={{
+                                          padding: '0.55rem 0.65rem',
+                                          borderRadius: 8,
+                                          border: '1.5px solid rgba(124, 58, 237, 0.35)',
+                                          background: 'rgba(124, 58, 237, 0.08)',
+                                          color: '#7c3aed',
+                                          fontWeight: 800,
+                                          fontSize: '0.75rem',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 4,
+                                          flexShrink: 0
+                                        }}
+                                        title="Bu soru için havuzdan cevap seç"
+                                      >
+                                        <Target size={13} />
+                                        <span>Havuz</span>
+                                      </button>
+                                    )}
 
                                     {!isSubmitted && (
                                       <button
@@ -2882,6 +3182,32 @@ export default function TrackedBookQuizRunner() {
               </button>
             )}
 
+            {openEndedAnswerPool.length > 0 && (
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => setIsMobilePoolDrawerOpen(true)}
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: '0.65rem',
+                  border: '1.5px solid #a78bfa',
+                  background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                  color: 'white',
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  boxShadow: '0 2px 8px rgba(124,58,237,0.3)'
+                }}
+                title="Cevap Havuzunu Aç"
+              >
+                <Target size={14} />
+                <span>Havuz ({openEndedAnswerPool.length})</span>
+              </button>
+            )}
+
             <button
               type="button"
               onMouseDown={e => e.preventDefault()}
@@ -2904,6 +3230,153 @@ export default function TrackedBookQuizRunner() {
               <span>{activeFocusedQ === (questionCount || 20) ? 'Bitti ✓' : 'Sonraki'}</span>
               {activeFocusedQ < (questionCount || 20) && <ChevronRight size={16} />}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE ANSWER POOL BOTTOM SHEET / DRAWER ── */}
+      {isMobile && isMobilePoolDrawerOpen && !isSubmitted && openEndedAnswerPool.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 100000,
+            background: 'rgba(0, 0, 0, 0.55)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            animation: 'fadeIn 0.15s ease-out'
+          }}
+          onClick={() => setIsMobilePoolDrawerOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              borderTopLeftRadius: '1.5rem',
+              borderTopRightRadius: '1.5rem',
+              borderTop: '2px solid rgba(124, 58, 237, 0.4)',
+              boxShadow: '0 -10px 35px rgba(0,0,0,0.28)',
+              padding: '1rem 1.15rem 2rem',
+              maxHeight: '75vh',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                  color: 'white',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: 900,
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  <Target size={14} />
+                  <span>CEVAP HAVUZU</span>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '0.92rem', color: 'var(--color-text)' }}>
+                    {activeFocusedQ || 1}. Soru İçin Cevap Seç
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                    Bulduğunuz sonuca dokunun; aktif soruya atanır.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsMobilePoolDrawerOpen(false)}
+                style={{
+                  background: 'var(--color-surface-hover)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: 'var(--color-text-muted)'
+                }}
+              >
+                <XIcon size={18} />
+              </button>
+            </div>
+
+            {/* Drawer Chips */}
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.55rem',
+              overflowY: 'auto',
+              padding: '0.35rem 0',
+              maxHeight: '55vh'
+            }}>
+              {openEndedAnswerPool.map((item, idx) => {
+                const targetQ = activeFocusedQ || 1;
+                const matchedQuestions = Object.entries(answers)
+                  .filter(([k, v]) => String(v).trim() === item.text)
+                  .map(([k]) => Number(k))
+                  .sort((a, b) => a - b);
+                const isAssignedToThis = matchedQuestions.includes(targetQ);
+                const isAssigned = matchedQuestions.length > 0;
+
+                return (
+                  <button
+                    key={item.id || idx}
+                    type="button"
+                    onClick={() => {
+                      handleSelectPoolAnswer(item.text, targetQ);
+                    }}
+                    style={{
+                      padding: '0.65rem 1rem',
+                      borderRadius: '0.75rem',
+                      border: isAssignedToThis
+                        ? '2px solid #7c3aed'
+                        : (isAssigned ? '1.5px solid #a78bfa' : '1.5px solid var(--color-border)'),
+                      background: isAssignedToThis
+                        ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
+                        : (isAssigned ? (isDark ? 'rgba(124, 58, 237, 0.25)' : '#e0e7ff') : 'var(--color-surface)'),
+                      color: isAssignedToThis ? '#ffffff' : (isAssigned ? (isDark ? '#c4b5fd' : '#4338ca') : 'var(--color-text)'),
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: isAssignedToThis ? '0 4px 12px rgba(124, 58, 237, 0.35)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{item.text}</span>
+                    {isAssigned && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 900,
+                        padding: '0.12rem 0.4rem',
+                        borderRadius: 99,
+                        background: isAssignedToThis ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(124,58,237,0.4)' : '#c7d2fe'),
+                        color: isAssignedToThis ? '#ffffff' : (isDark ? '#e9d5ff' : '#3730a3')
+                      }}>
+                        ✓ {matchedQuestions.map(q => `${q}. Soru`).join(', ')}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

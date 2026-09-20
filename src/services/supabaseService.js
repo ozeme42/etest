@@ -2217,7 +2217,7 @@ export async function dbGetTrackedBooks() {
 
       const titleNorm = title.trim().toLowerCase().replace(/\s+/g, ' ');
       const pubNorm = pub.trim().toLowerCase().replace(/\s+/g, ' ');
-      const normKey = `${titleNorm}___${pubNorm}`;
+      const normKey = (titleNorm || pubNorm) ? `${titleNorm}___${pubNorm}` : `book_${b.id}`;
 
       if (!deduplicatedBooksMap.has(normKey)) {
         deduplicatedBooksMap.set(normKey, bookObj);
@@ -2300,6 +2300,58 @@ export async function dbGetTrackedBooks() {
         const existing = deduplicatedTestsMap.get(testKey);
         deduplicatedTestsMap.set(testKey, { ...existing, ...testObj });
       }
+    });
+
+    // 3. Also harvest embedded tests from book subjects/topics
+    (books || []).forEach(b => {
+      const bId = String(b.id || '');
+      const rawSubs = Array.isArray(b.subjects) ? b.subjects : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+      rawSubs.forEach(s => {
+        if (!s || s.__meta === true || s.id === '__book_meta__') return;
+        const sId = String(s.id || '');
+        (s.tests || []).forEach(t => {
+          if (!t) return;
+          const name = String(t.name || 'Test').trim();
+          const testKey = `${bId}___${sId.toLowerCase()}___direct___${name.toLowerCase()}`;
+          if (!deduplicatedTestsMap.has(testKey)) {
+            deduplicatedTestsMap.set(testKey, {
+              ...t,
+              id: String(t.id || `tbt_${Date.now()}_${Math.random()}`),
+              bookId: bId,
+              subjectId: sId,
+              topicId: null,
+              name: name,
+              questionCount: Number(t.questionCount || t.question_count) || 20,
+              answerKey: t.answerKey || t.answer_key || {},
+              isOpenEnded: Boolean(t.isOpenEnded || t.is_open_ended || t.questionType === 'acik_uclu'),
+              questionType: t.questionType || t.question_type || 'coktan_secmeli'
+            });
+          }
+        });
+        (s.topics || []).forEach(tp => {
+          if (!tp) return;
+          const topId = String(tp.id || '');
+          (tp.tests || []).forEach(t => {
+            if (!t) return;
+            const name = String(t.name || 'Test').trim();
+            const testKey = `${bId}___${sId.toLowerCase()}___${topId.toLowerCase()}___${name.toLowerCase()}`;
+            if (!deduplicatedTestsMap.has(testKey)) {
+              deduplicatedTestsMap.set(testKey, {
+                ...t,
+                id: String(t.id || `tbt_${Date.now()}_${Math.random()}`),
+                bookId: bId,
+                subjectId: sId,
+                topicId: topId,
+                name: name,
+                questionCount: Number(t.questionCount || t.question_count) || 20,
+                answerKey: t.answerKey || t.answer_key || {},
+                isOpenEnded: Boolean(t.isOpenEnded || t.is_open_ended || t.questionType === 'acik_uclu'),
+                questionType: t.questionType || t.question_type || 'coktan_secmeli'
+              });
+            }
+          });
+        });
+      });
     });
 
     const bookTests = Array.from(deduplicatedTestsMap.values());
@@ -2421,9 +2473,10 @@ export async function dbUpdateTrackedBook(bookId, updates) {
   try {
     let currentBook = null;
     const safeId = toUUID(bookId);
+    const candidateIds = Array.from(new Set([String(bookId), safeId].filter(Boolean)));
     try {
-      const { data: existing } = await supabase.from('tracked_books').select('*').eq('id', safeId).maybeSingle();
-      if (existing) currentBook = existing;
+      const { data: existingRows } = await supabase.from('tracked_books').select('*').in('id', candidateIds).limit(1);
+      if (existingRows && existingRows.length > 0) currentBook = existingRows[0];
     } catch {}
 
     const rawSubjects = (updates.subjects !== undefined)
@@ -2441,8 +2494,15 @@ export async function dbUpdateTrackedBook(bookId, updates) {
 
     const bType = updates.bookType || updates.book_type || existingMeta?.bookType || currentBook?.book_type || currentBook?.raw_data?.bookType || 'standard';
     const pdf = (updates.pdfUrl !== undefined) ? updates.pdfUrl : (existingMeta?.pdfUrl || currentBook?.pdf_url || currentBook?.raw_data?.pdfUrl || '');
-    const pub = (updates.publisher !== undefined) ? updates.publisher : (existingMeta?.publisher || currentBook?.publisher || currentBook?.raw_data?.publisher || '');
-    const title = (updates.title !== undefined) ? updates.title : (existingMeta?.title || currentBook?.title || currentBook?.raw_data?.title || '');
+    
+    // Never allow title or publisher to be wiped out
+    const providedTitle = (updates.title !== undefined && updates.title !== null) ? String(updates.title).trim() : '';
+    const existingTitle = String(existingMeta?.title || currentBook?.title || currentBook?.raw_data?.title || '').trim();
+    const title = providedTitle || existingTitle || 'Kitap';
+
+    const providedPub = (updates.publisher !== undefined && updates.publisher !== null) ? String(updates.publisher).trim() : '';
+    const existingPub = String(existingMeta?.publisher || currentBook?.publisher || currentBook?.raw_data?.publisher || '').trim();
+    const pub = providedPub || existingPub || '';
 
     const examDateVal = (updates.examDate !== undefined) ? updates.examDate : (existingMeta?.examDate || currentBook?.raw_data?.examDate || null);
 

@@ -92,10 +92,19 @@ export function TrackedBookProvider({ children }) {
       if (res) {
         touchCache('tracked_books');
         if (res.books) {
-          const cleanBooks = res.books.map(b => ({
-            ...b,
-            bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard')
-          }));
+          const cleanBooks = res.books.map(b => {
+            const localMatch = (books || []).find(lb => 
+              String(lb.id) === String(b.id) || (toUUID(lb.id) && toUUID(lb.id) === toUUID(b.id))
+            );
+            const titleVal = (b.title && String(b.title).trim() !== '') ? b.title : (localMatch?.title || 'Kitap');
+            const pubVal = (b.publisher && String(b.publisher).trim() !== '') ? b.publisher : (localMatch?.publisher || '');
+            return {
+              ...b,
+              title: titleVal,
+              publisher: pubVal,
+              bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard')
+            };
+          });
           const deduped = deduplicateBooks(cleanBooks);
           setBooks(deduped);
           safeSetItem('eTestTrackedBooks', JSON.stringify(deduped));
@@ -185,10 +194,25 @@ export function TrackedBookProvider({ children }) {
     const idStr = String(id);
     const idUuid = toUUID(idStr);
     
+    let fullUpdates = { ...updates };
     setBooks(prev => {
+      const existingBook = prev.find(book => 
+        String(book.id) === idStr || (idUuid && String(book.id) === idUuid) || (toUUID(book.id) && String(toUUID(book.id)) === idUuid)
+      );
+      if (existingBook) {
+        fullUpdates = {
+          title: existingBook.title,
+          publisher: existingBook.publisher,
+          optionCount: existingBook.optionCount,
+          bookType: existingBook.bookType,
+          pdfUrl: existingBook.pdfUrl,
+          subjects: existingBook.subjects,
+          ...updates
+        };
+      }
       const next = prev.map(book => {
         const isMatch = String(book.id) === idStr || (idUuid && String(book.id) === idUuid) || (toUUID(book.id) && String(toUUID(book.id)) === idUuid);
-        return isMatch ? { ...book, ...updates } : book;
+        return isMatch ? { ...book, ...fullUpdates } : book;
       });
       safeSetItem('eTestTrackedBooks', JSON.stringify(next));
       return next;
@@ -206,7 +230,7 @@ export function TrackedBookProvider({ children }) {
       });
     }
 
-    await dbUpdateTrackedBook(id, updates);
+    await dbUpdateTrackedBook(id, fullUpdates);
   };
 
   const deleteTrackedBook = async (id) => {
@@ -270,10 +294,21 @@ export function TrackedBookProvider({ children }) {
 
     setBooks(prevBooks => {
       const nextBooks = prevBooks.map(b => {
+        const bIdStr = String(b.id || '');
+        const bUuid = toUUID(bIdStr);
+        const bookMatches = testsList.some(t => {
+          const tbId = String(t.bookId || t.book_id || '');
+          return tbId === bIdStr || (bUuid && (tbId === bUuid || toUUID(tbId) === bUuid));
+        });
+        if (!bookMatches) return b;
+
         let changed = false;
         const newSubjects = (b.subjects || []).map(s => {
           let sChanged = false;
-          const newTests = (s.tests || []).map(t => {
+          const sIdStr = String(s.id || '');
+          const sUuid = toUUID(sIdStr);
+
+          let newTests = (s.tests || []).map(t => {
             const updated = testsMapById.get(String(t.id)) || (toUUID(t.id) && testsMapById.get(String(toUUID(t.id))));
             if (updated) {
               sChanged = true;
@@ -282,9 +317,37 @@ export function TrackedBookProvider({ children }) {
             }
             return t;
           });
+
+          // Ensure direct tests for this subject are in s.tests
+          testsList.forEach(t => {
+            const tbId = String(t.bookId || t.book_id || '');
+            const isThisBook = tbId === bIdStr || (bUuid && (tbId === bUuid || toUUID(tbId) === bUuid));
+            if (!isThisBook) return;
+
+            const tSubId = String(t.subjectId || t.subject_id || '');
+            const isThisSubj = tSubId === sIdStr || (sUuid && (tSubId === sUuid || toUUID(tSubId) === sUuid));
+            const tTopId = t.topicId ? String(t.topicId) : null;
+
+            if (isThisSubj && (!tTopId || tTopId === 'direct' || tTopId === sIdStr)) {
+              const alreadyExists = newTests.some(et => 
+                String(et.id) === String(t.id) || 
+                (toUUID(et.id) && toUUID(et.id) === toUUID(t.id)) || 
+                String(et.name).trim().toLowerCase() === String(t.name).trim().toLowerCase()
+              );
+              if (!alreadyExists) {
+                newTests.push(t);
+                sChanged = true;
+                changed = true;
+              }
+            }
+          });
+
           const newTopics = (s.topics || []).map(tp => {
             let tpChanged = false;
-            const newTpTests = (tp.tests || []).map(t => {
+            const tpIdStr = String(tp.id || '');
+            const tpUuid = toUUID(tpIdStr);
+
+            let newTpTests = (tp.tests || []).map(t => {
               const updated = testsMapById.get(String(t.id)) || (toUUID(t.id) && testsMapById.get(String(toUUID(t.id))));
               if (updated) {
                 tpChanged = true;
@@ -293,10 +356,42 @@ export function TrackedBookProvider({ children }) {
               }
               return t;
             });
+
+            // Ensure topic tests are in tp.tests
+            testsList.forEach(t => {
+              const tbId = String(t.bookId || t.book_id || '');
+              const isThisBook = tbId === bIdStr || (bUuid && (tbId === bUuid || toUUID(tbId) === bUuid));
+              if (!isThisBook) return;
+
+              const tTopId = t.topicId ? String(t.topicId) : null;
+              const isThisTopic = tTopId && (tTopId === tpIdStr || (tpUuid && (tTopId === tpUuid || toUUID(tTopId) === tpUuid)));
+
+              if (isThisTopic) {
+                const alreadyExists = newTpTests.some(et => 
+                  String(et.id) === String(t.id) || 
+                  (toUUID(et.id) && toUUID(et.id) === toUUID(t.id)) || 
+                  String(et.name).trim().toLowerCase() === String(t.name).trim().toLowerCase()
+                );
+                if (!alreadyExists) {
+                  newTpTests.push(t);
+                  tpChanged = true;
+                  changed = true;
+                }
+              }
+            });
+
             return tpChanged ? { ...tp, tests: newTpTests } : tp;
           });
+
           return sChanged || newTopics !== s.topics ? { ...s, tests: newTests, topics: newTopics } : s;
         });
+
+        if (changed) {
+          try {
+            dbUpdateTrackedBook(b.id, { subjects: newSubjects });
+          } catch {}
+        }
+
         return changed ? { ...b, subjects: newSubjects } : b;
       });
       safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
