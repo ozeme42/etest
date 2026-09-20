@@ -292,6 +292,7 @@ export function TrackedBookProvider({ children }) {
       }
     });
 
+    const booksToPersist = [];
     setBooks(prevBooks => {
       const nextBooks = prevBooks.map(b => {
         const bIdStr = String(b.id || '');
@@ -387,9 +388,7 @@ export function TrackedBookProvider({ children }) {
         });
 
         if (changed) {
-          try {
-            dbUpdateTrackedBook(b.id, { subjects: newSubjects });
-          } catch {}
+          booksToPersist.push({ id: b.id, subjects: newSubjects });
         }
 
         return changed ? { ...b, subjects: newSubjects } : b;
@@ -397,6 +396,12 @@ export function TrackedBookProvider({ children }) {
       safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
       return nextBooks;
     });
+
+    for (const item of booksToPersist) {
+      try {
+        await dbUpdateTrackedBook(item.id, { subjects: item.subjects });
+      } catch {}
+    }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('tracked-book-tests-updated', { detail: { tests: testsList } }));

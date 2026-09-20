@@ -141,52 +141,105 @@ export default function BookContentManager() {
         });
       }
 
-      if (tRows && tRows.length > 0) {
-        const mapped = tRows.map(t => {
-          const ansKey = t.answer_key || {};
-          const ansMeta = ansKey.__meta || {};
-          const isExplicitOE = Boolean(
-            t.is_open_ended === true ||
-            t.isOpenEnded === true ||
-            ansMeta.isOpenEnded === true ||
-            t.question_type === 'acik_uclu' ||
-            t.questionType === 'acik_uclu' ||
-            ansMeta.questionType === 'acik_uclu'
-          );
-          const isExplicitMC = !isExplicitOE && Boolean(
-            t.is_open_ended === false ||
-            t.isOpenEnded === false ||
-            ansMeta.isOpenEnded === false ||
-            t.question_type === 'coktan_secmeli' ||
-            t.questionType === 'coktan_secmeli' ||
-            ansMeta.questionType === 'coktan_secmeli'
-          );
-          const hasOptionLetters = Object.entries(ansKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+      // 1. Process rows from tracked_book_tests table
+      const dbTestsMapped = (tRows || []).map(t => {
+        const ansKey = t.answer_key || {};
+        const ansMeta = ansKey.__meta || {};
+        const isExplicitOE = Boolean(
+          t.is_open_ended === true ||
+          t.isOpenEnded === true ||
+          ansMeta.isOpenEnded === true ||
+          t.question_type === 'acik_uclu' ||
+          t.questionType === 'acik_uclu' ||
+          ansMeta.questionType === 'acik_uclu'
+        );
+        const isExplicitMC = !isExplicitOE && Boolean(
+          t.is_open_ended === false ||
+          t.isOpenEnded === false ||
+          ansMeta.isOpenEnded === false ||
+          t.question_type === 'coktan_secmeli' ||
+          t.questionType === 'coktan_secmeli' ||
+          ansMeta.questionType === 'coktan_secmeli'
+        );
+        const hasOptionLetters = Object.entries(ansKey).some(([k, v]) => k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
 
-          const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
-            (b?.bookType === 'open_ended') ||
-            (t.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(t.name))
-          ));
-          const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
-          const sId = t.subject_id || ansMeta.subjectId || null;
-          const topId = t.topic_id || ansMeta.topicId || null;
-          return {
-            id: String(t.id),
-            bookId: String(t.book_id || ''),
-            subjectId: sId ? String(sId) : null,
-            topicId: topId ? String(topId) : null,
-            name: t.name,
-            questionCount: t.question_count || 20,
-            answerKey: ansKey,
-            isOpenEnded: isOe,
-            questionType: qType,
-            optionCount: Number(t.option_count || t.optionCount || ansMeta.optionCount) || undefined,
-            pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
-            createdAt: t.created_at
-          };
+        const isOe = isExplicitOE || (!isExplicitMC && !hasOptionLetters && Boolean(
+          (b?.bookType === 'open_ended') ||
+          (t.name && /açık\s*uçlu|acik\s*uclu|klasik\s*soru|yazılı\s*klasik/i.test(t.name))
+        ));
+        const qType = isOe ? 'acik_uclu' : (t.question_type || t.questionType || ansMeta.questionType || 'coktan_secmeli');
+        const sId = t.subject_id || ansMeta.subjectId || null;
+        const topId = t.topic_id || ansMeta.topicId || null;
+        return {
+          id: String(t.id),
+          bookId: String(t.book_id || ''),
+          subjectId: sId ? String(sId) : null,
+          topicId: topId ? String(topId) : null,
+          name: t.name,
+          questionCount: t.question_count || 20,
+          answerKey: ansKey,
+          isOpenEnded: isOe,
+          questionType: qType,
+          optionCount: Number(t.option_count || t.optionCount || ansMeta.optionCount) || undefined,
+          pdfUrl: t.pdf_url || ansMeta.pdfUrl || '',
+          createdAt: t.created_at
+        };
+      });
+
+      // 2. Harvest any tests embedded directly inside subject or topic objects
+      const embeddedTests = [];
+      const subjectsSource = (b && Array.isArray(b.subjects) && b.subjects.length > 0)
+        ? b.subjects
+        : (b && Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+
+      subjectsSource.forEach(s => {
+        if (!s || s.__meta === true || s.id === '__book_meta__') return;
+        const sId = String(s.id || '');
+        (s.tests || []).forEach(t => {
+          if (t && (t.name || t.testAdi)) {
+            embeddedTests.push({
+              id: String(t.id || `tbt_emb_${Math.random().toString(36).substring(2, 7)}`),
+              bookId: String(id),
+              subjectId: sId,
+              topicId: null,
+              name: t.name || t.testAdi,
+              questionCount: Number(t.questionCount || t.question_count || t.soruSayisi) || 20,
+              answerKey: t.answerKey || t.answer_key || t.cevapAnahtari || {},
+              isOpenEnded: Boolean(t.isOpenEnded || t.is_open_ended || t.questionType === 'acik_uclu'),
+              questionType: t.questionType || t.question_type || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli'),
+              optionCount: t.optionCount || t.option_count,
+              pdfUrl: t.pdfUrl || t.pdf_url || ''
+            });
+          }
         });
-        setLocalLiveTests(mapped);
-      }
+        (s.topics || []).forEach(tp => {
+          const tpId = String(tp.id || '');
+          (tp.tests || []).forEach(t => {
+            if (t && (t.name || t.testAdi)) {
+              embeddedTests.push({
+                id: String(t.id || `tbt_emb_${Math.random().toString(36).substring(2, 7)}`),
+                bookId: String(id),
+                subjectId: sId,
+                topicId: tpId,
+                name: t.name || t.testAdi,
+                questionCount: Number(t.questionCount || t.question_count || t.soruSayisi) || 20,
+                answerKey: t.answerKey || t.answer_key || t.cevapAnahtari || {},
+                isOpenEnded: Boolean(t.isOpenEnded || t.is_open_ended || t.questionType === 'acik_uclu'),
+                questionType: t.questionType || t.question_type || (t.isOpenEnded ? 'acik_uclu' : 'coktan_secmeli'),
+                optionCount: t.optionCount || t.option_count,
+                pdfUrl: t.pdfUrl || t.pdf_url || ''
+              });
+            }
+          });
+        });
+      });
+
+      // Combine both sources: DB tests take precedence by id
+      const combinedMap = new Map();
+      embeddedTests.forEach(t => combinedMap.set(String(t.id), t));
+      dbTestsMapped.forEach(t => combinedMap.set(String(t.id), t));
+
+      setLocalLiveTests(Array.from(combinedMap.values()));
     } catch (err) {
       console.warn('[DirectLiveFetch] Error:', err);
     } finally {
@@ -259,13 +312,34 @@ export default function BookContentManager() {
   };
 
   const tests = useMemo(() => {
-    const list = (localLiveTests && localLiveTests.length > 0) ? localLiveTests : (bookTests || []);
+    const candidateList = [];
+    const seenIds = new Set();
+
+    const addCandidate = (t) => {
+      if (!t || !t.id) return;
+      const idStr = String(t.id);
+      if (!seenIds.has(idStr)) {
+        seenIds.add(idStr);
+        candidateList.push(t);
+      }
+    };
+
+    (localLiveTests || []).forEach(addCandidate);
+    (bookTests || []).forEach(addCandidate);
+    (book?.subjects || []).forEach(s => {
+      if (!s || s.__meta === true || s.id === '__book_meta__') return;
+      (s.tests || []).forEach(addCandidate);
+      (s.topics || []).forEach(tp => {
+        (tp.tests || []).forEach(addCandidate);
+      });
+    });
+
     const idStr = String(id || '');
     const idUuid = toUUID(idStr);
 
-    const filtered = list.filter(t => {
+    const filtered = candidateList.filter(t => {
       const tBookId = String(t.bookId || t.book_id || '');
-      if (!tBookId) return false;
+      if (!tBookId) return true; // Test embedded inside current book
       const isIdMatch = tBookId === idStr || 
         (idUuid && tBookId === idUuid) ||
         (toUUID(tBookId) && toUUID(tBookId) === idUuid) ||
@@ -1341,13 +1415,14 @@ export default function BookContentManager() {
     };
 
     try {
+      let addedTest = null;
       if (currentTest) {
         setLocalLiveTests(prev => (prev || []).map(t => String(t.id) === String(currentTest.id) ? { ...t, ...testPayload } : t));
         await updateTrackedBookTest(currentTest.id, testPayload);
       } else {
-        const added = await addTrackedBookTest(book.id, testPayload);
-        if (added) {
-          setLocalLiveTests(prev => [...(prev || []), added]);
+        addedTest = await addTrackedBookTest(book.id, testPayload);
+        if (addedTest) {
+          setLocalLiveTests(prev => [...(prev || []), addedTest]);
         }
       }
 
@@ -1363,7 +1438,7 @@ export default function BookContentManager() {
             return t;
           });
         } else if (isTargetSubj && !targetTopicId) {
-          newTests.push({ ...testPayload, id: added?.id || testPayload.id });
+          newTests.push({ ...testPayload, id: addedTest?.id || testPayload.id });
         }
 
         const newTopics = (s.topics || []).map(tp => {
@@ -1377,7 +1452,7 @@ export default function BookContentManager() {
               return t;
             });
           } else if (isTargetTopic) {
-            newTpTests.push({ ...testPayload, id: added?.id || testPayload.id });
+            newTpTests.push({ ...testPayload, id: addedTest?.id || testPayload.id });
           }
           return { ...tp, tests: newTpTests };
         });
@@ -1666,10 +1741,26 @@ export default function BookContentManager() {
     if (!jsonInput.trim() || !book) return;
     try {
       const parsedData = JSON.parse(jsonInput);
-      const subjectsList = parsedData.subjects || (Array.isArray(parsedData) ? parsedData : null);
+      
+      let rawList = null;
+      if (Array.isArray(parsedData.subjects)) rawList = parsedData.subjects;
+      else if (Array.isArray(parsedData.dersler)) rawList = parsedData.dersler;
+      else if (Array.isArray(parsedData.data)) rawList = parsedData.data;
+      else if (Array.isArray(parsedData)) {
+        if (parsedData.length === 0) throw new Error("JSON dizisi boş.");
+        const first = parsedData[0];
+        const isSubjectArray = first && (first.tests || first.testler || first.topics || first.konular || first.uniteler || (!first.questionCount && !first.soruSayisi && !first.answerKey && !first.cevapAnahtari));
+        rawList = isSubjectArray ? parsedData : [{ name: book?.title || 'Genel', tests: parsedData }];
+      } else if (typeof parsedData === 'object' && parsedData !== null) {
+        if (parsedData.tests || parsedData.testler || parsedData.topics || parsedData.konular || parsedData.name || parsedData.ders || parsedData.dersAdi) {
+          rawList = [parsedData];
+        } else if (parsedData.questionCount || parsedData.soruSayisi || parsedData.answerKey || parsedData.cevapAnahtari) {
+          rawList = [{ name: book?.title || 'Genel', tests: [parsedData] }];
+        }
+      }
 
-      if (!subjectsList || !Array.isArray(subjectsList)) {
-        throw new Error("Geçersiz format: JSON verisi bir 'subjects' dizisi içermelidir.");
+      if (!rawList || !Array.isArray(rawList) || rawList.length === 0) {
+        throw new Error("Geçersiz format: JSON verisi bir 'subjects' veya 'dersler' dizisi içermelidir.");
       }
 
       const existingSubjects = book.subjects || [];
@@ -1684,22 +1775,24 @@ export default function BookContentManager() {
       let hasAnyOpenEnded = false;
       let hasAnyMultipleChoice = false;
 
-      const formatTestPayload = (testData, subjectId, topicId = null) => {
+      const formatTestPayload = (testData, subjectId, topicId = null, testIdx = 0) => {
+        const testNameClean = String(testData.name || testData.testAdi || testData.test_adi || testData.title || testData.adi || `Test ${testIdx + 1}`).trim();
+
         const testIsOpenEnded =
           testData.isOpenEnded === true ||
+          testData.is_open_ended === true ||
           testData.questionType === 'acik_uclu' ||
+          testData.question_type === 'acik_uclu' ||
           (book.bookType === 'open_ended' && testData.questionType !== 'coktan_secmeli') ||
-          String(testData.name || '').toLowerCase().includes('açık uçlu') ||
-          String(testData.name || '').toLowerCase().includes('acik uclu') ||
-          String(testData.name || '').toLowerCase().includes('klasik');
+          testNameClean.toLowerCase().includes('açık uçlu') ||
+          testNameClean.toLowerCase().includes('acik uclu') ||
+          testNameClean.toLowerCase().includes('klasik');
 
-        const questionType = testData.questionType ||
+        const questionType = testData.questionType || testData.question_type ||
           (testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli');
 
         if (testIsOpenEnded || questionType === 'acik_uclu') hasAnyOpenEnded = true;
         else hasAnyMultipleChoice = true;
-
-        const testNameClean = String(testData.name || "İsimsiz Test").trim();
 
         // 1. Check if test already exists in this subject/topic or book with matching name or ID
         let existingTest = null;
@@ -1734,22 +1827,25 @@ export default function BookContentManager() {
           testId = genId("tbt");
         }
 
+        const rawAns = testData.answerKey || testData.answer_key || testData.cevapAnahtari || testData.cevap_anahtari || testData.answers || testData.cevaplar;
+        const ansCount = rawAns ? (Array.isArray(rawAns) ? rawAns.length : Object.keys(rawAns).filter(k => k !== '__meta').length) : 0;
+        const qCount = Number(testData.questionCount || testData.question_count || testData.soruSayisi || testData.soru_sayisi) || ansCount || (existingTest?.questionCount || 20);
+
         const testPayload = {
           id: testId,
           bookId: String(book.id),
           subjectId: String(subjectId),
           topicId: topicId ? String(topicId) : null,
           name: testNameClean,
-          questionCount: Number(testData.questionCount || testData.question_count) || (existingTest?.questionCount || 20),
+          questionCount: qCount,
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
-          pdfUrl: testData.pdfUrl || existingTest?.pdfUrl || '',
+          pdfUrl: testData.pdfUrl || testData.pdf_url || existingTest?.pdfUrl || '',
           updatedAt: new Date().toISOString()
         };
 
-        if (testData.answerKey || testData.answer_key) {
-          const rawAns = testData.answerKey || testData.answer_key;
+        if (rawAns) {
           if (Array.isArray(rawAns)) {
             rawAns.forEach((ans, idx) => {
               if (ans !== undefined && ans !== null && ans !== "") {
@@ -1763,7 +1859,13 @@ export default function BookContentManager() {
               }
             });
           } else if (typeof rawAns === 'string') {
-            testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount);
+            if (testIsOpenEnded && (rawAns.includes(',') || !/^[A-Ea-e]+$/.test(rawAns.trim()))) {
+              rawAns.split(/[,;\s]+/).filter(Boolean).forEach((p, idx) => {
+                testPayload.answerKey[String(idx + 1)] = p.trim();
+              });
+            } else {
+              testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount);
+            }
           }
         } else if (existingTest?.answerKey) {
           testPayload.answerKey = { ...existingTest.answerKey };
@@ -1772,49 +1874,58 @@ export default function BookContentManager() {
         return testPayload;
       };
 
-      for (const subjData of subjectsList) {
-        if (!subjData.name) continue;
+      for (const subjData of rawList) {
+        const subjName = String(subjData.name || subjData.ders || subjData.dersAdi || subjData.title || subjData.subject || book?.title || 'Ders').trim();
+        if (!subjName) continue;
 
-        const existingSub = existingSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjData.name.toLocaleLowerCase('tr-TR'));
+        const existingSub = existingSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjName.toLocaleLowerCase('tr-TR'));
         const subject = {
           id: existingSub?.id || genId("s"),
-          name: subjData.name,
+          name: subjName,
           topics: [],
           tests: []
         };
         updatedSubjects.push(subject);
 
         // 1. Direct tests under subject (Ders > Test)
-        if (subjData.tests && Array.isArray(subjData.tests)) {
-          for (const testData of subjData.tests) {
-            const formatted = formatTestPayload(testData, subject.id, null);
+        const directTestsRaw = subjData.tests || subjData.testler || subjData.Tests || subjData.denemeler || subjData.items || [];
+        if (Array.isArray(directTestsRaw)) {
+          directTestsRaw.forEach((testData, tIdx) => {
+            const formatted = formatTestPayload(testData, subject.id, null, tIdx);
             allTestsToSave.push(formatted);
             subject.tests.push(formatted);
-          }
+          });
         }
 
         // 2. Topic-based tests (Ders > Konu > Test)
-        if (subjData.topics && Array.isArray(subjData.topics)) {
-          for (const topicData of subjData.topics) {
-            if (!topicData.name) continue;
+        const topicsRaw = subjData.topics || subjData.konular || subjData.uniteler || subjData.unite || [];
+        if (Array.isArray(topicsRaw)) {
+          for (const topicData of topicsRaw) {
+            const topicName = String(topicData.name || topicData.konu || topicData.konuAdi || topicData.uniteAdi || topicData.title || 'Konu').trim();
+            if (!topicName) continue;
 
-            const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicData.name.toLocaleLowerCase('tr-TR'));
+            const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicName.toLocaleLowerCase('tr-TR'));
             const topic = {
               id: existingTop?.id || genId("t"),
-              name: topicData.name,
+              name: topicName,
               tests: []
             };
             subject.topics.push(topic);
 
-            if (topicData.tests && Array.isArray(topicData.tests)) {
-              for (const testData of topicData.tests) {
-                const formatted = formatTestPayload(testData, subject.id, topic.id);
+            const topicTestsRaw = topicData.tests || topicData.testler || topicData.Tests || topicData.denemeler || [];
+            if (Array.isArray(topicTestsRaw)) {
+              topicTestsRaw.forEach((testData, tIdx) => {
+                const formatted = formatTestPayload(testData, subject.id, topic.id, tIdx);
                 allTestsToSave.push(formatted);
                 topic.tests.push(formatted);
-              }
+              });
             }
           }
         }
+      }
+
+      if (allTestsToSave.length === 0) {
+        throw new Error("JSON verisinde hiçbir test bulunamadı! 'tests' veya 'testler' dizisinin dolu olduğundan emin olun.");
       }
 
       let newBookType = book.bookType || 'standard';
@@ -1847,7 +1958,7 @@ export default function BookContentManager() {
         await batchSaveTrackedBookTests(allTestsToSave);
       }
 
-      showToast(`${book.title} kitabına ${allTestsToSave.length} test başarıyla güncellendi/eklendi! 🎉`);
+      showToast(`${book.title} kitabına ${allTestsToSave.length} test ve ${updatedSubjects.length} ders başarıyla güncellendi/eklendi! 🎉`);
       setJsonInput("");
       setIsBulkWizardOpen(false);
     } catch (error) {
