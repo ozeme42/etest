@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import './BookManager.css';
 import { isStandardOrMixedBook } from '../utils/testResolver';
+import { toUUID } from '../services/supabaseService';
 
 export default function BookManager() {
   const navigate = useNavigate();
