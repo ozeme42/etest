@@ -8,6 +8,7 @@ import {
   dbAddTrackedBookTest,
   dbBatchUpsertTrackedBookTests,
   dbDeleteTrackedBookTest,
+  dbDeleteTrackedBookTestsBatch,
   toUUID
 } from '../services/supabaseService';
 import { safeSetItem } from '../utils/storageUtils';
@@ -491,7 +492,7 @@ export function TrackedBookProvider({ children }) {
     }
   };
 
-  const deleteTrackedBookTest = async (id) => {
+  const deleteTrackedBookTest = async (id, optionalBookId = null) => {
     sessionStorage.removeItem('eTestLastTrackedBooksSync');
     const idStr = String(id);
     const idUuid = toUUID(idStr);
@@ -502,6 +503,7 @@ export function TrackedBookProvider({ children }) {
       return next;
     });
 
+    const booksToPersist = [];
     setBooks(prevBooks => {
       const nextBooks = prevBooks.map(b => {
         let changed = false;
@@ -517,17 +519,82 @@ export function TrackedBookProvider({ children }) {
           }
           return s;
         });
+        if (changed) {
+          booksToPersist.push({ id: b.id, subjects: newSubjects });
+        }
         return changed ? { ...b, subjects: newSubjects } : b;
       });
       safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
       return nextBooks;
     });
 
+    for (const item of booksToPersist) {
+      try {
+        await dbUpdateTrackedBook(item.id, { subjects: item.subjects });
+      } catch {}
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('test-cache-purged', { detail: { testId: id } }));
     }
 
-    await dbDeleteTrackedBookTest(id);
+    await dbDeleteTrackedBookTest(id, optionalBookId);
+  };
+
+  const batchDeleteTrackedBookTests = async (testIds = [], optionalBookId = null) => {
+    if (!Array.isArray(testIds) || testIds.length === 0) return;
+    sessionStorage.removeItem('eTestLastTrackedBooksSync');
+    
+    const idSet = new Set(testIds.map(String));
+    testIds.forEach(tid => {
+      const u = toUUID(tid);
+      if (u) idSet.add(u);
+    });
+
+    setBookTests(prev => {
+      const next = prev.filter(t => !idSet.has(String(t.id)) && (!toUUID(t.id) || !idSet.has(toUUID(t.id))));
+      safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
+      return next;
+    });
+
+    const booksToPersist = [];
+    setBooks(prevBooks => {
+      const nextBooks = prevBooks.map(b => {
+        let changed = false;
+        const newSubjects = (b.subjects || []).map(s => {
+          const newTests = (s.tests || []).filter(t => !idSet.has(String(t.id)) && (!toUUID(t.id) || !idSet.has(toUUID(t.id))));
+          const newTopics = (s.topics || []).map(tp => {
+            const newTpTests = (tp.tests || []).filter(t => !idSet.has(String(t.id)) && (!toUUID(t.id) || !idSet.has(toUUID(t.id))));
+            return newTpTests.length !== (tp.tests || []).length ? { ...tp, tests: newTpTests } : tp;
+          });
+          if (newTests.length !== (s.tests || []).length || newTopics !== s.topics) {
+            changed = true;
+            return { ...s, tests: newTests, topics: newTopics };
+          }
+          return s;
+        });
+        if (changed) {
+          booksToPersist.push({ id: b.id, subjects: newSubjects });
+        }
+        return changed ? { ...b, subjects: newSubjects } : b;
+      });
+      safeSetItem('eTestTrackedBooks', JSON.stringify(nextBooks));
+      return nextBooks;
+    });
+
+    for (const item of booksToPersist) {
+      try {
+        await dbUpdateTrackedBook(item.id, { subjects: item.subjects });
+      } catch {}
+    }
+
+    testIds.forEach(tid => {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('test-cache-purged', { detail: { testId: tid } }));
+      }
+    });
+
+    await dbDeleteTrackedBookTestsBatch(testIds, optionalBookId);
   };
 
   const value = useMemo(() => ({
@@ -541,7 +608,8 @@ export function TrackedBookProvider({ children }) {
     addTrackedBookTest,
     batchSaveTrackedBookTests,
     updateTrackedBookTest,
-    deleteTrackedBookTest
+    deleteTrackedBookTest,
+    batchDeleteTrackedBookTests
   }), [books, bookTests, isLoading]);
 
   return (

@@ -2563,14 +2563,20 @@ export async function dbDeleteTrackedBook(bookId) {
   if (!isSupabaseConfigured() || !bookId) return null;
   try {
     const rawId = String(bookId);
-    const validBookUuids = ensureUUIDs([rawId, rawId.replace(/^book_?/, '')]);
-    const allIds = Array.from(new Set([rawId, rawId.replace(/^book_?/, ''), ...validBookUuids]));
+    const validBookUuids = ensureUUIDs([rawId, rawId.replace(/^book_?/, ''), rawId.replace(/^tb_?/, '')]);
+    const allIds = Array.from(new Set([rawId, rawId.replace(/^book_?/, ''), rawId.replace(/^tb_?/, ''), ...validBookUuids]));
     
-    // 1. Delete associated tests first to avoid FK constraint blocks
+    // 1. Delete associated tests first
     try {
       await supabase.from('tracked_book_tests').delete().in('book_id', allIds);
     } catch {}
+
+    // 2. Delete all submissions for this book
+    try {
+      await supabase.from('submissions').delete().in('book_id', allIds);
+    } catch {}
     
+    // 3. Delete the book
     try {
       await supabase.from('tracked_books').delete().in('id', allIds);
     } catch {}
@@ -2746,18 +2752,151 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
   }
 }
 
-export async function dbDeleteTrackedBookTest(testId) {
+export async function dbDeleteTrackedBookTest(testId, bookId = null) {
   if (!isSupabaseConfigured() || !testId) return null;
   try {
     const rawId = String(testId);
-    const validTestUuids = ensureUUIDs([rawId, rawId.replace(/^test_?/, '')]);
-    const allIds = Array.from(new Set([rawId, rawId.replace(/^test_?/, ''), ...validTestUuids]));
+    const validTestUuids = ensureUUIDs([
+      rawId, 
+      rawId.replace(/^test_?/, ''), 
+      rawId.replace(/^tbt_?/, ''),
+      rawId.replace(/^bt_?/, ''),
+      rawId.replace(/^q_?/, '')
+    ]);
+    const allIds = Array.from(new Set([
+      rawId, 
+      rawId.replace(/^test_?/, ''), 
+      rawId.replace(/^tbt_?/, ''),
+      rawId.replace(/^bt_?/, ''),
+      ...validTestUuids
+    ])).filter(Boolean);
     
+    // 1. Delete from tracked_book_tests table
     await supabase.from('tracked_book_tests').delete().in('id', allIds);
+
+    // 2. Delete any submissions for this test
+    try {
+      await supabase.from('submissions').delete().in('test_id', allIds);
+    } catch {}
+
+    // 3. Remove this test from tracked_books embedded subjects
+    try {
+      let bookQuery = supabase.from('tracked_books').select('id, subjects, raw_data');
+      if (bookId) {
+        const safeBookId = toUUID(bookId);
+        const candidateBookIds = [String(bookId), safeBookId].filter(Boolean);
+        bookQuery = bookQuery.in('id', candidateBookIds);
+      }
+      const { data: booksWithTest } = await bookQuery;
+      if (booksWithTest && booksWithTest.length > 0) {
+        for (const b of booksWithTest) {
+          const rawSubs = Array.isArray(b.subjects) ? b.subjects : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+          let changed = false;
+          const cleanedSubjects = rawSubs.map(s => {
+            if (!s || s.__meta === true || s.id === '__book_meta__') return s;
+            const newTests = (s.tests || []).filter(t => {
+              const tid = String(t.id || '');
+              return !allIds.includes(tid) && (!toUUID(tid) || !validTestUuids.includes(toUUID(tid)));
+            });
+            const newTopics = (s.topics || []).map(tp => {
+              const newTpTests = (tp.tests || []).filter(t => {
+                const tid = String(t.id || '');
+                return !allIds.includes(tid) && (!toUUID(tid) || !validTestUuids.includes(toUUID(tid)));
+              });
+              return { ...tp, tests: newTpTests };
+            });
+            if (newTests.length !== (s.tests || []).length || newTopics.some((tp, i) => tp.tests.length !== (s.topics[i]?.tests || []).length)) {
+              changed = true;
+              return { ...s, tests: newTests, topics: newTopics };
+            }
+            return s;
+          });
+
+          if (changed) {
+            await supabase.from('tracked_books').update({ 
+              subjects: cleanedSubjects,
+              raw_data: { ...(b.raw_data || {}), subjects: cleanedSubjects.filter(s => !s.__meta) }
+            }).eq('id', b.id);
+          }
+        }
+      }
+    } catch (embErr) {
+      console.warn('[Supabase] dbDeleteTrackedBookTest embedded cleanup error:', embErr);
+    }
     
     return true;
   } catch (err) {
     console.warn('[Supabase] dbDeleteTrackedBookTest error:', err.message);
+    return false;
+  }
+}
+
+export async function dbDeleteTrackedBookTestsBatch(testIds = [], bookId = null) {
+  if (!isSupabaseConfigured() || !Array.isArray(testIds) || testIds.length === 0) return true;
+  try {
+    const allIds = new Set();
+    testIds.forEach(tid => {
+      if (!tid) return;
+      const rawId = String(tid);
+      allIds.add(rawId);
+      allIds.add(rawId.replace(/^test_?/, ''));
+      allIds.add(rawId.replace(/^tbt_?/, ''));
+      allIds.add(rawId.replace(/^bt_?/, ''));
+      allIds.add(rawId.replace(/^q_?/, ''));
+      const u = toUUID(rawId);
+      if (u) allIds.add(u);
+    });
+    const idArray = Array.from(allIds).filter(Boolean);
+
+    for (let i = 0; i < idArray.length; i += 50) {
+      const chunk = idArray.slice(i, i + 50);
+      try {
+        await supabase.from('tracked_book_tests').delete().in('id', chunk);
+      } catch {}
+      try {
+        await supabase.from('submissions').delete().in('test_id', chunk);
+      } catch {}
+    }
+
+    if (bookId) {
+      try {
+        const safeBookId = toUUID(bookId);
+        const candidateBookIds = [String(bookId), safeBookId].filter(Boolean);
+        const { data: bookRows } = await supabase.from('tracked_books').select('id, subjects, raw_data').in('id', candidateBookIds);
+        if (bookRows && bookRows.length > 0) {
+          for (const b of bookRows) {
+            const rawSubs = Array.isArray(b.subjects) ? b.subjects : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
+            let changed = false;
+            const cleanedSubjects = rawSubs.map(s => {
+              if (!s || s.__meta === true || s.id === '__book_meta__') return s;
+              const newTests = (s.tests || []).filter(t => !allIds.has(String(t.id)) && (!toUUID(t.id) || !allIds.has(toUUID(t.id))));
+              const newTopics = (s.topics || []).map(tp => {
+                const newTpTests = (tp.tests || []).filter(t => !allIds.has(String(t.id)) && (!toUUID(t.id) || !allIds.has(toUUID(t.id))));
+                return { ...tp, tests: newTpTests };
+              });
+              if (newTests.length !== (s.tests || []).length || newTopics.some((tp, i) => tp.tests.length !== (s.topics[i]?.tests || []).length)) {
+                changed = true;
+                return { ...s, tests: newTests, topics: newTopics };
+              }
+              return s;
+            });
+
+            if (changed) {
+              await supabase.from('tracked_books').update({ 
+                subjects: cleanedSubjects,
+                raw_data: { ...(b.raw_data || {}), subjects: cleanedSubjects.filter(s => !s.__meta) }
+              }).eq('id', b.id);
+            }
+          }
+        }
+      } catch (embErr) {
+        console.warn('[Supabase] dbDeleteTrackedBookTestsBatch embedded cleanup error:', embErr);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[Supabase] dbDeleteTrackedBookTestsBatch error:', err);
     return false;
   }
 }

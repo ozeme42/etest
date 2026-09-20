@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import './BookManager.css';
 import ManualTestModal from '../components/ManualTestModal';
+import { safeSetItem } from '../utils/storageUtils';
 
 import { parseAnswerKeyString, sortTestsNaturally, toUUID } from '../features/book-management/constants/bookHelpers';
 import { isSubmissionMatchingBookTest } from '../utils/testResolver';
@@ -47,7 +48,7 @@ export function formatSafeInputYMD(val) {
 export default function BookContentManager() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, addTrackedBookTest, batchSaveTrackedBookTests, updateTrackedBookTest } = useTrackedBooks();
+  const { books, bookTests, refreshTrackedBooks, updateTrackedBook, deleteTrackedBookTest, batchDeleteTrackedBookTests, addTrackedBookTest, batchSaveTrackedBookTests, updateTrackedBookTest } = useTrackedBooks();
   const { submissions, refreshSubmissions, isSyncing: isEvaluationSyncing, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw, deleteBookSubmissionsForEveryone } = useEvaluation();
   const { homeworks: allHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const [editDateHw, setEditDateHw] = useState(null);
@@ -1232,10 +1233,118 @@ export default function BookContentManager() {
     setCurrentSubject(null);
   };
 
-  const handleDeleteSubject = (subjId) => {
-    if (window.confirm("Bu dersi ve içindeki tüm konuları/testleri silmek istediğinize emin misiniz?")) {
-      const updatedSubjects = (book.subjects || []).filter(s => String(s.id) !== String(subjId));
-      updateTrackedBook(book.id, { subjects: updatedSubjects });
+  const handleDeleteTest = async (test) => {
+    if (!test?.id) return;
+    if (!window.confirm(`"${test.name || 'Test'}" testini kalıcı olarak silmek istediğinize emin misiniz?\n\nBu işlem testi ve öğrencilerin bu teste ait tüm çözümlerini veritabanından tamamen silecektir.`)) {
+      return;
+    }
+
+    const testId = test.id;
+    const testIdStr = String(testId);
+    const testIdUuid = toUUID(testIdStr);
+
+    // 1. Optimistic UI update
+    setLocalLiveTests(prev => (prev || []).filter(t => !(String(t.id) === testIdStr || (testIdUuid && String(t.id) === testIdUuid) || (toUUID(t.id) && String(toUUID(t.id)) === testIdUuid))));
+    setSelectedTests(prev => prev.filter(tid => tid !== testId && String(tid) !== testIdStr && (!testIdUuid || String(tid) !== testIdUuid)));
+
+    // 2. Strip test from embedded book.subjects
+    const currentSubjects = localLiveBook?.subjects || book?.subjects || [];
+    const updatedSubjects = currentSubjects.map(s => {
+      const newTests = (s.tests || []).filter(t => !(String(t.id) === testIdStr || (testIdUuid && String(t.id) === testIdUuid) || (toUUID(t.id) && String(toUUID(t.id)) === testIdUuid) || (t.name && test.name && String(t.name).trim().toLowerCase() === String(test.name).trim().toLowerCase())));
+      const newTopics = (s.topics || []).map(tp => {
+        const newTpTests = (tp.tests || []).filter(t => !(String(t.id) === testIdStr || (testIdUuid && String(t.id) === testIdUuid) || (toUUID(t.id) && String(toUUID(t.id)) === testIdUuid) || (t.name && test.name && String(t.name).trim().toLowerCase() === String(test.name).trim().toLowerCase())));
+        return { ...tp, tests: newTpTests };
+      });
+      return { ...s, tests: newTests, topics: newTopics };
+    });
+
+    setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects }) : prev);
+
+    try {
+      // 3. Delete from Supabase tracked_book_tests and context
+      await deleteTrackedBookTest(testId, book?.id);
+
+      // 4. Update embedded subjects in Supabase tracked_books
+      if (book?.id) {
+        await updateTrackedBook(book.id, { subjects: updatedSubjects });
+      }
+
+      // 5. Delete student submissions associated with this test
+      if (typeof deleteSubmissionsByTestId === 'function') {
+        try {
+          await deleteSubmissionsByTestId(testId);
+          if (testIdUuid) await deleteSubmissionsByTestId(testIdUuid);
+        } catch {}
+      }
+
+      showToast(`"${test.name || 'Test'}" veritabanından kalıcı olarak silindi.`, 'success');
+    } catch (err) {
+      console.error('[handleDeleteTest Error]', err);
+      showToast(`Test silinirken hata oluştu: ${err.message || 'Bilinmeyen hata'}`, 'error');
+    }
+  };
+
+  const handleDeleteSubject = async (subjId) => {
+    const targetSubject = (book?.subjects || []).find(s => String(s.id) === String(subjId));
+    const subjName = targetSubject?.name || 'Bu dersi';
+    if (!window.confirm(`"${subjName}" dersini ve içindeki TÜM konu ve testleri kalıcı olarak silmek istediğinize emin misiniz?\n\nBu işlem dersi, içindeki testleri ve öğrenci çözümlerini veritabanından tamamen silecektir.`)) {
+      return;
+    }
+
+    try {
+      // 1. Collect all test IDs belonging to this subject
+      const topicIds = new Set((targetSubject?.topics || []).map(tp => String(tp.id)));
+      const testIdsToDelete = [];
+
+      (tests || []).forEach(t => {
+        const sMatch = String(t.subjectId || t.subject_id || '') === String(subjId) ||
+          (targetSubject?.name && String(t.subjectName || t.subject || '').trim().toLowerCase() === String(targetSubject.name).trim().toLowerCase());
+        const topMatch = t.topicId && topicIds.has(String(t.topicId));
+        if (sMatch || topMatch) {
+          testIdsToDelete.push(t.id);
+        }
+      });
+
+      (targetSubject?.tests || []).forEach(t => {
+        if (t?.id) testIdsToDelete.push(t.id);
+      });
+
+      (targetSubject?.topics || []).forEach(tp => {
+        (tp.tests || []).forEach(t => {
+          if (t?.id) testIdsToDelete.push(t.id);
+        });
+      });
+
+      const uniqueTestIds = Array.from(new Set(testIdsToDelete.map(String)));
+
+      // 2. Optimistic UI update
+      const updatedSubjects = (book?.subjects || []).filter(s => String(s.id) !== String(subjId));
+      setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects }) : prev);
+      if (uniqueTestIds.length > 0) {
+        const delSet = new Set(uniqueTestIds);
+        setLocalLiveTests(prev => (prev || []).filter(t => !delSet.has(String(t.id)) && (!toUUID(t.id) || !delSet.has(toUUID(t.id)))));
+        setSelectedTests(prev => prev.filter(tid => !delSet.has(String(tid))));
+      }
+
+      // 3. Persist updated subjects to tracked_books table
+      if (book?.id) {
+        await updateTrackedBook(book.id, { subjects: updatedSubjects });
+      }
+
+      // 4. Batch delete tests and submissions from Supabase and context
+      if (uniqueTestIds.length > 0) {
+        await batchDeleteTrackedBookTests(uniqueTestIds, book?.id);
+        for (const tid of uniqueTestIds) {
+          if (typeof deleteSubmissionsByTestId === 'function') {
+            try { await deleteSubmissionsByTestId(tid); } catch {}
+          }
+        }
+      }
+
+      showToast(`"${subjName}" dersi ve ilişkili ${uniqueTestIds.length} test başarıyla silindi.`, 'success');
+    } catch (err) {
+      console.error('[handleDeleteSubject Error]', err);
+      showToast(`Ders silinirken hata oluştu: ${err.message || 'Bilinmeyen hata'}`, 'error');
     }
   };
 
@@ -1259,73 +1368,72 @@ export default function BookContentManager() {
     setCurrentTopic(null);
   };
 
-  const handleDeleteTopic = (subjId, topicId) => {
-    if (window.confirm("Bu konuyu silmek istediğinize emin misiniz?")) {
-      const subjects = (book.subjects || []).map(subject => {
+  const handleDeleteTopic = async (subjId, topicId) => {
+    const parentSubject = (book?.subjects || []).find(s => String(s.id) === String(subjId));
+    const targetTopic = (parentSubject?.topics || []).find(t => String(t.id) === String(topicId));
+    const topicName = targetTopic?.name || 'Bu konuyu';
+
+    if (!window.confirm(`"${topicName}" konusunu ve içindeki TÜM testleri kalıcı olarak silmek istediğinize emin misiniz?\n\nBu işlem konuyu, içindeki testleri ve öğrenci çözümlerini veritabanından tamamen silecektir.`)) {
+      return;
+    }
+
+    try {
+      // 1. Collect all test IDs under this topic
+      const testIdsToDelete = [];
+
+      (tests || []).forEach(t => {
+        const topMatch = String(t.topicId || t.topic_id || '') === String(topicId) ||
+          (targetTopic?.name && String(t.topicName || t.unitTopic || '').trim().toLowerCase() === String(targetTopic.name).trim().toLowerCase() && String(t.subjectId || t.subject_id || '') === String(subjId));
+        if (topMatch) {
+          testIdsToDelete.push(t.id);
+        }
+      });
+
+      (targetTopic?.tests || []).forEach(t => {
+        if (t?.id) testIdsToDelete.push(t.id);
+      });
+
+      const uniqueTestIds = Array.from(new Set(testIdsToDelete.map(String)));
+
+      // 2. Optimistic UI update
+      const updatedSubjects = (book?.subjects || []).map(subject => {
         if (String(subject.id) === String(subjId)) {
           return { ...subject, topics: (subject.topics || []).filter(t => String(t.id) !== String(topicId)) };
         }
         return subject;
       });
-      updateTrackedBook(book.id, { subjects });
+
+      setLocalLiveBook(prev => prev ? ({ ...prev, subjects: updatedSubjects }) : prev);
+      if (uniqueTestIds.length > 0) {
+        const delSet = new Set(uniqueTestIds);
+        setLocalLiveTests(prev => (prev || []).filter(t => !delSet.has(String(t.id)) && (!toUUID(t.id) || !delSet.has(toUUID(t.id)))));
+        setSelectedTests(prev => prev.filter(tid => !delSet.has(String(tid))));
+      }
+
+      // 3. Persist updated subjects to tracked_books table
+      if (book?.id) {
+        await updateTrackedBook(book.id, { subjects: updatedSubjects });
+      }
+
+      // 4. Batch delete tests and submissions from Supabase and context
+      if (uniqueTestIds.length > 0) {
+        await batchDeleteTrackedBookTests(uniqueTestIds, book?.id);
+        for (const tid of uniqueTestIds) {
+          if (typeof deleteSubmissionsByTestId === 'function') {
+            try { await deleteSubmissionsByTestId(tid); } catch {}
+          }
+        }
+      }
+
+      showToast(`"${topicName}" konusu ve ilişkili ${uniqueTestIds.length} test başarıyla silindi.`, 'success');
+    } catch (err) {
+      console.error('[handleDeleteTopic Error]', err);
+      showToast(`Konu silinirken hata oluştu: ${err.message || 'Bilinmeyen hata'}`, 'error');
     }
   };
 
   const handleCleanDuplicateTests = async () => {
-    if (!window.confirm('Bu kitaptaki aynı isimli mükerrer (çift) testler taranıp fazla kayıtlar veritabanından silinecek. Onaylıyor musunuz?')) return;
-    setIsLiveLoading(true);
-    try {
-      const safeBookId = toUUID(id);
-      const candidateBookIds = Array.from(new Set([safeBookId, String(id)].filter(Boolean)));
-
-      const { data: allDbTests, error: fetchErr } = await supabase
-        .from('tracked_book_tests')
-        .select('*')
-        .in('book_id', candidateBookIds);
-
-      if (fetchErr) throw fetchErr;
-
-      const seenKeys = new Map();
-      const duplicateIdsToDelete = [];
-
-      (allDbTests || []).forEach(t => {
-        const sKey = String(t.subject_id || '').trim().toLowerCase();
-        const topKey = String(t.topic_id || 'direct').trim().toLowerCase();
-        const nameKey = String(t.name || '').trim().toLowerCase();
-        const key = `${sKey}___${topKey}___${nameKey}`;
-
-        if (!seenKeys.has(key)) {
-          seenKeys.set(key, t);
-        } else {
-          duplicateIdsToDelete.push(t.id);
-        }
-      });
-
-      if (duplicateIdsToDelete.length === 0) {
-        showToast('Mükerrer test bulunamadı, tüm testler benzersiz.', 'info');
-      } else {
-        for (let i = 0; i < duplicateIdsToDelete.length; i += 50) {
-          const chunk = duplicateIdsToDelete.slice(i, i + 50);
-          await supabase.from('tracked_book_tests').delete().in('id', chunk);
-        }
-
-        try {
-          const localTests = JSON.parse(localStorage.getItem('eTestTrackedBookTests') || '[]');
-          const delSet = new Set(duplicateIdsToDelete.map(String));
-          const cleanedLocal = localTests.filter(t => !delSet.has(String(t.id)));
-          safeSetItem('eTestTrackedBookTests', JSON.stringify(cleanedLocal));
-        } catch {}
-
-        await fetchLiveDirect();
-        if (refreshTrackedBooks) await refreshTrackedBooks();
-        showToast(`${duplicateIdsToDelete.length} adet mükerrer test veritabanından başarıyla temizlendi!`, 'success');
-      }
-    } catch (err) {
-      console.error('Error cleaning duplicate tests:', err);
-      showToast(`Hata: ${err.message}`, 'error');
-    } finally {
-      setIsLiveLoading(false);
-    }
+    await handleCleanDuplicatesFromDb();
   };
 
   const handleOpenEditTest = (subject, topic, test) => {
@@ -2296,13 +2404,52 @@ export default function BookContentManager() {
         return;
       }
 
-      // Delete in batches of 50
-      const batchSize = 50;
-      for (let i = 0; i < toDeleteIds.length; i += batchSize) {
-        const batch = toDeleteIds.slice(i, i + batchSize);
-        const { error: delErr } = await supabase.from('tracked_book_tests').delete().in('id', batch);
-        if (delErr) console.warn('[CleanDupes] Delete batch error:', delErr.message);
+      // Also clean duplicate tests from embedded book.subjects
+      const toDeleteSet = new Set(toDeleteIds.map(String));
+      toDeleteIds.forEach(did => {
+        const u = toUUID(did);
+        if (u) toDeleteSet.add(u);
+      });
+
+      const currentSubjects = localLiveBook?.subjects || book?.subjects || [];
+      const cleanedSubjects = currentSubjects.map(s => {
+        const seenInSubj = new Set();
+        const newTests = (s.tests || []).filter(t => {
+          if (!t) return false;
+          const tid = String(t.id || '');
+          const tidU = toUUID(tid);
+          if (toDeleteSet.has(tid) || (tidU && toDeleteSet.has(tidU))) return false;
+          const nameK = String(t.name || t.testAdi || '').trim().toLowerCase();
+          if (nameK && seenInSubj.has(nameK)) return false;
+          if (nameK) seenInSubj.add(nameK);
+          return true;
+        });
+
+        const newTopics = (s.topics || []).map(tp => {
+          const seenInTopic = new Set();
+          const newTpTests = (tp.tests || []).filter(t => {
+            if (!t) return false;
+            const tid = String(t.id || '');
+            const tidU = toUUID(tid);
+            if (toDeleteSet.has(tid) || (tidU && toDeleteSet.has(tidU))) return false;
+            const nameK = String(t.name || t.testAdi || '').trim().toLowerCase();
+            if (nameK && seenInTopic.has(nameK)) return false;
+            if (nameK) seenInTopic.add(nameK);
+            return true;
+          });
+          return { ...tp, tests: newTpTests };
+        });
+
+        return { ...s, tests: newTests, topics: newTopics };
+      });
+
+      setLocalLiveBook(prev => prev ? ({ ...prev, subjects: cleanedSubjects }) : prev);
+      if (book?.id) {
+        await updateTrackedBook(book.id, { subjects: cleanedSubjects });
       }
+
+      // Use batchDeleteTrackedBookTests which deletes from tracked_book_tests, submissions, context & localStorage
+      await batchDeleteTrackedBookTests(toDeleteIds, book?.id);
 
       // Refresh live
       await fetchLiveDirect();
@@ -2620,7 +2767,7 @@ export default function BookContentManager() {
                                     <button style={{ padding: '0.35rem 0.6rem', background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', color: 'var(--color-text)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, null, test); }} title="Bu Testi Düzenle">
                                       <Edit size={13} />
                                     </button>
-                                    <button style={{ padding: '0.35rem 0.6rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
+                                    <button style={{ padding: '0.35rem 0.6rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDeleteTest(test)} title="Bu Testi Sil">
                                       <Trash2 size={13} />
                                     </button>
                                   </div>
@@ -2711,7 +2858,7 @@ export default function BookContentManager() {
                                             <button style={{ padding: '0.35rem 0.6rem', background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', borderRadius: '0.45rem', color: 'var(--color-text)', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleOpenEditTest(subject, topic, test); }} title="Bu Testi Düzenle">
                                               <Edit size={13} />
                                             </button>
-                                            <button style={{ padding: '0.35rem 0.6rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }} onClick={() => { if(window.confirm('Emin misiniz?')) deleteTrackedBookTest(test.id); }}>
+                                            <button style={{ padding: '0.35rem 0.6rem', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.45rem', color: '#ef4444', cursor: 'pointer' }} onClick={() => handleDeleteTest(test)} title="Bu Testi Sil">
                                               <Trash2 size={13} />
                                             </button>
                                           </div>
