@@ -438,6 +438,8 @@ export default function StudyRoomPage() {
           String(b.id) === String(hw.bookId || hw.raw_data?.bookId) || 
           (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
         );
+        if (isBook && !bookObj) return;
+
         const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
           .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
           .replace(/\s*\(Tüm Kitap\)/gi, '')

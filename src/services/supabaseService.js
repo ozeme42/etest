@@ -2576,7 +2576,15 @@ export async function dbDeleteTrackedBook(bookId) {
       await supabase.from('submissions').delete().in('book_id', allIds);
     } catch {}
     
-    // 3. Delete the book
+    // 3. Delete associated homework assignments created for this book
+    try {
+      await supabase.from('homeworks').delete().in('book_id', allIds);
+      for (const id of allIds) {
+        await supabase.from('homeworks').delete().filter('raw_data->>bookId', 'eq', id);
+      }
+    } catch {}
+    
+    // 4. Delete the book
     try {
       await supabase.from('tracked_books').delete().in('id', allIds);
     } catch {}

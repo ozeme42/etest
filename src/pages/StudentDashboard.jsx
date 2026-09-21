@@ -2044,10 +2044,20 @@ export default function StudentDashboard() {
           const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
           if (typeof testDates !== 'object' || Object.keys(testDates).length === 0) return;
 
+          const isBookAssignment = Boolean(
+            hw.isBookAssignment ||
+            hw.is_book_assignment ||
+            hw.sourceType === 'trackedBook' ||
+            hw.bookId ||
+            hw.raw_data?.bookId ||
+            (hw.title && /tüm kitap|kitap görevi|fiziki kitap/i.test(hw.title))
+          );
           const bookObj = (books || []).find(b =>
             String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
             (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
           );
+          if (isBookAssignment && !bookObj) return;
+
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
             .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
             .replace(/\s*\(Tüm Kitap\)/gi, '')
@@ -2448,10 +2458,20 @@ export default function StudentDashboard() {
     }).forEach(hw => {
       const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
       const hasTestDueDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
+      const isBookAssignment = Boolean(
+        hw.isBookAssignment ||
+        hw.is_book_assignment ||
+        hw.sourceType === 'trackedBook' ||
+        hw.bookId ||
+        hw.raw_data?.bookId ||
+        (hw.title && /tüm kitap|kitap görevi|fiziki kitap/i.test(hw.title))
+      );
       const bookObj = (books || []).find(b =>
         String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
         (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
       );
+      if (isBookAssignment && !bookObj) return;
+
       const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
         .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
         .replace(/\s*\(Tüm Kitap\)/gi, '')
