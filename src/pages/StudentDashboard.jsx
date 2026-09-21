@@ -2063,11 +2063,13 @@ export default function StudentDashboard() {
             if (!isMatchDate) return;
 
             const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
-            const dedupeKey = `bt_${cleanTestId}`;
-            if (seenDayBtKeys.has(dedupeKey)) return;
+            const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
+            const dedupeKey = `bt_${canonicalTestId}`;
+            if (seenDayBtKeys.has(dedupeKey) || seenDayBtKeys.has(`bt_${cleanTestId}`)) return;
             seenDayBtKeys.add(dedupeKey);
+            seenDayBtKeys.add(`bt_${cleanTestId}`);
 
-            const bt = (bookTests || []).find(b => {
+            let bt = (bookTests || []).find(b => {
               const bId = String(b.id);
               return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
             });
@@ -2084,17 +2086,40 @@ export default function StudentDashboard() {
 
             if (Array.isArray(bookSubjects)) {
               for (const subj of bookSubjects) {
+                if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
                 const isSubjMatch = sId && String(subj.id) === String(sId);
                 let isTopicMatch = false;
+
+                // 1. Check direct tests under subject (subj.tests)
+                if (!bt && Array.isArray(subj.tests)) {
+                  const directTest = subj.tests.find(t => {
+                    const tid = String(t.id);
+                    return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                  });
+                  if (directTest) {
+                    bt = directTest;
+                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    break;
+                  }
+                }
+
+                // 2. Check topic tests (subj.topics[].tests)
                 for (const top of (subj.topics || [])) {
-                  if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                  const topicTest = (top.tests || []).find(t => {
+                    const tid = String(t.id);
+                    return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                  });
+                  if ((tId && String(top.id) === String(tId)) || topicTest) {
                     resolvedUnit = top.name;
                     isTopicMatch = true;
+                    if (!bt && topicTest) {
+                      bt = topicTest;
+                    }
                     break;
                   }
                 }
                 if (isSubjMatch || isTopicMatch) {
-                  resolvedSubject = subj.name;
+                  if (!resolvedSubject) resolvedSubject = subj.name;
                   break;
                 }
               }
@@ -2104,14 +2129,15 @@ export default function StudentDashboard() {
               resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
             }
 
-            const testTitle = bt?.name || bt?.title || 'Kitap Testi';
-            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 15);
+            const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
             scheduledBookItems.push({
               id: dedupeKey,
               testId: cleanTestId,
               bookTestId: cleanTestId,
               realTestId: cleanTestId,
+              canonicalTestId: canonicalTestId,
               hwId: hw.id,
               bookId: hw.bookId || bookObj?.id,
               bookTitle: cleanBookTitle,
@@ -2135,15 +2161,18 @@ export default function StudentDashboard() {
         // ID, testId ve içerik (kitap + ders + test adı) bazında tam tekilleştirme — done:true ve testId içerenleri önceliklendir
         const rawAllItems = sortItemsByBookOrder([...scheduledBookItems, ...autoHwItems, ...dayManualItems, ...scheduleItems], books, bookTests);
         const seenIds = new Map();
+        const seenContentKeys = new Map();
         rawAllItems.forEach(item => {
           const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
           const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
           const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
 
-          const cleanTestId = String(item.testId || item.bookTestId || '').replace(/^bt_/, '').replace(/^q_/, '');
+          const cleanTestId = String(item.testId || item.bookTestId || item.realTestId || '').replace(/^bt_/, '').replace(/^q_/, '');
+          const canonicalTestId = cleanTestId ? (toUUID(cleanTestId) || cleanTestId) : '';
+
           let key = '';
-          if (cleanTestId) {
-            key = `test_${cleanBook}_${cleanSubject}_${cleanTestId}`;
+          if (canonicalTestId) {
+            key = `test_${cleanBook}_${cleanSubject}_${canonicalTestId}`;
           } else if (item.hwId && !item.testId) {
             key = `hw_${cleanSubject}_${item.hwId}`;
           } else if (cleanTitle && (cleanSubject || cleanBook)) {
@@ -2153,12 +2182,22 @@ export default function StudentDashboard() {
           }
 
           if (!key) return;
-          const existing = seenIds.get(key);
-          if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
+          const contentKey = (cleanBook && cleanTitle) ? `content_${cleanBook}_${cleanSubject}_${cleanTitle}` : null;
+
+          const existingByKey = seenIds.get(key);
+          const existingByContent = contentKey ? seenContentKeys.get(contentKey) : null;
+          const existing = existingByKey || existingByContent;
+
+          if (!existing) {
             seenIds.set(key, item);
+            if (contentKey) seenContentKeys.set(contentKey, item);
+          } else if ((!existing.done && item.done) || (!existing.testId && item.testId)) {
+            seenIds.set(key, item);
+            if (contentKey) seenContentKeys.set(contentKey, item);
           }
         });
-        const allItems = sortItemsByBookOrder(Array.from(seenIds.values()), books, bookTests).map(item => {
+        const dedupedItems = Array.from(new Set(seenIds.values()));
+        const allItems = sortItemsByBookOrder(dedupedItems, books, bookTests).map(item => {
           const isAttempted = checkHasItemBeenAttempted(item, studentId, studentSubmissions || submissions, homeworks);
 
           const currentTestId = String(item.testId || item.bookTestId || item.realTestId || '').trim();
@@ -2423,7 +2462,9 @@ export default function StudentDashboard() {
         Object.entries(testDates).forEach(([testIdKey, dStr]) => {
           if (!dStr) return;
           const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
-          if (seenCleanTestIds.has(cleanTestId)) return;
+          const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
+          if (seenCleanTestIds.has(canonicalTestId) || seenCleanTestIds.has(cleanTestId)) return;
+          seenCleanTestIds.add(canonicalTestId);
           seenCleanTestIds.add(cleanTestId);
 
           const due = new Date(dStr);
@@ -2431,7 +2472,7 @@ export default function StudentDashboard() {
           const dueYMD = String(dStr).slice(0, 10);
           const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
           if (!isOverdue) return;
-          const bt = (bookTests || []).find(b => {
+          let bt = (bookTests || []).find(b => {
             const bId = String(b.id);
             return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
           });
@@ -2448,17 +2489,40 @@ export default function StudentDashboard() {
 
           if (Array.isArray(bookSubjects)) {
             for (const subj of bookSubjects) {
+              if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
               const isSubjMatch = sId && String(subj.id) === String(sId);
               let isTopicMatch = false;
+
+              // 1. Check direct tests under subject (subj.tests)
+              if (!bt && Array.isArray(subj.tests)) {
+                const directTest = subj.tests.find(t => {
+                  const tid = String(t.id);
+                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                });
+                if (directTest) {
+                  bt = directTest;
+                  if (!resolvedSubject) resolvedSubject = subj.name;
+                  break;
+                }
+              }
+
+              // 2. Check topic tests (subj.topics[].tests)
               for (const top of (subj.topics || [])) {
-                if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
+                const topicTest = (top.tests || []).find(t => {
+                  const tid = String(t.id);
+                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                });
+                if ((tId && String(top.id) === String(tId)) || topicTest) {
                   resolvedUnit = top.name;
                   isTopicMatch = true;
+                  if (!bt && topicTest) {
+                    bt = topicTest;
+                  }
                   break;
                 }
               }
               if (isSubjMatch || isTopicMatch) {
-                resolvedSubject = subj.name;
+                if (!resolvedSubject) resolvedSubject = subj.name;
                 break;
               }
             }
@@ -2468,8 +2532,8 @@ export default function StudentDashboard() {
             resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
           }
 
-          const testTitle = bt?.name || bt?.title || 'Kitap Testi';
-          const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 15);
+          const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+          const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
           const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
 
           const candidateItem = {
@@ -3036,17 +3100,32 @@ export default function StudentDashboard() {
       }
 
       // If test has due date inside any homework, delete the date from homework
-      if (task.testId && Array.isArray(homeworks)) {
-        const matchingHws = homeworks.filter(h => h.testDueDates?.[task.testId] || h.scheduleDates?.[task.testId]);
+      const activeTestId = task.testId || task.bookTestId || task.realTestId;
+      if (activeTestId && Array.isArray(homeworks)) {
+        const cleanTId = String(activeTestId).replace(/^bt_/, '').replace(/^q_/, '');
+        const uuidTId = toUUID(cleanTId);
+        const matchingHws = homeworks.filter(h => {
+          const d = h.testDueDates || h.scheduleDates || h.test_due_dates || {};
+          return d[activeTestId] || d[cleanTId] || d[`bt_${cleanTId}`] || (uuidTId && d[uuidTId]);
+        });
         for (const mHw of matchingHws) {
-          const newTestDueDates = { ...mHw.testDueDates };
-          delete newTestDueDates[task.testId];
-          const newScheduleDates = { ...mHw.scheduleDates };
-          delete newScheduleDates[task.testId];
+          const newTestDueDates = { ...(mHw.testDueDates || mHw.test_due_dates || {}) };
+          delete newTestDueDates[activeTestId];
+          delete newTestDueDates[cleanTId];
+          delete newTestDueDates[`bt_${cleanTId}`];
+          if (uuidTId) delete newTestDueDates[uuidTId];
+
+          const newScheduleDates = { ...(mHw.scheduleDates || {}) };
+          delete newScheduleDates[activeTestId];
+          delete newScheduleDates[cleanTId];
+          delete newScheduleDates[`bt_${cleanTId}`];
+          if (uuidTId) delete newScheduleDates[uuidTId];
+
           if (typeof updateHomework === 'function') {
             await updateHomework(mHw.id, {
               ...mHw,
               testDueDates: newTestDueDates,
+              test_due_dates: newTestDueDates,
               scheduleDates: newScheduleDates
             });
           }

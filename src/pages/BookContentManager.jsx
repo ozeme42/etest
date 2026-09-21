@@ -5263,11 +5263,7 @@ export default function BookContentManager() {
                         if (f) {
                           const sId = String(t.id);
                           const sClean = sId.replace(/^bt_/, '').replace(/^q_/, '');
-                          const sUuid = String(toUUID(sId) || '');
-                          cleanedScheduleDates[sId] = f;
-                          if (sClean) cleanedScheduleDates[sClean] = f;
-                          if (sUuid) cleanedScheduleDates[sUuid] = f;
-                          cleanedScheduleDates[`bt_${sClean}`] = f;
+                          cleanedScheduleDates[sClean || sId] = f;
                         }
                       });
 

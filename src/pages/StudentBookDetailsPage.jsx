@@ -472,9 +472,21 @@ export default function StudentBookDetailsPage() {
         }
 
         let testDueDate = null;
-        const matchingHw = homeworks.find(hw => hw.isBookAssignment && String(hw.bookId || hw.book_id) === bId && hw.testDueDates?.[t.id]);
-        if (matchingHw?.testDueDates?.[t.id]) {
-          testDueDate = matchingHw.testDueDates[t.id];
+        const matchingHw = homeworks.find(hw => {
+          if (!hw.isBookAssignment) return false;
+          const hwBId = String(hw.bookId || hw.book_id || '');
+          const isBook = hwBId === bId || (toUUID(hwBId) && toUUID(hwBId) === toUUID(bId));
+          if (!isBook) return false;
+          const dates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+          const tClean = String(t.id).replace(/^bt_/, '').replace(/^q_/, '');
+          const tUuid = toUUID(tClean);
+          return dates[t.id] || dates[tClean] || dates[`bt_${tClean}`] || (tUuid && dates[tUuid]);
+        });
+        if (matchingHw) {
+          const dates = matchingHw.testDueDates || matchingHw.scheduleDates || matchingHw.test_due_dates || matchingHw.raw_data?.testDueDates || matchingHw.raw_data?.scheduleDates || {};
+          const tClean = String(t.id).replace(/^bt_/, '').replace(/^q_/, '');
+          const tUuid = toUUID(tClean);
+          testDueDate = dates[t.id] || dates[tClean] || dates[`bt_${tClean}`] || (tUuid && dates[tUuid]) || null;
         }
 
         const isAssignedHomework = Boolean(testDueDate || assignedTestIds.has(String(t.id)));

@@ -459,46 +459,73 @@ export default function StudyRoomPage() {
               : (targetDayKey === dayCfg.key);
 
             if (isMatchDate) {
-              const dedupeKey = `bt_${cleanTestId}`;
-              if (!seenDayTaskKeys.has(dedupeKey)) {
-                seenDayTaskKeys.add(dedupeKey);
-                const bt = (bookTests || []).find(b => {
-                  const bId = String(b.id);
-                  return bId === cleanTestId || bId === String(testId) || (testUuid && toUUID(bId) === testUuid);
-                });
-                const qCount = Number(bt?.questionCount) || (bt?.answerKey ? Object.keys(bt.answerKey).length : 15);
+              const canonicalTestId = testUuid || cleanTestId;
+              const dedupeKey = `bt_${canonicalTestId}`;
+              if (seenDayTaskKeys.has(dedupeKey) || seenDayTaskKeys.has(`bt_${cleanTestId}`)) return;
+              seenDayTaskKeys.add(dedupeKey);
+              seenDayTaskKeys.add(`bt_${cleanTestId}`);
 
-                let resolvedSubject = bt?.subject || bt?.subjectName || '';
-                let resolvedUnit = bt?.unit || bt?.unitName || '';
-                const sId = bt?.subjectId || bt?.subject_id;
-                const tId = bt?.topicId || bt?.topic_id;
+              let bt = (bookTests || []).find(b => {
+                const bId = String(b.id);
+                return bId === cleanTestId || bId === String(testId) || (testUuid && toUUID(bId) === testUuid);
+              });
 
-                let bookSubjects = bookObj?.subjects || [];
-                if (typeof bookSubjects === 'string') {
-                  try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-                }
+              let resolvedSubject = bt?.subject || bt?.subjectName || '';
+              let resolvedUnit = bt?.unit || bt?.unitName || '';
+              const sId = bt?.subjectId || bt?.subject_id;
+              const tId = bt?.topicId || bt?.topic_id;
 
-                if (Array.isArray(bookSubjects)) {
-                  for (const subj of bookSubjects) {
-                    const isSubjMatch = sId && String(subj.id) === String(sId);
-                    let isTopicMatch = false;
-                    for (const top of (subj.topics || [])) {
-                      if ((tId && String(top.id) === String(tId)) || (top.tests || []).some(t => String(t.id) === cleanTestId)) {
-                        resolvedUnit = top.name;
-                        isTopicMatch = true;
-                        break;
-                      }
-                    }
-                    if (isSubjMatch || isTopicMatch) {
-                      resolvedSubject = subj.name;
+              let bookSubjects = bookObj?.subjects || [];
+              if (typeof bookSubjects === 'string') {
+                try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+              }
+
+              if (Array.isArray(bookSubjects)) {
+                for (const subj of bookSubjects) {
+                  if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
+                  const isSubjMatch = sId && String(subj.id) === String(sId);
+                  let isTopicMatch = false;
+
+                  // 1. Direct tests under subject
+                  if (!bt && Array.isArray(subj.tests)) {
+                    const directTest = subj.tests.find(t => {
+                      const tid = String(t.id);
+                      return tid === cleanTestId || tid === String(testId) || (testUuid && toUUID(tid) === testUuid);
+                    });
+                    if (directTest) {
+                      bt = directTest;
+                      if (!resolvedSubject) resolvedSubject = subj.name;
                       break;
                     }
                   }
-                }
 
-                if (!resolvedSubject) {
-                  resolvedSubject = hw.subject || bookObj?.subject || 'Genel';
+                  // 2. Topic tests
+                  for (const top of (subj.topics || [])) {
+                    const topTest = (top.tests || []).find(t => {
+                      const tid = String(t.id);
+                      return tid === cleanTestId || tid === String(testId) || (testUuid && toUUID(tid) === testUuid);
+                    });
+                    if ((tId && String(top.id) === String(tId)) || topTest) {
+                      resolvedUnit = top.name;
+                      isTopicMatch = true;
+                      if (!bt && topTest) {
+                        bt = topTest;
+                      }
+                      break;
+                    }
+                  }
+                  if (isSubjMatch || isTopicMatch) {
+                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    break;
+                  }
                 }
+              }
+
+              if (!resolvedSubject) {
+                resolvedSubject = hw.subject || bookObj?.subject || 'Genel';
+              }
+
+              const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
                 const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap', subject: resolvedSubject, unitTopic: resolvedUnit }, currentUser.id, submissions, homeworks, studyAssignments);
 
@@ -525,7 +552,6 @@ export default function StudyRoomPage() {
                   isCompleted: isSolved,
                   isBookAssignment: true
                 });
-              }
             }
           });
         }

@@ -189,6 +189,8 @@ export default memo(function DashboardTodayTasks({
                       displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
                     } else if (task.unitTopic) {
                       displayTitle = `${task.unitTopic} Testi`;
+                    } else if (task.isBookTask) {
+                      displayTitle = task.testName || task.title || (rawBook ? `${rawBook} Testi` : 'Kitap Testi');
                     } else if (task.subject) {
                       displayTitle = `${task.subject} Testi`;
                     } else {
