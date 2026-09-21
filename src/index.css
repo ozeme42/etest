@@ -571,3 +571,20 @@ body {
   border-color: rgba(148, 163, 184, 0.15);
 }
 
+/* Universal Modal Viewport Constraint & Responsive Overflow Protection */
+.modal-overlay {
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-content {
+  box-sizing: border-box;
+  max-width: calc(100vw - 1.5rem) !important;
+  max-height: calc(100dvh - 2rem) !important;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+

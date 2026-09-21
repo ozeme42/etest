@@ -5,7 +5,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, Plus, Trash2, BookMarked, Library, 
-  FileText, HelpCircle, CheckCircle, XCircle, 
+  FileText, HelpCircle, CheckCircle, XCircle, X,
   Edit, MoreVertical, ArrowRight, FileJson, AlertCircle, Copy, Check
 } from 'lucide-react';
 import './BookManager.css';
@@ -759,179 +759,195 @@ export default function BookManager() {
 
       {/* ── NEW / EDIT BOOK MODAL ── */}
       {isDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '2rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)' }}>
-            <h2 style={{ color: 'var(--color-text)', fontSize: '1.4rem', fontWeight: 900, marginBottom: '0.35rem' }}>{editingBook ? "✏️ Kitabı Düzenle" : "➕ Yeni Kitap Ekle"}</h2>
-            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem', fontSize: '0.88rem' }}>{editingBook ? "Kitap bilgilerini güncelleyin." : "Takip edilecek yeni bir kitap oluşturun."}</p>
-            
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Kitap Adı</label>
-              <input 
-                type="text" 
-                value={newBook.title} 
-                onChange={(e) => setNewBook({ ...newBook, title: e.target.value })} 
-                placeholder="Örn: 8. Sınıf LGS Matematik Soru Bankası"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
-              />
-            </div>
-            
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Yayınevi</label>
-              <input 
-                type="text" 
-                value={newBook.publisher} 
-                onChange={(e) => setNewBook({ ...newBook, publisher: e.target.value })} 
-                placeholder="Örn: Çap Yayınları, Merkez Yayınları..."
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Kitap Türü</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'standard' ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)' }}>
-                  <input
-                    type="radio"
-                    name="bookType"
-                    value="standard"
-                    checked={newBook.bookType === 'standard'}
-                    onChange={() => setNewBook({ ...newBook, bookType: 'standard' })}
-                    style={{ accentColor: '#6366f1' }}
-                  />
-                  <div>
-                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>🔘 Standart Soru Bankası</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler çoktan seçmeli (A/B/C/D veya A/B/C/D/E)</div>
-                  </div>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
-                  <input
-                    type="radio"
-                    name="bookType"
-                    value="open_ended"
-                    checked={newBook.bookType === 'open_ended'}
-                    onChange={() => setNewBook({ ...newBook, bookType: 'open_ended' })}
-                    style={{ accentColor: '#8b5cf6' }}
-                  />
-                  <div>
-                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>✍️ Açık Uçlu Kitap</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler klasik / yazılı / sayısal cevaplı sorular</div>
-                  </div>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', border: `1.5px solid ${newBook.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'mixed' ? 'rgba(8,145,178,0.12)' : 'var(--color-surface-hover)' }}>
-                  <input
-                    type="radio"
-                    name="bookType"
-                    value="mixed"
-                    checked={newBook.bookType === 'mixed'}
-                    onChange={() => setNewBook({ ...newBook, bookType: 'mixed' })}
-                    style={{ accentColor: '#0891b2' }}
-                  />
-                  <div>
-                    <strong style={{ color: 'var(--color-text)', fontSize: '0.9rem' }}>🔀 Karma Kitap</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Her test kendi tipini JSON'dan alır (çoktan seçmeli + açık uçlu karışık)</div>
-                  </div>
-                </label>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '540px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem', flexShrink: 0 }}>
+              <div>
+                <h2 style={{ color: 'var(--color-text)', fontSize: '1.3rem', fontWeight: 900, margin: 0 }}>{editingBook ? "✏️ Kitabı Düzenle" : "➕ Yeni Kitap Ekle"}</h2>
+                <p style={{ color: 'var(--color-text-muted)', margin: '0.25rem 0 0', fontSize: '0.82rem' }}>{editingBook ? "Kitap bilgilerini güncelleyin." : "Takip edilecek yeni bir kitap oluşturun."}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsDialogOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0.5rem' }}
+                title="Kapat"
+              >
+                <X size={20} />
+              </button>
             </div>
+            
+            {/* Scrollable Body */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', marginBottom: '0.35rem' }}>Kitap Adı</label>
+                <input 
+                  type="text" 
+                  value={newBook.title} 
+                  onChange={(e) => setNewBook({ ...newBook, title: e.target.value })} 
+                  placeholder="Örn: 8. Sınıf LGS Matematik Soru Bankası"
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.92rem', boxSizing: 'border-box' }}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', marginBottom: '0.35rem' }}>Yayınevi</label>
+                <input 
+                  type="text" 
+                  value={newBook.publisher} 
+                  onChange={(e) => setNewBook({ ...newBook, publisher: e.target.value })} 
+                  placeholder="Örn: Çap Yayınları, Merkez Yayınları..."
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.92rem', boxSizing: 'border-box' }}
+                />
+              </div>
 
-            {newBook.bookType !== 'open_ended' && (
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>Optik Form Seçenek Sayısı (Seviye)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 4 ? '#16a34a' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 4 ? 'rgba(22,163,74,0.12)' : 'var(--color-surface-hover)' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', marginBottom: '0.35rem' }}>Kitap Türü</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0.9rem', border: `1.5px solid ${newBook.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'standard' ? 'rgba(99,102,241,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
-                      name="optionCount"
-                      value={4}
-                      checked={Number(newBook.optionCount) === 4}
-                      onChange={() => setNewBook({ ...newBook, optionCount: 4 })}
-                      style={{ accentColor: '#16a34a' }}
+                      name="bookType"
+                      value="standard"
+                      checked={newBook.bookType === 'standard'}
+                      onChange={() => setNewBook({ ...newBook, bookType: 'standard' })}
+                      style={{ accentColor: '#6366f1' }}
                     />
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Ortaokul / LGS</div>
+                      <strong style={{ color: 'var(--color-text)', fontSize: '0.88rem' }}>🔘 Standart Soru Bankası</strong>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler çoktan seçmeli (A/B/C/D veya A/B/C/D/E)</div>
                     </div>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 5 ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0.9rem', border: `1.5px solid ${newBook.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'open_ended' ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
                     <input
                       type="radio"
-                      name="optionCount"
-                      value={5}
-                      checked={Number(newBook.optionCount) === 5}
-                      onChange={() => setNewBook({ ...newBook, optionCount: 5 })}
+                      name="bookType"
+                      value="open_ended"
+                      checked={newBook.bookType === 'open_ended'}
+                      onChange={() => setNewBook({ ...newBook, bookType: 'open_ended' })}
                       style={{ accentColor: '#8b5cf6' }}
                     />
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
+                      <strong style={{ color: 'var(--color-text)', fontSize: '0.88rem' }}>✍️ Açık Uçlu Kitap</strong>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Tüm testler klasik / yazılı / sayısal cevaplı sorular</div>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0.9rem', border: `1.5px solid ${newBook.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: newBook.bookType === 'mixed' ? 'rgba(8,145,178,0.12)' : 'var(--color-surface-hover)' }}>
+                    <input
+                      type="radio"
+                      name="bookType"
+                      value="mixed"
+                      checked={newBook.bookType === 'mixed'}
+                      onChange={() => setNewBook({ ...newBook, bookType: 'mixed' })}
+                      style={{ accentColor: '#0891b2' }}
+                    />
+                    <div>
+                      <strong style={{ color: 'var(--color-text)', fontSize: '0.88rem' }}>🔀 Karma Kitap</strong>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>Her test kendi tipini JSON'dan alır (çoktan seçmeli + açık uçlu karışık)</div>
                     </div>
                   </label>
                 </div>
               </div>
-            )}
 
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
-              <input
-                type="url"
-                value={newBook.pdfUrl || ''}
-                onChange={(e) => setNewBook({ ...newBook, pdfUrl: e.target.value })}
-                placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
-              />
-              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
-                Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
-              </div>
-            </div>
-
-            {/* E-Book / Flipbook Answer Key Protection */}
-            <div style={{
-              marginBottom: '1.5rem',
-              padding: '1rem',
-              borderRadius: '0.85rem',
-              background: 'rgba(99, 102, 241, 0.05)',
-              border: '1.5px solid rgba(99, 102, 241, 0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem'
-            }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={newBook.hideAnswerKey !== false}
-                  onChange={(e) => setNewBook({ ...newBook, hideAnswerKey: e.target.checked })}
-                  style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
-                />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                    🔒 Cevap Anahtarını Öğrencilerden Gizle
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
-                    Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
+              {newBook.bookType !== 'open_ended' && (
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', marginBottom: '0.35rem' }}>Optik Form Seçenek Sayısı</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 4 ? '#10b981' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 4 ? 'rgba(16,185,129,0.12)' : 'var(--color-surface-hover)' }}>
+                      <input
+                        type="radio"
+                        name="optionCount"
+                        value={4}
+                        checked={Number(newBook.optionCount) === 4}
+                        onChange={() => setNewBook({ ...newBook, optionCount: 4 })}
+                        style={{ accentColor: '#10b981' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>İlkokul / Ortaokul / LGS</div>
+                      </div>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${Number(newBook.optionCount) === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: Number(newBook.optionCount) === 5 ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-hover)' }}>
+                      <input
+                        type="radio"
+                        name="optionCount"
+                        value={5}
+                        checked={Number(newBook.optionCount) === 5}
+                        onChange={() => setNewBook({ ...newBook, optionCount: 5 })}
+                        style={{ accentColor: '#8b5cf6' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
+                      </div>
+                    </label>
                   </div>
                 </div>
-              </label>
+              )}
 
-              <div>
-                <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>
-                  📄 Son Sayfa Sınırı (Maksimum Sayfa)
-                </label>
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)', marginBottom: '0.35rem' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
                 <input
-                  type="number"
-                  value={newBook.maxPage ?? ''}
-                  onChange={(e) => setNewBook({ ...newBook, maxPage: e.target.value })}
-                  placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
-                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  type="url"
+                  value={newBook.pdfUrl || ''}
+                  onChange={(e) => setNewBook({ ...newBook, pdfUrl: e.target.value })}
+                  placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
                 />
-                <div style={{ fontSize: '0.72rem', color: '#6366f1', marginTop: '0.35rem', fontWeight: 600 }}>
-                  💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>
+                  Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
+                </div>
+              </div>
+
+              {/* E-Book / Flipbook Answer Key Protection */}
+              <div style={{
+                padding: '0.9rem',
+                borderRadius: '0.85rem',
+                background: 'rgba(99, 102, 241, 0.05)',
+                border: '1.5px solid rgba(99, 102, 241, 0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={newBook.hideAnswerKey !== false}
+                    onChange={(e) => setNewBook({ ...newBook, hideAnswerKey: e.target.checked })}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>
+                      🔒 Cevap Anahtarını Öğrencilerden Gizle
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
+                    </div>
+                  </div>
+                </label>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.78rem', color: 'var(--color-text)' }}>
+                    📄 Son Sayfa Sınırı (Maksimum Sayfa)
+                  </label>
+                  <input
+                    type="number"
+                    value={newBook.maxPage ?? ''}
+                    onChange={(e) => setNewBook({ ...newBook, maxPage: e.target.value })}
+                    placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
+                    style={{ width: '100%', padding: '0.55rem 0.8rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ fontSize: '0.7rem', color: '#6366f1', marginTop: '0.3rem', fontWeight: 600 }}>
+                    💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', padding: '0.65rem 1.25rem', background: 'var(--color-surface-hover)', borderRadius: '0.75rem' }}>İptal</button>
-              <button className="btn btn-primary" onClick={handleAddOrUpdateBook} style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.75rem', color: '#ffffff' }}>{editingBook ? "✓ Güncelle" : "➕ Ekle"}</button>
+            {/* Fixed Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.75rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem', flexShrink: 0 }}>
+              <button className="btn btn-outline" onClick={() => setIsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', padding: '0.6rem 1.25rem', background: 'var(--color-surface-hover)', borderRadius: '0.65rem', fontWeight: 700 }}>İptal</button>
+              <button className="btn btn-primary" onClick={handleAddOrUpdateBook} style={{ padding: '0.6rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.65rem', color: '#ffffff', cursor: 'pointer' }}>{editingBook ? "✓ Güncelle" : "➕ Ekle"}</button>
             </div>
           </div>
         </div>
@@ -939,8 +955,8 @@ export default function BookManager() {
 
       {/* ── JSON IMPORT MODAL ── */}
       {importModal.isOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '720px', padding: '2rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.35)', color: 'var(--color-text)', boxSizing: 'border-box' }}>
             <h2 style={{ color: 'var(--color-text)', fontSize: '1.35rem', fontWeight: 900, marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileJson style={{ color: '#6366f1' }} /> Toplu İçerik İçe Aktar
             </h2>

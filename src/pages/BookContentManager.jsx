@@ -4109,194 +4109,196 @@ export default function BookContentManager() {
 
       {/* ── TEST MODAL ── */}
       {isTestDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '540px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem', flexShrink: 0 }}>
               <h3 style={{ margin: 0, color: 'var(--color-text)', fontSize: '1.25rem', fontWeight: 900 }}>
                 {currentTest ? `✏️ Testi Düzenle: ${currentTest.name}` : '➕ Yeni Test Ekle'}
               </h3>
-              <button onClick={() => setIsTestDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button onClick={() => setIsTestDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X size={20} />
               </button>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Adı</label>
-              <input 
-                type="text" 
-                value={testFormData.name} 
-                onChange={e => setTestFormData(p => ({...p, name: e.target.value}))} 
-                placeholder="Örn: Test 1, Kazanım Testi 1..." 
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
-                autoFocus 
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
-              <input 
-                type="number" 
-                min="1"
-                max="100"
-                value={testFormData.questionCount} 
-                onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
-              <input
-                type="url"
-                value={testFormData.pdfUrl || ''}
-                onChange={e => setTestFormData(p => ({...p, pdfUrl: e.target.value}))}
-                placeholder="https://drive.google.com/... veya PDF URL"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* ── Test Tipi Seçimi ── */}
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Test Tipi</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${!testFormData.isOpenEnded ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: !testFormData.isOpenEnded ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
-                  <input type="radio" name="testType" value="coktan_secmeli"
-                    checked={!testFormData.isOpenEnded}
-                    onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: false, questionType: 'coktan_secmeli' }))}
-                    style={{ accentColor: '#6366f1' }}
-                  />
-                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${testFormData.isOpenEnded ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: testFormData.isOpenEnded ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
-                  <input type="radio" name="testType" value="acik_uclu"
-                    checked={testFormData.isOpenEnded}
-                    onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: true, questionType: 'acik_uclu' }))}
-                    style={{ accentColor: '#8b5cf6' }}
-                  />
-                  <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu/Sayısal</span>
-                </label>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>Test Adı</label>
+                <input 
+                  type="text" 
+                  value={testFormData.name} 
+                  onChange={e => setTestFormData(p => ({...p, name: e.target.value}))} 
+                  placeholder="Örn: Test 1, Kazanım Testi 1..." 
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                  autoFocus 
+                />
               </div>
-            </div>
 
-            {/* ── Cevap Anahtarı ── */}
-            {testFormData.isOpenEnded ? (
-              /* Açık Uçlu: Sayısal/Metin cevap alanları */
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                  <span>✍️ Cevap Anahtarı (Sayısal / Boş Bırakılabilir)</span>
-                  <button
-                    type="button"
-                    onClick={() => setTestFormData(p => ({ ...p, answerKey: {} }))}
-                    style={{ fontSize: '0.75rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    Temizle
-                  </button>
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.4rem', maxHeight: '260px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
-                  {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
-                    const qNum = i + 1;
-                    const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
-                    return (
-                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: val ? 'rgba(139,92,246,0.07)' : 'var(--color-surface)', padding: '0.35rem 0.55rem', borderRadius: '0.45rem', border: val ? '1px solid #c4b5fd' : '1px solid var(--color-border)' }}>
-                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
-                        <input
-                          type="text"
-                          inputMode="text"
-                          autoCapitalize="sentences"
-                          autoCorrect="on"
-                          spellCheck="true"
-                          value={val}
-                          onChange={e => setTestFormData(p => ({
-                            ...p,
-                            answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
-                          }))}
-                          placeholder="Cevap..."
-                          style={{
-                            flex: 1,
-                            minWidth: 0,
-                            padding: '0.25rem 0.4rem',
-                            borderRadius: '0.35rem',
-                            border: '1px solid var(--color-border-input)',
-                            background: 'var(--color-surface)',
-                            color: 'var(--color-text)',
-                            fontSize: '0.85rem',
-                            fontWeight: 700,
-                            fontFamily: 'inherit',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                    );
-                  })}
-                  {(!testFormData.questionCount || testFormData.questionCount === 0) && (
-                    <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
-                  )}
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  max="100"
+                  value={testFormData.questionCount} 
+                  onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
+                <input
+                  type="url"
+                  value={testFormData.pdfUrl || ''}
+                  onChange={e => setTestFormData(p => ({...p, pdfUrl: e.target.value}))}
+                  placeholder="https://drive.google.com/... veya PDF URL"
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* ── Test Tipi Seçimi ── */}
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>Test Tipi</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${!testFormData.isOpenEnded ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: !testFormData.isOpenEnded ? 'rgba(99,102,241,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                    <input type="radio" name="testType" value="coktan_secmeli"
+                      checked={!testFormData.isOpenEnded}
+                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: false, questionType: 'coktan_secmeli' }))}
+                      style={{ accentColor: '#6366f1' }}
+                    />
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>🔘 Çoktan Seçmeli</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 0.9rem', border: `1.5px solid ${testFormData.isOpenEnded ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: testFormData.isOpenEnded ? 'rgba(139,92,246,0.1)' : 'var(--color-surface-hover)', flex: 1 }}>
+                    <input type="radio" name="testType" value="acik_uclu"
+                      checked={testFormData.isOpenEnded}
+                      onChange={() => setTestFormData(p => ({ ...p, isOpenEnded: true, questionType: 'acik_uclu' }))}
+                      style={{ accentColor: '#8b5cf6' }}
+                    />
+                    <span style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu/Sayısal</span>
+                  </label>
                 </div>
-                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                  💡 Boş bırakılan sorular "öğretmen kontrolünde" olarak işaretlenir.
-                </p>
               </div>
-            ) : book.bookType !== 'open_ended' ? (
-              /* Çoktan Seçmeli: ABCDE balonlar */
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                  <span>Cevap Anahtarı ({book.optionCount === 4 ? 'A, B, C, D' : 'A, B, C, D, E'})</span>
-                  <input 
-                    type="text" 
-                    placeholder="Toplu Gir (Örn: ABC...)"
-                    onChange={(e) => {
-                      const str = e.target.value;
-                      const newKey = {};
-                      str.replace(/[^A-Ea-e]/g, '').toUpperCase().split('').forEach((char, idx) => {
-                        if(idx < testFormData.questionCount) newKey[idx + 1] = char;
-                      });
-                      setTestFormData(p => ({...p, answerKey: newKey}));
-                    }}
-                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.82rem', borderRadius: '0.5rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', width: '160px', fontWeight: 800 }}
-                  />
-                </label>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '0.4rem', maxHeight: '220px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
-                  {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
-                    const qNum = i + 1;
-                    const val = testFormData.answerKey?.[qNum] || '';
-                    const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
-                    return (
-                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.4rem 0.6rem', borderRadius: '0.45rem', border: '1px solid var(--color-border)' }}>
-                        <div style={{ width: '22px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          {optList.map(opt => {
-                            const isSelected = val === opt;
-                            return (
-                              <button
-                                type="button"
-                                key={opt}
-                                onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
-                                style={{
-                                  width: '26px', height: '26px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid var(--color-border-input)',
-                                  background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
-                                  color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
-                                }}
-                              >
-                                {opt}
-                              </button>
-                            );
-                          })}
+
+              {/* ── Cevap Anahtarı ── */}
+              {testFormData.isOpenEnded ? (
+                /* Açık Uçlu: Sayısal/Metin cevap alanları */
+                <div className="form-group">
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                    <span>✍️ Cevap Anahtarı (Sayısal / Boş Bırakılabilir)</span>
+                    <button
+                      type="button"
+                      onClick={() => setTestFormData(p => ({ ...p, answerKey: {} }))}
+                      style={{ fontSize: '0.75rem', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      Temizle
+                    </button>
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.4rem', maxHeight: '240px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
+                    {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
+                      const qNum = i + 1;
+                      const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
+                      return (
+                        <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: val ? 'rgba(139,92,246,0.07)' : 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: val ? '1px solid #c4b5fd' : '1px solid var(--color-border)' }}>
+                          <div style={{ width: '20px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
+                          <input
+                            type="text"
+                            inputMode="text"
+                            autoCapitalize="sentences"
+                            autoCorrect="on"
+                            spellCheck="true"
+                            value={val}
+                            onChange={e => setTestFormData(p => ({
+                              ...p,
+                              answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
+                            }))}
+                            placeholder="Cevap..."
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              padding: '0.25rem 0.4rem',
+                              borderRadius: '0.35rem',
+                              border: '1px solid var(--color-border-input)',
+                              background: 'var(--color-surface)',
+                              color: 'var(--color-text)',
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              fontFamily: 'inherit',
+                              outline: 'none'
+                            }}
+                          />
                         </div>
-                      </div>
-                    );
-                  })}
-                  {(!testFormData.questionCount || testFormData.questionCount === 0) && (
-                    <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
-                  )}
+                      );
+                    })}
+                    {(!testFormData.questionCount || testFormData.questionCount === 0) && (
+                      <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
+                    )}
+                  </div>
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                    💡 Boş bırakılan sorular "öğretmen kontrolünde" olarak işaretlenir.
+                  </p>
                 </div>
-              </div>
-            ) : null}
+              ) : book.bookType !== 'open_ended' ? (
+                /* Çoktan Seçmeli: ABCDE balonlar */
+                <div className="form-group">
+                  <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <span>Cevap Anahtarı ({book.optionCount === 4 ? 'A, B, C, D' : 'A, B, C, D, E'})</span>
+                    <input 
+                      type="text" 
+                      placeholder="Toplu Gir (Örn: ABC...)"
+                      onChange={(e) => {
+                        const str = e.target.value;
+                        const newKey = {};
+                        str.replace(/[^A-Ea-e]/g, '').toUpperCase().split('').forEach((char, idx) => {
+                          if(idx < testFormData.questionCount) newKey[idx + 1] = char;
+                        });
+                        setTestFormData(p => ({...p, answerKey: newKey}));
+                      }}
+                      style={{ padding: '0.35rem 0.55rem', fontSize: '0.8rem', borderRadius: '0.5rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', width: '150px', fontWeight: 800 }}
+                    />
+                  </label>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
+                    {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
+                      const qNum = i + 1;
+                      const val = testFormData.answerKey?.[qNum] || '';
+                      const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
+                      return (
+                        <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1px solid var(--color-border)' }}>
+                          <div style={{ width: '20px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
+                          <div style={{ display: 'flex', gap: '0.2rem' }}>
+                            {optList.map(opt => {
+                              const isSelected = val === opt;
+                              return (
+                                <button
+                                  type="button"
+                                  key={opt}
+                                  onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
+                                  style={{
+                                    width: '24px', height: '24px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                                    background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                                    color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(!testFormData.questionCount || testFormData.questionCount === 0) && (
+                      <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
-              <button className="btn btn-primary" onClick={handleTestSave} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.65rem 1.4rem', fontWeight: 900, border: 'none', borderRadius: '0.5rem', color: 'white' }}>Kaydet</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1rem', marginTop: '0.75rem', flexShrink: 0 }}>
+              <button className="btn btn-outline" onClick={() => setIsTestDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)', padding: '0.6rem 1.25rem', borderRadius: '0.6rem', fontWeight: 700 }}>İptal</button>
+              <button className="btn btn-primary" onClick={handleTestSave} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.6rem 1.4rem', fontWeight: 900, border: 'none', borderRadius: '0.6rem', color: 'white', cursor: 'pointer' }}>Kaydet</button>
             </div>
           </div>
         </div>
@@ -4304,191 +4306,193 @@ export default function BookContentManager() {
 
       {/* ── 🏫 ADVANCED ASSIGN HOMEWORK MODAL ── */}
       {isAssignDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '560px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '1rem', flexShrink: 0 }}>
               <h3 style={{ marginTop: 0, marginBottom: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
                 <Send size={20} style={{ color: '#6366f1' }} /> Ödev Ata ({selectedTests.length} Test Seçildi)
               </h3>
-              <button onClick={() => setIsAssignDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button onClick={() => setIsAssignDialogOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <XCircle size={20} />
               </button>
             </div>
 
-            {/* Custom Homework Title Input */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Ödev Başlığı</label>
-              <input
-                type="text"
-                value={assignCustomTitle}
-                onChange={(e) => setAssignCustomTitle(e.target.value)}
-                placeholder="Örn: LGS Matematik 1. Dönem Ödevi"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Target Type Selector (Class vs Student) */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Hedef Kitle Seçimi</label>
-              <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
-                <button
-                  type="button"
-                  onClick={() => { setAssignTargetMode("class"); setAssignSelectedTargetIds([]); }}
-                  style={{
-                    flex: 1, padding: '0.6rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem',
-                    background: assignTargetMode === "class" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                    color: assignTargetMode === "class" ? 'white' : 'var(--color-text-muted)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-                  }}
-                >
-                  <GraduationCap size={16} /> 🏫 Sınıfa Özel (Tüm Sınıf)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAssignTargetMode("student"); setAssignSelectedTargetIds([]); }}
-                  style={{
-                    flex: 1, padding: '0.6rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem',
-                    background: assignTargetMode === "student" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
-                    color: assignTargetMode === "student" ? 'white' : 'var(--color-text-muted)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
-                  }}
-                >
-                  <Users size={16} /> 👤 Öğrenciye Özel
-                </button>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+              {/* Custom Homework Title Input */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Ödev Başlığı</label>
+                <input
+                  type="text"
+                  value={assignCustomTitle}
+                  onChange={(e) => setAssignCustomTitle(e.target.value)}
+                  placeholder="Örn: LGS Matematik 1. Dönem Ödevi"
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
+                />
               </div>
-            </div>
 
-            {/* Target Options Checklist */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                {assignTargetMode === "class" ? 'Hedef Sınıf(ları) Seçin:' : 'Hedef Öğrenci(leri) Seçin:'}
-              </label>
-
-              <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1.5px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem', background: 'var(--color-surface-hover)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                
-                {/* CLASS LIST */}
-                {assignTargetMode === "class" && availableClasses.map(cls => {
-                  const isChecked = assignSelectedTargetIds.includes(cls.id);
-                  const classStudentsCount = students.filter(s => 
-                    String(s.gradeId) === String(cls.id) || 
-                    s.gradeId === cls.name || 
-                    String(s.classId) === String(cls.id) || 
-                    s.grade === cls.id || 
-                    s.grade === cls.name || 
-                    s.className === cls.name
-                  ).length;
-
-                  return (
-                    <label key={cls.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: isChecked ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface)', borderRadius: '0.55rem', border: `1.5px solid ${isChecked ? '#6366f1' : 'var(--color-border)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked} 
-                          onChange={() => handleToggleTargetId(cls.id)} 
-                          style={{ width: '1.15rem', height: '1.15rem', accentColor: '#6366f1', cursor: 'pointer' }} 
-                        />
-                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
-                          🏫 {cls.name}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
-                        {classStudentsCount} Öğrenci
-                      </span>
-                    </label>
-                  );
-                })}
-
-                {/* STUDENT LIST */}
-                {assignTargetMode === "student" && students.map(st => {
-                  const isChecked = assignSelectedTargetIds.includes(st.id);
-                  return (
-                    <label key={st.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: isChecked ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface)', borderRadius: '0.55rem', border: `1.5px solid ${isChecked ? '#6366f1' : 'var(--color-border)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={isChecked} 
-                          onChange={() => handleToggleTargetId(st.id)} 
-                          style={{ width: '1.15rem', height: '1.15rem', accentColor: '#6366f1', cursor: 'pointer' }} 
-                        />
-                        <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
-                          👤 {st.name}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                        {st.grade || st.className || 'Öğrenci'}
-                      </span>
-                    </label>
-                  );
-                })}
-
-                {assignTargetMode === "class" && availableClasses.length === 0 && (
-                  <p style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Tanımlı sınıf bulunamadı.</p>
-                )}
-                {assignTargetMode === "student" && students.length === 0 && (
-                  <p style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Tanımlı öğrenci bulunamadı.</p>
-                )}
-              </div>
-            </div>
-
-            {/* Due Date Selector */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                Ödev / Bitirme Tarihi veya Süresi
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '0.25rem' }}>Hazır Gün Seçin:</label>
-                  <select
-                    value={assignDueDateDays}
-                    onChange={(e) => {
-                      setAssignDueDateDays(parseInt(e.target.value) || 7);
-                      setAssignExactDueDate("");
+              {/* Target Type Selector (Class vs Student) */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Hedef Kitle Seçimi</label>
+                <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--color-surface-hover)', padding: '0.35rem', borderRadius: '0.75rem', border: '1px solid var(--color-border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setAssignTargetMode("class"); setAssignSelectedTargetIds([]); }}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem',
+                      background: assignTargetMode === "class" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                      color: assignTargetMode === "class" ? 'white' : 'var(--color-text-muted)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
                     }}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
                   >
-                    {!assignAsBook && (
-                      <>
-                        <option value={3}>3 Gün</option>
-                        <option value={5}>5 Gün</option>
-                      </>
-                    )}
-                    <option value={7}>1 Hafta (7 Gün)</option>
-                    <option value={14}>2 Hafta (14 Gün)</option>
-                    <option value={30}>1 Ay (30 Gün)</option>
-                    {assignAsBook && (
-                      <>
-                        <option value={60}>2 Ay (60 Gün)</option>
-                        <option value={90}>Dönem Sonu (90 Gün)</option>
-                        <option value={180}>Yıl Sonu (180 Gün)</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '0.25rem' }}>Veya Takvimden Seçin:</label>
-                  <input
-                    type="date"
-                    value={assignExactDueDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setAssignExactDueDate(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
-                  />
+                    <GraduationCap size={16} /> 🏫 Sınıfa Özel (Tüm Sınıf)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAssignTargetMode("student"); setAssignSelectedTargetIds([]); }}
+                    style={{
+                      flex: 1, padding: '0.6rem', borderRadius: '0.55rem', border: 'none', cursor: 'pointer', fontWeight: 900, fontSize: '0.85rem',
+                      background: assignTargetMode === "student" ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                      color: assignTargetMode === "student" ? 'white' : 'var(--color-text-muted)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem'
+                    }}
+                  >
+                    <Users size={16} /> 👤 Öğrenciye Özel
+                  </button>
                 </div>
               </div>
-              {assignExactDueDate ? (
-                <p style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 800, marginTop: '0.45rem' }}>
-                  🗓️ Seçilen Bitirme Tarihi: {new Date(assignExactDueDate).toLocaleDateString('tr-TR')}
-                </p>
-              ) : (
-                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.45rem' }}>
-                  Hedef Bitirme Tarihi: {new Date(Date.now() + (assignDueDateDays || 7) * 86400000).toLocaleDateString('tr-TR')}
-                </p>
-              )}
+
+              {/* Target Options Checklist */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                  {assignTargetMode === "class" ? 'Hedef Sınıf(ları) Seçin:' : 'Hedef Öğrenci(leri) Seçin:'}
+                </label>
+
+                <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1.5px solid var(--color-border)', borderRadius: '0.75rem', padding: '0.65rem', background: 'var(--color-surface-hover)', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  
+                  {/* CLASS LIST */}
+                  {assignTargetMode === "class" && availableClasses.map(cls => {
+                    const isChecked = assignSelectedTargetIds.includes(cls.id);
+                    const classStudentsCount = students.filter(s => 
+                      String(s.gradeId) === String(cls.id) || 
+                      s.gradeId === cls.name || 
+                      String(s.classId) === String(cls.id) || 
+                      s.grade === cls.id || 
+                      s.grade === cls.name || 
+                      s.className === cls.name
+                    ).length;
+
+                    return (
+                      <label key={cls.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: isChecked ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface)', borderRadius: '0.55rem', border: `1.5px solid ${isChecked ? '#6366f1' : 'var(--color-border)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked} 
+                            onChange={() => handleToggleTargetId(cls.id)} 
+                            style={{ width: '1.15rem', height: '1.15rem', accentColor: '#6366f1', cursor: 'pointer' }} 
+                          />
+                          <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
+                            🏫 {cls.name}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: '#60a5fa', background: 'rgba(59, 130, 246, 0.15)', padding: '0.15rem 0.55rem', borderRadius: '1rem', fontWeight: 800, border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                          {classStudentsCount} Öğrenci
+                        </span>
+                      </label>
+                    );
+                  })}
+
+                  {/* STUDENT LIST */}
+                  {assignTargetMode === "student" && students.map(st => {
+                    const isChecked = assignSelectedTargetIds.includes(st.id);
+                    return (
+                      <label key={st.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.85rem', background: isChecked ? 'rgba(99, 102, 241, 0.15)' : 'var(--color-surface)', borderRadius: '0.55rem', border: `1.5px solid ${isChecked ? '#6366f1' : 'var(--color-border)'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={isChecked} 
+                            onChange={() => handleToggleTargetId(st.id)} 
+                            style={{ width: '1.15rem', height: '1.15rem', accentColor: '#6366f1', cursor: 'pointer' }} 
+                          />
+                          <span style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--color-text)' }}>
+                            👤 {st.name}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+                          {st.grade || st.className || 'Öğrenci'}
+                        </span>
+                      </label>
+                    );
+                  })}
+
+                  {assignTargetMode === "class" && availableClasses.length === 0 && (
+                    <p style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Tanımlı sınıf bulunamadı.</p>
+                  )}
+                  {assignTargetMode === "student" && students.length === 0 && (
+                    <p style={{ padding: '1rem', textAlign: 'center', margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Tanımlı öğrenci bulunamadı.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Due Date Selector */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                  Ödev / Bitirme Tarihi veya Süresi
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '0.25rem' }}>Hazır Gün Seçin:</label>
+                    <select
+                      value={assignDueDateDays}
+                      onChange={(e) => {
+                        setAssignDueDateDays(parseInt(e.target.value) || 7);
+                        setAssignExactDueDate("");
+                      }}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
+                    >
+                      {!assignAsBook && (
+                        <>
+                          <option value={3}>3 Gün</option>
+                          <option value={5}>5 Gün</option>
+                        </>
+                      )}
+                      <option value={7}>1 Hafta (7 Gün)</option>
+                      <option value={14}>2 Hafta (14 Gün)</option>
+                      <option value={30}>1 Ay (30 Gün)</option>
+                      {assignAsBook && (
+                        <>
+                          <option value={60}>2 Ay (60 Gün)</option>
+                          <option value={90}>Dönem Sonu (90 Gün)</option>
+                          <option value={180}>Yıl Sonu (180 Gün)</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: '0.25rem' }}>Veya Takvimden Seçin:</label>
+                    <input
+                      type="date"
+                      value={assignExactDueDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={(e) => setAssignExactDueDate(e.target.value)}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                {assignExactDueDate ? (
+                  <p style={{ fontSize: '0.78rem', color: '#38bdf8', fontWeight: 800, marginTop: '0.45rem' }}>
+                    🗓️ Seçilen Bitirme Tarihi: {new Date(assignExactDueDate).toLocaleDateString('tr-TR')}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '0.45rem' }}>
+                    Hedef Bitirme Tarihi: {new Date(Date.now() + (assignDueDateDays || 7) * 86400000).toLocaleDateString('tr-TR')}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsAssignDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
-              <button className="btn btn-primary" onClick={handleAssignSelectedTestsSubmit} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.65rem 1.5rem', fontWeight: 900, border: 'none', borderRadius: '0.5rem', color: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1rem', marginTop: '0.75rem', flexShrink: 0 }}>
+              <button className="btn btn-outline" onClick={() => setIsAssignDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)', padding: '0.6rem 1.25rem', borderRadius: '0.6rem', fontWeight: 700 }}>İptal</button>
+              <button className="btn btn-primary" onClick={handleAssignSelectedTestsSubmit} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', padding: '0.6rem 1.5rem', fontWeight: 900, border: 'none', borderRadius: '0.6rem', color: 'white', cursor: 'pointer' }}>
                 Ödevi {assignTargetMode === 'class' ? 'Sınıfa' : 'Öğrenciye'} Ata
               </button>
             </div>
@@ -4498,43 +4502,45 @@ export default function BookContentManager() {
 
       {/* ── 📅 EDIT ASSIGNED HOMEWORK DUE DATE MODAL ── */}
       {editDateHw && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '480px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 900 }}>
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '480px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem', marginBottom: '1rem', flexShrink: 0 }}>
+              <h3 style={{ margin: 0, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem', fontWeight: 900 }}>
                 <Calendar size={20} style={{ color: '#6366f1' }} /> Bitirme Tarihini Değiştir / Süre Uzat
               </h3>
-              <button onClick={() => setEditDateHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+              <button onClick={() => setEditDateHw(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <XCircle size={20} />
               </button>
             </div>
 
-            <div style={{ marginBottom: '1.25rem', background: 'var(--color-surface-hover)', padding: '0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)' }}>
-              <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)' }}>{editDateHw.title}</div>
-              <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                Mevcut Son Tarih: <strong style={{ color: '#60a5fa' }}>{editDateHw.dueDate ? new Date(editDateHw.dueDate).toLocaleDateString('tr-TR') : 'Yok'}</strong>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+              <div style={{ background: 'var(--color-surface-hover)', padding: '0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)' }}>
+                <div style={{ fontWeight: 900, fontSize: '1rem', color: 'var(--color-text)' }}>{editDateHw.title}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                  Mevcut Son Tarih: <strong style={{ color: '#60a5fa' }}>{editDateHw.dueDate ? new Date(editDateHw.dueDate).toLocaleDateString('tr-TR') : 'Yok'}</strong>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Yeni Bitirme Tarihi Seçin:</label>
+                <input
+                  type="date"
+                  value={editDateValue}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setEditDateValue(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center', fontWeight: 800 }}>Hızlı Uzat:</span>
+                  <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 7); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+7 Gün</button>
+                  <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 14); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+14 Gün</button>
+                  <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 30); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+30 Gün (1 Ay)</button>
+                </div>
               </div>
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>Yeni Bitirme Tarihi Seçin:</label>
-              <input
-                type="date"
-                value={editDateValue}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setEditDateValue(e.target.value)}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, boxSizing: 'border-box' }}
-              />
-              <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', alignSelf: 'center', fontWeight: 800 }}>Hızlı Uzat:</span>
-                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 7); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+7 Gün</button>
-                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 14); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+14 Gün</button>
-                <button type="button" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 30); setEditDateValue(d.toISOString().split('T')[0]); }} style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem', fontWeight: 800, borderRadius: '0.5rem', background: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border-input)', cursor: 'pointer' }}>+30 Gün (1 Ay)</button>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setEditDateHw(null)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1rem', marginTop: '0.75rem', flexShrink: 0 }}>
+              <button className="btn btn-outline" onClick={() => setEditDateHw(null)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)', padding: '0.6rem 1.25rem', borderRadius: '0.6rem', fontWeight: 700 }}>İptal</button>
               <button 
                 className="btn btn-primary"
                 onClick={async () => {
@@ -4547,7 +4553,7 @@ export default function BookContentManager() {
                   showToast('Ödev bitirme tarihi başarıyla güncellendi!');
                   setEditDateHw(null);
                 }}
-                style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.5rem', color: 'white' }}
+                style={{ padding: '0.6rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.6rem', color: 'white', cursor: 'pointer' }}
               >
                 Yeni Tarihi Kaydet
               </button>
@@ -5325,180 +5331,196 @@ export default function BookContentManager() {
 
       {/* ── BOOK SETTINGS MODAL ── */}
       {isBookSettingsDialogOpen && (
-        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1.25rem' }}>
-          <div className="modal-content" style={{ width: '96vw', maxWidth: '520px', padding: '1.75rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.15)', color: 'var(--color-text)' }}>
-            <h2 style={{ color: 'var(--color-text)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.35rem', fontWeight: 900 }}>
-              <Settings style={{ color: '#6366f1' }} /> Kitap Ayarlarını Düzenle
-            </h2>
-            <p style={{ marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Kitap başlığı, yayınevi, seviye ve optik seçenek sayısını güncelleyin.</p>
-
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Kitap Adı</label>
-              <input
-                type="text"
-                value={bookSettingsForm.title}
-                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, title: e.target.value })}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Yayınevi</label>
-              <input
-                type="text"
-                value={bookSettingsForm.publisher}
-                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, publisher: e.target.value })}
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.95rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Kitap Türü (Formatı)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.65rem' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'standard' ? 'rgba(99, 102, 241, 0.12)' : 'var(--color-surface-hover)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <input
-                      type="radio"
-                      name="bookSettingBookType"
-                      value="standard"
-                      checked={bookSettingsForm.bookType === 'standard'}
-                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'standard' })}
-                      style={{ accentColor: '#6366f1' }}
-                    />
-                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔘 Standart</span>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Çoktan Seçmeli</span>
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'open_ended' ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <input
-                      type="radio"
-                      name="bookSettingBookType"
-                      value="open_ended"
-                      checked={bookSettingsForm.bookType === 'open_ended'}
-                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'open_ended' })}
-                      style={{ accentColor: '#8b5cf6' }}
-                    />
-                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu</span>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Klasik / Sayısal</span>
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'mixed' ? 'rgba(8, 145, 178, 0.12)' : 'var(--color-surface-hover)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <input
-                      type="radio"
-                      name="bookSettingBookType"
-                      value="mixed"
-                      checked={bookSettingsForm.bookType === 'mixed'}
-                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'mixed' })}
-                      style={{ accentColor: '#0891b2' }}
-                    />
-                    <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔀 Karma</span>
-                  </div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>ÇS + Açık Uçlu</span>
-                </label>
-              </div>
-            </div>
-
-            {bookSettingsForm.bookType !== 'open_ended' && (
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>Optik Form Seçenek Sayısı (Seviye)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 4 ? '#10b981' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 4 ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-hover)' }}>
-                    <input
-                      type="radio"
-                      name="bookSettingOptionCount"
-                      value={4}
-                      checked={bookSettingsForm.optionCount === 4}
-                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 4 })}
-                      style={{ accentColor: '#10b981' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>İlkokul / Ortaokul / LGS</div>
-                    </div>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 5 ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
-                    <input
-                      type="radio"
-                      name="bookSettingOptionCount"
-                      value={5}
-                      checked={bookSettingsForm.optionCount === 5}
-                      onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 5 })}
-                      style={{ accentColor: '#8b5cf6' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '0.85rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
-              <input
-                type="url"
-                value={bookSettingsForm.pdfUrl || ''}
-                onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, pdfUrl: e.target.value })}
-                placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
-                style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
-              />
-              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
-                Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
-              </div>
-            </div>
-
-            {/* E-Book / Flipbook Answer Key Protection */}
-            <div style={{
-              marginBottom: '1.5rem',
-              padding: '1rem',
-              borderRadius: '0.85rem',
-              background: 'rgba(99, 102, 241, 0.05)',
-              border: '1.5px solid rgba(99, 102, 241, 0.2)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem'
-            }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={bookSettingsForm.hideAnswerKey !== false}
-                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, hideAnswerKey: e.target.checked })}
-                  style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
-                />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
-                    🔒 Cevap Anahtarını Öğrencilerden Gizle
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
-                    Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
-                  </div>
-                </div>
-              </label>
-
+        <div className="modal-overlay" style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(8px)', padding: '1rem', boxSizing: 'border-box' }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '540px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: '1.5rem', borderRadius: '1.5rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border)', boxShadow: '0 25px 60px rgba(0,0,0,0.25)', color: 'var(--color-text)', boxSizing: 'border-box', overflow: 'hidden' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1.5px solid var(--color-border)', paddingBottom: '0.75rem', flexShrink: 0 }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>
-                  📄 Son Sayfa Sınırı (Maksimum Sayfa)
-                </label>
+                <h2 style={{ color: 'var(--color-text)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.3rem', fontWeight: 900 }}>
+                  <Settings style={{ color: '#6366f1' }} size={22} /> Kitap Ayarlarını Düzenle
+                </h2>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>Kitap başlığı, yayınevi, seviye ve e-kitap ayarlarını güncelleyin.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBookSettingsDialogOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0.5rem' }}
+                title="Kapat"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Form Body */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '0.35rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.35rem', fontSize: '0.86rem', color: 'var(--color-text)' }}>Kitap Adı</label>
                 <input
-                  type="number"
-                  value={bookSettingsForm.maxPage ?? ''}
-                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, maxPage: e.target.value })}
-                  placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
-                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  type="text"
+                  value={bookSettingsForm.title}
+                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, title: e.target.value })}
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.92rem', boxSizing: 'border-box' }}
                 />
-                <div style={{ fontSize: '0.72rem', color: '#6366f1', marginTop: '0.35rem', fontWeight: 600 }}>
-                  💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.35rem', fontSize: '0.86rem', color: 'var(--color-text)' }}>Yayınevi</label>
+                <input
+                  type="text"
+                  value={bookSettingsForm.publisher}
+                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, publisher: e.target.value })}
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.92rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.35rem', fontSize: '0.86rem', color: 'var(--color-text)' }}>Kitap Türü (Formatı)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'standard' ? '#6366f1' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'standard' ? 'rgba(99, 102, 241, 0.12)' : 'var(--color-surface-hover)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <input
+                        type="radio"
+                        name="bookSettingBookType"
+                        value="standard"
+                        checked={bookSettingsForm.bookType === 'standard'}
+                        onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'standard' })}
+                        style={{ accentColor: '#6366f1' }}
+                      />
+                      <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔘 Standart</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Çoktan Seçmeli</span>
+                  </label>
+
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'open_ended' ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'open_ended' ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <input
+                        type="radio"
+                        name="bookSettingBookType"
+                        value="open_ended"
+                        checked={bookSettingsForm.bookType === 'open_ended'}
+                        onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'open_ended' })}
+                        style={{ accentColor: '#8b5cf6' }}
+                      />
+                      <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>✍️ Açık Uçlu</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>Klasik / Sayısal</span>
+                  </label>
+
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${bookSettingsForm.bookType === 'mixed' ? '#0891b2' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.bookType === 'mixed' ? 'rgba(8, 145, 178, 0.12)' : 'var(--color-surface-hover)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <input
+                        type="radio"
+                        name="bookSettingBookType"
+                        value="mixed"
+                        checked={bookSettingsForm.bookType === 'mixed'}
+                        onChange={() => setBookSettingsForm({ ...bookSettingsForm, bookType: 'mixed' })}
+                        style={{ accentColor: '#0891b2' }}
+                      />
+                      <span style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>🔀 Karma</span>
+                    </div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', paddingLeft: '1.2rem' }}>ÇS + Açık Uçlu</span>
+                  </label>
+                </div>
+              </div>
+
+              {bookSettingsForm.bookType !== 'open_ended' && (
+                <div className="form-group">
+                  <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.35rem', fontSize: '0.86rem', color: 'var(--color-text)' }}>Optik Form Seçenek Sayısı (Seviye)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 4 ? '#10b981' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 4 ? 'rgba(16, 185, 129, 0.12)' : 'var(--color-surface-hover)' }}>
+                      <input
+                        type="radio"
+                        name="bookSettingOptionCount"
+                        value={4}
+                        checked={bookSettingsForm.optionCount === 4}
+                        onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 4 })}
+                        style={{ accentColor: '#10b981' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>4 Şık (A-D)</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>İlkokul / Ortaokul / LGS</div>
+                      </div>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.65rem 0.75rem', border: `1.5px solid ${bookSettingsForm.optionCount === 5 ? '#8b5cf6' : 'var(--color-border)'}`, borderRadius: '0.75rem', cursor: 'pointer', background: bookSettingsForm.optionCount === 5 ? 'rgba(139, 92, 246, 0.12)' : 'var(--color-surface-hover)' }}>
+                      <input
+                        type="radio"
+                        name="bookSettingOptionCount"
+                        value={5}
+                        checked={bookSettingsForm.optionCount === 5}
+                        onChange={() => setBookSettingsForm({ ...bookSettingsForm, optionCount: 5 })}
+                        style={{ accentColor: '#8b5cf6' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: '0.82rem', color: 'var(--color-text)' }}>5 Şık (A-E)</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Lise / YKS</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.35rem', fontSize: '0.86rem', color: 'var(--color-text)' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
+                <input
+                  type="url"
+                  value={bookSettingsForm.pdfUrl || ''}
+                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, pdfUrl: e.target.value })}
+                  placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
+                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.88rem', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.3rem' }}>
+                  Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
+                </div>
+              </div>
+
+              {/* E-Book / Flipbook Answer Key Protection */}
+              <div style={{
+                padding: '0.9rem',
+                borderRadius: '0.85rem',
+                background: 'rgba(99, 102, 241, 0.05)',
+                border: '1.5px solid rgba(99, 102, 241, 0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem'
+              }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={bookSettingsForm.hideAnswerKey !== false}
+                    onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, hideAnswerKey: e.target.checked })}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>
+                      🔒 Cevap Anahtarını Öğrencilerden Gizle
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
+                    </div>
+                  </div>
+                </label>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.78rem', color: 'var(--color-text)' }}>
+                    📄 Son Sayfa Sınırı (Maksimum Sayfa)
+                  </label>
+                  <input
+                    type="number"
+                    value={bookSettingsForm.maxPage ?? ''}
+                    onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, maxPage: e.target.value })}
+                    placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
+                    style={{ width: '100%', padding: '0.55rem 0.8rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.84rem', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ fontSize: '0.7rem', color: '#6366f1', marginTop: '0.3rem', fontWeight: 600 }}>
+                    💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
-              <button className="btn btn-outline" onClick={() => setIsBookSettingsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)' }}>İptal</button>
+            {/* Fixed Modal Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1rem', marginTop: '0.75rem', flexShrink: 0 }}>
+              <button className="btn btn-outline" onClick={() => setIsBookSettingsDialogOpen(false)} style={{ color: 'var(--color-text)', borderColor: 'var(--color-border-input)', background: 'var(--color-surface)', padding: '0.6rem 1.25rem', borderRadius: '0.6rem', fontWeight: 700 }}>İptal</button>
               <button
                 className="btn btn-primary"
                 onClick={async () => {
@@ -5513,7 +5535,7 @@ export default function BookContentManager() {
                   setIsBookSettingsDialogOpen(false);
                   showToast("Kitap ayarları başarıyla güncellendi. 🎉");
                 }}
-                style={{ padding: '0.65rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.5rem', color: 'white' }}
+                style={{ padding: '0.6rem 1.5rem', fontWeight: 900, background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', borderRadius: '0.6rem', color: 'white', cursor: 'pointer' }}
               >
                 Kaydet
               </button>
