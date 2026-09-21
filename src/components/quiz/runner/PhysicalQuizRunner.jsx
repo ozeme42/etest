@@ -536,6 +536,9 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
           <ResizablePdfPanel
             pdfUrl={bookPdfUrl}
             title={test.title || test.name || 'Kitap PDF'}
+            testName={test.title || test.name || ''}
+            maxPage={test.maxPage || test.book?.maxPage || null}
+            hideAnswerKey={test.hideAnswerKey !== false}
             mode={pdfMode}
             onModeChange={setPdfMode}
             isFullScreen={!showOptikForm}

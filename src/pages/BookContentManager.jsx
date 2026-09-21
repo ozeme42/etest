@@ -128,6 +128,8 @@ export default function BookContentManager() {
         const bType = metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard');
         const pub = metaObj?.publisher || b.publisher || b.raw_data?.publisher || '';
         const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
+        const maxP = metaObj?.maxPage ?? b.max_page ?? b.maxPage ?? b.raw_data?.maxPage ?? '';
+        const hideAns = metaObj?.hideAnswerKey ?? b.hide_answer_key ?? b.hideAnswerKey ?? b.raw_data?.hideAnswerKey ?? true;
 
         setLocalLiveBook({
           id: String(id),
@@ -137,6 +139,8 @@ export default function BookContentManager() {
           bookType: bType,
           optionCount: Number(optCount) || 5,
           pdfUrl: pdf,
+          maxPage: maxP !== '' && maxP !== null ? Number(maxP) : '',
+          hideAnswerKey: hideAns !== false,
           subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
           raw_data: b.raw_data || {}
         });
@@ -426,7 +430,15 @@ export default function BookContentManager() {
 
   // Book Settings Dialog State
   const [isBookSettingsDialogOpen, setIsBookSettingsDialogOpen] = useState(false);
-  const [bookSettingsForm, setBookSettingsForm] = useState({ title: '', publisher: '', bookType: 'standard', optionCount: 5, pdfUrl: '' });
+  const [bookSettingsForm, setBookSettingsForm] = useState({
+    title: '',
+    publisher: '',
+    bookType: 'standard',
+    optionCount: 5,
+    pdfUrl: '',
+    maxPage: '',
+    hideAnswerKey: true
+  });
 
   // Extract classes from curriculum & students
   const availableClasses = useMemo(() => {
@@ -2513,7 +2525,18 @@ export default function BookContentManager() {
             <RotateCcw size={16} /> Mükerrerleri Temizle
           </button>
           <button 
-            onClick={() => { setBookSettingsForm({ title: book.title, publisher: book.publisher, bookType: book.bookType || 'standard', optionCount: book.optionCount || 5, pdfUrl: book.pdfUrl || '' }); setIsBookSettingsDialogOpen(true); }} 
+            onClick={() => {
+              setBookSettingsForm({
+                title: book.title,
+                publisher: book.publisher,
+                bookType: book.bookType || 'standard',
+                optionCount: book.optionCount || 5,
+                pdfUrl: book.pdfUrl || '',
+                maxPage: book.maxPage !== undefined && book.maxPage !== null ? book.maxPage : (book.raw_data?.maxPage || ''),
+                hideAnswerKey: book.hideAnswerKey !== undefined ? book.hideAnswerKey : (book.raw_data?.hideAnswerKey !== false)
+              });
+              setIsBookSettingsDialogOpen(true);
+            }} 
             style={{ padding: '0.65rem 1rem', borderRadius: '0.75rem', background: 'var(--color-surface-hover)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
             <Settings size={17} /> Kitap Ayarları
@@ -5415,15 +5438,63 @@ export default function BookContentManager() {
               </div>
             )}
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF Linki (İsteğe Bağlı)</label>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontWeight: 800, marginBottom: '0.4rem', fontSize: '0.88rem', color: 'var(--color-text)' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
               <input
                 type="url"
                 value={bookSettingsForm.pdfUrl || ''}
                 onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, pdfUrl: e.target.value })}
-                placeholder="https://drive.google.com/... veya direkt PDF URL"
+                placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
                 style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
               />
+              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
+                Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
+              </div>
+            </div>
+
+            {/* E-Book / Flipbook Answer Key Protection */}
+            <div style={{
+              marginBottom: '1.5rem',
+              padding: '1rem',
+              borderRadius: '0.85rem',
+              background: 'rgba(99, 102, 241, 0.05)',
+              border: '1.5px solid rgba(99, 102, 241, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={bookSettingsForm.hideAnswerKey !== false}
+                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, hideAnswerKey: e.target.checked })}
+                  style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                    🔒 Cevap Anahtarını Öğrencilerden Gizle
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                    Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
+                  </div>
+                </div>
+              </label>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>
+                  📄 Son Sayfa Sınırı (Maksimum Sayfa)
+                </label>
+                <input
+                  type="number"
+                  value={bookSettingsForm.maxPage ?? ''}
+                  onChange={(e) => setBookSettingsForm({ ...bookSettingsForm, maxPage: e.target.value })}
+                  placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
+                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.72rem', color: '#6366f1', marginTop: '0.35rem', fontWeight: 600 }}>
+                  💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', borderTop: '1.5px solid var(--color-border)', paddingTop: '1.25rem' }}>
@@ -5433,7 +5504,9 @@ export default function BookContentManager() {
                 onClick={async () => {
                   const updatedData = {
                     ...bookSettingsForm,
-                    optionCount: Number(bookSettingsForm.optionCount) || 5
+                    optionCount: Number(bookSettingsForm.optionCount) || 5,
+                    maxPage: bookSettingsForm.maxPage ? Number(bookSettingsForm.maxPage) : null,
+                    hideAnswerKey: bookSettingsForm.hideAnswerKey !== false
                   };
                   setLocalLiveBook(prev => prev ? ({ ...prev, ...updatedData }) : prev);
                   await updateTrackedBook(book.id, updatedData);

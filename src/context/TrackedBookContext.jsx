@@ -207,6 +207,8 @@ export function TrackedBookProvider({ children }) {
           optionCount: existingBook.optionCount,
           bookType: existingBook.bookType,
           pdfUrl: existingBook.pdfUrl,
+          maxPage: existingBook.maxPage,
+          hideAnswerKey: existingBook.hideAnswerKey,
           subjects: existingBook.subjects,
           ...updates
         };

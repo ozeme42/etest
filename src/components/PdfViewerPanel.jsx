@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ExternalLink, FileText, ChevronDown, ChevronUp, X } from 'lucide-react';
+import AtaEbookViewer from './AtaEbookViewer';
 
 /**
  * Converts various PDF/Google Drive URLs to embeddable iframe src.
@@ -42,9 +43,22 @@ export function getEmbedUrl(url) {
  *  - defaultOpen: bool — whether panel starts open (default true on desktop)
  *  - className: string — extra CSS class for outer wrapper
  */
-export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', defaultOpen = true, className = '' }) {
+export default function PdfViewerPanel({
+  pdfUrl,
+  title = 'PDF Doküman',
+  testName = '',
+  maxPage = null,
+  hideAnswerKey = true,
+  defaultOpen = true,
+  className = ''
+}) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [iframeError, setIframeError] = useState(false);
+
+  const isFlipBook = useMemo(() => {
+    if (!pdfUrl) return false;
+    return /ataekitap\.com|fliphtml5\.com|online\.flipbuilder\.com|e-books\/.*\/index\.html/i.test(pdfUrl);
+  }, [pdfUrl]);
 
   const embedUrl = useMemo(() => getEmbedUrl(pdfUrl), [pdfUrl]);
 
@@ -77,23 +91,34 @@ export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', default
           <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {title}
           </span>
-          <span style={{ fontSize: '0.65rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 6px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>
-            PDF
+          <span style={{
+            fontSize: '0.65rem',
+            background: isFlipBook ? '#f0fdf4' : '#eff6ff',
+            border: `1px solid ${isFlipBook ? '#bbf7d0' : '#bfdbfe'}`,
+            color: isFlipBook ? '#15803d' : '#1d4ed8',
+            padding: '1px 6px',
+            borderRadius: 4,
+            fontWeight: 700,
+            flexShrink: 0
+          }}>
+            {isFlipBook ? 'E-KİTAP' : 'PDF'}
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <a
-            href={pdfUrl}
-            target='_blank'
-            rel='noopener noreferrer'
-            title='Yeni sekmede aç'
-            style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
-          >
-            <ExternalLink size={12} /> Aç
-          </a>
+          {(!isFlipBook || !hideAnswerKey) && (
+            <a
+              href={pdfUrl}
+              target='_blank'
+              rel='noopener noreferrer'
+              title='Yeni sekmede aç'
+              style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', textDecoration: 'none', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
+            >
+              <ExternalLink size={12} /> Aç
+            </a>
+          )}
           <button
             onClick={() => setIsOpen(o => !o)}
-            title={isOpen ? 'Küçült' : 'PDF Göster'}
+            title={isOpen ? 'Küçült' : (isFlipBook ? 'Kitabı Göster' : 'PDF Göster')}
             style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', borderRadius: 6, background: '#ffffff', border: '1px solid #cbd5e1', color: '#475569', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 700, gap: 3 }}
           >
             {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -102,10 +127,18 @@ export default function PdfViewerPanel({ pdfUrl, title = 'PDF Doküman', default
         </div>
       </div>
 
-      {/* PDF iframe */}
+      {/* Book content */}
       {isOpen && (
-        <div style={{ flex: 1, minHeight: 320, position: 'relative' }}>
-          {iframeError ? (
+        <div style={{ flex: 1, minHeight: isFlipBook ? 600 : 320, position: 'relative' }}>
+          {isFlipBook ? (
+            <AtaEbookViewer
+              url={pdfUrl}
+              testPageRange={testName}
+              maxPage={maxPage}
+              hideAnswerKey={hideAnswerKey}
+              title={title}
+            />
+          ) : iframeError ? (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
               height: '100%', minHeight: 200, gap: 12, padding: '2rem', textAlign: 'center'

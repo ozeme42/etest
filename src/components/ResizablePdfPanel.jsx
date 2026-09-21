@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getEmbedUrl } from './PdfViewerPanel';
+import AtaEbookViewer from './AtaEbookViewer';
 import {
   FileText, X, Maximize2, Minimize2, ExternalLink,
   GripVertical, PanelLeft, PanelRight, PanelTop, Layers, Pencil
@@ -23,6 +24,9 @@ import {
 export default function ResizablePdfPanel({
   pdfUrl,
   title = 'Kitap PDF',
+  testName = '',
+  maxPage = null,
+  hideAnswerKey = true,
   mode = 'side',
   onModeChange,
   defaultWidth = '80%',
@@ -32,6 +36,11 @@ export default function ResizablePdfPanel({
   isDrawingOpen = false
 }) {
   const embedUrl = getEmbedUrl(pdfUrl);
+
+  const isFlipBook = useMemo(() => {
+    if (!pdfUrl) return false;
+    return /ataekitap\.com|fliphtml5\.com|online\.flipbuilder\.com|e-books\/.*\/index\.html/i.test(pdfUrl);
+  }, [pdfUrl]);
 
   // ── Floating position & size ──────────────────────────────────
   const [floatPos, setFloatPos] = useState({ x: 24, y: 80 });
@@ -212,6 +221,30 @@ export default function ResizablePdfPanel({
     window.addEventListener('touchend', onUp);
   }, [dockHeight]);
 
+  const renderViewerBody = () => {
+    if (isFlipBook) {
+      return (
+        <AtaEbookViewer
+          url={pdfUrl}
+          testPageRange={testName}
+          maxPage={maxPage}
+          hideAnswerKey={hideAnswerKey}
+          title={title}
+          onToggleDrawing={onToggleDrawing}
+          isDrawingOpen={isDrawingOpen}
+        />
+      );
+    }
+    return (
+      <iframe
+        src={embedUrl}
+        title={title}
+        allow="autoplay"
+        style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
+      />
+    );
+  };
+
   if (!pdfUrl) return null;
 
   if (mode === 'float') {
@@ -244,7 +277,18 @@ export default function ResizablePdfPanel({
             <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
             </span>
-            <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+            <span style={{
+              fontSize: '0.6rem',
+              background: isFlipBook ? '#f0fdf4' : '#eff6ff',
+              border: `1px solid ${isFlipBook ? '#bbf7d0' : '#bfdbfe'}`,
+              color: isFlipBook ? '#15803d' : '#1d4ed8',
+              padding: '1px 5px',
+              borderRadius: 4,
+              fontWeight: 700,
+              flexShrink: 0
+            }}>
+              {isFlipBook ? 'E-KİTAP' : 'PDF'}
+            </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -266,18 +310,15 @@ export default function ResizablePdfPanel({
             <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
             <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
             <ModeBtn title="Pencereli Yap" onClick={() => changeMode('float')} icon={<Minimize2 size={12} />} />
-            <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+            {(!isFlipBook || !hideAnswerKey) && (
+              <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+            )}
             <ModeBtn title="Kapat" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
           </div>
         </div>
 
         <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-          <iframe
-            src={embedUrl}
-            title={title}
-            allow="autoplay"
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
-          />
+          {renderViewerBody()}
         </div>
       </div>
     );
@@ -311,7 +352,18 @@ export default function ResizablePdfPanel({
               <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {title}
               </span>
-              <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+              <span style={{
+                fontSize: '0.6rem',
+                background: isFlipBook ? '#f0fdf4' : '#eff6ff',
+                border: `1px solid ${isFlipBook ? '#bbf7d0' : '#bfdbfe'}`,
+                color: isFlipBook ? '#15803d' : '#1d4ed8',
+                padding: '1px 5px',
+                borderRadius: 4,
+                fontWeight: 700,
+                flexShrink: 0
+              }}>
+                {isFlipBook ? 'E-KİTAP' : 'PDF'}
+              </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -332,18 +384,15 @@ export default function ResizablePdfPanel({
               )}
               <ModeBtn title="Üst Panele Sabitle" onClick={() => changeMode('top')} icon={<PanelTop size={12} />} />
               <ModeBtn title="Tam Ekran Yap" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
-              <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+              {(!isFlipBook || !hideAnswerKey) && (
+                <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+              )}
               <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
             </div>
           </div>
 
           <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-            <iframe
-              src={embedUrl}
-              title={title}
-              allow="autoplay"
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
-            />
+            {renderViewerBody()}
           </div>
         </div>
 
@@ -404,24 +453,32 @@ export default function ResizablePdfPanel({
               <span style={{ fontSize: '0.76rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {title}
               </span>
-              <span style={{ fontSize: '0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>PDF</span>
+              <span style={{
+                fontSize: '0.6rem',
+                background: isFlipBook ? '#f0fdf4' : '#eff6ff',
+                border: `1px solid ${isFlipBook ? '#bbf7d0' : '#bfdbfe'}`,
+                color: isFlipBook ? '#15803d' : '#1d4ed8',
+                padding: '1px 5px',
+                borderRadius: 4,
+                fontWeight: 700,
+                flexShrink: 0
+              }}>
+                {isFlipBook ? 'E-KİTAP' : 'PDF'}
+              </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <ModeBtn title="Sol Panele Sabitle" onClick={() => changeMode('side')} icon={<PanelLeft size={12} />} />
               <ModeBtn title="Tam Ekran Yap" onClick={() => changeMode('float')} icon={<Maximize2 size={12} />} />
-              <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+              {(!isFlipBook || !hideAnswerKey) && (
+                <ModeBtn title="Yeni Sekmede Aç" href={pdfUrl} icon={<ExternalLink size={12} />} />
+              )}
               <ModeBtn title="Gizle" onClick={() => changeMode('hidden')} icon={<X size={12} />} danger />
             </div>
           </div>
 
           <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-            <iframe
-              src={embedUrl}
-              title={title}
-              allow="autoplay"
-              style={{ width: '100%', height: '100%', border: 'none', display: 'block', background: '#fff' }}
-            />
+            {renderViewerBody()}
           </div>
         </div>
 

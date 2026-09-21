@@ -23,7 +23,15 @@ export default function BookManager() {
   // Book Form States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
-  const [newBook, setNewBook] = useState({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
+  const [newBook, setNewBook] = useState({
+    title: "",
+    publisher: "",
+    bookType: "standard",
+    optionCount: 5,
+    pdfUrl: "",
+    maxPage: "",
+    hideAnswerKey: true
+  });
 
   // Bulk Import States
   const [importModal, setImportModal] = useState({ isOpen: false, book: null });
@@ -52,10 +60,12 @@ export default function BookManager() {
         publisher: editingBook.publisher || '',
         bookType: editingBook.bookType || 'standard',
         optionCount: Number(editingBook.optionCount) === 4 ? 4 : 5,
-        pdfUrl: editingBook.pdfUrl || ''
+        pdfUrl: editingBook.pdfUrl || '',
+        maxPage: editingBook.maxPage !== undefined && editingBook.maxPage !== null ? editingBook.maxPage : (editingBook.raw_data?.maxPage || ''),
+        hideAnswerKey: editingBook.hideAnswerKey !== undefined ? editingBook.hideAnswerKey : (editingBook.raw_data?.hideAnswerKey !== false)
       });
     } else {
-      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
+      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "", maxPage: "", hideAnswerKey: true });
     }
   }, [editingBook]);
 
@@ -113,23 +123,27 @@ export default function BookManager() {
     }
 
     try {
+      const bookPayload = {
+        ...newBook,
+        optionCount: Number(newBook.optionCount) || 5,
+        maxPage: newBook.maxPage ? Number(newBook.maxPage) : null,
+        hideAnswerKey: newBook.hideAnswerKey !== false
+      };
       if (editingBook) {
         await updateTrackedBook(editingBook.id, {
           ...editingBook,
-          ...newBook,
-          optionCount: Number(newBook.optionCount) || 5
+          ...bookPayload
         });
         showToast("Kitap başarıyla güncellendi!");
       } else {
         await addTrackedBook({
-          ...newBook,
-          optionCount: Number(newBook.optionCount) || 5,
+          ...bookPayload,
           createdBy: currentUser?.id,
           teacherId: currentUser?.id
         });
         showToast("Kitap başarıyla eklendi!");
       }
-      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "" });
+      setNewBook({ title: "", publisher: "", bookType: "standard", optionCount: 5, pdfUrl: "", maxPage: "", hideAnswerKey: true });
       setIsDialogOpen(false);
       setEditingBook(null);
     } catch (error) {
@@ -856,15 +870,63 @@ export default function BookManager() {
               </div>
             )}
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>PDF Linki (İsteğe Bağlı)</label>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)', marginBottom: '0.4rem' }}>PDF / E-Kitap Linki (İsteğe Bağlı)</label>
               <input
                 type="url"
                 value={newBook.pdfUrl || ''}
                 onChange={(e) => setNewBook({ ...newBook, pdfUrl: e.target.value })}
-                placeholder="https://drive.google.com/... veya direkt PDF URL"
+                placeholder="https://drive.google.com/... veya https://www.ataekitap.com/.../index.html"
                 style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.9rem', boxSizing: 'border-box' }}
               />
+              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '0.35rem' }}>
+                Google Drive PDF linkleri veya Ata E-Kitap / FlipHTML5 linkleri girilebilir.
+              </div>
+            </div>
+
+            {/* E-Book / Flipbook Answer Key Protection */}
+            <div style={{
+              marginBottom: '1.5rem',
+              padding: '1rem',
+              borderRadius: '0.85rem',
+              background: 'rgba(99, 102, 241, 0.05)',
+              border: '1.5px solid rgba(99, 102, 241, 0.2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={newBook.hideAnswerKey !== false}
+                  onChange={(e) => setNewBook({ ...newBook, hideAnswerKey: e.target.checked })}
+                  style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--color-text)' }}>
+                    🔒 Cevap Anahtarını Öğrencilerden Gizle
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                    Öğrenciler testi çözerken kitabın sonundaki cevap anahtarı sayfalarına geçemez.
+                  </div>
+                </div>
+              </label>
+
+              <div>
+                <label style={{ display: 'block', fontWeight: 700, marginBottom: '0.3rem', fontSize: '0.8rem', color: 'var(--color-text)' }}>
+                  📄 Son Sayfa Sınırı (Maksimum Sayfa)
+                </label>
+                <input
+                  type="number"
+                  value={newBook.maxPage ?? ''}
+                  onChange={(e) => setNewBook({ ...newBook, maxPage: e.target.value })}
+                  placeholder="Örn: 277 (Boş bırakılırsa cevap anahtarı otomatik tespit edilir)"
+                  style={{ width: '100%', padding: '0.6rem 0.85rem', borderRadius: '0.65rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.72rem', color: '#6366f1', marginTop: '0.35rem', fontWeight: 600 }}>
+                  💡 Ata E-Kitap veya FlipHTML5 linklerinde sistem otomatik olarak son sayfayı bulur. İsterseniz buradan manuel sınır da koyabilirsiniz.
+                </div>
+              </div>
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1.25rem' }}>

@@ -1904,6 +1904,9 @@ export default function TrackedBookQuizRunner() {
           <ResizablePdfPanel
             pdfUrl={pdfUrl}
             title={resolvedTest.name || resolvedBook?.title || 'Kitap PDF'}
+            testName={resolvedTest?.name || ''}
+            maxPage={resolvedBook?.maxPage || resolvedBook?.raw_data?.maxPage || null}
+            hideAnswerKey={resolvedBook?.hideAnswerKey !== false}
             mode={effectivePdfMode}
             onModeChange={setPdfMode}
             defaultWidth="72%"

@@ -336,6 +336,9 @@ export default function BookQuizRunner() {
             <PdfViewerPanel
               pdfUrl={book.pdfUrl}
               title={book.title}
+              testName={test?.name || ''}
+              maxPage={book.maxPage || null}
+              hideAnswerKey={book.hideAnswerKey !== false}
               defaultOpen={true}
               style={{ height: '100%', borderRadius: 0, border: 'none', flex: 1 }}
             />

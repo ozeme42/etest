@@ -2201,6 +2201,8 @@ export async function dbGetTrackedBooks() {
       );
       const bType = isExamDetected ? 'exam' : (metaObj?.bookType || b.book_type || b.bookType || b.raw_data?.bookType || 'standard');
       const pdf = metaObj?.pdfUrl || b.pdf_url || b.pdfUrl || b.raw_data?.pdfUrl || '';
+      const maxP = metaObj?.maxPage ?? b.max_page ?? b.maxPage ?? b.raw_data?.maxPage ?? null;
+      const hideAns = metaObj?.hideAnswerKey ?? b.hide_answer_key ?? b.hideAnswerKey ?? b.raw_data?.hideAnswerKey ?? true;
 
       const bookObj = {
         id: String(b.id),
@@ -2209,6 +2211,8 @@ export async function dbGetTrackedBooks() {
         bookType: bType,
         optionCount: Number(optCount) || 5,
         pdfUrl: pdf,
+        maxPage: maxP !== null && maxP !== '' ? Number(maxP) : null,
+        hideAnswerKey: hideAns !== false,
         subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
         raw_data: b.raw_data || {},
         createdAt: b.created_at,
@@ -2233,6 +2237,8 @@ export async function dbGetTrackedBooks() {
         if (bookObj.optionCount !== undefined) canonical.optionCount = bookObj.optionCount;
         if (bookObj.bookType) canonical.bookType = bookObj.bookType;
         if (bookObj.pdfUrl) canonical.pdfUrl = bookObj.pdfUrl;
+        if (bookObj.maxPage !== undefined) canonical.maxPage = bookObj.maxPage;
+        if (bookObj.hideAnswerKey !== undefined) canonical.hideAnswerKey = bookObj.hideAnswerKey;
       }
     });
 
@@ -2423,6 +2429,8 @@ export async function dbAddTrackedBook(book) {
     const cleanSubs = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
     
     const examDate = book.examDate || book.exam_date || null;
+    const maxPage = book.maxPage !== undefined && book.maxPage !== null && book.maxPage !== '' ? Number(book.maxPage) : null;
+    const hideAnswerKey = book.hideAnswerKey !== undefined ? Boolean(book.hideAnswerKey) : true;
 
     const metaHeader = {
       id: '__book_meta__',
@@ -2432,6 +2440,8 @@ export async function dbAddTrackedBook(book) {
       optionCount: optCount,
       bookType: bType,
       pdfUrl: pdf,
+      maxPage: maxPage,
+      hideAnswerKey: hideAnswerKey,
       examDate: examDate,
     };
     const subjectsWithMeta = [metaHeader, ...cleanSubs];
@@ -2444,6 +2454,8 @@ export async function dbAddTrackedBook(book) {
       publisher: pub,
       bookType: bType,
       pdfUrl: pdf,
+      maxPage: maxPage,
+      hideAnswerKey: hideAnswerKey,
       examDate: examDate,
     };
 
@@ -2506,6 +2518,18 @@ export async function dbUpdateTrackedBook(bookId, updates) {
 
     const examDateVal = (updates.examDate !== undefined) ? updates.examDate : (existingMeta?.examDate || currentBook?.raw_data?.examDate || null);
 
+    const maxPage = updates.maxPage !== undefined
+      ? (updates.maxPage !== null && updates.maxPage !== '' ? Number(updates.maxPage) : null)
+      : (existingMeta?.maxPage !== undefined
+        ? (existingMeta.maxPage !== null && existingMeta.maxPage !== '' ? Number(existingMeta.maxPage) : null)
+        : (currentBook?.raw_data?.maxPage ? Number(currentBook.raw_data.maxPage) : null));
+
+    const hideAnswerKey = updates.hideAnswerKey !== undefined
+      ? Boolean(updates.hideAnswerKey)
+      : (existingMeta?.hideAnswerKey !== undefined
+        ? Boolean(existingMeta.hideAnswerKey)
+        : (currentBook?.raw_data?.hideAnswerKey !== undefined ? Boolean(currentBook.raw_data.hideAnswerKey) : true));
+
     const metaHeader = {
       id: '__book_meta__',
       __meta: true,
@@ -2514,6 +2538,8 @@ export async function dbUpdateTrackedBook(bookId, updates) {
       optionCount: optCount,
       bookType: bType,
       pdfUrl: pdf,
+      maxPage: maxPage,
+      hideAnswerKey: hideAnswerKey,
       examDate: examDateVal
     };
     const subjectsWithMeta = [metaHeader, ...cleanSubs];
@@ -2528,6 +2554,8 @@ export async function dbUpdateTrackedBook(bookId, updates) {
       optionCount: optCount,
       bookType: bType,
       pdfUrl: pdf,
+      maxPage: maxPage,
+      hideAnswerKey: hideAnswerKey,
       examDate: examDateVal
     };
 
