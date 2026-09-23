@@ -52,8 +52,14 @@ export default function StudentStudyPlanView() {
     if (typeof list === 'string') {
       try { list = JSON.parse(list); } catch {}
     }
-    return new Set(Array.isArray(list) ? list : []);
-  }, [assignment]);
+    const planStudentCompletions = plan?.raw_data?.completedTopicsByStudent?.[studentId] ||
+                                   plan?.completedTopicsByStudent?.[studentId] || [];
+    const merged = new Set([
+      ...(Array.isArray(list) ? list : []),
+      ...(Array.isArray(planStudentCompletions) ? planStudentCompletions : [])
+    ]);
+    return merged;
+  }, [assignment, plan, studentId]);
 
   const [expandedDersler, setExpandedDersler] = useState({});
 
@@ -140,22 +146,24 @@ export default function StudentStudyPlanView() {
   const handleMarkCompleted = async (topicId) => {
     if (!assignment) return;
     if (completedTopics.has(topicId)) return;
-    let curr = assignment.completedTopics || [];
-    if (typeof curr === 'string') {
-      try { curr = JSON.parse(curr); } catch {}
-    }
-    const newCompleted = [...(Array.isArray(curr) ? curr : []), topicId];
-    await updateStudyAssignment(assignment.id, { completedTopics: newCompleted });
+    const curr = Array.from(completedTopics);
+    const newCompleted = [...curr, topicId];
+    await updateStudyAssignment(assignment.id, {
+      completedTopics: newCompleted,
+      studyPlanId: plan?.id || assignment.studyPlanId || assignment.planId,
+      studentId
+    });
   };
 
   const handleUnmarkCompleted = async (topicId) => {
     if (!assignment) return;
-    let curr = assignment.completedTopics || [];
-    if (typeof curr === 'string') {
-      try { curr = JSON.parse(curr); } catch {}
-    }
-    const newCompleted = (Array.isArray(curr) ? curr : []).filter(id => id !== topicId);
-    await updateStudyAssignment(assignment.id, { completedTopics: newCompleted });
+    const curr = Array.from(completedTopics);
+    const newCompleted = curr.filter(id => String(id) !== String(topicId));
+    await updateStudyAssignment(assignment.id, {
+      completedTopics: newCompleted,
+      studyPlanId: plan?.id || assignment.studyPlanId || assignment.planId,
+      studentId
+    });
   };
 
   return (

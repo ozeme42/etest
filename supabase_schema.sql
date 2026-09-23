@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS public.study_assignments (
     student_id VARCHAR(100) NOT NULL,
     study_plan_id VARCHAR(100),
     subject VARCHAR(100) NOT NULL,
-    topic VARCHAR(255) NOT NULL,
+    topic TEXT NOT NULL,
     due_date TIMESTAMPTZ,
     status VARCHAR(50) DEFAULT 'assigned',
     duration_minutes INTEGER DEFAULT 30,
@@ -379,4 +379,13 @@ CREATE POLICY "Allow public scales" ON public.scales FOR ALL USING (true) WITH C
 -- CREATE POLICY "Coaching notes privacy" ON public.coaching_notes
 --   FOR ALL USING (auth.uid()::text = student_id OR auth.uid()::text = teacher_id OR auth.current_role() = 'admin')
 --   WITH CHECK (auth.uid()::text = teacher_id OR auth.current_role() = 'admin');
+
+-- ==========================================
+-- 11. YOL HARİTASI VE ÇALIŞMA ATAMALARI GÜNCELLEMESİ (MIGRATION)
+-- ==========================================
+ALTER TABLE public.study_assignments ALTER COLUMN topic TYPE TEXT;
+ALTER TABLE public.study_assignments ADD COLUMN IF NOT EXISTS completed_topics JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.study_assignments ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.study_plans ADD COLUMN IF NOT EXISTS raw_data JSONB DEFAULT '{}'::jsonb;
+
 

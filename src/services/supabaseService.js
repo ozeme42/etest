@@ -2024,6 +2024,8 @@ export async function dbGetStudyPlans() {
         id: String(p.id),
         title: p.title,
         subjects,
+        raw_data: p.raw_data || {},
+        completedTopicsByStudent: p.raw_data?.completedTopicsByStudent || {},
         createdAt: p.created_at
       };
     });
@@ -2031,6 +2033,17 @@ export async function dbGetStudyPlans() {
     const assignments = (aRes.data || []).map(a => {
       let completedTopics = [];
       try { completedTopics = JSON.parse(a.topic || '[]'); } catch(e){}
+      if (!Array.isArray(completedTopics)) completedTopics = [];
+
+      // study_plans.raw_data.completedTopicsByStudent içindeki kalıcı JSONB verilerini de harmanla
+      const matchedPlan = plans.find(p => String(p.id) === String(a.study_plan_id));
+      const planStudentCompletions = matchedPlan?.completedTopicsByStudent?.[a.student_id] ||
+                                     matchedPlan?.raw_data?.completedTopicsByStudent?.[a.student_id] || [];
+      if (Array.isArray(planStudentCompletions) && planStudentCompletions.length > 0) {
+        const mergedSet = new Set([...completedTopics, ...planStudentCompletions]);
+        completedTopics = Array.from(mergedSet);
+      }
+
       return {
         id: String(a.id),
         studentId: a.student_id,
@@ -2055,7 +2068,10 @@ export async function dbAddStudyPlan(plan) {
     const payload = {
       id: String(plan.id || `plan_${Date.now()}`),
       title: plan.title,
-      raw_data: { subjects: plan.subjects || [] }
+      raw_data: { 
+        subjects: plan.subjects || [],
+        completedTopicsByStudent: plan.completedTopicsByStudent || plan.raw_data?.completedTopicsByStudent || {}
+      }
     };
     const { data, error } = await supabase.from('study_plans').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
@@ -2092,6 +2108,29 @@ export async function dbAddStudyAssignment(a) {
     };
     const { data, error } = await supabase.from('study_assignments').upsert([payload], { onConflict: 'id' }).select().single();
     if (error) throw error;
+
+    // Eğer tamamlanan konular varsa study_plans.raw_data içerisine de yedekle
+    const compTopics = a.completedTopics || (payload.topic ? (() => { try { return JSON.parse(payload.topic); } catch(e){ return []; } })() : []);
+    if (Array.isArray(compTopics) && compTopics.length > 0 && a.studyPlanId && a.studentId) {
+      try {
+        const { data: pRow } = await supabase.from('study_plans').select('raw_data').eq('id', String(a.studyPlanId)).maybeSingle();
+        if (pRow) {
+          const curRaw = pRow.raw_data || {};
+          const curMap = curRaw.completedTopicsByStudent || {};
+          const updatedRaw = {
+            ...curRaw,
+            completedTopicsByStudent: {
+              ...curMap,
+              [String(a.studentId)]: compTopics
+            }
+          };
+          await supabase.from('study_plans').update({ raw_data: updatedRaw }).eq('id', String(a.studyPlanId));
+        }
+      } catch (syncErr) {
+        console.warn('[Supabase] dbAddStudyAssignment sync error:', syncErr.message);
+      }
+    }
+
     return data;
   } catch (err) {
     console.warn('[Supabase] dbAddStudyAssignment error:', err.message);
@@ -2099,16 +2138,68 @@ export async function dbAddStudyAssignment(a) {
   }
 }
 
-export async function dbUpdateStudyAssignment(aId, updates) {
+export async function dbUpdateStudyAssignment(aId, updates, studyPlanId = null, studentId = null) {
   if (!isSupabaseConfigured()) return null;
   try {
     const payload = {};
     if (updates.status !== undefined) payload.status = updates.status;
     if (updates.topic !== undefined) payload.topic = updates.topic;
 
-    const { data, error } = await supabase.from('study_assignments').update(payload).eq('id', String(aId)).select();
-    if (error) throw error;
-    return data;
+    let resData = null;
+    try {
+      const { data, error } = await supabase.from('study_assignments').update(payload).eq('id', String(aId)).select();
+      if (!error) {
+        resData = data;
+      } else if (error && error.code === '22001') {
+        // topic VARCHAR(255) aşımı durumunda en azından status güncellensin
+        console.warn('[Supabase] dbUpdateStudyAssignment: topic column exceeded 255 chars, persisting to study_plans raw_data instead.');
+        if (updates.status !== undefined) {
+          await supabase.from('study_assignments').update({ status: updates.status }).eq('id', String(aId));
+        }
+      } else {
+        console.warn('[Supabase] dbUpdateStudyAssignment study_assignments warning:', error.message);
+      }
+    } catch (assignErr) {
+      console.warn('[Supabase] dbUpdateStudyAssignment assignment update error:', assignErr.message);
+    }
+
+    // 2. Her zaman study_plans raw_data JSONB içerisine kalıcı olarak yaz (255 karakter sınırı yok)
+    let targetPlanId = studyPlanId;
+    let targetStudentId = studentId;
+
+    if (!targetPlanId || !targetStudentId) {
+      try {
+        const { data: aRow } = await supabase.from('study_assignments').select('study_plan_id, student_id').eq('id', String(aId)).maybeSingle();
+        if (aRow) {
+          targetPlanId = targetPlanId || aRow.study_plan_id;
+          targetStudentId = targetStudentId || aRow.student_id;
+        }
+      } catch {}
+    }
+
+    const topicsToSave = updates.completedTopics || (updates.topic ? (() => { try { return JSON.parse(updates.topic); } catch(e){ return null; } })() : null);
+
+    if (targetPlanId && targetStudentId && Array.isArray(topicsToSave)) {
+      try {
+        const { data: pRow } = await supabase.from('study_plans').select('raw_data').eq('id', String(targetPlanId)).maybeSingle();
+        if (pRow) {
+          const curRaw = pRow.raw_data || {};
+          const curMap = curRaw.completedTopicsByStudent || {};
+          const updatedRaw = {
+            ...curRaw,
+            completedTopicsByStudent: {
+              ...curMap,
+              [String(targetStudentId)]: topicsToSave
+            }
+          };
+          await supabase.from('study_plans').update({ raw_data: updatedRaw }).eq('id', String(targetPlanId));
+        }
+      } catch (planErr) {
+        console.warn('[Supabase] Syncing completion to study_plans raw_data error:', planErr.message);
+      }
+    }
+
+    return resData || true;
   } catch (err) {
     console.warn('[Supabase] dbUpdateStudyAssignment error:', err.message);
     return null;

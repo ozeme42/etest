@@ -4553,6 +4553,34 @@ export default function ProgramCenter({
   const [assigningTopic, setAssigningTopic] = useState(null); // { subject, topic, taskType }
 
   const handleToggle = useCallback((dayKey, itemId) => {
+    // 1. Yol Haritası (Roadmap / Study Plan) görevi mi kontrol et
+    const dayData = (processedWeeklyProgram || []).find(d => d.day === dayKey);
+    const targetRoadmapItem = (dayData?.items || []).find(i => i.id === itemId && (i.isRoadmapTask || i.roadmapAssignmentId || String(i.id).startsWith('roadmap_')));
+
+    if (targetRoadmapItem && targetRoadmapItem.roadmapAssignmentId && studyPlanContext?.updateStudyAssignment) {
+      const assignment = (studyAssignments || []).find(a => String(a.id) === String(targetRoadmapItem.roadmapAssignmentId));
+      if (assignment) {
+        let compTopics = [];
+        if (Array.isArray(assignment.completedTopics)) compTopics = [...assignment.completedTopics];
+        else if (typeof assignment.completedTopics === 'string') {
+          try { compTopics = JSON.parse(assignment.completedTopics); } catch {}
+        }
+        const targetTopicId = String(targetRoadmapItem.topicId || targetRoadmapItem.id);
+        const idx = compTopics.indexOf(targetTopicId);
+        if (idx >= 0) {
+          compTopics.splice(idx, 1);
+        } else {
+          compTopics.push(targetTopicId);
+        }
+        studyPlanContext.updateStudyAssignment(assignment.id, {
+          completedTopics: compTopics,
+          studyPlanId: assignment.studyPlanId || assignment.planId,
+          studentId: assignment.studentId
+        });
+        return;
+      }
+    }
+
     setWeeklyProgram(prev => {
       let toggledTask = null;
       let nextDone = false;
@@ -4601,7 +4629,7 @@ export default function ProgramCenter({
 
       return newWeekly;
     });
-  }, [setWeeklyProgram, updateReadingProgress, trackedReadingBooks]);
+  }, [setWeeklyProgram, updateReadingProgress, trackedReadingBooks, processedWeeklyProgram, studyPlanContext, studyAssignments]);
 
     const handleDelete = useCallback((dayKey, itemId) => {
     setWeeklyProgram(prev => prev.map(d => {

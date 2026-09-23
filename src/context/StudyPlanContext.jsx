@@ -99,12 +99,34 @@ export function StudyPlanProvider({ children }) {
 
   const updateStudyAssignment = async (id, data) => {
     setStudyAssignments(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-    
+
+    const currentAssignment = studyAssignments.find(a => String(a.id) === String(id));
+    const planId = data.studyPlanId || data.planId || currentAssignment?.studyPlanId || currentAssignment?.planId;
+    const studentId = data.studentId || currentAssignment?.studentId;
+
+    if (planId && studentId && Array.isArray(data.completedTopics)) {
+      setStudyPlans(prev => prev.map(p => {
+        if (String(p.id) !== String(planId)) return p;
+        const curRaw = p.raw_data || {};
+        const curMap = curRaw.completedTopicsByStudent || {};
+        return {
+          ...p,
+          raw_data: {
+            ...curRaw,
+            completedTopicsByStudent: {
+              ...curMap,
+              [String(studentId)]: data.completedTopics
+            }
+          }
+        };
+      }));
+    }
+
     const dbData = { ...data };
     if (dbData.completedTopics) {
       dbData.topic = JSON.stringify(dbData.completedTopics);
     }
-    await dbUpdateStudyAssignment(id, dbData);
+    await dbUpdateStudyAssignment(id, dbData, planId, studentId);
   };
 
   const deleteStudyAssignment = async (id) => {
