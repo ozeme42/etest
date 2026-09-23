@@ -4143,7 +4143,8 @@ export default function ProgramCenter({
     if (!effectiveUser) {
       return weeklyProgram.map(dayObj => ({
         ...dayObj,
-        dateLabel: dayDateMap[dayObj.day]?.dateLabel || ''
+        dateLabel: dayDateMap[dayObj.day]?.dateLabel || '',
+        ymd: dayDateMap[dayObj.day]?.ymd || ''
       }));
     }
 
@@ -4542,6 +4543,7 @@ export default function ProgramCenter({
       return {
         ...dayObj,
         dateLabel: dayInfo.dateLabel,
+        ymd: dayInfo.ymd,
         items: dayItems
       };
     });
@@ -4724,12 +4726,231 @@ export default function ProgramCenter({
     return p2Keys.map(key => (processedWeeklyProgram || []).find(d => d.day === key) || { day: key, items: [] });
   }, [processedWeeklyProgram]);
 
+  const overdueTasks = useMemo(() => {
+    const todayYMD = getLocalYMD(new Date());
+    const nowTime = Date.now();
+    const studentId = effectiveUser?.id;
+    const studentIdStr = String(studentId || '');
+    const studentUuidStr = String(toUUID(studentId) || '');
+
+    const isMatchStudent = (s) => {
+      if (!studentId) return true;
+      const sId = String(s.studentId || s.student_id || s.user_id || '');
+      return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
+    };
+
+    const solvedIdsSet = new Set();
+    (submissions || []).forEach(s => {
+      if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+      const ids = [s.id, s.testId, s.test_id, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.homework_id, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
+      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
+      ids.forEach(id => {
+        if (!id) return;
+        const str = String(id);
+        const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        solvedIdsSet.add(str);
+        solvedIdsSet.add(clean);
+        solvedIdsSet.add(`bt_${clean}`);
+        const u = toUUID(clean || str);
+        if (u) solvedIdsSet.add(String(u));
+      });
+    });
+
+    (allHomeworks || []).forEach(hw => {
+      if (hw.submissions && Array.isArray(hw.submissions)) {
+        hw.submissions.forEach(s => {
+          if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+          const ids = [s.id, s.testId, s.test_id, s.bookTestId, s.realTestId];
+          ids.forEach(id => {
+            if (!id) return;
+            const str = String(id);
+            const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+            solvedIdsSet.add(str);
+            solvedIdsSet.add(clean);
+            solvedIdsSet.add(`bt_${clean}`);
+            const u = toUUID(clean || str);
+            if (u) solvedIdsSet.add(String(u));
+          });
+        });
+      }
+    });
+
+    const seenOverdueKeys = new Set();
+    const list = [];
+
+    // 1. Haftalık program içindeki geçmiş günlerden kalan veya tarihi geçmiş tamamlanmamış görevler
+    (processedWeeklyProgram || []).forEach(dayObj => {
+      const dayYMD = dayObj.ymd;
+      const isPastDay = Boolean(dayYMD && todayYMD && dayYMD < todayYMD);
+
+      (dayObj.items || []).forEach(item => {
+        if (item.done) return;
+        const itemDate = item.singleDate || item.specificDate || item.scheduledDate || item.date || item.targetDate || dayYMD;
+        const isItemOverdue = isPastDay || (itemDate && todayYMD && itemDate < todayYMD);
+        if (!isItemOverdue) return;
+
+        const rawKey = String(item.testId || item.bookTestId || item.realTestId || item.hwId || item.id || `${item.subject}_${item.topic}`);
+        const cleanKey = rawKey.replace(/^bt_/, '').replace(/^q_/, '');
+        const canonicalKey = toUUID(cleanKey) || cleanKey;
+        if (seenOverdueKeys.has(rawKey) || seenOverdueKeys.has(cleanKey) || seenOverdueKeys.has(canonicalKey)) return;
+        seenOverdueKeys.add(rawKey);
+        seenOverdueKeys.add(cleanKey);
+        seenOverdueKeys.add(canonicalKey);
+
+        const dueTime = itemDate ? new Date(itemDate).getTime() : null;
+        const diffDays = dueTime && !isNaN(dueTime) ? Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24))) : 1;
+        const dayMeta = DAYS.find(d => d.key === dayObj.day);
+        const dayLabel = dayMeta ? dayMeta.long : dayObj.day;
+
+        list.push({
+          ...item,
+          isOverdue: true,
+          diffDays,
+          sourceDayLabel: dayLabel,
+          overdueReason: itemDate ? `${new Date(itemDate).toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)` : `${dayLabel} gününden (${diffDays} gün gecikti)`
+        });
+      });
+    });
+
+    // 2. Öğrenciye atanmış ödevlerden ve kitap testlerinden tarihi geçmiş olanlar
+    const studentGrades = curData?.grades || [];
+    const studentHomeworks = (allHomeworks || []).filter(hw => isHomeworkForStudent(hw, effectiveUser, studentGrades));
+
+    studentHomeworks.forEach(hw => {
+      const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+      const hasTestDueDates = typeof testDates === 'object' && Object.keys(testDates).length > 0;
+
+      if (hasTestDueDates) {
+        Object.entries(testDates).forEach(([testIdKey, dStr]) => {
+          if (!dStr) return;
+          const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+          const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
+          if (seenOverdueKeys.has(canonicalTestId) || seenOverdueKeys.has(cleanTestId) || seenOverdueKeys.has(String(testIdKey))) return;
+
+          const due = new Date(dStr);
+          const dueTime = due.getTime();
+          const dueYMD = String(dStr).slice(0, 10);
+          const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
+          if (!isOverdue) return;
+
+          const isSolved = checkIsTaskSolved({ testId: cleanTestId, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
+          if (isSolved) return;
+
+          seenOverdueKeys.add(canonicalTestId);
+          seenOverdueKeys.add(cleanTestId);
+          seenOverdueKeys.add(String(testIdKey));
+
+          const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+          const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.raw_data?.bookId));
+          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .trim();
+
+          const bt = (bookTests || []).find(b => String(b.id) === cleanTestId);
+          const testTitle = bt?.name || bt?.title || 'Kitap Testi';
+          const qCount = Number(bt?.questionCount || bt?.question_count) || 12;
+
+          list.push({
+            id: `overdue_bt_${hw.id}_${cleanTestId}`,
+            testId: cleanTestId,
+            bookTestId: cleanTestId,
+            hwId: hw.id,
+            bookName: cleanBookTitle,
+            bookTitle: cleanBookTitle,
+            subject: bt?.subject || bookObj?.subject || hw.subject || 'Ders',
+            topic: `${cleanBookTitle} — ${testTitle}`,
+            testName: testTitle,
+            questionCount: `${qCount} soru`,
+            taskType: 'kitap',
+            isOverdue: true,
+            diffDays,
+            overdueReason: `Son Teslim: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+          });
+        });
+      } else {
+        const hwDueDate = hw.dueDate || hw.due_date || hw.raw_data?.dueDate || hw.raw_data?.due_date;
+        if (!hwDueDate) return;
+        const due = new Date(hwDueDate);
+        const dueTime = due.getTime();
+        const dueYMD = String(hwDueDate).slice(0, 10);
+        const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
+        if (!isOverdue) return;
+
+        const hwKey = `hw_${hw.id}`;
+        if (seenOverdueKeys.has(hwKey) || seenOverdueKeys.has(String(hw.id))) return;
+
+        const isSolved = checkIsTaskSolved({ id: hw.id, hwId: hw.id, testId: hw.id }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
+        if (isSolved) return;
+
+        seenOverdueKeys.add(hwKey);
+        seenOverdueKeys.add(String(hw.id));
+
+        const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+        list.push({
+          id: `overdue_hw_${hw.id}`,
+          hwId: hw.id,
+          testId: hw.id,
+          subject: hw.subject || 'Genel Ödev',
+          bookName: hw.title || 'Ödev',
+          topic: hw.title || 'Ödev Görevi',
+          taskType: 'ödev',
+          isOverdue: true,
+          diffDays,
+          overdueReason: `Son Teslim: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+        });
+      }
+    });
+
+    // 3. Yol haritası (study plan) gecikmiş hedefleri
+    const studentAssignments = (studyAssignments || []).filter(a => {
+      const aSid = String(a?.studentId || a?.student_id || '');
+      return aSid === studentIdStr || (studentUuidStr && (aSid === studentUuidStr || toUUID(aSid) === studentUuidStr));
+    });
+
+    studentAssignments.forEach(assignment => {
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+      const aDue = assignment.dueDate || assignment.due_date || assignment.targetDate;
+      if (!aDue) return;
+      const due = new Date(aDue);
+      const dueTime = due.getTime();
+      const dueYMD = String(aDue).slice(0, 10);
+      if (!todayYMD || dueYMD >= todayYMD) return;
+
+      const aKey = `study_${assignment.id}`;
+      if (seenOverdueKeys.has(aKey) || seenOverdueKeys.has(String(assignment.id))) return;
+      seenOverdueKeys.add(aKey);
+
+      const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+      const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+
+      list.push({
+        id: `overdue_study_${assignment.id}`,
+        subject: plan?.subject || assignment.subject || 'Yol Haritası',
+        topic: assignment.title || plan?.title || 'Yol Haritası Çalışması',
+        bookName: plan?.title || 'Yol Haritası',
+        taskType: 'konu',
+        isOverdue: true,
+        diffDays,
+        overdueReason: `Hedef: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+      });
+    });
+
+    list.sort((a, b) => (b.diffDays || 0) - (a.diffDays || 0));
+    return list;
+  }, [processedWeeklyProgram, effectiveUser, allHomeworks, curData, submissions, studyAssignments, studyPlans, books, bookTests]);
+
   const renderPrintDayCard = (dayObj, i) => {
     const dayMeta = DAYS.find(d => d.key === dayObj.day) || DAYS[i] || { key: dayObj.day, long: dayObj.day };
     const dayTasks = dayObj.items || [];
     const dayDoneTasks = dayTasks.filter(item => item.done).length;
     // Manuel ekleme satırları: Gün boşsa 3 satır, doluysa 2 boş satır
     const blankRowCount = dayTasks.length === 0 ? 3 : 2;
+
+    const todayYMD = getLocalYMD(new Date());
+    const dayYMD = dayObj.ymd;
+    const isDayPast = Boolean(dayYMD && todayYMD && dayYMD < todayYMD);
+    const overdueCountInDay = dayTasks.filter(item => !item.done && (isDayPast || (item.singleDate && todayYMD && item.singleDate < todayYMD))).length;
 
     return (
       <div key={dayObj.day} className="print-wk-day-card">
@@ -4738,15 +4959,27 @@ export default function ProgramCenter({
             📅 {dayMeta.long} {dayObj.dateLabel ? `— ${dayObj.dateLabel}` : ''}
           </div>
           <div className="print-wk-day-meta">
-            {dayTasks.length > 0 ? `${dayTasks.length} Görev • ${dayDoneTasks} Tamamlandı` : 'Planlanan Görev Yok'}
+            {dayTasks.length > 0 ? (
+              <>
+                <span>{dayTasks.length} Görev • {dayDoneTasks} Tamamlandı</span>
+                {overdueCountInDay > 0 && (
+                  <span style={{ color: '#dc2626', fontWeight: 800, marginLeft: 5 }}>
+                    (⚠️ {overdueCountInDay} Geciken)
+                  </span>
+                )}
+              </>
+            ) : 'Planlanan Görev Yok'}
           </div>
         </div>
 
         <div className="print-wk-tasks-table">
           {dayTasks.map((item, idx) => {
             const bookInfo = resolveBookTestInfo(item, books, bookTests);
+            const itemDate = item.singleDate || item.specificDate || item.scheduledDate || item.date || item.targetDate || dayYMD;
+            const isItemOverdue = !item.done && (isDayPast || (itemDate && todayYMD && itemDate < todayYMD));
+
             return (
-              <div key={item.id || idx} className={`print-wk-task-row ${item.done ? 'is-done' : ''}`}>
+              <div key={item.id || idx} className={`print-wk-task-row ${item.done ? 'is-done' : ''} ${isItemOverdue ? 'is-overdue' : ''}`}>
                 <div className="print-wk-col-check">
                   <span className={`print-wk-check-box ${item.done ? 'checked' : ''}`}>
                     {item.done ? '✓' : ''}
@@ -4789,6 +5022,11 @@ export default function ProgramCenter({
                   {(item.startTime || item.time || item.saat) && (
                     <span className="print-wk-pill">
                       🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : (item.time || item.saat)}
+                    </span>
+                  )}
+                  {isItemOverdue && (
+                    <span className="print-wk-pill print-wk-pill-overdue">
+                      ⚠️ Gecikti
                     </span>
                   )}
                 </div>
@@ -5460,6 +5698,14 @@ export default function ProgramCenter({
                 background: #f0fdf4 !important;
                 border-color: #bbf7d0 !important;
               }
+              .print-wk-task-row.is-overdue {
+                background: #fff8f8 !important;
+                border-color: #fca5a5 !important;
+              }
+              .print-wk-task-row.print-wk-overdue-row {
+                background: #ffffff !important;
+                border: 1px solid #fecaca !important;
+              }
               .print-wk-task-row.print-wk-blank-row {
                 background: #ffffff !important;
                 border: 1px dashed #cbd5e1 !important;
@@ -5527,6 +5773,41 @@ export default function ProgramCenter({
                 color: #0369a1 !important;
                 font-weight: 800 !important;
               }
+              .print-wk-pill-overdue {
+                background: #fee2e2 !important;
+                color: #b91c1c !important;
+                font-weight: 800 !important;
+              }
+              .print-wk-overdue-card {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border: 1.2px solid #fca5a5 !important;
+                border-left: 4.5px solid #dc2626 !important;
+                border-radius: 4px !important;
+                background: #fffafa !important;
+                padding: 4px 7px !important;
+                margin-top: 6px !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+              }
+              .print-wk-overdue-title-bar {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-bottom: 1px solid #fecaca !important;
+                padding-bottom: 2px !important;
+                margin-bottom: 3px !important;
+              }
+              .print-wk-overdue-title {
+                font-size: 8.2pt !important;
+                font-weight: 900 !important;
+                color: #991b1b !important;
+              }
+              .print-wk-overdue-meta {
+                font-size: 7pt !important;
+                font-weight: 800 !important;
+                color: #dc2626 !important;
+              }
               .print-wk-blank-pill {
                 display: inline-block !important;
                 font-size: 6.8pt !important;
@@ -5590,6 +5871,11 @@ export default function ProgramCenter({
                 <div className="print-wk-header-right">
                   <div>Öğrenci: <strong>{effectiveUser?.name || effectiveUser?.username || currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
                   <div className="print-wk-stat">Haftalık Hedef: {doneItems} / {totalItems} Görev (%{pct})</div>
+                  {overdueTasks.length > 0 && (
+                    <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '7.4pt' }}>
+                      ⚠️ Geciken: {overdueTasks.length} Görev (Telafi Listesi Sayfa 2'de)
+                    </div>
+                  )}
                   <div style={{ color: '#64748b' }}>Tarih: {new Date().toLocaleDateString('tr-TR')}</div>
                   <div className="print-wk-page-badge">📄 Sayfa 1 / 2 • Pazartesi – Perşembe (4 Gün)</div>
                 </div>
@@ -5600,7 +5886,9 @@ export default function ProgramCenter({
               </div>
 
               <div className="print-wk-page-footer-note">
-                * Devamı Sayfa 2'dedir (Cuma, Cumartesi, Pazar)
+                {overdueTasks.length > 0
+                  ? `* Devamı ve Telafi Görevleri (${overdueTasks.length} gecikme) Sayfa 2'dedir (Cuma, Cumartesi, Pazar)`
+                  : "* Devamı Sayfa 2'dedir (Cuma, Cumartesi, Pazar)"}
               </div>
             </div>
 
@@ -5613,6 +5901,11 @@ export default function ProgramCenter({
                 </div>
                 <div className="print-wk-header-right">
                   <div>Öğrenci: <strong>{effectiveUser?.name || effectiveUser?.username || currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
+                  {overdueTasks.length > 0 && (
+                    <div style={{ color: '#dc2626', fontWeight: 800, fontSize: '7.4pt' }}>
+                      ⚠️ Geciken & Telafi: {overdueTasks.length} Görev
+                    </div>
+                  )}
                   <div style={{ color: '#64748b' }}>Tarih: {new Date().toLocaleDateString('tr-TR')}</div>
                   <div className="print-wk-page-badge">📄 Sayfa 2 / 2 • Cuma – Pazar (3 Gün)</div>
                 </div>
@@ -5621,6 +5914,69 @@ export default function ProgramCenter({
               <div className="print-wk-days-stack">
                 {printPage2Days.map(renderPrintDayCard)}
               </div>
+
+              {overdueTasks.length > 0 && (
+                <div className="print-wk-overdue-card">
+                  <div className="print-wk-overdue-title-bar">
+                    <div className="print-wk-overdue-title">
+                      ⚠️ Geciken & Telafi Edilecek Görevler (Eksik Kalanlar)
+                    </div>
+                    <div className="print-wk-overdue-meta">
+                      Toplam {overdueTasks.length} Geciken Görev Bulunuyor
+                    </div>
+                  </div>
+                  <div className="print-wk-tasks-table">
+                    {overdueTasks.slice(0, 6).map((item, idx) => {
+                      const bookInfo = resolveBookTestInfo(item, books, bookTests);
+                      return (
+                        <div key={item.id || `overdue_${idx}`} className="print-wk-task-row is-overdue print-wk-overdue-row">
+                          <div className="print-wk-col-check">
+                            <span className="print-wk-check-box" />
+                          </div>
+                          <div className="print-wk-col-info">
+                            <div className="print-wk-subject">
+                              {bookInfo?.isBookTest ? (
+                                <>
+                                  <span>📚 {bookInfo.subject}</span>
+                                  {bookInfo.publisher && <span style={{ color: '#4f46e5', marginLeft: 4 }}>({bookInfo.publisher})</span>}
+                                  {bookInfo.bookTitle && <span style={{ fontSize: '7.2pt', color: '#334155', fontWeight: 700, marginLeft: 4 }}>• 📖 {bookInfo.bookTitle}</span>}
+                                </>
+                              ) : (
+                                item.bookName || item.subject || 'Geciken Görev'
+                              )}
+                            </div>
+                            {bookInfo?.isBookTest ? (
+                              <div className="print-wk-topic" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 1 }}>
+                                {bookInfo.unit && <span>📂 {bookInfo.unit}</span>}
+                                {bookInfo.testName && <span>🎯 {bookInfo.testName}</span>}
+                              </div>
+                            ) : (
+                              item.topic && <div className="print-wk-topic">{item.topic}</div>
+                            )}
+                          </div>
+                          <div className="print-wk-col-details">
+                            {item.overdueReason && (
+                              <span className="print-wk-pill print-wk-pill-overdue">
+                                ⚠️ {item.overdueReason}
+                              </span>
+                            )}
+                            {(bookInfo?.questionCount || item.questionCount) && (
+                              <span className="print-wk-pill print-wk-pill-q">
+                                ✏️ {String(bookInfo?.questionCount || item.questionCount).includes('soru') ? (bookInfo?.questionCount || item.questionCount) : `${bookInfo?.questionCount || item.questionCount} soru`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {overdueTasks.length > 6 && (
+                      <div style={{ fontSize: '6.8pt', color: '#dc2626', fontWeight: 700, textAlign: 'right', marginTop: 2 }}>
+                        * Ve {overdueTasks.length - 6} geciken görev daha sistemde bekliyor...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="print-wk-bottom-section">
                 <div className="print-wk-notes-area">
