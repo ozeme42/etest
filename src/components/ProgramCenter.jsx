@@ -644,6 +644,400 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
   return false;
 }
 
+/* ─── Day Key Resolver Helper ─── */
+export function resolveDayKey(input) {
+  if (!input) return null;
+  const str = String(input).trim().toLowerCase();
+  if (str.includes('-') || str.includes('t') || str.includes('.')) {
+    const parsed = new Date(input);
+    if (!isNaN(parsed.getTime())) {
+      const map = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
+      return map[parsed.getDay()];
+    }
+  }
+  const dayKeyMap = {
+    pazartesi: 'Pzt', pzt: 'Pzt',
+    sali: 'Sal', salı: 'Sal', sal: 'Sal',
+    carsamba: 'Çrş', çarşamba: 'Çrş', çrş: 'Çrş', crs: 'Çrş',
+    persembe: 'Prş', perşembe: 'Prş', prş: 'Prş', prs: 'Prş',
+    cuma: 'Cum', cum: 'Cum',
+    cumartesi: 'Cts', cts: 'Cts',
+    pazar: 'Paz', paz: 'Paz'
+  };
+  return dayKeyMap[str] || null;
+}
+
+/* ─── Extract YMD from any item, date or string ─── */
+export function extractItemYMD(item) {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    const str = item.trim();
+    const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (trMatch) return `${trMatch[3]}-${trMatch[2].padStart(2, '0')}-${trMatch[1].padStart(2, '0')}`;
+    return null;
+  }
+  if (item instanceof Date && !isNaN(item.getTime())) {
+    return getLocalYMD(item);
+  }
+  if (typeof item !== 'object') return null;
+
+  const candidates = [
+    item.singleDate,
+    item.specificDate,
+    item.scheduledDate,
+    item.date,
+    item.targetDate,
+    item.dueDate,
+    item.assignedDueDate,
+    item.time,
+    item.saat,
+    item.note
+  ];
+
+  for (const val of candidates) {
+    if (!val) continue;
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      const res = getLocalYMD(val);
+      if (res) return res;
+    }
+    const str = String(val).trim();
+    const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (trMatch) return `${trMatch[3]}-${trMatch[2].padStart(2, '0')}-${trMatch[1].padStart(2, '0')}`;
+  }
+  return null;
+}
+
+/* ─── Extract Scheduled Homeworks & Book Tests for a specific day ─── */
+export function extractScheduledHomeworkItems({
+  dayYMD,
+  dayKey,
+  studentHomeworks = [],
+  books = [],
+  bookTests = [],
+  studentId,
+  submissions = [],
+  allHomeworks = [],
+  studyAssignments = [],
+  solvedIdsSet = null
+}) {
+  const scheduledItems = [];
+  const seenBtKeys = new Set();
+
+  (studentHomeworks || []).forEach(hw => {
+    if (!hw) return;
+
+    const testDates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates;
+    const hasExplicitTestDates = testDates && typeof testDates === 'object' && Object.keys(testDates).length > 0;
+
+    const isBookAssignment = Boolean(
+      hw.isBookAssignment ||
+      hw.is_book_assignment ||
+      hw.sourceType === 'trackedBook' ||
+      hw.bookId ||
+      hw.raw_data?.bookId ||
+      (hw.title && /tüm kitap|kitap görevi|fiziki kitap/i.test(hw.title))
+    );
+
+    const bookObj = (books || []).find(b =>
+      String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
+      (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
+    );
+
+    if (isBookAssignment && !bookObj && !hasExplicitTestDates) return;
+
+    const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+      .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+      .replace(/\s*\(Tüm Kitap\)/gi, '')
+      .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+      .trim();
+
+    if (hasExplicitTestDates) {
+      Object.entries(testDates).forEach(([testIdKey, tDateStr]) => {
+        if (!tDateStr) return;
+        const targetDayKey = resolveDayKey(tDateStr);
+        const isExplicitDate = String(tDateStr).includes('-') || String(tDateStr).includes('.');
+        const isMatchDate = isExplicitDate
+          ? (dayYMD && String(tDateStr).startsWith(dayYMD))
+          : (targetDayKey === dayKey);
+        if (!isMatchDate) return;
+
+        const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+        const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
+        const dedupeKey = `bt_${canonicalTestId}`;
+        if (seenBtKeys.has(dedupeKey) || seenBtKeys.has(`bt_${cleanTestId}`)) return;
+        seenBtKeys.add(dedupeKey);
+        seenBtKeys.add(`bt_${cleanTestId}`);
+
+        let bt = (bookTests || []).find(b => {
+          const bId = String(b.id);
+          return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+        });
+
+        let resolvedSubject = bt?.subject || bt?.subjectName || '';
+        let resolvedUnit = bt?.unit || bt?.unitName || '';
+        const sId = bt?.subjectId || bt?.subject_id;
+        const tId = bt?.topicId || bt?.topic_id;
+
+        let bookSubjects = bookObj?.subjects || [];
+        if (typeof bookSubjects === 'string') {
+          try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+        }
+
+        if (Array.isArray(bookSubjects)) {
+          for (const subj of bookSubjects) {
+            if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
+            const isSubjMatch = sId && String(subj.id) === String(sId);
+            let isTopicMatch = false;
+
+            if (!bt && Array.isArray(subj.tests)) {
+              const directTest = subj.tests.find(t => {
+                const tid = String(t.id);
+                return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+              });
+              if (directTest) {
+                bt = directTest;
+                if (!resolvedSubject) resolvedSubject = subj.name;
+                break;
+              }
+            }
+
+            for (const top of (subj.topics || [])) {
+              const topicTest = (top.tests || []).find(t => {
+                const tid = String(t.id);
+                return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+              });
+              if ((tId && String(top.id) === String(tId)) || topicTest) {
+                resolvedUnit = top.name;
+                isTopicMatch = true;
+                if (!bt && topicTest) {
+                  bt = topicTest;
+                }
+                break;
+              }
+            }
+            if (isSubjMatch || isTopicMatch) {
+              if (!resolvedSubject) resolvedSubject = subj.name;
+              break;
+            }
+          }
+        }
+
+        if (!resolvedSubject) {
+          resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
+        }
+
+        const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+        const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+
+        const isSolved = checkIsTaskSolved(
+          { id: cleanTestId, testId: cleanTestId, bookTestId: cleanTestId, realTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' },
+          studentId,
+          submissions,
+          allHomeworks,
+          studyAssignments,
+          solvedIdsSet,
+          bookTests,
+          books
+        );
+
+        let formattedDueDate = '';
+        try {
+          formattedDueDate = `Hedef: ${new Date(tDateStr).toLocaleDateString('tr-TR')}`;
+        } catch {
+          formattedDueDate = `Hedef: ${tDateStr}`;
+        }
+
+        scheduledItems.push({
+          id: `hw_bt_${canonicalTestId}_${dayYMD || dayKey}`,
+          hwId: hw.id,
+          testId: cleanTestId,
+          bookTestId: cleanTestId,
+          realTestId: cleanTestId,
+          canonicalTestId: canonicalTestId,
+          bookId: hw.bookId || bookObj?.id,
+          isAutoHomework: true,
+          isBookAssignment: true,
+          isBookTask: true,
+          taskType: 'kitap',
+          subject: resolvedSubject || 'Genel Ders',
+          unit: resolvedUnit || '',
+          unitTopic: resolvedUnit || '',
+          topic: resolvedUnit ? `${cleanBookTitle} — ${testTitle}` : testTitle,
+          testName: testTitle,
+          title: testTitle,
+          bookName: cleanBookTitle,
+          bookTitle: cleanBookTitle,
+          questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
+          targetQuestionCount: qCount,
+          dueDateStr: tDateStr,
+          dueDate: tDateStr,
+          time: formattedDueDate,
+          done: isSolved
+        });
+      });
+    } else {
+      const hwDue = hw.dueDate || hw.due_date || hw.assignedDueDate || hw.targetDate;
+      if (hwDue) {
+        const hwYMD = extractItemYMD(hwDue);
+        const hwDayKey = resolveDayKey(hwDue);
+        const isMatchDate = hwYMD ? (dayYMD && hwYMD === dayYMD) : (hwDayKey === dayKey);
+
+        if (isMatchDate) {
+          let formattedDueDate = '';
+          try {
+            formattedDueDate = `Hedef: ${new Date(hwDue).toLocaleDateString('tr-TR')}`;
+          } catch {
+            formattedDueDate = `Hedef: ${hwDue}`;
+          }
+
+          if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+            hw.tests.forEach(testIdKey => {
+              const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+              const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
+              const dedupeKey = `bt_${canonicalTestId}`;
+              if (seenBtKeys.has(dedupeKey) || seenBtKeys.has(`bt_${cleanTestId}`)) return;
+              seenBtKeys.add(dedupeKey);
+              seenBtKeys.add(`bt_${cleanTestId}`);
+
+              let bt = (bookTests || []).find(b => {
+                const bId = String(b.id);
+                return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+              });
+
+              let resolvedSubject = bt?.subject || bt?.subjectName || '';
+              let resolvedUnit = bt?.unit || bt?.unitName || '';
+              const sId = bt?.subjectId || bt?.subject_id;
+              const tId = bt?.topicId || bt?.topic_id;
+
+              let bookSubjects = bookObj?.subjects || [];
+              if (typeof bookSubjects === 'string') {
+                try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+              }
+
+              if (Array.isArray(bookSubjects)) {
+                for (const subj of bookSubjects) {
+                  if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
+                  const isSubjMatch = sId && String(subj.id) === String(sId);
+                  let isTopicMatch = false;
+
+                  if (!bt && Array.isArray(subj.tests)) {
+                    const directTest = subj.tests.find(t => {
+                      const tid = String(t.id);
+                      return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                    });
+                    if (directTest) {
+                      bt = directTest;
+                      if (!resolvedSubject) resolvedSubject = subj.name;
+                      break;
+                    }
+                  }
+
+                  for (const top of (subj.topics || [])) {
+                    const topicTest = (top.tests || []).find(t => {
+                      const tid = String(t.id);
+                      return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                    });
+                    if ((tId && String(top.id) === String(tId)) || topicTest) {
+                      resolvedUnit = top.name;
+                      isTopicMatch = true;
+                      if (!bt && topicTest) {
+                        bt = topicTest;
+                      }
+                      break;
+                    }
+                  }
+                  if (isSubjMatch || isTopicMatch) {
+                    if (!resolvedSubject) resolvedSubject = subj.name;
+                    break;
+                  }
+                }
+              }
+
+              if (!resolvedSubject) {
+                resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
+              }
+
+              const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+              const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+
+              const isSolved = checkIsTaskSolved(
+                { id: cleanTestId, testId: cleanTestId, bookTestId: cleanTestId, realTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' },
+                studentId,
+                submissions,
+                allHomeworks,
+                studyAssignments,
+                solvedIdsSet,
+                bookTests,
+                books
+              );
+
+              scheduledItems.push({
+                id: `hw_bt_${canonicalTestId}_${dayYMD || dayKey}`,
+                hwId: hw.id,
+                testId: cleanTestId,
+                bookTestId: cleanTestId,
+                realTestId: cleanTestId,
+                canonicalTestId: canonicalTestId,
+                bookId: hw.bookId || bookObj?.id,
+                isAutoHomework: true,
+                isBookAssignment: true,
+                isBookTask: true,
+                taskType: 'kitap',
+                subject: resolvedSubject || 'Genel Ders',
+                unit: resolvedUnit || '',
+                unitTopic: resolvedUnit || '',
+                topic: resolvedUnit ? `${cleanBookTitle} — ${testTitle}` : testTitle,
+                testName: testTitle,
+                title: testTitle,
+                bookName: cleanBookTitle,
+                bookTitle: cleanBookTitle,
+                questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
+                targetQuestionCount: qCount,
+                dueDateStr: hwDue,
+                dueDate: hwDue,
+                time: formattedDueDate,
+                done: isSolved
+              });
+            });
+          } else {
+            const isSolved = checkIsTaskSolved(
+              { id: hw.id, hwId: hw.id, taskType: 'odev' },
+              studentId,
+              submissions,
+              allHomeworks,
+              studyAssignments,
+              solvedIdsSet,
+              bookTests,
+              books
+            );
+
+            scheduledItems.push({
+              id: `hw_${hw.id}_${dayYMD || dayKey}`,
+              hwId: hw.id,
+              isAutoHomework: true,
+              isHomework: true,
+              taskType: hw.taskType || (hw.isBookAssignment ? 'kitap' : 'soru'),
+              subject: hw.subject || 'Ödev',
+              title: hw.title || 'Ödev',
+              topic: hw.title || 'Ödev',
+              questionCount: hw.questionCount ? `${hw.questionCount} soru` : null,
+              time: formattedDueDate,
+              dueDate: hwDue,
+              done: isSolved
+            });
+          }
+        }
+      }
+    }
+  });
+
+  return scheduledItems;
+}
+
 /* ─── Subject Detection & Publisher Helper ─── */
 export const KNOWN_PUBLISHERS = [
   'atlı karınca', 'atli karinca', '3d', '3d yayınları', 'karekök', 'limit', 'hız yayınları', 'hiz',
@@ -1738,11 +2132,57 @@ export function MonthlyListPanel({
 
     const todayYMD = getLocalYMD(new Date());
 
-    const studentId = currentUser?.id;
+    const activeStudentId = effectiveStudentId;
+    const targetStudent = currentUser || (activeStudentId ? { id: activeStudentId } : null);
     const studentGrades = curData?.grades || [];
 
     const studentHomeworks = (allHomeworks || []).filter(hw => {
-      return isHomeworkForStudent(hw, currentUser, studentGrades);
+      return isHomeworkForStudent(hw, targetStudent, studentGrades);
+    });
+
+    const studentIdStr = String(activeStudentId || '');
+    const studentUuidStr = String(toUUID(activeStudentId) || '');
+
+    const isMatchStudent = (s) => {
+      if (!activeStudentId) return true;
+      const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
+    };
+
+    const solvedIdsSet = new Set();
+    (submissions || []).forEach(s => {
+      if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+      const ids = [s.id, s.testId, s.test_id, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.homework_id, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
+      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
+      ids.forEach(id => {
+        if (!id) return;
+        const str = String(id);
+        const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        solvedIdsSet.add(str);
+        solvedIdsSet.add(clean);
+        solvedIdsSet.add(`bt_${clean}`);
+        const u = toUUID(clean || str);
+        if (u) solvedIdsSet.add(String(u));
+      });
+    });
+
+    (allHomeworks || []).forEach(hw => {
+      if (hw.submissions && Array.isArray(hw.submissions)) {
+        hw.submissions.forEach(s => {
+          if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+          const ids = [s.id, s.testId, s.test_id, s.bookTestId, s.realTestId];
+          ids.forEach(id => {
+            if (!id) return;
+            const str = String(id);
+            const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+            solvedIdsSet.add(str);
+            solvedIdsSet.add(clean);
+            solvedIdsSet.add(`bt_${clean}`);
+            const u = toUUID(clean || str);
+            if (u) solvedIdsSet.add(String(u));
+          });
+        });
+      }
     });
 
     const allDailyItems = [];
@@ -1804,7 +2244,7 @@ export function MonthlyListPanel({
 
       // Map manual items to dynamically reflect test/assignment completion
       manualItems = manualItems.map(item => {
-        const isDone = Boolean(item.done || checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments));
+        const isDone = Boolean(item.done || checkIsTaskSolved(item, activeStudentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books));
         return {
           ...item,
           done: isDone
@@ -1813,6 +2253,21 @@ export function MonthlyListPanel({
 
       const dateTime = dateObj.getTime();
       const autoHwItems = [];
+
+      // A.1) Atanmış Ödevler ve Kitap Testleri (Scheduled Book Tests & Homeworks)
+      const scheduledHwItems = extractScheduledHomeworkItems({
+        dayYMD: ymd,
+        dayKey,
+        studentHomeworks,
+        books,
+        bookTests,
+        studentId: activeStudentId,
+        submissions,
+        allHomeworks,
+        studyAssignments,
+        solvedIdsSet
+      });
+      scheduledHwItems.forEach(it => autoHwItems.push(it));
 
       // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
       (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
@@ -1832,7 +2287,7 @@ export function MonthlyListPanel({
             if (tYMD === ymd) {
               const autoId = `book_test_direct_${b.id}_${t.id}_${ymd}`;
               if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments);
+                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, activeStudentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
                 autoHwItems.push({
                   id: autoId,
                   testId: t.id,
@@ -1860,7 +2315,7 @@ export function MonthlyListPanel({
               if (tYMD === ymd) {
                 const autoId = `book_test_direct_${b.id}_${t.id}_${ymd}`;
                 if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments);
+                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, activeStudentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
                   autoHwItems.push({
                     id: autoId,
                     testId: t.id,
@@ -1899,7 +2354,7 @@ export function MonthlyListPanel({
 
           const autoId = `book_test_bt_${bt.id}_${ymd}`;
           if (!manualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) && !autoHwItems.some(a => a.testId === bt.id || a.bookTestId === bt.id)) {
-            const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments);
+            const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, activeStudentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
             autoHwItems.push({
               id: autoId,
               testId: bt.id,
@@ -2026,16 +2481,19 @@ export function MonthlyListPanel({
 
       const rawDayItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
       const seenDayIds = new Map();
+      const seenDayContent = new Map();
       rawDayItems.forEach(item => {
         const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
         const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
-        const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanBook = String(item.bookTitle || item.bookName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanTestId = String(item.testId || item.bookTestId || item.realTestId || '').replace(/^bt_/, '').replace(/^q_/, '');
+        const canonicalTestId = cleanTestId ? (toUUID(cleanTestId) || cleanTestId) : '';
 
         let key = '';
-        if (item.testId) {
-          key = `test_${String(item.testId).replace(/^bt_/, '')}`;
+        if (canonicalTestId) {
+          key = `test_${cleanBook}_${cleanSubject}_${canonicalTestId}`;
         } else if (item.hwId && !item.testId) {
-          key = `hw_${item.hwId}`;
+          key = `hw_${cleanSubject}_${item.hwId}`;
         } else if (cleanTitle && (cleanSubject || cleanBook)) {
           key = `content_${cleanBook}_${cleanSubject}_${cleanTitle}`;
         } else {
@@ -2043,9 +2501,17 @@ export function MonthlyListPanel({
         }
 
         if (!key) return;
-        const existing = seenDayIds.get(key);
-        if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
+        const contentKey = (cleanBook && cleanTitle) ? `content_${cleanBook}_${cleanSubject}_${cleanTitle}` : null;
+        const existingByKey = seenDayIds.get(key);
+        const existingByContent = contentKey ? seenDayContent.get(contentKey) : null;
+        const existing = existingByKey || existingByContent;
+
+        if (!existing) {
           seenDayIds.set(key, item);
+          if (contentKey) seenDayContent.set(contentKey, item);
+        } else if ((!existing.done && item.done) || (!existing.testId && item.testId)) {
+          seenDayIds.set(key, item);
+          if (contentKey) seenDayContent.set(contentKey, item);
         }
       });
       const dayItems = sortItemsByBookOrder(Array.from(seenDayIds.values()), books, bookTests);
@@ -3241,7 +3707,8 @@ export default function ProgramCenter({
   setTopicPool,
   isDark: propIsDark = false,
   studentId = null,
-  targetStudent = null
+  targetStudent = null,
+  onProgressStats = null
 }) {
   const { theme } = useTheme();
   const { books: trackedReadingBooks = [], updateReadingProgress } = useReading() || {};
@@ -3792,6 +4259,21 @@ export default function ProgramCenter({
 
       const autoHwItems = [];
 
+      // A.1) Atanmış Ödevler ve Kitap Testleri (Scheduled Book Tests & Homeworks)
+      const scheduledHwItems = extractScheduledHomeworkItems({
+        dayYMD: dayInfo.ymd,
+        dayKey: dayObj.day,
+        studentHomeworks,
+        books,
+        bookTests,
+        studentId,
+        submissions,
+        allHomeworks,
+        studyAssignments,
+        solvedIdsSet
+      });
+      scheduledHwItems.forEach(it => autoHwItems.push(it));
+
       // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
       (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
         const cleanBookTitle = (b.title || 'Kitap')
@@ -3810,7 +4292,7 @@ export default function ProgramCenter({
             if (tYMD === dayInfo.ymd) {
               const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
               if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
                 autoHwItems.push({
                   id: autoId,
                   hwId: null,
@@ -3843,7 +4325,7 @@ export default function ProgramCenter({
               if (tYMD === dayInfo.ymd) {
                 const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
                 if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
                   autoHwItems.push({
                     id: autoId,
                     hwId: null,
@@ -3887,7 +4369,7 @@ export default function ProgramCenter({
 
           const autoId = `book_test_bt_${bt.id}_${dayObj.day}`;
           if (!manualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) && !autoHwItems.some(a => a.testId === bt.id || a.bookTestId === bt.id)) {
-            const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet);
+            const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
             autoHwItems.push({
               id: autoId,
               hwId: null,
@@ -4022,16 +4504,19 @@ export default function ProgramCenter({
 
       const rawWeeklyItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
       const seenWeeklyIds = new Map();
+      const seenWeeklyContent = new Map();
       rawWeeklyItems.forEach(item => {
         const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
         const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
-        const cleanBook = String(item.bookTitle || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanBook = String(item.bookTitle || item.bookName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
+        const cleanTestId = String(item.testId || item.bookTestId || item.realTestId || '').replace(/^bt_/, '').replace(/^q_/, '');
+        const canonicalTestId = cleanTestId ? (toUUID(cleanTestId) || cleanTestId) : '';
 
         let key = '';
-        if (item.testId) {
-          key = `test_${String(item.testId).replace(/^bt_/, '')}`;
+        if (canonicalTestId) {
+          key = `test_${cleanBook}_${cleanSubject}_${canonicalTestId}`;
         } else if (item.hwId && !item.testId) {
-          key = `hw_${item.hwId}`;
+          key = `hw_${cleanSubject}_${item.hwId}`;
         } else if (cleanTitle && (cleanSubject || cleanBook)) {
           key = `content_${cleanBook}_${cleanSubject}_${cleanTitle}`;
         } else {
@@ -4039,9 +4524,17 @@ export default function ProgramCenter({
         }
 
         if (!key) return;
-        const existing = seenWeeklyIds.get(key);
-        if (!existing || (!existing.done && item.done) || (!existing.testId && item.testId)) {
+        const contentKey = (cleanBook && cleanTitle) ? `content_${cleanBook}_${cleanSubject}_${cleanTitle}` : null;
+        const existingByKey = seenWeeklyIds.get(key);
+        const existingByContent = contentKey ? seenWeeklyContent.get(contentKey) : null;
+        const existing = existingByKey || existingByContent;
+
+        if (!existing) {
           seenWeeklyIds.set(key, item);
+          if (contentKey) seenWeeklyContent.set(contentKey, item);
+        } else if ((!existing.done && item.done) || (!existing.testId && item.testId)) {
+          seenWeeklyIds.set(key, item);
+          if (contentKey) seenWeeklyContent.set(contentKey, item);
         }
       });
       const dayItems = sortItemsByBookOrder(Array.from(seenWeeklyIds.values()), books, bookTests);
@@ -4214,6 +4707,12 @@ export default function ProgramCenter({
   const totalItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.length || 0), 0);
   const doneItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
   const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+
+  useEffect(() => {
+    if (typeof onProgressStats === 'function') {
+      onProgressStats({ totalItems, doneItems, pct });
+    }
+  }, [totalItems, doneItems, pct, onProgressStats]);
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>

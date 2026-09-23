@@ -90,9 +90,10 @@ export default function StudentProgramPage() {
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const totalItems = weeklyProgram.reduce((a, d) => a + (d.items?.length || 0), 0);
-  const doneItems = weeklyProgram.reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
-  const weekPct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+  const [progStats, setProgStats] = useState(null);
+  const totalItems = progStats ? progStats.totalItems : weeklyProgram.reduce((a, d) => a + (d.items?.length || 0), 0);
+  const doneItems = progStats ? progStats.doneItems : weeklyProgram.reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
+  const weekPct = progStats ? progStats.pct : (totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0);
   const totalTopics = topicPool.reduce((a, s) => a + s.topics.length, 0);
   const doneTopics = topicPool.reduce((a, s) => a + s.topics.filter(t => t.status === 'Tamamlandı').length, 0);
 
@@ -399,6 +400,7 @@ export default function StudentProgramPage() {
             topicPool={topicPool}
             setTopicPool={setTopicPool}
             isDark={isDark}
+            onProgressStats={setProgStats}
           />
         </div>
 
