@@ -489,6 +489,7 @@ export default function BookContentManager() {
     name: "",
     pdfUrl: "",
     questionCount: 20,
+    startQuestionNumber: 1,
     answerKey: {},
     isOpenEnded: false,
     questionType: 'coktan_secmeli'
@@ -1485,9 +1486,28 @@ export default function BookContentManager() {
 
     const testQuestionType = testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli';
 
+    const rawAns = test.answerKey || test.answer_key || {};
+    let detectedStartQNo = Number(
+      test.startQuestionNumber || 
+      test.start_question_number || 
+      test.ilkSoruNo || 
+      ansMeta.startQuestionNumber
+    ) || 1;
+
+    if (detectedStartQNo === 1 && rawAns && typeof rawAns === 'object') {
+      const numericKeys = Object.keys(rawAns)
+        .filter(k => k !== '__meta' && !isNaN(Number(k)))
+        .map(Number)
+        .sort((a, b) => a - b);
+      if (numericKeys.length > 0 && numericKeys[0] > 1) {
+        detectedStartQNo = numericKeys[0];
+      }
+    }
+
     setTestFormData({
       name: test.name || '',
       questionCount: qCount,
+      startQuestionNumber: detectedStartQNo,
       answerKey: test.answerKey ? { ...test.answerKey } : {},
       pdfUrl: test.pdfUrl || '',
       isOpenEnded: testIsOpenEnded,
@@ -1508,6 +1528,7 @@ export default function BookContentManager() {
     const isOe = testFormData.isOpenEnded === true || testFormData.questionType === 'acik_uclu';
     const qType = isOe ? 'acik_uclu' : 'coktan_secmeli';
 
+    const startQNo = Number(testFormData.startQuestionNumber) || 1;
     const rawAnsKey = testFormData.answerKey || {};
     const ansMeta = rawAnsKey.__meta || {};
     const enrichedAnswerKey = {
@@ -1515,7 +1536,8 @@ export default function BookContentManager() {
       __meta: {
         ...ansMeta,
         isOpenEnded: isOe,
-        questionType: qType
+        questionType: qType,
+        startQuestionNumber: startQNo
       }
     };
 
@@ -1525,6 +1547,8 @@ export default function BookContentManager() {
       topicId: targetTopicId,
       name: testFormData.name.trim(),
       questionCount: Number(testFormData.questionCount) || 20,
+      startQuestionNumber: startQNo,
+      start_question_number: startQNo,
       pdfUrl: testFormData.pdfUrl || '',
       isOpenEnded: isOe,
       is_open_ended: isOe,
@@ -1951,6 +1975,26 @@ export default function BookContentManager() {
         const ansCount = rawAns ? (Array.isArray(rawAns) ? rawAns.length : Object.keys(rawAns).filter(k => k !== '__meta').length) : 0;
         const qCount = Number(testData.questionCount || testData.question_count || testData.soruSayisi || testData.soru_sayisi) || ansCount || (existingTest?.questionCount || 20);
 
+        let detectedStartQNo = Number(
+          testData.startQuestionNumber || 
+          testData.start_question_number || 
+          testData.ilkSoruNo || 
+          testData.ilk_soru_no || 
+          testData.startQuestion || 
+          testData.startQNo || 
+          existingTest?.startQuestionNumber
+        ) || 1;
+
+        if (detectedStartQNo === 1 && rawAns && typeof rawAns === 'object' && !Array.isArray(rawAns)) {
+          const numericKeys = Object.keys(rawAns)
+            .filter(k => k !== '__meta' && !isNaN(Number(k)))
+            .map(Number)
+            .sort((a, b) => a - b);
+          if (numericKeys.length > 0 && numericKeys[0] > 1) {
+            detectedStartQNo = numericKeys[0];
+          }
+        }
+
         const testPayload = {
           id: testId,
           bookId: String(book.id),
@@ -1958,6 +2002,8 @@ export default function BookContentManager() {
           topicId: topicId ? String(topicId) : null,
           name: testNameClean,
           questionCount: qCount,
+          startQuestionNumber: detectedStartQNo,
+          start_question_number: detectedStartQNo,
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
@@ -1969,7 +2015,7 @@ export default function BookContentManager() {
           if (Array.isArray(rawAns)) {
             rawAns.forEach((ans, idx) => {
               if (ans !== undefined && ans !== null && ans !== "") {
-                testPayload.answerKey[String(idx + 1)] = String(ans);
+                testPayload.answerKey[String(detectedStartQNo + idx)] = String(ans);
               }
             });
           } else if (typeof rawAns === 'object') {
@@ -1981,15 +2027,20 @@ export default function BookContentManager() {
           } else if (typeof rawAns === 'string') {
             if (testIsOpenEnded && (rawAns.includes(',') || !/^[A-Ea-e]+$/.test(rawAns.trim()))) {
               rawAns.split(/[,;\s]+/).filter(Boolean).forEach((p, idx) => {
-                testPayload.answerKey[String(idx + 1)] = p.trim();
+                testPayload.answerKey[String(detectedStartQNo + idx)] = p.trim();
               });
             } else {
-              testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount);
+              testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount, 5, detectedStartQNo);
             }
           }
         } else if (existingTest?.answerKey) {
           testPayload.answerKey = { ...existingTest.answerKey };
         }
+
+        if (!testPayload.answerKey.__meta) {
+          testPayload.answerKey.__meta = {};
+        }
+        testPayload.answerKey.__meta.startQuestionNumber = detectedStartQNo;
 
         return testPayload;
       };
@@ -2894,7 +2945,7 @@ export default function BookContentManager() {
                                     )}
                                   </div>
                                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button style={{ fontSize: '0.82rem', padding: '0.45rem 0.9rem', borderRadius: '0.6rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
+                                    <button style={{ fontSize: '0.82rem', padding: '0.45rem 0.9rem', borderRadius: '0.6rem', background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', color: 'var(--color-text)', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(topic); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, startQuestionNumber: 1, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
                                       <Plus size={14} /> Test Ekle
                                     </button>
                                   </div>
@@ -2909,7 +2960,7 @@ export default function BookContentManager() {
                           <button style={{ fontSize: '0.85rem', color: '#6366f1', border: '1.5px dashed #6366f1', background: 'rgba(99, 102, 241, 0.12)', padding: '0.55rem 1.1rem', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setNewTopicName(""); setIsTopicDialogOpen(true); }}>
                             <Plus size={15} /> Konu Ekle
                           </button>
-                          <button style={{ fontSize: '0.85rem', color: '#10b981', border: '1.5px dashed #10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '0.55rem 1.1rem', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
+                          <button style={{ fontSize: '0.85rem', color: '#10b981', border: '1.5px dashed #10b981', background: 'rgba(16, 185, 129, 0.12)', padding: '0.55rem 1.1rem', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => { setCurrentSubject(subject); setCurrentTopic(null); setCurrentTest(null); setTestFormData({ name: "", questionCount: 20, startQuestionNumber: 1, answerKey: {}, pdfUrl: '' }); setIsTestDialogOpen(true); }}>
                             <Plus size={15} /> Direkt Test Ekle (Konusuz)
                           </button>
                           <button style={{ fontSize: '0.85rem', color: '#ec4899', border: '1.5px dashed #ec4899', background: 'rgba(236, 72, 153, 0.12)', padding: '0.55rem 1.1rem', borderRadius: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={() => { setBulkSeriesData(p => ({ ...p, subjectName: subject.name })); setIsBulkWizardOpen(true); setBulkWizardTab("series"); }}>
@@ -4133,16 +4184,29 @@ export default function BookContentManager() {
                 />
               </div>
 
-              <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
-                <input 
-                  type="number" 
-                  min="1"
-                  max="100"
-                  value={testFormData.questionCount} 
-                  onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
-                  style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>İlk Soru No</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    max="1000"
+                    value={testFormData.startQuestionNumber || 1} 
+                    onChange={e => setTestFormData(p => ({...p, startQuestionNumber: parseInt(e.target.value) || 1}))} 
+                    style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 800, fontSize: '0.86rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    max="100"
+                    value={testFormData.questionCount} 
+                    onChange={e => setTestFormData(p => ({...p, questionCount: parseInt(e.target.value) || 0}))} 
+                    style={{ width: '100%', padding: '0.7rem 0.95rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontWeight: 800, fontSize: '0.92rem', boxSizing: 'border-box' }} 
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -4194,41 +4258,44 @@ export default function BookContentManager() {
                     </button>
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.4rem', maxHeight: '240px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
-                    {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
-                      const qNum = i + 1;
-                      const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
-                      return (
-                        <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: val ? 'rgba(139,92,246,0.07)' : 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: val ? '1px solid #c4b5fd' : '1px solid var(--color-border)' }}>
-                          <div style={{ width: '20px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
-                          <input
-                            type="text"
-                            inputMode="text"
-                            autoCapitalize="sentences"
-                            autoCorrect="on"
-                            spellCheck="true"
-                            value={val}
-                            onChange={e => setTestFormData(p => ({
-                              ...p,
-                              answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
-                            }))}
-                            placeholder="Cevap..."
-                            style={{
-                              flex: 1,
-                              minWidth: 0,
-                              padding: '0.25rem 0.4rem',
-                              borderRadius: '0.35rem',
-                              border: '1px solid var(--color-border-input)',
-                              background: 'var(--color-surface)',
-                              color: 'var(--color-text)',
-                              fontSize: '0.85rem',
-                              fontWeight: 700,
-                              fontFamily: 'inherit',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
+                    {(() => {
+                      const startQ = Number(testFormData.startQuestionNumber) || 1;
+                      return Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
+                        const qNum = startQ + i;
+                        const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
+                        return (
+                          <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: val ? 'rgba(139,92,246,0.07)' : 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: val ? '1px solid #c4b5fd' : '1px solid var(--color-border)' }}>
+                            <div style={{ width: '28px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>{qNum}.</div>
+                            <input
+                              type="text"
+                              inputMode="text"
+                              autoCapitalize="sentences"
+                              autoCorrect="on"
+                              spellCheck="true"
+                              value={val}
+                              onChange={e => setTestFormData(p => ({
+                                ...p,
+                                answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value }
+                              }))}
+                              placeholder="Cevap..."
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                                padding: '0.25rem 0.4rem',
+                                borderRadius: '0.35rem',
+                                border: '1px solid var(--color-border-input)',
+                                background: 'var(--color-surface)',
+                                color: 'var(--color-text)',
+                                fontSize: '0.85rem',
+                                fontWeight: 700,
+                                fontFamily: 'inherit',
+                                outline: 'none'
+                              }}
+                            />
+                          </div>
+                        );
+                      });
+                    })()}
                     {(!testFormData.questionCount || testFormData.questionCount === 0) && (
                       <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
                     )}
@@ -4247,9 +4314,13 @@ export default function BookContentManager() {
                       placeholder="Toplu Gir (Örn: ABC...)"
                       onChange={(e) => {
                         const str = e.target.value;
-                        const newKey = {};
+                        const startQ = Number(testFormData.startQuestionNumber) || 1;
+                        const newKey = { ...testFormData.answerKey };
                         str.replace(/[^A-Ea-e]/g, '').toUpperCase().split('').forEach((char, idx) => {
-                          if(idx < testFormData.questionCount) newKey[idx + 1] = char;
+                          if (idx < testFormData.questionCount) {
+                            newKey[startQ + idx] = char;
+                            newKey[String(startQ + idx)] = char;
+                          }
                         });
                         setTestFormData(p => ({...p, answerKey: newKey}));
                       }}
@@ -4258,36 +4329,39 @@ export default function BookContentManager() {
                   </label>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: '0.65rem', border: '1.5px solid var(--color-border)' }}>
-                    {Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
-                      const qNum = i + 1;
-                      const val = testFormData.answerKey?.[qNum] || '';
-                      const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
-                      return (
-                        <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1px solid var(--color-border)' }}>
-                          <div style={{ width: '20px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
-                          <div style={{ display: 'flex', gap: '0.2rem' }}>
-                            {optList.map(opt => {
-                              const isSelected = val === opt;
-                              return (
-                                <button
-                                  type="button"
-                                  key={opt}
-                                  onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
-                                  style={{
-                                    width: '24px', height: '24px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid var(--color-border-input)',
-                                    background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
-                                    color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
-                                  }}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
+                    {(() => {
+                      const startQ = Number(testFormData.startQuestionNumber) || 1;
+                      return Array.from({ length: testFormData.questionCount || 0 }).map((_, i) => {
+                        const qNum = startQ + i;
+                        const val = testFormData.answerKey?.[qNum] ?? testFormData.answerKey?.[String(qNum)] ?? '';
+                        const optList = book.optionCount === 4 ? ['A','B','C','D'] : ['A','B','C','D','E'];
+                        return (
+                          <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.45rem', border: '1px solid var(--color-border)' }}>
+                            <div style={{ width: '28px', fontWeight: 800, fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
+                            <div style={{ display: 'flex', gap: '0.2rem' }}>
+                              {optList.map(opt => {
+                                const isSelected = val === opt;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={opt}
+                                    onClick={() => setTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt, [String(qNum)]: opt } }))}
+                                    style={{
+                                      width: '24px', height: '24px', borderRadius: '50%', border: isSelected ? 'none' : '1px solid var(--color-border-input)',
+                                      background: isSelected ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'var(--color-surface)',
+                                      color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.72rem',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s'
+                                    }}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                     {(!testFormData.questionCount || testFormData.questionCount === 0) && (
                       <span style={{ fontSize: '0.8rem', gridColumn: '1 / -1', textAlign: 'center', padding: '1rem 0', color: 'var(--color-text-muted)' }}>Önce soru sayısı girin.</span>
                     )}

@@ -11,6 +11,7 @@ import {
 import './BookManager.css';
 import { isStandardOrMixedBook } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
+import { parseAnswerKeyString } from '../features/book-management/constants/bookHelpers';
 
 export default function BookManager() {
   const navigate = useNavigate();
@@ -268,6 +269,26 @@ export default function BookManager() {
         const ansCount = rawAns ? (Array.isArray(rawAns) ? rawAns.length : Object.keys(rawAns).filter(k => k !== '__meta').length) : 0;
         const qCount = Number(testData.questionCount || testData.question_count || testData.soruSayisi || testData.soru_sayisi) || ansCount || (existingTest?.questionCount || 20);
 
+        let detectedStartQNo = Number(
+          testData.startQuestionNumber || 
+          testData.start_question_number || 
+          testData.ilkSoruNo || 
+          testData.ilk_soru_no || 
+          testData.startQuestion || 
+          testData.startQNo || 
+          existingTest?.startQuestionNumber
+        ) || 1;
+
+        if (detectedStartQNo === 1 && rawAns && typeof rawAns === 'object' && !Array.isArray(rawAns)) {
+          const numericKeys = Object.keys(rawAns)
+            .filter(k => k !== '__meta' && !isNaN(Number(k)))
+            .map(Number)
+            .sort((a, b) => a - b);
+          if (numericKeys.length > 0 && numericKeys[0] > 1) {
+            detectedStartQNo = numericKeys[0];
+          }
+        }
+
         const testPayload = {
           id: testId,
           bookId: String(targetBook.id),
@@ -275,6 +296,8 @@ export default function BookManager() {
           topicId: topicId ? String(topicId) : null,
           name: testNameClean,
           questionCount: qCount,
+          startQuestionNumber: detectedStartQNo,
+          start_question_number: detectedStartQNo,
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
@@ -286,7 +309,7 @@ export default function BookManager() {
           if (Array.isArray(rawAns)) {
             rawAns.forEach((ans, idx) => {
               if (ans !== undefined && ans !== null && ans !== '') {
-                testPayload.answerKey[String(idx + 1)] = String(ans);
+                testPayload.answerKey[String(detectedStartQNo + idx)] = String(ans);
               }
             });
           } else if (typeof rawAns === 'object') {
@@ -298,15 +321,20 @@ export default function BookManager() {
           } else if (typeof rawAns === 'string') {
             if (testIsOpenEnded && (rawAns.includes(',') || !/^[A-Ea-e]+$/.test(rawAns.trim()))) {
               rawAns.split(/[,;\s]+/).filter(Boolean).forEach((p, idx) => {
-                testPayload.answerKey[String(idx + 1)] = p.trim();
+                testPayload.answerKey[String(detectedStartQNo + idx)] = p.trim();
               });
             } else {
-              testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount);
+              testPayload.answerKey = parseAnswerKeyString(rawAns, testPayload.questionCount, 5, detectedStartQNo);
             }
           }
         } else if (existingTest?.answerKey) {
           testPayload.answerKey = { ...existingTest.answerKey };
         }
+
+        if (!testPayload.answerKey.__meta) {
+          testPayload.answerKey.__meta = {};
+        }
+        testPayload.answerKey.__meta.startQuestionNumber = detectedStartQNo;
 
         return testPayload;
       };

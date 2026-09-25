@@ -21,11 +21,12 @@ import {
   FileText, CheckSquare, Target
 } from 'lucide-react';
 
-function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
+function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false, startQNo = 1) {
   if (totalCount <= 0) return [[]];
+  const start = Number(startQNo) || 1;
   // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
   if (isSidePdf || isMobile || containerWidth < 760) {
-    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
+    return [Array.from({ length: totalCount }, (_, i) => start + i)];
   }
 
   // Geniş panelde (PDF yokken veya gizliyken) soru sayısına göre 2 eşit/dengeli sütuna böl:
@@ -33,11 +34,12 @@ function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000,
   const col1 = [];
   const col2 = [];
 
-  for (let i = 1; i <= totalCount; i++) {
-    if (i <= perCol) {
-      col1.push(i);
+  for (let i = 0; i < totalCount; i++) {
+    const qNo = start + i;
+    if (i < perCol) {
+      col1.push(qNo);
     } else {
-      col2.push(i);
+      col2.push(qNo);
     }
   }
 
@@ -396,6 +398,24 @@ export default function TrackedBookQuizRunner() {
 
   const ansMeta = resolvedTest?.answerKey?.__meta || resolvedTest?.answer_key?.__meta || {};
 
+  // Auto-detect startQuestionNumber
+  let startQuestionNumber = Number(
+    resolvedTest?.startQuestionNumber ||
+    resolvedTest?.start_question_number ||
+    resolvedTest?.ilkSoruNo ||
+    ansMeta?.startQuestionNumber
+  ) || 1;
+
+  if (startQuestionNumber === 1 && rawAnsKey && typeof rawAnsKey === 'object' && !Array.isArray(rawAnsKey)) {
+    const numericKeys = Object.keys(rawAnsKey)
+      .filter(k => k !== '__meta' && !isNaN(Number(k)))
+      .map(Number)
+      .sort((a, b) => a - b);
+    if (numericKeys.length > 0 && numericKeys[0] > 1) {
+      startQuestionNumber = numericKeys[0];
+    }
+  }
+
   const isExplicitMC = Boolean(
     resolvedTest?.isOpenEnded === false ||
     resolvedTest?.is_open_ended === false ||
@@ -425,8 +445,8 @@ export default function TrackedBookQuizRunner() {
   const isSidePdf = Boolean(hasPdf && effectivePdfMode === 'side' && !isMobile);
 
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(questionCount, isMobile, containerWidth, isSidePdf);
-  }, [questionCount, isMobile, containerWidth, isSidePdf]);
+    return getQuestionColumns(questionCount, isMobile, containerWidth, isSidePdf, startQuestionNumber);
+  }, [questionCount, isMobile, containerWidth, isSidePdf, startQuestionNumber]);
 
   // Timer calculation
   const perQuestionMins = Number(resolvedTest?.timePerQuestion || resolvedBook?.timePerQuestion) || 2;
@@ -476,12 +496,14 @@ export default function TrackedBookQuizRunner() {
     let pending = 0; // Cevap anahtarı olmayan açık uçlu sorular
     const detailed = [];
 
+    const startQ = startQuestionNumber || 1;
     for (let i = 1; i <= questionCount; i++) {
-      const rawUserAns = targetAnswers[i] || targetAnswers[String(i)] || '';
+      const qNo = startQ + (i - 1);
+      const rawUserAns = targetAnswers[qNo] ?? targetAnswers[String(qNo)] ?? targetAnswers[i] ?? targetAnswers[String(i)] ?? '';
 
       const rawCorrectKey = Array.isArray(answerKey)
-        ? (answerKey[i - 1] ?? answerKey[i] ?? '')
-        : (answerKey[i] ?? answerKey[String(i)] ?? answerKey[i - 1] ?? '');
+        ? (answerKey[i - 1] ?? answerKey[qNo] ?? answerKey[i] ?? '')
+        : (answerKey[qNo] ?? answerKey[String(qNo)] ?? answerKey[i] ?? answerKey[String(i)] ?? '');
 
       let isCorrect = false;
       let isWrong = false;
@@ -533,7 +555,8 @@ export default function TrackedBookQuizRunner() {
       }
 
       detailed.push({
-        questionNo: i,
+        questionNo: qNo,
+        index: i,
         userAnswer: isQuestionOE ? String(rawUserAns || '') : toLetter(rawUserAns),
         correctAnswer: isQuestionOE ? String(rawCorrectKey || '') : toLetter(rawCorrectKey),
         isCorrect,
@@ -544,7 +567,7 @@ export default function TrackedBookQuizRunner() {
     }
 
     const hasAnswerKey = testIsOpenEnded
-      ? Object.keys(answerKey).length > 0
+      ? Object.keys(answerKey).filter(k => k !== '__meta').length > 0
       : true;
 
     const rawNet = correct - (penaltyRatio > 0 ? wrong / penaltyRatio : 0);
@@ -563,7 +586,7 @@ export default function TrackedBookQuizRunner() {
       isOpenEnded: testIsOpenEnded,
       hasAnswerKey
     };
-  }, [resolvedTest, resolvedBook, questionCount, answers]);
+  }, [resolvedTest, resolvedBook, questionCount, answers, startQuestionNumber, isOpenEnded]);
 
   const initializedRef = useRef(false);
 
@@ -901,9 +924,11 @@ export default function TrackedBookQuizRunner() {
     scrollToQuestion(qNum);
   };
 
+  const minQ = startQuestionNumber || 1;
+  const maxQ = (startQuestionNumber || 1) + (questionCount || 20) - 1;
+
   const goToNextQuestion = (currentQ) => {
     const nextQ = currentQ + 1;
-    const maxQ = questionCount || 20;
     if (nextQ <= maxQ) {
       setActiveFocusedQ(nextQ);
       const nextInput = inputRefs.current[nextQ];
@@ -921,7 +946,7 @@ export default function TrackedBookQuizRunner() {
 
   const goToPrevQuestion = (currentQ) => {
     const prevQ = currentQ - 1;
-    if (prevQ >= 1) {
+    if (prevQ >= minQ) {
       setActiveFocusedQ(prevQ);
       const prevInput = inputRefs.current[prevQ];
       if (prevInput) {
@@ -987,15 +1012,18 @@ export default function TrackedBookQuizRunner() {
   const handleSelectPoolAnswer = (answerText, targetQuestion = null) => {
     if (isSubmitted || isTeacherReviewing) return;
 
+    const startQ = startQuestionNumber || 1;
+    const endQ = startQ + (questionCount || 20) - 1;
+
     let targetQ = targetQuestion || activeFocusedQ;
     if (!targetQ) {
-      for (let i = 1; i <= (questionCount || 20); i++) {
+      for (let i = startQ; i <= endQ; i++) {
         if (!answers[i] && !answers[String(i)]) {
           targetQ = i;
           break;
         }
       }
-      if (!targetQ) targetQ = 1;
+      if (!targetQ) targetQ = startQ;
     }
 
     // Toggle: Eğer bu soruya zaten aynı cevap atanmışsa kaldır
@@ -1010,13 +1038,13 @@ export default function TrackedBookQuizRunner() {
 
     // Sıradaki boş soruya otomatik geç (eğer yoksa bir sonraki soruya)
     let nextQ = null;
-    for (let i = targetQ + 1; i <= (questionCount || 20); i++) {
+    for (let i = targetQ + 1; i <= endQ; i++) {
       if (!answers[i] && !answers[String(i)]) {
         nextQ = i;
         break;
       }
     }
-    if (!nextQ && targetQ < (questionCount || 20)) {
+    if (!nextQ && targetQ < endQ) {
       nextQ = targetQ + 1;
     }
 
@@ -1185,12 +1213,13 @@ export default function TrackedBookQuizRunner() {
     if (!window.confirm("Yanlış ve boş soruları tekrar çözmek için test modu açılacak. Doğru yaptıklarınız korunacak. Devam edilsin mi?")) return;
     const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
     const newAnswers = {};
-    for (let i = 1; i <= questionCount; i++) {
-      const selected = answers[i] || answers[String(i)];
-      const idx = i - 1;
-      const correctKey = Array.isArray(answerKey) ? answerKey[idx] : (answerKey[i] || answerKey[String(i)]);
+    const startQ = startQuestionNumber || 1;
+    for (let idx = 0; idx < questionCount; idx++) {
+      const qNo = startQ + idx;
+      const selected = answers[qNo] ?? answers[String(qNo)] ?? answers[idx + 1] ?? answers[String(idx + 1)];
+      const correctKey = Array.isArray(answerKey) ? answerKey[idx] : (answerKey[qNo] ?? answerKey[String(qNo)] ?? answerKey[idx + 1]);
       if (selected && String(selected).toUpperCase() === String(correctKey).toUpperCase()) {
-        newAnswers[i] = selected;
+        newAnswers[qNo] = selected;
       }
     }
     setAnswers(newAnswers);
@@ -2249,7 +2278,7 @@ export default function TrackedBookQuizRunner() {
                       {questionColumns.map((col, colIdx) => (
                         <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
                           {col.map(qNo => {
-                            const idx = qNo - 1;
+                            const idx = qNo - (startQuestionNumber || 1);
                             const selected = answers[qNo] || answers[String(qNo)] || '';
 
                             let isCorrect = false;
@@ -2277,6 +2306,7 @@ export default function TrackedBookQuizRunner() {
                               const isOeWrong = isOeMatch === false;
                               const isOePending = isSubmitted && !hasKey && selected;
                               const isFocused = activeFocusedQ === qNo;
+                              const isLastQ = qNo === ((startQuestionNumber || 1) + (questionCount || 20) - 1);
 
                               return (
                                 <div
@@ -2354,7 +2384,7 @@ export default function TrackedBookQuizRunner() {
                                         autoCapitalize="sentences"
                                         autoCorrect="on"
                                         spellCheck="true"
-                                        enterKeyHint={qNo === (questionCount || 20) ? "done" : "next"}
+                                        enterKeyHint={isLastQ ? "done" : "next"}
                                         disabled={isSubmitted || isTeacherReviewing}
                                         value={selected || ''}
                                         onFocus={() => handleInputFocus(qNo)}
@@ -2463,9 +2493,9 @@ export default function TrackedBookQuizRunner() {
                                           flexShrink: 0,
                                           boxShadow: isFocused ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
                                         }}
-                                        title={qNo === (questionCount || 20) ? "Girişi Tamamla" : "Sonraki Soru"}
+                                        title={isLastQ ? "Girişi Tamamla" : "Sonraki Soru"}
                                       >
-                                        <span>{qNo === (questionCount || 20) ? 'Tamam' : 'İleri'}</span>
+                                        <span>{isLastQ ? 'Tamam' : 'İleri'}</span>
                                         <ChevronRight size={14} />
                                       </button>
                                     )}
@@ -2965,7 +2995,7 @@ export default function TrackedBookQuizRunner() {
             <div style={{ padding: '0.85rem', overflowY: 'auto', flex: 1, background: '#f8fafc' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {Array.from({ length: questionCount }).map((_, idx) => {
-                  const qNo = idx + 1;
+                  const qNo = (startQuestionNumber || 1) + idx;
                   const selected = answers[qNo] || answers[String(qNo)] || '';
 
                   return (
@@ -3105,20 +3135,20 @@ export default function TrackedBookQuizRunner() {
               type="button"
               onMouseDown={e => e.preventDefault()}
               onClick={() => goToPrevQuestion(activeFocusedQ)}
-              disabled={activeFocusedQ <= 1}
+              disabled={activeFocusedQ <= (startQuestionNumber || 1)}
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.65rem',
                 border: '1.5px solid var(--color-border-input)',
                 background: 'var(--color-surface-hover)',
-                color: activeFocusedQ <= 1 ? 'var(--color-text-muted)' : 'var(--color-text)',
+                color: activeFocusedQ <= (startQuestionNumber || 1) ? 'var(--color-text-muted)' : 'var(--color-text)',
                 fontSize: '0.78rem',
                 fontWeight: 800,
-                cursor: activeFocusedQ <= 1 ? 'not-allowed' : 'pointer',
+                cursor: activeFocusedQ <= (startQuestionNumber || 1) ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                opacity: activeFocusedQ <= 1 ? 0.5 : 1
+                opacity: activeFocusedQ <= (startQuestionNumber || 1) ? 0.5 : 1
               }}
             >
               <ChevronLeft size={16} />
@@ -3137,7 +3167,7 @@ export default function TrackedBookQuizRunner() {
               alignItems: 'center',
               gap: 5
             }}>
-              <span>Soru {activeFocusedQ} / {questionCount || 20}</span>
+              <span>Soru {activeFocusedQ} ({Math.max(1, activeFocusedQ - (startQuestionNumber || 1) + 1)}/{questionCount || 20})</span>
               {answers[activeFocusedQ] ? '✓' : ''}
             </div>
           </div>
@@ -3230,8 +3260,15 @@ export default function TrackedBookQuizRunner() {
                 boxShadow: '0 4px 12px rgba(99,102,241,0.3)'
               }}
             >
-              <span>{activeFocusedQ === (questionCount || 20) ? 'Bitti ✓' : 'Sonraki'}</span>
-              {activeFocusedQ < (questionCount || 20) && <ChevronRight size={16} />}
+              {(() => {
+                const isLastFocusedQ = activeFocusedQ >= ((startQuestionNumber || 1) + (questionCount || 20) - 1);
+                return (
+                  <>
+                    <span>{isLastFocusedQ ? 'Bitti ✓' : 'Sonraki'}</span>
+                    {!isLastFocusedQ && <ChevronRight size={16} />}
+                  </>
+                );
+              })()}
             </button>
           </div>
         </div>
@@ -3507,7 +3544,7 @@ export default function TrackedBookQuizRunner() {
       {/* ── AI SCREEN SNIPPER & SOLVER MODAL ── */}
       {aiModalQuestionNo && (() => {
         const targetQNo = aiModalQuestionNo;
-        const targetQIdx = targetQNo - 1;
+        const targetQIdx = targetQNo - (startQuestionNumber || 1);
         const rawUserAns = answers[targetQNo] || answers[String(targetQNo)] || '';
         const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
         const rawKeyVal = Array.isArray(answerKey) ? (answerKey[targetQIdx] ?? '') : (answerKey[targetQNo] ?? answerKey[String(targetQNo)] ?? '');

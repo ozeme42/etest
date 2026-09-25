@@ -37,7 +37,7 @@ export default function StudentBookDetailsPage() {
   const [openTopics, setOpenTopics] = useState({});
   const [isEditTestModalOpen, setIsEditTestModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
-  const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, answerKey: {}, pdfUrl: '', dueDate: '' });
+  const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, startQuestionNumber: 1, answerKey: {}, pdfUrl: '', dueDate: '' });
   const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
 
   const queryStudentId = searchParams.get('studentId');
@@ -45,10 +45,30 @@ export default function StudentBookDetailsPage() {
   const isTeacherViewing = currentUser?.role === 'teacher' || currentUser?.role === 'admin' || isFromTeacher;
 
   const handleOpenEditTest = (test) => {
+    const rawAns = test.answerKey || test.answer_key || {};
+    const ansMeta = rawAns.__meta || {};
+    let detectedStartQNo = Number(
+      test.startQuestionNumber || 
+      test.start_question_number || 
+      test.ilkSoruNo || 
+      ansMeta.startQuestionNumber
+    ) || 1;
+
+    if (detectedStartQNo === 1 && rawAns && typeof rawAns === 'object' && !Array.isArray(rawAns)) {
+      const numericKeys = Object.keys(rawAns)
+        .filter(k => k !== '__meta' && !isNaN(Number(k)))
+        .map(Number)
+        .sort((a, b) => a - b);
+      if (numericKeys.length > 0 && numericKeys[0] > 1) {
+        detectedStartQNo = numericKeys[0];
+      }
+    }
+
     setEditingTest(test);
     setEditTestFormData({
       name: test.name || '',
       questionCount: test.questionCount || 20,
+      startQuestionNumber: detectedStartQNo,
       answerKey: test.answerKey || {},
       pdfUrl: test.pdfUrl || '',
       dueDate: test.testDueDate || test.dueDate || ''
@@ -60,6 +80,16 @@ export default function StudentBookDetailsPage() {
     if (!editingTest || !editTestFormData.name?.trim()) return;
     try {
       const dStr = editTestFormData.dueDate || null;
+      const startQNo = Number(editTestFormData.startQuestionNumber) || 1;
+      const rawAnsKey = editTestFormData.answerKey || {};
+      const ansMeta = rawAnsKey.__meta || {};
+      const enrichedAnswerKey = {
+        ...rawAnsKey,
+        __meta: {
+          ...ansMeta,
+          startQuestionNumber: startQNo
+        }
+      };
 
       // 1. Update tracked_book_tests
       await updateTrackedBookTest(editingTest.id, {
@@ -68,7 +98,9 @@ export default function StudentBookDetailsPage() {
         topicId: editingTest.topicId ? String(editingTest.topicId) : null,
         name: editTestFormData.name.trim(),
         questionCount: Number(editTestFormData.questionCount) || 20,
-        answerKey: editTestFormData.answerKey || {},
+        startQuestionNumber: startQNo,
+        start_question_number: startQNo,
+        answerKey: enrichedAnswerKey,
         pdfUrl: editTestFormData.pdfUrl || '',
         dueDate: dStr,
         testDueDate: dStr,
@@ -2804,16 +2836,29 @@ export default function StudentBookDetailsPage() {
               />
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
-              <input 
-                type="number" 
-                min="1" 
-                max="100" 
-                value={editTestFormData.questionCount} 
-                onChange={e => setEditTestFormData(p => ({ ...p, questionCount: parseInt(e.target.value) || 0 }))} 
-                style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 700, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>İlk Soru No</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="1000" 
+                  value={editTestFormData.startQuestionNumber || 1} 
+                  onChange={e => setEditTestFormData(p => ({ ...p, startQuestionNumber: parseInt(e.target.value) || 1 }))} 
+                  style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 700, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-text)' }}>Soru Sayısı</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="100" 
+                  value={editTestFormData.questionCount} 
+                  onChange={e => setEditTestFormData(p => ({ ...p, questionCount: parseInt(e.target.value) || 0 }))} 
+                  style={{ width: '100%', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid var(--color-border-input)', fontWeight: 700, background: 'var(--color-surface-hover)', color: 'var(--color-text)' }} 
+                />
+              </div>
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
@@ -2847,9 +2892,13 @@ export default function StudentBookDetailsPage() {
                   placeholder="Toplu Gir (Örn: ABC...)" 
                   onChange={(e) => {
                     const str = e.target.value;
-                    const newKey = {};
+                    const startQ = Number(editTestFormData.startQuestionNumber) || 1;
+                    const newKey = { ...editTestFormData.answerKey };
                     str.replace(/[^A-Ea-e]/g, '').toUpperCase().split('').forEach((char, idx) => {
-                      if (idx < editTestFormData.questionCount) newKey[idx + 1] = char;
+                      if (idx < editTestFormData.questionCount) {
+                        newKey[startQ + idx] = char;
+                        newKey[String(startQ + idx)] = char;
+                      }
                     });
                     setEditTestFormData(p => ({ ...p, answerKey: newKey }));
                   }}
@@ -2858,35 +2907,53 @@ export default function StudentBookDetailsPage() {
               </label>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto', padding: '0.5rem', background: 'var(--color-surface-hover)', borderRadius: '0.5rem', border: '1px solid var(--color-border)' }}>
-                {Array.from({ length: editTestFormData.questionCount }).map((_, i) => {
-                  const qNum = i + 1;
-                  const val = editTestFormData.answerKey?.[qNum] || '';
-                  return (
-                    <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-border)' }}>
-                      <div style={{ width: '18px', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
-                      <div style={{ display: 'flex', gap: '0.2rem' }}>
-                        {['A', 'B', 'C', 'D', 'E'].map(opt => {
-                          const isSelected = val === opt;
-                          return (
-                            <button
-                              type="button"
-                              key={opt}
-                              onClick={() => setEditTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt } }))}
-                              style={{
-                                width: '24px', height: '24px', borderRadius: '50%', border: '1px solid var(--color-border-input)',
-                                background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-hover)',
-                                color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}
-                            >
-                              {opt}
-                            </button>
-                          );
-                        })}
+                {(() => {
+                  const startQ = Number(editTestFormData.startQuestionNumber) || 1;
+                  const isOe = editingTest?.isOpenEnded || editingTest?.questionType === 'acik_uclu';
+                  return Array.from({ length: editTestFormData.questionCount }).map((_, i) => {
+                    const qNum = startQ + i;
+                    const val = editTestFormData.answerKey?.[qNum] ?? editTestFormData.answerKey?.[String(qNum)] ?? '';
+                    if (isOe) {
+                      return (
+                        <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-border)' }}>
+                          <div style={{ width: '28px', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
+                          <input
+                            type="text"
+                            value={val}
+                            onChange={e => setEditTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: e.target.value, [String(qNum)]: e.target.value } }))}
+                            placeholder="Cevap..."
+                            style={{ flex: 1, minWidth: 0, padding: '0.2rem 0.4rem', borderRadius: '0.35rem', border: '1px solid var(--color-border-input)', background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 700 }}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={qNum} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.35rem 0.5rem', borderRadius: '0.4rem', border: '1px solid var(--color-border)' }}>
+                        <div style={{ width: '28px', fontWeight: 800, fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{qNum}.</div>
+                        <div style={{ display: 'flex', gap: '0.2rem' }}>
+                          {['A', 'B', 'C', 'D', 'E'].map(opt => {
+                            const isSelected = val === opt;
+                            return (
+                              <button
+                                type="button"
+                                key={opt}
+                                onClick={() => setEditTestFormData(p => ({ ...p, answerKey: { ...p.answerKey, [qNum]: opt, [String(qNum)]: opt } }))}
+                                style={{
+                                  width: '24px', height: '24px', borderRadius: '50%', border: '1px solid var(--color-border-input)',
+                                  background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-hover)',
+                                  color: isSelected ? 'white' : 'var(--color-text)', cursor: 'pointer', fontWeight: 800, fontSize: '0.7rem',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                }}
+                              >
+                                {opt}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </div>
 

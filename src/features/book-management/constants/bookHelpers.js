@@ -1,11 +1,12 @@
-export function parseAnswerKeyString(str, questionCount = 20, optionCount = 5) {
+export function parseAnswerKeyString(str, questionCount = 20, optionCount = 5, startQNo = 1) {
   if (!str || typeof str !== 'string') return {};
   const cleanRegex = optionCount === 4 ? /[^A-Da-d]/g : /[^A-Ea-e]/g;
   const cleaned = str.replace(cleanRegex, '').toUpperCase();
   const answerKey = {};
   const maxQ = questionCount || cleaned.length || 20;
+  const start = Number(startQNo) || 1;
   for (let i = 0; i < Math.min(cleaned.length, maxQ); i++) {
-    answerKey[String(i + 1)] = cleaned[i];
+    answerKey[String(start + i)] = cleaned[i];
   }
   return answerKey;
 }
