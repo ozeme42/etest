@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Lock, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search, Compass, Layers } from 'lucide-react';
 import { useCurriculum } from '../context/CurriculumContext';
@@ -4970,43 +4971,135 @@ export default function ProgramCenter({
       }
     });
 
-    // 3. Yol haritası (study plan) gecikmiş hedefleri
+    // 3. Yol haritası (study plan) gecikmiş hedefleri (Ders ve Konu bazlı derinlemesine kontrol)
     const studentAssignments = (studyAssignments || []).filter(a => {
       const aSid = String(a?.studentId || a?.student_id || '');
       return aSid === studentIdStr || (studentUuidStr && (aSid === studentUuidStr || toUUID(aSid) === studentUuidStr));
     });
 
     studentAssignments.forEach(assignment => {
-      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
-      const aDue = assignment.dueDate || assignment.due_date || assignment.targetDate;
-      if (!aDue) return;
-      const due = new Date(aDue);
-      const dueTime = due.getTime();
-      const dueYMD = String(aDue).slice(0, 10);
-      if (!todayYMD || dueYMD >= todayYMD) return;
+      if (!assignment || assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+      const plan = (studyPlans || []).find(p => String(p?.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
 
-      const aKey = `study_${assignment.id}`;
-      if (seenOverdueKeys.has(aKey) || seenOverdueKeys.has(String(assignment.id))) return;
-      seenOverdueKeys.add(aKey);
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
 
-      const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
-      const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+      (plan.subjects || []).forEach(subject => {
+        const hasChildTopics = Array.isArray(subject?.topics) && subject.topics.length > 0;
+        const dersNameRaw = getDersNameForRoadmap ? getDersNameForRoadmap(subject, plan) : (subject.dersName || subject.subject || plan.subject || 'Genel Ders');
+        const dersName = (dersNameRaw && dersNameRaw.toLowerCase() === 'geometri') ? 'Matematik' : dersNameRaw;
 
-      list.push({
-        id: `overdue_study_${assignment.id}`,
-        subject: plan?.subject || assignment.subject || 'Yol Haritası',
-        topic: assignment.title || plan?.title || 'Yol Haritası Çalışması',
-        bookName: plan?.title || 'Yol Haritası',
-        taskType: 'konu',
-        isOverdue: true,
-        diffDays,
-        overdueReason: `Hedef: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+        if (!hasChildTopics && subject?.dueDate) {
+          const sYMD = extractItemYMD(subject.dueDate);
+          const isOverdue = sYMD && todayYMD && sYMD < todayYMD;
+          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name);
+
+          if (isOverdue && !isSubjectCompleted) {
+            const due = new Date(subject.dueDate);
+            const dueTime = due.getTime();
+            const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+            const subKey = `study_sub_${assignment.id}_${subject.id}`;
+            if (!seenOverdueKeys.has(subKey)) {
+              seenOverdueKeys.add(subKey);
+              list.push({
+                id: subKey,
+                roadmapAssignmentId: assignment.id,
+                subject: dersName || 'Genel Ders',
+                dersName: dersName || 'Genel Ders',
+                bookTitle: plan.title,
+                bookName: plan.title,
+                roadmapTitle: plan.title,
+                planTitle: plan.title,
+                unit: subject.name,
+                unitName: subject.name,
+                topic: subject.name,
+                title: subject.name,
+                topicId: subject.id,
+                taskType: 'konu',
+                categoryType: 'yol_haritasi',
+                dueDate: subject.dueDate,
+                isOverdue: true,
+                diffDays,
+                overdueReason: `Hedef: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+              });
+            }
+          }
+        }
+
+        (subject?.topics || []).forEach(topic => {
+          if (topic?.dueDate) {
+            const tYMD = extractItemYMD(topic.dueDate);
+            const isOverdue = tYMD && todayYMD && tYMD < todayYMD;
+            const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+
+            if (isOverdue && !isCompleted) {
+              const due = new Date(topic.dueDate);
+              const dueTime = due.getTime();
+              const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
+              const topKey = `study_top_${assignment.id}_${topic.id}`;
+              if (!seenOverdueKeys.has(topKey)) {
+                seenOverdueKeys.add(topKey);
+                list.push({
+                  id: topKey,
+                  roadmapAssignmentId: assignment.id,
+                  subject: dersName || 'Genel Ders',
+                  dersName: dersName || 'Genel Ders',
+                  bookTitle: plan.title,
+                  bookName: plan.title,
+                  roadmapTitle: plan.title,
+                  planTitle: plan.title,
+                  unit: subject.name,
+                  unitName: subject.name,
+                  topic: topic.name,
+                  title: topic.name,
+                  topicId: topic.id,
+                  taskType: 'konu',
+                  categoryType: 'yol_haritasi',
+                  dueDate: topic.dueDate,
+                  isOverdue: true,
+                  diffDays,
+                  overdueReason: `Hedef: ${due.toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+                });
+              }
+            }
+          }
+        });
+      });
+    });
+
+    // 4. Haftalık programda tek bir tarihe (singleDate / specificDate) atanmış ve tarihi geçmiş görevler
+    (weeklyProgram || []).forEach(dObj => {
+      (dObj?.items || []).forEach(item => {
+        if (!item || item.done) return;
+        const sDate = item.singleDate || item.specificDate || item.scheduledDate || (item.repeatType === 'none' || item.isRecurring === false ? (item.date || item.targetDate) : null);
+        if (sDate && todayYMD && sDate < todayYMD) {
+          const itemKey = String(item.testId || item.bookTestId || item.realTestId || item.hwId || item.id || `${item.subject}_${item.topic}`);
+          if (!seenOverdueKeys.has(itemKey)) {
+            seenOverdueKeys.add(itemKey);
+            const due = new Date(sDate);
+            const diffDays = Math.max(1, Math.round((nowTime - due.getTime()) / (1000 * 60 * 60 * 24)));
+            list.push({
+              ...item,
+              categoryType: item.categoryType || (item.taskType === 'okuma' ? 'okuma' : (item.isBookTask ? 'kitap' : 'program')),
+              sourceDayLabel: dObj.day,
+              isOverdue: true,
+              dueDate: sDate,
+              diffDays,
+              overdueReason: `${new Date(sDate).toLocaleDateString('tr-TR')} (${diffDays} gün gecikti)`
+            });
+          }
+        }
       });
     });
 
     list.sort((a, b) => (b.diffDays || 0) - (a.diffDays || 0));
     return list;
-  }, [processedWeeklyProgram, effectiveUser, allHomeworks, curData, submissions, studyAssignments, studyPlans, books, bookTests]);
+  }, [processedWeeklyProgram, weeklyProgram, effectiveUser, allHomeworks, curData, submissions, studyAssignments, studyPlans, books, bookTests]);
 
   const handlePrintOverdueOnly = useCallback(() => {
     if (!overdueTasks || overdueTasks.length === 0) {
@@ -6693,305 +6786,324 @@ export default function ProgramCenter({
         />
       )}
 
-      {/* GLOBAL PRINT OVERDUE STYLES */}
-      <style>{`
-        .print-overdue-only-doc { display: none; }
-        @media print {
-          .print-overdue-only-doc {
-            display: ${printMode === 'overdue' ? 'block !important' : 'none !important'};
-            width: 100% !important;
-            color: #0f172a !important;
-            background: #ffffff !important;
-            font-family: 'Inter', -apple-system, sans-serif !important;
-          }
-          .print-od-header {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: flex-start !important;
-            border-bottom: 2.5px solid #dc2626 !important;
-            padding-bottom: 6px !important;
-            margin-bottom: 8px !important;
-          }
-          .print-od-brand {
-            font-size: 11pt !important;
-            font-weight: 900 !important;
-            color: #0f172a !important;
-            letter-spacing: -0.02em !important;
-          }
-          .print-od-title {
-            font-size: 9.2pt !important;
-            font-weight: 900 !important;
-            color: #dc2626 !important;
-            margin-top: 2px !important;
-          }
-          .print-od-header-right {
-            text-align: right !important;
-            font-size: 7.8pt !important;
-            color: #334155 !important;
-            line-height: 1.3 !important;
-          }
-          .print-od-stat-badge {
-            display: inline-block !important;
-            margin-top: 2px !important;
-            padding: 2px 7px !important;
-            border-radius: 4px !important;
-            background: #fee2e2 !important;
-            color: #b91c1c !important;
-            font-weight: 900 !important;
-            font-size: 7.5pt !important;
-            border: 1px solid #fca5a5 !important;
-          }
-          .print-od-alert-box {
-            background: #fff7ed !important;
-            border: 1px solid #fed7aa !important;
-            border-left: 4px solid #f97316 !important;
-            border-radius: 4px !important;
-            padding: 5px 8px !important;
-            font-size: 7.2pt !important;
-            color: #9a3412 !important;
-            margin-bottom: 10px !important;
-            line-height: 1.35 !important;
-            page-break-inside: avoid !important;
-          }
-          .print-od-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin-bottom: 10px !important;
-            font-size: 7.4pt !important;
-          }
-          .print-od-th {
-            background: #f8fafc !important;
-            border: 1px solid #cbd5e1 !important;
-            padding: 4px 6px !important;
-            font-weight: 900 !important;
-            color: #1e293b !important;
-            text-align: left !important;
-          }
-          .print-od-tr {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          .print-od-td {
-            border: 1px solid #e2e8f0 !important;
-            padding: 4px 6px !important;
-            vertical-align: middle !important;
-            line-height: 1.25 !important;
-          }
-          .print-od-row-even {
-            background: #ffffff !important;
-          }
-          .print-od-row-odd {
-            background: #f8fafc !important;
-          }
-          .print-od-check-box {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            width: 13px !important;
-            height: 13px !important;
-            border: 1.5px solid #64748b !important;
-            border-radius: 3px !important;
-            background: #ffffff !important;
-          }
-          .print-od-subject-badge {
-            display: inline-block !important;
-            font-weight: 800 !important;
-            font-size: 7.2pt !important;
-            padding: 1px 5px !important;
-            border-radius: 3px !important;
-            background: #e0e7ff !important;
-            color: #3730a3 !important;
-          }
-          .print-od-reason-pill {
-            display: inline-block !important;
-            font-weight: 800 !important;
-            font-size: 6.8pt !important;
-            padding: 1px 5px !important;
-            border-radius: 3px !important;
-            background: #fee2e2 !important;
-            color: #dc2626 !important;
-            border: 0.5px solid #fecaca !important;
-          }
-          .print-od-q-pill {
-            display: inline-block !important;
-            font-weight: 800 !important;
-            font-size: 6.8pt !important;
-            padding: 1px 5px !important;
-            border-radius: 3px !important;
-            background: #e0f2fe !important;
-            color: #0369a1 !important;
-          }
-          .print-od-footer-section {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            margin-top: 10px !important;
-            border-top: 1.5px solid #cbd5e1 !important;
-            padding-top: 6px !important;
-          }
-          .print-od-notes-area {
-            margin-bottom: 8px !important;
-          }
-          .print-od-notes-title {
-            font-size: 7.5pt !important;
-            font-weight: 800 !important;
-            color: #334155 !important;
-            margin-bottom: 3px !important;
-          }
-          .print-od-notes-line {
-            border-bottom: 1px dotted #cbd5e1 !important;
-            height: 16px !important;
-            width: 100% !important;
-          }
-          .print-od-signatures {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            font-size: 7.2pt !important;
-            color: #475569 !important;
-            margin-top: 6px !important;
-          }
-        }
-      `}</style>
-
-      {/* FULL-DETAIL PRINTABLE OVERDUE TASKS (A4 CLEAN DOCUMENT) */}
-      <div className="print-overdue-only-doc">
-        {/* Header */}
-        <div className="print-od-header">
-          <div>
-            <div className="print-od-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
-            <div className="print-od-title">
-              ⚠️ Geciken & Telafi Çalışma Planı (Eksik Kalan Görevler)
-            </div>
-          </div>
-          <div className="print-od-header-right">
-            <div>Öğrenci: <strong>{effectiveUser?.name || effectiveUser?.username || currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
-            <div className="print-od-stat-badge">
-              Toplam: {overdueTasks.length} Geciken Görev
-            </div>
-            <div style={{ color: '#64748b', fontSize: '7.2pt', marginTop: 2 }}>
-              Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}
-            </div>
-          </div>
-        </div>
-
-        {/* Info Alert Box */}
-        <div className="print-od-alert-box">
-          📌 <strong>Öğrenci ve Koç Bilgilendirmesi:</strong> Bu liste, bugüne kadar tamamlanmamış haftalık program görevleri, teslim tarihi geçmiş ödevler, kitap testleri ve yol haritası hedeflerini içermektedir. Görevleri tamamladıkça kutucukları işaretleyiniz ve doğru/yanlış sayılarını not ediniz.
-        </div>
-
-        {/* Overdue Tasks Table */}
-        <table className="print-od-table">
-          <thead>
-            <tr>
-              <th className="print-od-th" style={{ width: '28px', textAlign: 'center' }}>#</th>
-              <th className="print-od-th" style={{ width: '28px', textAlign: 'center' }}>✓</th>
-              <th className="print-od-th" style={{ width: '90px' }}>Ders</th>
-              <th className="print-od-th">Konu / Kitap / Test Detayı</th>
-              <th className="print-od-th" style={{ width: '140px' }}>Gecikme & Kaynak</th>
-              <th className="print-od-th" style={{ width: '115px', textAlign: 'center' }}>Sonuç & Not</th>
-            </tr>
-          </thead>
-          <tbody>
-            {overdueTasks.map((task, idx) => {
-              const bookInfo = resolveBookTestInfo(task, books, bookTests);
-              const subjName = bookInfo?.subject || task.subject || 'Genel';
-              const qCount = bookInfo?.questionCount || task.questionCount;
-              const qCountStr = qCount ? (String(qCount).includes('soru') ? qCount : `${qCount} soru`) : null;
-
-              let titleLine = '';
-              if (bookInfo?.isBookTest) {
-                titleLine = `${bookInfo.bookTitle || task.bookName || task.bookTitle || ''}${bookInfo.publisher ? ` (${bookInfo.publisher})` : ''}`;
-              } else {
-                titleLine = task.bookName || task.bookTitle || '';
+      {/* DEDICATED PRINTABLE OVERDUE TASKS (PORTAL DIRECTLY TO BODY FOR FLAWLESS MULTI-PAGE PRINTING) */}
+      {printMode === 'overdue' && typeof document !== 'undefined' && createPortal(
+        <div id="print-overdue-tasks-portal" className="print-overdue-only-doc">
+          <style>{`
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
               }
-
-              let detailLine = '';
-              if (bookInfo?.isBookTest) {
-                detailLine = [bookInfo.unit ? `📂 ${bookInfo.unit}` : null, bookInfo.testName ? `🎯 ${bookInfo.testName}` : null].filter(Boolean).join(' • ');
-              } else {
-                detailLine = task.topic || task.title || '';
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
               }
+              body > *:not(#print-overdue-tasks-portal) {
+                display: none !important;
+              }
+              #print-overdue-tasks-portal {
+                display: block !important;
+                width: 100% !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                font-family: 'Inter', -apple-system, sans-serif !important;
+              }
+              .print-od-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                border-bottom: 2.5px solid #dc2626 !important;
+                padding-bottom: 6px !important;
+                margin-bottom: 8px !important;
+              }
+              .print-od-brand {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.02em !important;
+              }
+              .print-od-title {
+                font-size: 9.2pt !important;
+                font-weight: 900 !important;
+                color: #dc2626 !important;
+                margin-top: 2px !important;
+              }
+              .print-od-header-right {
+                text-align: right !important;
+                font-size: 7.8pt !important;
+                color: #334155 !important;
+                line-height: 1.3 !important;
+              }
+              .print-od-stat-badge {
+                display: inline-block !important;
+                margin-top: 2px !important;
+                padding: 2px 7px !important;
+                border-radius: 4px !important;
+                background: #fee2e2 !important;
+                color: #b91c1c !important;
+                font-weight: 900 !important;
+                font-size: 7.5pt !important;
+                border: 1px solid #fca5a5 !important;
+              }
+              .print-od-alert-box {
+                background: #fff7ed !important;
+                border: 1px solid #fed7aa !important;
+                border-left: 4px solid #f97316 !important;
+                border-radius: 4px !important;
+                padding: 5px 8px !important;
+                font-size: 7.2pt !important;
+                color: #9a3412 !important;
+                margin-bottom: 10px !important;
+                line-height: 1.35 !important;
+                page-break-inside: avoid !important;
+              }
+              .print-od-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-bottom: 10px !important;
+                font-size: 7.4pt !important;
+                page-break-inside: auto !important;
+              }
+              .print-od-th {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                padding: 4px 6px !important;
+                font-weight: 900 !important;
+                color: #1e293b !important;
+                text-align: left !important;
+              }
+              .print-od-tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .print-od-td {
+                border: 1px solid #e2e8f0 !important;
+                padding: 4px 6px !important;
+                vertical-align: middle !important;
+                line-height: 1.25 !important;
+              }
+              .print-od-row-even {
+                background: #ffffff !important;
+              }
+              .print-od-row-odd {
+                background: #f8fafc !important;
+              }
+              .print-od-check-box {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 13px !important;
+                height: 13px !important;
+                border: 1.5px solid #64748b !important;
+                border-radius: 3px !important;
+                background: #ffffff !important;
+              }
+              .print-od-subject-badge {
+                display: inline-block !important;
+                font-weight: 800 !important;
+                font-size: 7.2pt !important;
+                padding: 1px 5px !important;
+                border-radius: 3px !important;
+                background: #e0e7ff !important;
+                color: #3730a3 !important;
+              }
+              .print-od-reason-pill {
+                display: inline-block !important;
+                font-weight: 800 !important;
+                font-size: 6.8pt !important;
+                padding: 1px 5px !important;
+                border-radius: 3px !important;
+                background: #fee2e2 !important;
+                color: #dc2626 !important;
+                border: 0.5px solid #fecaca !important;
+              }
+              .print-od-q-pill {
+                display: inline-block !important;
+                font-weight: 800 !important;
+                font-size: 6.8pt !important;
+                padding: 1px 5px !important;
+                border-radius: 3px !important;
+                background: #e0f2fe !important;
+                color: #0369a1 !important;
+              }
+              .print-od-footer-section {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin-top: 10px !important;
+                border-top: 1.5px solid #cbd5e1 !important;
+                padding-top: 6px !important;
+              }
+              .print-od-notes-area {
+                margin-bottom: 8px !important;
+              }
+              .print-od-notes-title {
+                font-size: 7.5pt !important;
+                font-weight: 800 !important;
+                color: #334155 !important;
+                margin-bottom: 3px !important;
+              }
+              .print-od-notes-line {
+                border-bottom: 1px dotted #cbd5e1 !important;
+                height: 16px !important;
+                width: 100% !important;
+              }
+              .print-od-signatures {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                font-size: 7.2pt !important;
+                color: #475569 !important;
+                margin-top: 6px !important;
+              }
+            }
+          `}</style>
 
-              const cleanTitle = (titleLine || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
-              const cleanDetail = (detailLine || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
-              const showDetail = cleanDetail && cleanDetail !== cleanTitle;
-
-              return (
-                <tr key={task.id || `overdue_${idx}`} className={`print-od-tr ${idx % 2 === 0 ? 'print-od-row-even' : 'print-od-row-odd'}`}>
-                  <td className="print-od-td" style={{ textAlign: 'center', fontWeight: 800, color: '#64748b' }}>
-                    {idx + 1}
-                  </td>
-                  <td className="print-od-td" style={{ textAlign: 'center' }}>
-                    <span className="print-od-check-box" />
-                  </td>
-                  <td className="print-od-td">
-                    <span className="print-od-subject-badge">
-                      {subjName}
-                    </span>
-                  </td>
-                  <td className="print-od-td">
-                    {cleanTitle && (
-                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '7.6pt' }}>
-                        📖 {cleanTitle}
-                      </div>
-                    )}
-                    {showDetail && (
-                      <div style={{ color: '#334155', fontWeight: 600, fontSize: '7pt', marginTop: cleanTitle ? 1 : 0 }}>
-                        {cleanDetail}
-                      </div>
-                    )}
-                    {!cleanTitle && !showDetail && (
-                      <div style={{ color: '#334155', fontWeight: 600, fontSize: '7pt' }}>
-                        {task.topic || task.title || 'Genel Çalışma'}
-                      </div>
-                    )}
-                    {qCountStr && (
-                      <div style={{ marginTop: 2 }}>
-                        <span className="print-od-q-pill">✏️ {qCountStr}</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="print-od-td">
-                    {task.overdueReason ? (
-                      <span className="print-od-reason-pill">
-                        ⚠️ {task.overdueReason}
-                      </span>
-                    ) : (
-                      <span className="print-od-reason-pill">
-                        ⚠️ Süresi Geçmiş
-                      </span>
-                    )}
-                    {task.sourceDayLabel && (
-                      <div style={{ fontSize: '6.5pt', color: '#64748b', marginTop: 1 }}>
-                        Kaynak: {task.sourceDayLabel}
-                      </div>
-                    )}
-                  </td>
-                  <td className="print-od-td" style={{ textAlign: 'center', fontSize: '6.8pt', color: '#64748b' }}>
-                    <div>D: ___ Y: ___ B: ___</div>
-                    <div style={{ marginTop: 2 }}>Tarih: ___/___</div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* Footer notes & signatures */}
-        <div className="print-od-footer-section">
-          <div className="print-od-notes-area">
-            <div className="print-od-notes-title">📝 Telafi Takip & Koç Değerlendirme Notları:</div>
-            <div className="print-od-notes-line" />
-            <div className="print-od-notes-line" />
+          {/* Header */}
+          <div className="print-od-header">
+            <div>
+              <div className="print-od-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
+              <div className="print-od-title">
+                ⚠️ Geciken & Telafi Çalışma Planı (Eksik Kalan Görevler)
+              </div>
+            </div>
+            <div className="print-od-header-right">
+              <div>Öğrenci: <strong>{effectiveUser?.name || effectiveUser?.username || currentUser?.name || currentUser?.username || 'Öğrenci'}</strong></div>
+              <div className="print-od-stat-badge">
+                Toplam: {overdueTasks.length} Geciken Görev
+              </div>
+              <div style={{ color: '#64748b', fontSize: '7.2pt', marginTop: 2 }}>
+                Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}
+              </div>
+            </div>
           </div>
 
-          <div className="print-od-signatures">
-            <div>Öğrenci İmzası: ___________________</div>
-            <div>Koç / Öğretmen İmzası: ___________________</div>
-            <div>Veli İmzası: ___________________</div>
+          {/* Info Alert Box */}
+          <div className="print-od-alert-box">
+            📌 <strong>Öğrenci ve Koç Bilgilendirmesi:</strong> Bu liste, bugüne kadar tamamlanmamış haftalık program görevleri, teslim tarihi geçmiş ödevler, kitap testleri ve yol haritası hedeflerini içermektedir. Görevleri tamamladıkça kutucukları işaretleyiniz ve doğru/yanlış sayılarını not ediniz.
           </div>
-        </div>
-      </div>
+
+          {/* Overdue Tasks Table */}
+          <table className="print-od-table">
+            <thead>
+              <tr>
+                <th className="print-od-th" style={{ width: '28px', textAlign: 'center' }}>#</th>
+                <th className="print-od-th" style={{ width: '28px', textAlign: 'center' }}>✓</th>
+                <th className="print-od-th" style={{ width: '90px' }}>Ders</th>
+                <th className="print-od-th">Konu / Kitap / Test Detayı</th>
+                <th className="print-od-th" style={{ width: '140px' }}>Gecikme & Kaynak</th>
+                <th className="print-od-th" style={{ width: '115px', textAlign: 'center' }}>Sonuç & Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              {overdueTasks.map((task, idx) => {
+                const bookInfo = resolveBookTestInfo(task, books, bookTests);
+                const subjName = bookInfo?.subject || task.subject || 'Genel';
+                const qCount = bookInfo?.questionCount || task.questionCount;
+                const qCountStr = qCount ? (String(qCount).includes('soru') ? qCount : `${qCount} soru`) : null;
+
+                let titleLine = '';
+                if (bookInfo?.isBookTest) {
+                  titleLine = `${bookInfo.bookTitle || task.bookName || task.bookTitle || ''}${bookInfo.publisher ? ` (${bookInfo.publisher})` : ''}`;
+                } else {
+                  titleLine = task.bookName || task.bookTitle || '';
+                }
+
+                let detailLine = '';
+                if (bookInfo?.isBookTest) {
+                  detailLine = [bookInfo.unit ? `📂 ${bookInfo.unit}` : null, bookInfo.testName ? `🎯 ${bookInfo.testName}` : null].filter(Boolean).join(' • ');
+                } else {
+                  detailLine = task.topic || task.title || '';
+                }
+
+                const cleanTitle = (titleLine || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                const cleanDetail = (detailLine || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                const showDetail = cleanDetail && cleanDetail !== cleanTitle;
+
+                return (
+                  <tr key={task.id || `overdue_${idx}`} className={`print-od-tr ${idx % 2 === 0 ? 'print-od-row-even' : 'print-od-row-odd'}`}>
+                    <td className="print-od-td" style={{ textAlign: 'center', fontWeight: 800, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td className="print-od-td" style={{ textAlign: 'center' }}>
+                      <span className="print-od-check-box" />
+                    </td>
+                    <td className="print-od-td">
+                      <span className="print-od-subject-badge">
+                        {subjName}
+                      </span>
+                    </td>
+                    <td className="print-od-td">
+                      {cleanTitle && (
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '7.6pt' }}>
+                          📖 {cleanTitle}
+                        </div>
+                      )}
+                      {showDetail && (
+                        <div style={{ color: '#334155', fontWeight: 600, fontSize: '7pt', marginTop: cleanTitle ? 1 : 0 }}>
+                          {cleanDetail}
+                        </div>
+                      )}
+                      {!cleanTitle && !showDetail && (
+                        <div style={{ color: '#334155', fontWeight: 600, fontSize: '7pt' }}>
+                          {task.topic || task.title || 'Genel Çalışma'}
+                        </div>
+                      )}
+                      {qCountStr && (
+                        <div style={{ marginTop: 2 }}>
+                          <span className="print-od-q-pill">✏️ {qCountStr}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="print-od-td">
+                      {task.overdueReason ? (
+                        <span className="print-od-reason-pill">
+                          ⚠️ {task.overdueReason}
+                        </span>
+                      ) : (
+                        <span className="print-od-reason-pill">
+                          ⚠️ Süresi Geçmiş
+                        </span>
+                      )}
+                      {task.sourceDayLabel && (
+                        <div style={{ fontSize: '6.5pt', color: '#64748b', marginTop: 1 }}>
+                          Kaynak: {task.sourceDayLabel}
+                        </div>
+                      )}
+                    </td>
+                    <td className="print-od-td" style={{ textAlign: 'center', fontSize: '6.8pt', color: '#64748b' }}>
+                      <div>D: ___ Y: ___ B: ___</div>
+                      <div style={{ marginTop: 2 }}>Tarih: ___/___</div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Footer notes & signatures */}
+          <div className="print-od-footer-section">
+            <div className="print-od-notes-area">
+              <div className="print-od-notes-title">📝 Telafi Takip & Koç Değerlendirme Notları:</div>
+              <div className="print-od-notes-line" />
+              <div className="print-od-notes-line" />
+            </div>
+
+            <div className="print-od-signatures">
+              <div>Öğrenci İmzası: ___________________</div>
+              <div>Koç / Öğretmen İmzası: ___________________</div>
+              <div>Veli İmzası: ___________________</div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Add / Edit / Assign Modal */}
       {(addingToDay || editingItem || assigningTopic) && (

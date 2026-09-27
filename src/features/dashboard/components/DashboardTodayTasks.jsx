@@ -1,4 +1,5 @@
 import React, { memo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock, Plus, Printer } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
@@ -1023,97 +1024,114 @@ export default memo(function DashboardTodayTasks({
         )}
       </div>
 
-      {/* PRINTABLE TELAFİ / CATCH-UP TASKS DOCUMENT */}
-      <style>{`
-        .print-catchup-tasks-doc { display: none; }
-        @media print {
-          ${isPrintingCatchUp ? `
-            @page {
-              size: A4 portrait;
-              margin: 8mm 10mm;
+      {/* PRINTABLE TELAFİ / CATCH-UP TASKS DOCUMENT (PORTAL DIRECTLY TO BODY FOR FLAWLESS MULTI-PAGE PRINTING) */}
+      {isPrintingCatchUp && hasCatchUp && typeof document !== 'undefined' && createPortal(
+        <div id="print-catchup-tasks-portal" className="print-catchup-tasks-doc">
+          <style>{`
+            .print-catchup-tasks-doc { display: none; }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
+              }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+              }
+              body > *:not(#print-catchup-tasks-portal) {
+                display: none !important;
+              }
+              #print-catchup-tasks-portal {
+                display: block !important;
+                width: 100% !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                font-family: 'Inter', -apple-system, sans-serif !important;
+              }
+              .print-cu-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                border-bottom: 2.5px solid #dc2626 !important;
+                padding-bottom: 6px !important;
+                margin-bottom: 8px !important;
+              }
+              .print-cu-brand {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.02em !important;
+              }
+              .print-cu-title {
+                font-size: 9.2pt !important;
+                font-weight: 900 !important;
+                color: #dc2626 !important;
+                margin-top: 2px !important;
+              }
+              .print-cu-alert-box {
+                background: #fff7ed !important;
+                border: 1px solid #fed7aa !important;
+                border-left: 4px solid #f97316 !important;
+                padding: 5px 8px !important;
+                font-size: 7.2pt !important;
+                color: #9a3412 !important;
+                margin-bottom: 10px !important;
+                border-radius: 4px !important;
+                page-break-inside: avoid !important;
+              }
+              .print-cu-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-bottom: 10px !important;
+                font-size: 7.4pt !important;
+                page-break-inside: auto !important;
+              }
+              .print-cu-th {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                padding: 4px 6px !important;
+                font-weight: 900 !important;
+                color: #1e293b !important;
+                text-align: left !important;
+              }
+              .print-cu-tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .print-cu-td {
+                border: 1px solid #e2e8f0 !important;
+                padding: 4px 6px !important;
+                vertical-align: middle !important;
+                line-height: 1.25 !important;
+              }
+              .print-cu-check {
+                display: inline-flex !important;
+                width: 13px !important;
+                height: 13px !important;
+                border: 1.5px solid #64748b !important;
+                border-radius: 3px !important;
+                background: #ffffff !important;
+              }
+              .print-cu-footer {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border-top: 1.5px solid #cbd5e1 !important;
+                padding-top: 6px !important;
+                margin-top: 10px !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                font-size: 7.2pt !important;
+                color: #475569 !important;
+              }
             }
-            body * {
-              visibility: hidden !important;
-            }
-            .print-catchup-tasks-doc, .print-catchup-tasks-doc * {
-              visibility: visible !important;
-            }
-            .print-catchup-tasks-doc {
-              position: absolute !important;
-              left: 0 !important;
-              top: 0 !important;
-              width: 100% !important;
-              display: block !important;
-              background: #ffffff !important;
-              color: #0f172a !important;
-              font-family: 'Inter', -apple-system, sans-serif !important;
-            }
-            .print-cu-header {
-              display: flex !important;
-              justify-content: space-between !important;
-              align-items: flex-start !important;
-              border-bottom: 2.5px solid #dc2626 !important;
-              padding-bottom: 6px !important;
-              margin-bottom: 8px !important;
-            }
-            .print-cu-brand {
-              font-size: 11pt !important;
-              font-weight: 900 !important;
-              color: #0f172a !important;
-            }
-            .print-cu-title {
-              font-size: 9.2pt !important;
-              font-weight: 900 !important;
-              color: #dc2626 !important;
-              margin-top: 2px !important;
-            }
-            .print-cu-table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              margin-bottom: 10px !important;
-              font-size: 7.4pt !important;
-            }
-            .print-cu-th {
-              background: #f8fafc !important;
-              border: 1px solid #cbd5e1 !important;
-              padding: 4px 6px !important;
-              font-weight: 900 !important;
-              color: #1e293b !important;
-              text-align: left !important;
-            }
-            .print-cu-tr {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            .print-cu-td {
-              border: 1px solid #e2e8f0 !important;
-              padding: 4px 6px !important;
-              vertical-align: middle !important;
-            }
-            .print-cu-check {
-              display: inline-flex !important;
-              width: 13px !important;
-              height: 13px !important;
-              border: 1.5px solid #64748b !important;
-              border-radius: 3px !important;
-            }
-            .print-cu-footer {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-              border-top: 1.5px solid #cbd5e1 !important;
-              padding-top: 6px !important;
-              margin-top: 10px !important;
-              display: flex !important;
-              justify-content: space-between !important;
-              font-size: 7.2pt !important;
-              color: #475569 !important;
-            }
-          ` : ''}
-        }
-      `}</style>
+          `}</style>
 
-      {hasCatchUp && (
-        <div className="print-catchup-tasks-doc">
           <div className="print-cu-header">
             <div>
               <div className="print-cu-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
@@ -1122,13 +1140,13 @@ export default memo(function DashboardTodayTasks({
             <div style={{ textAlign: 'right', fontSize: '7.8pt', color: '#334155' }}>
               <div style={{ fontWeight: 900, color: '#dc2626' }}>Toplam: {catchUpTasks.length} Görev</div>
               <div style={{ color: '#64748b', fontSize: '7.2pt', marginTop: 2 }}>
-                Tarih: {new Date().toLocaleDateString('tr-TR')}
+                Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}
               </div>
             </div>
           </div>
 
-          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderLeft: '4px solid #f97316', padding: '5px 8px', fontSize: '7.2pt', color: '#9a3412', marginBottom: 10, borderRadius: 4 }}>
-            📌 <strong>Bilgilendirme:</strong> Bu listedeki görevler süresi geçmiş veya telafi edilmesi gereken çalışmaları içerir. Tamamladıkça kutucukları işaretleyiniz.
+          <div className="print-cu-alert-box">
+            📌 <strong>Bilgilendirme:</strong> Bu listedeki görevler süresi geçmiş veya telafi edilmesi gereken çalışmaları içerir. Tamamladıkça kutucukları işaretleyiniz ve doğru/yanlış/boş sayılarını not ediniz.
           </div>
 
           <table className="print-cu-table">
@@ -1144,9 +1162,32 @@ export default memo(function DashboardTodayTasks({
             </thead>
             <tbody>
               {catchUpTasks.map((task, idx) => {
-                const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
-                const displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                const rawBook = (task.bookTitle || task.bookName || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
+                  .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                  .replace(/\s*\(Tüm Kitap\)/gi, '')
+                  .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                  .replace(/\s*\(Görev\)/gi, '')
+                  .trim();
+
+                if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                  displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                }
+
+                if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                  if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
+                    displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                  } else if (task.unitTopic) {
+                    displayTitle = `${task.unitTopic} Testi`;
+                  } else if (task.subject) {
+                    displayTitle = `${task.subject} Testi`;
+                  } else {
+                    displayTitle = 'Konu Testi';
+                  }
+                }
+
                 const catBadge = getCatchUpCategoryBadge(task);
+                const reasonText = task.overdueReason || task.reason || (task.dueDateStr ? `Hedef: ${task.dueDateStr}` : 'Süresi Geçmiş');
 
                 return (
                   <tr key={task.id || `cu_${idx}`} className="print-cu-tr" style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
@@ -1158,7 +1199,7 @@ export default memo(function DashboardTodayTasks({
                     </td>
                     <td className="print-cu-td">
                       <span style={{ fontWeight: 800, fontSize: '7.2pt', background: '#e0e7ff', color: '#3730a3', padding: '1px 5px', borderRadius: 3 }}>
-                        {task.subject || 'Genel'}
+                        {task.subject || task.dersName || 'Genel'}
                       </span>
                     </td>
                     <td className="print-cu-td">
@@ -1179,15 +1220,9 @@ export default memo(function DashboardTodayTasks({
                       )}
                     </td>
                     <td className="print-cu-td">
-                      {task.overdueReason ? (
-                        <span style={{ fontSize: '6.8pt', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
-                          ⚠️ {task.overdueReason}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '6.8pt', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
-                          ⚠️ Süresi Geçmiş
-                        </span>
-                      )}
+                      <span style={{ fontSize: '6.8pt', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
+                        ⚠️ {reasonText}
+                      </span>
                       {catBadge?.label && (
                         <div style={{ fontSize: '6.5pt', color: '#64748b', marginTop: 2 }}>
                           {catBadge.label}
@@ -1209,7 +1244,8 @@ export default memo(function DashboardTodayTasks({
             <div>Koç / Öğretmen İmzası: ___________________</div>
             <div>Veli İmzası: ___________________</div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
