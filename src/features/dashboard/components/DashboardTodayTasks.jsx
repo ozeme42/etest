@@ -1,5 +1,5 @@
-import React, { memo, useState } from 'react';
-import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock, Plus } from 'lucide-react';
+import React, { memo, useState, useEffect } from 'react';
+import { Check, PlayCircle, RotateCcw, AlertTriangle, Sparkles, ChevronDown, ChevronUp, Flame, CheckCircle2, BookOpen, Compass, FileText, BarChart3, Calendar, Eye, Lock, Plus, Printer } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
 export default memo(function DashboardTodayTasks({
@@ -16,6 +16,29 @@ export default memo(function DashboardTodayTasks({
   onAddTask
 }) {
   const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(false);
+  const [isPrintingCatchUp, setIsPrintingCatchUp] = useState(false);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPrintingCatchUp(false);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const handlePrintCatchUp = () => {
+    if (!catchUpTasks || catchUpTasks.length === 0) {
+      alert('Geciken veya telafi edilmesi gereken herhangi bir görev bulunmuyor. 🎉');
+      return;
+    }
+    setIsPrintingCatchUp(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        setIsPrintingCatchUp(false);
+      }, 1000);
+    }, 100);
+  };
 
   const headerGradient = dayProgramInfo.isToday
     ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
@@ -692,9 +715,37 @@ export default memo(function DashboardTodayTasks({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: hasCatchUp ? '#f59e0b' : '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>
-            <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
-            {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {hasCatchUp && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrintCatchUp();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fca5a5',
+                  background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2',
+                  color: '#ef4444',
+                  fontWeight: 800,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer'
+                }}
+                title="Geciken / Telafi Görevlerini A4 Olarak Yazdır"
+              >
+                <Printer size={12} />
+                <span>Yazdır</span>
+              </button>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: hasCatchUp ? '#f59e0b' : '#10b981', fontWeight: 800, fontSize: '0.78rem' }}>
+              <span>{isCatchUpExpanded ? 'Gizle' : 'Göster'}</span>
+              {isCatchUpExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
           </div>
         </div>
 
@@ -972,6 +1023,194 @@ export default memo(function DashboardTodayTasks({
         )}
       </div>
 
+      {/* PRINTABLE TELAFİ / CATCH-UP TASKS DOCUMENT */}
+      <style>{`
+        .print-catchup-tasks-doc { display: none; }
+        @media print {
+          ${isPrintingCatchUp ? `
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm;
+            }
+            body * {
+              visibility: hidden !important;
+            }
+            .print-catchup-tasks-doc, .print-catchup-tasks-doc * {
+              visibility: visible !important;
+            }
+            .print-catchup-tasks-doc {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              display: block !important;
+              background: #ffffff !important;
+              color: #0f172a !important;
+              font-family: 'Inter', -apple-system, sans-serif !important;
+            }
+            .print-cu-header {
+              display: flex !important;
+              justify-content: space-between !important;
+              align-items: flex-start !important;
+              border-bottom: 2.5px solid #dc2626 !important;
+              padding-bottom: 6px !important;
+              margin-bottom: 8px !important;
+            }
+            .print-cu-brand {
+              font-size: 11pt !important;
+              font-weight: 900 !important;
+              color: #0f172a !important;
+            }
+            .print-cu-title {
+              font-size: 9.2pt !important;
+              font-weight: 900 !important;
+              color: #dc2626 !important;
+              margin-top: 2px !important;
+            }
+            .print-cu-table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              margin-bottom: 10px !important;
+              font-size: 7.4pt !important;
+            }
+            .print-cu-th {
+              background: #f8fafc !important;
+              border: 1px solid #cbd5e1 !important;
+              padding: 4px 6px !important;
+              font-weight: 900 !important;
+              color: #1e293b !important;
+              text-align: left !important;
+            }
+            .print-cu-tr {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            .print-cu-td {
+              border: 1px solid #e2e8f0 !important;
+              padding: 4px 6px !important;
+              vertical-align: middle !important;
+            }
+            .print-cu-check {
+              display: inline-flex !important;
+              width: 13px !important;
+              height: 13px !important;
+              border: 1.5px solid #64748b !important;
+              border-radius: 3px !important;
+            }
+            .print-cu-footer {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              border-top: 1.5px solid #cbd5e1 !important;
+              padding-top: 6px !important;
+              margin-top: 10px !important;
+              display: flex !important;
+              justify-content: space-between !important;
+              font-size: 7.2pt !important;
+              color: #475569 !important;
+            }
+          ` : ''}
+        }
+      `}</style>
+
+      {hasCatchUp && (
+        <div className="print-catchup-tasks-doc">
+          <div className="print-cu-header">
+            <div>
+              <div className="print-cu-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
+              <div className="print-cu-title">⚠️ Akıllı Telafi Havuzu • Geciken Görevler Listesi</div>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: '7.8pt', color: '#334155' }}>
+              <div style={{ fontWeight: 900, color: '#dc2626' }}>Toplam: {catchUpTasks.length} Görev</div>
+              <div style={{ color: '#64748b', fontSize: '7.2pt', marginTop: 2 }}>
+                Tarih: {new Date().toLocaleDateString('tr-TR')}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderLeft: '4px solid #f97316', padding: '5px 8px', fontSize: '7.2pt', color: '#9a3412', marginBottom: 10, borderRadius: 4 }}>
+            📌 <strong>Bilgilendirme:</strong> Bu listedeki görevler süresi geçmiş veya telafi edilmesi gereken çalışmaları içerir. Tamamladıkça kutucukları işaretleyiniz.
+          </div>
+
+          <table className="print-cu-table">
+            <thead>
+              <tr>
+                <th className="print-cu-th" style={{ width: '28px', textAlign: 'center' }}>#</th>
+                <th className="print-cu-th" style={{ width: '28px', textAlign: 'center' }}>✓</th>
+                <th className="print-cu-th" style={{ width: '90px' }}>Ders</th>
+                <th className="print-cu-th">Konu / Kitap / Test Detayı</th>
+                <th className="print-cu-th" style={{ width: '135px' }}>Gecikme & Kategori</th>
+                <th className="print-cu-th" style={{ width: '115px', textAlign: 'center' }}>Sonuç & Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catchUpTasks.map((task, idx) => {
+                const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                const displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+                const catBadge = getCatchUpCategoryBadge(task);
+
+                return (
+                  <tr key={task.id || `cu_${idx}`} className="print-cu-tr" style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                    <td className="print-cu-td" style={{ textAlign: 'center', fontWeight: 800, color: '#64748b' }}>
+                      {idx + 1}
+                    </td>
+                    <td className="print-cu-td" style={{ textAlign: 'center' }}>
+                      <span className="print-cu-check" />
+                    </td>
+                    <td className="print-cu-td">
+                      <span style={{ fontWeight: 800, fontSize: '7.2pt', background: '#e0e7ff', color: '#3730a3', padding: '1px 5px', borderRadius: 3 }}>
+                        {task.subject || 'Genel'}
+                      </span>
+                    </td>
+                    <td className="print-cu-td">
+                      {rawBook && (
+                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '7.6pt' }}>
+                          📖 {rawBook}
+                        </div>
+                      )}
+                      <div style={{ color: '#334155', fontWeight: 600, fontSize: '7pt', marginTop: rawBook ? 1 : 0 }}>
+                        {displayTitle}
+                      </div>
+                      {task.questionCount && (
+                        <div style={{ marginTop: 2 }}>
+                          <span style={{ fontSize: '6.8pt', background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
+                            ✏️ {String(task.questionCount).includes('soru') ? task.questionCount : `${task.questionCount} soru`}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="print-cu-td">
+                      {task.overdueReason ? (
+                        <span style={{ fontSize: '6.8pt', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
+                          ⚠️ {task.overdueReason}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '6.8pt', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>
+                          ⚠️ Süresi Geçmiş
+                        </span>
+                      )}
+                      {catBadge?.label && (
+                        <div style={{ fontSize: '6.5pt', color: '#64748b', marginTop: 2 }}>
+                          {catBadge.label}
+                        </div>
+                      )}
+                    </td>
+                    <td className="print-cu-td" style={{ textAlign: 'center', fontSize: '6.8pt', color: '#64748b' }}>
+                      <div>D: ___ Y: ___ B: ___</div>
+                      <div style={{ marginTop: 2 }}>Tarih: ___/___</div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div className="print-cu-footer">
+            <div>Öğrenci İmzası: ___________________</div>
+            <div>Koç / Öğretmen İmzası: ___________________</div>
+            <div>Veli İmzası: ___________________</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });
