@@ -946,6 +946,106 @@ export default function BookContentManager() {
     return { byId, byCleanId, byName, bySubject, byTopic, directBySubject };
   }, [tests, book?.subjects]);
 
+  // Helpers to resolve tests preserving the EXACT canonical order of the book/JSON
+  const resolveSubjectDirectTests = (subj) => {
+    if (!subj) return [];
+    const sId = String(subj.id || '');
+    const sIdUuid = toUUID(sId);
+    const topicsList = subj.topics || [];
+
+    // If subject.tests is present and has items, that is the canonical sequence!
+    if (Array.isArray(subj.tests) && subj.tests.length > 0) {
+      const seen = new Set();
+      const resolved = [];
+      subj.tests.forEach((st, idx) => {
+        if (!st) return;
+        const stId = String(st.id || '');
+        const stUuid = toUUID(stId);
+        const stName = String(st.name || '').trim().toLowerCase();
+
+        const latest = (stId && testLookup.byId.get(stId)) ||
+          (stUuid && testLookup.byId.get(stUuid)) ||
+          (stId && testLookup.byCleanId.get(stId.replace(/^bt_/, '').replace(/^q_/, ''))) ||
+          (stName && testLookup.byName.get(stName)?.[0]) ||
+          st;
+
+        const key = String(latest.id || stId);
+        if (!seen.has(key)) {
+          seen.add(key);
+          const resolvedOrder = typeof latest.orderIndex === 'number' ? latest.orderIndex : (typeof st.orderIndex === 'number' ? st.orderIndex : idx);
+          resolved.push({ ...latest, orderIndex: resolvedOrder, order: resolvedOrder });
+        }
+      });
+
+      // Append any extra direct tests from DB not in subject.tests
+      const extra = (testLookup.directBySubject.get(sId) || (sIdUuid ? testLookup.directBySubject.get(sIdUuid) : []) || [])
+        .filter(t => !seen.has(String(t.id)) && (!toUUID(t.id) || !seen.has(toUUID(t.id))));
+
+      return [...resolved, ...extra];
+    }
+
+    // Fallback if no subject.tests defined
+    const fallbackList = testLookup.directBySubject.get(sId) ||
+      (sIdUuid ? testLookup.directBySubject.get(sIdUuid) : null) ||
+      (topicsList.length === 0 ? (
+        testLookup.bySubject.get(sId) ||
+        (sIdUuid ? testLookup.bySubject.get(sIdUuid) : null) ||
+        tests.filter(t => isTestInSubject(t, subj, book?.subjects))
+      ) : []);
+
+    return sortTestsNaturally(fallbackList || []);
+  };
+
+  const resolveTopicTests = (topic) => {
+    if (!topic) return [];
+    const topId = String(topic.id || '');
+    const topIdUuid = toUUID(topId);
+
+    // If topic.tests is present and has items, that is the canonical sequence!
+    if (Array.isArray(topic.tests) && topic.tests.length > 0) {
+      const seen = new Set();
+      const resolved = [];
+      topic.tests.forEach((tt, idx) => {
+        if (!tt) return;
+        const ttId = String(tt.id || '');
+        const ttUuid = toUUID(ttId);
+        const ttName = String(tt.name || '').trim().toLowerCase();
+
+        const latest = (ttId && testLookup.byId.get(ttId)) ||
+          (ttUuid && testLookup.byId.get(ttUuid)) ||
+          (ttId && testLookup.byCleanId.get(ttId.replace(/^bt_/, '').replace(/^q_/, ''))) ||
+          (ttName && testLookup.byName.get(ttName)?.[0]) ||
+          tt;
+
+        const key = String(latest.id || ttId);
+        if (!seen.has(key)) {
+          seen.add(key);
+          const resolvedOrder = typeof latest.orderIndex === 'number' ? latest.orderIndex : (typeof tt.orderIndex === 'number' ? tt.orderIndex : idx);
+          resolved.push({ ...latest, orderIndex: resolvedOrder, order: resolvedOrder });
+        }
+      });
+
+      // Append any extra topic tests from DB not in topic.tests
+      const extra = (testLookup.byTopic.get(topId) || (topIdUuid ? testLookup.byTopic.get(topIdUuid) : []) || [])
+        .filter(t => !seen.has(String(t.id)) && (!toUUID(t.id) || !seen.has(toUUID(t.id))));
+
+      return [...resolved, ...extra];
+    }
+
+    // Fallback if no topic.tests defined
+    const fallbackList = testLookup.byTopic.get(topId) ||
+      (topIdUuid ? testLookup.byTopic.get(topIdUuid) : null) ||
+      tests.filter(t => {
+        const tTopId = String(t.topicId || t.topic_id || '');
+        const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
+        const tpName = String(topic.name || '').trim().toLowerCase();
+        return (tTopId && (tTopId === topId || tTopId === topIdUuid || toUUID(tTopId) === topIdUuid)) ||
+               (tpName && tTopName === tpName);
+      });
+
+    return sortTestsNaturally(fallbackList || []);
+  };
+
   // 2. Pre-index student submissions for O(1) matching
   const studentSolvedIndex = useMemo(() => {
     const solvedMap = new Map(); // studentId -> Set(testId)
@@ -1979,7 +2079,13 @@ export default function BookContentManager() {
         });
 
         if (existingIdx !== -1) {
-          targetArr[existingIdx] = { ...targetArr[existingIdx], ...formattedTest, id: targetArr[existingIdx].id || formattedTest.id };
+          targetArr[existingIdx] = { 
+            ...targetArr[existingIdx], 
+            ...formattedTest, 
+            id: targetArr[existingIdx].id || formattedTest.id,
+            orderIndex: formattedTest.orderIndex,
+            order: formattedTest.order
+          };
         } else {
           targetArr.push(formattedTest);
         }
@@ -2064,6 +2170,14 @@ export default function BookContentManager() {
           }
         }
 
+        const assignedOrder = typeof testData.orderIndex === 'number'
+          ? testData.orderIndex
+          : typeof testData.order === 'number'
+            ? testData.order
+            : typeof existingTest?.orderIndex === 'number'
+              ? existingTest.orderIndex
+              : testIdx;
+
         const testPayload = {
           id: testId,
           bookId: String(book.id),
@@ -2076,6 +2190,8 @@ export default function BookContentManager() {
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
+          orderIndex: assignedOrder,
+          order: assignedOrder,
           pdfUrl: testData.pdfUrl || testData.pdf_url || existingTest?.pdfUrl || '',
           updatedAt: new Date().toISOString()
         };
@@ -2140,6 +2256,7 @@ export default function BookContentManager() {
             allTestsToSave.push(formatted);
             upsertTestIntoArray(subject.tests, formatted);
           });
+          subject.tests.sort((a, b) => (a.orderIndex ?? 999999) - (b.orderIndex ?? 999999));
         }
 
         // 2. Topic-based tests (Ders > Konu > Test)
@@ -2168,6 +2285,7 @@ export default function BookContentManager() {
                 allTestsToSave.push(formatted);
                 upsertTestIntoArray(topic.tests, formatted);
               });
+              topic.tests.sort((a, b) => (a.orderIndex ?? 999999) - (b.orderIndex ?? 999999));
             }
           }
         }
@@ -2814,16 +2932,7 @@ export default function BookContentManager() {
                 const sId = String(subject.id || '');
                 const sIdUuid = toUUID(sId);
 
-                const directTests = sortTestsNaturally(
-                  testLookup.directBySubject.get(sId) ||
-                  (sIdUuid ? testLookup.directBySubject.get(sIdUuid) : null) ||
-                  (Array.isArray(subject.tests) && subject.tests.length > 0 ? subject.tests : null) ||
-                  (topicsList.length === 0 ? (
-                    testLookup.bySubject.get(sId) ||
-                    (sIdUuid ? testLookup.bySubject.get(sIdUuid) : null) ||
-                    tests.filter(t => isTestInSubject(t, subject, book.subjects))
-                  ) : [])
-                );
+                const directTests = resolveSubjectDirectTests(subject);
 
                 let totalSubjectTopicTests = 0;
                 topicsList.forEach(tp => {
@@ -2933,18 +3042,7 @@ export default function BookContentManager() {
                         {topicsList.map(topic => {
                           const topId = String(topic.id || '');
                           const topIdUuid = toUUID(topId);
-                          const topicTests = sortTestsNaturally(
-                            testLookup.byTopic.get(topId) || 
-                            (topIdUuid ? testLookup.byTopic.get(topIdUuid) : null) || 
-                            (Array.isArray(topic.tests) && topic.tests.length > 0 ? topic.tests : null) ||
-                            tests.filter(t => {
-                              const tTopId = String(t.topicId || t.topic_id || '');
-                              const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
-                              const tpName = String(topic.name || '').trim().toLowerCase();
-                              return (tTopId && (tTopId === topId || tTopId === topIdUuid || toUUID(tTopId) === topIdUuid)) ||
-                                     (tpName && tTopName === tpName);
-                            })
-                          );
+                          const topicTests = resolveTopicTests(topic);
                           // Open by default unless explicitly toggled to true (closed)
                           const isTopicExpanded = collapsedTopics[topic.id] !== true;
 
@@ -4877,7 +4975,7 @@ export default function BookContentManager() {
 
                           book.subjects?.forEach(subj => {
                             const topicsList = subj.topics || [];
-                            const directTests = sortTestsNaturally(tests.filter(t => isTestInSubject(t, subj, book.subjects) && (!t.topicId || t.topicId === 'direct' || String(t.topicId) === String(subj.id))));
+                            const directTests = resolveSubjectDirectTests(subj);
 
                             if (topicsList.length > 0) {
                               directTests.forEach(t => {
@@ -4893,7 +4991,7 @@ export default function BookContentManager() {
                                 testCounter++;
                               });
                               topicsList.forEach(topic => {
-                                const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                                const topicTests = resolveTopicTests(topic);
                                 topicTests.forEach(t => {
                                   if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
                                   const dStr = formatSafeInputYMD(currDate);
@@ -4908,7 +5006,7 @@ export default function BookContentManager() {
                                 });
                               });
                             } else {
-                              const subjTests = sortTestsNaturally(tests.filter(t => isTestInSubject(t, subj, book.subjects)));
+                              const subjTests = resolveSubjectDirectTests(subj);
                               subjTests.forEach(t => {
                                 if (testCounter > 0) currDate.setDate(currDate.getDate() + autoIntervalDays);
                                 const dStr = formatSafeInputYMD(currDate);
@@ -5068,25 +5166,13 @@ export default function BookContentManager() {
                   )}
 
                   {book.subjects?.map(subj => {
-                    const isSubjMatch = (t) => isTestInSubject(t, subj, book.subjects);
-
-                    const allSubjTests = sortTestsNaturally(tests.filter(t => isSubjMatch(t)));
+                    const topicsList = subj.topics || [];
+                    const directTests = resolveSubjectDirectTests(subj);
+                    const allSubjTests = topicsList.length > 0
+                      ? [...directTests, ...topicsList.flatMap(tp => resolveTopicTests(tp))]
+                      : directTests;
                     if (allSubjTests.length === 0) return null;
 
-                    const topicsList = subj.topics || [];
-                    const directTests = sortTestsNaturally(tests.filter(t => {
-                      if (!isSubjMatch(t)) return false;
-                      if (topicsList.length === 0) return true;
-                      const tTopicId = String(t.topicId || t.topic_id || '');
-                      const sId = String(subj.id || '');
-                      if (!tTopicId || tTopicId === 'direct' || tTopicId === sId || tTopicId === 'null' || tTopicId === 'undefined') return true;
-                      const matchesAnyTopic = topicsList.some(tp => {
-                        const tpId = String(tp.id || '');
-                        return tTopicId === tpId || (tpId && toUUID(tTopicId) === toUUID(tpId)) ||
-                          (tp.name && t.topicName && String(t.topicName).toLowerCase().trim() === String(tp.name).toLowerCase().trim());
-                      });
-                      return !matchesAnyTopic;
-                    }));
                     const allSubjSelected = allSubjTests.every(t => scheduleSelectedTestIds.includes(t.id));
                     
                     // Default to collapsed (true) if undefined
@@ -5221,7 +5307,7 @@ export default function BookContentManager() {
 
                                 {/* Topics List */}
                                 {topicsList.map(topic => {
-                                  const topicTests = sortTestsNaturally(tests.filter(t => String(t.topicId || t.topic_id) === String(topic.id)));
+                                  const topicTests = resolveTopicTests(topic);
                                   if (topicTests.length === 0) return null;
 
                                   const isTopicExpanded = scheduleCollapsedTopic[topic.id] === false;

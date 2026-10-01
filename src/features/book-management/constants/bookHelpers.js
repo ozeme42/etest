@@ -14,30 +14,32 @@ export function parseAnswerKeyString(str, questionCount = 20, optionCount = 5, s
 export function sortTestsNaturally(testsArray) {
   if (!Array.isArray(testsArray)) return [];
 
-  const getPageNum = (name = '') => {
-    // Extract the first number from names like "9-10. Sayfa..." or "13-14. Sayfa..."
-    const match = String(name).match(/^(\d+)/);
-    return match ? parseInt(match[1], 10) : 9999;
-  };
+  // 1. If tests have explicit orderIndex or order, strictly respect that sequence!
+  const hasExplicitOrder = testsArray.some(t => t && (typeof t.orderIndex === 'number' || typeof t.order === 'number'));
+  if (hasExplicitOrder) {
+    return [...testsArray].sort((a, b) => {
+      const ordA = typeof a?.orderIndex === 'number' ? a.orderIndex : (typeof a?.order === 'number' ? a.order : 999999);
+      const ordB = typeof b?.orderIndex === 'number' ? b.orderIndex : (typeof b?.order === 'number' ? b.order : 999999);
+      if (ordA !== ordB) return ordA - ordB;
+      return (a?.name || '').localeCompare(b?.name || '', 'tr', { numeric: true, sensitivity: 'base' });
+    });
+  }
 
-  const getTestRank = (name = '') => {
-    const s = String(name).toLowerCase().trim();
-    // Within same page group: TEST < YENİ NESİL < DENEME
-    if (s.includes('deneme')) return 3;
-    if (s.includes('yeni nesil') || s.includes('yn')) return 2;
-    return 1; // normal test / problem sayfası
+  // 2. Check for explicit page number indicators (e.g. "Sayfa 45", "9-10. Sayfa")
+  const getPageNum = (name = '') => {
+    const s = String(name || '');
+    const pageMatch = s.match(/(?:sayfa|s\.)\s*(\d+)/i) || s.match(/^(\d+)\s*[-–]\s*\d+\.?\s*sayfa/i) || s.match(/^(\d+)\.?\s*sayfa/i);
+    if (pageMatch) return parseInt(pageMatch[1], 10);
+    return null;
   };
 
   return [...testsArray].sort((a, b) => {
-    const pageA = getPageNum(a.name);
-    const pageB = getPageNum(b.name);
-    if (pageA !== pageB) return pageA - pageB;
-
-    const rankA = getTestRank(a.name);
-    const rankB = getTestRank(b.name);
-    if (rankA !== rankB) return rankA - rankB;
-
-    return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
+    const pageA = getPageNum(a?.name);
+    const pageB = getPageNum(b?.name);
+    if (pageA !== null && pageB !== null && pageA !== pageB) {
+      return pageA - pageB;
+    }
+    return (a?.name || '').localeCompare(b?.name || '', 'tr', { numeric: true, sensitivity: 'base' });
   });
 }
 

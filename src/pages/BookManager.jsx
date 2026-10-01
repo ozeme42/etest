@@ -226,7 +226,13 @@ export default function BookManager() {
         });
 
         if (existingIdx !== -1) {
-          targetArr[existingIdx] = { ...targetArr[existingIdx], ...formattedTest, id: targetArr[existingIdx].id || formattedTest.id };
+          targetArr[existingIdx] = { 
+            ...targetArr[existingIdx], 
+            ...formattedTest, 
+            id: targetArr[existingIdx].id || formattedTest.id,
+            orderIndex: formattedTest.orderIndex,
+            order: formattedTest.order
+          };
         } else {
           targetArr.push(formattedTest);
         }
@@ -310,6 +316,14 @@ export default function BookManager() {
           }
         }
 
+        const assignedOrder = typeof testData.orderIndex === 'number'
+          ? testData.orderIndex
+          : typeof testData.order === 'number'
+            ? testData.order
+            : typeof existingTest?.orderIndex === 'number'
+              ? existingTest.orderIndex
+              : testIdx;
+
         const testPayload = {
           id: testId,
           bookId: String(targetBook.id),
@@ -322,6 +336,8 @@ export default function BookManager() {
           answerKey: {},
           isOpenEnded: testIsOpenEnded,
           questionType,
+          orderIndex: assignedOrder,
+          order: assignedOrder,
           pdfUrl: testData.pdfUrl || testData.pdf_url || existingTest?.pdfUrl || '',
           updatedAt: new Date().toISOString()
         };
@@ -386,6 +402,7 @@ export default function BookManager() {
             allTestsToSave.push(formatted);
             upsertTestIntoArray(subject.tests, formatted);
           });
+          subject.tests.sort((a, b) => (a.orderIndex ?? 999999) - (b.orderIndex ?? 999999));
         }
 
         // 2. Topic-based tests (Ders > Konu > Test)
@@ -414,6 +431,7 @@ export default function BookManager() {
                 allTestsToSave.push(formatted);
                 upsertTestIntoArray(topic.tests, formatted);
               });
+              topic.tests.sort((a, b) => (a.orderIndex ?? 999999) - (b.orderIndex ?? 999999));
             }
           }
         }
