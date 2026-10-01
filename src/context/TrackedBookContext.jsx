@@ -390,6 +390,42 @@ export function TrackedBookProvider({ children }) {
           return sChanged || newTopics !== s.topics ? { ...s, tests: newTests, topics: newTopics } : s;
         });
 
+        // Ensure any test in testsList whose subject is missing from newSubjects gets synthesized
+        testsList.forEach(t => {
+          const tbId = String(t.bookId || t.book_id || '');
+          const isThisBook = tbId === bIdStr || (bUuid && (tbId === bUuid || toUUID(tbId) === bUuid));
+          if (!isThisBook) return;
+
+          const tSubId = String(t.subjectId || t.subject_id || '');
+          if (!tSubId || tSubId === 'null' || tSubId === 'undefined') return;
+
+          const subjExists = newSubjects.some(s => {
+            const sIdStr = String(s.id || '');
+            return sIdStr === tSubId || (toUUID(sIdStr) && toUUID(sIdStr) === toUUID(tSubId));
+          });
+
+          if (!subjExists) {
+            let recName = t.subjectName || t.subject || 'Ders';
+            if (recName === 'Ders') {
+              if (tSubId === 'sub_0') recName = 'Türkçe';
+              else if (tSubId === 'sub_1') recName = 'Matematik';
+              else if (tSubId === 'sub_2') recName = 'Fen Bilimleri';
+              else if (tSubId === 'sub_3') recName = 'Sosyal Bilgiler';
+              else if (/matematik|geometri|sayı|problem|kavratan/i.test(t.name || '')) recName = 'Matematik';
+              else if (/türkçe|turkce|paragraf|okuma|metin/i.test(t.name || '')) recName = 'Türkçe';
+              else if (/fen/i.test(t.name || '')) recName = 'Fen Bilimleri';
+              else if (/sosyal/i.test(t.name || '')) recName = 'Sosyal Bilgiler';
+            }
+            newSubjects.push({
+              id: tSubId,
+              name: recName,
+              topics: [],
+              tests: [t]
+            });
+            changed = true;
+          }
+        });
+
         if (changed) {
           booksToPersist.push({ id: b.id, subjects: newSubjects });
         }
