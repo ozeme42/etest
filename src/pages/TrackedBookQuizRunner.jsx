@@ -9,6 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { toUUID, dbSaveMistakeReasons } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useCurriculum } from '../context/CurriculumContext';
+import { isHomeworkForStudent, isExamBook } from '../utils/testResolver';
 import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
 import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndSolverModal';
@@ -16,7 +18,7 @@ import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
-  BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle,
+  BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle, Lock,
   Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard,
   FileText, CheckSquare, Target
 } from 'lucide-react';
@@ -67,6 +69,7 @@ export default function TrackedBookQuizRunner() {
   const { submissions, addSubmission, updateSubmission } = useEvaluation();
   const { users } = useUser();
   const { currentUser } = useAuth();
+  const { data: curData } = useCurriculum();
   const { isDark, toggleTheme } = useTheme();
   const isMobile = useMediaQuery('(max-width: 700px)');
 
@@ -216,17 +219,96 @@ export default function TrackedBookQuizRunner() {
       }
     }
 
-    // Resolve homework if not resolved yet
+    // Resolve homework if not resolved yet (strictly for the target student)
     if (t && !h) {
-      h = (homeworks || []).find(hw => 
-        (hw.tests && hw.tests.some(tid => String(tid) === String(t.id) || toUUID(tid) === toUUID(t.id))) ||
-        (hw.bookId && String(hw.bookId) === String(t.bookId)) ||
-        (b && hw.bookId && (String(hw.bookId) === String(b.id) || toUUID(hw.bookId) === toUUID(b.id)))
-      );
+      const studentForHw = currentViewingStudent || currentUser;
+      h = (homeworks || []).find(hw => {
+        if (studentForHw && !isHomeworkForStudent(hw, studentForHw, curData?.grades)) return false;
+        return (hw.tests && hw.tests.some(tid => String(tid) === String(t.id) || toUUID(tid) === toUUID(t.id))) ||
+          (hw.bookId && (String(hw.bookId) === String(t.bookId) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(t.bookId)))) ||
+          (b && hw.bookId && (String(hw.bookId) === String(b.id) || (toUUID(hw.bookId) && toUUID(hw.bookId) === toUUID(b.id))));
+      });
     }
 
     return { resolvedTest: t, resolvedBook: b, resolvedHw: h };
-  }, [cleanId, bookTests, books, homeworks]);
+  }, [cleanId, bookTests, books, homeworks, currentViewingStudent, currentUser, curData]);
+
+  const isStudentUser = currentUser?.role === 'student';
+
+  const isTestAuthorized = useMemo(() => {
+    // Teachers, admins, and reviewers always have access
+    if (!isStudentUser || isTeacherReviewing) return true;
+    if (booksLoading || hwLoading) return true; // Wait for data to load
+    if (!resolvedTest && !resolvedBook) return true; // Handled by 404/redirect
+
+    const stdId = String(currentUser?.id || '');
+    const stdUuid = toUUID(stdId);
+
+    // 1. Is the book self-added or owned by the student?
+    if (resolvedBook) {
+      const bStdId = String(resolvedBook.studentId || resolvedBook.userId || resolvedBook.createdBy || '');
+      if (bStdId === stdId || (stdUuid && (toUUID(bStdId) === stdUuid || bStdId === stdUuid))) {
+        return true;
+      }
+      if (Array.isArray(resolvedBook.assignedStudents) && resolvedBook.assignedStudents.some(s => String(s) === stdId || toUUID(String(s)) === stdUuid)) {
+        return true;
+      }
+      if (Array.isArray(resolvedBook.targetIds) && resolvedBook.targetIds.some(s => String(s) === stdId || toUUID(String(s)) === stdUuid)) {
+        return true;
+      }
+    }
+
+    // 2. Check all homeworks targeting this student
+    const tId = String(resolvedTest?.id || cleanId);
+    const tCleanId = tId.replace(/^bt_/, '').replace(/^q_/, '');
+    const tUuid = toUUID(tId);
+    const bId = resolvedBook ? String(resolvedBook.id) : null;
+    const bUuid = bId ? toUUID(bId) : null;
+    const bTitle = resolvedBook?.title ? String(resolvedBook.title).toLowerCase().trim() : '';
+
+    const hasMatchingAssignment = (homeworks || []).some(hw => {
+      if (isExamBook(hw)) return false;
+      // Must be assigned to this student:
+      if (!isHomeworkForStudent(hw, currentUser, curData?.grades)) return false;
+
+      // Check if this test is explicitly assigned in hw.tests
+      if (Array.isArray(hw.tests) && hw.tests.length > 0) {
+        if (hw.tests.some(id => {
+          const sId = String(id);
+          return sId === tId || sId === tCleanId || (tUuid && (toUUID(sId) === tUuid || sId === tUuid));
+        })) {
+          return true;
+        }
+      }
+
+      // Check testDueDates
+      const dates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || {};
+      if (dates && typeof dates === 'object') {
+        if (dates[tId] || dates[tCleanId] || dates[`bt_${tCleanId}`] || (tUuid && dates[tUuid])) {
+          return true;
+        }
+      }
+
+      // Check entire book assignment
+      const hwBId = String(hw.bookId || hw.book_id || hw.raw_data?.bookId || '');
+      const isBookMatch = bId && (hwBId === bId || (bUuid && (toUUID(hwBId) === bUuid || hwBId === bUuid)));
+      const isTitleMatch = bTitle && hw.title && (hw.title.toLowerCase().includes(bTitle) || bTitle.includes(hw.title.toLowerCase().replace(/\s*\(tüm kitap görevi\)/gi, '').trim()));
+
+      if (isBookMatch || isTitleMatch) {
+        if (hw.title?.includes('(Tüm Kitap Görevi)') || hw.title?.includes('(Tüm Kitap)') || hw.title?.includes('(Kendi Eklediğim)')) {
+          return true;
+        }
+        // If assigned as a whole book with no specific test restriction
+        if ((!hw.tests || hw.tests.length === 0) && (!dates || Object.keys(dates).length === 0)) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    return hasMatchingAssignment;
+  }, [isStudentUser, isTeacherReviewing, booksLoading, hwLoading, resolvedTest, resolvedBook, cleanId, currentUser, homeworks, curData]);
 
   // If this is actually a full physical exam (bookType === 'exam') or regular quiz, redirect safely
   useEffect(() => {
@@ -1062,6 +1144,10 @@ export default function TrackedBookQuizRunner() {
 
   const handleSubmit = async (force = false) => {
     if (isSubmittingRef.current || isTeacherReviewing) return;
+    if (isStudentUser && !isTestAuthorized) {
+      alert('Bu testi çözme yetkiniz bulunmamaktadır.');
+      return;
+    }
     if (!force && !showFinishModal) {
       setShowFinishModal(true);
       return;
@@ -1335,6 +1421,37 @@ export default function TrackedBookQuizRunner() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: 'white', fontWeight: 800 }}>
         Kitap Testi Yükleniyor...
+      </div>
+    );
+  }
+
+  // Unauthorized Screen
+  if (!isTestAuthorized) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#f8fafc', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', border: '2px solid rgba(239, 68, 68, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: '#ef4444' }}>
+          <Lock size={40} />
+        </div>
+        <h2 style={{ fontSize: '1.6rem', fontWeight: 900, marginBottom: '0.75rem' }}>
+          Yetkisiz Erişim / Test Size Atanmamıştır
+        </h2>
+        <p style={{ maxWidth: 480, color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+          Bu soru bankası veya test öğretmeniniz tarafından size atanmamıştır. Testi çözme veya yanıtlama yetkiniz bulunmamaktadır.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            onClick={() => navigate('/student/books')}
+            style={{ padding: '0.75rem 1.75rem', borderRadius: '0.75rem', background: '#3b82f6', color: 'white', fontWeight: 900, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(59,130,246,0.35)', fontSize: '0.95rem' }}
+          >
+            <BookOpen size={18} /> Kitaplarıma Dön
+          </button>
+          <button
+            onClick={() => navigate('/student')}
+            style={{ padding: '0.75rem 1.75rem', borderRadius: '0.75rem', background: '#1e293b', color: '#ffffff', fontWeight: 800, border: '1px solid #334155', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem' }}
+          >
+            <ArrowLeft size={18} /> Ana Sayfaya Dön
+          </button>
+        </div>
       </div>
     );
   }

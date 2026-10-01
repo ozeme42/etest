@@ -256,19 +256,36 @@ export default function StudentBookDetailsPage() {
     const ids = new Set();
     let targetDueDate = null;
 
-    const bookAssignments = homeworks.filter(hw => {
-      const isMatchBook = String(hw.bookId) === String(bookId) ||
-        (book && hw.title && (hw.title.includes(book.title) || book.title.includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim()))) ||
-        (Array.isArray(hw.tests) && hw.tests.length > 0 && hw.tests.some(tid => bookTests.some(bt => String(bt.id) === String(tid) && String(bt.bookId) === String(bookId))));
+    const bookAssignments = (homeworks || []).filter(hw => {
+      if (isExamBook(hw)) return false;
+      const raw = hw.raw_data || {};
+      const hwBId = String(hw.bookId || raw.bookId || '');
+      const isMatchBook = (hwBId && (hwBId === String(bookId) || (toUUID(hwBId) && toUUID(hwBId) === toUUID(bookId)))) ||
+        (book && hw.title && (hw.title.toLowerCase().includes(String(book.title).toLowerCase().trim()) || String(book.title).toLowerCase().trim().includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').toLowerCase().trim()))) ||
+        (Array.isArray(hw.tests) && hw.tests.length > 0 && hw.tests.some(tid => (bookTests || []).some(bt => (String(bt.id) === String(tid) || (toUUID(bt.id) && toUUID(bt.id) === toUUID(tid))) && (String(bt.bookId) === String(bookId) || (toUUID(bt.bookId) && toUUID(bt.bookId) === toUUID(bookId))))));
       if (!isMatchBook) return false;
       return isHomeworkForStudent(hw, targetStudent, curData?.grades);
     });
 
     let isSelfAdded = false;
+    let isEntireBookAssigned = false;
+
+    // Check if book was created by the target student
+    const isOwner = (book?.studentId && allStudentIds.has(String(book.studentId))) || (book?.userId && allStudentIds.has(String(book.userId))) || (book?.createdBy && allStudentIds.has(String(book.createdBy)));
+    const isDirectAssigned = (Array.isArray(book?.assignedStudents) && book.assignedStudents.some(sid => allStudentIds.has(String(sid)))) ||
+                             (Array.isArray(book?.targetIds) && book.targetIds.some(tid => allStudentIds.has(String(tid))));
+    if (isOwner) {
+      isSelfAdded = true;
+    }
 
     bookAssignments.forEach(hw => {
+      const isAllBookHw = hw.title && (hw.title.includes('(Tüm Kitap Görevi)') || hw.title.includes('(Tüm Kitap)'));
       if (hw.title && hw.title.includes('(Kendi Eklediğim)')) {
         isSelfAdded = true;
+        isEntireBookAssigned = true;
+      }
+      if (isAllBookHw) {
+        isEntireBookAssigned = true;
       }
       
       const hasTestDueDates = hw.testDueDates && typeof hw.testDueDates === 'object' && Object.keys(hw.testDueDates).length > 0;
@@ -278,16 +295,22 @@ export default function StudentBookDetailsPage() {
         Object.entries(hw.testDueDates).forEach(([tId, dStr]) => {
           if (dStr && String(dStr).trim() !== '') {
             ids.add(String(tId));
+            const cl = String(tId).replace(/^bt_/, '').replace(/^q_/, '');
+            ids.add(cl);
+            const uv = toUUID(tId);
+            if (uv) ids.add(uv);
           }
         });
       } else if (Array.isArray(hw.tests) && hw.tests.length > 0) {
-        hw.tests.forEach(tId => ids.add(String(tId)));
-      } else if (hw.title && hw.title.includes('(Tüm Kitap Görevi)')) {
-        bookTests.forEach(bt => {
-          if (String(bt.bookId) === String(bookId)) {
-            ids.add(String(bt.id));
-          }
+        hw.tests.forEach(tId => {
+          ids.add(String(tId));
+          const cl = String(tId).replace(/^bt_/, '').replace(/^q_/, '');
+          ids.add(cl);
+          const uv = toUUID(tId);
+          if (uv) ids.add(uv);
         });
+      } else if (isAllBookHw) {
+        isEntireBookAssigned = true;
       }
 
       if (hw.dueDate) {
@@ -298,14 +321,29 @@ export default function StudentBookDetailsPage() {
       }
     });
 
+    if (isEntireBookAssigned || isSelfAdded) {
+      (bookTests || []).forEach(bt => {
+        const btBId = String(bt.bookId || bt.book_id || '');
+        if (btBId === String(bookId) || (toUUID(btBId) && toUUID(btBId) === toUUID(bookId))) {
+          ids.add(String(bt.id));
+          const cl = String(bt.id).replace(/^bt_/, '').replace(/^q_/, '');
+          ids.add(cl);
+          const uv = toUUID(bt.id);
+          if (uv) ids.add(uv);
+        }
+      });
+    }
+
     let remainingDays = null;
     if (targetDueDate) {
       const diff = targetDueDate.getTime() - new Date().getTime();
       remainingDays = Math.max(0, Math.ceil(diff / (1000 * 3600 * 24)));
     }
 
-    return { ids, targetDueDate, remainingDays, isSelfAdded };
-  }, [homeworks, bookId, studentId, grade, gradeId, className, targetStudent, bookTests, curData]);
+    const hasAccess = isTeacherViewing || (currentUser?.role !== 'student') || isSelfAdded || isOwner || isDirectAssigned || bookAssignments.length > 0;
+
+    return { ids, targetDueDate, remainingDays, isSelfAdded, isEntireBookAssigned, bookAssignments, hasAccess };
+  }, [homeworks, bookId, studentId, grade, gradeId, className, targetStudent, bookTests, curData, book, allStudentIds, isTeacherViewing, currentUser]);
 
   const assignedTestIds = bookData.ids;
 
@@ -504,8 +542,9 @@ export default function StudentBookDetailsPage() {
         }
 
         let testDueDate = null;
-        const matchingHw = homeworks.find(hw => {
-          if (!hw.isBookAssignment) return false;
+        const matchingHw = (homeworks || []).find(hw => {
+          if (!hw.isBookAssignment && hw.sourceType !== 'trackedBook') return false;
+          if (!isHomeworkForStudent(hw, targetStudent, curData?.grades)) return false;
           const hwBId = String(hw.bookId || hw.book_id || '');
           const isBook = hwBId === bId || (toUUID(hwBId) && toUUID(hwBId) === toUUID(bId));
           if (!isBook) return false;
@@ -521,7 +560,16 @@ export default function StudentBookDetailsPage() {
           testDueDate = dates[t.id] || dates[tClean] || dates[`bt_${tClean}`] || (tUuid && dates[tUuid]) || null;
         }
 
-        const isAssignedHomework = Boolean(testDueDate || assignedTestIds.has(String(t.id)));
+        const isAssignedHomework = Boolean(
+          bookData.isSelfAdded ||
+          bookData.isEntireBookAssigned ||
+          testDueDate ||
+          assignedTestIds.has(tIdStr) ||
+          assignedTestIds.has(tCleanId) ||
+          (tUuidStr && assignedTestIds.has(tUuidStr))
+        );
+
+        const isLocked = !isTeacherViewing && currentUser?.role === 'student' && !isAssignedHomework;
 
         return {
           ...t,
@@ -529,7 +577,7 @@ export default function StudentBookDetailsPage() {
           isCompleted,
           isPendingApproval: false,
           pendingManualSub: null,
-          isLocked: false,
+          isLocked,
           isAssignedHomework,
           bestScore,
           bestSub,
@@ -1260,6 +1308,28 @@ export default function StudentBookDetailsPage() {
           style={{ padding: '0.6rem 1.25rem', borderRadius: '0.75rem', background: '#4f46e5', color: 'white', fontWeight: 800, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
         >
           <ArrowLeft size={16} /> Öğrenci Paneline Dön
+        </button>
+      </div>
+    );
+  }
+
+  if (!bookData.hasAccess && !isDataLoading && currentUser?.role === 'student' && !isTeacherViewing) {
+    return (
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '1.5rem 1rem' : '3rem 2rem', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+        <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: '#ef4444' }}>
+          <Lock size={40} />
+        </div>
+        <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--color-text)', marginBottom: '0.75rem' }}>
+          Bu Kitap Size Atanmamıştır
+        </h2>
+        <p style={{ maxWidth: 500, color: 'var(--color-text-muted)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+          Bu fiziki soru bankası öğretmeniniz tarafından size atanmamıştır. Yalnızca size veya sınıfınıza tanımlanan kitapların testlerini çözebilirsiniz.
+        </p>
+        <button
+          onClick={() => navigate('/student/books')}
+          style={{ padding: '0.75rem 1.75rem', borderRadius: '0.75rem', background: '#3b82f6', color: 'white', fontWeight: 900, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(59,130,246,0.35)', fontSize: '0.95rem' }}
+        >
+          <ArrowLeft size={18} /> Kitaplarıma Dön
         </button>
       </div>
     );

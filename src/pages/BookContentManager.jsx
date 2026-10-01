@@ -131,6 +131,54 @@ export default function BookContentManager() {
         const maxP = metaObj?.maxPage ?? b.max_page ?? b.maxPage ?? b.raw_data?.maxPage ?? '';
         const hideAns = metaObj?.hideAnswerKey ?? b.hide_answer_key ?? b.hideAnswerKey ?? b.raw_data?.hideAnswerKey ?? true;
 
+        let cleanSubjects = rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__')));
+
+        // Defensive self-healing: Check if any tests in tRows belong to subjects missing from cleanSubjects
+        const knownSubjIds = new Set(cleanSubjects.map(s => String(s.id)));
+        const knownSubjUuids = new Set(cleanSubjects.map(s => toUUID(s.id)).filter(Boolean));
+        let subjectsHealed = false;
+
+        const orphanGroup = {};
+        (tRows || []).forEach(t => {
+          const sId = String(t.subject_id || '');
+          if (!sId || sId === 'null' || sId === 'undefined') return;
+          const sUuid = toUUID(sId);
+          if (!knownSubjIds.has(sId) && (!sUuid || !knownSubjUuids.has(sUuid))) {
+            if (!orphanGroup[sId]) orphanGroup[sId] = [];
+            orphanGroup[sId].push(t);
+          }
+        });
+
+        Object.entries(orphanGroup).forEach(([sId, oTests]) => {
+          let recName = 'Ders';
+          if (sId === 'sub_0') recName = 'Türkçe';
+          else if (sId === 'sub_1') recName = 'Matematik';
+          else if (sId === 'sub_2') recName = 'Fen Bilimleri';
+          else if (sId === 'sub_3') recName = 'Sosyal Bilgiler';
+          else {
+            const hasMat = oTests.some(t => /matematik|geometri|sayı|problem|kavratan|açı|üçgen/i.test(t.name || ''));
+            const hasTurk = oTests.some(t => /türkçe|turkce|paragraf|metin|okuma|dil bilgisi/i.test(t.name || ''));
+            const hasFen = oTests.some(t => /fen|fizik|kimya|biyoloji/i.test(t.name || ''));
+            const hasSos = oTests.some(t => /sosyal|tarih|coğrafya/i.test(t.name || ''));
+            if (hasMat) recName = 'Matematik';
+            else if (hasTurk) recName = 'Türkçe';
+            else if (hasFen) recName = 'Fen Bilimleri';
+            else if (hasSos) recName = 'Sosyal Bilgiler';
+          }
+          cleanSubjects.push({
+            id: sId,
+            name: recName,
+            topics: [],
+            tests: []
+          });
+          knownSubjIds.add(sId);
+          subjectsHealed = true;
+        });
+
+        if (subjectsHealed) {
+          supabase.from('tracked_books').update({ subjects: cleanSubjects }).eq('id', b.id).then(() => {});
+        }
+
         setLocalLiveBook({
           id: String(id),
           dbId: String(b.id),
@@ -141,7 +189,7 @@ export default function BookContentManager() {
           pdfUrl: pdf,
           maxPage: maxP !== '' && maxP !== null ? Number(maxP) : '',
           hideAnswerKey: hideAns !== false,
-          subjects: rawSubjects.filter(s => !(s && (s.__meta === true || s.id === '__book_meta__'))),
+          subjects: cleanSubjects,
           raw_data: b.raw_data || {}
         });
       }
@@ -1907,14 +1955,35 @@ export default function BookContentManager() {
         throw new Error("Geçersiz format: JSON verisi bir 'subjects' veya 'dersler' dizisi içermelidir.");
       }
 
-      const existingSubjects = book.subjects || [];
+      const existingSubjects = localLiveBook?.subjects || book?.subjects || [];
       const existingTestsList = [...(tests || [])];
       const usedExistingTestIds = new Set();
       const allTestsToSave = [];
 
       const genId = (prefix) => prefix + "_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 7);
 
-      const updatedSubjects = [];
+      // Deep clone existing subjects so existing subjects, topics and tests are NEVER lost!
+      const updatedSubjects = JSON.parse(JSON.stringify(existingSubjects || [])).filter(s => s && s.id !== '__book_meta__');
+
+      // Helper to upsert a test into a subject/topic tests array without losing or duplicating items
+      const upsertTestIntoArray = (targetArr, formattedTest) => {
+        const testIdStr = String(formattedTest.id);
+        const testIdUuid = toUUID(testIdStr);
+        const testNameNorm = String(formattedTest.name || '').trim().toLowerCase();
+
+        const existingIdx = targetArr.findIndex(et => {
+          if (!et) return false;
+          const etId = String(et.id || '');
+          if (etId === testIdStr || (testIdUuid && (etId === testIdUuid || toUUID(etId) === testIdUuid))) return true;
+          return Boolean(testNameNorm && String(et.name || '').trim().toLowerCase() === testNameNorm);
+        });
+
+        if (existingIdx !== -1) {
+          targetArr[existingIdx] = { ...targetArr[existingIdx], ...formattedTest, id: targetArr[existingIdx].id || formattedTest.id };
+        } else {
+          targetArr.push(formattedTest);
+        }
+      };
 
       let hasAnyOpenEnded = false;
       let hasAnyMultipleChoice = false;
@@ -2049,14 +2118,19 @@ export default function BookContentManager() {
         const subjName = String(subjData.name || subjData.ders || subjData.dersAdi || subjData.title || subjData.subject || book?.title || 'Ders').trim();
         if (!subjName) continue;
 
-        const existingSub = existingSubjects.find(s => s.name?.toLocaleLowerCase('tr-TR') === subjName.toLocaleLowerCase('tr-TR'));
-        const subject = {
-          id: existingSub?.id || genId("s"),
-          name: subjName,
-          topics: [],
-          tests: []
-        };
-        updatedSubjects.push(subject);
+        let subject = updatedSubjects.find(s => s && s.name && s.name.toLocaleLowerCase('tr-TR') === subjName.toLocaleLowerCase('tr-TR'));
+        if (!subject) {
+          subject = {
+            id: genId("s"),
+            name: subjName,
+            topics: [],
+            tests: []
+          };
+          updatedSubjects.push(subject);
+        } else {
+          if (!Array.isArray(subject.topics)) subject.topics = [];
+          if (!Array.isArray(subject.tests)) subject.tests = [];
+        }
 
         // 1. Direct tests under subject (Ders > Test)
         const directTestsRaw = subjData.tests || subjData.testler || subjData.Tests || subjData.denemeler || subjData.items || [];
@@ -2064,7 +2138,7 @@ export default function BookContentManager() {
           directTestsRaw.forEach((testData, tIdx) => {
             const formatted = formatTestPayload(testData, subject.id, null, tIdx);
             allTestsToSave.push(formatted);
-            subject.tests.push(formatted);
+            upsertTestIntoArray(subject.tests, formatted);
           });
         }
 
@@ -2075,20 +2149,24 @@ export default function BookContentManager() {
             const topicName = String(topicData.name || topicData.konu || topicData.konuAdi || topicData.uniteAdi || topicData.title || 'Konu').trim();
             if (!topicName) continue;
 
-            const existingTop = (existingSub?.topics || []).find(t => t.name?.toLocaleLowerCase('tr-TR') === topicName.toLocaleLowerCase('tr-TR'));
-            const topic = {
-              id: existingTop?.id || genId("t"),
-              name: topicName,
-              tests: []
-            };
-            subject.topics.push(topic);
+            let topic = (subject.topics || []).find(t => t && t.name && t.name.toLocaleLowerCase('tr-TR') === topicName.toLocaleLowerCase('tr-TR'));
+            if (!topic) {
+              topic = {
+                id: genId("t"),
+                name: topicName,
+                tests: []
+              };
+              subject.topics.push(topic);
+            } else {
+              if (!Array.isArray(topic.tests)) topic.tests = [];
+            }
 
             const topicTestsRaw = topicData.tests || topicData.testler || topicData.Tests || topicData.denemeler || [];
             if (Array.isArray(topicTestsRaw)) {
               topicTestsRaw.forEach((testData, tIdx) => {
                 const formatted = formatTestPayload(testData, subject.id, topic.id, tIdx);
                 allTestsToSave.push(formatted);
-                topic.tests.push(formatted);
+                upsertTestIntoArray(topic.tests, formatted);
               });
             }
           }

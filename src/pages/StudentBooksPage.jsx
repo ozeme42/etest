@@ -214,7 +214,10 @@ export default function StudentBooksPage() {
 
   const bookAssignments = useMemo(() => {
     return homeworks.filter(hw => {
-      if (!hw.isBookAssignment) return false;
+      if (isExamBook(hw)) return false;
+      const raw = hw.raw_data || {};
+      const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.sourceType === 'trackedBook' || hw.title?.includes('(Tüm Kitap') || hw.title?.includes('(Kendi Eklediğim)');
+      if (!isBookHw) return false;
       return isHomeworkForStudent(hw, activeStudent, curData?.grades);
     });
   }, [homeworks, activeStudent, curData?.grades]);
@@ -250,22 +253,30 @@ export default function StudentBooksPage() {
     const bookMap = {};
     const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
-    // 1. Add all standard / mixed books (strictly exclude all mock exams)
-    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
-      const normK = getNormKey(b);
-      if (!bookMap[normK]) {
-        bookMap[normK] = { ...b, assignedHomeworks: [] };
-      }
-    });
+    const isStudentUser = currentUser?.role === 'student';
 
-    // 2. Attach any homework assignments from all homeworks (or bookAssignments)
-    (homeworks || []).forEach(hw => {
+    // 1. If teacher/admin and NOT filtering by a specific student, show all standard books
+    if (!isStudentUser && !selectedStudentId) {
+      (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
+        const normK = getNormKey(b);
+        if (!bookMap[normK]) {
+          bookMap[normK] = { ...b, assignedHomeworks: [] };
+        }
+      });
+    }
+
+    // 2. Attach assignments strictly from bookAssignments (already filtered for activeStudent)
+    (bookAssignments || []).forEach(hw => {
       const raw = hw.raw_data || {};
       if (isExamBook(hw)) return;
-      const isBookHw = hw.isBookAssignment || raw.isBookAssignment || hw.bookId || raw.bookId || hw.title?.includes('Kitap');
-      if (!isBookHw) return;
 
-      let book = (books || []).find(b => String(b.id) === String(hw.bookId || raw.bookId) && isStandardOrMixedBook(b));
+      const targetBookId = String(hw.bookId || raw.bookId || '');
+      let book = (books || []).find(b => {
+        if (!isStandardOrMixedBook(b)) return false;
+        const bId = String(b.id || '');
+        return (targetBookId && (bId === targetBookId || toUUID(bId) === targetBookId || bId === toUUID(targetBookId) || (toUUID(bId) && toUUID(bId) === toUUID(targetBookId))));
+      });
+
       if (!book && hw.title) {
         const cleanHwTitle = hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim().toLowerCase();
         book = (books || []).find(b => {
@@ -273,6 +284,15 @@ export default function StudentBooksPage() {
           return isStandardOrMixedBook(b) && (cleanHwTitle.includes(bT) || bT.includes(cleanHwTitle));
         });
       }
+
+      if (!book && Array.isArray(hw.tests) && hw.tests.length > 0) {
+        const matchedBt = (bookTests || []).find(bt => hw.tests.includes(bt.id) || (toUUID(bt.id) && hw.tests.includes(toUUID(bt.id))));
+        if (matchedBt) {
+          const matchedBtBookId = String(matchedBt.bookId || matchedBt.book_id || '');
+          book = (books || []).find(b => (String(b.id) === matchedBtBookId || (toUUID(b.id) && toUUID(b.id) === toUUID(matchedBtBookId))) && isStandardOrMixedBook(b));
+        }
+      }
+
       if (book) {
         const normK = getNormKey(book);
         if (!bookMap[normK]) {
@@ -284,6 +304,20 @@ export default function StudentBooksPage() {
           if (!bookMap[normK].targetDueDate || dueDate > bookMap[normK].targetDueDate) {
             bookMap[normK].targetDueDate = dueDate;
           }
+        }
+      }
+    });
+
+    // 3. Also include books created by the student or directly targeting this student
+    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
+      const isOwner = (b.studentId && allStudentIds.has(String(b.studentId))) || (b.userId && allStudentIds.has(String(b.userId)));
+      const isCreator = (b.createdBy && allStudentIds.has(String(b.createdBy)));
+      const isDirectlyAssigned = (Array.isArray(b.assignedStudents) && b.assignedStudents.some(sid => allStudentIds.has(String(sid)))) ||
+                                 (Array.isArray(b.targetIds) && b.targetIds.some(tid => allStudentIds.has(String(tid))));
+      if (isOwner || isCreator || isDirectlyAssigned) {
+        const normK = getNormKey(b);
+        if (!bookMap[normK]) {
+          bookMap[normK] = { ...b, assignedHomeworks: [] };
         }
       }
     });

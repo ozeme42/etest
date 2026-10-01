@@ -1118,15 +1118,7 @@ export default function StudentDashboard() {
     const bookMap = {};
     const getNormKey = (b) => `${String(b.title || '').trim().toLowerCase().replace(/\s+/g, ' ')}___${String(b.publisher || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 
-    // 1. Add all standard / tracked books
-    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
-      const normK = getNormKey(b);
-      if (!bookMap[normK]) {
-        bookMap[normK] = { ...b, assignedHomeworks: [] };
-      }
-    });
-
-    // 2. Process books assigned via homeworks
+    // 1. Process books assigned via homeworks for this student
     bookAssignments.forEach(hw => {
       let book = books.find(b => (String(b.id) === String(hw.bookId) || toUUID(b.id) === toUUID(hw.bookId)) && isStandardOrMixedBook(b));
       if (!book && hw.title) {
@@ -1149,6 +1141,20 @@ export default function StudentDashboard() {
       if (hw.dueDate) {
         const dueDate = new Date(hw.dueDate);
         if (!bookMap[normK].targetDueDate || dueDate > bookMap[normK].targetDueDate) bookMap[normK].targetDueDate = dueDate;
+      }
+    });
+
+    // 2. Also include books created by or directly targeting selected student
+    (books || []).filter(b => isStandardOrMixedBook(b)).forEach(b => {
+      const isOwner = (b.studentId && allStudentIds.has(String(b.studentId))) || (b.userId && allStudentIds.has(String(b.userId)));
+      const isCreator = (b.createdBy && allStudentIds.has(String(b.createdBy)));
+      const isDirectlyAssigned = (Array.isArray(b.assignedStudents) && b.assignedStudents.some(sid => allStudentIds.has(String(sid)))) ||
+                                 (Array.isArray(b.targetIds) && b.targetIds.some(tid => allStudentIds.has(String(tid))));
+      if (isOwner || isCreator || isDirectlyAssigned) {
+        const normK = getNormKey(b);
+        if (!bookMap[normK]) {
+          bookMap[normK] = { ...b, assignedHomeworks: [] };
+        }
       }
     });
 
