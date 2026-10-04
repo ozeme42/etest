@@ -10,7 +10,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
-import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook, sortSubjectsByMebOrder } from '../utils/testResolver';
+import { isHomeworkForStudent, sortItemsByBookOrder, isSubmissionMatchingBookTest, isStandardOrMixedBook, sortSubjectsByMebOrder, getSubmissionCompositeKey, createCompositeTestKey } from '../utils/testResolver';
 import { toUUID } from '../services/supabaseService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 import AddTaskModal from './program/AddTaskModal';
