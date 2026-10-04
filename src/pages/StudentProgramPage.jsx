@@ -91,6 +91,15 @@ export default function StudentProgramPage() {
   };
 
   const [progStats, setProgStats] = useState(null);
+  const handleProgressStats = React.useCallback((stats) => {
+    if (!stats) return;
+    setProgStats(prev => {
+      if (prev && prev.totalItems === stats.totalItems && prev.doneItems === stats.doneItems && prev.pct === stats.pct) {
+        return prev;
+      }
+      return stats;
+    });
+  }, []);
   const totalItems = progStats ? progStats.totalItems : weeklyProgram.reduce((a, d) => a + (d.items?.length || 0), 0);
   const doneItems = progStats ? progStats.doneItems : weeklyProgram.reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
   const weekPct = progStats ? progStats.pct : (totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0);
@@ -400,7 +409,7 @@ export default function StudentProgramPage() {
             topicPool={topicPool}
             setTopicPool={setTopicPool}
             isDark={isDark}
-            onProgressStats={setProgStats}
+            onProgressStats={handleProgressStats}
           />
         </div>
 

@@ -853,10 +853,15 @@ export function isHomeworkForStudent(hw, student, grades = []) {
  * 4. Test definition order in `bookTests` & natural numeric test sorting ("Test 1" before "Test 2" before "Test 10")
  * 5. Fallback task priority (Kitap/Ödev -> Konu -> Serbest/Manuel)
  */
-export function sortItemsByBookOrder(items, books = [], bookTests = []) {
-  if (!Array.isArray(items) || items.length <= 1) return items || [];
+let _cachedBooksRef = null;
+let _cachedBookTestsRef = null;
+let _cachedSortMaps = null;
 
-  // 1. Map Books and build strict sequential order of all tests as defined in the book's subjects & topics
+export function getBookOrderSortMaps(books = [], bookTests = []) {
+  if (_cachedSortMaps && _cachedBooksRef === books && _cachedBookTestsRef === bookTests) {
+    return _cachedSortMaps;
+  }
+
   const bookMap = new Map();
   const bookTestSequentialIndexMap = new Map();
   let globalSeq = 0;
@@ -921,6 +926,18 @@ export function sortItemsByBookOrder(items, books = [], bookTests = []) {
       if (tUuid) testMap.set(tUuid, t);
     }
   });
+
+  _cachedBooksRef = books;
+  _cachedBookTestsRef = bookTests;
+  _cachedSortMaps = { bookMap, bookTestSequentialIndexMap, testMap };
+  return _cachedSortMaps;
+}
+
+export function sortItemsByBookOrder(items, books = [], bookTests = [], precomputedMaps = null) {
+  if (!Array.isArray(items) || items.length <= 1) return items || [];
+
+  // Use cached or precomputed book sort maps
+  const { bookMap, bookTestSequentialIndexMap, testMap } = precomputedMaps || getBookOrderSortMaps(books, bookTests);
 
   // Helper to extract starting page number from title/name (e.g. "45-46. Sayfa..." -> 45, "s. 13" -> 13)
   const extractPageNo = (str) => {

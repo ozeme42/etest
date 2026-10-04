@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Lock, Edit3, Check, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Calendar, CheckCircle2, X, BookOpen, Clock, GraduationCap, Printer, Play, PlayCircle, RotateCcw, ArrowRight, Search, Compass, Layers } from 'lucide-react';
@@ -493,6 +493,102 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
   return false;
 }
 
+export function buildSolvedIndex(studentId, submissions = [], allHomeworks = []) {
+  const studentIdStr = String(studentId || '');
+  const studentUuidStr = String(toUUID(studentId) || '');
+  const isMatchStudent = (s) => {
+    if (!studentId) return true;
+    const sId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
+    return sId === studentIdStr || (studentUuidStr && (sId === studentUuidStr || toUUID(sId) === studentUuidStr));
+  };
+
+  const idSet = new Set();
+  const compKeySet = new Set();
+  const normTitleSet = new Set();
+
+  const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+
+  const addId = (id) => {
+    if (!id) return;
+    const str = String(id);
+    const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+    idSet.add(str);
+    idSet.add(clean);
+    idSet.add(`bt_${clean}`);
+    const u = toUUID(clean || str);
+    if (u) idSet.add(String(u));
+  };
+
+  (submissions || []).forEach(s => {
+    if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+    if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
+
+    addId(s.id);
+    addId(s.testId);
+    addId(s.test_id);
+    addId(s.realTestId);
+    addId(s.bookTestId);
+    addId(s.hwId);
+    addId(s.homeworkId);
+    addId(s.homework_id);
+    addId(s.metadata?.realTestId);
+    addId(s.metadata?.bookTestId);
+    addId(s.metadata?.realId);
+    addId(s.metadata?.testId);
+    if (Array.isArray(s.bookTestIds)) {
+      s.bookTestIds.forEach(addId);
+    }
+
+    const compKey = getSubmissionCompositeKey(s);
+    if (compKey) {
+      compKeySet.add(compKey);
+      compKeySet.add(`comp_${compKey}`);
+    }
+
+    const rawTitle = s.title || s.testTitle || s.testName || '';
+    let rawSubject = s.subjectName || s.subject || s.metadata?.subjectName || s.metadata?.subject || s.lesson;
+    if (!rawSubject) {
+      const lowT = rawTitle.toLowerCase();
+      if (lowT.includes('türkçe') || lowT.includes('turkce') || lowT.includes('paragraf')) rawSubject = 'Türkçe';
+      else if (lowT.includes('matematik') || lowT.includes('mat') || lowT.includes('problem')) rawSubject = 'Matematik';
+      else if (lowT.includes('fen')) rawSubject = 'Fen Bilimleri';
+      else if (lowT.includes('sosyal')) rawSubject = 'Sosyal Bilgiler';
+    }
+    const sName = normalizeKey(rawSubject);
+    const bTitle = normalizeKey(s.bookTitle || s.metadata?.bookTitle);
+    const tName = normalizeKey(s.testName || s.title || s.testTitle || s.metadata?.testName);
+
+    if (bTitle && sName && tName) {
+      normTitleSet.add(`full_${bTitle}_${sName}_${tName}`);
+    }
+    if (sName && tName) {
+      normTitleSet.add(`subj_test_${sName}_${tName}`);
+    }
+    const fullNorm = normalizeKey(rawTitle);
+    if (fullNorm && fullNorm.length >= 8) {
+      normTitleSet.add(`title_${fullNorm}`);
+      if (sName) normTitleSet.add(`title_${sName}_${fullNorm}`);
+    }
+  });
+
+  (allHomeworks || []).forEach(hw => {
+    if (hw?.submissions && Array.isArray(hw.submissions)) {
+      hw.submissions.forEach(s => {
+        if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
+        addId(s.id);
+        addId(s.testId);
+        addId(s.test_id);
+        addId(s.bookTestId);
+        addId(s.realTestId);
+        addId(hw.id);
+        if (s.hwId) addId(s.hwId);
+      });
+    }
+  });
+
+  return { idSet, compKeySet, normTitleSet };
+}
+
 export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, studyAssignments, precomputedSolvedIdsSet = null, bookTests = [], books = []) {
   if (!item) return false;
 
@@ -524,20 +620,92 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
 
   if (item.done || item.isCompleted) return true;
 
-  // CASE 1: SPECIFIC TEST / QUIZ TASK (MUST match the exact test ID)
+  // Precomputed index support (Set or { idSet, compKeySet, normTitleSet })
+  const idSet = precomputedSolvedIdsSet?.idSet || (precomputedSolvedIdsSet instanceof Set ? precomputedSolvedIdsSet : null);
+  const compKeySet = precomputedSolvedIdsSet?.compKeySet || null;
+  const normTitleSet = precomputedSolvedIdsSet?.normTitleSet || null;
+
+  // Fast O(1) Check by Test / Hw ID
+  if (specificTestId && idSet) {
+    const tIdStr = String(specificTestId);
+    const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+    const tUuidStr = String(toUUID(tCleanId || specificTestId) || '');
+
+    if (
+      idSet.has(tIdStr) ||
+      idSet.has(tCleanId) ||
+      idSet.has(`bt_${tCleanId}`) ||
+      (tUuidStr && idSet.has(tUuidStr))
+    ) return true;
+  }
+
+  // Fast O(1) Check by Composite Key
+  if (compKeySet) {
+    const itemCompKey = createCompositeTestKey(
+      item.bookTitle || item.bookName,
+      item.subject || item.subjectName,
+      item.unit || item.unitTopic || item.topicName,
+      item.testName || item.name || item.title
+    );
+    if (itemCompKey && (compKeySet.has(itemCompKey) || compKeySet.has(`comp_${itemCompKey}`))) {
+      return true;
+    }
+  }
+
+  // Fast O(1) Check by Normalized Title
+  if (normTitleSet) {
+    const normalizeKey = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+    const sName = normalizeKey(item.subject || item.subjectName);
+    const bTitle = normalizeKey(item.bookTitle || item.bookName);
+    const tName = normalizeKey(item.testName || item.title);
+
+    if (bTitle && sName && tName && normTitleSet.has(`full_${bTitle}_${sName}_${tName}`)) return true;
+    if (sName && tName && normTitleSet.has(`subj_test_${sName}_${tName}`)) return true;
+    const itemFullNorm = normalizeKey(item.title || item.testName);
+    if (itemFullNorm && itemFullNorm.length >= 8) {
+      if (sName && normTitleSet.has(`title_${sName}_${itemFullNorm}`)) return true;
+      if (normTitleSet.has(`title_${itemFullNorm}`)) return true;
+    }
+  }
+
+  // CASE 2: ROADMAP TOPIC TASK
+  if (item.roadmapAssignmentId) {
+    const assignment = (studyAssignments || []).find(a => String(a.id) === String(item.roadmapAssignmentId));
+    if (assignment) {
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return true;
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+      }
+      const completedSet = new Set(compTopics.map(String));
+      if (item.topicId && completedSet.has(String(item.topicId))) return true;
+      if (item.topic && completedSet.has(item.topic)) return true;
+      if (item.title && completedSet.has(item.title)) return true;
+    }
+    return false;
+  }
+
+  // CASE 3: GENERAL NON-TEST HOMEWORK TASK
+  const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace(/^hw_/, '') : null) || (item.isAutoHomework || item.isHomework ? item.id : null);
+  if (generalHwId && idSet) {
+    const gHwIdStr = String(generalHwId);
+    const gCleanId = gHwIdStr.replace(/^hw_/, '');
+    const gUuidStr = String(toUUID(gCleanId || generalHwId) || '');
+    if (idSet.has(gHwIdStr) || idSet.has(gCleanId) || (gUuidStr && idSet.has(gUuidStr))) return true;
+  }
+
+  // ⚡ CRITICAL OPTIMIZATION: When precomputed index is present, NEVER do the slow O(N x M) nested loop!
+  if (precomputedSolvedIdsSet) {
+    return false;
+  }
+
+  // Fallback ONLY when NO precomputedSolvedIdsSet was passed (legacy standalone callers)
   if (specificTestId) {
     const tIdStr = String(specificTestId);
     const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
     const tUuidStr = String(toUUID(tCleanId || specificTestId) || '');
 
-    if (precomputedSolvedIdsSet && (
-      precomputedSolvedIdsSet.has(tIdStr) ||
-      precomputedSolvedIdsSet.has(tCleanId) ||
-      precomputedSolvedIdsSet.has(`bt_${tCleanId}`) ||
-      (tUuidStr && precomputedSolvedIdsSet.has(tUuidStr))
-    )) return true;
-
-    // 1. Check in global submissions
     const isTestSolvedInSubs = (submissions || []).some(s => {
       if (!s || !isMatchStudent(s)) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
@@ -570,76 +738,6 @@ export function checkIsTaskSolved(item, studentId, submissions, allHomeworks, st
     });
 
     if (isTestSolvedInSubs) return true;
-
-    // 2. Check in homework embedded submissions specifically for this test
-    const targetHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace('hw_', '') : null);
-    if (targetHwId) {
-      const hwObj = (allHomeworks || []).find(h => String(h.id) === String(targetHwId));
-      if (hwObj && Array.isArray(hwObj.submissions)) {
-        const hasTestSub = hwObj.submissions.some(s => {
-          if (!s || !isMatchStudent(s)) return false;
-          if (s.status === 'in_progress' || s.status === 'draft') return false;
-          const sTestId = String(s.testId || s.test_id || s.realTestId || s.bookTestId || '');
-          const sClean = sTestId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-          if (sTestId === tIdStr || sTestId === tCleanId || sClean === tCleanId || (tUuidStr && sTestId === tUuidStr) || (tUuidStr && sClean === tUuidStr)) return true;
-          return isSubmissionMatchingBookTest(s, item, bookTests, books);
-        });
-        if (hasTestSub) return true;
-      }
-    }
-
-    return false;
-  }
-
-  // CASE 2: ROADMAP TOPIC TASK
-  if (item.roadmapAssignmentId) {
-    const assignment = (studyAssignments || []).find(a => String(a.id) === String(item.roadmapAssignmentId));
-    if (assignment) {
-      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return true;
-      let compTopics = [];
-      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
-      else if (typeof assignment.completedTopics === 'string') {
-        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
-      }
-      const completedSet = new Set(compTopics.map(String));
-      if (item.topicId && completedSet.has(String(item.topicId))) return true;
-      if (item.topic && completedSet.has(item.topic)) return true;
-      if (item.title && completedSet.has(item.title)) return true;
-    }
-    return false;
-  }
-
-  // CASE 3: GENERAL NON-TEST HOMEWORK TASK
-  const generalHwId = item.hwId || (item.id && String(item.id).startsWith('hw_') ? String(item.id).replace(/^hw_/, '') : null) || (item.isAutoHomework || item.isHomework ? item.id : null);
-  if (generalHwId) {
-    const gHwIdStr = String(generalHwId);
-    if (precomputedSolvedIdsSet && precomputedSolvedIdsSet.has(gHwIdStr)) return true;
-    const gUuidStr = String(toUUID(generalHwId) || '');
-    if (precomputedSolvedIdsSet && gUuidStr && precomputedSolvedIdsSet.has(gUuidStr)) return true;
-
-    const isHwSolvedInSubs = (submissions || []).some(s => {
-      if (!s || !isMatchStudent(s)) return false;
-      if (s.status === 'in_progress' || s.status === 'draft') return false;
-      const subFields = [s.id, s.hwId, s.homeworkId, s.homework_id, s.testId, s.test_id].filter(Boolean).map(String);
-      return subFields.some(sf => sf === gHwIdStr || (gUuidStr && sf === gUuidStr) || toUUID(sf) === gHwIdStr);
-    });
-    if (isHwSolvedInSubs) return true;
-
-    const hwObj = (allHomeworks || []).find(h => String(h.id) === gHwIdStr || (gUuidStr && String(h.id) === gUuidStr));
-    if (hwObj && Array.isArray(hwObj.submissions)) {
-      const hasHwSub = hwObj.submissions.some(s => isMatchStudent(s) && s.status !== 'in_progress' && s.status !== 'draft');
-      if (hasHwSub) return true;
-    }
-  }
-
-  // CASE 4: FALLBACK MATCHING BY BOOK TEST OR TITLE
-  if (Array.isArray(submissions) && submissions.length > 0) {
-    const matched = submissions.some(s => {
-      if (!s || !isMatchStudent(s)) return false;
-      if (s.status === 'in_progress' || s.status === 'draft') return false;
-      return isSubmissionMatchingBookTest(s, item, bookTests, books);
-    });
-    if (matched) return true;
   }
 
   return false;
@@ -723,7 +821,8 @@ export function extractScheduledHomeworkItems({
   submissions = [],
   allHomeworks = [],
   studyAssignments = [],
-  solvedIdsSet = null
+  solvedIdsSet = null,
+  bookTestInfoCache = null
 }) {
   const scheduledItems = [];
   const seenBtKeys = new Set();
@@ -773,66 +872,75 @@ export function extractScheduledHomeworkItems({
         seenBtKeys.add(dedupeKey);
         seenBtKeys.add(`bt_${cleanTestId}`);
 
-        let bt = (bookTests || []).find(b => {
-          const bId = String(b.id);
-          return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
-        });
+        const cached = bookTestInfoCache ? (bookTestInfoCache.get(cleanTestId) || bookTestInfoCache.get(String(testIdKey))) : null;
+        let bt = cached?.tObj || null;
+        let resolvedSubject = cached?.resolvedSubject || bt?.subject || bt?.subjectName || '';
+        let resolvedUnit = cached?.resolvedUnit || bt?.unit || bt?.unitName || '';
+        let currentCleanBookTitle = cached?.cleanBookTitle || cleanBookTitle;
+        let testTitle = cached?.testTitle || bt?.name || bt?.title || (currentCleanBookTitle ? `${currentCleanBookTitle} Testi` : 'Test');
+        let qCount = cached?.qCount || Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
-        let resolvedSubject = bt?.subject || bt?.subjectName || '';
-        let resolvedUnit = bt?.unit || bt?.unitName || '';
-        const sId = bt?.subjectId || bt?.subject_id;
-        const tId = bt?.topicId || bt?.topic_id;
+        if (!cached) {
+          bt = (bookTests || []).find(b => {
+            const bId = String(b.id);
+            return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+          });
+          if (bt?.subject || bt?.subjectName) resolvedSubject = bt?.subject || bt?.subjectName || '';
+          if (bt?.unit || bt?.unitName) resolvedUnit = bt?.unit || bt?.unitName || '';
+          const sId = bt?.subjectId || bt?.subject_id;
+          const tId = bt?.topicId || bt?.topic_id;
 
-        let bookSubjects = bookObj?.subjects || [];
-        if (typeof bookSubjects === 'string') {
-          try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-        }
+          let bookSubjects = bookObj?.subjects || [];
+          if (typeof bookSubjects === 'string') {
+            try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+          }
 
-        if (Array.isArray(bookSubjects)) {
-          for (const subj of bookSubjects) {
-            if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
-            const isSubjMatch = sId && String(subj.id) === String(sId);
-            let isTopicMatch = false;
+          if (Array.isArray(bookSubjects)) {
+            for (const subj of bookSubjects) {
+              if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
+              const isSubjMatch = sId && String(subj.id) === String(sId);
+              let isTopicMatch = false;
 
-            if (!bt && Array.isArray(subj.tests)) {
-              const directTest = subj.tests.find(t => {
-                const tid = String(t.id);
-                return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-              });
-              if (directTest) {
-                bt = directTest;
+              if (!bt && Array.isArray(subj.tests)) {
+                const directTest = subj.tests.find(t => {
+                  const tid = String(t.id);
+                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                });
+                if (directTest) {
+                  bt = directTest;
+                  if (!resolvedSubject) resolvedSubject = subj.name;
+                  break;
+                }
+              }
+
+              for (const top of (subj.topics || [])) {
+                const topicTest = (top.tests || []).find(t => {
+                  const tid = String(t.id);
+                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                });
+                if ((tId && String(top.id) === String(tId)) || topicTest) {
+                  resolvedUnit = top.name;
+                  isTopicMatch = true;
+                  if (!bt && topicTest) {
+                    bt = topicTest;
+                  }
+                  break;
+                }
+              }
+              if (isSubjMatch || isTopicMatch) {
                 if (!resolvedSubject) resolvedSubject = subj.name;
                 break;
               }
             }
-
-            for (const top of (subj.topics || [])) {
-              const topicTest = (top.tests || []).find(t => {
-                const tid = String(t.id);
-                return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-              });
-              if ((tId && String(top.id) === String(tId)) || topicTest) {
-                resolvedUnit = top.name;
-                isTopicMatch = true;
-                if (!bt && topicTest) {
-                  bt = topicTest;
-                }
-                break;
-              }
-            }
-            if (isSubjMatch || isTopicMatch) {
-              if (!resolvedSubject) resolvedSubject = subj.name;
-              break;
-            }
           }
-        }
 
-        if (!resolvedSubject) {
-          resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
-        }
+          if (!resolvedSubject) {
+            resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
+          }
 
-        const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
-        const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+          testTitle = bt?.name || bt?.title || (currentCleanBookTitle ? `${currentCleanBookTitle} Testi` : 'Test');
+          qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+        }
 
         const isSolved = checkIsTaskSolved(
           { id: cleanTestId, testId: cleanTestId, bookTestId: cleanTestId, realTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' },
@@ -867,11 +975,11 @@ export function extractScheduledHomeworkItems({
           subject: resolvedSubject || 'Genel Ders',
           unit: resolvedUnit || '',
           unitTopic: resolvedUnit || '',
-          topic: resolvedUnit ? `${cleanBookTitle} — ${testTitle}` : testTitle,
+          topic: resolvedUnit ? `${currentCleanBookTitle} — ${testTitle}` : testTitle,
           testName: testTitle,
           title: testTitle,
-          bookName: cleanBookTitle,
-          bookTitle: cleanBookTitle,
+          bookName: currentCleanBookTitle,
+          bookTitle: currentCleanBookTitle,
           questionCount: typeof qCount === 'string' && qCount.includes('soru') ? qCount : `${qCount} soru`,
           targetQuestionCount: qCount,
           dueDateStr: tDateStr,
@@ -904,66 +1012,75 @@ export function extractScheduledHomeworkItems({
               seenBtKeys.add(dedupeKey);
               seenBtKeys.add(`bt_${cleanTestId}`);
 
-              let bt = (bookTests || []).find(b => {
-                const bId = String(b.id);
-                return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
-              });
+              const cached = bookTestInfoCache ? (bookTestInfoCache.get(cleanTestId) || bookTestInfoCache.get(String(testIdKey))) : null;
+              let bt = cached?.tObj || null;
+              let resolvedSubject = cached?.resolvedSubject || bt?.subject || bt?.subjectName || '';
+              let resolvedUnit = cached?.resolvedUnit || bt?.unit || bt?.unitName || '';
+              let currentCleanBookTitle = cached?.cleanBookTitle || cleanBookTitle;
+              let testTitle = cached?.testTitle || bt?.name || bt?.title || (currentCleanBookTitle ? `${currentCleanBookTitle} Testi` : 'Test');
+              let qCount = cached?.qCount || Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
-              let resolvedSubject = bt?.subject || bt?.subjectName || '';
-              let resolvedUnit = bt?.unit || bt?.unitName || '';
-              const sId = bt?.subjectId || bt?.subject_id;
-              const tId = bt?.topicId || bt?.topic_id;
+              if (!cached) {
+                bt = (bookTests || []).find(b => {
+                  const bId = String(b.id);
+                  return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
+                });
+                if (bt?.subject || bt?.subjectName) resolvedSubject = bt?.subject || bt?.subjectName || '';
+                if (bt?.unit || bt?.unitName) resolvedUnit = bt?.unit || bt?.unitName || '';
+                const sId = bt?.subjectId || bt?.subject_id;
+                const tId = bt?.topicId || bt?.topic_id;
 
-              let bookSubjects = bookObj?.subjects || [];
-              if (typeof bookSubjects === 'string') {
-                try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-              }
+                let bookSubjects = bookObj?.subjects || [];
+                if (typeof bookSubjects === 'string') {
+                  try { bookSubjects = JSON.parse(bookSubjects); } catch {}
+                }
 
-              if (Array.isArray(bookSubjects)) {
-                for (const subj of bookSubjects) {
-                  if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
-                  const isSubjMatch = sId && String(subj.id) === String(sId);
-                  let isTopicMatch = false;
+                if (Array.isArray(bookSubjects)) {
+                  for (const subj of bookSubjects) {
+                    if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
+                    const isSubjMatch = sId && String(subj.id) === String(sId);
+                    let isTopicMatch = false;
 
-                  if (!bt && Array.isArray(subj.tests)) {
-                    const directTest = subj.tests.find(t => {
-                      const tid = String(t.id);
-                      return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                    });
-                    if (directTest) {
-                      bt = directTest;
+                    if (!bt && Array.isArray(subj.tests)) {
+                      const directTest = subj.tests.find(t => {
+                        const tid = String(t.id);
+                        return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                      });
+                      if (directTest) {
+                        bt = directTest;
+                        if (!resolvedSubject) resolvedSubject = subj.name;
+                        break;
+                      }
+                    }
+
+                    for (const top of (subj.topics || [])) {
+                      const topicTest = (top.tests || []).find(t => {
+                        const tid = String(t.id);
+                        return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
+                      });
+                      if ((tId && String(top.id) === String(tId)) || topicTest) {
+                        resolvedUnit = top.name;
+                        isTopicMatch = true;
+                        if (!bt && topicTest) {
+                          bt = topicTest;
+                        }
+                        break;
+                      }
+                    }
+                    if (isSubjMatch || isTopicMatch) {
                       if (!resolvedSubject) resolvedSubject = subj.name;
                       break;
                     }
                   }
-
-                  for (const top of (subj.topics || [])) {
-                    const topicTest = (top.tests || []).find(t => {
-                      const tid = String(t.id);
-                      return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                    });
-                    if ((tId && String(top.id) === String(tId)) || topicTest) {
-                      resolvedUnit = top.name;
-                      isTopicMatch = true;
-                      if (!bt && topicTest) {
-                        bt = topicTest;
-                      }
-                      break;
-                    }
-                  }
-                  if (isSubjMatch || isTopicMatch) {
-                    if (!resolvedSubject) resolvedSubject = subj.name;
-                    break;
-                  }
                 }
-              }
 
-              if (!resolvedSubject) {
-                resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
-              }
+                if (!resolvedSubject) {
+                  resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
+                }
 
-              const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
-              const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+                testTitle = bt?.name || bt?.title || (currentCleanBookTitle ? `${currentCleanBookTitle} Testi` : 'Test');
+                qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+              }
 
               const isSolved = checkIsTaskSolved(
                 { id: cleanTestId, testId: cleanTestId, bookTestId: cleanTestId, realTestId: cleanTestId, hwId: hw.id, taskType: 'kitap' },
@@ -1053,8 +1170,95 @@ export const KNOWN_PUBLISHERS = [
 
 
 
+let _globalBookTestCache = null;
+let _globalBooksRef = null;
+let _globalBookTestsRef = null;
+
+export function getBookTestInfoCache(books = [], bookTests = []) {
+  if (_globalBookTestCache && _globalBooksRef === books && _globalBookTestsRef === bookTests) {
+    return _globalBookTestCache;
+  }
+  const cache = new Map();
+  const addToCache = (testId, info) => {
+    if (!testId) return;
+    const idStr = String(testId);
+    const idClean = idStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+    const idUuid = String(toUUID(idStr) || '');
+    cache.set(idStr, info);
+    cache.set(idClean, info);
+    if (idUuid && idUuid !== idStr) cache.set(idUuid, info);
+  };
+
+  const bookByIdMap = new Map();
+  (books || []).forEach(b => {
+    if (!b?.id) return;
+    const bId = String(b.id);
+    bookByIdMap.set(bId, b);
+    const bUuid = toUUID(bId);
+    if (bUuid) bookByIdMap.set(bUuid, b);
+  });
+
+  (bookTests || []).forEach(bt => {
+    const bookId = String(bt.bookId || bt.book_id || '');
+    const currentBook = bookByIdMap.get(bookId) || (toUUID(bookId) && bookByIdMap.get(toUUID(bookId))) || null;
+    let subjObj = null;
+    let topicObj = null;
+    if (currentBook?.subjects) {
+      const sId = String(bt.subject_id || bt.subjectId || '');
+      const topId = String(bt.topic_id || bt.topicId || '');
+      for (const s of currentBook.subjects) {
+        if (!s || s.__meta || !s.name) continue;
+        if (sId && (String(s.id) === sId || (toUUID(s.id) && toUUID(s.id) === toUUID(sId)))) {
+          subjObj = s;
+          if (topId && s.topics) {
+            topicObj = s.topics.find(tp => String(tp.id) === topId || (toUUID(tp.id) && toUUID(tp.id) === toUUID(topId))) || null;
+          }
+          break;
+        }
+      }
+    }
+    const cleanBookTitle = (currentBook?.title || 'Kitap')
+      .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+      .replace(/\s*\(Tüm Kitap\)/gi, '')
+      .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+      .trim();
+    const testTitle = bt.name || bt.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+    const qCount = Number(bt.questionCount || bt.question_count) || (bt.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+    const resolvedSubject = bt.subject || bt.subjectName || subjObj?.name || currentBook?.subject || 'Genel';
+    const resolvedUnit = bt.unit || bt.unitName || topicObj?.name || '';
+    addToCache(bt.id, { tObj: bt, currentBook, subjObj, topicObj, cleanBookTitle, testTitle, qCount, resolvedSubject, resolvedUnit });
+  });
+
+  (books || []).forEach(book => {
+    const cleanBookTitle = (book.title || 'Kitap')
+      .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+      .replace(/\s*\(Tüm Kitap\)/gi, '')
+      .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+      .trim();
+    (book.subjects || []).forEach(subj => {
+      (subj.tests || []).forEach(t => {
+        const testTitle = t.name || t.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+        const qCount = Number(t.questionCount || t.question_count) || 12;
+        addToCache(t.id, { tObj: t, currentBook: book, subjObj: subj, topicObj: null, cleanBookTitle, testTitle, qCount, resolvedSubject: subj.name, resolvedUnit: '' });
+      });
+      (subj.topics || []).forEach(topic => {
+        (topic.tests || []).forEach(t => {
+          const testTitle = t.name || t.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+          const qCount = Number(t.questionCount || t.question_count) || 12;
+          addToCache(t.id, { tObj: t, currentBook: book, subjObj: subj, topicObj: topic, cleanBookTitle, testTitle, qCount, resolvedSubject: subj.name, resolvedUnit: topic.name });
+        });
+      });
+    });
+  });
+
+  _globalBooksRef = books;
+  _globalBookTestsRef = bookTests;
+  _globalBookTestCache = cache;
+  return cache;
+}
+
 /* ─── resolveBookTestInfo Helper ─── */
-export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
+export const resolveBookTestInfo = (item, books = [], bookTests = [], cache = null) => {
   if (!item) return null;
 
   // Kitap Okuma görevleri soru bankası testi değildir
@@ -1067,6 +1271,28 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
 
   const isExplicitBook = item.taskType === 'kitap' || item.isBookAssignment || Boolean(item.bookId || item.bookTestId || item.testName || item.unit || item.bookName);
 
+  const tid = String(item.testId || item.bookTestId || item.realTestId || '');
+
+  // ⚡ Fast O(1) cache lookup (uses provided cache or global cached Map)
+  const activeCache = cache || (books.length > 0 || bookTests.length > 0 ? getBookTestInfoCache(books, bookTests) : null);
+  if (activeCache && tid) {
+    const cleanTid = tid.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+    const cached = activeCache.get(tid) || activeCache.get(cleanTid) || (toUUID(cleanTid) && activeCache.get(toUUID(cleanTid)));
+    if (cached) {
+      const { currentBook, cleanBookTitle, testTitle, qCount, resolvedSubject, resolvedUnit } = cached;
+      const explicitSubject = item.dersName && !/^genel$/i.test(item.dersName) && !/^ders$/i.test(item.dersName) ? item.dersName : null;
+      return {
+        isBookTest: true,
+        subject: explicitSubject || resolvedSubject || (currentBook?.subject || 'Matematik'),
+        publisher: currentBook?.publisher || item.publisher || '',
+        unit: item.unit || resolvedUnit || '',
+        testName: item.testName || testTitle || 'Kitap Testi',
+        bookTitle: item.bookTitle || item.bookName || cleanBookTitle,
+        questionCount: item.questionCount || (qCount ? `${qCount} soru` : '')
+      };
+    }
+  }
+
   let rawSubject = String(item.subject || '').trim();
   let unit = String(item.unit || '').trim();
   let testName = String(item.testName || '').trim();
@@ -1075,7 +1301,6 @@ export const resolveBookTestInfo = (item, books = [], bookTests = []) => {
   let publisher = String(item.publisher || '').trim();
 
   // Match test in bookTests if testId / bookTestId / realTestId exists
-  const tid = String(item.testId || item.bookTestId || item.realTestId || '');
   let matchedTest = null;
   if (tid) {
     matchedTest = (bookTests || []).find(bt => String(bt.id) === tid || toUUID(bt.id) === tid);
@@ -3853,6 +4078,16 @@ export default function ProgramCenter({
   const studyPlans = studyPlanContext?.studyPlans || [];
   const studyAssignments = studyPlanContext?.studyAssignments || [];
 
+  // ⚡ Pre-indexed Cache for Fast O(1) Book Test Lookups
+  const bookTestInfoCache = useMemo(() => {
+    return getBookTestInfoCache(books, bookTests);
+  }, [books, bookTests]);
+
+  // ⚡ Precomputed Solved Index for Instant O(1) Task Solved Verification
+  const solvedIndex = useMemo(() => {
+    return buildSolvedIndex(effectiveStudentId, submissions, allHomeworks);
+  }, [effectiveStudentId, submissions, allHomeworks]);
+
   const handleOpenTaskResult = useCallback((item) => {
     if (!item) return;
     const sId = effectiveStudentId;
@@ -4199,41 +4434,7 @@ export default function ProgramCenter({
       return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
     };
 
-    const solvedIdsSet = new Set();
-    (submissions || []).forEach(s => {
-      if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-      const ids = [s.id, s.testId, s.test_id, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.homework_id, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
-      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
-      ids.forEach(id => {
-        if (!id) return;
-        const str = String(id);
-        const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        solvedIdsSet.add(str);
-        solvedIdsSet.add(clean);
-        solvedIdsSet.add(`bt_${clean}`);
-        const u = toUUID(clean || str);
-        if (u) solvedIdsSet.add(String(u));
-      });
-    });
-
-    (allHomeworks || []).forEach(hw => {
-      if (hw.submissions && Array.isArray(hw.submissions)) {
-        hw.submissions.forEach(s => {
-          if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-          const ids = [s.id, s.testId, s.test_id, s.bookTestId, s.realTestId];
-          ids.forEach(id => {
-            if (!id) return;
-            const str = String(id);
-            const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-            solvedIdsSet.add(str);
-            solvedIdsSet.add(clean);
-            solvedIdsSet.add(`bt_${clean}`);
-            const u = toUUID(clean || str);
-            if (u) solvedIdsSet.add(String(u));
-          });
-        });
-      }
-    });
+    const solvedIdsSet = solvedIndex;
 
     const studentGrades = curData?.grades || [];
 
@@ -4247,6 +4448,164 @@ export default function ProgramCenter({
         if ((item.repeatType === 'daily' || item.isDaily) && !allDailyItems.some(i => i.id === item.id)) {
           allDailyItems.push(item);
         }
+      });
+    });
+
+    // ⚡ PRE-GROUPING 1: Direct Book Tests by YMD date (One single pass instead of 7)
+    const directBookTestsByDate = new Map();
+    (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
+      const cleanBookTitle = (b.title || 'Kitap')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .trim();
+
+      (b.subjects || []).forEach(subj => {
+        const subjName = subj.name || 'Genel';
+        const addDirectTest = (t, unitName = '') => {
+          const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
+          if (!tDue) return;
+          const tYMD = String(tDue).split('T')[0];
+          if (!tYMD) return;
+
+          const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIndex, bookTests, books);
+          const list = directBookTestsByDate.get(tYMD) || [];
+          list.push({
+            testId: t.id,
+            bookTestId: t.id,
+            bookId: b.id,
+            isAutoHomework: true,
+            isBookAssignment: true,
+            taskType: 'kitap',
+            subject: subjName,
+            unit: unitName,
+            testName: t.name || 'Test',
+            bookName: cleanBookTitle,
+            bookTitle: cleanBookTitle,
+            topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
+            questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
+            time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+            done: isSolved
+          });
+          directBookTestsByDate.set(tYMD, list);
+        };
+
+        (subj.tests || []).forEach(t => addDirectTest(t, ''));
+        (subj.topics || []).forEach(tp => {
+          (tp.tests || []).forEach(t => addDirectTest(t, tp.name || ''));
+        });
+      });
+    });
+
+    (bookTests || []).forEach(bt => {
+      if (!bt) return;
+      const tDue = bt.dueDate || bt.testDueDate || bt.due_date || bt.date;
+      if (!tDue) return;
+      const tYMD = String(tDue).split('T')[0];
+      if (!tYMD) return;
+
+      const cached = bookTestInfoCache?.get(String(bt.id));
+      const cleanBookTitle = cached?.cleanBookTitle || 'Kitap';
+      const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIndex, bookTests, books);
+      const list = directBookTestsByDate.get(tYMD) || [];
+      list.push({
+        testId: bt.id,
+        bookTestId: bt.id,
+        bookId: String(bt.bookId || bt.book_id || ''),
+        isAutoHomework: true,
+        isBookAssignment: true,
+        taskType: 'kitap',
+        subject: bt.subject || cached?.resolvedSubject || 'Kitap Testi',
+        unit: bt.unit || cached?.resolvedUnit || '',
+        testName: bt.name || bt.title || 'Test',
+        bookName: cleanBookTitle,
+        bookTitle: cleanBookTitle,
+        topic: `${cleanBookTitle} — ${bt.name || bt.title || 'Test'}`,
+        questionCount: typeof bt.questionCount === 'string' && bt.questionCount.includes('soru') ? bt.questionCount : `${bt.questionCount || 12} soru`,
+        time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
+        done: isSolved
+      });
+      directBookTestsByDate.set(tYMD, list);
+    });
+
+    // ⚡ PRE-GROUPING 2: Roadmap Tasks by YMD date (One single pass)
+    const roadmapTasksByDate = new Map();
+    const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
+    studentAssignments.forEach(assignment => {
+      if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
+      const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
+      if (!plan) return;
+
+      let compTopics = [];
+      if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
+      else if (typeof assignment.completedTopics === 'string') {
+        try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
+      } else if (typeof assignment.topic === 'string') {
+        try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
+      }
+      const completedTopicsSet = new Set(compTopics.map(String));
+
+      (plan.subjects || []).forEach(subject => {
+        const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
+        const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
+        const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
+        const dersName = getDersNameForRoadmap(subject, plan);
+
+        if (!hasChildTopics && subject.dueDate) {
+          const sYMD = subject.dueDate.split('T')[0];
+          const list = roadmapTasksByDate.get(sYMD) || [];
+          list.push({
+            roadmapAssignmentId: assignment.id,
+            subjectId: subject.id,
+            isAutoHomework: true,
+            isRoadmapTask: true,
+            taskType: 'konu',
+            subject: dersName,
+            dersName,
+            bookName: plan.title,
+            bookTitle: plan.title,
+            roadmapTitle: plan.title,
+            planTitle: plan.title,
+            unit: subject.name,
+            unitName: subject.name,
+            topic: subject.name,
+            title: subject.name,
+            topicId: subject.id,
+            time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
+            dueDate: subject.dueDate,
+            done: isSubjectCompleted
+          });
+          roadmapTasksByDate.set(sYMD, list);
+        }
+
+        (subject.topics || []).forEach(topic => {
+          if (topic.dueDate) {
+            const tYMD = topic.dueDate.split('T')[0];
+            const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
+            const list = roadmapTasksByDate.get(tYMD) || [];
+            list.push({
+              roadmapAssignmentId: assignment.id,
+              topicId: topic.id,
+              isAutoHomework: true,
+              isRoadmapTask: true,
+              taskType: 'konu',
+              subject: dersName,
+              dersName,
+              bookName: plan.title,
+              bookTitle: plan.title,
+              roadmapTitle: plan.title,
+              planTitle: plan.title,
+              unit: subject.name,
+              unitName: subject.name,
+              topic: topic.name,
+              title: topic.name,
+              time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
+              dueDate: topic.dueDate,
+              done: isCompleted
+            });
+            roadmapTasksByDate.set(tYMD, list);
+          }
+        });
       });
     });
 
@@ -4312,242 +4671,39 @@ export default function ProgramCenter({
         submissions,
         allHomeworks,
         studyAssignments,
-        solvedIdsSet
+        solvedIdsSet,
+        bookTestInfoCache
       });
       scheduledHwItems.forEach(it => autoHwItems.push(it));
 
-      // A.3) Tüm Kitaplarda Tarih Girilmiş Testler (Direct Book Test Due Dates)
-      (books || []).filter(b => b && b.bookType !== 'exam').forEach(b => {
-        const cleanBookTitle = (b.title || 'Kitap')
-          .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-          .replace(/\s*\(Tüm Kitap\)/gi, '')
-          .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-          .trim();
-
-        (b.subjects || []).forEach(subj => {
-          const subjName = subj.name || 'Genel';
-          
-          (subj.tests || []).forEach(t => {
-            const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
-            if (!tDue) return;
-            const tYMD = String(tDue).split('T')[0];
-            if (tYMD === dayInfo.ymd) {
-              const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
-              if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
-                autoHwItems.push({
-                  id: autoId,
-                  hwId: null,
-                  testId: t.id,
-                  bookTestId: t.id,
-                  bookId: b.id,
-                  isAutoHomework: true,
-                  isBookAssignment: true,
-                  taskType: 'kitap',
-                  subject: subjName,
-                  unit: '',
-                  testName: t.name || 'Test',
-                  bookName: cleanBookTitle,
-                  bookTitle: cleanBookTitle,
-                  topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
-                  questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
-                  time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
-                  done: isSolved
-                });
-              }
-            }
+      // A.3 & A.4) Direct Book Tests for this day (O(1) Map lookup)
+      const directTests = directBookTestsByDate.get(dayInfo.ymd) || [];
+      directTests.forEach(t => {
+        const autoId = `book_test_direct_${t.bookId}_${t.testId}_${dayObj.day}`;
+        if (!manualItems.some(m => m.id === autoId || m.testId === t.testId) && !autoHwItems.some(a => a.testId === t.testId)) {
+          autoHwItems.push({
+            ...t,
+            id: autoId
           });
-
-          (subj.topics || []).forEach(tp => {
-            const tpName = tp.name || '';
-            (tp.tests || []).forEach(t => {
-              const tDue = t.dueDate || t.testDueDate || t.due_date || t.date;
-              if (!tDue) return;
-              const tYMD = String(tDue).split('T')[0];
-              if (tYMD === dayInfo.ymd) {
-                const autoId = `book_test_direct_${b.id}_${t.id}_${dayObj.day}`;
-                if (!manualItems.some(m => m.id === autoId || m.testId === t.id) && !autoHwItems.some(a => a.testId === t.id)) {
-                  const isSolved = checkIsTaskSolved({ testId: t.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
-                  autoHwItems.push({
-                    id: autoId,
-                    hwId: null,
-                    testId: t.id,
-                    bookTestId: t.id,
-                    bookId: b.id,
-                    isAutoHomework: true,
-                    isBookAssignment: true,
-                    taskType: 'kitap',
-                    subject: subjName,
-                    unit: tpName,
-                    testName: t.name || 'Test',
-                    bookName: cleanBookTitle,
-                    bookTitle: cleanBookTitle,
-                    topic: `${cleanBookTitle} — ${t.name || 'Test'}`,
-                    questionCount: typeof t.questionCount === 'string' && t.questionCount.includes('soru') ? t.questionCount : `${t.questionCount || 12} soru`,
-                    time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
-                    done: isSolved
-                  });
-                }
-              }
-            });
-          });
-        });
-      });
-
-      // A.4) bookTests içinde tarihi olan tüm testler (Supabase tracked_book_tests)
-      (bookTests || []).forEach(bt => {
-        if (!bt) return;
-        const tDue = bt.dueDate || bt.testDueDate || bt.due_date || bt.date;
-        if (!tDue) return;
-        const tYMD = String(tDue).split('T')[0];
-        if (tYMD === dayInfo.ymd) {
-          const bId = String(bt.bookId || bt.book_id || '');
-          const currentBook = (books || []).find(b => String(b.id) === bId || (toUUID(b.id) && toUUID(b.id) === toUUID(bId)));
-          const cleanBookTitle = (currentBook?.title || 'Kitap')
-            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-            .replace(/\s*\(Tüm Kitap\)/gi, '')
-            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-            .trim();
-
-          const autoId = `book_test_bt_${bt.id}_${dayObj.day}`;
-          if (!manualItems.some(m => m.id === autoId || m.testId === bt.id || m.bookTestId === bt.id) && !autoHwItems.some(a => a.testId === bt.id || a.bookTestId === bt.id)) {
-            const isSolved = checkIsTaskSolved({ testId: bt.id, taskType: 'kitap' }, studentId, submissions, allHomeworks, studyAssignments, solvedIdsSet, bookTests, books);
-            autoHwItems.push({
-              id: autoId,
-              hwId: null,
-              testId: bt.id,
-              bookTestId: bt.id,
-              bookId: bId,
-              isAutoHomework: true,
-              isBookAssignment: true,
-              taskType: 'kitap',
-              subject: bt.subject || 'Kitap Testi',
-              unit: '',
-              testName: bt.name || 'Test',
-              bookName: cleanBookTitle,
-              bookTitle: cleanBookTitle,
-              topic: `${cleanBookTitle} — ${bt.name || 'Test'}`,
-              questionCount: typeof bt.questionCount === 'string' && bt.questionCount.includes('soru') ? bt.questionCount : `${bt.questionCount || 12} soru`,
-              time: `Hedef: ${new Date(tDue).toLocaleDateString('tr-TR')}`,
-              done: isSolved
-            });
-          }
         }
       });
 
-      // B) Roadmap / Study Plan items with target dates (dueDate)
-      const studentAssignments = (studyAssignments || []).filter(a => String(a.studentId) === String(studentId));
-      studentAssignments.forEach(assignment => {
-        if (assignment.status === 'completed' || assignment.status === 'done' || assignment.isCompleted) return;
-
-        const plan = (studyPlans || []).find(p => String(p.id) === String(assignment.planId || assignment.studyPlanId));
-        if (!plan) return;
-
-        let compTopics = [];
-        if (Array.isArray(assignment.completedTopics)) compTopics = assignment.completedTopics;
-        else if (typeof assignment.completedTopics === 'string') {
-          try { compTopics = JSON.parse(assignment.completedTopics); } catch(e) {}
-        } else if (typeof assignment.topic === 'string') {
-          try { compTopics = JSON.parse(assignment.topic); } catch(e) {}
-        }
-        const completedTopicsSet = new Set(compTopics.map(String));
-
-        // Check if all steps completed
-        let totalPlanSteps = 0;
-        let completedPlanSteps = 0;
-        (plan.subjects || []).forEach(subject => {
-          if (subject.dueDate) {
-            totalPlanSteps++;
-            if (completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name)) completedPlanSteps++;
-          }
-          (subject.topics || []).forEach(topic => {
-            totalPlanSteps++;
-            if (completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name)) completedPlanSteps++;
+      // B) Roadmap items for this day (O(1) Map lookup)
+      const roadmapItems = roadmapTasksByDate.get(dayInfo.ymd) || [];
+      roadmapItems.forEach(r => {
+        const rId = `roadmap_${r.roadmapAssignmentId}_${r.topicId || r.subjectId}_${dayObj.day}`;
+        if (!manualItems.some(m => m.id === rId) && !autoHwItems.some(a => a.id === rId)) {
+          autoHwItems.push({
+            ...r,
+            id: rId
           });
-        });
-
-        if (totalPlanSteps > 0 && completedPlanSteps >= totalPlanSteps) {
-          return;
         }
-
-        (plan.subjects || []).forEach(subject => {
-          const hasChildTopics = Array.isArray(subject.topics) && subject.topics.length > 0;
-          const allChildTopicsDone = hasChildTopics && subject.topics.every(t => completedTopicsSet.has(String(t.id)) || completedTopicsSet.has(t.name));
-          const isSubjectCompleted = completedTopicsSet.has(String(subject.id)) || completedTopicsSet.has(subject.name) || allChildTopicsDone;
-
-          const dersName = getDersNameForRoadmap(subject, plan);
-
-          if (!hasChildTopics && subject.dueDate) {
-            const sYMD = subject.dueDate.split('T')[0];
-            if (dayInfo.ymd === sYMD) {
-              const subId = `roadmap_sub_${assignment.id}_${subject.id}_${dayObj.day}`;
-              const exists = manualItems.some(m => m.id === subId) || autoHwItems.some(a => a.id === subId);
-              if (!exists) {
-                autoHwItems.push({
-                  id: subId,
-                  roadmapAssignmentId: assignment.id,
-                  isAutoHomework: true,
-                  isRoadmapTask: true,
-                  taskType: 'konu',
-                  subject: dersName,
-                  dersName: dersName,
-                  bookName: plan.title,
-                  bookTitle: plan.title,
-                  roadmapTitle: plan.title,
-                  planTitle: plan.title,
-                  unit: subject.name,
-                  unitName: subject.name,
-                  topic: subject.name,
-                  title: subject.name,
-                  topicId: subject.id,
-                  time: `Hedef: ${new Date(subject.dueDate).toLocaleDateString('tr-TR')}`,
-                  dueDate: subject.dueDate,
-                  done: isSubjectCompleted
-                });
-              }
-            }
-          }
-
-          (subject.topics || []).forEach(topic => {
-            if (topic.dueDate) {
-              const tYMD = topic.dueDate.split('T')[0];
-              if (dayInfo.ymd === tYMD) {
-                const isCompleted = completedTopicsSet.has(String(topic.id)) || completedTopicsSet.has(topic.name);
-                const topId = `roadmap_top_${assignment.id}_${topic.id}_${dayObj.day}`;
-                const exists = manualItems.some(m => m.id === topId) || autoHwItems.some(a => a.id === topId);
-                if (!exists) {
-                  autoHwItems.push({
-                    id: topId,
-                    roadmapAssignmentId: assignment.id,
-                    isAutoHomework: true,
-                    isRoadmapTask: true,
-                    taskType: 'konu',
-                    subject: dersName,
-                    dersName: dersName,
-                    bookName: plan.title,
-                    bookTitle: plan.title,
-                    roadmapTitle: plan.title,
-                    planTitle: plan.title,
-                    unit: subject.name,
-                    unitName: subject.name,
-                    topic: topic.name,
-                    title: topic.name,
-                    topicId: topic.id,
-                    time: `Hedef: ${new Date(topic.dueDate).toLocaleDateString('tr-TR')}`,
-                    dueDate: topic.dueDate,
-                    done: isCompleted
-                  });
-                }
-              }
-            }
-          });
-        });
       });
 
-      const rawWeeklyItems = sortItemsByBookOrder([...autoHwItems, ...manualItems], books, bookTests);
+      // Deduplicate into seenWeeklyIds (single pass without double sorting)
       const seenWeeklyIds = new Map();
       const seenWeeklyContent = new Map();
-      rawWeeklyItems.forEach(item => {
+      [...autoHwItems, ...manualItems].forEach(item => {
         const cleanSubject = String(item.subject || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
         const cleanTitle = String(item.title || item.topic || item.testName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
         const cleanBook = String(item.bookTitle || item.bookName || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '');
@@ -4588,7 +4744,7 @@ export default function ProgramCenter({
         items: dayItems
       };
     });
-  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books, studyPlans, studyAssignments]);
+  }, [weeklyProgram, allHomeworks, currentUser, submissions, curData, weekInfo, bookTests, books, studyPlans, studyAssignments, effectiveUser, solvedIndex, bookTestInfoCache]);
 
   const [editingItem, setEditingItem] = useState(null); // { dayKey, item }
   const [assigningTopic, setAssigningTopic] = useState(null); // { subject, topic, taskType }
@@ -4779,9 +4935,14 @@ export default function ProgramCenter({
   const doneItems = (processedWeeklyProgram || []).reduce((a, d) => a + (d.items?.filter(i => i.done).length || 0), 0);
   const pct = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
+  const prevProgressStatsRef = useRef(null);
   useEffect(() => {
     if (typeof onProgressStats === 'function') {
-      onProgressStats({ totalItems, doneItems, pct });
+      const prev = prevProgressStatsRef.current;
+      if (!prev || prev.totalItems !== totalItems || prev.doneItems !== doneItems || prev.pct !== pct) {
+        prevProgressStatsRef.current = { totalItems, doneItems, pct };
+        onProgressStats({ totalItems, doneItems, pct });
+      }
     }
   }, [totalItems, doneItems, pct, onProgressStats]);
 
@@ -4808,41 +4969,7 @@ export default function ProgramCenter({
       return sId === studentIdStr || (studentUuidStr && sId === studentUuidStr) || (studentUuidStr && toUUID(sId) === studentUuidStr);
     };
 
-    const solvedIdsSet = new Set();
-    (submissions || []).forEach(s => {
-      if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-      const ids = [s.id, s.testId, s.test_id, s.realTestId, s.bookTestId, s.hwId, s.homeworkId, s.homework_id, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.realId, s.metadata?.testId];
-      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
-      ids.forEach(id => {
-        if (!id) return;
-        const str = String(id);
-        const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        solvedIdsSet.add(str);
-        solvedIdsSet.add(clean);
-        solvedIdsSet.add(`bt_${clean}`);
-        const u = toUUID(clean || str);
-        if (u) solvedIdsSet.add(String(u));
-      });
-    });
-
-    (allHomeworks || []).forEach(hw => {
-      if (hw.submissions && Array.isArray(hw.submissions)) {
-        hw.submissions.forEach(s => {
-          if (!s || !isMatchStudent(s) || s.status === 'in_progress' || s.status === 'draft') return;
-          const ids = [s.id, s.testId, s.test_id, s.bookTestId, s.realTestId];
-          ids.forEach(id => {
-            if (!id) return;
-            const str = String(id);
-            const clean = str.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-            solvedIdsSet.add(str);
-            solvedIdsSet.add(clean);
-            solvedIdsSet.add(`bt_${clean}`);
-            const u = toUUID(clean || str);
-            if (u) solvedIdsSet.add(String(u));
-          });
-        });
-      }
-    });
+    const solvedIdsSet = solvedIndex;
 
     const seenOverdueKeys = new Set();
     const list = [];
@@ -4910,15 +5037,15 @@ export default function ProgramCenter({
           seenOverdueKeys.add(String(testIdKey));
 
           const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
-          const bookObj = (books || []).find(b => String(b.id) === String(hw.bookId || hw.raw_data?.bookId));
-          const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
+          const cachedBt = bookTestInfoCache?.get(cleanTestId);
+          const bt = cachedBt?.tObj || (bookTests || []).find(b => String(b.id) === cleanTestId);
+          const bookObj = cachedBt?.currentBook || (books || []).find(b => String(b.id) === String(hw.bookId || hw.raw_data?.bookId));
+          const cleanBookTitle = cachedBt?.cleanBookTitle || (bookObj?.title || hw.title || 'Kitap')
             .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
             .replace(/\s*\(Tüm Kitap\)/gi, '')
             .trim();
-
-          const bt = (bookTests || []).find(b => String(b.id) === cleanTestId);
-          const testTitle = bt?.name || bt?.title || 'Kitap Testi';
-          const qCount = Number(bt?.questionCount || bt?.question_count) || 12;
+          const testTitle = cachedBt?.testTitle || bt?.name || bt?.title || 'Kitap Testi';
+          const qCount = cachedBt?.qCount || Number(bt?.questionCount || bt?.question_count) || 12;
 
           list.push({
             id: `overdue_bt_${hw.id}_${cleanTestId}`,
@@ -5099,7 +5226,7 @@ export default function ProgramCenter({
 
     list.sort((a, b) => (b.diffDays || 0) - (a.diffDays || 0));
     return list;
-  }, [processedWeeklyProgram, weeklyProgram, effectiveUser, allHomeworks, curData, submissions, studyAssignments, studyPlans, books, bookTests]);
+  }, [processedWeeklyProgram, weeklyProgram, effectiveUser, allHomeworks, curData, submissions, studyAssignments, studyPlans, books, bookTests, solvedIndex, bookTestInfoCache]);
 
   const handlePrintOverdueOnly = useCallback(() => {
     if (!overdueTasks || overdueTasks.length === 0) {
