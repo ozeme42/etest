@@ -20,7 +20,7 @@ import {
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
   BookOpen, AlertCircle, Trophy, Sparkles, HelpCircle, Check, PlayCircle, Lock,
   Flag, RotateCcw, Cloud, Save, Sun, Moon, CornerDownRight, Keyboard,
-  FileText, CheckSquare, Target
+  FileText, CheckSquare, Target, Filter
 } from 'lucide-react';
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false, startQNo = 1) {
@@ -55,6 +55,121 @@ const MISTAKE_REASON_OPTIONS = [
   { label: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
   { label: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
 ];
+
+export const OE_POOL_PALETTES = [
+  // 0: Yumuşak İndigo / Leylak
+  {
+    bg: '#eef2ff',
+    border: '#c7d2fe',
+    text: '#3730a3',
+    badgeBg: '#6366f1',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(99, 102, 241, 0.16)',
+    darkBorder: 'rgba(99, 102, 241, 0.42)',
+    darkText: '#c7d2fe',
+    darkBadgeBg: '#6366f1',
+    darkBadgeText: '#ffffff'
+  },
+  // 1: Zümrüt / Nane Yeşili
+  {
+    bg: '#ecfdf5',
+    border: '#a7f3d0',
+    text: '#065f46',
+    badgeBg: '#10b981',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(16, 185, 129, 0.16)',
+    darkBorder: 'rgba(16, 185, 129, 0.42)',
+    darkText: '#a7f3d0',
+    darkBadgeBg: '#10b981',
+    darkBadgeText: '#ffffff'
+  },
+  // 2: Kehribar / Sıcak Bal
+  {
+    bg: '#fffbeb',
+    border: '#fde68a',
+    text: '#92400e',
+    badgeBg: '#f59e0b',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(245, 158, 11, 0.16)',
+    darkBorder: 'rgba(245, 158, 11, 0.42)',
+    darkText: '#fde68a',
+    darkBadgeBg: '#f59e0b',
+    darkBadgeText: '#ffffff'
+  },
+  // 3: Gökyüzü / Okyanus Mavisi
+  {
+    bg: '#f0f9ff',
+    border: '#bae6fd',
+    text: '#0369a1',
+    badgeBg: '#0284c7',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(14, 165, 233, 0.16)',
+    darkBorder: 'rgba(14, 165, 233, 0.42)',
+    darkText: '#bae6fd',
+    darkBadgeBg: '#0284c7',
+    darkBadgeText: '#ffffff'
+  },
+  // 4: Gül Pembesi / Mercan
+  {
+    bg: '#fff1f2',
+    border: '#fecdd3',
+    text: '#9f1239',
+    badgeBg: '#f43f5e',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(244, 63, 94, 0.16)',
+    darkBorder: 'rgba(244, 63, 94, 0.42)',
+    darkText: '#fecdd3',
+    darkBadgeBg: '#f43f5e',
+    darkBadgeText: '#ffffff'
+  },
+  // 5: Turkuaz / Deniz Mavisi
+  {
+    bg: '#f0fdfa',
+    border: '#99f6e4',
+    text: '#115e59',
+    badgeBg: '#0d9488',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(20, 184, 166, 0.16)',
+    darkBorder: 'rgba(20, 184, 166, 0.42)',
+    darkText: '#99f6e4',
+    darkBadgeBg: '#0d9488',
+    darkBadgeText: '#ffffff'
+  },
+  // 6: Eflatun / Mor
+  {
+    bg: '#faf5ff',
+    border: '#e9d5ff',
+    text: '#6b21a8',
+    badgeBg: '#a855f7',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(168, 85, 247, 0.16)',
+    darkBorder: 'rgba(168, 85, 247, 0.42)',
+    darkText: '#e9d5ff',
+    darkBadgeBg: '#a855f7',
+    darkBadgeText: '#ffffff'
+  },
+  // 7: Sıcak Turuncu
+  {
+    bg: '#fff7ed',
+    border: '#fed7aa',
+    text: '#9a3412',
+    badgeBg: '#ea580c',
+    badgeText: '#ffffff',
+    darkBg: 'rgba(234, 88, 12, 0.16)',
+    darkBorder: 'rgba(234, 88, 12, 0.42)',
+    darkText: '#fed7aa',
+    darkBadgeBg: '#ea580c',
+    darkBadgeText: '#ffffff'
+  }
+];
+
+export function getOptionLetterLabel(index) {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (index < 26) return letters[index];
+  const first = letters[Math.floor(index / 26) - 1];
+  const second = letters[index % 26];
+  return `${first}${second}`;
+}
 
 export default function TrackedBookQuizRunner() {
   const { testId: routeParamId } = useParams();
@@ -1054,6 +1169,7 @@ export default function TrackedBookQuizRunner() {
   // Açık uçlu testler için soru numaraları gizlenmiş, karıştırılmış Cevap Havuzu (Eşleştirme Modu)
   const [isPoolCollapsed, setIsPoolCollapsed] = useState(false);
   const [isMobilePoolDrawerOpen, setIsMobilePoolDrawerOpen] = useState(false);
+  const [poolFilterOnlyRemaining, setPoolFilterOnlyRemaining] = useState(false);
 
   const openEndedAnswerPool = useMemo(() => {
     if (!isOpenEnded) return [];
@@ -1086,10 +1202,26 @@ export default function TrackedBookQuizRunner() {
     const shuffled = [...rawItems].map((item, i) => {
       const pseudoRand = Math.abs(Math.sin(hash + (i + 1) * 7919));
       return { item, sortKey: pseudoRand };
-    }).sort((a, b) => a.sortKey - b.sortKey).map(x => x.item);
+    }).sort((a, b) => a.sortKey - b.sortKey).map((x, idx) => ({
+      ...x.item,
+      label: getOptionLetterLabel(idx),
+      colorTheme: OE_POOL_PALETTES[idx % OE_POOL_PALETTES.length]
+    }));
 
     return shuffled;
   }, [isOpenEnded, resolvedTest, resolvedBook]);
+
+  // Havuz istatistikleri (kullanılan ve kalan seçenekler)
+  const poolStats = useMemo(() => {
+    if (!openEndedAnswerPool.length) return { total: 0, used: 0, remaining: 0 };
+    const usedTexts = new Set(Object.values(answers || {}).map(v => String(v || '').trim()).filter(Boolean));
+    const used = openEndedAnswerPool.filter(p => usedTexts.has(p.text)).length;
+    return {
+      total: openEndedAnswerPool.length,
+      used,
+      remaining: Math.max(0, openEndedAnswerPool.length - used)
+    };
+  }, [openEndedAnswerPool, answers]);
 
   const hasAnswerPool = Boolean(isOpenEnded && openEndedAnswerPool.length > 0 && !isSubmitted);
 
@@ -2386,40 +2518,74 @@ export default function TrackedBookQuizRunner() {
                                   {/* Cevap input alanı + Hızlı İleri Butonu */}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                     <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-                                      <input
-                                        ref={el => { inputRefs.current[qNo] = el; }}
-                                        type="text"
-                                        inputMode="text"
-                                        autoCapitalize="sentences"
-                                        autoCorrect="on"
-                                        spellCheck="true"
-                                        enterKeyHint={isLastQ ? "done" : "next"}
-                                        disabled={isSubmitted || isTeacherReviewing}
-                                        value={selected || ''}
-                                        onFocus={() => handleInputFocus(qNo)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            goToNextQuestion(qNo);
-                                          }
-                                        }}
-                                        onChange={e => handleOpenEndedChange(qNo, e.target.value)}
-                                        placeholder={isSubmitted ? (selected ? '' : '— boş —') : (openEndedAnswerPool.length > 0 ? 'Havuzdan seçin veya yazın...' : 'Cevap giriniz (sayı veya metin)...')}
-                                        style={{
-                                          width: '100%',
-                                          background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
-                                          border: `1.5px solid ${isFocused ? '#6366f1' : (isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)')}`,
-                                          borderRadius: 8,
-                                          padding: selected && !isSubmitted ? '0.55rem 2rem 0.55rem 0.75rem' : '0.55rem 0.75rem',
-                                          color: 'var(--color-text)',
-                                          fontSize: '1rem',
-                                          fontWeight: 700,
-                                          fontFamily: 'inherit',
-                                          boxSizing: 'border-box',
-                                          outline: 'none',
-                                          letterSpacing: 'normal'
-                                        }}
-                                      />
+                                      {(() => {
+                                        const matchedPoolItem = openEndedAnswerPool.find(p => p.text === String(selected || '').trim());
+                                        return (
+                                          <>
+                                            {matchedPoolItem && (
+                                              <span
+                                                style={{
+                                                  position: 'absolute',
+                                                  left: 8,
+                                                  zIndex: 2,
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  width: 22,
+                                                  height: 22,
+                                                  borderRadius: '50%',
+                                                  background: isDark ? (matchedPoolItem.colorTheme?.darkBadgeBg || '#6366f1') : (matchedPoolItem.colorTheme?.badgeBg || '#6366f1'),
+                                                  color: '#ffffff',
+                                                  fontSize: '0.74rem',
+                                                  fontWeight: 900,
+                                                  pointerEvents: 'none',
+                                                  boxShadow: '0 1px 4px rgba(0,0,0,0.18)'
+                                                }}
+                                                title={`Havuz Seçeneği: [${matchedPoolItem.label}]`}
+                                              >
+                                                {matchedPoolItem.label}
+                                              </span>
+                                            )}
+                                            <input
+                                              ref={el => { inputRefs.current[qNo] = el; }}
+                                              type="text"
+                                              inputMode="text"
+                                              autoCapitalize="sentences"
+                                              autoCorrect="on"
+                                              spellCheck="true"
+                                              enterKeyHint={isLastQ ? "done" : "next"}
+                                              disabled={isSubmitted || isTeacherReviewing}
+                                              value={selected || ''}
+                                              onFocus={() => handleInputFocus(qNo)}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  e.preventDefault();
+                                                  goToNextQuestion(qNo);
+                                                }
+                                              }}
+                                              onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                              placeholder={isSubmitted ? (selected ? '' : '— boş —') : (openEndedAnswerPool.length > 0 ? 'Havuzdan seçin veya yazın...' : 'Cevap giriniz (sayı veya metin)...')}
+                                              style={{
+                                                width: '100%',
+                                                background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                                                border: `1.5px solid ${isFocused ? '#6366f1' : (isOeCorrect ? '#86efac' : isOeWrong ? '#fca5a5' : 'var(--color-border-input)')}`,
+                                                borderRadius: 8,
+                                                paddingTop: '0.55rem',
+                                                paddingBottom: '0.55rem',
+                                                paddingLeft: matchedPoolItem ? '2.35rem' : '0.75rem',
+                                                paddingRight: selected && !isSubmitted ? '2rem' : '0.75rem',
+                                                color: 'var(--color-text)',
+                                                fontSize: '1rem',
+                                                fontWeight: 700,
+                                                fontFamily: 'inherit',
+                                                boxSizing: 'border-box',
+                                                outline: 'none',
+                                                letterSpacing: 'normal'
+                                              }}
+                                            />
+                                          </>
+                                        );
+                                      })()}
                                       {selected && !isSubmitted && !isTeacherReviewing && (
                                         <button
                                           type="button"
@@ -2863,9 +3029,9 @@ export default function TrackedBookQuizRunner() {
                           boxShadow: '0 4px 14px rgba(124, 58, 237, 0.08)'
                         }}
                       >
-                        {/* Üst Başlık ve Aktif Soru Durumu */}
+                        {/* Üst Başlık, Kalan Sayacı ve Filtre */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                             <div style={{
                               background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
                               color: 'white',
@@ -2880,9 +3046,42 @@ export default function TrackedBookQuizRunner() {
                               <Target size={13} />
                               <span>CEVAP HAVUZU</span>
                             </div>
-                            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                              {openEndedAnswerPool.length} Karışık Seçenek
+                            <span style={{
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.55rem',
+                              borderRadius: 99,
+                              background: poolStats.remaining === 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.12)',
+                              color: poolStats.remaining === 0 ? '#10b981' : '#6366f1',
+                              border: `1px solid ${poolStats.remaining === 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.25)'}`
+                            }}>
+                              {poolStats.remaining === 0 ? '✓ Tümü Yerleşti' : `${poolStats.remaining} / ${poolStats.total} Boşta`}
                             </span>
+
+                            {poolStats.used > 0 && !isPoolCollapsed && (
+                              <button
+                                type="button"
+                                onClick={() => setPoolFilterOnlyRemaining(prev => !prev)}
+                                style={{
+                                  background: poolFilterOnlyRemaining ? '#7c3aed' : 'var(--color-surface)',
+                                  color: poolFilterOnlyRemaining ? '#ffffff' : 'var(--color-text-muted)',
+                                  border: '1px solid rgba(124, 58, 237, 0.35)',
+                                  borderRadius: '0.5rem',
+                                  padding: '0.18rem 0.5rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 3.5,
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title="Sadece henüz kullanılmamış seçenekleri göster"
+                              >
+                                <Filter size={11} />
+                                <span>{poolFilterOnlyRemaining ? 'Kalanlar Açık' : 'Yalnız Kalanlar'}</span>
+                              </button>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2904,7 +3103,7 @@ export default function TrackedBookQuizRunner() {
                               </div>
                             ) : (
                               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                                💡 Bulduğunuz sonuca dokunun
+                                💡 Sonuca dokunup atayın
                               </span>
                             )}
 
@@ -2932,11 +3131,11 @@ export default function TrackedBookQuizRunner() {
                           </div>
                         </div>
 
-                        {/* Havuzdaki Karışık Çipler (Açıkken) */}
+                        {/* Havuzdaki Renkli & Rozetli Çipler (Açıkken) */}
                         {!isPoolCollapsed && (
                           <div>
                             <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.73rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                              Soru numaraları gizlenmiştir. Sonucunuza dokunun; seçili soruya atanıp otomatik sonraki soruya geçer.
+                              Soru numaraları gizlenmiştir. Sonucunuza dokunarak seçili soruya atayabilirsiniz.
                             </p>
                             <div
                               className="oe-pool-chips-scroll"
@@ -2946,7 +3145,8 @@ export default function TrackedBookQuizRunner() {
                                 gap: '0.45rem',
                                 maxHeight: isMobile ? '200px' : 'calc(100vh - 220px)',
                                 overflowY: 'auto',
-                                paddingRight: '0.25rem'
+                                paddingRight: '0.25rem',
+                                paddingBottom: '0.25rem'
                               }}
                             >
                               {openEndedAnswerPool.map((item, idx) => {
@@ -2957,43 +3157,105 @@ export default function TrackedBookQuizRunner() {
                                 const isAssigned = matchedQuestions.length > 0;
                                 const isAssignedToActive = activeFocusedQ && matchedQuestions.includes(activeFocusedQ);
 
+                                if (poolFilterOnlyRemaining && isAssigned && !isAssignedToActive) {
+                                  return null;
+                                }
+
+                                const theme = item.colorTheme || OE_POOL_PALETTES[idx % OE_POOL_PALETTES.length];
+                                const bg = isAssignedToActive
+                                  ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
+                                  : isAssigned
+                                    ? (isDark ? 'rgba(30, 41, 59, 0.65)' : '#f1f5f9')
+                                    : (isDark ? theme.darkBg : theme.bg);
+                                const borderColor = isAssignedToActive
+                                  ? '#7c3aed'
+                                  : isAssigned
+                                    ? (isDark ? 'rgba(148, 163, 184, 0.3)' : '#cbd5e1')
+                                    : (isDark ? theme.darkBorder : theme.border);
+                                const textColor = isAssignedToActive
+                                  ? '#ffffff'
+                                  : isAssigned
+                                    ? (isDark ? '#94a3b8' : '#64748b')
+                                    : (isDark ? theme.darkText : theme.text);
+                                const badgeBg = isAssignedToActive
+                                  ? 'rgba(255, 255, 255, 0.28)'
+                                  : isAssigned
+                                    ? (isDark ? '#475569' : '#cbd5e1')
+                                    : (isDark ? theme.darkBadgeBg : theme.badgeBg);
+                                const badgeTextColor = isAssignedToActive
+                                  ? '#ffffff'
+                                  : isAssigned
+                                    ? (isDark ? '#cbd5e1' : '#475569')
+                                    : (isDark ? theme.darkBadgeText : theme.badgeText);
+
                                 return (
                                   <button
                                     key={item.id || idx}
                                     type="button"
                                     onClick={() => handleSelectPoolAnswer(item.text)}
                                     style={{
-                                      padding: '0.45rem 0.75rem',
+                                      padding: '0.42rem 0.65rem',
                                       borderRadius: '0.65rem',
-                                      border: isAssignedToActive
-                                        ? '2px solid #7c3aed'
-                                        : (isAssigned ? '1.5px solid #a78bfa' : '1.5px solid var(--color-border)'),
-                                      background: isAssignedToActive
-                                        ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
-                                        : (isAssigned ? (isDark ? 'rgba(124, 58, 237, 0.25)' : '#e0e7ff') : 'var(--color-surface)'),
-                                      color: isAssignedToActive ? '#ffffff' : (isAssigned ? (isDark ? '#c4b5fd' : '#4338ca') : 'var(--color-text)'),
+                                      border: `1.5px solid ${borderColor}`,
+                                      background: bg,
+                                      color: textColor,
                                       fontWeight: 800,
-                                      fontSize: isMobile ? '0.82rem' : '0.88rem',
+                                      fontSize: isMobile ? '0.82rem' : '0.86rem',
                                       cursor: 'pointer',
-                                      display: 'flex',
+                                      display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: 6,
-                                      boxShadow: isAssignedToActive ? '0 3px 10px rgba(124, 58, 237, 0.35)' : 'none',
+                                      gap: '0.45rem',
+                                      opacity: isAssigned && !isAssignedToActive ? 0.62 : 1,
+                                      transform: isAssignedToActive ? 'scale(1.03)' : 'none',
+                                      boxShadow: isAssignedToActive
+                                        ? '0 4px 14px rgba(124, 58, 237, 0.4)'
+                                        : (!isAssigned ? (isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.05)') : 'none'),
                                       transition: 'all 0.15s ease',
                                       userSelect: 'none'
                                     }}
+                                    title={isAssigned ? `Bu seçenek ${matchedQuestions.map(q => `${q}. Soru`).join(', ')} için atandı. Kaldırmak veya değiştirmek için dokunun.` : 'Soruya atamak için dokunun'}
                                   >
-                                    <span>{item.text}</span>
+                                    {/* Harf Rozeti (A, B, C...) */}
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: '50%',
+                                      background: badgeBg,
+                                      color: badgeTextColor,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 900,
+                                      flexShrink: 0
+                                    }}>
+                                      {item.label || getOptionLetterLabel(idx)}
+                                    </span>
+
+                                    {/* Seçenek Metni */}
+                                    <span style={{
+                                      textDecoration: isAssigned && !isAssignedToActive ? 'line-through' : 'none',
+                                      wordBreak: 'break-word',
+                                      maxWidth: 220,
+                                      textAlign: 'left'
+                                    }}>
+                                      {item.text}
+                                    </span>
+
+                                    {/* Soru Atama Rozeti */}
                                     {isAssigned && (
                                       <span style={{
-                                        fontSize: '0.65rem',
+                                        fontSize: '0.64rem',
                                         fontWeight: 900,
                                         padding: '0.1rem 0.35rem',
                                         borderRadius: 99,
-                                        background: isAssignedToActive ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(124,58,237,0.4)' : '#c7d2fe'),
-                                        color: isAssignedToActive ? '#ffffff' : (isDark ? '#e9d5ff' : '#3730a3')
+                                        background: isAssignedToActive ? 'rgba(255, 255, 255, 0.3)' : (isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7'),
+                                        color: isAssignedToActive ? '#ffffff' : (isDark ? '#86efac' : '#15803d'),
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 2
                                       }}>
-                                        ✓ {matchedQuestions.map(q => `${q}. Soru`).join(', ')}
+                                        ✓ {matchedQuestions.map(q => `${q}.S`).join(', ')}
                                       </span>
                                     )}
                                   </button>
@@ -3536,6 +3798,57 @@ export default function TrackedBookQuizRunner() {
               </button>
             </div>
 
+            {/* Mobile Drawer Filter & Stats */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.1rem 0 0.4rem',
+              borderBottom: '1px solid var(--color-border)',
+              flexWrap: 'wrap',
+              gap: 6
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: 99,
+                  background: poolStats.remaining === 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(99, 102, 241, 0.12)',
+                  color: poolStats.remaining === 0 ? '#10b981' : '#6366f1',
+                  border: `1px solid ${poolStats.remaining === 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(99, 102, 241, 0.25)'}`
+                }}>
+                  {poolStats.remaining === 0 ? '✓ Tümü Yerleşti' : `${poolStats.remaining} / ${poolStats.total} Boşta`}
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                  {poolStats.used} Atandı
+                </span>
+              </div>
+
+              {poolStats.used > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPoolFilterOnlyRemaining(prev => !prev)}
+                  style={{
+                    background: poolFilterOnlyRemaining ? '#7c3aed' : 'var(--color-surface-hover)',
+                    color: poolFilterOnlyRemaining ? '#ffffff' : 'var(--color-text-muted)',
+                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    borderRadius: '0.5rem',
+                    padding: '0.25rem 0.55rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <Filter size={11} />
+                  <span>{poolFilterOnlyRemaining ? 'Kalanlar Açık' : 'Yalnız Kalanlar'}</span>
+                </button>
+              )}
+            </div>
+
             {/* Drawer Chips */}
             <div style={{
               display: 'flex',
@@ -3543,7 +3856,7 @@ export default function TrackedBookQuizRunner() {
               gap: '0.55rem',
               overflowY: 'auto',
               padding: '0.35rem 0',
-              maxHeight: '55vh'
+              maxHeight: '52vh'
             }}>
               {openEndedAnswerPool.map((item, idx) => {
                 const targetQ = activeFocusedQ || 1;
@@ -3554,6 +3867,37 @@ export default function TrackedBookQuizRunner() {
                 const isAssignedToThis = matchedQuestions.includes(targetQ);
                 const isAssigned = matchedQuestions.length > 0;
 
+                if (poolFilterOnlyRemaining && isAssigned && !isAssignedToThis) {
+                  return null;
+                }
+
+                const theme = item.colorTheme || OE_POOL_PALETTES[idx % OE_POOL_PALETTES.length];
+                const bg = isAssignedToThis
+                  ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
+                  : isAssigned
+                    ? (isDark ? 'rgba(30, 41, 59, 0.65)' : '#f1f5f9')
+                    : (isDark ? theme.darkBg : theme.bg);
+                const borderColor = isAssignedToThis
+                  ? '#7c3aed'
+                  : isAssigned
+                    ? (isDark ? 'rgba(148, 163, 184, 0.3)' : '#cbd5e1')
+                    : (isDark ? theme.darkBorder : theme.border);
+                const textColor = isAssignedToThis
+                  ? '#ffffff'
+                  : isAssigned
+                    ? (isDark ? '#94a3b8' : '#64748b')
+                    : (isDark ? theme.darkText : theme.text);
+                const badgeBg = isAssignedToThis
+                  ? 'rgba(255, 255, 255, 0.28)'
+                  : isAssigned
+                    ? (isDark ? '#475569' : '#cbd5e1')
+                    : (isDark ? theme.darkBadgeBg : theme.badgeBg);
+                const badgeTextColor = isAssignedToThis
+                  ? '#ffffff'
+                  : isAssigned
+                    ? (isDark ? '#cbd5e1' : '#475569')
+                    : (isDark ? theme.darkBadgeText : theme.badgeText);
+
                 return (
                   <button
                     key={item.id || idx}
@@ -3562,36 +3906,64 @@ export default function TrackedBookQuizRunner() {
                       handleSelectPoolAnswer(item.text, targetQ);
                     }}
                     style={{
-                      padding: '0.65rem 1rem',
+                      padding: '0.55rem 0.85rem',
                       borderRadius: '0.75rem',
-                      border: isAssignedToThis
-                        ? '2px solid #7c3aed'
-                        : (isAssigned ? '1.5px solid #a78bfa' : '1.5px solid var(--color-border)'),
-                      background: isAssignedToThis
-                        ? 'linear-gradient(135deg, #7c3aed, #6366f1)'
-                        : (isAssigned ? (isDark ? 'rgba(124, 58, 237, 0.25)' : '#e0e7ff') : 'var(--color-surface)'),
-                      color: isAssignedToThis ? '#ffffff' : (isAssigned ? (isDark ? '#c4b5fd' : '#4338ca') : 'var(--color-text)'),
+                      border: `1.5px solid ${borderColor}`,
+                      background: bg,
+                      color: textColor,
                       fontWeight: 800,
-                      fontSize: '0.9rem',
+                      fontSize: '0.88rem',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 6,
-                      boxShadow: isAssignedToThis ? '0 4px 12px rgba(124, 58, 237, 0.35)' : 'none',
+                      gap: '0.45rem',
+                      opacity: isAssigned && !isAssignedToThis ? 0.62 : 1,
+                      transform: isAssignedToThis ? 'scale(1.02)' : 'none',
+                      boxShadow: isAssignedToThis ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span>{item.text}</span>
+                    {/* Harf Rozeti (A, B, C...) */}
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: badgeBg,
+                      color: badgeTextColor,
+                      fontSize: '0.75rem',
+                      fontWeight: 900,
+                      flexShrink: 0
+                    }}>
+                      {item.label || getOptionLetterLabel(idx)}
+                    </span>
+
+                    {/* Seçenek Metni */}
+                    <span style={{
+                      textDecoration: isAssigned && !isAssignedToThis ? 'line-through' : 'none',
+                      wordBreak: 'break-word',
+                      maxWidth: 240,
+                      textAlign: 'left'
+                    }}>
+                      {item.text}
+                    </span>
+
+                    {/* Atanma Rozeti */}
                     {isAssigned && (
                       <span style={{
-                        fontSize: '0.68rem',
+                        fontSize: '0.66rem',
                         fontWeight: 900,
                         padding: '0.12rem 0.4rem',
                         borderRadius: 99,
-                        background: isAssignedToThis ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(124,58,237,0.4)' : '#c7d2fe'),
-                        color: isAssignedToThis ? '#ffffff' : (isDark ? '#e9d5ff' : '#3730a3')
+                        background: isAssignedToThis ? 'rgba(255, 255, 255, 0.3)' : (isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7'),
+                        color: isAssignedToThis ? '#ffffff' : (isDark ? '#86efac' : '#15803d'),
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2
                       }}>
-                        ✓ {matchedQuestions.map(q => `${q}. Soru`).join(', ')}
+                        ✓ {matchedQuestions.map(q => `${q}.S`).join(', ')}
                       </span>
                     )}
                   </button>
