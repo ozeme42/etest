@@ -211,10 +211,10 @@
   font-weight: 500;
 }
 
-/* ── 4. HIZLI İŞLEM BUTONLARI (4 BÜYÜK KUTU) ── */
+/* ── 4. HIZLI İŞLEM BUTONLARI (6 BÜYÜK KUTU) ── */
 .teacher-quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.85rem;
 }
 

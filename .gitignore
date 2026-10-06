@@ -27,3 +27,6 @@ backups/
 *.json.bak
 *.apk
 *.aab
+*.pdf
+__pycache__/
+*.pyc

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCurriculum, naturalSort } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -43,6 +44,7 @@ const SUPABASE_FULL_BACKUP_SQL = `SELECT jsonb_build_object(
 ) AS full_backup_data;`;
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('curriculum');
   const [isMigrating, setIsMigrating] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
@@ -451,6 +453,65 @@ export default function AdminDashboard() {
               </div>
             );
           })}
+        </div>
+
+        {/* ⚡ HIZLI YÖNETİM MODÜLLERİ & KISAYOLLAR */}
+        <div className="admin-quick-actions-bar">
+          <div className="admin-quick-actions-header">
+            <span className="admin-quick-actions-title">⚡ Hızlı Yönetim Modülleri</span>
+            <span className="admin-quick-actions-hint">Sık kullanılan ana modüllere tek tıkla doğrudan erişin</span>
+          </div>
+          <div className="admin-quick-actions-grid">
+            <button onClick={() => navigate('/books')} className="admin-action-card">
+              <div className="admin-action-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1' }}>
+                <Layers size={18} />
+              </div>
+              <div className="admin-action-content">
+                <span className="admin-action-title">Kitap &amp; Soru Bankaları</span>
+                <span className="admin-action-desc">Bumerang ve takip kitapları</span>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/questions')} className="admin-action-card">
+              <div className="admin-action-icon" style={{ background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b' }}>
+                <BookOpenCheck size={18} />
+              </div>
+              <div className="admin-action-content">
+                <span className="admin-action-title">Soru Bankası Havuzu</span>
+                <span className="admin-action-desc">Merkezi soru arşivi ve ekleme</span>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/approvals')} className="admin-action-card">
+              <div className="admin-action-icon" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981' }}>
+                <CheckCheck size={18} />
+              </div>
+              <div className="admin-action-content">
+                <span className="admin-action-title">Onay &amp; Değerlendirme</span>
+                <span className="admin-action-desc">Sınav ve optik onay merkezi</span>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/pdf-slicer')} className="admin-action-card">
+              <div className="admin-action-icon" style={{ background: 'rgba(14, 165, 233, 0.12)', color: '#0ea5e9' }}>
+                <Scissors size={18} />
+              </div>
+              <div className="admin-action-content">
+                <span className="admin-action-title">PDF Soru Kırpıcı</span>
+                <span className="admin-action-desc">PDF'ten otomatik soru ayıklama</span>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/homeworks')} className="admin-action-card">
+              <div className="admin-action-icon" style={{ background: 'rgba(236, 72, 153, 0.12)', color: '#ec4899' }}>
+                <FileCheck size={18} />
+              </div>
+              <div className="admin-action-content">
+                <span className="admin-action-title">Ödev Dağıtım Merkezi</span>
+                <span className="admin-action-desc">Genel ödev oluşturma ve takip</span>
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* HIGH-TECH GLASS TAB NAVIGATION BAR */}

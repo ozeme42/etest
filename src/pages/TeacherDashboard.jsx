@@ -1191,7 +1191,7 @@ export default function TeacherDashboard() {
           </div>
 
           {/* ═══════════════════════════════════════════════════
-              4. DÖRT HIZLI VE NET EYLEM BUTONU
+              4. ALTI HIZLI VE NET EYLEM BUTONU
               ═══════════════════════════════════════════════════ */}
           <div className="teacher-quick-actions-grid">
             <button onClick={() => navigate('/homeworks')} className="teacher-action-card">
@@ -1201,6 +1201,26 @@ export default function TeacherDashboard() {
               <div className="teacher-action-content">
                 <h4>Ödev Ver &amp; Dağıt</h4>
                 <p>Sınıfa veya öğrenciye test ödevi ata</p>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/books')} className="teacher-action-card">
+              <div className="teacher-action-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: '#6366f1' }}>
+                <Layers size={20} />
+              </div>
+              <div className="teacher-action-content">
+                <h4>Kitaplar &amp; Soru Bankaları</h4>
+                <p>Bumerang ve takip kitaplarını yönet</p>
+              </div>
+            </button>
+
+            <button onClick={() => navigate('/questions')} className="teacher-action-card">
+              <div className="teacher-action-icon" style={{ background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6' }}>
+                <CheckSquare size={20} />
+              </div>
+              <div className="teacher-action-content">
+                <h4>Soru Bankası Havuzu</h4>
+                <p>Merkezi soru havuzu ve soru arşivi</p>
               </div>
             </button>
 

@@ -2331,6 +2331,37 @@ export default function TrackedBookQuizRunner() {
 
                   {/* Action buttons after submission */}
                   <div style={{ display: 'flex', gap: 10, marginTop: '1.1rem', paddingTop: '0.85rem', borderTop: '1.5px solid #e2e8f0', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {nextTest && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(`/book-quiz/${nextTest.id}?studentId=${studentId}`);
+                          window.scrollTo(0, 0);
+                        }}
+                        style={{
+                          padding: '0.65rem 1.45rem',
+                          borderRadius: '0.75rem',
+                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          border: 'none',
+                          color: 'white',
+                          fontWeight: 900,
+                          fontSize: '0.88rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 4px 14px rgba(16,185,129,0.35)',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+                      >
+                        <PlayCircle size={18} />
+                        <span>Sıradaki Teste Geç ({nextTest.name})</span>
+                        <ChevronRight size={16} />
+                      </button>
+                    )}
+
                     <button 
                       onClick={handleGoBack}
                       style={{ padding: '0.6rem 1.35rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.86rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, boxShadow: '0 3px 10px rgba(79,70,229,0.25)', transition: 'transform 0.15s' }}
@@ -4091,6 +4122,96 @@ export default function TrackedBookQuizRunner() {
             <CheckCircle2 size={17} />
             <span>Testi Bitir</span>
           </button>
+        </div>
+      )}
+
+      {/* ── MOBILE STICKY BOTTOM ACTION BAR AFTER SUBMISSION ── */}
+      {isMobile && isSubmitted && !isTeacherReviewing && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 75,
+          padding: '0.65rem 0.85rem calc(0.65rem + env(safe-area-inset-bottom, 0px)) 0.85rem',
+          background: isDark ? 'rgba(15, 23, 42, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(12px)',
+          borderTop: '1.5px solid var(--color-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.65rem',
+          boxShadow: '0 -4px 18px rgba(0,0,0,0.1)'
+        }}>
+          <button
+            type="button"
+            onClick={handleGoBack}
+            style={{
+              padding: '0.65rem 1rem',
+              borderRadius: '0.85rem',
+              background: 'var(--color-surface)',
+              border: '1.5px solid var(--color-border)',
+              color: 'var(--color-text)',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5
+            }}
+          >
+            <ArrowLeft size={16} /> Geri Dön
+          </button>
+
+          {nextTest ? (
+            <button
+              type="button"
+              onClick={() => {
+                navigate(`/book-quiz/${nextTest.id}?studentId=${studentId}`);
+                window.scrollTo(0, 0);
+              }}
+              style={{
+                flex: 1,
+                padding: '0.65rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(16,185,129,0.35)'
+              }}
+            >
+              <PlayCircle size={16} /> Sıradaki Test ({nextTest.name}) ➔
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleGoBack}
+              style={{
+                flex: 1,
+                padding: '0.65rem 1rem',
+                borderRadius: '0.85rem',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                border: 'none',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6
+              }}
+            >
+              <CheckCircle2 size={16} /> Test Listesine Dön
+            </button>
+          )}
         </div>
       )}
 

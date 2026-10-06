@@ -39,6 +39,9 @@ export default function StudentBookDetailsPage() {
   const [editingTest, setEditingTest] = useState(null);
   const [editTestFormData, setEditTestFormData] = useState({ name: '', questionCount: 20, startQuestionNumber: 1, answerKey: {}, pdfUrl: '', dueDate: '' });
   const [isSlicerModalOpen, setIsSlicerModalOpen] = useState(false);
+  const [activeBookTab, setActiveBookTab] = useState('tests'); // 'tests' | 'analytics' | 'all'
+  const [testSearchQuery, setTestSearchQuery] = useState('');
+  const [testStatusFilter, setTestStatusFilter] = useState('all'); // 'all' | 'pending' | 'completed'
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
@@ -443,10 +446,8 @@ export default function StudentBookDetailsPage() {
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
 
-      // Find all tests in bookTests matching this subject OR book
-      let allSubjectTests = (bookTests || []).filter(t => {
-        const isMatchBook = String(t.bookId || t.book_id) === bId || (bUuid && String(t.bookId || t.book_id) === bUuid);
-        if (!isMatchBook) return false;
+      // Find all tests in this book matching this subject
+      let allSubjectTests = testsInBook.filter(t => {
         if (String(t.subjectId || t.subject_id) === sId) return true;
         if (subject.topics && Array.isArray(subject.topics) && subject.topics.some(tp => String(tp.id) === String(t.topicId || t.topic_id))) return true;
         return false;
@@ -654,6 +655,67 @@ export default function StudentBookDetailsPage() {
     }).filter(Boolean);
   }, [book, bookTests, assignedTestIds, submissions, studentId, homeworks, allStudentIds]);
 
+  const nextIncompleteTest = useMemo(() => {
+    for (const subj of subjectProgress) {
+      if (subj.directTests) {
+        for (const t of subj.directTests) {
+          if (!t.isCompleted && !t.isLocked) {
+            return { test: t, subject: subj, topic: null };
+          }
+        }
+      }
+      if (subj.topics) {
+        for (const top of subj.topics) {
+          if (top.tests) {
+            for (const t of top.tests) {
+              if (!t.isCompleted && !t.isLocked) {
+                return { test: t, subject: subj, topic: top };
+              }
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }, [subjectProgress]);
+
+  const filteredSubjectProgress = useMemo(() => {
+    if (!testSearchQuery.trim() && testStatusFilter === 'all') {
+      return subjectProgress;
+    }
+    const q = testSearchQuery.trim().toLowerCase();
+
+    return subjectProgress.map(subj => {
+      const filteredDirect = (subj.directTests || []).filter(t => {
+        const matchQ = !q || t.name.toLowerCase().includes(q) || subj.name.toLowerCase().includes(q);
+        const matchStatus = testStatusFilter === 'all' ||
+          (testStatusFilter === 'completed' && t.isCompleted) ||
+          (testStatusFilter === 'pending' && !t.isCompleted);
+        return matchQ && matchStatus;
+      });
+
+      const filteredTopics = (subj.topics || []).map(topic => {
+        const filteredTopicTests = (topic.tests || []).filter(t => {
+          const matchQ = !q || t.name.toLowerCase().includes(q) || topic.name.toLowerCase().includes(q) || subj.name.toLowerCase().includes(q);
+          const matchStatus = testStatusFilter === 'all' ||
+            (testStatusFilter === 'completed' && t.isCompleted) ||
+            (testStatusFilter === 'pending' && !t.isCompleted);
+          return matchQ && matchStatus;
+        });
+        return { ...topic, tests: filteredTopicTests };
+      }).filter(topic => topic.tests.length > 0);
+
+      const hasAnyTests = filteredDirect.length > 0 || filteredTopics.length > 0;
+      if (!hasAnyTests) return null;
+
+      return {
+        ...subj,
+        directTests: filteredDirect,
+        topics: filteredTopics
+      };
+    }).filter(Boolean);
+  }, [subjectProgress, testSearchQuery, testStatusFilter]);
+
   const [isBulkSettingsModalOpen, setIsBulkSettingsModalOpen] = useState(false);
   const [bulkSettings, setBulkSettings] = useState({}); 
   const [isSavingBulk, setIsSavingBulk] = useState(false);
@@ -745,6 +807,8 @@ export default function StudentBookDetailsPage() {
   }, [currentChartSubjectObj, selectedChartTopic]);
 
   const subjectChartData = useMemo(() => {
+    if (activeBookTab !== 'analytics' && activeBookTab !== 'all') return [];
+
     // LEVEL 1: ALL SUBJECTS
     if (selectedChartSubject === 'all') {
       return subjectProgress.map(subj => {
@@ -878,7 +942,7 @@ export default function StudentBookDetailsPage() {
         Boş: b,
       };
     });
-  }, [subjectProgress, selectedChartSubject, selectedChartTopic]);
+  }, [subjectProgress, selectedChartSubject, selectedChartTopic, activeBookTab]);
 
   // ── MISTAKE REASONS AGGREGATION ACROSS THE BOOK (DEEP RESILIENT SEARCH IN CURRICULUM ORDER) ──
   const bookMistakeStats = useMemo(() => {
@@ -890,6 +954,20 @@ export default function StudentBookDetailsPage() {
       '⏱️ Zaman Yetmedi': { key: '⏱️ Zaman Yetmedi', label: 'Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', count: 0 },
     };
 
+    if (activeBookTab !== 'analytics' && activeBookTab !== 'all') {
+      return {
+        reasonDefs,
+        totalWrongInBook: 0,
+        totalClassified: 0,
+        unclassifiedCount: 0,
+        topReason: null,
+        questionsList: [],
+        testsWithMistakesList: [],
+        pendingTestsList: [],
+        classifiedTestsList: []
+      };
+    }
+
     const normalizeReason = (r) => {
       if (!r || typeof r !== 'string') return null;
       const str = r.toLowerCase().trim();
@@ -900,22 +978,6 @@ export default function StudentBookDetailsPage() {
       if (str.includes('zaman') || str.includes('süre') || str.includes('sure') || str.includes('yetmedi') || str.includes('yetiş')) return '⏱️ Zaman Yetmedi';
       return null;
     };
-
-    // 1. Collect all mistake reason dictionaries from localStorage
-    const localMap = {};
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (k.startsWith('mistake_reasons_') || k.startsWith('mistake_reason_'))) {
-          try {
-            const parsed = JSON.parse(localStorage.getItem(k));
-            if (parsed && typeof parsed === 'object') {
-              localMap[k] = parsed;
-            }
-          } catch {}
-        }
-      }
-    } catch {}
 
     let totalWrongInBook = 0;
     let totalClassified = 0;
@@ -954,6 +1016,73 @@ export default function StudentBookDetailsPage() {
     const currentUserIdStr = String(currentUser?.id || '');
     const currentUserUuidStr = String(toUUID(currentUser?.id) || '');
 
+    // Pre-index student submissions by all identifiable test keys for O(1) resolution
+    const subsByTestKey = new Map();
+    (submissions || []).forEach(s => {
+      const isMatchStudent = String(s.studentId) === studentIdStr ||
+        (studentUuidStr && String(s.studentId) === studentUuidStr) ||
+        (currentUserIdStr && String(s.studentId) === currentUserIdStr) ||
+        (currentUserUuidStr && String(s.studentId) === currentUserUuidStr);
+      if (!isMatchStudent) return;
+
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || ''),
+        String(s.metadata?.realTestId || ''),
+        String(s.metadata?.bookTestId || ''),
+        String(s.metadata?.realId || '')
+      ].filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1');
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1'));
+      }
+
+      matchFields.forEach(f => {
+        if (!subsByTestKey.has(f)) subsByTestKey.set(f, []);
+        subsByTestKey.get(f).push(s);
+        const clean = f.replace(/^bt_/, '').replace(/^q_/, '');
+        if (clean && clean !== f) {
+          if (!subsByTestKey.has(clean)) subsByTestKey.set(clean, []);
+          subsByTestKey.get(clean).push(s);
+        }
+        const u = toUUID(f);
+        if (u && u !== f) {
+          if (!subsByTestKey.has(u)) subsByTestKey.set(u, []);
+          subsByTestKey.get(u).push(s);
+        }
+      });
+    });
+
+    // Pre-index student homework submissions by test keys
+    const hwByTestKey = new Map();
+    (homeworks || []).forEach(hw => {
+      if (!Array.isArray(hw.submissions) || hw.submissions.length === 0) return;
+      const hwKeys = [
+        String(hw.id || ''),
+        String(hw.testId || ''),
+        String(hw.bookTestId || '')
+      ].filter(k => k && k.length >= 2 && k !== 'test_1');
+      if (hwKeys.length === 0) return;
+
+      const validStudentHwSubs = hw.submissions.filter(hs => {
+        return String(hs.studentId) === studentIdStr ||
+          (studentUuidStr && String(hs.studentId) === studentUuidStr) ||
+          (currentUserIdStr && String(hs.studentId) === currentUserIdStr) ||
+          (currentUserUuidStr && String(hs.studentId) === currentUserUuidStr);
+      });
+      if (validStudentHwSubs.length === 0) return;
+
+      hwKeys.forEach(k => {
+        if (!hwByTestKey.has(k)) hwByTestKey.set(k, []);
+        hwByTestKey.get(k).push(...validStudentHwSubs);
+        const clean = k.replace(/^bt_/, '').replace(/^q_/, '');
+        if (clean && clean !== k) {
+          if (!hwByTestKey.has(clean)) hwByTestKey.set(clean, []);
+          hwByTestKey.get(clean).push(...validStudentHwSubs);
+        }
+      });
+    });
+
     allBookTestsHierarchical.forEach(t => {
       const sub = t.bestSub || t.latestSub;
       const testWrong = t.isCompleted ? (sub?.wrongCount ?? 0) : 0;
@@ -965,34 +1094,14 @@ export default function StudentBookDetailsPage() {
 
       const foundReasonsList = [];
 
-      // A. Check from submissions (EvaluationContext)
-      const matchingSubs = (submissions || []).filter(s => {
-        const isMatchStudent = String(s.studentId) === studentIdStr ||
-          (studentUuidStr && String(s.studentId) === studentUuidStr) ||
-          (currentUserIdStr && String(s.studentId) === currentUserIdStr) ||
-          (currentUserUuidStr && String(s.studentId) === currentUserUuidStr);
-        if (!isMatchStudent) return false;
-
-        const matchFields = [
-          String(s.testId || ''),
-          String(s.realTestId || ''),
-          String(s.bookTestId || ''),
-          String(s.metadata?.realTestId || ''),
-          String(s.metadata?.bookTestId || ''),
-          String(s.metadata?.realId || '')
-        ].filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1');
-        if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-          matchFields.push(...s.bookTestIds.map(String).filter(f => Boolean(f) && f.length >= 2 && f !== 'test_1'));
+      // A. O(1) Check from submissions (EvaluationContext)
+      const matchingSubsSet = new Set();
+      [tIdStr, tCleanId, tUuidStr].forEach(k => {
+        if (k && subsByTestKey.has(k)) {
+          subsByTestKey.get(k).forEach(s => matchingSubsSet.add(s));
         }
-
-        return matchFields.some(f => (
-          (tIdStr !== 'test_1' && f === tIdStr) ||
-          (tCleanId && tCleanId.length >= 2 && tCleanId !== 'test_1' && f === tCleanId) ||
-          (tUuidStr && f === tUuidStr) ||
-          (toUUID(f) && toUUID(f) === tIdStr) ||
-          (tUuidStr && toUUID(f) === tUuidStr)
-        ));
       });
+      const matchingSubs = Array.from(matchingSubsSet);
 
       matchingSubs.forEach(s => {
         if (s.mistakeReasons && typeof s.mistakeReasons === 'object') {
@@ -1009,37 +1118,29 @@ export default function StudentBookDetailsPage() {
         }
       });
 
-      // B. Check from homeworks (HomeworkContext)
-      (homeworks || []).forEach(hw => {
-        const isMatchHwTest = (tIdStr && tIdStr.length >= 2 && (String(hw.id) === tIdStr || String(hw.testId) === tIdStr || String(hw.bookTestId) === tIdStr)) ||
-          (tCleanId && tCleanId.length >= 2 && (String(hw.id) === tCleanId || String(hw.testId) === tCleanId)) ||
-          (tUuidStr && (String(hw.id) === tUuidStr || String(hw.testId) === tUuidStr));
-
-        if (isMatchHwTest && Array.isArray(hw.submissions)) {
-          hw.submissions.forEach(hs => {
-            const isMatchStudent = String(hs.studentId) === studentIdStr ||
-              (studentUuidStr && String(hs.studentId) === studentUuidStr) ||
-              (currentUserIdStr && String(hs.studentId) === currentUserIdStr) ||
-              (currentUserUuidStr && String(hs.studentId) === currentUserUuidStr);
-            if (isMatchStudent) {
-              if (hs.mistakeReasons && typeof hs.mistakeReasons === 'object') {
-                foundReasonsList.push(hs.mistakeReasons);
-              }
-              if (Array.isArray(hs.answers)) {
-                const aObj = {};
-                hs.answers.forEach((a, aIdx) => {
-                  const qNum = a.questionNo || (aIdx + 1);
-                  const r = a.reason || a.mistakeReason || a.hataNedeni || a.hata_sebebi;
-                  if (r) aObj[qNum] = r;
-                });
-                if (Object.keys(aObj).length > 0) foundReasonsList.push(aObj);
-              }
-            }
+      // B. O(1) Check from homeworks (HomeworkContext)
+      const matchingHwSubs = [];
+      [tIdStr, tCleanId, tUuidStr].forEach(k => {
+        if (k && hwByTestKey.has(k)) {
+          matchingHwSubs.push(...hwByTestKey.get(k));
+        }
+      });
+      matchingHwSubs.forEach(hs => {
+        if (hs.mistakeReasons && typeof hs.mistakeReasons === 'object') {
+          foundReasonsList.push(hs.mistakeReasons);
+        }
+        if (Array.isArray(hs.answers)) {
+          const aObj = {};
+          hs.answers.forEach((a, aIdx) => {
+            const qNum = a.questionNo || (aIdx + 1);
+            const r = a.reason || a.mistakeReason || a.hataNedeni || a.hata_sebebi;
+            if (r) aObj[qNum] = r;
           });
+          if (Object.keys(aObj).length > 0) foundReasonsList.push(aObj);
         }
       });
 
-      // C. Check strictly from localStorage entries matching this test ID and student
+      // C. Direct check from localStorage without iterating all keys
       const validLocalKeys = [];
       const isValidSpecificId = (id) => Boolean(id && id !== 'test_1' && id !== '1' && String(id).trim().length >= 2);
 
@@ -1066,9 +1167,15 @@ export default function StudentBookDetailsPage() {
       }
 
       validLocalKeys.forEach(vk => {
-        if (localMap[vk]) {
-          foundReasonsList.push(localMap[vk]);
-        }
+        try {
+          const raw = localStorage.getItem(vk);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object') {
+              foundReasonsList.push(parsed);
+            }
+          }
+        } catch {}
       });
 
       // Merge all reasons found for this test
@@ -1206,7 +1313,7 @@ export default function StudentBookDetailsPage() {
       pendingTestsList,
       classifiedTestsList
     };
-  }, [subjectProgress, studentId, submissions, homeworks, currentUser]);
+  }, [subjectProgress, studentId, submissions, homeworks, currentUser, activeBookTab]);
 
   const handleAssignMistakeInModal = async (testItem, qNo, reasonLabel) => {
     const currentQ = testItem.wrongQuestions?.find(q => q.qNo === qNo);
@@ -1655,8 +1762,128 @@ export default function StudentBookDetailsPage() {
         </div>
       </div>
 
-      {subjectChartData.length > 0 && (
-        <div className="sbdp-anim sbdp-chart-card" style={{ background: 'var(--color-surface)', borderRadius: isMobile ? '16px' : '1.4rem', border: '1.5px solid var(--color-border)', padding: isMobile ? '1rem 0.9rem' : '1.75rem 2rem', marginBottom: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+      {/* 🎛️ VIEW TAB SWITCHER */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1.25rem',
+        flexWrap: 'wrap',
+        gap: 10
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          background: 'var(--color-surface)',
+          border: '1.5px solid var(--color-border)',
+          borderRadius: 16,
+          padding: 4,
+          gap: 4,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+        }}>
+          <button
+            type="button"
+            onClick={() => setActiveBookTab('tests')}
+            style={{
+              padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
+              borderRadius: 12,
+              border: 'none',
+              background: activeBookTab === 'tests' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+              color: activeBookTab === 'tests' ? '#ffffff' : 'var(--color-text-muted)',
+              fontWeight: activeBookTab === 'tests' ? 900 : 700,
+              fontSize: isMobile ? '0.78rem' : '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: activeBookTab === 'tests' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📖 Testler & Konular
+            <span style={{
+              background: activeBookTab === 'tests' ? 'rgba(255,255,255,0.25)' : 'rgba(99, 102, 241, 0.12)',
+              color: activeBookTab === 'tests' ? '#ffffff' : '#6366f1',
+              fontSize: '0.68rem',
+              fontWeight: 900,
+              padding: '0.1rem 0.45rem',
+              borderRadius: 99
+            }}>
+              {overallCompleted}/{overallTotal}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveBookTab('analytics')}
+            style={{
+              padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
+              borderRadius: 12,
+              border: 'none',
+              background: activeBookTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
+              color: activeBookTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
+              fontWeight: activeBookTab === 'analytics' ? 900 : 700,
+              fontSize: isMobile ? '0.78rem' : '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: activeBookTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            📊 Kitap Analizi & Hatalar
+            {bookMistakeStats.unclassifiedCount > 0 && (
+              <span style={{
+                background: activeBookTab === 'analytics' ? 'rgba(255,255,255,0.25)' : 'rgba(239, 68, 68, 0.15)',
+                color: activeBookTab === 'analytics' ? '#ffffff' : '#ef4444',
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '0.1rem 0.45rem',
+                borderRadius: 99
+              }}>
+                {bookMistakeStats.unclassifiedCount} Bekleyen
+              </span>
+            )}
+          </button>
+
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={() => setActiveBookTab('all')}
+              style={{
+                padding: '0.6rem 1.4rem',
+                borderRadius: 12,
+                border: 'none',
+                background: activeBookTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'transparent',
+                color: activeBookTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                fontWeight: activeBookTab === 'all' ? 900 : 700,
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: activeBookTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🌟 Tümü
+            </button>
+          )}
+        </div>
+
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+          {activeBookTab === 'tests' && '🎯 Kitaptaki test listesi ve ünite takibi'}
+          {activeBookTab === 'analytics' && '📈 Soru dağılımı, başarı grafikleri ve yanlış sebepleri'}
+          {activeBookTab === 'all' && '✨ Tüm paneller aynı anda görüntüleniyor'}
+        </div>
+      </div>
+
+      {/* 📊 ANALİTİK & HATA SEBEPLERİ BÖLÜMÜ */}
+      {(activeBookTab === 'analytics' || activeBookTab === 'all') && (
+        <>
+          {subjectChartData.length > 0 && (
+            <div className="sbdp-anim sbdp-chart-card" style={{ background: 'var(--color-surface)', borderRadius: isMobile ? '16px' : '1.4rem', border: '1.5px solid var(--color-border)', padding: isMobile ? '1rem 0.9rem' : '1.75rem 2rem', marginBottom: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
           
           {/* Chart Header & Selectors */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -2266,6 +2493,8 @@ export default function StudentBookDetailsPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {book.pdfUrl && showBookPdf && (
         <div style={{ marginBottom: '2rem' }}>
@@ -2273,12 +2502,232 @@ export default function StudentBookDetailsPage() {
         </div>
       )}
 
+      {/* 📖 TESTLER & KONULAR BÖLÜMÜ */}
+      {(activeBookTab === 'tests' || activeBookTab === 'all') && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {subjectProgress.length > 0 && (
+
+        {/* ⚡ NEXT INCOMPLETE TEST ACTION HERO CARD */}
+        {nextIncompleteTest ? (
+          <div
+            className="sbdp-anim"
+            style={{
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.06) 100%)',
+              border: '1.5px solid rgba(99, 102, 241, 0.3)',
+              borderRadius: 18,
+              padding: isMobile ? '1rem' : '1.15rem 1.6rem',
+              marginBottom: '0.5rem',
+              display: 'flex',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: 'space-between',
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: 12,
+              boxShadow: '0 4px 18px rgba(99, 102, 241, 0.06)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontSize: '1.2rem',
+                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
+                flexShrink: 0
+              }}>
+                ⚡
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    color: '#4f46e5',
+                    background: 'rgba(99, 102, 241, 0.12)',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    textTransform: 'uppercase'
+                  }}>
+                    Sıradaki Testin
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                    📚 {nextIncompleteTest.subject?.name}
+                    {nextIncompleteTest.topic ? ` • 🎯 ${nextIncompleteTest.topic.name}` : ''}
+                  </span>
+                </div>
+                <div style={{ fontSize: isMobile ? '0.98rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  {nextIncompleteTest.test.name}
+                  <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
+                    ({nextIncompleteTest.test.questionCount || 20} Soru)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate(`/book-quiz/${nextIncompleteTest.test.id}?studentId=${studentId}`)}
+              style={{
+                minHeight: 44,
+                padding: '0.65rem 1.4rem',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: 900,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)'
+              }}
+            >
+              <PlayCircle size={18} />
+              <span>Hemen Çöz</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        ) : (
+          overallTotal > 0 && overallCompleted >= overallTotal && (
+            <div
+              className="sbdp-anim"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)',
+                border: '1.5px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: 18,
+                padding: '1rem 1.4rem',
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}
+            >
+              <div style={{ fontSize: '1.8rem' }}>🏆</div>
+              <div>
+                <div style={{ fontWeight: 900, color: '#059669', fontSize: '0.95rem' }}>
+                  Tebrikler! Bu kitaptaki tüm testleri başarıyla tamamladın! 🎉
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                  İstersen çözdüğün testleri tekrar gözden geçirebilir veya yanlış yaptığın soruların hata analizlerini inceleyebilirsin.
+                </div>
+              </div>
+            </div>
+          )
+        )}
+
+        {/* 🔍 SEARCH & STATUS FILTER TOOLBAR */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '0.75rem',
+          marginBottom: '0.5rem',
+          flexWrap: 'wrap'
+        }}>
+          {/* Search box */}
+          <div style={{
+            position: 'relative',
+            flex: '1 1 240px',
+            minWidth: 200
+          }}>
+            <input
+              type="text"
+              value={testSearchQuery}
+              onChange={(e) => setTestSearchQuery(e.target.value)}
+              placeholder="Ünite veya test adı ile filtrele..."
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.9rem 0.6rem 2.2rem',
+                borderRadius: 12,
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+            <span style={{
+              position: 'absolute',
+              left: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '0.85rem',
+              color: 'var(--color-text-muted)',
+              pointerEvents: 'none'
+            }}>
+              🔍
+            </span>
+            {testSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setTestSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 800
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Status Segment Filter Buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 12,
+            padding: 3,
+            gap: 3
+          }}>
+            {[
+              { key: 'all', label: 'Tümü' },
+              { key: 'pending', label: '⏳ Çözülmeyenler' },
+              { key: 'completed', label: '✅ Tamamlananlar' }
+            ].map(f => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setTestStatusFilter(f.key)}
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: 9,
+                  border: 'none',
+                  background: testStatusFilter === f.key ? 'var(--color-primary, #6366f1)' : 'transparent',
+                  color: testStatusFilter === f.key ? '#ffffff' : 'var(--color-text-muted)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredSubjectProgress.length > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--color-text)' }}>📚 Ders Listesi</span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '2px 8px', borderRadius: '99px', border: '1px solid #3b82f6' }}>{subjectProgress.length} Ders</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '2px 8px', borderRadius: '99px', border: '1px solid #3b82f6' }}>{filteredSubjectProgress.length} Ders</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <button onClick={expandAllSubjects} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', padding: '4px 10px', borderRadius: '8px' }}>Tümünü Aç</button>
@@ -2287,8 +2736,8 @@ export default function StudentBookDetailsPage() {
           </div>
         )}
 
-        {subjectProgress.map((subj, subjIdx) => {
-          const isOpen = !!openSubjects[subj.id];
+        {filteredSubjectProgress.map((subj, subjIdx) => {
+          const isOpen = !!openSubjects[subj.id] || Boolean(testSearchQuery.trim());
           const subjectColors = [
             { from: '#4f46e5', to: '#7c3aed', light: '#eff6ff', accent: '#4f46e5' },
             { from: '#0891b2', to: '#0e7490', light: '#ecfeff', accent: '#0891b2' },
@@ -2497,7 +2946,7 @@ export default function StudentBookDetailsPage() {
                   {/* Topics / Units List */}
                   {subj.topics && subj.topics.length > 0 ? (
                     subj.topics.map(topic => {
-                      const isTopicOpen = !!openTopics[topic.id];
+                      const isTopicOpen = !!openTopics[topic.id] || Boolean(testSearchQuery.trim());
 
                       return (
                         <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)' }}>
@@ -2820,12 +3269,41 @@ export default function StudentBookDetailsPage() {
           );
         })}
 
+        {filteredSubjectProgress.length === 0 && subjectProgress.length > 0 && (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: 'var(--color-surface)', borderRadius: '1.25rem', border: '1.5px dashed var(--color-border)', color: 'var(--color-text-muted)' }}>
+            <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>🔍</div>
+            <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.92rem', marginBottom: 4 }}>
+              Aramanıza veya seçilen filtreye uygun test bulunamadı
+            </div>
+            <div style={{ fontSize: '0.78rem', marginBottom: 12 }}>
+              "{testSearchQuery}" ifadesi veya durum filtresi ile eşleşen sonuç yok.
+            </div>
+            <button
+              type="button"
+              onClick={() => { setTestSearchQuery(''); setTestStatusFilter('all'); }}
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: 8,
+                background: 'var(--color-primary, #6366f1)',
+                color: 'white',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+            >
+              Filtreleri Temizle
+            </button>
+          </div>
+        )}
+
         {subjectProgress.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--color-surface)', borderRadius: '1.25rem', border: '1.5px dashed var(--color-border-input)', color: 'var(--color-text-muted)' }}>
             {hwLoading || booksLoading ? 'Atanmış görevler yükleniyor…' : 'Bu kitaba ait atanmış görev bulunamadı.'}
           </div>
         )}
       </div>
+      )}
 
       {isBulkSettingsModalOpen && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-modal-overlay)', backdropFilter: 'blur(4px)', padding: '1rem' }}>

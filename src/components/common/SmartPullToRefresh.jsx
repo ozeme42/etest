@@ -23,6 +23,7 @@ export default function SmartPullToRefresh({
   const startY = useRef(0);
   const isPulling = useRef(false);
   const containerRef = useRef(null);
+  const rafId = useRef(null);
 
   const triggerHaptic = useCallback(async () => {
     try {
@@ -50,21 +51,33 @@ export default function SmartPullToRefresh({
 
     const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
     if (diff > 0 && scrollY <= 2) {
-      // Apply rubber-band damping resistance
-      const damped = Math.min(MAX_PULL, diff * 0.45);
-      setPullDistance(damped);
+      if (!rafId.current) {
+        rafId.current = requestAnimationFrame(() => {
+          rafId.current = null;
+          const damped = Math.min(MAX_PULL, diff * 0.45);
+          setPullDistance(damped);
 
-      if (damped >= THRESHOLD && !hasTriggeredHaptic) {
-        setHasTriggeredHaptic(true);
-        triggerHaptic();
+          if (damped >= THRESHOLD && !hasTriggeredHaptic) {
+            setHasTriggeredHaptic(true);
+            triggerHaptic();
+          }
+        });
       }
     } else {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
       setPullDistance(0);
       isPulling.current = false;
     }
   };
 
   const handleTouchEnd = async () => {
+    if (rafId.current) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
     if (!isPulling.current || disabled || isRefreshing) return;
     isPulling.current = false;
 

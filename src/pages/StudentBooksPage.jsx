@@ -356,6 +356,21 @@ export default function StudentBooksPage() {
       });
     });
 
+    // Pre-index bookTests by bookId for O(1) lookup
+    const bookTestsByBookIdMap = new Map();
+    (bookTests || []).forEach(bt => {
+      const bId = String(bt.bookId || bt.book_id || '');
+      if (bId) {
+        if (!bookTestsByBookIdMap.has(bId)) bookTestsByBookIdMap.set(bId, []);
+        bookTestsByBookIdMap.get(bId).push(bt);
+        const u = toUUID(bId);
+        if (u && u !== bId) {
+          if (!bookTestsByBookIdMap.has(u)) bookTestsByBookIdMap.set(u, []);
+          bookTestsByBookIdMap.get(u).push(bt);
+        }
+      }
+    });
+
     // 3. Compute stats for each book with multi-level submission matching
     Object.values(bookMap).forEach(b => {
       const bId = String(b.id);
@@ -367,10 +382,8 @@ export default function StudentBooksPage() {
 
       // Deduplicate tests in book
       const deduplicatedMap = new Map();
-      (bookTests || []).filter(bt => {
-        const btBId = String(bt.bookId || bt.book_id || '');
-        return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
-      }).forEach(t => {
+      const testsForThisBook = bookTestsByBookIdMap.get(bId) || (bUuid ? bookTestsByBookIdMap.get(bUuid) : null) || [];
+      testsForThisBook.forEach(t => {
         const nameKey = String(t.name || t.title || '').trim().toLowerCase();
         const topKey = String(t.topicId || t.topic_id || 'direct').trim().toLowerCase();
         const sId = String(t.subjectId || t.subject_id || 'direct').trim().toLowerCase();

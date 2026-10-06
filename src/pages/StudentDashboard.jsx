@@ -37,6 +37,7 @@ import ManualTestModal from '../components/ManualTestModal';
 import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardWeeklyCalendar';
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
 import DashboardHomeworksCard from '../features/dashboard/components/DashboardHomeworksCard';
+import DashboardHeroTaskCard from '../features/dashboard/components/DashboardHeroTaskCard';
 import DashboardBooksCard from '../features/dashboard/components/DashboardBooksCard';
 import DashboardReadingCard from '../features/dashboard/components/DashboardReadingCard';
 import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
@@ -254,13 +255,13 @@ export default function StudentDashboard() {
   const { books: readingBooksList = [], updateReadingProgress } = useReading() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent, refreshCoaching } = useCoaching();
 
-  // Background sync when opening the dashboard (runs strictly ONCE on mount)
+  // Background sync when opening the dashboard (runs strictly ONCE on mount, cache-first)
   useEffect(() => {
-    refreshHomeworks?.(true);
-    refreshTrackedBooks?.(true);
+    refreshHomeworks?.(false);
+    refreshTrackedBooks?.(false);
     syncFromSupabase?.(false, false);
-    refreshCoaching?.(true);
-    refreshSchedules?.(true);
+    refreshCoaching?.(false);
+    refreshSchedules?.(false);
   }, []);
 
   // Listen to remote submission updates with debouncing
@@ -311,6 +312,25 @@ export default function StudentDashboard() {
     }
   });
 
+  const [activeDashboardTab, setActiveDashboardTab] = useState(() => {
+    try {
+      return localStorage.getItem('etest_student_active_tab') || 'tasks';
+    } catch {
+      return 'tasks';
+    }
+  });
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveDashboardTab(tab);
+    try {
+      localStorage.setItem('etest_student_active_tab', tab);
+    } catch {}
+  }, []);
+
+  const handleViewAllTasks = useCallback(() => handleTabChange('tasks'), [handleTabChange]);
+  const handleExploreBooks = useCallback(() => navigate('/student/books'), [navigate]);
+  const handleViewAnalytics = useCallback(() => handleTabChange('analytics'), [handleTabChange]);
+
   const handleToggleFocusMode = useCallback(() => {
     setFocusModeOnly(prev => {
       const next = !prev;
@@ -353,12 +373,7 @@ export default function StudentDashboard() {
 
   const [isManualTestModalOpen, setIsManualTestModalOpen] = useState(false);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-  const [isAnalyticsReady, setIsAnalyticsReady] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setIsAnalyticsReady(true), 200);
-    return () => clearTimeout(t);
-  }, []);
+  const isAnalyticsReady = true;
 
   const [dismissedTaskKeys, setDismissedTaskKeys] = useState(() => {
     try {
@@ -1328,6 +1343,7 @@ export default function StudentDashboard() {
 
   const recentSolvedTests = useMemo(() => {
     if (!selectedStudent?.id) return [];
+    if (activeDashboardTab !== 'analytics' && activeDashboardTab !== 'all') return [];
     const allSubs = getAllUnifiedStudentSubmissions({
       studentId: selectedStudent.id,
       targetStudent: selectedStudent,
@@ -1337,7 +1353,7 @@ export default function StudentDashboard() {
       bookTests
     });
     return allSubs;
-  }, [selectedStudent, submissions, homeworks, books, bookTests]);
+  }, [selectedStudent, submissions, homeworks, books, bookTests, activeDashboardTab]);
 
   const handleDeleteRecentTest = async (testItem) => {
     if (!testItem || !window.confirm(`"${testItem.title || 'Bu test'}" sonucunu silmek istediğinize emin misiniz? Tüm kaydı ve istatistikleri sıfırlanacaktır.`)) return;
@@ -1445,6 +1461,19 @@ export default function StudentDashboard() {
     return { mondayDate, dayDateMap };
   }, []);
 
+  // Pre-index books Map for O(1) book lookup across entire dashboard
+  const booksByIdMap = useMemo(() => {
+    const map = new Map();
+    (books || []).forEach(b => {
+      if (!b?.id) return;
+      const bId = String(b.id);
+      map.set(bId, b);
+      const bUuid = toUUID(bId);
+      if (bUuid) map.set(bUuid, b);
+    });
+    return map;
+  }, [books]);
+
   // ── Pre-indexed Map for fast O(1) book test lookups ──
   // Replaces repeated O(n³) loops in resolveBookTestInfo
   const bookTestInfoCache = useMemo(() => {
@@ -1459,20 +1488,10 @@ export default function StudentDashboard() {
       if (idUuid && idUuid !== idStr) cache.set(idUuid, info);
     };
 
-    // Pre-index books Map for O(1) book lookup instead of repeated books.find()
-    const bookByIdMap = new Map();
-    (books || []).forEach(b => {
-      if (!b?.id) return;
-      const bId = String(b.id);
-      bookByIdMap.set(bId, b);
-      const bUuid = toUUID(bId);
-      if (bUuid) bookByIdMap.set(bUuid, b);
-    });
-
     // Index from bookTests array
     (bookTests || []).forEach(bt => {
       const bookId = String(bt.bookId || bt.book_id || '');
-      const currentBook = bookByIdMap.get(bookId) || (toUUID(bookId) && bookByIdMap.get(toUUID(bookId))) || null;
+      const currentBook = booksByIdMap.get(bookId) || (toUUID(bookId) && booksByIdMap.get(toUUID(bookId))) || null;
       let subjObj = null;
       let topicObj = null;
       if (currentBook?.subjects) {
@@ -2058,10 +2077,8 @@ export default function StudentDashboard() {
             hw.raw_data?.bookId ||
             (hw.title && /tüm kitap|kitap görevi|fiziki kitap/i.test(hw.title))
           );
-          const bookObj = (books || []).find(b =>
-            String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
-            (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
-          );
+          const hwBookKey = String(hw.bookId || hw.raw_data?.bookId || '');
+          const bookObj = hwBookKey ? (booksByIdMap.get(hwBookKey) || (toUUID(hwBookKey) && booksByIdMap.get(toUUID(hwBookKey))) || null) : null;
           if (isBookAssignment && !bookObj) return;
 
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
@@ -2085,68 +2102,12 @@ export default function StudentDashboard() {
             seenDayBtKeys.add(dedupeKey);
             seenDayBtKeys.add(`bt_${cleanTestId}`);
 
-            let bt = (bookTests || []).find(b => {
-              const bId = String(b.id);
-              return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
-            });
-
-            let resolvedSubject = bt?.subject || bt?.subjectName || '';
-            let resolvedUnit = bt?.unit || bt?.unitName || '';
-            const sId = bt?.subjectId || bt?.subject_id;
-            const tId = bt?.topicId || bt?.topic_id;
-
-            let bookSubjects = bookObj?.subjects || [];
-            if (typeof bookSubjects === 'string') {
-              try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-            }
-
-            if (Array.isArray(bookSubjects)) {
-              for (const subj of bookSubjects) {
-                if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
-                const isSubjMatch = sId && String(subj.id) === String(sId);
-                let isTopicMatch = false;
-
-                // 1. Check direct tests under subject (subj.tests)
-                if (!bt && Array.isArray(subj.tests)) {
-                  const directTest = subj.tests.find(t => {
-                    const tid = String(t.id);
-                    return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                  });
-                  if (directTest) {
-                    bt = directTest;
-                    if (!resolvedSubject) resolvedSubject = subj.name;
-                    break;
-                  }
-                }
-
-                // 2. Check topic tests (subj.topics[].tests)
-                for (const top of (subj.topics || [])) {
-                  const topicTest = (top.tests || []).find(t => {
-                    const tid = String(t.id);
-                    return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                  });
-                  if ((tId && String(top.id) === String(tId)) || topicTest) {
-                    resolvedUnit = top.name;
-                    isTopicMatch = true;
-                    if (!bt && topicTest) {
-                      bt = topicTest;
-                    }
-                    break;
-                  }
-                }
-                if (isSubjMatch || isTopicMatch) {
-                  if (!resolvedSubject) resolvedSubject = subj.name;
-                  break;
-                }
-              }
-            }
-
-            if (!resolvedSubject) {
-              resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
-            }
-
-            const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
-            const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+            const info = resolveBookTestInfo(cleanTestId, hw, bookObj);
+            const bt = info?.tObj;
+            const resolvedSubject = info?.subjectName || bookObj?.subject || hw.subject || 'Genel Ders';
+            const resolvedUnit = info?.topicName || '';
+            const testTitle = info?.testName || bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+            const qCount = Number(info?.qCount || bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
             scheduledBookItems.push({
               id: dedupeKey,
@@ -2472,10 +2433,8 @@ export default function StudentDashboard() {
         hw.raw_data?.bookId ||
         (hw.title && /tüm kitap|kitap görevi|fiziki kitap/i.test(hw.title))
       );
-      const bookObj = (books || []).find(b =>
-        String(b.id) === String(hw.bookId || hw.raw_data?.bookId) ||
-        (toUUID(b.id) && toUUID(b.id) === toUUID(hw.bookId || hw.raw_data?.bookId))
-      );
+      const hwBookKey = String(hw.bookId || hw.raw_data?.bookId || '');
+      const bookObj = hwBookKey ? (booksByIdMap.get(hwBookKey) || (toUUID(hwBookKey) && booksByIdMap.get(toUUID(hwBookKey))) || null) : null;
       if (isBookAssignment && !bookObj) return;
 
       const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
@@ -2498,68 +2457,13 @@ export default function StudentDashboard() {
           const dueYMD = String(dStr).slice(0, 10);
           const isOverdue = (todayYMD && dueYMD && dueYMD < todayYMD) || (!isNaN(dueTime) && dueTime < nowTime);
           if (!isOverdue) return;
-          let bt = (bookTests || []).find(b => {
-            const bId = String(b.id);
-            return bId === cleanTestId || bId === String(testIdKey) || (toUUID(cleanTestId) && toUUID(bId) === toUUID(cleanTestId));
-          });
 
-          let resolvedSubject = bt?.subject || bt?.subjectName || '';
-          let resolvedUnit = bt?.unit || bt?.unitName || '';
-          const sId = bt?.subjectId || bt?.subject_id;
-          const tId = bt?.topicId || bt?.topic_id;
-
-          let bookSubjects = bookObj?.subjects || [];
-          if (typeof bookSubjects === 'string') {
-            try { bookSubjects = JSON.parse(bookSubjects); } catch {}
-          }
-
-          if (Array.isArray(bookSubjects)) {
-            for (const subj of bookSubjects) {
-              if (!subj || subj.__meta === true || subj.id === '__book_meta__') continue;
-              const isSubjMatch = sId && String(subj.id) === String(sId);
-              let isTopicMatch = false;
-
-              // 1. Check direct tests under subject (subj.tests)
-              if (!bt && Array.isArray(subj.tests)) {
-                const directTest = subj.tests.find(t => {
-                  const tid = String(t.id);
-                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                });
-                if (directTest) {
-                  bt = directTest;
-                  if (!resolvedSubject) resolvedSubject = subj.name;
-                  break;
-                }
-              }
-
-              // 2. Check topic tests (subj.topics[].tests)
-              for (const top of (subj.topics || [])) {
-                const topicTest = (top.tests || []).find(t => {
-                  const tid = String(t.id);
-                  return tid === cleanTestId || tid === String(testIdKey) || (toUUID(cleanTestId) && toUUID(tid) === toUUID(cleanTestId));
-                });
-                if ((tId && String(top.id) === String(tId)) || topicTest) {
-                  resolvedUnit = top.name;
-                  isTopicMatch = true;
-                  if (!bt && topicTest) {
-                    bt = topicTest;
-                  }
-                  break;
-                }
-              }
-              if (isSubjMatch || isTopicMatch) {
-                if (!resolvedSubject) resolvedSubject = subj.name;
-                break;
-              }
-            }
-          }
-
-          if (!resolvedSubject) {
-            resolvedSubject = bookObj?.subject || hw.subject || 'Genel Ders';
-          }
-
-          const testTitle = bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
-          const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+          const info = resolveBookTestInfo(cleanTestId, hw, bookObj);
+          const bt = info?.tObj;
+          const resolvedSubject = info?.subjectName || bookObj?.subject || hw.subject || 'Genel Ders';
+          const resolvedUnit = info?.topicName || '';
+          const testTitle = info?.testName || bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+          const qCount = Number(info?.qCount || bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
           const diffDays = Math.max(1, Math.round((nowTime - dueTime) / (1000 * 60 * 60 * 24)));
 
           const candidateItem = {
@@ -2588,13 +2492,6 @@ export default function StudentDashboard() {
           };
 
           if (isItemSolved(candidateItem)) return;
-
-          const isSolvedInSubs = (studentSubmissions || submissions || []).some(s => {
-            if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-            return isSubmissionMatchingBookTest(s, candidateItem, bookTests, books);
-          });
-          if (isSolvedInSubs) return;
-
           if (isTaskDismissed(candidateItem)) return;
 
           if (!isAlreadySeen(candidateItem)) {
@@ -2632,11 +2529,7 @@ export default function StudentDashboard() {
         if (isItemSolved(hwCandidate)) return;
         if (isTaskDismissed(hwCandidate)) return;
 
-        const isSubmitted = (studentSubmissions || submissions || []).some(s => {
-          if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-          const sHwId = String(s.hwId || s.homeworkId || s.homework_id || s.testId || '');
-          return sHwId === String(hw.id) || toUUID(sHwId) === toUUID(hw.id);
-        });
+        const isSubmitted = studentSolvedSet.has(String(hw.id)) || (toUUID(hw.id) && studentSolvedSet.has(toUUID(hw.id)));
         if (isSubmitted) return;
 
         if (!isAlreadySeen(hwCandidate)) {
@@ -2867,7 +2760,7 @@ export default function StudentDashboard() {
     }
   }, [selectedStudent?.id, selectedStudent?.name, fullProcessedWeekMap, todayDayKey, dayProgramInfo, books, bookTests, studentSubmissions, catchUpTasks, isItemSolved]);
 
-  const handleToggleTask = async (taskOrId) => {
+  const handleToggleTask = useCallback(async (taskOrId) => {
     if (!taskOrId) return;
     const isObj = typeof taskOrId === 'object';
     const taskId = isObj ? taskOrId.id : taskOrId;
@@ -2958,9 +2851,9 @@ export default function StudentDashboard() {
         weeklyProgram: updatedWeeklyProgram
       });
     }
-  };
+  }, [toggleScheduleDone, updateStudyAssignment, studyAssignments, coachingProfile, activeDayKey, updateReadingProgress, readingBooksList, saveCoachingProfile, selectedStudent?.id]);
 
-  const handleAddScheduleTask = async (newItem, targetDayKey) => {
+  const handleAddScheduleTask = useCallback(async (newItem, targetDayKey) => {
     try {
       const dayToUse = targetDayKey || activeDayKey || 'Pzt';
       const profile = coachingProfile || getCoachingProfileForStudent(selectedStudent?.id) || { studentId: selectedStudent?.id, weeklyProgram: [] };
@@ -2987,7 +2880,7 @@ export default function StudentDashboard() {
     } catch (e) {
       console.error('Error adding schedule task from dashboard:', e);
     }
-  };
+  }, [activeDayKey, coachingProfile, getCoachingProfileForStudent, selectedStudent?.id, saveCoachingProfile, refreshCoaching, refreshSchedules]);
 
   const handleTaskAction = useCallback((task) => {
     if (!task) return;
@@ -3060,7 +2953,24 @@ export default function StudentDashboard() {
     handleToggleTask(task);
   }, [books, homeworks, navigate, selectedStudent?.id, submissions, handleToggleTask]);
 
-  const handleDeleteTask = async (task) => {
+  const handleHwClick = useCallback((task) => {
+    if (!task) return;
+    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
+    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
+    const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical;
+    const realTestId = task.realTestId || task.testId;
+    if (isExam) {
+      navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent?.id}`);
+    } else if (realTestId && realTestId !== (task.hwId || task.id)) {
+      navigate(`/quiz/${realTestId}?studentId=${selectedStudent?.id}`);
+    } else if (hwObj?.id) {
+      navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent?.id}`);
+    } else {
+      navigate('/student/homeworks');
+    }
+  }, [homeworks, books, selectedStudent?.id, navigate]);
+
+  const handleDeleteTask = useCallback(async (task) => {
     if (!task) return;
 
     if (task === 'RESTORE_DISMISSED_CATCHUP') {
@@ -3185,7 +3095,41 @@ export default function StudentDashboard() {
     } catch (err) {
       console.error('Error deleting task:', err);
     }
-  };
+  }, [selectedStudent?.id, catchUpTasks, deleteHomework, homeworks, updateHomework, deleteSchedule, coachingProfile, saveCoachingProfile]);
+
+  const handleOpenAddTask = useCallback(() => setIsAddTaskModalOpen(true), []);
+  const handleNavigateBooks = useCallback(() => navigate('/student/books'), [navigate]);
+  const handleNavigateBookDetail = useCallback((id) => navigate(`/student/books/${id}`), [navigate]);
+  const handleNavigateReading = useCallback(() => navigate('/student/reading'), [navigate]);
+  const handleNavigateRoadmap = useCallback((id) => {
+    if (id === 'curriculum-roadmap') {
+      navigate('/my-program?tab=konular');
+    } else {
+      navigate(`/student/study-plan/${id}`);
+    }
+  }, [navigate]);
+  const handleNavigateGoals = useCallback(() => navigate('/goals'), [navigate]);
+  const handleOpenManualModal = useCallback(() => setIsManualTestModalOpen(true), []);
+  const handleNavigateResults = useCallback(() => navigate('/student/results'), [navigate]);
+  const handleReviewRecentTest = useCallback((test) => {
+    const targetId = test.testId || test.submissionId || test.id;
+    const matchingBook = books?.find(b => String(b.id) === String(test.bookId));
+    const titleToCheck = String(test.title || test.testTitle || '').toLowerCase();
+    const isPhysical = test.type === 'physicalExam' || test.isPhysical || test.contentType === 'physicalExam' || isExamBook(test) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
+    if (isPhysical) {
+      navigate(`/physical-exam/${test.hwId || test.bookId || targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+        state: { from: '/student', submission: test }
+      });
+      return;
+    }
+    navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
+      state: { from: '/student' }
+    });
+  }, [books, navigate, selectedStudent?.id]);
+
+  const activeDayConfig = useMemo(() => {
+    return DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0];
+  }, [activeDayKey]);
 
   const weekTasksCountMap = useMemo(() => {
     const map = {};
@@ -3320,7 +3264,9 @@ export default function StudentDashboard() {
   }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount]);
 
   const solvedQuestionsStats = useMemo(() => {
-    if (!selectedStudent) return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
+    if (!selectedStudent || (activeDashboardTab !== 'analytics' && activeDashboardTab !== 'all')) {
+      return { today: 0, thisWeek: 0, thisMonth: 0, total: 0 };
+    }
 
     // Standart Türkiye Saati (UTC+3) Tarih Aralıkları
     const todayYMD = getTurkeyToday();
@@ -3422,10 +3368,10 @@ export default function StudentDashboard() {
       thisMonth: monthCount,
       total: totalCount
     };
-  }, [selectedStudent, studentSubmissions, studentMockExams, coachingProfile]);
+  }, [selectedStudent, studentSubmissions, studentMockExams, coachingProfile, activeDashboardTab]);
 
   const goalTrackingData = useMemo(() => {
-    if (!selectedStudent?.id) {
+    if (!selectedStudent?.id || (activeDashboardTab !== 'analytics' && activeDashboardTab !== 'all')) {
       return { hasAnyGoals: false, visualGoals: [], monthly: [], weekly: [], daily: [], totalItemsCount: 0 };
     }
     const profile = getCoachingProfileForStudent(selectedStudent.id) || {};
@@ -3499,7 +3445,7 @@ export default function StudentDashboard() {
       visualGoals,
       totalItemsCount
     };
-  }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats]);
+  }, [selectedStudent?.id, getCoachingProfileForStudent, coachingLinks, goals, solvedQuestionsStats, activeDashboardTab]);
 
   return (
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
@@ -3741,7 +3687,6 @@ export default function StudentDashboard() {
                     alignItems: 'center',
                     gap: isMobile ? 3 : 4,
                     boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
-                    backdropFilter: 'blur(16px)',
                     flexShrink: 0,
                     whiteSpace: 'nowrap'
                   }}
@@ -3830,9 +3775,8 @@ export default function StudentDashboard() {
                 width: isMobile ? 42 : 62,
                 height: isMobile ? 42 : 62,
                 borderRadius:'50%',
-                background:'rgba(255,255,255,0.1)',
-                backdropFilter:'blur(12px)',
-                border:'1.5px solid rgba(255,255,255,0.22)',
+                background:'rgba(255,255,255,0.18)',
+                border:'1.5px solid rgba(255,255,255,0.25)',
                 display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                 boxShadow:'0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
               }}>
@@ -3860,7 +3804,7 @@ export default function StudentDashboard() {
                   try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
                 }
               }}
-              style={{ background:'rgba(15,23,42,0.85)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.65rem', fontSize:'0.76rem', fontWeight:700, backdropFilter:'blur(8px)', flex: 1, minWidth: 0 }}
+              style={{ background:'rgba(15,23,42,0.95)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.65rem', fontSize:'0.76rem', fontWeight:700, flex: 1, minWidth: 0 }}
             >
               {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
             </select>
@@ -3950,13 +3894,136 @@ export default function StudentDashboard() {
 
 
 
+        {/* 🌟 1. ÖNCELİKLİ GÖREV / HERO FOCUS CARD */}
+        <DashboardHeroTaskCard
+          isMobile={isMobile}
+          isDark={isDark}
+          studentName={selectedStudent?.name}
+          pendingTasks={pendingTasks}
+          dayTasks={dayProgramInfo.items}
+          catchUpTasks={catchUpTasks}
+          onStartHomework={handleHwClick}
+          onStartDayTask={handleTaskAction}
+          onViewAllTasks={handleViewAllTasks}
+          onExploreBooks={handleExploreBooks}
+          onViewAnalytics={handleViewAnalytics}
+        />
+
+        {/* 🎛️ 2. GÖRÜNÜM MODU SEÇİCİ (SEGMENTED VIEW SWITCHER) */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1.25rem',
+          flexWrap: 'wrap',
+          gap: 10
+        }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 16,
+            padding: 4,
+            gap: 4,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+          }}>
+            <button
+              type="button"
+              onClick={() => handleTabChange('tasks')}
+              style={{
+                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
+                borderRadius: 12,
+                border: 'none',
+                background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+                color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
+                fontWeight: activeDashboardTab === 'tasks' ? 900 : 700,
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              🎯 Görevler & Ödevler
+              {pendingCount > 0 && (
+                <span style={{
+                  background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
+                  color: activeDashboardTab === 'tasks' ? '#ffffff' : '#ef4444',
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: 99
+                }}>
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange('analytics')}
+              style={{
+                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
+                borderRadius: 12,
+                border: 'none',
+                background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
+                color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
+                fontWeight: activeDashboardTab === 'analytics' ? 900 : 700,
+                fontSize: isMobile ? '0.78rem' : '0.85rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              📊 Gelişim & Analiz
+            </button>
+
+            {!isMobile && (
+              <button
+                type="button"
+                onClick={() => handleTabChange('all')}
+                style={{
+                  padding: '0.6rem 1.4rem',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: activeDashboardTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'transparent',
+                  color: activeDashboardTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                  fontWeight: activeDashboardTab === 'all' ? 900 : 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: activeDashboardTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                🌟 Tümü
+              </button>
+            )}
+          </div>
+
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+            {activeDashboardTab === 'tasks' && '📌 Günlük görevlerinize ve ödevlerinize odaklanıyorsunuz'}
+            {activeDashboardTab === 'analytics' && '📈 Soru sayıları, seviye ve haftalık başarı analizi'}
+            {activeDashboardTab === 'all' && '✨ Tüm paneller aynı anda görüntüleniyor'}
+          </div>
+        </div>
+
         {/* ════════════════════════════════════════════
             4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
         ════════════════════════════════════════════ */}
-        <div className="sd-grid-layout">
+        <div className={(!focusModeOnly && activeDashboardTab === 'all') ? "sd-grid-layout" : "sd-single-layout"}>
 
           {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          {(!focusModeOnly ? (activeDashboardTab === 'tasks' || activeDashboardTab === 'all') : true) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
             {/* 🎯 BİRLEŞİK TAKVİM & GÜNÜN GÖREVLERİ KARTI */}
             <div
@@ -3979,7 +4046,7 @@ export default function StudentDashboard() {
                 weekTasksCountMap={weekTasksCountMap}
                 weekInfo={weekInfo}
                 onSelectDay={setActiveDayKey}
-                onAddTask={() => setIsAddTaskModalOpen(true)}
+                onAddTask={handleOpenAddTask}
               />
 
               {/* ── BİRLEŞİK AYIRICI ÇİZGİ ── */}
@@ -3993,7 +4060,7 @@ export default function StudentDashboard() {
               <DashboardTodayTasks
                 isMobile={isMobile}
                 isDark={isDark}
-                activeDayConfig={DAYS_OF_WEEK.find(d => d.key === activeDayKey) || DAYS_OF_WEEK[0]}
+                activeDayConfig={activeDayConfig}
                 dayProgramInfo={dayProgramInfo}
                 catchUpTasks={catchUpTasks}
                 showAllDayTasks={showAllDayTasks}
@@ -4001,7 +4068,7 @@ export default function StudentDashboard() {
                 onToggleTask={handleToggleTask}
                 onTaskClick={handleTaskAction}
                 getRowTheme={getRowTheme}
-                onAddTask={() => setIsAddTaskModalOpen(true)}
+                onAddTask={handleOpenAddTask}
               />
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
@@ -4018,16 +4085,7 @@ export default function StudentDashboard() {
                   isMobile={isMobile}
                   pendingCount={pendingCount}
                   pendingTasks={pendingTasks}
-                  onHwClick={(task) => {
-                    const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
-                    const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId));
-                    const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || hwObj?.isPhysical;
-                    const realTestId = task.realTestId || task.testId;
-                    if (isExam) navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent.id}`);
-                    else if (realTestId && realTestId !== (task.hwId || task.id)) navigate(`/quiz/${realTestId}?studentId=${selectedStudent.id}`);
-                    else if (hwObj?.id) navigate(`/quiz/${hwObj.id}?studentId=${selectedStudent.id}`);
-                    else navigate('/student/homeworks');
-                  }}
+                  onHwClick={handleHwClick}
                   getRowTheme={getRowTheme}
                 />
 
@@ -4036,15 +4094,15 @@ export default function StudentDashboard() {
                   isMobile={isMobile}
                   isDark={isDark}
                   assignedBooksList={assignedBooksList}
-                  onNavigateBooks={() => navigate('/student/books')}
-                  onNavigateBookDetail={(id) => navigate(`/student/books/${id}`)}
+                  onNavigateBooks={handleNavigateBooks}
+                  onNavigateBookDetail={handleNavigateBookDetail}
                 />
 
                 {/* 📚 BÖLÜM 3.5: KİTAP OKUMA & ALIŞKANLIK TAKİBİ */}
                 <DashboardReadingCard
                   isMobile={isMobile}
                   isDark={isDark}
-                  onNavigateReading={() => navigate('/student/reading')}
+                  onNavigateReading={handleNavigateReading}
                 />
 
                 {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}
@@ -4053,13 +4111,7 @@ export default function StudentDashboard() {
                   isDark={isDark}
                   personalRoadmap={personalRoadmap}
                   myRoadmaps={myRoadmaps}
-                  onNavigateRoadmap={(id) => {
-                    if (id === 'curriculum-roadmap') {
-                      navigate('/my-program?tab=konular');
-                    } else {
-                      navigate(`/student/study-plan/${id}`);
-                    }
-                  }}
+                  onNavigateRoadmap={handleNavigateRoadmap}
                 />
               </>
             )}
@@ -4098,9 +4150,10 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
+          )}
 
           {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
-          {!focusModeOnly && (
+          {!focusModeOnly && (activeDashboardTab === 'analytics' || activeDashboardTab === 'all') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
 
               {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
@@ -4138,7 +4191,7 @@ export default function StudentDashboard() {
                 isMobile={isMobile}
                 goalTrackingData={goalTrackingData}
                 solvedQuestionsStats={solvedQuestionsStats}
-                onNavigateGoals={() => navigate('/goals')}
+                onNavigateGoals={handleNavigateGoals}
                 onUpdateGoalProgress={updateGoalProgress}
                 goalTypeThemes={GOAL_TYPE_THEMES}
               />
@@ -4147,23 +4200,9 @@ export default function StudentDashboard() {
               <DashboardRecentSolvedCard
                 isMobile={isMobile}
                 recentSolvedTests={recentSolvedTests}
-                onOpenManualModal={() => setIsManualTestModalOpen(true)}
-                onNavigateResults={() => navigate('/student/results')}
-                onReviewTest={(test) => {
-                  const targetId = test.testId || test.submissionId || test.id;
-                  const matchingBook = books?.find(b => String(b.id) === String(test.bookId));
-                  const titleToCheck = String(test.title || test.testTitle || '').toLowerCase();
-                  const isPhysical = test.type === 'physicalExam' || test.isPhysical || test.contentType === 'physicalExam' || isExamBook(test) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
-                  if (isPhysical) {
-                    navigate(`/physical-exam/${test.hwId || test.bookId || targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
-                      state: { from: '/student', submission: test }
-                    });
-                    return;
-                  }
-                  navigate(`/quiz-review/${targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
-                    state: { from: '/student' }
-                  });
-                }}
+                onOpenManualModal={handleOpenManualModal}
+                onNavigateResults={handleNavigateResults}
+                onReviewTest={handleReviewRecentTest}
                 selectedStudent={selectedStudent}
               />
 
