@@ -697,6 +697,19 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const titleLower = String(rawSub.title || rawSub.testTitle || meta.testTitle || meta.testName || matchedHw?.title || cleanBookTitle || '').toLowerCase();
   
+  const isBookOrPhysSub = Boolean(
+    rawSub.type === 'book' ||
+    rawSub.typeKey === 'book' ||
+    rawSub.sourceType === 'trackedBook' ||
+    rawSub.sourceType === 'bookTest' ||
+    rawSub.sourceType === 'physicalExam' ||
+    rawSub.bookId ||
+    rawSub.bookTestId ||
+    rawSub.isPhysical ||
+    matchedBookTest !== null ||
+    isPhysHw
+  );
+
   const isExplicitMC = Boolean(
     /\bçok\b|\bcok\b|çoktan|coktan/i.test(titleLower) ||
     rawSub.type === 'multiple_choice' ||
@@ -707,6 +720,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     rawSub.contentType === 'coktan_secmeli' ||
     matchedHw?.type === 'multiple_choice' ||
     matchedHw?.contentType === 'multiple_choice' ||
+    (isBookOrPhysSub && !rawSub.isOpenEnded && rawSub.questionType !== 'acik_uclu') ||
     (Array.isArray(rawSub.answers) && rawSub.answers.length > 0 && rawSub.answers.every(a => 
       typeof a === 'number' || (typeof a === 'string' && /^[A-E]$/i.test(a)) ||
       (!a.isOpenEnded && !a.is_open_ended && a.type !== 'open_ended' && a.questionType !== 'acik_uclu' &&
@@ -714,45 +728,38 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     ))
   );
 
-  const hasOEKeywords = !isExplicitMC && (
+  const hasOEKeywords = !isExplicitMC && !isBookOrPhysSub && (
     titleLower.includes('açık uçlu') ||
     titleLower.includes('acik uclu') ||
-    titleLower.includes('klasik') ||
-    titleLower.includes('yazılı sınav') ||
+    titleLower.includes('klasik sınav') ||
     titleLower.includes('klasik yazılı') ||
-    titleLower.includes('görsel soru') ||
-    titleLower.includes('gorsel soru') ||
-    /\baç\b|\bac\b/.test(titleLower) ||
-    (/\byazılı\b|\byazili\b/.test(titleLower) && !/\bçok\b|\bcok\b/i.test(titleLower))
+    titleLower.includes('görsel klasik')
   );
 
-  const hasWrittenAnswers = !isExplicitMC && Boolean(
+  const hasWrittenAnswers = Boolean(
     (rawSub.openEndedText && Object.keys(rawSub.openEndedText).length > 0) ||
     rawSub.writtenAnswer ||
     rawSub.writtenAnswers ||
     (Array.isArray(rawSub.answers) && rawSub.answers.some(a => 
       a?.isOpenEnded || a?.is_open_ended || a?.type === 'acik_uclu' || a?.type === 'gorsel_klasik' || a?.type === 'open_ended' ||
-      a?.writtenAnswer || (a?.userAnswerText && String(a.userAnswerText).trim() !== '' && String(a.userAnswerText).trim() !== 'empty') ||
+      a?.writtenAnswer || (a?.userAnswerText && String(a.userAnswerText).trim() !== '' && String(a.userAnswerText).trim() !== 'empty' && a?.userAnswer === null) ||
       a?.maxScore !== undefined
     ))
   );
 
-  const isSubWritten = !isExplicitMC && Boolean(
-    rawSub.isOpenEnded ||
+  const isSubWritten = Boolean(
+    rawSub.isOpenEnded === true ||
     rawSub.type === 'acik_uclu' ||
-    rawSub.type === 'yazili' ||
     rawSub.type === 'gorsel_klasik' ||
     rawSub.questionType === 'acik_uclu' ||
-    rawSub.questionType === 'yazili' ||
     rawSub.questionType === 'gorsel_klasik' ||
     rawSub.contentType === 'acik_uclu' ||
-    rawSub.contentType === 'yazili' ||
     rawSub.contentType === 'gorsel_klasik' ||
-    matchedHw?.isOpenEnded ||
+    matchedHw?.isOpenEnded === true ||
     matchedHw?.type === 'acik_uclu' ||
     matchedHw?.questionType === 'acik_uclu' ||
     hasWrittenAnswers ||
-    (hasOEKeywords && (!isDirectExam && rawSub.type !== 'optik_form' && rawSub.type !== 'multiple_choice' && matchedBookTest === null))
+    (!isBookOrPhysSub && hasOEKeywords && (!isDirectExam && rawSub.type !== 'optik_form' && rawSub.type !== 'multiple_choice' && matchedBookTest === null))
   );
 
   const isEvaluated = Boolean(
@@ -1363,9 +1370,14 @@ export function findUnifiedSubmissionOrTest(targetId, {
     title: normalizedSubmission?.testTitle || 'İnceleme Testi',
     questionCount: normalizedSubmission?.totalQuestions || 12,
     answer_key: normalizedSubmission?.answerKey || {},
-    type: normalizedSubmission?.isOpenEnded ? 'acik_uclu' : (normalizedSubmission?.type || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
+    bookId: normalizedSubmission?.bookId || foundRawSub.bookId || foundRawSub.book_id || null,
+    bookTitle: normalizedSubmission?.bookTitle || foundRawSub.bookTitle || null,
+    pdfUrl: normalizedSubmission?.pdfUrl || foundRawSub.pdfUrl || foundRawSub.pdf_url || foundRawSub.link || foundRawSub.url || '',
+    sourceType: normalizedSubmission?.sourceType || foundRawSub.sourceType || (matchedBookTest ? 'trackedBook' : 'questionBank'),
+    typeKey: normalizedSubmission?.typeKey || foundRawSub.typeKey || (matchedBookTest ? 'book' : 'quiz'),
+    type: normalizedSubmission?.isOpenEnded ? 'acik_uclu' : (matchedBookTest ? 'optik_form' : (normalizedSubmission?.type || 'coktan_secmeli')),
     questionType: normalizedSubmission?.isOpenEnded ? 'acik_uclu' : (normalizedSubmission?.questionType || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
-    sourceFormat: normalizedSubmission?.sourceFormat || (normalizedSubmission?.isOpenEnded ? 'yazili' : (matchedBookTest ? 'physical' : 'digital')),
+    sourceFormat: normalizedSubmission?.sourceFormat || (matchedBookTest ? 'physical' : (normalizedSubmission?.isOpenEnded ? 'yazili' : 'digital')),
     isOpenEnded: normalizedSubmission?.isOpenEnded || false
   } : null);
 

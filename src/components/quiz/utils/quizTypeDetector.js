@@ -39,16 +39,42 @@ export function isMultipleChoice(item = {}) {
     }
   }
 
+  // Tracked Book / Physical Test Check (Definitively Multiple Choice unless explicitly flagged OE)
+  const isBookOrPhysical = Boolean(
+    item.isBookAssignment ||
+    item.sourceType === 'trackedBook' ||
+    item.sourceType === 'bookTest' ||
+    item.sourceType === 'book' ||
+    item.sourceType === 'study_room_optical' ||
+    item.sourceType === 'physicalExam' ||
+    item.typeKey === 'book' ||
+    item.typeKey === 'physicalExam' ||
+    item.type === 'book' ||
+    item.type === 'physicalExam' ||
+    item.bookId ||
+    item.book_id ||
+    item.bookTestId ||
+    item.isPhysical ||
+    item.sourceFormat === 'physical' ||
+    item.formatType === 'physical' ||
+    String(item.id || '').startsWith('bt_') ||
+    String(item.id || '').startsWith('tbt_')
+  );
+
+  if (isBookOrPhysical && !isExplicitOE) {
+    return true;
+  }
+
   // 2. Multiple Choice Answer Key detection (Letters A-E)
-  const ak = item.answerKey || item.correctAnswers || item.opticAnswers;
+  const ak = item.answerKey || item.answer_key || item.correctAnswers || item.opticAnswers;
   if (ak && ak.__meta?.isOpenEnded !== true && ak.__meta?.questionType !== 'acik_uclu') {
     if (Array.isArray(ak) && ak.length > 0) {
-      const allLetters = ak.every(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()));
-      if (allLetters) return true;
+      const hasLetters = ak.some(k => typeof k === 'string' && /^[A-Ea-e]$/.test(k.trim()));
+      if (hasLetters) return true;
     }
     if (typeof ak === 'object' && !Array.isArray(ak)) {
       const vals = Object.values(ak).filter(v => v !== null && typeof v === 'string');
-      if (vals.length > 0 && vals.every(v => /^[A-Ea-e]$/.test(v.trim()))) return true;
+      if (vals.some(v => /^[A-Ea-e]$/.test(v.trim()))) return true;
     }
     if (typeof ak === 'string' && /^[A-Ea-e\s]+$/.test(ak.trim()) && ak.trim().length > 0) {
       return true;
@@ -104,6 +130,19 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
 
   // 1. If section, bankQ, or test is definitively Multiple Choice -> NEVER Open-Ended
   if (isMultipleChoice(sec) || isMultipleChoice(bankQ) || (test?.id && isMultipleChoice(test))) {
+    return false;
+  }
+
+  // If sec or test is a tracked book test or physical exam -> NEVER Open-Ended unless explicitly flagged
+  const isBookOrPhysical = Boolean(
+    sec?.isBookAssignment || sec?.sourceType === 'trackedBook' || sec?.sourceType === 'bookTest' || sec?.sourceType === 'book' || sec?.sourceType === 'physicalExam' || sec?.typeKey === 'book' || sec?.type === 'book' || sec?.bookId || sec?.book_id || sec?.bookTestId || sec?.isPhysical || sec?.sourceFormat === 'physical' ||
+    test?.isBookAssignment || test?.sourceType === 'trackedBook' || test?.sourceType === 'bookTest' || test?.sourceType === 'book' || test?.sourceType === 'physicalExam' || test?.typeKey === 'book' || test?.type === 'book' || test?.bookId || test?.book_id || test?.bookTestId || test?.isPhysical || test?.sourceFormat === 'physical'
+  );
+  const isExplicitOE = Boolean(
+    sec?.isOpenEnded === true || sec?.is_open_ended === true || sec?.questionType === 'acik_uclu' || sec?.type === 'acik_uclu' ||
+    test?.isOpenEnded === true || test?.is_open_ended === true || test?.questionType === 'acik_uclu' || test?.type === 'acik_uclu'
+  );
+  if (isBookOrPhysical && !isExplicitOE) {
     return false;
   }
 
@@ -180,12 +219,25 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return true;
   }
 
+  // If it's a book or physical test, it never defaults to open-ended
+  if (isBookOrPhysical) {
+    return false;
+  }
+
   // 5. If it has NO options and NO answer key at all, it cannot be multiple choice -> default to open-ended
-  const hasValidKey = (
+  const hasValidKey = Boolean(
     (Array.isArray(sec?.answerKey) && sec.answerKey.filter(k => k && String(k).trim() !== '').length > 0) ||
+    (Array.isArray(sec?.answer_key) && sec.answer_key.filter(k => k && String(k).trim() !== '').length > 0) ||
     (typeof sec?.answerKey === 'string' && sec.answerKey.replace(/[^A-Ea-e]/g, '').length > 0) ||
+    (typeof sec?.answer_key === 'string' && sec.answer_key.replace(/[^A-Ea-e]/g, '').length > 0) ||
+    (sec?.answerKey && typeof sec.answerKey === 'object' && Object.keys(sec.answerKey).length > 0) ||
+    (sec?.answer_key && typeof sec.answer_key === 'object' && Object.keys(sec.answer_key).length > 0) ||
     (Array.isArray(test?.answerKey) && test.answerKey.filter(k => k && String(k).trim() !== '').length > 0) ||
-    (typeof test?.answerKey === 'string' && test.answerKey.replace(/[^A-Ea-e]/g, '').length > 0)
+    (Array.isArray(test?.answer_key) && test.answer_key.filter(k => k && String(k).trim() !== '').length > 0) ||
+    (typeof test?.answerKey === 'string' && test.answerKey.replace(/[^A-Ea-e]/g, '').length > 0) ||
+    (typeof test?.answer_key === 'string' && test.answer_key.replace(/[^A-Ea-e]/g, '').length > 0) ||
+    (test?.answerKey && typeof test.answerKey === 'object' && Object.keys(test.answerKey).length > 0) ||
+    (test?.answer_key && typeof test.answer_key === 'object' && Object.keys(test.answer_key).length > 0)
   );
 
   const hasOptions = (

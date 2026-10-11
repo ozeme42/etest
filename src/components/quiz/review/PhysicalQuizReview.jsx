@@ -75,7 +75,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     if (test?.book) return test.book;
     const targetBookId = test?.bookId || test?.book_id || submission?.bookId || submission?.book_id || metaAnswer?.bookId;
     if (targetBookId && books) {
-      const found = books.find(b => String(b.id) === String(targetBookId) || toUUID(b.id) === toUUID(targetBookId));
+      const found = books.find(b => String(b.id) === String(targetBookId) || (toUUID(b.id) && toUUID(b.id) === toUUID(targetBookId)));
       if (found) return found;
     }
     const targetBookTitle = submission?.bookTitle || metaAnswer?.bookTitle || test?.bookTitle;
@@ -84,10 +84,40 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       if (found) return found;
     }
     if (books && Array.isArray(books)) {
-      return books.find(b => (bookTests || []).some(bt => (String(bt.bookId) === String(b.id) || String(bt.book_id) === String(b.id)) && (String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId)))) || null;
+      const foundByBt = books.find(b => (bookTests || []).some(bt => 
+        (String(bt.bookId) === String(b.id) || String(bt.book_id) === String(b.id)) && 
+        (String(bt.id) === String(testId) || String(bt.id) === String(testKey) || (toUUID(bt.id) && (toUUID(bt.id) === toUUID(testId) || toUUID(bt.id) === toUUID(testKey))))
+      ));
+      if (foundByBt) return foundByBt;
+
+      for (const b of books) {
+        if (b.subjects && Array.isArray(b.subjects)) {
+          for (const s of b.subjects) {
+            if (s.tests && Array.isArray(s.tests) && s.tests.some(t => String(t.id) === String(testId) || String(t.id) === String(testKey))) {
+              return b;
+            }
+            if (s.topics && Array.isArray(s.topics)) {
+              for (const tp of s.topics) {
+                if (tp.tests && Array.isArray(tp.tests) && tp.tests.some(t => String(t.id) === String(testId) || String(t.id) === String(testKey))) {
+                  return b;
+                }
+              }
+            }
+          }
+        }
+      }
     }
     return null;
-  }, [test, books, bookTests, testId, submission, metaAnswer]);
+  }, [test, books, bookTests, testId, testKey, submission, metaAnswer]);
+
+  // Try finding matching bookTest
+  const matchedBt = useMemo(() => {
+    return (bookTests || []).find(bt => 
+      String(bt.id) === String(testId) || 
+      String(bt.id) === String(testKey) || 
+      (toUUID(bt.id) && (toUUID(bt.id) === toUUID(testId) || toUUID(bt.id) === toUUID(testKey)))
+    ) || null;
+  }, [bookTests, testId, testKey]);
 
   // ── Full Metadata Resolution (Book, Subject, Unit/Topic, Test Name) ──
   const resolvedMeta = useMemo(() => {
@@ -96,8 +126,6 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     let topicName = submission?.topicName || submission?.unitTopic || metaAnswer?.unitTopic || submission?.topic || test?.topicName || test?.unitTopic || test?.topic || '';
     let testName = test?.name || test?.title || submission?.testName || metaAnswer?.testName || submission?.title || 'Test';
 
-    // Try finding matching bookTest
-    const matchedBt = (bookTests || []).find(bt => String(bt.id) === String(testId) || toUUID(bt.id) === toUUID(testId));
     if (matchedBt) {
       if (!testName || testName === 'Test') testName = matchedBt.name;
       if (!subjectName && matchedBt.subjectId && resolvedBook?.subjects) {
@@ -144,12 +172,23 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       topicName,
       testName
     };
-  }, [resolvedBook, test, submission, bookTests, testId]);
+  }, [resolvedBook, test, submission, matchedBt]);
 
-  const pdfUrl = test?.pdfUrl || resolvedBook?.pdfUrl || submission?.pdfUrl || '';
+  const pdfUrl = 
+    test?.pdfUrl || test?.pdf_url || test?.link || test?.url || test?.fileUrl ||
+    matchedBt?.pdfUrl || matchedBt?.pdf_url || matchedBt?.link || matchedBt?.url ||
+    resolvedBook?.pdfUrl || resolvedBook?.pdf_url || resolvedBook?.link || resolvedBook?.url || resolvedBook?.fileUrl ||
+    submission?.pdfUrl || submission?.pdf_url || submission?.link || submission?.url || submission?.fileUrl ||
+    metaAnswer?.pdfUrl || metaAnswer?.pdf_url || metaAnswer?.link || metaAnswer?.url || '';
   const hasPdf = Boolean(pdfUrl);
 
   const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
+
+  useEffect(() => {
+    if (hasPdf && pdfMode === 'hidden') {
+      setPdfMode(isMobile ? 'top' : 'side');
+    }
+  }, [hasPdf, isMobile]);
   const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
   const [showOptikForm, setShowOptikForm] = useState(true);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
@@ -376,15 +415,15 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
 
   const isEntireTestOpenEnded = useMemo(() => {
     return Boolean(
-      test?.isOpenEnded ||
-      test?.is_open_ended ||
+      test?.isOpenEnded === true ||
+      test?.is_open_ended === true ||
       test?.questionType === 'acik_uclu' ||
       test?.type === 'acik_uclu' ||
-      submission?.isOpenEnded ||
-      submission?.is_open_ended ||
+      submission?.isOpenEnded === true ||
+      submission?.is_open_ended === true ||
       submission?.questionType === 'acik_uclu' ||
       submission?.type === 'acik_uclu' ||
-      (Array.isArray(answers) && answers.length > 0 && answers.some(a => a.isOpenEnded || (a.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswer === null)))
+      (Array.isArray(answers) && answers.length > 0 && answers.some(a => a?.isOpenEnded === true || (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a.userAnswer === null || a.userAnswer === undefined))))
     );
   }, [test, submission, answers]);
 

@@ -496,6 +496,78 @@ export default function EvaluationManager() {
   const allSubjects = ['Matematik', 'Fen Bilimleri', 'Türkçe', 'Sosyal Bilgiler', 'İngilizce', 'Din Kültürü', 'Genel Deneme', 'Genel Testler'];
   const studentUsers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
 
+  const isPhysicalSubmission = useCallback((sub) => {
+    if (!sub) return false;
+    const isExplicitOE = Boolean(
+      sub.isOpenEnded === true ||
+      sub.is_open_ended === true ||
+      sub.questionType === 'acik_uclu' ||
+      sub.type === 'acik_uclu' ||
+      (sub.openEndedText && typeof sub.openEndedText === 'object' && Object.values(sub.openEndedText).some(v => v && String(v).trim().length > 0)) ||
+      (sub.answers && Array.isArray(sub.answers) && sub.answers.some(a => a?.isOpenEnded === true || (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a?.userAnswer === null || a?.userAnswer === undefined))))
+    );
+    if (isExplicitOE) return false;
+
+    return Boolean(
+      sub.sourceType === 'trackedBook' ||
+      sub.sourceType === 'bookTest' ||
+      sub.sourceType === 'book' ||
+      sub.sourceType === 'study_room_optical' ||
+      sub.sourceType === 'manual_test' ||
+      sub.typeKey === 'book' ||
+      sub.type === 'book' ||
+      sub.source === 'book' ||
+      sub.source === 'physical' ||
+      sub.isManual === true ||
+      sub.isPhysical === true ||
+      sub.is_physical === true ||
+      sub.questionType === 'optik_form' ||
+      sub.type === 'optik_form' ||
+      String(sub.testId || '').startsWith('bt_') ||
+      String(sub.testId || '').startsWith('tbt_') ||
+      String(sub.id || '').startsWith('bt_') ||
+      String(sub.id || '').startsWith('sub_bt_') ||
+      (sub.bookId && String(sub.bookId).trim() !== '') ||
+      (sub.book_id && String(sub.book_id).trim() !== '') ||
+      (sub.bookTestId && String(sub.bookTestId).trim() !== '') ||
+      (sub.answers && Array.isArray(sub.answers) && sub.answers.some(a => 
+        a?.type === 'metadata' && (a?.sourceType === 'trackedBook' || a?.bookTestId || a?.bookTitle || (a?.compositeKey && String(a.compositeKey).includes('___')))
+      )) ||
+      (bookTests && Array.isArray(bookTests) && bookTests.some(bt => 
+        String(bt.id) === String(sub.testId) || 
+        String(bt.id) === String(sub.id) || 
+        (toUUID(bt.id) && (toUUID(bt.id) === toUUID(sub.testId) || toUUID(bt.id) === toUUID(sub.id)))
+      )) ||
+      (books && Array.isArray(books) && books.some(b => 
+        String(b.id) === String(sub.bookId) || 
+        (toUUID(b.id) && toUUID(b.id) === toUUID(sub.bookId))
+      ))
+    );
+  }, [bookTests, books]);
+
+  const resolvedActiveTest = useMemo(() => {
+    if (!activeSubmission) return null;
+    if (activeSubmission.resolvedTest) return activeSubmission.resolvedTest;
+    const targetTestId = activeSubmission.testId || activeSubmission.bookTestId || activeSubmission.id;
+    let found = (bookTests || []).find(bt => String(bt.id) === String(targetTestId) || (toUUID(bt.id) && toUUID(bt.id) === toUUID(targetTestId)));
+    if (!found && books && Array.isArray(books)) {
+      for (const b of books) {
+        if (b.subjects && Array.isArray(b.subjects)) {
+          for (const s of b.subjects) {
+            if (s.tests && Array.isArray(s.tests)) {
+              const ft = s.tests.find(t => String(t.id) === String(targetTestId) || (toUUID(t.id) && toUUID(t.id) === toUUID(targetTestId)));
+              if (ft) {
+                found = { ...ft, bookId: b.id, bookTitle: b.title, pdfUrl: ft.pdfUrl || ft.pdf_url || b.pdfUrl || b.pdf_url || '' };
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    return found || activeSubmission;
+  }, [activeSubmission, bookTests, books]);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -513,7 +585,16 @@ export default function EvaluationManager() {
     }}>
 
       {activeSubmission && (
-        activeSubmission.isMultiSection ? (
+        isPhysicalSubmission(activeSubmission) ? (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-bg)', overflow: 'hidden' }}>
+            <PhysicalQuizReview
+              submission={activeSubmission}
+              test={resolvedActiveTest}
+              questions={allBankQuestions}
+              onClose={() => setActiveSubmission(null)}
+            />
+          </div>
+        ) : activeSubmission.isMultiSection ? (
           <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'var(--color-bg)', overflow: 'hidden' }}>
             <CompositeHomeworkReview
               submission={activeSubmission}
