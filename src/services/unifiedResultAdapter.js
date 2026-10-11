@@ -778,24 +778,69 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
 
   const isPendingEvaluation = isSubWritten && !isEvaluated;
 
-  if (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a?.type !== 'metadata' && (a?.score !== undefined || a?.teacherFeedback || a?.teacherScore !== undefined))) {
-    rawSub.answers.filter(a => a?.type !== 'metadata').forEach((a, idx) => {
-      const isCorrect = (a.isCorrect === true || Number(a.score || 0) > 0);
-      if (isCorrect) correctCount++;
-      else if (a.userAnswer && a.userAnswer !== 'empty') wrongCount++;
-      else blankCount++;
+  const hasGenuineAnswers = answersList.length > 0 && answersList.some(a =>
+    (a?.userAnswer !== undefined && a?.userAnswer !== null && String(a.userAnswer).trim() !== '') ||
+    (a?.userAnswerText !== undefined && a?.userAnswerText !== null && String(a.userAnswerText).trim() !== '') ||
+    (a?.studentAnswerText !== undefined && a?.studentAnswerText !== null && String(a.studentAnswerText).trim() !== '') ||
+    a?.isCorrect !== undefined ||
+    a?.score !== undefined ||
+    a?.teacherFeedback ||
+    a?.teacherScore !== undefined
+  );
+
+  if (hasGenuineAnswers) {
+    let localCorrect = 0;
+    let localWrong = 0;
+    let localBlank = 0;
+
+    answersList.forEach((a, idx) => {
+      const qNo = (a.questionNo !== undefined && a.questionNo !== null && !isNaN(Number(a.questionNo)))
+        ? Number(a.questionNo)
+        : (idx + 1);
+
+      const uAns = a.userAnswer ?? a.userAnswerText ?? a.studentAnswerText ?? '';
+      const uAnsStr = (uAns !== null && uAns !== undefined) ? String(uAns).trim() : '';
+      const cAns = a.correctAnswer ?? a.correctAnswerText ?? '';
+      const cAnsStr = (cAns !== null && cAns !== undefined) ? String(cAns).trim() : '';
+      const isBlank = !uAnsStr || uAnsStr === 'empty' || uAnsStr === 'Boş';
+
+      let isCorrect = a.isCorrect;
+      if (isCorrect === undefined || isCorrect === null) {
+        if (Number(a.score || 0) > 0) {
+          isCorrect = true;
+        } else if (isBlank) {
+          isCorrect = null;
+        } else if (cAnsStr && uAnsStr) {
+          isCorrect = (uAnsStr.toLowerCase() === cAnsStr.toLowerCase());
+        }
+      }
+
+      // Safeguard: A blank response can never be marked as correct
+      if (isBlank && isCorrect === true) {
+        isCorrect = null;
+      }
+
+      if (isCorrect === true) localCorrect++;
+      else if (isBlank || isCorrect === null) localBlank++;
+      else localWrong++;
 
       detailedAnswers.push({
-        questionNo: a.questionNo || (idx + 1),
-        score: a.score !== undefined ? a.score : (isCorrect ? 1 : 0),
+        questionNo: qNo,
+        score: a.score !== undefined ? a.score : (isCorrect === true ? 1 : 0),
         maxScore: a.maxScore || 10,
         teacherFeedback: a.teacherFeedback || a.teacherNote || null,
-        userAnswer: a.userAnswer,
-        userAnswerText: a.userAnswerText || a.studentAnswerText || a.userAnswer,
-        correctAnswer: a.correctAnswer,
-        isCorrect: a.isCorrect
+        userAnswer: uAnsStr || null,
+        userAnswerText: a.userAnswerText || a.studentAnswerText || uAnsStr || '',
+        correctAnswer: cAnsStr || null,
+        isCorrect: isCorrect
       });
     });
+
+    if (expCorrect === undefined || expCorrect === null) {
+      correctCount = localCorrect;
+      wrongCount = localWrong;
+      blankCount = localBlank;
+    }
   } else {
     for (let i = 1; i <= totalQuestions; i++) {
       const userLetter = studentAnswersMap[i] || null;
@@ -841,7 +886,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   }
 
   // If student marked answers were not recorded letter-by-letter, align detailedAnswers with explicit correct/wrong counts
-  if (Object.keys(studentAnswersMap).length === 0 && (correctCount > 0 || wrongCount > 0)) {
+  if (!hasGenuineAnswers && Object.keys(studentAnswersMap).length === 0 && (correctCount > 0 || wrongCount > 0)) {
     detailedAnswers.forEach((ans, idx) => {
       if (idx < correctCount) {
         ans.isCorrect = true;

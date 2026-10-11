@@ -21,25 +21,20 @@ function getAnsIndex(val) {
   return null;
 }
 
-function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000) {
-  if (totalCount <= 0) return [[]];
+function getQuestionColumns(questionNumbers, isMobile = false, containerWidth = 1000) {
+  const list = Array.isArray(questionNumbers)
+    ? questionNumbers
+    : (typeof questionNumbers === 'number' ? Array.from({ length: Math.max(0, questionNumbers) }, (_, i) => i + 1) : []);
+  if (list.length === 0) return [[]];
   // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
   if (isMobile || containerWidth < 680) {
-    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
+    return [list];
   }
 
   // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
-  const perCol = Math.ceil(totalCount / 2);
-  const col1 = [];
-  const col2 = [];
-
-  for (let i = 1; i <= totalCount; i++) {
-    if (i <= perCol) {
-      col1.push(i);
-    } else {
-      col2.push(i);
-    }
-  }
+  const perCol = Math.ceil(list.length / 2);
+  const col1 = list.slice(0, perCol);
+  const col2 = list.slice(perCol);
 
   return col2.length > 0 ? [col1, col2] : [col1];
 }
@@ -393,9 +388,52 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     }
   }, [showOptikForm, effectivePdfMode]);
 
+  const [viewMode, setViewMode] = useState('auto'); // 'auto' | 'optical' | 'text'
+
+  const startQuestionNumber = useMemo(() => {
+    if (test?.startQuestionNumber && Number(test.startQuestionNumber) > 0) return Number(test.startQuestionNumber);
+    if (test?.startQuestion && Number(test.startQuestion) > 0) return Number(test.startQuestion);
+    if (test?.start_question_number && Number(test.start_question_number) > 0) return Number(test.start_question_number);
+    if (matchedBt?.startQuestionNumber && Number(matchedBt.startQuestionNumber) > 0) return Number(matchedBt.startQuestionNumber);
+    if (matchedBt?.startQuestion && Number(matchedBt.startQuestion) > 0) return Number(matchedBt.startQuestion);
+    if (matchedBt?.start_question_number && Number(matchedBt.start_question_number) > 0) return Number(matchedBt.start_question_number);
+    if (submission?.startQuestionNumber && Number(submission.startQuestionNumber) > 0) return Number(submission.startQuestionNumber);
+    if (metaAnswer?.startQuestionNumber && Number(metaAnswer.startQuestionNumber) > 0) return Number(metaAnswer.startQuestionNumber);
+
+    if (answers.length > 0 && answers[0]?.questionNo && Number(answers[0].questionNo) > 1) {
+      return Number(answers[0].questionNo);
+    }
+
+    const titlesToScan = [
+      resolvedMeta.testName,
+      test?.name,
+      test?.title,
+      submission?.testName,
+      submission?.title,
+      metaAnswer?.testName
+    ].filter(Boolean).join(' ');
+
+    const match = titlesToScan.match(/(?:soru(?:lar)?\s*)?(\d+)\s*[-–]\s*(\d+)/i);
+    if (match) {
+      const startNum = parseInt(match[1], 10);
+      if (!isNaN(startNum) && startNum > 0) {
+        return startNum;
+      }
+    }
+    return 1;
+  }, [test, matchedBt, submission, metaAnswer, answers, resolvedMeta.testName]);
+
+  const questionNumbers = useMemo(() => {
+    const ansQNos = answers.map(a => Number(a?.questionNo)).filter(n => !isNaN(n) && n > 0);
+    if (ansQNos.length === qCount && ansQNos.length > 0 && ansQNos[0] === startQuestionNumber) {
+      return ansQNos;
+    }
+    return Array.from({ length: qCount }, (_, i) => startQuestionNumber + i);
+  }, [answers, qCount, startQuestionNumber]);
+
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(qCount, isMobile, containerWidth);
-  }, [qCount, isMobile, containerWidth]);
+    return getQuestionColumns(questionNumbers, isMobile, containerWidth);
+  }, [questionNumbers, isMobile, containerWidth]);
 
   const targetObj = test || {};
   const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
@@ -414,6 +452,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   }
 
   const isEntireTestOpenEnded = useMemo(() => {
+    if (viewMode === 'text') return true;
+    if (viewMode === 'optical') return false;
     return Boolean(
       test?.isOpenEnded === true ||
       test?.is_open_ended === true ||
@@ -423,9 +463,13 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       submission?.is_open_ended === true ||
       submission?.questionType === 'acik_uclu' ||
       submission?.type === 'acik_uclu' ||
-      (Array.isArray(answers) && answers.length > 0 && answers.some(a => a?.isOpenEnded === true || (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a.userAnswer === null || a.userAnswer === undefined))))
+      (Array.isArray(answers) && answers.length > 0 && answers.some(a => 
+        a?.isOpenEnded === true || 
+        (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim())) ||
+        (a?.userAnswer && typeof a.userAnswer === 'string' && a.userAnswer.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswer.trim()))
+      ))
     );
-  }, [test, submission, answers]);
+  }, [test, submission, answers, viewMode]);
 
   // Mistake Statistics for this test
   const mistakeCounts = useMemo(() => {
@@ -837,17 +881,84 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                     </div>
                   </div>
 
-                  {/* COLOR LEGEND GUIDES */}
-                  <div style={{ display: 'flex', gap: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', padding: '0.4rem 0.75rem', borderRadius: '0.6rem', fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
-                    <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#10b981' }} /> Doğru
-                    </span>
-                    <span style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
-                    </span>
-                    <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                    {/* GÖRÜNÜM MODU SEÇİCİ */}
+                    <div style={{
+                      display: 'inline-flex',
+                      background: 'var(--color-surface-hover, #f1f5f9)',
+                      padding: 2,
+                      borderRadius: '0.65rem',
+                      border: '1px solid var(--color-border, #cbd5e1)',
+                      gap: 2
+                    }}>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('auto')}
+                        style={{
+                          padding: '0.25rem 0.55rem',
+                          borderRadius: '0.45rem',
+                          border: 'none',
+                          background: viewMode === 'auto' ? '#2563eb' : 'transparent',
+                          color: viewMode === 'auto' ? '#ffffff' : 'var(--color-text-muted, #64748b)',
+                          fontWeight: 900,
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="İçeriğe göre otomatik göster"
+                      >
+                        ✨ Otomatik
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('optical')}
+                        style={{
+                          padding: '0.25rem 0.55rem',
+                          borderRadius: '0.45rem',
+                          border: 'none',
+                          background: viewMode === 'optical' ? '#2563eb' : 'transparent',
+                          color: viewMode === 'optical' ? '#ffffff' : 'var(--color-text-muted, #64748b)',
+                          fontWeight: 900,
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Optik kutucuklar (A, B, C, D) görünümü"
+                      >
+                        🔘 Optik
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setViewMode('text')}
+                        style={{
+                          padding: '0.25rem 0.55rem',
+                          borderRadius: '0.45rem',
+                          border: 'none',
+                          background: viewMode === 'text' ? '#7c3aed' : 'transparent',
+                          color: viewMode === 'text' ? '#ffffff' : 'var(--color-text-muted, #64748b)',
+                          fontWeight: 900,
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Yazılı açık uçlu cevap metinleri görünümü"
+                      >
+                        ✍️ Yazılı
+                      </button>
+                    </div>
+
+                    {/* COLOR LEGEND GUIDES */}
+                    <div style={{ display: 'flex', gap: '0.6rem', background: 'var(--color-surface-hover, #f1f5f9)', padding: '0.4rem 0.75rem', borderRadius: '0.6rem', fontSize: '0.72rem', fontWeight: 800, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#10b981' }} /> Doğru
+                      </span>
+                      <span style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444' }} /> Hatalı
+                      </span>
+                      <span style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: 9, height: 9, borderRadius: '50%', border: '2px solid #10b981', background: 'transparent' }} /> Cevap Anahtarı
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -965,24 +1076,40 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                       {questionColumns.map((colQuestions, colIdx) => (
                         <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
                           {colQuestions.map(qNo => {
-                            const qIdx = qNo - 1;
-                            const qObj = questions[qIdx] || {};
-                            const ansObj = answers.find(a => (a.questionNo === qNo || String(a.questionNo) === String(qNo) || a.questionId === qObj.id)) || answers[qIdx] || {};
+                            const indexInList = questionNumbers.indexOf(qNo);
+                            const qIdx = indexInList !== -1 ? indexInList : (qNo - startQuestionNumber);
 
-                            const rawUserAns = ansObj.userAnswerText ?? ansObj.userAnswerLetter ?? ansObj.userAnswer ?? submission?.studentAnswersMap?.[qNo] ?? submission?.studentAnswers?.[qNo] ?? submission?.studentAnswers?.[String(qNo)] ?? null;
+                            const ansObj = answers.find(a => 
+                              Number(a?.questionNo) === qNo || 
+                              String(a?.questionNo) === String(qNo) || 
+                              Number(a?.questionIndex) === qNo || 
+                              String(a?.questionIndex) === String(qNo)
+                            ) || (qIdx >= 0 && qIdx < answers.length ? answers[qIdx] : {}) || {};
+
+                            const qObj = questions.find(q => 
+                              Number(q?.questionNo) === qNo || 
+                              String(q?.questionNo) === String(qNo) || 
+                              (ansObj.questionId && String(q?.id) === String(ansObj.questionId))
+                            ) || (qIdx >= 0 && qIdx < questions.length ? questions[qIdx] : {}) || {};
+
+                            const rawUserAns = ansObj.userAnswerText ?? ansObj.studentAnswerText ?? ansObj.userAnswerLetter ?? ansObj.userAnswer ?? submission?.studentAnswersMap?.[qNo] ?? submission?.studentAnswers?.[qNo] ?? submission?.studentAnswers?.[String(qNo)] ?? (qIdx >= 0 ? submission?.studentAnswersMap?.[qIdx + 1] : null);
                             const userAnsStr = rawUserAns !== null && rawUserAns !== undefined ? String(rawUserAns).trim() : '';
 
                             // Answer Key Resolution
                             const rawAk = submission?.answerKey || test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey || {};
-                            const rawKeyVal = ansObj.correctAnswerText ?? ansObj.correctAnswerLetter ?? ansObj.correctAnswer ?? qObj.correctAnswer ?? qObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[qIdx] : (rawAk[qNo] || rawAk[String(qNo)] || rawAk[qIdx]));
+                            const rawKeyVal = ansObj.correctAnswerText ?? ansObj.correctAnswerLetter ?? ansObj.correctAnswer ?? qObj.correctAnswer ?? qObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? (rawAk[qIdx] ?? rawAk[qNo]) : (rawAk[qNo] || rawAk[String(qNo)] || (qIdx >= 0 ? (rawAk[qIdx + 1] || rawAk[String(qIdx + 1)]) : null)));
                             const correctKeyStr = rawKeyVal !== null && rawKeyVal !== undefined ? String(rawKeyVal).trim() : '';
 
                             // Determine if this item is Open-Ended
-                            const isItemOE = isEntireTestOpenEnded || Boolean(
-                              ansObj.isOpenEnded ||
-                              (correctKeyStr.length > 1 && !/^[A-E]$/i.test(correctKeyStr)) ||
-                              (userAnsStr.length > 1 && !/^[A-E]$/i.test(userAnsStr))
-                            );
+                            const isItemOE = (viewMode === 'text') || (viewMode !== 'optical' && (
+                              isEntireTestOpenEnded || Boolean(
+                                ansObj.isOpenEnded ||
+                                (ansObj.userAnswerText && String(ansObj.userAnswerText).trim() !== '' && !/^[A-E]$/i.test(String(ansObj.userAnswerText).trim())) ||
+                                (ansObj.studentAnswerText && String(ansObj.studentAnswerText).trim() !== '' && !/^[A-E]$/i.test(String(ansObj.studentAnswerText).trim())) ||
+                                (correctKeyStr.length > 1 && !/^[A-E]$/i.test(correctKeyStr)) ||
+                                (userAnsStr.length > 1 && !/^[A-E]$/i.test(userAnsStr))
+                              )
+                            ));
 
                             let isCorrect = ansObj.isCorrect;
                             let userAnsLetter = null;
@@ -990,7 +1117,12 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                             let userAnsIndex = null;
                             let correctAnsIndex = null;
 
-                            if (isItemOE) {
+                            const hasUserAnswer = Boolean(userAnsStr && userAnsStr !== 'Boş' && userAnsStr !== 'empty');
+
+                            // CRITICAL: A blank question can NEVER be marked as correct!
+                            if (!hasUserAnswer) {
+                              isCorrect = null;
+                            } else if (isItemOE) {
                               const cleanUser = userAnsStr.toLowerCase().replace(/\s/g, '').replace(',', '.');
                               const cleanKey = correctKeyStr.toLowerCase().replace(/\s/g, '').replace(',', '.');
                               if (isCorrect === null || isCorrect === undefined) {
@@ -1015,8 +1147,8 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                               }
                             }
 
-                            const isWrong = isCorrect === false || (userAnsStr && !isCorrect) || (ansObj.evalStatus === 'wrong');
-                            const isBlank = isCorrect !== true && !isWrong && !userAnsStr;
+                            const isWrong = isCorrect === false || (hasUserAnswer && isCorrect !== true) || (ansObj.evalStatus === 'wrong');
+                            const isBlank = !hasUserAnswer;
 
                             return (
                               <div

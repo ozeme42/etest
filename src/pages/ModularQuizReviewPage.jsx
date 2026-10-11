@@ -1115,7 +1115,7 @@ export default function ModularQuizReviewPage() {
   );
 
   // Paper book tests, optical form tests, and tracked book tests
-  const isBookOrOptical = !hasGenuineWrittenAnswers && !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
+  const isBookOrOptical = !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
     test.isBookAssignment ||
     test.sourceType === 'trackedBook' ||
     test.sourceType === 'bookTest' ||
