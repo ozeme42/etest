@@ -3,6 +3,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import OpenEndedReview from '../review/OpenEndedReview';
 import OpenEndedStatusPanel from '../panels/OpenEndedStatusPanel';
 import QuizPanelLayout from '../runner/QuizPanelLayout';
+import PhysicalQuizReview from '../review/PhysicalQuizReview';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
@@ -19,6 +20,55 @@ export default function SingleOpenEndedReview({
   isTeacher = false,
   onClose
 }) {
+  const hasGenuineWrittenAnswers = useMemo(() => {
+    if (submission?.openEndedText && typeof submission.openEndedText === 'object') {
+      if (Object.values(submission.openEndedText).some(v => typeof v === 'string' && v.trim().length > 1 && !/^[A-Ea-e]$/.test(v.trim()))) {
+        return true;
+      }
+    }
+    if (Array.isArray(submission?.answers)) {
+      if (submission.answers.some(a => a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()))) {
+        return true;
+      }
+    }
+    return false;
+  }, [submission]);
+
+  const isPhysicalOrBook = useMemo(() => {
+    return Boolean(
+      test?.bookId || test?.book_id || test?.bookTitle ||
+      submission?.bookId || submission?.book_id || submission?.bookTitle ||
+      test?.sourceFormat === 'physical' || test?.sourceType === 'trackedBook' || test?.sourceType === 'book' || test?.sourceType === 'bookTest' ||
+      submission?.sourceFormat === 'physical' || submission?.sourceType === 'trackedBook' || submission?.sourceType === 'book' || submission?.typeKey === 'book' ||
+      String(test?.id || '').startsWith('bt_') || String(test?.id || '').startsWith('tbt_') ||
+      String(submission?.testId || '').startsWith('bt_') || String(submission?.testId || '').startsWith('tbt_') ||
+      String(submission?.id || '').startsWith('bt_') || String(submission?.id || '').startsWith('tbt_') ||
+      test?.pdfUrl || test?.pdf_url || test?.link || test?.url ||
+      submission?.pdfUrl || submission?.pdf_url || submission?.link || submission?.url
+    );
+  }, [test, submission]);
+
+  const isMultipleChoiceOrOptical = useMemo(() => {
+    const ak = test?.answerKey || test?.answer_key || submission?.answerKey || {};
+    const hasLetterKeys = typeof ak === 'object' && Object.values(ak).some(v => typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim()));
+    const hasLetterAns = Array.isArray(submission?.answers) && submission.answers.some(a => (
+      (typeof a?.userAnswer === 'string' && /^[A-Ea-e]$/.test(a.userAnswer.trim())) ||
+      (typeof a?.correctAnswer === 'string' && /^[A-Ea-e]$/.test(a.correctAnswer.trim()))
+    ));
+    return hasLetterKeys || hasLetterAns;
+  }, [test, submission]);
+
+  // 🛡️ Fail-safe: Physical book tests, optical forms, and non-written tests MUST open PhysicalQuizReview
+  if (isPhysicalOrBook || (!hasGenuineWrittenAnswers && isMultipleChoiceOrOptical)) {
+    return (
+      <PhysicalQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={onClose}
+      />
+    );
+  }
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { updateSubmission } = useEvaluation();
   const { updateHomeworkSubmission } = useHomework();

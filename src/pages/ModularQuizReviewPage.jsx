@@ -237,6 +237,43 @@ export default function ModularQuizReviewPage() {
         normalizeId(h.id) === normalizeId(candidateHwId) ||
         normalizeId(h.id) === normalizeId(targetId)
       );
+
+      if (foundTest) {
+        const isBookHw = Boolean(
+          foundTest.isBookAssignment ||
+          foundTest.sourceType === 'trackedBook' ||
+          foundTest.bookId ||
+          foundTest.book_id ||
+          foundSubmission?.bookTestId ||
+          foundSubmission?.realTestId ||
+          subCandidateId
+        );
+        if (isBookHw) {
+          const specificTestId = foundSubmission?.bookTestId || foundSubmission?.realTestId || subCandidateId || (foundSubmission?.testId && String(foundSubmission.testId) !== String(foundTest.id) ? foundSubmission.testId : null);
+          let matchedBt = null;
+          if (specificTestId) {
+            matchedBt = (bookTests || []).find(bt =>
+              String(bt.id) === String(specificTestId) ||
+              toUUID(bt.id) === String(specificTestId) ||
+              normalizeId(bt.id) === normalizeId(specificTestId)
+            );
+          }
+          if (!matchedBt && foundTest.tests && Array.isArray(foundTest.tests) && foundTest.tests.length > 0) {
+            const t0 = foundTest.tests[0];
+            const t0Id = typeof t0 === 'object' ? t0.id : String(t0);
+            matchedBt = (bookTests || []).find(bt => String(bt.id) === String(t0Id) || toUUID(bt.id) === String(t0Id) || normalizeId(bt.id) === normalizeId(t0Id));
+          }
+          if (matchedBt) {
+            foundTest = {
+              ...matchedBt,
+              hwId: foundTest.id,
+              bookId: matchedBt.bookId || foundTest.bookId,
+              sourceType: 'trackedBook',
+              sourceFormat: 'physical'
+            };
+          }
+        }
+      }
     }
 
     // 5. Search if test is in any homework's tests list
@@ -453,6 +490,51 @@ export default function ModularQuizReviewPage() {
         blankCount: foundTest.questionCount || 1,
         score: 0
       };
+    }
+
+    // 🛡️ Always link parent book metadata (pdfUrl, bookTitle) from books for tracked book tests
+    if (foundTest || foundSubmission) {
+      const targetBookId = foundTest?.bookId || foundTest?.book_id || foundSubmission?.bookId || foundSubmission?.book_id;
+      const targetBookTitle = foundTest?.bookTitle || foundSubmission?.bookTitle;
+      const testIdToMatch = String(foundTest?.id || foundSubmission?.testId || resolvedTestId || '');
+
+      let matchedBook = (books || []).find(b =>
+        (targetBookId && (String(b.id) === String(targetBookId) || toUUID(b.id) === String(targetBookId))) ||
+        (targetBookTitle && b.title && b.title.trim().toLowerCase() === targetBookTitle.trim().toLowerCase())
+      );
+
+      if (!matchedBook && books && Array.isArray(books)) {
+        matchedBook = books.find(b => {
+          if (b.subjects && Array.isArray(b.subjects)) {
+            return b.subjects.some(s => 
+              (s.tests && s.tests.some(t => String(t.id) === testIdToMatch || toUUID(t.id) === testIdToMatch || normalizeId(t.id) === normalizeId(testIdToMatch))) ||
+              (s.topics && s.topics.some(tp => tp.tests && tp.tests.some(t => String(t.id) === testIdToMatch || toUUID(t.id) === testIdToMatch || normalizeId(t.id) === normalizeId(testIdToMatch))))
+            );
+          }
+          return false;
+        });
+      }
+
+      if (matchedBook) {
+        const bookPdf = matchedBook.pdfUrl || matchedBook.pdf_url || matchedBook.link || matchedBook.url || '';
+        if (foundTest) {
+          foundTest = {
+            ...foundTest,
+            bookId: foundTest.bookId || matchedBook.id,
+            bookTitle: foundTest.bookTitle || matchedBook.title,
+            pdfUrl: foundTest.pdfUrl || foundTest.pdf_url || foundTest.link || foundTest.url || bookPdf,
+            sourceFormat: foundTest.sourceFormat || 'physical',
+            sourceType: foundTest.sourceType || 'trackedBook'
+          };
+        }
+        if (foundSubmission) {
+          if (!foundSubmission.bookTitle) foundSubmission.bookTitle = matchedBook.title;
+          if (!foundSubmission.pdfUrl && (foundTest?.pdfUrl || bookPdf)) foundSubmission.pdfUrl = foundTest?.pdfUrl || bookPdf;
+          if (!foundSubmission.bookId) foundSubmission.bookId = matchedBook.id;
+          if (!foundSubmission.sourceType) foundSubmission.sourceType = 'trackedBook';
+          if (!foundSubmission.sourceFormat) foundSubmission.sourceFormat = 'physical';
+        }
+      }
     }
 
     if (foundTest) {
@@ -835,6 +917,8 @@ export default function ModularQuizReviewPage() {
     test.type === 'optik_form' ||
     test.isPhysical ||
     test.is_physical ||
+    Boolean(test.pdfUrl || test.pdf_url || test.link || test.url || submission?.pdfUrl || submission?.pdf_url) ||
+    Boolean(test.bookTitle || submission?.bookTitle) ||
     String(test.id || '').startsWith('bt_') ||
     String(test.id || '').startsWith('tbt_') ||
     String(submission?.testId || '').startsWith('bt_') ||
@@ -855,40 +939,45 @@ export default function ModularQuizReviewPage() {
       String(bt.id) === String(test.id) || 
       String(bt.id) === String(submission?.testId) || 
       (toUUID(bt.id) && (toUUID(bt.id) === toUUID(test.id) || toUUID(bt.id) === toUUID(submission?.testId)))
+    )) ||
+    (books && Array.isArray(books) && books.some(b =>
+      String(b.id) === String(test.id) ||
+      String(b.id) === String(test.bookId) ||
+      String(b.id) === String(submission?.bookId) ||
+      (toUUID(b.id) && (toUUID(b.id) === toUUID(test.id) || toUUID(b.id) === toUUID(test.bookId) || toUUID(b.id) === toUUID(submission?.bookId))) ||
+      (b.subjects && b.subjects.some(s =>
+        (s.tests && s.tests.some(t => String(t.id) === String(test.id) || String(t.id) === String(submission?.testId))) ||
+        (s.topics && s.topics.some(tp => tp.tests && tp.tests.some(t => String(t.id) === String(test.id) || String(t.id) === String(submission?.testId))))
+      ))
     ))
   );
 
-  const isBookExplicitOE = isBookOrPhysicalTest && Boolean(
-    submission?.isOpenEnded === true ||
-    submission?.is_open_ended === true ||
-    test.isOpenEnded === true ||
-    test.is_open_ended === true ||
-    submission?.questionType === 'acik_uclu' ||
-    test.questionType === 'acik_uclu' ||
-    (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => v && String(v).trim().length > 0)) ||
-    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a?.isOpenEnded === true || (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a.userAnswer === null || a.userAnswer === undefined))))
+  const hasGenuineWrittenAnswers = Boolean(
+    (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => typeof v === 'string' && v.trim().length > 1 && !/^[A-Ea-e]$/.test(v.trim()))) ||
+    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim())))
   );
 
+  const isBookExplicitOE = isBookOrPhysicalTest && hasGenuineWrittenAnswers;
+
   const isExplicitOpenEnded = isBookOrPhysicalTest ? isBookExplicitOE : Boolean(
-    submission?.isOpenEnded === true ||
-    submission?.is_open_ended === true ||
-    test.isOpenEnded === true ||
-    test.is_open_ended === true ||
-    submission?.questionType === 'acik_uclu' ||
-    submission?.type === 'acik_uclu' ||
-    test.questionType === 'acik_uclu' ||
-    test.type === 'acik_uclu' ||
-    test.contentType === 'acik_uclu' ||
-    test.type === 'gorsel_klasik' ||
-    test.questionType === 'gorsel_klasik' ||
-    test.answerKey?.__meta?.isOpenEnded === true ||
-    test.answerKey?.__meta?.questionType === 'acik_uclu' ||
-    test.answer_key?.__meta?.isOpenEnded === true ||
-    test.answer_key?.__meta?.questionType === 'acik_uclu' ||
-    isSectionOpenEnded(test) ||
-    isSectionOpenEnded(submission) ||
-    (submission?.openEndedText && typeof submission.openEndedText === 'object' && Object.values(submission.openEndedText).some(v => v && String(v).trim().length > 0)) ||
-    (submission?.answers && Array.isArray(submission.answers) && submission.answers.some(a => a.isOpenEnded === true || (a.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim() !== '' && (a.userAnswer === null || a.userAnswer === undefined))))
+    !isBookOrPhysicalTest && (
+      submission?.isOpenEnded === true ||
+      submission?.is_open_ended === true ||
+      test.isOpenEnded === true ||
+      test.is_open_ended === true ||
+      submission?.questionType === 'acik_uclu' ||
+      submission?.type === 'acik_uclu' ||
+      test.questionType === 'acik_uclu' ||
+      test.type === 'acik_uclu' ||
+      test.contentType === 'acik_uclu' ||
+      test.type === 'gorsel_klasik' ||
+      test.questionType === 'gorsel_klasik' ||
+      test.answerKey?.__meta?.isOpenEnded === true ||
+      test.answerKey?.__meta?.questionType === 'acik_uclu' ||
+      test.answer_key?.__meta?.isOpenEnded === true ||
+      test.answer_key?.__meta?.questionType === 'acik_uclu' ||
+      hasGenuineWrittenAnswers
+    )
   );
 
   const isMultipleChoiceTest = !isExplicitOpenEnded && Boolean(
@@ -1026,7 +1115,7 @@ export default function ModularQuizReviewPage() {
   );
 
   // Paper book tests, optical form tests, and tracked book tests
-  const isBookOrOptical = !isExplicitOpenEnded && !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
+  const isBookOrOptical = !hasGenuineWrittenAnswers && !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
     test.isBookAssignment ||
     test.sourceType === 'trackedBook' ||
     test.sourceType === 'bookTest' ||
@@ -1161,7 +1250,7 @@ export default function ModularQuizReviewPage() {
   }
 
   // 3. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
-  if (isExplicitOpenEnded || isSingleOE) {
+  if (!isPhysical && !isBookOrOptical && (isExplicitOpenEnded || isSingleOE)) {
     return (
       <SingleOpenEndedReview
         submission={submission}

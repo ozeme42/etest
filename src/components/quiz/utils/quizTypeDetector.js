@@ -224,31 +224,7 @@ export function isSectionOpenEnded(sec = {}, test = {}) {
     return false;
   }
 
-  // 5. If it has NO options and NO answer key at all, it cannot be multiple choice -> default to open-ended
-  const hasValidKey = Boolean(
-    (Array.isArray(sec?.answerKey) && sec.answerKey.filter(k => k && String(k).trim() !== '').length > 0) ||
-    (Array.isArray(sec?.answer_key) && sec.answer_key.filter(k => k && String(k).trim() !== '').length > 0) ||
-    (typeof sec?.answerKey === 'string' && sec.answerKey.replace(/[^A-Ea-e]/g, '').length > 0) ||
-    (typeof sec?.answer_key === 'string' && sec.answer_key.replace(/[^A-Ea-e]/g, '').length > 0) ||
-    (sec?.answerKey && typeof sec.answerKey === 'object' && Object.keys(sec.answerKey).length > 0) ||
-    (sec?.answer_key && typeof sec.answer_key === 'object' && Object.keys(sec.answer_key).length > 0) ||
-    (Array.isArray(test?.answerKey) && test.answerKey.filter(k => k && String(k).trim() !== '').length > 0) ||
-    (Array.isArray(test?.answer_key) && test.answer_key.filter(k => k && String(k).trim() !== '').length > 0) ||
-    (typeof test?.answerKey === 'string' && test.answerKey.replace(/[^A-Ea-e]/g, '').length > 0) ||
-    (typeof test?.answer_key === 'string' && test.answer_key.replace(/[^A-Ea-e]/g, '').length > 0) ||
-    (test?.answerKey && typeof test.answerKey === 'object' && Object.keys(test.answerKey).length > 0) ||
-    (test?.answer_key && typeof test.answer_key === 'object' && Object.keys(test.answer_key).length > 0)
-  );
-
-  const hasOptions = (
-    (Array.isArray(sec?.options) && sec.options.filter(Boolean).length >= 2) ||
-    (Array.isArray(test?.options) && test.options.filter(Boolean).length >= 2)
-  );
-
-  if (!hasValidKey && !hasOptions) {
-    return true;
-  }
-
+  // Default is multiple choice unless explicitly flagged as open-ended
   return false;
 }
 

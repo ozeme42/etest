@@ -499,12 +499,8 @@ export default function EvaluationManager() {
   const isPhysicalSubmission = useCallback((sub) => {
     if (!sub) return false;
     const isExplicitOE = Boolean(
-      sub.isOpenEnded === true ||
-      sub.is_open_ended === true ||
-      sub.questionType === 'acik_uclu' ||
-      sub.type === 'acik_uclu' ||
-      (sub.openEndedText && typeof sub.openEndedText === 'object' && Object.values(sub.openEndedText).some(v => v && String(v).trim().length > 0)) ||
-      (sub.answers && Array.isArray(sub.answers) && sub.answers.some(a => a?.isOpenEnded === true || (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a?.userAnswer === null || a?.userAnswer === undefined))))
+      (sub.openEndedText && typeof sub.openEndedText === 'object' && Object.values(sub.openEndedText).some(v => typeof v === 'string' && v.trim().length > 1 && !/^[A-Ea-e]$/.test(v.trim()))) ||
+      (sub.answers && Array.isArray(sub.answers) && sub.answers.some(a => a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim()) && (a?.userAnswer === null || a?.userAnswer === undefined)))
     );
     if (isExplicitOE) return false;
 
@@ -523,6 +519,8 @@ export default function EvaluationManager() {
       sub.is_physical === true ||
       sub.questionType === 'optik_form' ||
       sub.type === 'optik_form' ||
+      Boolean(sub.pdfUrl || sub.pdf_url || sub.link || sub.url) ||
+      Boolean(sub.bookTitle) ||
       String(sub.testId || '').startsWith('bt_') ||
       String(sub.testId || '').startsWith('tbt_') ||
       String(sub.id || '').startsWith('bt_') ||
@@ -540,7 +538,11 @@ export default function EvaluationManager() {
       )) ||
       (books && Array.isArray(books) && books.some(b => 
         String(b.id) === String(sub.bookId) || 
-        (toUUID(b.id) && toUUID(b.id) === toUUID(sub.bookId))
+        (toUUID(b.id) && toUUID(b.id) === toUUID(sub.bookId)) ||
+        (b.subjects && b.subjects.some(s => 
+          (s.tests && s.tests.some(t => String(t.id) === String(sub.testId) || String(t.id) === String(sub.id))) ||
+          (s.topics && s.topics.some(tp => tp.tests && tp.tests.some(t => String(t.id) === String(sub.testId) || String(t.id) === String(sub.id))))
+        ))
       ))
     );
   }, [bookTests, books]);

@@ -747,20 +747,22 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     ))
   );
 
-  const isSubWritten = Boolean(
-    rawSub.isOpenEnded === true ||
-    rawSub.type === 'acik_uclu' ||
-    rawSub.type === 'gorsel_klasik' ||
-    rawSub.questionType === 'acik_uclu' ||
-    rawSub.questionType === 'gorsel_klasik' ||
-    rawSub.contentType === 'acik_uclu' ||
-    rawSub.contentType === 'gorsel_klasik' ||
-    matchedHw?.isOpenEnded === true ||
-    matchedHw?.type === 'acik_uclu' ||
-    matchedHw?.questionType === 'acik_uclu' ||
-    hasWrittenAnswers ||
-    (!isBookOrPhysSub && hasOEKeywords && (!isDirectExam && rawSub.type !== 'optik_form' && rawSub.type !== 'multiple_choice' && matchedBookTest === null))
-  );
+  const isSubWritten = isBookOrPhysSub
+    ? hasWrittenAnswers
+    : Boolean(
+        rawSub.isOpenEnded === true ||
+        rawSub.type === 'acik_uclu' ||
+        rawSub.type === 'gorsel_klasik' ||
+        rawSub.questionType === 'acik_uclu' ||
+        rawSub.questionType === 'gorsel_klasik' ||
+        rawSub.contentType === 'acik_uclu' ||
+        rawSub.contentType === 'gorsel_klasik' ||
+        matchedHw?.isOpenEnded === true ||
+        matchedHw?.type === 'acik_uclu' ||
+        matchedHw?.questionType === 'acik_uclu' ||
+        hasWrittenAnswers ||
+        (hasOEKeywords && (!isDirectExam && rawSub.type !== 'optik_form' && rawSub.type !== 'multiple_choice' && matchedBookTest === null))
+      );
 
   const isEvaluated = Boolean(
     rawSub.isEvaluated === true ||
