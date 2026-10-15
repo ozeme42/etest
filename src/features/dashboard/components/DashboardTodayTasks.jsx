@@ -6,22 +6,105 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  CheckCircle2,
   BookOpen,
   Plus,
-  Target,
-  Trophy,
-  Compass,
-  ArrowRight,
   Eye,
   Lock,
-  Layers,
-  Flame,
-  Calendar,
+  Clock,
   Zap,
-  Clock
+  Target,
+  Trophy
 } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
+
+const SUBJECT_THEMES = {
+  'Matematik': {
+    from: '#3b82f6',
+    to: '#1d4ed8',
+    icon: '📐',
+    badgeBg: 'rgba(59, 130, 246, 0.12)',
+    badgeText: '#2563eb',
+    badgeBorder: 'rgba(59, 130, 246, 0.3)',
+    glow: 'rgba(59, 130, 246, 0.22)'
+  },
+  'Türkçe': {
+    from: '#f43f5e',
+    to: '#be123c',
+    icon: '📖',
+    badgeBg: 'rgba(244, 63, 94, 0.12)',
+    badgeText: '#e11d48',
+    badgeBorder: 'rgba(244, 63, 94, 0.3)',
+    glow: 'rgba(244, 63, 94, 0.22)'
+  },
+  'Fen Bilimleri': {
+    from: '#10b981',
+    to: '#047857',
+    icon: '🧪',
+    badgeBg: 'rgba(16, 185, 129, 0.12)',
+    badgeText: '#059669',
+    badgeBorder: 'rgba(16, 185, 129, 0.3)',
+    glow: 'rgba(16, 185, 129, 0.22)'
+  },
+  'Sosyal Bilgiler': {
+    from: '#f59e0b',
+    to: '#b45309',
+    icon: '🌍',
+    badgeBg: 'rgba(245, 158, 11, 0.12)',
+    badgeText: '#d97706',
+    badgeBorder: 'rgba(245, 158, 11, 0.3)',
+    glow: 'rgba(245, 158, 11, 0.22)'
+  },
+  'İngilizce': {
+    from: '#8b5cf6',
+    to: '#6d28d9',
+    icon: '💬',
+    badgeBg: 'rgba(139, 92, 246, 0.12)',
+    badgeText: '#7c3aed',
+    badgeBorder: 'rgba(139, 92, 246, 0.3)',
+    glow: 'rgba(139, 92, 246, 0.22)'
+  },
+  'Din Kültürü': {
+    from: '#06b6d4',
+    to: '#0e7490',
+    icon: '✨',
+    badgeBg: 'rgba(6, 182, 212, 0.12)',
+    badgeText: '#0891b2',
+    badgeBorder: 'rgba(6, 182, 212, 0.3)',
+    glow: 'rgba(6, 182, 212, 0.22)'
+  },
+  'Kitap Okuma': {
+    from: '#ec4899',
+    to: '#be185d',
+    icon: '📚',
+    badgeBg: 'rgba(236, 72, 153, 0.12)',
+    badgeText: '#db2777',
+    badgeBorder: 'rgba(236, 72, 153, 0.3)',
+    glow: 'rgba(236, 72, 153, 0.22)'
+  },
+  'Deneme': {
+    from: '#f97316',
+    to: '#c2410c',
+    icon: '🎯',
+    badgeBg: 'rgba(249, 115, 22, 0.12)',
+    badgeText: '#ea580c',
+    badgeBorder: 'rgba(249, 115, 22, 0.3)',
+    glow: 'rgba(249, 115, 22, 0.22)'
+  }
+};
+
+const resolveSubjectTheme = (subj) => {
+  if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+  const s = subj.toLowerCase();
+  if (s.includes('matematik') || s.includes('geometri')) return SUBJECT_THEMES['Matematik'];
+  if (s.includes('türkçe') || s.includes('edebiyat')) return SUBJECT_THEMES['Türkçe'];
+  if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return SUBJECT_THEMES['Fen Bilimleri'];
+  if (s.includes('sosyal') || s.includes('tarih') || s.includes('coğrafya') || s.includes('inkılap')) return SUBJECT_THEMES['Sosyal Bilgiler'];
+  if (s.includes('ingilizce') || s.includes('dil')) return SUBJECT_THEMES['İngilizce'];
+  if (s.includes('din')) return SUBJECT_THEMES['Din Kültürü'];
+  if (s.includes('okuma') || s.includes('kitap')) return SUBJECT_THEMES['Kitap Okuma'];
+  if (s.includes('deneme')) return SUBJECT_THEMES['Deneme'];
+  return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+};
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
@@ -47,7 +130,7 @@ export default memo(function DashboardTodayTasks({
   const remainingTasks = totalTasks - completedTasks;
   const completionPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Total questions count in today's tasks
+  // Soru ve XP hesaplamaları
   const { totalQuestions, completedQuestions } = useMemo(() => {
     let tot = 0;
     let comp = 0;
@@ -60,7 +143,6 @@ export default memo(function DashboardTodayTasks({
     return { totalQuestions: tot, completedQuestions: comp };
   }, [items]);
 
-  // Estimated XP
   const { totalXp, earnedXp } = useMemo(() => {
     let tot = 0;
     let earned = 0;
@@ -73,7 +155,6 @@ export default memo(function DashboardTodayTasks({
     return { totalXp: tot, earnedXp: earned };
   }, [items]);
 
-  // Unique subjects in today's plan
   const subjects = useMemo(() => {
     const map = new Map();
     items.forEach(t => {
@@ -83,12 +164,10 @@ export default memo(function DashboardTodayTasks({
     return Array.from(map.entries());
   }, [items]);
 
-  // Find index of the first incomplete task (Next Target)
   const firstIncompleteIdx = useMemo(() => {
     return items.findIndex(t => !t.done);
   }, [items]);
 
-  // Filtered task items
   const filteredTasks = useMemo(() => {
     return items.filter(task => {
       if (filterStatus === 'pending' && task.done) return false;
@@ -109,43 +188,42 @@ export default memo(function DashboardTodayTasks({
     : 'linear-gradient(135deg, #4f46e5, #6366f1)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', width: '100%' }}>
       
       {/* ═══════════════════════════════════════════════════════════════
-          BÖLÜM 1: 🎯 ODAK MERKEZİ: BUGÜN NE YAPACAKSIN? (HERO PANEL)
+          BÖLÜM: 🎯 BÜYÜK, RENKLİ & ŞIK GÜNLÜK PROGRAM ODAK MERKEZİ
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        borderRadius: 20,
+        borderRadius: 22,
         overflow: 'hidden',
         border: '1.5px solid var(--color-border)',
         background: 'var(--color-surface)',
-        boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.45)' : '0 10px 30px rgba(99, 102, 241, 0.08)'
+        boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.5)' : '0 10px 30px rgba(99, 102, 241, 0.09)'
       }}>
         
         {/* ── Renkli Hero Başlık ── */}
         <div style={{
           background: headerGradient,
-          padding: isMobile ? '1rem 1.1rem' : '1.25rem 1.6rem',
+          padding: isMobile ? '1.1rem 1.15rem' : '1.35rem 1.8rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
-          color: '#ffffff',
-          position: 'relative'
+          color: '#ffffff'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
-              width: isMobile ? 42 : 48,
-              height: isMobile ? 42 : 48,
+              width: isMobile ? 44 : 52,
+              height: isMobile ? 44 : 52,
               borderRadius: 16,
               background: 'rgba(255, 255, 255, 0.22)',
               backdropFilter: 'blur(10px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: isMobile ? '1.35rem' : '1.6rem',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              fontSize: isMobile ? '1.45rem' : '1.75rem',
+              boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
               flexShrink: 0
             }}>
               {dayProgramInfo.isToday ? '🎯' : (activeDayConfig?.icon || '📅')}
@@ -154,7 +232,7 @@ export default memo(function DashboardTodayTasks({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <h3 style={{
                   margin: 0,
-                  fontSize: isMobile ? '1.12rem' : '1.35rem',
+                  fontSize: isMobile ? '1.18rem' : '1.42rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   fontFamily: "'Outfit', sans-serif",
@@ -168,9 +246,9 @@ export default memo(function DashboardTodayTasks({
 
                 {dayProgramInfo.hasAllCompleted && totalTasks > 0 ? (
                   <span style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 900,
-                    padding: '3px 10px',
+                    padding: '3px 12px',
                     borderRadius: 99,
                     background: '#10b981',
                     color: '#ffffff',
@@ -180,9 +258,9 @@ export default memo(function DashboardTodayTasks({
                   </span>
                 ) : remainingTasks > 0 ? (
                   <span style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.74rem',
                     fontWeight: 900,
-                    padding: '3px 10px',
+                    padding: '3px 12px',
                     borderRadius: 99,
                     background: 'rgba(255, 255, 255, 0.22)',
                     backdropFilter: 'blur(8px)',
@@ -194,27 +272,27 @@ export default memo(function DashboardTodayTasks({
                 ) : null}
               </div>
 
-              <div style={{ fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.9)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.92)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 {dayProgramInfo.fullDateLabel && <span>📌 {dayProgramInfo.fullDateLabel}</span>}
                 <span>•</span>
-                <span>{dayProgramInfo.isToday ? 'Bugünkü hedeflerine odaklan ve XP kazan!' : 'Planlanan ders hedefleri'}</span>
+                <span>{dayProgramInfo.isToday ? 'Bugünkü ders programın ve çözülecek testlerin' : 'Belirlenen ders görevleri'}</span>
               </div>
             </div>
           </div>
 
-          {/* Aksiyon Araçları */}
+          {/* Aksiyon Ekle Butonu */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {onAddTask && (
               <button
                 type="button"
                 onClick={onAddTask}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.22)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.45)',
+                  background: 'rgba(255, 255, 255, 0.24)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.5)',
                   color: '#ffffff',
                   borderRadius: 14,
-                  padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.05rem',
-                  fontSize: isMobile ? '0.76rem' : '0.82rem',
+                  padding: isMobile ? '0.5rem 0.95rem' : '0.6rem 1.25rem',
+                  fontSize: isMobile ? '0.78rem' : '0.86rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   display: 'flex',
@@ -225,7 +303,7 @@ export default memo(function DashboardTodayTasks({
                   transition: 'all 0.18s ease'
                 }}
               >
-                <Plus size={14} strokeWidth={3} />
+                <Plus size={16} strokeWidth={3} />
                 <span>Görev Ekle</span>
               </button>
             )}
@@ -235,44 +313,43 @@ export default memo(function DashboardTodayTasks({
         {/* ── Bento KPI İlerleme Şeridi ── */}
         {totalTasks > 0 && (
           <div style={{
-            padding: isMobile ? '0.85rem 0.95rem' : '1rem 1.4rem',
-            background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#f8fafc',
+            padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.6rem',
+            background: isDark ? 'rgba(15, 23, 42, 0.65)' : '#f8fafc',
             borderBottom: '1.5px solid var(--color-border)',
             display: 'flex',
             alignItems: 'stretch',
-            gap: 10,
+            gap: 12,
             flexWrap: 'wrap'
           }}>
             {/* 1. Görev Durumu */}
             <div className="today-metric-pill" style={{ flex: '1 1 180px' }}>
               <div style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 borderRadius: 12,
                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.05rem',
+                fontSize: '1.15rem',
                 flexShrink: 0
               }}>
                 🎯
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Görev İlerlemesi
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                  <span style={{ fontSize: '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
                     {completedTasks} / {totalTasks}
                   </span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
                     %{completionPct}
                   </span>
                 </div>
-                {/* Mini progress bar */}
-                <div style={{ height: 5, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
                   <div style={{
                     width: `${completionPct}%`,
                     height: '100%',
@@ -286,63 +363,63 @@ export default memo(function DashboardTodayTasks({
 
             {/* 2. Soru Hedefi */}
             {totalQuestions > 0 && (
-              <div className="today-metric-pill" style={{ flex: '1 1 140px' }}>
+              <div className="today-metric-pill" style={{ flex: '1 1 150px' }}>
                 <div style={{
-                  width: 36,
-                  height: 36,
+                  width: 38,
+                  height: 38,
                   borderRadius: 12,
                   background: 'linear-gradient(135deg, #0284c7, #06b6d4)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.05rem',
+                  fontSize: '1.15rem',
                   flexShrink: 0
                 }}>
                   📝
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Hedef Soru
                   </div>
-                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
-                    {completedQuestions} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions} Soru</span>
+                  <div style={{ fontSize: '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                    {completedQuestions} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions} Soru</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* 3. XP Kazancı */}
-            <div className="today-metric-pill" style={{ flex: '1 1 130px' }}>
+            <div className="today-metric-pill" style={{ flex: '1 1 140px' }}>
               <div style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 borderRadius: 12,
                 background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.05rem',
+                fontSize: '1.15rem',
                 flexShrink: 0
               }}>
                 ⚡
               </div>
               <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   XP Kazancı
                 </div>
-                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif" }}>
-                  +{earnedXp} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp} XP</span>
+                <div style={{ fontSize: '1.12rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif" }}>
+                  +{earnedXp} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp} XP</span>
                 </div>
               </div>
             </div>
 
-            {/* 4. Durum / Seri */}
-            <div className="today-metric-pill" style={{ flex: '1 1 140px' }}>
+            {/* 4. Durum */}
+            <div className="today-metric-pill" style={{ flex: '1 1 150px' }}>
               <div style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 borderRadius: 12,
                 background: dayProgramInfo.hasAllCompleted
                   ? 'linear-gradient(135deg, #10b981, #059669)'
@@ -351,16 +428,16 @@ export default memo(function DashboardTodayTasks({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.05rem',
+                fontSize: '1.15rem',
                 flexShrink: 0
               }}>
                 {dayProgramInfo.hasAllCompleted ? '🏆' : '🔥'}
               </div>
               <div>
-                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Hedef Durumu
+                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Durum
                 </div>
-                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                <div style={{ fontSize: '0.98rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
                   {dayProgramInfo.hasAllCompleted ? 'Tümü Bitti 🎉' : `${remainingTasks} Hedef Kaldı`}
                 </div>
               </div>
@@ -368,15 +445,15 @@ export default memo(function DashboardTodayTasks({
           </div>
         )}
 
-        {/* ── Filtre Çipleri (Çoklu Görevde Odaklanmayı Kolaylaştırır) ── */}
+        {/* ── Filtre Çipleri ── */}
         {totalTasks > 1 && (
           <div style={{
-            padding: '0.65rem 1.15rem',
+            padding: '0.75rem 1.4rem',
             background: 'var(--color-surface)',
             borderBottom: '1.5px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 8,
             overflowX: 'auto',
             scrollbarWidth: 'none',
             WebkitOverflowScrolling: 'touch'
@@ -388,7 +465,8 @@ export default memo(function DashboardTodayTasks({
               style={{
                 background: filterStatus === 'all' ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
                 color: filterStatus === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'all' ? '#4f46e5' : 'transparent'
+                borderColor: filterStatus === 'all' ? '#4f46e5' : 'transparent',
+                fontSize: '0.78rem'
               }}
             >
               <span>Tümü ({totalTasks})</span>
@@ -401,7 +479,8 @@ export default memo(function DashboardTodayTasks({
               style={{
                 background: filterStatus === 'pending' ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
                 color: filterStatus === 'pending' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'pending' ? '#dc2626' : 'transparent'
+                borderColor: filterStatus === 'pending' ? '#dc2626' : 'transparent',
+                fontSize: '0.78rem'
               }}
             >
               <span>⏳ Bekleyen ({remainingTasks})</span>
@@ -414,39 +493,50 @@ export default memo(function DashboardTodayTasks({
               style={{
                 background: filterStatus === 'completed' ? '#10b981' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
                 color: filterStatus === 'completed' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'completed' ? '#059669' : 'transparent'
+                borderColor: filterStatus === 'completed' ? '#059669' : 'transparent',
+                fontSize: '0.78rem'
               }}
             >
               <span>✓ Tamamlanan ({completedTasks})</span>
             </button>
 
-            {/* Ders Filtreleri (Birden fazla ders varsa) */}
+            {/* Ders Filtreleri */}
             {subjects.length > 1 && (
               <>
-                <div style={{ width: 1, height: 18, background: 'var(--color-border)', margin: '0 4px' }} />
-                {subjects.map(([subj, count]) => (
-                  <button
-                    key={subj}
-                    type="button"
-                    onClick={() => setSelectedSubject(prev => prev === subj ? 'all' : subj)}
-                    className="today-filter-chip"
-                    style={{
-                      background: selectedSubject === subj ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                      color: selectedSubject === subj ? '#6366f1' : 'var(--color-text-muted)',
-                      border: selectedSubject === subj ? '1.5px solid #6366f1' : '1px solid var(--color-border)'
-                    }}
-                  >
-                    <span>{subj} ({count})</span>
-                  </button>
-                ))}
+                <div style={{ width: 1.5, height: 20, background: 'var(--color-border)', margin: '0 4px' }} />
+                {subjects.map(([subj, count]) => {
+                  const sTheme = resolveSubjectTheme(subj);
+                  const isSelected = selectedSubject === subj;
+                  return (
+                    <button
+                      key={subj}
+                      type="button"
+                      onClick={() => setSelectedSubject(prev => prev === subj ? 'all' : subj)}
+                      className="today-filter-chip"
+                      style={{
+                        background: isSelected ? sTheme.badgeBg : 'transparent',
+                        color: isSelected ? sTheme.badgeText : 'var(--color-text-muted)',
+                        border: isSelected ? `1.5px solid ${sTheme.from}` : '1.5px solid var(--color-border)',
+                        fontSize: '0.78rem'
+                      }}
+                    >
+                      <span>{sTheme.icon} {subj} ({count})</span>
+                    </button>
+                  );
+                })}
               </>
             )}
           </div>
         )}
 
-        {/* ── Görev Listesi ── */}
+        {/* ── BÜYÜK, RENKLİ & ŞIK GÖREV KARTLARI LİSTESİ ── */}
         {filteredTasks.length > 0 ? (
-          <div style={{ padding: '0.65rem 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{
+            padding: isMobile ? '0.85rem 0.65rem' : '1.15rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem'
+          }}>
             {(showAllDayTasks || !isMobile ? filteredTasks : filteredTasks.slice(0, 6)).map((task, idx) => {
               const isReadingTask = task.taskType === 'okuma' ||
                 task.subject === 'Kitap Okuma' ||
@@ -455,7 +545,7 @@ export default memo(function DashboardTodayTasks({
                 String(task.taskType || '').toLowerCase().includes('okuma');
               const isQuizTask = !isReadingTask && Boolean(task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId);
               const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Ders');
-              const rowTheme = getRowTheme ? getRowTheme(cleanSubj, idx) : {};
+              const sTheme = resolveSubjectTheme(cleanSubj);
               const isExamItem = task.isExamTask || task.taskType === 'deneme';
 
               const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
@@ -500,16 +590,6 @@ export default memo(function DashboardTodayTasks({
               const isRemedialTask = Boolean(task.isRemedial || task.isRemedialTest || task.type === 'remedialTest' || task.taskType === 'remedialTest' || task.isTeacherRemedial || task.isSpacedRepetition || detectedStage);
               const syncAttemptNumber = task.attemptNumber || (detectedStage ? detectedStage : (task.pastAttemptCount != null ? task.pastAttemptCount + 1 : 1));
 
-              const STAGE_THEMES = {
-                1: { icon: '🌱', label: '1. Çözüm (İlk Çözüm)', bg: 'rgba(16, 185, 129, 0.12)', text: '#059669', border: 'rgba(16, 185, 129, 0.35)' },
-                2: { icon: '🌿', label: '2. Çözüm (1. Tekrar)', bg: 'rgba(59, 130, 246, 0.12)', text: '#2563eb', border: 'rgba(59, 130, 246, 0.35)' },
-                3: { icon: '🌳', label: '3. Çözüm (2. Tekrar)', bg: 'rgba(168, 85, 247, 0.12)', text: '#7c3aed', border: 'rgba(168, 85, 247, 0.35)' },
-                4: { icon: '⚡', label: '4. Çözüm (3. Tekrar)', bg: 'rgba(245, 158, 11, 0.12)', text: '#d97706', border: 'rgba(245, 158, 11, 0.35)' },
-                5: { icon: '🏆', label: '5. Çözüm (Ustalaşıldı)', bg: 'rgba(239, 68, 68, 0.12)', text: '#dc2626', border: 'rgba(239, 68, 68, 0.35)' }
-              };
-              const currentTheme = STAGE_THEMES[syncAttemptNumber] || STAGE_THEMES[2];
-
-              // Is this the immediate next target for the student today?
               const isNextTarget = dayProgramInfo.isToday && !task.done && (idx === firstIncompleteIdx);
 
               return (
@@ -529,16 +609,49 @@ export default memo(function DashboardTodayTasks({
                       : (isNextTarget 
                           ? (isDark ? 'rgba(99, 102, 241, 0.12)' : 'rgba(99, 102, 241, 0.05)') 
                           : 'var(--color-surface)'),
-                    borderLeft: `6px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : isExamItem ? '#e11d48' : (rowTheme.accent || '#6366f1')}`,
-                    borderRadius: 18,
-                    padding: isMobile ? '0.85rem 0.95rem' : '1rem 1.25rem',
+                    borderLeft: `7px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : sTheme.from}`,
+                    borderTop: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderRadius: 20,
+                    padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.55rem',
                     cursor: 'pointer',
                     boxShadow: isNextTarget 
-                      ? '0 0 0 2px rgba(99, 102, 241, 0.4), 0 8px 24px rgba(99, 102, 241, 0.18)' 
-                      : '0 4px 16px rgba(0, 0, 0, 0.03)'
+                      ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 10px 28px rgba(99, 102, 241, 0.22)' 
+                      : (task.done 
+                          ? '0 4px 14px rgba(16,185,129,0.08)' 
+                          : `0 6px 20px ${sTheme.glow}`),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
+                    gap: isMobile ? '0.85rem' : '1.25rem',
+                    transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? '0.75rem' : '1rem', flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', flex: 1, minWidth: 0 }}>
+                    
+                    {/* Büyük Ders Avatar İkonu */}
+                    <div style={{
+                      width: isMobile ? 42 : 50,
+                      height: isMobile ? 42 : 50,
+                      borderRadius: 16,
+                      background: task.done
+                        ? 'linear-gradient(135deg, #10b981, #059669)'
+                        : `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: isMobile ? '1.25rem' : '1.5rem',
+                      boxShadow: task.done
+                        ? '0 4px 14px rgba(16, 185, 129, 0.35)'
+                        : `0 6px 16px ${sTheme.glow}`,
+                      flexShrink: 0
+                    }}>
+                      {task.done ? '✓' : sTheme.icon}
+                    </div>
+
                     {/* Checkbox / Toggle Button */}
                     <button
                       type="button"
@@ -547,7 +660,7 @@ export default memo(function DashboardTodayTasks({
                         width: isMobile ? 32 : 36,
                         height: isMobile ? 32 : 36,
                         borderRadius: 12,
-                        border: task.done ? 'none' : `2px solid ${isNextTarget ? '#6366f1' : (rowTheme.border || 'var(--color-border-input)')}`,
+                        border: task.done ? 'none' : `2px solid ${isNextTarget ? '#6366f1' : 'var(--color-border-input)'}`,
                         background: task.done ? 'linear-gradient(135deg, #10b981, #059669)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
                         display: 'flex',
                         alignItems: 'center',
@@ -555,11 +668,10 @@ export default memo(function DashboardTodayTasks({
                         flexShrink: 0,
                         cursor: 'pointer',
                         padding: 0,
-                        marginTop: 2,
                         boxShadow: task.done ? '0 4px 12px rgba(16,185,129,0.45)' : '0 2px 6px rgba(0,0,0,0.06)',
                         transition: 'all 0.18s ease'
                       }}
-                      title={task.done ? 'Görevi Tamamlandı olarak işaretledin' : 'Görevi Tamamlandı olarak işaretle'}
+                      title={task.done ? 'Tamamlandı' : 'Tamamlandı olarak işaretle'}
                     >
                       {task.done ? (
                         <Check size={18} color="#ffffff" strokeWidth={3.5} />
@@ -570,73 +682,71 @@ export default memo(function DashboardTodayTasks({
                       )}
                     </button>
 
-                    {/* Task Details */}
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      {/* Row 1: Badges & Next Target Indicator */}
+                    {/* Görev Detayları */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      
+                      {/* Üst Satır: Ders Rozeti & Etiketler */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         {isNextTarget && (
                           <span style={{
-                            fontSize: '0.66rem',
+                            fontSize: '0.68rem',
                             fontWeight: 900,
                             color: '#ffffff',
                             background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                            padding: '2px 8px',
+                            padding: '3px 9px',
                             borderRadius: 99,
                             boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4
                           }}>
-                            <Zap size={11} fill="#ffffff" /> ŞİMDİKİ HEDEF
+                            <Zap size={12} fill="#ffffff" /> ŞİMDİKİ HEDEF
                           </span>
                         )}
 
-                        {task.subject && (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 900,
-                            color: rowTheme.text || (isExamItem ? '#92400e' : '#6366f1'),
-                            background: rowTheme.badgeBg || (isExamItem ? '#fef3c7' : 'rgba(99, 102, 241, 0.12)'),
-                            border: `1px solid ${rowTheme.border || (isExamItem ? '#fde68a' : 'rgba(165, 180, 252, 0.35)')}`,
-                            padding: '2px 8px',
-                            borderRadius: 8,
-                            flexShrink: 0
-                          }}>
-                            {cleanSubj}
-                          </span>
-                        )}
+                        <span style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          color: sTheme.badgeText,
+                          background: sTheme.badgeBg,
+                          border: `1.5px solid ${sTheme.badgeBorder}`,
+                          padding: '2px 9px',
+                          borderRadius: 8,
+                          flexShrink: 0
+                        }}>
+                          {sTheme.icon} {cleanSubj}
+                        </span>
 
-                        <span className="game-badge-xp" style={{ fontSize: '0.64rem', padding: '2px 6px' }}>
+                        <span className="game-badge-xp" style={{ fontSize: '0.66rem', padding: '2px 7px' }}>
                           +{isExamItem || task.roadmapAssignmentId ? '50' : '25'} XP
                         </span>
 
                         {isRemedialTask && (
                           <span style={{
-                            fontSize: '0.64rem',
+                            fontSize: '0.66rem',
                             fontWeight: 900,
-                            color: currentTheme.text,
-                            background: currentTheme.bg,
-                            border: `1px solid ${currentTheme.border}`,
-                            padding: '2px 7px',
+                            color: '#7c3aed',
+                            background: 'rgba(124, 58, 237, 0.12)',
+                            border: '1px solid rgba(124, 58, 237, 0.3)',
+                            padding: '2px 8px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 3,
+                            gap: 4,
                             flexShrink: 0
                           }}>
-                            <span>{currentTheme.icon}</span>
-                            <span>{syncAttemptNumber}. Tekrar</span>
+                            🔄 {syncAttemptNumber}. Tekrar
                           </span>
                         )}
 
                         {pageBadge && (
                           <span style={{
-                            fontSize: '0.64rem',
+                            fontSize: '0.66rem',
                             fontWeight: 800,
                             color: 'var(--color-text-secondary)',
                             background: 'var(--color-surface-hover)',
                             border: '1px solid var(--color-border)',
-                            padding: '1px 6px',
+                            padding: '2px 7px',
                             borderRadius: 6,
                             flexShrink: 0
                           }}>
@@ -646,11 +756,11 @@ export default memo(function DashboardTodayTasks({
 
                         {task.questionCount && (
                           <span style={{
-                            fontSize: '0.64rem',
+                            fontSize: '0.66rem',
                             fontWeight: 800,
                             color: 'var(--color-text-muted)',
                             background: 'var(--color-surface-hover)',
-                            padding: '1px 6px',
+                            padding: '2px 7px',
                             borderRadius: 6,
                             border: '1px solid var(--color-border)'
                           }}>
@@ -659,10 +769,10 @@ export default memo(function DashboardTodayTasks({
                         )}
                       </div>
 
-                      {/* Row 2: Title */}
+                      {/* Başlık (Büyük & Belirgin) */}
                       <div style={{
-                        fontSize: isMobile ? '0.92rem' : '1.02rem',
-                        fontWeight: 800,
+                        fontSize: isMobile ? '0.98rem' : '1.12rem',
+                        fontWeight: 900,
                         color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
                         textDecoration: task.done ? 'line-through' : 'none',
                         wordBreak: 'break-word',
@@ -672,18 +782,18 @@ export default memo(function DashboardTodayTasks({
                         {displayTitle}
                       </div>
 
-                      {/* Row 3: Meta Context Pill Ribbon */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                      {/* Alt Meta Şeridi */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                         {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
                           <span style={{
                             color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
-                            fontWeight: 700,
+                            fontWeight: 800,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: isMobile ? 200 : 360,
+                            maxWidth: isMobile ? 220 : 380,
                             background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
-                            padding: '1px 7px',
+                            padding: '2px 8px',
                             borderRadius: 6,
                             border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
                           }}>
@@ -696,145 +806,151 @@ export default memo(function DashboardTodayTasks({
                           </span>
                         )}
                         {(task.time || task.dueDateStr) && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            <Clock size={11} /> {task.time || task.dueDateStr}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={12} /> {task.time || task.dueDateStr}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Action Button */}
-                  {task.done ? (
-                    isReadingTask || !isQuizTask ? (
-                      <span
-                        style={{
-                          fontSize: '0.76rem',
-                          fontWeight: 900,
-                          color: '#10b981',
-                          background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.12)',
-                          border: '1.5px solid rgba(16, 185, 129, 0.4)',
-                          padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 0.95rem',
-                          borderRadius: 12,
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0
-                        }}
-                      >
-                        ✓ Bitti
-                      </span>
-                    ) : (
+                  {/* Sağ Aksiyon Butonu */}
+                  <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto', display: 'flex', justifyContent: isMobile ? 'flex-end' : 'center', marginTop: isMobile ? 4 : 0 }}>
+                    {task.done ? (
+                      isReadingTask || !isQuizTask ? (
+                        <span
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 900,
+                            color: '#10b981',
+                            background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.12)',
+                            border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                            padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
+                            borderRadius: 14,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          ✓ Tamamlandı
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                          className="game-btn-3d"
+                          style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 900,
+                            color: '#10b981',
+                            background: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.12)',
+                            border: '1.5px solid rgba(16, 185, 129, 0.4)',
+                            padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
+                            borderRadius: 14,
+                            whiteSpace: 'nowrap',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}
+                        >
+                          <Eye size={15} /> İncele
+                        </button>
+                      )
+                    ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
+                      (() => {
+                        const lockStatus = getRemedialLockStatus(task);
+                        return (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert(lockStatus.lockMessage);
+                            }}
+                            className="game-btn-3d"
+                            style={{
+                              background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+                              color: isDark ? '#94a3b8' : '#64748b',
+                              border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
+                              borderRadius: 14,
+                              padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
+                              fontSize: '0.76rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                            title={lockStatus.lockMessage}
+                          >
+                            <Lock size={14} color="#f59e0b" />
+                            <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
+                          </button>
+                        );
+                      })()
+                    ) : isQuizTask ? (
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                         className="game-btn-3d"
                         style={{
-                          fontSize: '0.76rem',
+                          background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                          color: '#ffffff',
+                          border: 'none',
+                          borderRadius: 14,
+                          padding: isMobile ? '0.6rem 1.1rem' : '0.75rem 1.45rem',
+                          fontSize: isMobile ? '0.84rem' : '0.92rem',
                           fontWeight: 900,
-                          color: '#10b981',
-                          background: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.12)',
-                          border: '1.5px solid rgba(16, 185, 129, 0.4)',
-                          padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 0.95rem',
-                          borderRadius: 12,
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
+                          boxShadow: `0 4px 14px ${sTheme.glow}`,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 5
+                          gap: 7,
+                          width: isMobile ? '100%' : 'auto',
+                          justifyContent: 'center'
                         }}
                       >
-                        <Eye size={14} /> İncele
+                        {isRemedialTask && syncAttemptNumber > 1 ? (
+                          <>
+                            <RotateCcw size={16} /> {`${syncAttemptNumber}. Tekrar`}
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle size={17} /> Başlat ⚔️
+                          </>
+                        )}
                       </button>
-                    )
-                  ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
-                    (() => {
-                      const lockStatus = getRemedialLockStatus(task);
-                      return (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            alert(lockStatus.lockMessage);
-                          }}
-                          className="game-btn-3d"
-                          style={{
-                            background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
-                            color: isDark ? '#94a3b8' : '#64748b',
-                            border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
-                            borderRadius: 12,
-                            padding: isMobile ? '0.45rem 0.75rem' : '0.55rem 0.95rem',
-                            fontSize: isMobile ? '0.72rem' : '0.76rem',
-                            flexShrink: 0,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5
-                          }}
-                          title={lockStatus.lockMessage}
-                        >
-                          <Lock size={13} color="#f59e0b" />
-                          <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
-                        </button>
-                      );
-                    })()
-                  ) : isQuizTask ? (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
-                      className="game-btn-3d game-btn-primary"
-                      style={{
-                        borderRadius: 14,
-                        padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.25rem',
-                        fontSize: isMobile ? '0.82rem' : '0.88rem',
-                        fontWeight: 900,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                      }}
-                    >
-                      {isRemedialTask && syncAttemptNumber > 1 ? (
-                        <>
-                          <RotateCcw size={15} /> {`${syncAttemptNumber}. Tekrar`}
-                        </>
-                      ) : (
-                        <>
-                          <PlayCircle size={16} /> Başlat ⚔️
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
-                      className="game-btn-3d game-btn-emerald"
-                      style={{
-                        borderRadius: 14,
-                        padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.15rem',
-                        fontSize: isMobile ? '0.78rem' : '0.84rem',
-                        fontWeight: 900
-                      }}
-                    >
-                      Tamamla ✓
-                    </button>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
+                        className="game-btn-3d game-btn-emerald"
+                        style={{
+                          borderRadius: 14,
+                          padding: isMobile ? '0.55rem 1rem' : '0.7rem 1.35rem',
+                          fontSize: isMobile ? '0.82rem' : '0.88rem',
+                          fontWeight: 900,
+                          width: isMobile ? '100%' : 'auto',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        Tamamla ✓
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
           </div>
         ) : totalTasks > 0 ? (
-          /* Filtre sonucu boş */
-          <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            <div style={{ fontSize: '1.8rem', marginBottom: 6 }}>🔍</div>
-            <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>Seçilen filtreye uygun görev bulunamadı.</div>
+          <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
+            <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Seçilen filtreye uygun görev bulunamadı.</div>
             <button
               type="button"
               onClick={() => { setFilterStatus('all'); setSelectedSubject('all'); }}
               style={{
-                marginTop: 8,
+                marginTop: 10,
                 background: 'none',
                 border: 'none',
                 color: '#6366f1',
                 fontWeight: 800,
                 cursor: 'pointer',
-                fontSize: '0.8rem',
+                fontSize: '0.84rem',
                 textDecoration: 'underline'
               }}
             >
@@ -843,18 +959,18 @@ export default memo(function DashboardTodayTasks({
           </div>
         ) : (
           /* Hiç görev yok */
-          <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>🎉</div>
-            <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1.1rem', marginBottom: 6, fontFamily: "'Outfit', sans-serif" }}>
+          <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🎉</div>
+            <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1.2rem', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
               {dayProgramInfo.isToday
                 ? 'Bugün için planlanan tüm görevler bitti veya henüz görev eklenmedi!'
                 : `${dayProgramInfo.dayName} günü için kayıtlı görev bulunmuyor.`}
             </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 460, margin: '0 auto 1.25rem', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', maxWidth: 460, margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
               Harika bir disiplin! Kütüphaneden yeni testler çözebilir veya programına yeni ders hedefleri ekleyebilirsin.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
               {onAddTask && (
                 <button
                   type="button"
@@ -862,8 +978,8 @@ export default memo(function DashboardTodayTasks({
                   className="game-btn-3d game-btn-primary"
                   style={{
                     borderRadius: 14,
-                    padding: '0.65rem 1.25rem',
-                    fontSize: '0.85rem',
+                    padding: '0.75rem 1.45rem',
+                    fontSize: '0.88rem',
                     fontWeight: 900,
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -880,8 +996,8 @@ export default memo(function DashboardTodayTasks({
                   className="game-btn-3d"
                   style={{
                     borderRadius: 14,
-                    padding: '0.65rem 1.25rem',
-                    fontSize: '0.85rem',
+                    padding: '0.75rem 1.45rem',
+                    fontSize: '0.88rem',
                     fontWeight: 900,
                     background: isDark ? 'rgba(2, 132, 199, 0.2)' : '#f0f9ff',
                     border: '1.5px solid #0284c7',
@@ -900,7 +1016,7 @@ export default memo(function DashboardTodayTasks({
 
         {/* Daha Fazla Göster Butonu (Mobilde 6'dan fazla görev varsa) */}
         {isMobile && filteredTasks.length > 6 && (
-          <div style={{ padding: '0.65rem 0.85rem', background: 'var(--color-surface)', borderTop: '1.5px solid var(--color-border)' }}>
+          <div style={{ padding: '0.75rem 0.95rem', background: 'var(--color-surface)', borderTop: '1.5px solid var(--color-border)' }}>
             <button
               type="button"
               onClick={() => setShowAllDayTasks && setShowAllDayTasks(prev => !prev)}
@@ -909,10 +1025,10 @@ export default memo(function DashboardTodayTasks({
                 background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.08)',
                 border: '1.5px solid rgba(99, 102, 241, 0.25)',
                 borderRadius: '0.85rem',
-                padding: '0.65rem 1rem',
+                padding: '0.7rem 1rem',
                 color: isDark ? '#a5b4fc' : '#4f46e5',
                 fontWeight: 900,
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -930,7 +1046,7 @@ export default memo(function DashboardTodayTasks({
                 <>
                   <ChevronDown size={16} />
                   <span>Diğer {filteredTasks.length - 6} Görevi Göster</span>
-                  <span style={{ fontSize: '0.7rem', background: '#6366f1', color: 'white', padding: '1px 7px', borderRadius: 99, fontWeight: 900 }}>
+                  <span style={{ fontSize: '0.72rem', background: '#6366f1', color: 'white', padding: '1px 8px', borderRadius: 99, fontWeight: 900 }}>
                     +{filteredTasks.length - 6}
                   </span>
                 </>
@@ -942,9 +1058,9 @@ export default memo(function DashboardTodayTasks({
         {/* ── Günün Tüm Görevleri Bittiğinde Kutlama Kartı ── */}
         {dayProgramInfo.hasAllCompleted && totalTasks > 0 && (
           <div style={{
-            margin: '0.5rem 0.75rem 0.75rem',
-            padding: '1.1rem 1.25rem',
-            borderRadius: 16,
+            margin: '0.75rem 1rem 1rem',
+            padding: '1.25rem 1.45rem',
+            borderRadius: 18,
             background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
             border: '1.5px solid rgba(16, 185, 129, 0.4)',
             display: 'flex',
@@ -953,27 +1069,27 @@ export default memo(function DashboardTodayTasks({
             flexWrap: 'wrap',
             gap: 12
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 48,
+                height: 48,
+                borderRadius: 16,
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.4rem',
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                fontSize: '1.6rem',
+                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
                 flexShrink: 0
               }}>
                 🏆
               </div>
               <div>
-                <div style={{ fontWeight: 900, fontSize: '0.98rem', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>
+                <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>
                   Tebrikler! Bugünün Tüm Görevlerini Bitirdin!
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>
                   +{earnedXp} XP kazandın • {completedQuestions} Soru tamamlandı. Harika bir gün!
                 </div>
               </div>
@@ -986,16 +1102,16 @@ export default memo(function DashboardTodayTasks({
                   onClick={onNavigateBooks}
                   className="game-btn-3d game-btn-emerald"
                   style={{
-                    borderRadius: 12,
-                    padding: '0.55rem 1rem',
-                    fontSize: '0.8rem',
+                    borderRadius: 14,
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.84rem',
                     fontWeight: 900,
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6
                   }}
                 >
-                  <BookOpen size={14} /> Kitapları Aç
+                  <BookOpen size={16} /> Kitapları Aç
                 </button>
               )}
             </div>

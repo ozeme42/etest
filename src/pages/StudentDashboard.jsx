@@ -3952,21 +3952,6 @@ export default function StudentDashboard() {
         {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
         {activeDashboardTab === 'tasks' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-            {/* Öncelikli Görev Spotlight */}
-            <DashboardHeroTaskCard
-              isMobile={isMobile}
-              isDark={isDark}
-              studentName={selectedStudent?.name}
-              pendingTasks={pendingTasks}
-              dayTasks={dayProgramInfo.items}
-              catchUpTasks={catchUpTasks}
-              onStartHomework={handleHwClick}
-              onStartDayTask={handleTaskAction}
-              onViewAllTasks={handleViewAllTasks}
-              onExploreBooks={handleExploreBooks}
-              onViewAnalytics={handleViewAnalytics}
-            />
-
             {/* Birleşik Takvim & Bugünün Görevleri */}
             <div
               className="game-card-elevated"
