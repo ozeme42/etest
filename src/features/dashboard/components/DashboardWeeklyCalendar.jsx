@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Calendar, CalendarDays, ChevronRight, Plus } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Plus, Sparkles, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default memo(function DashboardWeeklyCalendar({
@@ -16,44 +16,96 @@ export default memo(function DashboardWeeklyCalendar({
   const navigate = useNavigate();
 
   return (
-    <div>
-      {/* Üst Başlık & Program Butonu */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Calendar size={15} color="#6366f1" />
+    <div
+      className="game-card-elevated"
+      style={{
+        padding: isMobile ? '1.1rem 0.95rem' : '1.35rem 1.6rem',
+        borderRadius: 22,
+        boxShadow: isDark ? '0 10px 30px rgba(0, 0, 0, 0.4)' : '0 8px 24px rgba(99, 102, 241, 0.08)'
+      }}
+    >
+      {/* ── Üst Başlık & Eylemler ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '1.1rem',
+        flexWrap: 'wrap',
+        gap: '0.65rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: isMobile ? 38 : 44,
+            height: isMobile ? 38 : 44,
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+            flexShrink: 0
+          }}>
+            <Calendar size={isMobile ? 18 : 22} />
           </div>
           <div>
-            <span style={{ fontSize: isMobile ? '0.88rem' : '0.95rem', fontWeight: 900, color: 'var(--color-text)' }}>
-              Haftalık Çalışma & Görev Takvimi
-            </span>
-            {!isMobile && (
-              <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
-                (Günü seçerek o günkü görevleri gör)
-              </span>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{
+                margin: 0,
+                fontSize: isMobile ? '1.02rem' : '1.25rem',
+                fontWeight: 900,
+                color: 'var(--color-text)',
+                fontFamily: "'Outfit', sans-serif",
+                letterSpacing: '-0.02em'
+              }}>
+                Haftalık Çalışma & Görev Takvimi
+              </h3>
+              {activeDayKey === todayDayKey && (
+                <span style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 900,
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)'
+                }}>
+                  BUGÜN
+                </span>
+              )}
+            </div>
+            <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Günü seçerek o günün ders programını ve testlerini görüntüle
+            </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Aksiyon Butonları */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {activeDayKey !== todayDayKey && (
             <button
               type="button"
               onClick={() => onSelectDay && onSelectDay(todayDayKey)}
+              className="game-btn-3d"
               style={{
-                background: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7',
-                border: '1px solid #f59e0b',
-                color: '#b45309',
-                borderRadius: 8,
-                padding: '0.25rem 0.55rem',
-                fontSize: '0.68rem',
-                fontWeight: 800,
-                cursor: 'pointer'
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 12,
+                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: '0 3px 10px rgba(245, 158, 11, 0.35)'
               }}
             >
-              ● Bugün
+              <Zap size={14} fill="#ffffff" />
+              <span>Bugüne Dön</span>
             </button>
           )}
+
           {onAddTask && (
             <button
               type="button"
@@ -61,33 +113,46 @@ export default memo(function DashboardWeeklyCalendar({
               className="game-btn-3d game-btn-emerald"
               style={{
                 borderRadius: 12,
-                padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1rem',
-                fontSize: isMobile ? '0.72rem' : '0.78rem'
+                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
               }}
             >
-              <Plus size={14} strokeWidth={3} /> {isMobile ? 'Görev Ekle' : 'Yeni Görev'}
+              <Plus size={15} strokeWidth={2.8} />
+              <span>{isMobile ? 'Ekle' : 'Görev Ekle'}</span>
             </button>
           )}
+
           <button
+            type="button"
             onClick={() => navigate('/my-program')}
             className="game-btn-3d game-btn-primary"
             style={{
               borderRadius: 12,
-              padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1rem',
-              fontSize: isMobile ? '0.72rem' : '0.78rem'
+              padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1.05rem',
+              fontSize: isMobile ? '0.74rem' : '0.8rem',
+              fontWeight: 900,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
             }}
           >
-            <CalendarDays size={14} /> {isMobile ? 'Program' : 'Haftalık Program'} <ChevronRight size={13} />
+            <CalendarDays size={15} />
+            <span>{isMobile ? 'Program' : 'Haftalık Tam Program'}</span>
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>
 
-      {/* 7-Day Week Buttons Strip */}
+      {/* ── 7 Günlük Modern Bento Şeridi ── */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: isMobile ? 5 : 8,
+          gap: isMobile ? 6 : 10,
           width: '100%',
           boxSizing: 'border-box',
           overflowX: isMobile ? 'auto' : 'visible',
@@ -109,48 +174,61 @@ export default memo(function DashboardWeeklyCalendar({
               type="button"
               onClick={() => onSelectDay && onSelectDay(day.key)}
               style={{
-                flexShrink: 0,
                 background: isSelected
-                  ? `linear-gradient(135deg, ${day.color || '#4f46e5'}, #3730a3)`
+                  ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
                   : isCurrentToday
-                  ? (isDark ? 'linear-gradient(135deg, rgba(245,158,11,0.22), rgba(217,119,6,0.22))' : '#fffbeb')
-                  : (isDark ? 'rgba(255,255,255,0.04)' : (day.bg || '#f8fafc')),
-                border: `2px solid ${isSelected ? (day.color || '#4f46e5') : isCurrentToday ? '#f59e0b' : 'var(--color-border)'}`,
-                borderRadius: isMobile ? 14 : 16,
-                padding: isMobile ? '0.5rem 0.2rem' : '0.8rem 0.5rem',
+                  ? (isDark ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.15))' : '#fffbeb')
+                  : 'var(--color-surface)',
+                border: isSelected
+                  ? '2px solid #818cf8'
+                  : isCurrentToday
+                  ? '2px solid #f59e0b'
+                  : '1.5px solid var(--color-border)',
+                borderRadius: isMobile ? 14 : 18,
+                padding: isMobile ? '0.65rem 0.25rem' : '0.95rem 0.6rem',
                 color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: isMobile ? 2 : 4,
+                gap: isMobile ? 3 : 5,
                 boxShadow: isSelected
-                  ? `0 5px 0 ${day.color ? '#1e1b4b' : '#312e81'}, 0 10px 22px rgba(79, 70, 229, 0.45)`
+                  ? '0 8px 22px rgba(79, 70, 229, 0.45)'
                   : isCurrentToday
-                  ? '0 4px 0 #b45309, 0 6px 14px rgba(245,158,11,0.25)'
-                  : '0 3px 0 var(--color-border)',
-                transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
-                minWidth: 0,
+                  ? '0 4px 14px rgba(245, 158, 11, 0.22)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.03)',
+                transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transform: isSelected ? 'translateY(-4px)' : 'translateY(0)',
+                minWidth: isMobile ? 54 : 0,
                 width: '100%',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                position: 'relative',
+                overflow: 'hidden'
               }}
             >
-              <span style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', lineHeight: 1 }}>
+              {/* Gün İkonu */}
+              <span style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', lineHeight: 1 }}>
                 {day.icon || '📅'}
               </span>
 
-              <span style={{ fontSize: isMobile ? '0.74rem' : '0.88rem', fontWeight: 900, lineHeight: 1.1 }}>
+              {/* Gün İsmi */}
+              <span style={{
+                fontSize: isMobile ? '0.74rem' : '0.88rem',
+                fontWeight: 900,
+                lineHeight: 1.1,
+                fontFamily: "'Outfit', sans-serif"
+              }}>
                 {isMobile ? day.short : day.name}
               </span>
 
+              {/* Tarih Etiketi */}
               <span style={{
-                fontSize: isMobile ? '0.62rem' : '0.72rem',
+                fontSize: isMobile ? '0.64rem' : '0.72rem',
                 fontWeight: 800,
                 color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted)',
-                background: isSelected ? 'rgba(255,255,255,0.24)' : 'var(--color-surface)',
-                padding: isMobile ? '1px 5px' : '2px 7px',
+                background: isSelected ? 'rgba(255, 255, 255, 0.22)' : 'var(--color-surface-hover)',
+                padding: isMobile ? '1px 5px' : '2px 8px',
                 borderRadius: 8,
                 whiteSpace: 'nowrap',
                 lineHeight: 1.1,
@@ -159,35 +237,38 @@ export default memo(function DashboardWeeklyCalendar({
                 {dateNumber} {monthName}
               </span>
 
+              {/* Görev Sayacı / Durum Rozeti */}
               {isCurrentToday ? (
                 <span style={{
-                  fontSize: isMobile ? '0.52rem' : '0.62rem',
+                  fontSize: isMobile ? '0.54rem' : '0.64rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  padding: isMobile ? '1px 5px' : '2px 7px',
+                  padding: isMobile ? '2px 6px' : '2px 8px',
                   borderRadius: 6,
                   letterSpacing: '0.04em',
-                  boxShadow: '0 2px 6px rgba(245,158,11,0.4)',
-                  marginTop: 2
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.4)',
+                  marginTop: 3,
+                  whiteSpace: 'nowrap'
                 }}>
                   BUGÜN ⚡
                 </span>
               ) : taskCount > 0 ? (
                 <span style={{
-                  fontSize: isMobile ? '0.54rem' : '0.64rem',
+                  fontSize: isMobile ? '0.56rem' : '0.66rem',
                   fontWeight: 900,
-                  color: isSelected ? '#ffffff' : day.color,
-                  background: isSelected ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
-                  padding: isMobile ? '1px 6px' : '2px 8px',
+                  color: isSelected ? '#ffffff' : '#6366f1',
+                  background: isSelected ? 'rgba(255, 255, 255, 0.25)' : (isDark ? 'rgba(99, 102, 241, 0.15)' : '#eef2ff'),
+                  padding: isMobile ? '2px 6px' : '2px 8px',
                   borderRadius: 99,
-                  border: isSelected ? 'none' : `1px solid ${day.color}50`,
-                  marginTop: 2
+                  border: isSelected ? 'none' : '1px solid rgba(99, 102, 241, 0.25)',
+                  marginTop: 3,
+                  whiteSpace: 'nowrap'
                 }}>
                   {taskCount} görev
                 </span>
               ) : (
-                <span style={{ fontSize: isMobile ? '0.52rem' : '0.6rem', opacity: 0.35, marginTop: 2 }}>
+                <span style={{ fontSize: isMobile ? '0.54rem' : '0.64rem', opacity: 0.35, marginTop: 3 }}>
                   -
                 </span>
               )}

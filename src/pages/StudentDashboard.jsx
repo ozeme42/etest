@@ -3952,53 +3952,35 @@ export default function StudentDashboard() {
         {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
         {activeDashboardTab === 'tasks' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-            {/* Birleşik Takvim & Bugünün Görevleri */}
-            <div
-              className="game-card-elevated"
-              style={{
-                padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
-              }}
-            >
-              <DashboardWeeklyCalendar
-                isMobile={isMobile}
-                isDark={isDark}
-                daysOfWeek={DAYS_OF_WEEK}
-                activeDayKey={activeDayKey}
-                todayDayKey={todayDayKey}
-                weekTasksCountMap={weekTasksCountMap}
-                weekInfo={weekInfo}
-                onSelectDay={setActiveDayKey}
-                onAddTask={handleOpenAddTask}
-              />
+            {/* 1. Haftalık Takvim Şeridi */}
+            <DashboardWeeklyCalendar
+              isMobile={isMobile}
+              isDark={isDark}
+              daysOfWeek={DAYS_OF_WEEK}
+              activeDayKey={activeDayKey}
+              todayDayKey={todayDayKey}
+              weekTasksCountMap={weekTasksCountMap}
+              weekInfo={weekInfo}
+              onSelectDay={setActiveDayKey}
+              onAddTask={handleOpenAddTask}
+            />
 
-              <div style={{
-                height: 1,
-                background: 'var(--color-border)',
-                margin: isMobile ? '0.85rem 0' : '1.1rem 0'
-              }} />
-
-              <DashboardTodayTasks
-                isMobile={isMobile}
-                isDark={isDark}
-                activeDayConfig={activeDayConfig}
-                dayProgramInfo={dayProgramInfo}
-                catchUpTasks={catchUpTasks}
-                showAllDayTasks={showAllDayTasks}
-                setShowAllDayTasks={setShowAllDayTasks}
-                onToggleTask={handleToggleTask}
-                onTaskClick={handleTaskAction}
-                getRowTheme={getRowTheme}
-                onAddTask={handleOpenAddTask}
-                onNavigateRemedial={handleViewRemedial}
-                onNavigateBooks={handleExploreBooks}
-              />
-
-              <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Haftalık Programa Git <ChevronRight size={13} />
-                </Link>
-              </div>
-            </div>
+            {/* 2. Seçili Günün Büyük & Renkli Görev Panosu */}
+            <DashboardTodayTasks
+              isMobile={isMobile}
+              isDark={isDark}
+              activeDayConfig={activeDayConfig}
+              dayProgramInfo={dayProgramInfo}
+              catchUpTasks={catchUpTasks}
+              showAllDayTasks={showAllDayTasks}
+              setShowAllDayTasks={setShowAllDayTasks}
+              onToggleTask={handleToggleTask}
+              onTaskClick={handleTaskAction}
+              getRowTheme={getRowTheme}
+              onAddTask={handleOpenAddTask}
+              onNavigateRemedial={handleViewRemedial}
+              onNavigateBooks={handleExploreBooks}
+            />
 
             {/* Öğretmen Ödevleri */}
             {!focusModeOnly && (
