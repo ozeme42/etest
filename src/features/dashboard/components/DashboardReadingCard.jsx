@@ -31,38 +31,40 @@ export default function DashboardReadingCard({
 
   return (
     <div
-      className="sd-card"
+      className="game-card-elevated"
       style={{
-        padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-        borderRadius: 16,
-        background: 'var(--color-surface)',
-        border: '1.5px solid var(--color-border)',
-        boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.25)' : '0 2px 10px rgba(0,0,0,0.03)'
+        padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 12,
             background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.95rem',
-            boxShadow: '0 3px 10px rgba(236, 72, 153, 0.35)',
-            color: 'white'
+            fontSize: '1.15rem',
+            boxShadow: '0 4px 14px rgba(236, 72, 153, 0.4)',
+            color: 'white',
+            flexShrink: 0
           }}>
-            <BookOpen size={16} />
+            <BookOpen size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-              Kitap Okuma &amp; Alışkanlık Takibi
-            </h2>
-            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              Günlük sayfa hedefleri ve okuma rutini
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+                Kitap Okuma &amp; Alışkanlık Mabedi
+              </h2>
+              <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px', color: '#ec4899', borderColor: 'rgba(236,72,153,0.4)' }}>
+                📖 Seri
+              </span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Günlük sayfa görevleri, okuma serisi ve hedefin
             </span>
           </div>
         </div>
@@ -70,19 +72,15 @@ export default function DashboardReadingCard({
         <button
           type="button"
           onClick={onNavigateReading}
-          className="sd-btn"
+          className="game-btn-3d"
           style={{
-            background: 'rgba(236, 72, 153, 0.12)',
-            color: '#ec4899',
-            border: '1px solid rgba(244, 114, 182, 0.35)',
-            borderRadius: 99,
-            padding: '0.25rem 0.75rem',
-            fontSize: '0.7rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4
+            background: 'var(--color-surface)',
+            color: 'var(--color-text)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 999,
+            padding: isMobile ? '0.35rem 0.8rem' : '0.45rem 1.05rem',
+            fontSize: '0.74rem',
+            boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
           }}
         >
           <span>Tüm Okumalarım</span>

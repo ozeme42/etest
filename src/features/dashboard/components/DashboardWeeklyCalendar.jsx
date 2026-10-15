@@ -58,44 +58,26 @@ export default memo(function DashboardWeeklyCalendar({
             <button
               type="button"
               onClick={onAddTask}
-              className="sd-btn"
+              className="game-btn-3d game-btn-emerald"
               style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                color: '#ffffff',
-                borderRadius: 8,
-                padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.85rem',
-                fontSize: isMobile ? '0.7rem' : '0.75rem',
-                fontWeight: 900,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)'
+                borderRadius: 12,
+                padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1rem',
+                fontSize: isMobile ? '0.72rem' : '0.78rem'
               }}
             >
-              <Plus size={13} strokeWidth={2.5} /> {isMobile ? 'Görev Ekle' : 'Görev Ekle'}
+              <Plus size={14} strokeWidth={3} /> {isMobile ? 'Görev Ekle' : 'Yeni Görev'}
             </button>
           )}
           <button
             onClick={() => navigate('/my-program')}
-            className="sd-btn"
+            className="game-btn-3d game-btn-primary"
             style={{
-              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
-              border: 'none',
-              color: '#ffffff',
-              borderRadius: 8,
-              padding: isMobile ? '0.3rem 0.65rem' : '0.4rem 0.9rem',
-              fontSize: isMobile ? '0.7rem' : '0.75rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
+              borderRadius: 12,
+              padding: isMobile ? '0.4rem 0.75rem' : '0.45rem 1rem',
+              fontSize: isMobile ? '0.72rem' : '0.78rem'
             }}
           >
-            <CalendarDays size={12} /> {isMobile ? 'Program' : 'Programı Düzenle'} <ChevronRight size={12} />
+            <CalendarDays size={14} /> {isMobile ? 'Program' : 'Haftalık Program'} <ChevronRight size={13} />
           </button>
         </div>
       </div>
@@ -105,12 +87,12 @@ export default memo(function DashboardWeeklyCalendar({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: isMobile ? 4 : 8,
+          gap: isMobile ? 5 : 8,
           width: '100%',
           boxSizing: 'border-box',
           overflowX: isMobile ? 'auto' : 'visible',
           scrollbarWidth: 'none',
-          paddingBottom: 2
+          paddingBottom: 4
         }}
       >
         {daysOfWeek.map(day => {
@@ -131,11 +113,11 @@ export default memo(function DashboardWeeklyCalendar({
                 background: isSelected
                   ? `linear-gradient(135deg, ${day.color || '#4f46e5'}, #3730a3)`
                   : isCurrentToday
-                  ? (isDark ? 'rgba(245,158,11,0.18)' : '#fffbeb')
-                  : (isDark ? 'rgba(255,255,255,0.03)' : (day.bg || '#f8fafc')),
+                  ? (isDark ? 'linear-gradient(135deg, rgba(245,158,11,0.22), rgba(217,119,6,0.22))' : '#fffbeb')
+                  : (isDark ? 'rgba(255,255,255,0.04)' : (day.bg || '#f8fafc')),
                 border: `2px solid ${isSelected ? (day.color || '#4f46e5') : isCurrentToday ? '#f59e0b' : 'var(--color-border)'}`,
-                borderRadius: isMobile ? 12 : 14,
-                padding: isMobile ? '0.45rem 0.15rem' : '0.75rem 0.5rem',
+                borderRadius: isMobile ? 14 : 16,
+                padding: isMobile ? '0.5rem 0.2rem' : '0.8rem 0.5rem',
                 color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
                 cursor: 'pointer',
                 display: 'flex',
@@ -144,21 +126,22 @@ export default memo(function DashboardWeeklyCalendar({
                 justifyContent: 'center',
                 gap: isMobile ? 2 : 4,
                 boxShadow: isSelected
-                  ? `0 6px 18px ${day.color || '#4f46e5'}45`
+                  ? `0 5px 0 ${day.color ? '#1e1b4b' : '#312e81'}, 0 10px 22px rgba(79, 70, 229, 0.45)`
                   : isCurrentToday
-                  ? '0 3px 10px rgba(245,158,11,0.25)'
-                  : 'none',
-                transition: 'all 0.15s ease',
+                  ? '0 4px 0 #b45309, 0 6px 14px rgba(245,158,11,0.25)'
+                  : '0 3px 0 var(--color-border)',
+                transition: 'all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transform: isSelected ? 'translateY(-2px)' : 'translateY(0)',
                 minWidth: 0,
                 width: '100%',
                 boxSizing: 'border-box'
               }}
             >
-              <span style={{ fontSize: isMobile ? '1rem' : '1.25rem', lineHeight: 1 }}>
+              <span style={{ fontSize: isMobile ? '1.1rem' : '1.35rem', lineHeight: 1 }}>
                 {day.icon || '📅'}
               </span>
 
-              <span style={{ fontSize: isMobile ? '0.72rem' : '0.86rem', fontWeight: 900, lineHeight: 1.1 }}>
+              <span style={{ fontSize: isMobile ? '0.74rem' : '0.88rem', fontWeight: 900, lineHeight: 1.1 }}>
                 {isMobile ? day.short : day.name}
               </span>
 
@@ -166,9 +149,9 @@ export default memo(function DashboardWeeklyCalendar({
                 fontSize: isMobile ? '0.62rem' : '0.72rem',
                 fontWeight: 800,
                 color: isSelected ? '#ffffff' : isCurrentToday ? '#b45309' : 'var(--color-text-muted)',
-                background: isSelected ? 'rgba(255,255,255,0.22)' : 'var(--color-surface)',
-                padding: isMobile ? '1px 4px' : '1px 6px',
-                borderRadius: 6,
+                background: isSelected ? 'rgba(255,255,255,0.24)' : 'var(--color-surface)',
+                padding: isMobile ? '1px 5px' : '2px 7px',
+                borderRadius: 8,
                 whiteSpace: 'nowrap',
                 lineHeight: 1.1,
                 border: isSelected ? 'none' : '1px solid var(--color-border)'
@@ -178,33 +161,33 @@ export default memo(function DashboardWeeklyCalendar({
 
               {isCurrentToday ? (
                 <span style={{
-                  fontSize: isMobile ? '0.52rem' : '0.6rem',
+                  fontSize: isMobile ? '0.52rem' : '0.62rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                  padding: isMobile ? '1px 4px' : '2px 6px',
+                  padding: isMobile ? '1px 5px' : '2px 7px',
                   borderRadius: 6,
-                  letterSpacing: '0.03em',
-                  boxShadow: '0 2px 6px rgba(245,158,11,0.35)',
-                  marginTop: 1
+                  letterSpacing: '0.04em',
+                  boxShadow: '0 2px 6px rgba(245,158,11,0.4)',
+                  marginTop: 2
                 }}>
-                  BUGÜN
+                  BUGÜN ⚡
                 </span>
               ) : taskCount > 0 ? (
                 <span style={{
-                  fontSize: isMobile ? '0.54rem' : '0.62rem',
+                  fontSize: isMobile ? '0.54rem' : '0.64rem',
                   fontWeight: 900,
                   color: isSelected ? '#ffffff' : day.color,
                   background: isSelected ? 'rgba(255,255,255,0.25)' : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
-                  padding: isMobile ? '1px 5px' : '2px 7px',
+                  padding: isMobile ? '1px 6px' : '2px 8px',
                   borderRadius: 99,
-                  border: isSelected ? 'none' : `1px solid ${day.color}40`,
-                  marginTop: 1
+                  border: isSelected ? 'none' : `1px solid ${day.color}50`,
+                  marginTop: 2
                 }}>
                   {taskCount} görev
                 </span>
               ) : (
-                <span style={{ fontSize: isMobile ? '0.52rem' : '0.6rem', opacity: 0.35, marginTop: 1 }}>
+                <span style={{ fontSize: isMobile ? '0.52rem' : '0.6rem', opacity: 0.35, marginTop: 2 }}>
                   -
                 </span>
               )}

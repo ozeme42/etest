@@ -345,22 +345,35 @@ export default memo(function DashboardHeroTaskCard({
 
   return (
     <div
-      className="sd-card"
+      className="game-card-elevated"
       style={{
         background: gradient,
-        border: `1.5px solid ${borderColor}`,
-        borderRadius: 20,
-        padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.8rem',
+        border: `2px solid ${borderColor}`,
+        borderRadius: 22,
+        padding: isMobile ? '1.15rem 1rem' : '1.4rem 1.8rem',
         boxShadow: isDark
-          ? '0 10px 30px rgba(0, 0, 0, 0.4)'
+          ? '0 12px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
           : urgency === 'high'
-          ? '0 10px 28px rgba(225, 29, 72, 0.08)'
-          : '0 10px 28px rgba(99, 102, 241, 0.08)',
+          ? '0 12px 30px rgba(225, 29, 72, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6)'
+          : '0 12px 30px rgba(79, 70, 229, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
         marginBottom: '1.25rem',
         position: 'relative',
         overflow: 'hidden'
       }}
     >
+      {/* Top ambient glowing strip */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: urgency === 'high'
+          ? 'linear-gradient(90deg, #e11d48, #f59e0b, #e11d48)'
+          : 'linear-gradient(90deg, #4f46e5, #8b5cf6, #ec4899, #f59e0b)',
+        pointerEvents: 'none'
+      }} />
+
       <div style={{
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
@@ -371,16 +384,16 @@ export default memo(function DashboardHeroTaskCard({
         {/* Left / Main info area */}
         <div style={{ flex: 1, minWidth: 0 }}>
           {/* Top meta tags bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: '0.65rem' }}>
             {/* Priority Status Tag */}
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
               background: badgeBg,
               color: badgeColor,
-              border: `1px solid ${borderColor}`,
-              padding: '0.22rem 0.65rem',
+              border: `1.5px solid ${borderColor}`,
+              padding: '0.24rem 0.7rem',
               borderRadius: 99,
               fontSize: '0.72rem',
               fontWeight: 900,
@@ -389,6 +402,12 @@ export default memo(function DashboardHeroTaskCard({
             }}>
               <span>{priorityEmoji}</span>
               <span>{priorityLabel}</span>
+            </div>
+
+            {/* XP Reward Badge */}
+            <div className="game-badge-xp">
+              <Sparkles size={11} />
+              <span>+50 XP</span>
             </div>
 
             {/* Subject Tag */}
@@ -411,15 +430,18 @@ export default memo(function DashboardHeroTaskCard({
             {diffDays !== null && (
               <div style={{
                 fontSize: '0.72rem',
-                fontWeight: 700,
+                fontWeight: 800,
                 color: diffDays < 0 ? '#ef4444' : diffDays === 0 ? '#d97706' : 'var(--color-text-muted)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 3
+                gap: 4,
+                background: diffDays < 0 ? 'rgba(239,68,68,0.1)' : 'transparent',
+                padding: diffDays < 0 ? '0.15rem 0.5rem' : '0',
+                borderRadius: 99
               }}>
                 <Clock size={12} />
                 {diffDays < 0 
-                  ? `${Math.abs(diffDays)} gün gecikti`
+                  ? `${Math.abs(diffDays)} gün gecikti!`
                   : diffDays === 0
                   ? 'Bugün teslim'
                   : `${diffDays} gün kaldı`}
@@ -429,10 +451,10 @@ export default memo(function DashboardHeroTaskCard({
 
           {/* Title and details */}
           <h2 style={{
-            fontSize: isMobile ? '1.15rem' : '1.35rem',
+            fontSize: isMobile ? '1.2rem' : '1.45rem',
             fontWeight: 900,
             color: 'var(--color-text)',
-            margin: '0 0 0.35rem',
+            margin: '0 0 0.4rem',
             letterSpacing: '-0.02em',
             lineHeight: 1.25,
             wordBreak: 'break-word'
@@ -447,32 +469,32 @@ export default memo(function DashboardHeroTaskCard({
             gap: 10,
             fontSize: '0.8rem',
             color: 'var(--color-text-muted)',
-            fontWeight: 600,
+            fontWeight: 700,
             flexWrap: 'wrap'
           }}>
             {rawBook && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <BookOpen size={13} color="var(--color-text-muted)" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <BookOpen size={14} color="var(--color-text-muted)" />
                 <strong>{rawBook}</strong>
               </span>
             )}
             {questionCount && (
               <span style={{
-                background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                padding: '0.15rem 0.5rem',
-                borderRadius: 6,
+                background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: 8,
                 fontSize: '0.74rem',
-                fontWeight: 700
+                fontWeight: 800
               }}>
-                📝 {questionCount} Soru
+                🎯 {questionCount} Soru
               </span>
             )}
             <span style={{
-              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-              padding: '0.15rem 0.5rem',
-              borderRadius: 6,
+              background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: 8,
               fontSize: '0.74rem',
-              fontWeight: 700
+              fontWeight: 800
             }}>
               ⏱️ ~{Math.max(10, (questionCount || 10) * 1.5)} dk
             </span>
@@ -483,7 +505,7 @@ export default memo(function DashboardHeroTaskCard({
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.65rem',
+          gap: '0.75rem',
           flexShrink: 0,
           width: isMobile ? '100%' : 'auto',
           justifyContent: isMobile ? 'stretch' : 'flex-end'
@@ -492,19 +514,14 @@ export default memo(function DashboardHeroTaskCard({
             <button
               type="button"
               onClick={onViewAllTasks}
-              className="sd-btn"
+              className="game-btn-3d"
               style={{
-                padding: '0.75rem 1.1rem',
+                padding: '0.75rem 1.15rem',
                 borderRadius: 14,
                 background: 'var(--color-surface)',
                 border: '1.5px solid var(--color-border)',
                 color: 'var(--color-text)',
-                fontWeight: 800,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5
+                boxShadow: '0 3px 0 var(--color-border)'
               }}
             >
               Tüm Liste <ChevronRight size={14} />
@@ -514,32 +531,17 @@ export default memo(function DashboardHeroTaskCard({
           <button
             type="button"
             onClick={handleAction}
-            className="sd-btn"
+            className={`game-btn-3d ${urgency === 'high' ? 'game-btn-accent' : 'game-btn-primary'}`}
             style={{
               flex: isMobile ? 1 : 'initial',
               minHeight: 48,
-              padding: isMobile ? '0.75rem 1.25rem' : '0.8rem 1.6rem',
-              borderRadius: 14,
-              background: urgency === 'high'
-                ? 'linear-gradient(135deg, #e11d48, #be123c)'
-                : 'linear-gradient(135deg, #4f46e5, #4338ca)',
-              border: 'none',
-              color: '#ffffff',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.92rem' : '0.98rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              boxShadow: urgency === 'high'
-                ? '0 6px 20px rgba(225, 29, 72, 0.4)'
-                : '0 6px 20px rgba(79, 70, 229, 0.4)'
+              padding: isMobile ? '0.8rem 1.35rem' : '0.85rem 1.8rem',
+              fontSize: isMobile ? '0.95rem' : '1.02rem'
             }}
           >
-            <PlayCircle size={19} />
-            <span>{isHomeworkType ? 'Ödeve Başla' : 'Hemen Başla'}</span>
-            <ArrowRight size={16} />
+            <PlayCircle size={20} />
+            <span>{isHomeworkType ? 'Ödeve Başla' : 'Görevi Başlat ⚔️'}</span>
+            <ArrowRight size={17} />
           </button>
         </div>
       </div>

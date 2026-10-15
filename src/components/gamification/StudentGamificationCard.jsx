@@ -46,23 +46,21 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
   return (
     <>
       <div
-        className="card-elevated"
+        className="game-card-elevated"
         style={{
           background: isDark
             ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))'
             : 'linear-gradient(135deg, #ffffff, #f8fafc)',
-          borderRadius: isMobile ? 16 : 20,
-          padding: isMobile ? '0.75rem 0.95rem' : '1.15rem 1.45rem',
-          border: isDark ? '1.5px solid rgba(255,255,255,0.08)' : '1.5px solid rgba(0,0,0,0.06)',
+          borderRadius: 22,
+          padding: isMobile ? '1rem 0.95rem' : '1.35rem 1.6rem',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          gap: isMobile ? 8 : 10,
+          gap: isMobile ? 10 : 12,
           height: '100%',
-          boxSizing: 'border-box',
-          boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.04)'
+          boxSizing: 'border-box'
         }}
       >
         {/* Ambient Top Glow */}
@@ -164,14 +162,14 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
             {/* Rozetler & Liderlik Butonu */}
             <button
               onClick={() => setIsModalOpen(true)}
-              className="btn-gradient"
+              className="game-btn-3d game-btn-gold"
               style={{
-                padding: isMobile ? '5px 10px' : '6px 13px',
+                padding: isMobile ? '6px 11px' : '7px 14px',
                 fontSize: isMobile ? '0.74rem' : '0.8rem',
-                borderRadius: 10,
+                borderRadius: 12,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 4
+                gap: 5
               }}
             >
               <Trophy size={isMobile ? 13 : 15} />

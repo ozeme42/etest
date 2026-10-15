@@ -10,42 +10,33 @@ const DashboardGoalsCard = React.memo(function DashboardGoalsCard({
   goalTypeThemes = {}
 }) {
   return (
-    <div className="sd-card" style={{
-      padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-      borderRadius: 16,
-      background: 'var(--color-surface)',
-      border: '1.5px solid var(--color-border)'
+    <div className="game-card-elevated" style={{
+      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 12,
             background: 'linear-gradient(135deg, #a855f7, #ec4899)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.95rem',
-            boxShadow: '0 3px 10px rgba(168, 85, 247, 0.35)'
+            fontSize: '1.15rem',
+            boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)',
+            color: 'white',
+            flexShrink: 0
           }}>
             🎯
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-                Hedef Takip Panosu
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+                Hedef &amp; Başarı Panosu
               </h2>
               {goalTrackingData.totalItemsCount > 0 && (
-                <span style={{
-                  background: 'rgba(124, 58, 237, 0.15)',
-                  color: '#c084fc',
-                  border: '1px solid rgba(168, 85, 247, 0.35)',
-                  borderRadius: 99,
-                  fontSize: '0.62rem',
-                  fontWeight: 900,
-                  padding: '1px 6px'
-                }}>
+                <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
                   {goalTrackingData.totalItemsCount} Hedef
                 </span>
               )}
@@ -67,31 +58,27 @@ const DashboardGoalsCard = React.memo(function DashboardGoalsCard({
                 </span>
               )}
             </div>
-            <span style={{ fontSize: '0.68rem', color: '#c084fc', fontWeight: 600 }}>
-              Sınav, net, soru ve çalışma hedefleriniz
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Sınav, net, soru sayısı ve çalışma hedef kotaların
             </span>
           </div>
         </div>
 
         <button
           onClick={onNavigateGoals}
-          className="sd-btn"
+          className="game-btn-3d"
           style={{
-            background: 'rgba(124, 58, 237, 0.15)',
-            border: '1px solid rgba(168, 85, 247, 0.35)',
-            color: '#c084fc',
-            borderRadius: 8,
-            padding: '0.25rem 0.65rem',
-            fontSize: '0.7rem',
-            fontWeight: 800,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 3
+            background: 'var(--color-surface)',
+            color: 'var(--color-text)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 999,
+            padding: isMobile ? '0.35rem 0.8rem' : '0.45rem 1.05rem',
+            fontSize: '0.74rem',
+            boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
           }}
         >
           <span>Panoya Git</span>
-          <ChevronRight size={12} />
+          <ChevronRight size={13} />
         </button>
       </div>
 

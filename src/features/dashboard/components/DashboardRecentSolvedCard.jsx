@@ -74,84 +74,71 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
   }, [recentSolvedTests]);
 
   return (
-    <div className="sd-card" style={{
-      padding: isMobile ? '0.75rem 0.65rem' : '1.35rem 1.6rem',
-      borderRadius: isMobile ? 14 : 16,
-      background: 'var(--color-surface)',
-      border: '1.5px solid var(--color-border)',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.03)'
+    <div className="game-card-elevated" style={{
+      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
     }}>
       {/* Kart Başlığı & Hızlı Aksiyonlar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: isMobile ? '0.6rem' : '0.85rem', flexWrap: 'wrap', gap: '0.35rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: isMobile ? 24 : 30,
-            height: isMobile ? 24 : 30,
-            borderRadius: isMobile ? 6 : 8,
+            width: 36,
+            height: 36,
+            borderRadius: 12,
             background: 'linear-gradient(135deg, #10b981, #059669)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: isMobile ? '0.8rem' : '0.95rem',
-            boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+            fontSize: '1.15rem',
+            boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+            color: 'white',
             flexShrink: 0
           }}>
             📝
           </div>
           <div>
-            <h2 style={{ fontSize: isMobile ? '0.88rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, lineHeight: 1.2 }}>
-              Son Çözülen Testler
-            </h2>
-            {!isMobile && (
-              <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                Son 5 test ve başarı analizleriniz
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+                Savaş &amp; Çözüm Kayıtları
+              </h2>
+              <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px', color: '#10b981', borderColor: 'rgba(16,185,129,0.4)' }}>
+                ⚔️ Kayıt
               </span>
-            )}
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Son çözülen testler, netler ve başarı analizlerin
+            </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
             onClick={onOpenManualModal}
-            className="sd-btn"
+            className="game-btn-3d game-btn-emerald"
             style={{
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 99,
-              padding: isMobile ? '0.22rem 0.55rem' : '0.3rem 0.75rem',
-              fontSize: isMobile ? '0.65rem' : '0.7rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)'
+              borderRadius: 999,
+              padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
+              fontSize: '0.74rem'
             }}
           >
-            <Plus size={isMobile ? 10 : 12} />
-            <span>{isMobile ? '+ Manuel' : 'Test Sonucu Ekle'}</span>
+            <Plus size={13} />
+            <span>Fiziki Test Gir</span>
           </button>
 
           <button
             onClick={onNavigateResults}
-            className="sd-btn"
+            className="game-btn-3d"
             style={{
-              background: 'rgba(16, 185, 129, 0.12)',
-              color: '#10b981',
-              border: '1px solid rgba(16, 185, 129, 0.30)',
-              borderRadius: 99,
-              padding: isMobile ? '0.22rem 0.5rem' : '0.25rem 0.7rem',
-              fontSize: isMobile ? '0.65rem' : '0.7rem',
-              fontWeight: 900,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              border: '1.5px solid var(--color-border)',
+              borderRadius: 999,
+              padding: isMobile ? '0.35rem 0.75rem' : '0.45rem 0.95rem',
+              fontSize: '0.74rem',
+              boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
             }}
           >
-            <span>Tümü</span>
-            <ChevronRight size={isMobile ? 10 : 12} />
+            <span>Tüm Raporlar</span>
+            <ChevronRight size={13} />
           </button>
         </div>
       </div>

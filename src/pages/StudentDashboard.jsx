@@ -314,16 +314,18 @@ export default function StudentDashboard() {
 
   const [activeDashboardTab, setActiveDashboardTab] = useState(() => {
     try {
-      return localStorage.getItem('etest_student_active_tab') || 'tasks';
+      const saved = localStorage.getItem('etest_student_active_tab_v2');
+      if (saved) return saved;
+      return 'all';
     } catch {
-      return 'tasks';
+      return 'all';
     }
   });
 
   const handleTabChange = useCallback((tab) => {
     setActiveDashboardTab(tab);
     try {
-      localStorage.setItem('etest_student_active_tab', tab);
+      localStorage.setItem('etest_student_active_tab_v2', tab);
     } catch {}
   }, []);
 
@@ -3877,21 +3879,33 @@ export default function StudentDashboard() {
           flexWrap: 'wrap',
           gap: 10
         }}>
-          <div className="game-tab-bar">
-            {/* 1. Görevler */}
+          <div className="game-nav-dock">
+            {/* 1. Tüm Macera */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('all')}
+              className={`game-nav-tab ${activeDashboardTab === 'all' ? 'game-btn-3d' : ''}`}
+              style={{
+                background: activeDashboardTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'transparent',
+                color: activeDashboardTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                boxShadow: activeDashboardTab === 'all' ? '0 4px 0 #4f46e5, 0 8px 18px rgba(124, 58, 237, 0.4)' : 'none'
+              }}
+            >
+              <span>🌟 Tüm Macera</span>
+            </button>
+
+            {/* 2. Görevler */}
             <button
               type="button"
               onClick={() => handleTabChange('tasks')}
-              className="game-tab-btn"
+              className={`game-nav-tab ${activeDashboardTab === 'tasks' ? 'game-btn-3d' : ''}`}
               style={{
-                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
-                background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+                background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #3b82f6)' : 'transparent',
                 color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
-                fontSize: isMobile ? '0.78rem' : '0.86rem',
-                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none'
+                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)' : 'none'
               }}
             >
-              ⚔️ Görevler
+              <span>⚔️ Görevler</span>
               {pendingCount > 0 && (
                 <span style={{
                   background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
@@ -3906,20 +3920,18 @@ export default function StudentDashboard() {
               )}
             </button>
 
-            {/* 2. Kütüphane & Envanter */}
+            {/* 3. Kütüphane & Envanter */}
             <button
               type="button"
               onClick={() => handleTabChange('books')}
-              className="game-tab-btn"
+              className={`game-nav-tab ${activeDashboardTab === 'books' ? 'game-btn-3d' : ''}`}
               style={{
-                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
-                background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
+                background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #06b6d4)' : 'transparent',
                 color: activeDashboardTab === 'books' ? '#ffffff' : 'var(--color-text-muted)',
-                fontSize: isMobile ? '0.78rem' : '0.86rem',
-                boxShadow: activeDashboardTab === 'books' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none'
+                boxShadow: activeDashboardTab === 'books' ? '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)' : 'none'
               }}
             >
-              🎒 Kütüphane
+              <span>🎒 Kütüphane</span>
               {assignedBooksList.length > 0 && (
                 <span style={{
                   background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
@@ -3934,39 +3946,19 @@ export default function StudentDashboard() {
               )}
             </button>
 
-            {/* 3. Arena & Başarı */}
+            {/* 4. Arena & Başarı */}
             <button
               type="button"
               onClick={() => handleTabChange('analytics')}
-              className="game-tab-btn"
+              className={`game-nav-tab ${activeDashboardTab === 'analytics' ? 'game-btn-3d' : ''}`}
               style={{
-                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
                 background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
                 color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
-                fontSize: isMobile ? '0.78rem' : '0.86rem',
-                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none'
+                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)' : 'none'
               }}
             >
-              🏆 Arena & Başarı
+              <span>🏆 Arena</span>
             </button>
-
-            {/* 4. Tümü */}
-            {!isMobile && (
-              <button
-                type="button"
-                onClick={() => handleTabChange('all')}
-                className="game-tab-btn"
-                style={{
-                  padding: '0.6rem 1.35rem',
-                  background: activeDashboardTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'transparent',
-                  color: activeDashboardTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                  fontSize: '0.86rem',
-                  boxShadow: activeDashboardTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
-                }}
-              >
-                🌟 Tümü
-              </button>
-            )}
           </div>
 
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
@@ -4001,13 +3993,9 @@ export default function StudentDashboard() {
 
             {/* Birleşik Takvim & Bugünün Görevleri */}
             <div
-              className="sd-card"
+              className="game-card-elevated"
               style={{
-                padding: isMobile ? '0.75rem 0.5rem' : '1.35rem 1.6rem',
-                borderRadius: 18,
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+                padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
               }}
             >
               <DashboardWeeklyCalendar
@@ -4179,39 +4167,46 @@ export default function StudentDashboard() {
               selectedStudent={selectedStudent}
             />
 
-            {/* Günün İlhamı */}
-            <div style={{
-              background: 'var(--color-surface, #ffffff)',
-              border: '1.5px solid var(--color-border, #cbd5e1)',
-              borderRadius: 22,
-              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-              color: 'var(--color-text)'
-            }}>
+            {/* Günün İlhamı (Hikmet Parşömeni) */}
+            <div className="game-wisdom-card">
               {(() => {
                 const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
                 return (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Günün İlhamı ({currentQuote.category})
-                        </span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
+                        <div>
+                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
+                            📜 Günün İlham Parşömeni
+                          </span>
+                          <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            {currentQuote.category}
+                          </span>
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setDashQuoteIdx(p => p + 1)}
-                        style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                        className="game-btn-3d"
+                        style={{
+                          background: 'var(--color-surface)',
+                          color: 'var(--color-text)',
+                          border: '1.5px solid var(--color-border)',
+                          borderRadius: 999,
+                          padding: '0.3rem 0.75rem',
+                          fontSize: '0.7rem',
+                          boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
+                        }}
                       >
-                        <RefreshCw size={11} /> Yeni
+                        <RefreshCw size={11} /> Yeni İlham
                       </button>
                     </div>
 
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
                       "{currentQuote.quote}"
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
+                    <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
                       — {currentQuote.author}
                     </div>
                   </div>
@@ -4241,13 +4236,9 @@ export default function StudentDashboard() {
               />
 
               <div
-                className="sd-card"
+                className="game-card-elevated"
                 style={{
-                  padding: isMobile ? '0.75rem 0.5rem' : '1.35rem 1.6rem',
-                  borderRadius: 18,
-                  background: 'var(--color-surface)',
-                  border: '1.5px solid var(--color-border)',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+                  padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
                 }}
               >
                 <DashboardWeeklyCalendar
@@ -4372,38 +4363,46 @@ export default function StudentDashboard() {
                 selectedStudent={selectedStudent}
               />
 
-              <div style={{
-                background: 'var(--color-surface, #ffffff)',
-                border: '1.5px solid var(--color-border, #cbd5e1)',
-                borderRadius: 22,
-                padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-                color: 'var(--color-text)'
-              }}>
+              {/* Günün İlhamı (Hikmet Parşömeni) */}
+              <div className="game-wisdom-card">
                 {(() => {
                   const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
                   return (
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            Günün İlhamı ({currentQuote.category})
-                          </span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
+                          <div>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
+                              📜 Günün İlham Parşömeni
+                            </span>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              {currentQuote.category}
+                            </span>
+                          </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => setDashQuoteIdx(p => p + 1)}
-                          style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                          className="game-btn-3d"
+                          style={{
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                            border: '1.5px solid var(--color-border)',
+                            borderRadius: 999,
+                            padding: '0.3rem 0.75rem',
+                            fontSize: '0.7rem',
+                            boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
+                          }}
                         >
-                          <RefreshCw size={11} /> Yeni
+                          <RefreshCw size={11} /> Yeni İlham
                         </button>
                       </div>
 
-                      <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
                         "{currentQuote.quote}"
                       </div>
-                      <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
+                      <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
                         — {currentQuote.author}
                       </div>
                     </div>

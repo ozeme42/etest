@@ -241,6 +241,30 @@
    GAME HUD & MOBILE RPG QUEST STYLES
    ═══════════════════════════════════════════════════ */
 
+/* Game World Canvas */
+.student-dashboard-page {
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] .student-dashboard-page {
+  background-color: #070a14 !important;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 90% 30%, rgba(168, 85, 247, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 24px 24px !important;
+}
+
+[data-theme="light"] .student-dashboard-page {
+  background-color: #f1f4f9 !important;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 90% 30%, rgba(168, 85, 247, 0.05) 0%, transparent 45%),
+    radial-gradient(circle, rgba(99, 102, 241, 0.04) 1px, transparent 1px) !important;
+  background-size: 100% 100%, 100% 100%, 24px 24px !important;
+}
+
 /* Character HUD Container */
 .game-hud-box {
   transition: all 0.25s ease;
@@ -267,7 +291,7 @@
   height: 100%;
   background: linear-gradient(90deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%);
   border-radius: 999px;
-  box-shadow: 0 0 10px rgba(236, 72, 153, 0.7);
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.8);
   transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -292,8 +316,8 @@
 
 /* Game Resource Counter Bar */
 .game-resource-card {
-  border-radius: 14px;
-  padding: 0.55rem 0.25rem;
+  border-radius: 16px;
+  padding: 0.65rem 0.35rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -311,50 +335,308 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, transparent 65%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, transparent 65%);
   pointer-events: none;
   border-radius: inherit;
 }
 
 .game-resource-card:hover {
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-4px) scale(1.03);
 }
 
 .game-resource-card:active {
   transform: translateY(-1px) scale(0.98);
 }
 
-/* Game Tab Switcher */
-.game-tab-bar {
+/* 3D Tactile Game Buttons */
+.game-btn-3d {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: none;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.15s ease;
+  transform: translateY(0);
+  user-select: none;
+}
+
+.game-btn-primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 0 #312e81, 0 8px 18px rgba(79, 70, 229, 0.4);
+}
+.game-btn-primary:hover {
+  filter: brightness(1.08);
+}
+.game-btn-primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #312e81, 0 3px 8px rgba(79, 70, 229, 0.3);
+}
+
+.game-btn-accent {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 0 #881337, 0 8px 18px rgba(225, 29, 72, 0.4);
+}
+.game-btn-accent:hover {
+  filter: brightness(1.08);
+}
+.game-btn-accent:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #881337, 0 3px 8px rgba(225, 29, 72, 0.3);
+}
+
+.game-btn-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4);
+}
+.game-btn-emerald:hover {
+  filter: brightness(1.08);
+}
+.game-btn-emerald:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #047857, 0 3px 8px rgba(16, 185, 129, 0.3);
+}
+
+.game-btn-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 0 #92400e, 0 8px 18px rgba(245, 158, 11, 0.4);
+}
+.game-btn-gold:hover {
+  filter: brightness(1.08);
+}
+.game-btn-gold:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #92400e, 0 3px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Elevated Game Card Container */
+.game-card-elevated {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 22px;
+  box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: var(--color-text);
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .game-card-elevated {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.game-card-elevated:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* XP Reward Badge */
+.game-badge-xp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.2));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #f59e0b;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .game-badge-xp {
+  color: #fef08a;
+}
+
+/* Game Tab Switcher Dock */
+.game-nav-dock {
   display: inline-flex;
   align-items: center;
   background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  border-radius: 16px;
-  padding: 4px;
-  gap: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border: 2px solid var(--color-border);
+  border-radius: 20px;
+  padding: 5px;
+  gap: 6px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-.game-tab-btn {
+[data-theme="dark"] .game-nav-dock {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.game-nav-tab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border-radius: 12px;
+  gap: 8px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 0.88rem;
+  padding: 0.65rem 1.4rem;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
+  user-select: none;
 }
 
-.game-tab-btn:active {
-  transform: scale(0.97);
+@media (max-width: 640px) {
+  .game-nav-tab {
+    padding: 0.55rem 0.95rem;
+    font-size: 0.78rem;
+    gap: 5px;
+  }
 }
+
+.game-nav-tab:active {
+  transform: scale(0.96);
+}
+
+/* Quest Row */
+.game-quest-row {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.game-quest-row:hover {
+  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Game Realm Header ── */
+.game-realm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  padding: 0.35rem 0.2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.game-realm-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.game-realm-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+/* ── 3D Game Book Card ── */
+.game-book-card {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 18px;
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.game-book-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 14px 32px -4px rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .game-book-card {
+  background: rgba(17, 24, 39, 0.8);
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Game Stat Tile ── */
+.game-stat-tile {
+  border-radius: 14px;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: transform 0.18s ease;
+}
+
+.game-stat-tile:hover {
+  transform: scale(1.03);
+}
+
+/* ── Ancient Wisdom / Inspiration Scroll ── */
+.game-wisdom-card {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.06) 0%, rgba(236, 72, 153, 0.06) 100%), var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: 22px;
+  padding: 1.25rem 1.45rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .game-wisdom-card {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.45) 0%, rgba(88, 28, 135, 0.25) 100%), rgba(15, 23, 42, 0.9);
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+/* ── Quick Energy / Mode Toggle Pills ── */
+.game-mode-pill {
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 0.84rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.game-mode-pill:active {
+  transform: scale(0.96);
+}
+
 
 
 

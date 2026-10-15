@@ -49,57 +49,56 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
   onNavigateBookDetail
 }) {
   return (
-    <div className="sd-card" style={{
-      padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-      borderRadius: 16,
-      background: 'var(--color-surface)',
-      border: '1.5px solid var(--color-border)'
+    <div className="game-card-elevated" style={{
+      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
+            width: 36,
+            height: 36,
+            borderRadius: 12,
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.95rem',
-            boxShadow: '0 3px 10px rgba(99, 102, 241, 0.35)',
-            color: 'white'
+            fontSize: '1.15rem',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+            color: 'white',
+            flexShrink: 0
           }}>
-            <BookOpen size={16} />
+            <BookOpen size={18} />
           </div>
           <div>
-            <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-              Kitaplarım & İlerleme
-            </h2>
-            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              Kitap test, soru ve başarı ilerlemesi
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+                Soru Bankası Kitaplarım
+              </h2>
+              <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                🎒 Envanter
+              </span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Kayıtlı kitaplar, test aşamaları ve başarı haritan
             </span>
           </div>
         </div>
 
         <button
           onClick={onNavigateBooks}
-          className="sd-btn"
+          className="game-btn-3d"
           style={{
-            background: 'rgba(99, 102, 241, 0.12)',
-            color: '#6366f1',
-            border: '1px solid rgba(165, 180, 252, 0.35)',
-            borderRadius: 99,
-            padding: '0.25rem 0.75rem',
-            fontSize: '0.7rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4
+            background: 'var(--color-surface)',
+            color: 'var(--color-text)',
+            border: '1.5px solid var(--color-border)',
+            borderRadius: 999,
+            padding: isMobile ? '0.35rem 0.8rem' : '0.45rem 1.05rem',
+            fontSize: '0.74rem',
+            boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
           }}
         >
-          <span>Tümü ({assignedBooksList.length})</span>
-          <ChevronRight size={12} />
+          <span>Tüm Kitaplar ({assignedBooksList.length})</span>
+          <ChevronRight size={13} />
         </button>
       </div>
 
@@ -127,20 +126,11 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
               <div
                 key={book.id || idx}
                 onClick={() => onNavigateBookDetail && onNavigateBookDetail(book.id)}
-                className="sd-card"
+                className="game-book-card"
                 style={{
-                  background: 'var(--color-surface, #ffffff)',
-                  border: '1.5px solid var(--color-border, #e2e8f0)',
-                  borderRadius: 16,
-                  padding: isMobile ? '0.85rem' : '1.25rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: isMobile ? '0.75rem' : '0.9rem',
-                  transition: 'all 0.2s ease',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: isDark ? '0 4px 14px -2px rgba(0,0,0,0.35)' : '0 4px 14px -2px rgba(0,0,0,0.03)'
+                  borderTop: `4px solid ${pal.from}`,
+                  padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.35rem',
+                  cursor: 'pointer'
                 }}
               >
                 {/* Top Header: Title, Publisher, Remaining Days */}
@@ -285,27 +275,21 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
                     e.stopPropagation();
                     onNavigateBookDetail && onNavigateBookDetail(book.id);
                   }}
+                  className={`game-btn-3d ${isCompleted ? '' : 'game-btn-primary'}`}
                   style={{
                     width: '100%',
-                    padding: isMobile ? '0.65rem' : '0.75rem',
-                    background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
-                    color: isCompleted ? 'var(--color-text, #334155)' : '#ffffff',
-                    border: isCompleted ? '1.5px solid var(--color-border, #cbd5e1)' : 'none',
-                    borderRadius: 12,
-                    fontWeight: 900,
-                    fontSize: isMobile ? '0.8rem' : '0.88rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    boxShadow: isCompleted ? 'none' : `0 4px 14px ${pal.shadow}`,
-                    transition: 'all 0.2s ease',
-                    marginTop: 2
+                    padding: isMobile ? '0.7rem' : '0.82rem',
+                    background: isCompleted ? 'var(--color-surface)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+                    color: isCompleted ? 'var(--color-text)' : '#ffffff',
+                    border: isCompleted ? '2px solid var(--color-border)' : 'none',
+                    borderRadius: 14,
+                    fontSize: isMobile ? '0.84rem' : '0.92rem',
+                    boxShadow: isCompleted ? '0 2px 0 var(--color-border)' : `0 4px 0 ${pal.from}bb, 0 6px 16px ${pal.shadow}`,
+                    marginTop: 4
                   }}
                 >
-                  <span>{isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'}</span>
-                  <ChevronRight size={15} />
+                  <span>{isCompleted ? '📋 Haritayı Görüntüle' : '⚔️ Kitaba Devam Et'}</span>
+                  <ChevronRight size={16} />
                 </button>
               </div>
             );

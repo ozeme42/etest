@@ -13,29 +13,31 @@ const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
   const hasAnyRoadmap = hasPersonal || hasTeacherRoadmaps;
 
   return (
-    <div className="sd-card" style={{
-      padding: isMobile ? '0.95rem 0.85rem' : '1.35rem 1.6rem',
-      borderRadius: 16,
-      background: 'var(--color-surface)',
-      border: '1.5px solid var(--color-border)'
+    <div className="game-card-elevated" style={{
+      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
     }}>
       {/* Kart Başlığı */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.4rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', boxShadow: '0 3px 10px rgba(124,58,237,0.35)', color: 'white' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg, #7c3aed, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.15rem', boxShadow: '0 4px 14px rgba(124,58,237,0.4)', color: 'white', flexShrink: 0 }}>
             🗺️
           </div>
           <div>
-            <h2 style={{ fontSize: isMobile ? '0.95rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)', margin: 0 }}>
-              Yol Haritam &amp; Konu Takibi
-            </h2>
-            <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              Müfredat konu tamamlama ilerlemeniz
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+                Yol Haritam &amp; Konu Seferi
+              </h2>
+              <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px', color: '#a855f7', borderColor: 'rgba(168,85,247,0.4)' }}>
+                ⭐ Sefer
+              </span>
+            </div>
+            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Müfredat ünite basamakları ve konu tamamlama ilerlemen
             </span>
           </div>
         </div>
 
-        <span style={{ background: isDark ? 'rgba(124, 58, 237, 0.2)' : 'rgba(124, 58, 237, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', border: '1px solid rgba(168, 85, 247, 0.35)', borderRadius: 99, padding: '0.2rem 0.65rem', fontSize: '0.7rem', fontWeight: 900 }}>
+        <span style={{ background: isDark ? 'rgba(124, 58, 237, 0.2)' : 'rgba(124, 58, 237, 0.12)', color: isDark ? '#c084fc' : '#7c3aed', border: '1.5px solid rgba(168, 85, 247, 0.4)', borderRadius: 999, padding: '0.3rem 0.85rem', fontSize: '0.74rem', fontWeight: 900 }}>
           {hasPersonal && hasTeacherRoadmaps
             ? `${myRoadmaps.length + 1} Aktif Harita`
             : hasPersonal
