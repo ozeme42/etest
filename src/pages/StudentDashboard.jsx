@@ -328,7 +328,7 @@ export default function StudentDashboard() {
   }, []);
 
   const handleViewAllTasks = useCallback(() => handleTabChange('tasks'), [handleTabChange]);
-  const handleExploreBooks = useCallback(() => navigate('/student/books'), [navigate]);
+  const handleExploreBooks = useCallback(() => handleTabChange('books'), [handleTabChange]);
   const handleViewAnalytics = useCallback(() => handleTabChange('analytics'), [handleTabChange]);
 
   const handleToggleFocusMode = useCallback(() => {
@@ -3462,65 +3462,61 @@ export default function StudentDashboard() {
   return (
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px) + 0.85rem)' }}>
-      {/* styles are in StudentDashboard.css */}
       {/* ══════════════════════════════════════════════════════
-          PREMIUM VIBRANT HEADER
+          MOBILE GAME UI - PLAYER STATUS HUD & QUEST DOCK
       ══════════════════════════════════════════════════════ */}
       <div style={{
         background: isDark
-          ? 'linear-gradient(135deg, #07090e 0%, #0f172a 35%, #1e1b4b 70%, #312e81 100%)'
+          ? 'linear-gradient(135deg, #070914 0%, #0d1629 35%, #181d3d 70%, #20244f 100%)'
           : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
         position: 'relative',
         overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        paddingBottom: isMobile ? '2.2rem' : '3.2rem'
+        paddingBottom: isMobile ? '2.2rem' : '2.8rem'
       }}>
-        {/* Decorative subtle ambient glows */}
-        <div style={{ position:'absolute', top: -80, right: isMobile ? -60 : 60, width: isMobile ? 220 : 380, height: isMobile ? 220 : 380, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.18) 0%, transparent 68%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom: -60, left: '15%', width: 260, height: 260, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top: '10%', left: isMobile ? -40 : 0, width: 160, height: 160, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,0.2) 0%, transparent 70%)', pointerEvents:'none' }} />
+        {/* Subtle decorative game glow effects */}
+        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 200 : 340, height: isMobile ? 200 : 340, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.2) 0%, transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 220, height: 220, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, transparent 100%)', pointerEvents: 'none' }} />
 
-        {/* Top glowing line */}
-        <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg, transparent 0%, rgba(196,91,253,0.8) 30%, rgba(99,102,241,0.9) 55%, rgba(196,91,253,0.8) 75%, transparent 100%)', pointerEvents:'none' }} />
-
-        {/* ── Profil Satırı ── */}
+        {/* ── Player HUD Main Row ── */}
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '0.85rem 0.65rem 0.65rem' : '1.5rem clamp(1rem, 2vw, 2rem) 1rem',
+          padding: isMobile ? '0.85rem 0.75rem 0.65rem' : '1.35rem clamp(1rem, 2vw, 2.5rem) 1rem',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? '0.5rem' : '1.5rem',
+          gap: isMobile ? '0.75rem' : '1.5rem',
           position: 'relative',
           zIndex: 1,
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {/* SOL: Avatar + İsim + Rozetler */}
-          <div style={{ display:'flex', alignItems:'center', gap: isMobile ? '0.5rem' : '1.25rem', minWidth: 0, flex: 1 }}>
-
-            {/* Avatar with circular progress ring & badges */}
+          {/* SOL: Character Plate (Avatar + Lv Badge + Name + Game XP Bar) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.1rem', minWidth: 0, flex: 1 }}>
+            
+            {/* Interactive Player Avatar Frame with Circular Progress */}
             <div
               onClick={() => setIsGamificationModalOpen(true)}
               style={{
                 position: 'relative',
                 flexShrink: 0,
-                width: isMobile ? 60 : 82,
-                height: isMobile ? 60 : 82,
+                width: isMobile ? 56 : 74,
+                height: isMobile ? 56 : 74,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 transition: 'transform 0.18s ease'
               }}
-              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • Rozetleri ve Seviyeyi Görüntüle`}
+              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} • Rozetleri Gör`}
             >
-              {/* Circular Progress SVG Ring (Seviye / XP İlerleme Halkası) */}
               <svg
-                width={isMobile ? 60 : 82}
-                height={isMobile ? 60 : 82}
+                width={isMobile ? 56 : 74}
+                height={isMobile ? 56 : 74}
                 style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
               >
                 <defs>
@@ -3530,45 +3526,43 @@ export default function StudentDashboard() {
                     <stop offset="100%" stopColor="#8b5cf6" />
                   </linearGradient>
                 </defs>
-                {/* Background track circle */}
                 <circle
-                  cx={isMobile ? 30 : 41}
-                  cy={isMobile ? 30 : 41}
-                  r={isMobile ? 26 : 36.5}
+                  cx={isMobile ? 28 : 37}
+                  cy={isMobile ? 28 : 37}
+                  r={isMobile ? 24 : 33}
                   fill="none"
-                  stroke="rgba(255, 255, 255, 0.16)"
-                  strokeWidth={isMobile ? 3 : 4.5}
+                  stroke="rgba(255, 255, 255, 0.15)"
+                  strokeWidth={isMobile ? 3 : 4}
                 />
-                {/* Animated circular progress circle for Level XP */}
                 <circle
-                  cx={isMobile ? 30 : 41}
-                  cy={isMobile ? 30 : 41}
-                  r={isMobile ? 26 : 36.5}
+                  cx={isMobile ? 28 : 37}
+                  cy={isMobile ? 28 : 37}
+                  r={isMobile ? 24 : 33}
                   fill="none"
                   stroke="url(#avatarProgGrad)"
-                  strokeWidth={isMobile ? 3 : 4.5}
+                  strokeWidth={isMobile ? 3 : 4}
                   strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 26 : 36.5)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 26 : 36.5) * (1 - (studentRank.progressPercent || 0) / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 30 : 41} ${isMobile ? 30 : 41})`}
+                  strokeDasharray={`${2 * Math.PI * (isMobile ? 24 : 33)}`}
+                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 24 : 33) * (1 - (studentRank.progressPercent || 0) / 100)}`}
+                  transform={`rotate(-90 ${isMobile ? 28 : 37} ${isMobile ? 28 : 37})`}
                   style={{
                     transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                    filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.6))' : 'none'
+                    filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.7))' : 'none'
                   }}
                 />
               </svg>
 
-              {/* Inner Avatar */}
+              {/* Inner Avatar Graphic */}
               <div
                 style={{
-                  width: isMobile ? 46 : 64,
-                  height: isMobile ? 46 : 64,
+                  width: isMobile ? 44 : 58,
+                  height: isMobile ? 44 : 58,
                   borderRadius: '50%',
                   background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isMobile ? '1.5rem' : '2.15rem',
+                  fontSize: isMobile ? '1.45rem' : '1.95rem',
                   fontWeight: 900,
                   color: '#ffffff',
                   position: 'relative',
@@ -3576,237 +3570,217 @@ export default function StudentDashboard() {
                   boxShadow: `0 4px 16px ${studentRank.color || avatarColor}60`,
                   userSelect: 'none'
                 }}
-                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
               >
                 <span>{studentRank.icon || '🛡️'}</span>
               </div>
 
-              {/* Top-Right: Rank Shield Icon Badge */}
+              {/* Level Badge in Gold Polygon Pill */}
               <div
                 style={{
                   position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  zIndex: 5,
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1.5px solid rgba(255,255,255,0.4)',
-                  borderRadius: '50%',
-                  width: isMobile ? 18 : 22,
-                  height: isMobile ? 18 : 22,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isMobile ? '0.62rem' : '0.78rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)'
-                }}
-                title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} (%${studentRank.progressPercent || 0}) • Toplam: ${studentRank.totalXp || 0} XP • Sonraki: ${studentRank.nextTierTitle || 'Zirve'}`}
-              >
-                <span>{studentRank.icon || '🛡️'}</span>
-              </div>
-
-              {/* Bottom-Right: Level (Lv) Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
+                  bottom: -3,
+                  right: -3,
                   zIndex: 5,
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
-                  padding: isMobile ? '1px 4px' : '1px 7px',
-                  fontSize: isMobile ? '0.52rem' : '0.66rem',
+                  padding: isMobile ? '1px 5px' : '2px 7px',
+                  fontSize: isMobile ? '0.52rem' : '0.64rem',
                   fontWeight: 900,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
                   whiteSpace: 'nowrap',
-                  lineHeight: 1.2
+                  lineHeight: 1.1,
+                  letterSpacing: '0.04em'
                 }}
-                title={`Mevcut Seviye: Lv. ${studentRank.level} (${studentRank.title})`}
               >
                 Lv.{studentRank.level}
               </div>
-
-              {/* Bottom-Left: Level (XP) Progress % Badge */}
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  left: -2,
-                  zIndex: 5,
-                  background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
-                  color: '#ffffff',
-                  border: '2px solid #ffffff',
-                  borderRadius: 99,
-                  padding: isMobile ? '1px 3px' : '1px 6px',
-                  fontSize: isMobile ? '0.5rem' : '0.62rem',
-                  fontWeight: 900,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  whiteSpace: 'nowrap',
-                  lineHeight: 1.2
-                }}
-                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP) • Sonraki Seviye: ${studentRank.nextTierTitle || 'Zirve'}`}
-              >
-                %{studentRank.progressPercent || 0}
-              </div>
             </div>
 
-            {/* İsim + Rozetler */}
-            <div style={{ minWidth:0, flex:1 }}>
+            {/* Character Info & Real XP Progress Bar */}
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{
-                fontSize: isMobile ? '0.62rem' : '0.72rem',
+                fontSize: isMobile ? '0.6rem' : '0.7rem',
                 fontWeight: 800,
-                color:'rgba(196,181,253,0.95)',
-                textTransform:'uppercase',
-                letterSpacing:'0.12em',
+                color: 'rgba(196,181,253,0.95)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
                 marginBottom: 2,
-                display:'flex', alignItems:'center', gap:5
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
               }}>
-                <span style={{ opacity:0.85 }}>HOŞ GELDİN</span>
-                <span>👏</span>
+                <span>KAHRAMAN</span>
+                <span>•</span>
+                <span style={{
+                  background: 'rgba(245, 158, 11, 0.2)',
+                  border: '1px solid rgba(245, 158, 11, 0.45)',
+                  color: '#fef08a',
+                  padding: '1px 6px',
+                  borderRadius: 99,
+                  fontSize: isMobile ? '0.58rem' : '0.66rem',
+                  fontWeight: 900
+                }}>
+                  {studentRank.title}
+                </span>
               </div>
 
               <h1 style={{
-                fontSize: isMobile ? '1.15rem' : '1.75rem',
+                fontSize: isMobile ? '1.15rem' : '1.65rem',
                 fontWeight: 900,
-                color:'#ffffff',
-                margin:'0 0 4px 0',
-                lineHeight:1.15,
-                letterSpacing:'-0.025em',
-                textShadow:'0 3px 18px rgba(0,0,0,0.35)',
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
+                color: '#ffffff',
+                margin: '0 0 5px 0',
+                lineHeight: 1.15,
+                letterSpacing: '-0.025em',
+                textShadow: '0 2px 14px rgba(0,0,0,0.35)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
               }}>
                 {selectedStudent?.name || 'Öğrenci'}
               </h1>
 
-              {/* Pill badges */}
-              <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 4 : 6, flexWrap:'nowrap', whiteSpace:'nowrap', overflowX:'visible' }}>
-                {/* Günlük Kesintisiz Seri Rozeti */}
-                <div
-                  style={{
-                    background: studentStreak > 0
-                      ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.22))'
-                      : 'rgba(255,255,255,0.1)',
-                    border: studentStreak > 0
-                      ? '1.5px solid rgba(245, 158, 11, 0.6)'
-                      : '1px solid rgba(255,255,255,0.2)',
+              {/* Game Level XP Bar */}
+              <div
+                onClick={() => setIsGamificationModalOpen(true)}
+                style={{
+                  cursor: 'pointer',
+                  width: isMobile ? '100%' : '270px',
+                  maxWidth: '100%'
+                }}
+                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP) • Rozetleri Aç`}
+              >
+                <div style={{
+                  height: isMobile ? 7 : 8,
+                  background: 'rgba(255, 255, 255, 0.14)',
+                  borderRadius: 999,
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${studentRank.progressPercent || 0}%`,
+                    background: 'linear-gradient(90deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)',
                     borderRadius: 999,
-                    padding: isMobile ? '2px 7px' : '4px 12px',
-                    fontSize: isMobile ? '0.62rem' : '0.76rem',
-                    fontWeight: 900,
-                    color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMobile ? 3 : 4,
-                    boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : '0 2px 8px rgba(0,0,0,0.15)',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Günlük Kesintisiz Seri"
-                >
-                  <Flame size={isMobile ? 11 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8', flexShrink: 0 }} />
-                  <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
-                  {streakMultiplier > 1.0 && (
-                    <span style={{ fontSize: isMobile ? '0.55rem' : '0.6rem', background: '#f59e0b', color: '#ffffff', padding: '0 3px', borderRadius: 4, fontWeight: 900, lineHeight: 1.2 }}>
-                      {streakMultiplier}x
-                    </span>
-                  )}
+                    boxShadow: '0 0 8px rgba(245, 158, 11, 0.5)',
+                    transition: 'width 0.8s ease'
+                  }} />
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => navigate('/study-room')}
-                  className="sd-btn"
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    border: '1.5px solid rgba(255,255,255,0.35)',
-                    borderRadius: 999,
-                    padding: isMobile ? '2px 7px' : '4px 14px',
-                    fontSize: isMobile ? '0.62rem' : '0.78rem',
-                    fontWeight: 900,
-                    color: '#ffffff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: isMobile ? 3 : 4,
-                    cursor: 'pointer',
-                    boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
-                    textDecoration: 'none',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Çalışma Odasını Aç"
-                >
-                  <Headphones size={isMobile ? 11 : 14} style={{ flexShrink: 0 }} />
-                  <span>Çalışma Odası</span>
-                </button>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: isMobile ? '0.54rem' : '0.62rem',
+                  fontWeight: 800,
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  marginTop: 3
+                }}>
+                  <span>XP: {studentRank.inTierXp || 0}/{studentRank.tierSpan || 150} (%{studentRank.progressPercent || 0})</span>
+                  <span>Sonraki: {studentRank.nextTierTitle || 'Zirve'}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SAĞ: Premium Başarı Halkası */}
-          <div
-            onClick={() => navigate('/student/results')}
-            className="sd-success"
-            style={{ flexShrink:0 }}
-          >
-            <div style={{
-              width: isMobile ? 56 : 80,
-              height: isMobile ? 56 : 80,
-              position:'relative',
-              display:'flex', alignItems:'center', justifyContent:'center'
-            }}>
-              <svg width={isMobile ? 56 : 80} height={isMobile ? 56 : 80} style={{ position:'absolute', inset:0 }}>
-                <defs>
-                  <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#c084fc" />
-                    <stop offset="50%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#67e8f9" />
-                  </linearGradient>
-                </defs>
-                <circle
-                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
-                  r={isMobile ? 23 : 33}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.12)"
-                  strokeWidth={isMobile ? 3.5 : 5}
-                />
-                <circle
-                  cx={isMobile ? 28 : 40} cy={isMobile ? 28 : 40}
-                  r={isMobile ? 23 : 33}
-                  fill="none"
-                  stroke="url(#ringGrad)"
-                  strokeWidth={isMobile ? 3.5 : 5}
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 23 : 33)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 23 : 33) * (1 - overallSuccessRate / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 28 : 40} ${isMobile ? 28 : 40})`}
-                  style={{ transition:'stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)' }}
-                />
-              </svg>
-              <div style={{
-                width: isMobile ? 42 : 62,
-                height: isMobile ? 42 : 62,
-                borderRadius:'50%',
-                background:'rgba(255,255,255,0.18)',
-                border:'1.5px solid rgba(255,255,255,0.25)',
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-                boxShadow:'0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3)'
-              }}>
-                <div style={{ fontSize: isMobile ? '0.86rem' : '1.25rem', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.03em' }}>
-                  %{overallSuccessRate}
-                </div>
-                <div style={{ fontSize: isMobile ? '0.4rem' : '0.56rem', fontWeight:900, color:'rgba(196,181,253,0.9)', letterSpacing:'0.08em', marginTop:2, textTransform:'uppercase' }}>
-                  BAŞARI
-                </div>
-              </div>
+          {/* SAĞ: Game Status Pills & Quick Actions */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: isMobile ? 6 : 8,
+            flexWrap: 'wrap',
+            justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            flexShrink: 0
+          }}>
+            {/* Streak Flame Pill */}
+            <div
+              style={{
+                background: studentStreak > 0
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.22))'
+                  : 'rgba(255,255,255,0.1)',
+                border: studentStreak > 0
+                  ? '1.5px solid rgba(245, 158, 11, 0.55)'
+                  : '1px solid rgba(255,255,255,0.2)',
+                borderRadius: 999,
+                padding: isMobile ? '3px 8px' : '5px 12px',
+                fontSize: isMobile ? '0.65rem' : '0.76rem',
+                fontWeight: 900,
+                color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : 'none',
+                whiteSpace: 'nowrap'
+              }}
+              title="Günlük Kesintisiz Seri"
+            >
+              <Flame size={isMobile ? 12 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8' }} />
+              <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
+              {streakMultiplier > 1.0 && (
+                <span style={{ fontSize: '0.55rem', background: '#f59e0b', color: '#ffffff', padding: '0 4px', borderRadius: 4, fontWeight: 900 }}>
+                  {streakMultiplier}x
+                </span>
+              )}
             </div>
+
+            {/* Overall Success Pill */}
+            <button
+              type="button"
+              onClick={() => navigate('/student/results')}
+              className="sd-btn"
+              style={{
+                background: 'rgba(99, 102, 241, 0.22)',
+                border: '1.5px solid rgba(165, 180, 252, 0.45)',
+                borderRadius: 999,
+                padding: isMobile ? '3px 8px' : '5px 12px',
+                fontSize: isMobile ? '0.65rem' : '0.76rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              title="Sınav ve Ödev Başarı Raporunu Aç"
+            >
+              <span>⚡</span>
+              <span>%{overallSuccessRate} Başarı</span>
+            </button>
+
+            {/* Focus Study Room Button */}
+            <button
+              type="button"
+              onClick={() => navigate('/study-room')}
+              className="sd-btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: '1.5px solid rgba(255,255,255,0.35)',
+                borderRadius: 999,
+                padding: isMobile ? '3px 9px' : '5px 14px',
+                fontSize: isMobile ? '0.65rem' : '0.78rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
+                whiteSpace: 'nowrap'
+              }}
+              title="Çalışma Odasını Aç"
+            >
+              <Headphones size={isMobile ? 12 : 14} />
+              <span>Çalışma Odası</span>
+            </button>
           </div>
         </div>
 
-        {/* Teacher Selector */}
+        {/* Teacher Selector (if teacher previewing a student) */}
         {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth:1440, margin:'0 auto', padding: isMobile ? '0 0.85rem 0.5rem' : '0 2.5rem 0.5rem', display:'flex', alignItems:'center', gap:8, position:'relative', zIndex:1, width:'100%', boxSizing:'border-box' }}>
-            <span style={{ fontSize:'0.72rem', fontWeight:800, color:'#fde68a', whiteSpace:'nowrap' }}>👁️ Öğrenci:</span>
+          <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 0.75rem 0.5rem' : '0 clamp(1rem, 2vw, 2.5rem) 0.5rem', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 1, width: '100%', boxSizing: 'border-box' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>👁️ Öğrenci:</span>
             <select
               value={selectedStudent?.id || ''}
               onChange={e => {
@@ -3816,7 +3790,7 @@ export default function StudentDashboard() {
                   try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
                 }
               }}
-              style={{ background:'rgba(15,23,42,0.95)', color:'white', border:'1px solid rgba(255,255,255,0.25)', borderRadius:10, padding:'0.35rem 0.65rem', fontSize:'0.76rem', fontWeight:700, flex: 1, minWidth: 0 }}
+              style={{ background: 'rgba(15,23,42,0.95)', color: 'white', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '0.35rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, flex: 1, minWidth: 0 }}
             >
               {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
             </select>
@@ -3824,12 +3798,12 @@ export default function StudentDashboard() {
         )}
       </div>
 
-      {/* ── KPI Kartları — yarısı header'a biner, yarısı içeriğe taşar (Overlap) ── */}
+      {/* ── Quest Resources Dock (Görev & Statü Çantası) ── */}
       <div style={{
         maxWidth: 1440,
         margin: '0 auto',
         padding: isMobile ? '0 0.65rem' : '0 clamp(1rem, 2.5vw, 2.5rem)',
-        marginTop: isMobile ? '-26px' : '-34px',
+        marginTop: isMobile ? '-20px' : '-28px',
         position: 'relative',
         zIndex: 10,
         width: '100%',
@@ -3837,54 +3811,45 @@ export default function StudentDashboard() {
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(5, minmax(0, 1fr))' : 'repeat(5, 1fr)',
-          gap: isMobile ? '0.25rem' : '0.75rem',
+          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+          gap: isMobile ? '0.25rem' : '0.65rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label:'TOPLAM',     value: taskStats.totalCount,           emoji:'📋', grad:'linear-gradient(160deg,#4f46e5,#3730a3)',  glow:'rgba(79,70,229,0.4)',   route:'/student/homeworks' },
-            { label:'TAMAMLANDI', value: taskStats.completedCount,       emoji:'✅', grad:'linear-gradient(160deg,#059669,#047857)',   glow:'rgba(16,185,129,0.4)',  route:'/student/results' },
-            { label:'BEKLİYOR',   value: taskStats.pendingCount,         emoji:'⏳', grad:'linear-gradient(160deg,#d97706,#b45309)',   glow:'rgba(245,158,11,0.4)',  route:'/student/homeworks' },
-            { label:'GECİKTİ',   value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji:'🔥', grad:'linear-gradient(160deg,#e11d48,#be123c)',   glow:'rgba(239,68,68,0.4)',   route:'/student/homeworks' },
-            { label:'TAMAMLANMA', value: `%${taskStats.completionRate}`, emoji:'🏆', grad:'linear-gradient(160deg,#7c3aed,#6d28d9)',  glow:'rgba(139,92,246,0.4)', route:'/student/results' },
+            { label: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(160deg,#4f46e5,#3730a3)', glow: 'rgba(79,70,229,0.35)',   action: () => handleTabChange('tasks') },
+            { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(160deg,#d97706,#b45309)', glow: 'rgba(245,158,11,0.35)',  action: () => handleTabChange('tasks') },
+            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(160deg,#e11d48,#be123c)', glow: 'rgba(239,68,68,0.35)',   action: () => handleTabChange('tasks') },
+            { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(160deg,#059669,#047857)', glow: 'rgba(16,185,129,0.35)',  action: () => navigate('/student/results') },
+            { label: 'BAŞARI',     value: `%${taskStats.completionRate}`,                        emoji: '🏆', grad: 'linear-gradient(160deg,#7c3aed,#6d28d9)', glow: 'rgba(139,92,246,0.35)', action: () => navigate('/student/results') },
           ].map((kpi) => (
             <div
               key={kpi.label}
-              onClick={() => navigate(kpi.route)}
-              className="sd-kpi"
+              onClick={kpi.action}
+              className="game-resource-card"
               style={{
                 background: kpi.grad,
-                border: '1.5px solid rgba(255,255,255,0.25)',
-                borderRadius: isMobile ? 12 : 16,
-                padding: isMobile ? '0.45rem 0.2rem' : '0.8rem 0.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: `0 8px 22px ${kpi.glow}, 0 1px 0 rgba(255,255,255,0.2) inset`,
-                minHeight: isMobile ? 62 : 82,
-                minWidth: 0,
-                overflow: 'hidden'
+                border: '1.5px solid rgba(255,255,255,0.22)',
+                boxShadow: `0 6px 18px ${kpi.glow}, inset 0 1px 0 rgba(255,255,255,0.2)`,
+                minHeight: isMobile ? 56 : 72
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.85rem' : '1.25rem', lineHeight: 1, marginBottom: 3 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '0.78rem' : '1.1rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
               <div style={{
-                fontSize: isMobile ? '1.05rem' : '1.65rem',
+                fontSize: isMobile ? '0.98rem' : '1.5rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 lineHeight: 1.1,
-                letterSpacing: '-0.03em'
+                letterSpacing: '-0.02em'
               }}>
                 {kpi.value}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.42rem' : '0.64rem',
+                fontSize: isMobile ? '0.42rem' : '0.62rem',
                 fontWeight: 900,
                 color: 'rgba(255,255,255,0.92)',
-                letterSpacing: isMobile ? '0.01em' : '0.06em',
-                marginTop: 3,
+                letterSpacing: '0.04em',
+                marginTop: 2,
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -3899,29 +3864,11 @@ export default function StudentDashboard() {
       </div>
 
       {/* ════════════════════════════════════════════
-          ANA İÇERİK — DENGELİ ORTA-AÇIK SLATE TEMASI
+          ANA İÇERİK — OYUN MODU & GÖREV MERKEZİ
       ════════════════════════════════════════════ */}
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.75rem 0.65rem 1.5rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.85rem 0.65rem 2rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
 
-
-
-
-        {/* 🌟 1. ÖNCELİKLİ GÖREV / HERO FOCUS CARD */}
-        <DashboardHeroTaskCard
-          isMobile={isMobile}
-          isDark={isDark}
-          studentName={selectedStudent?.name}
-          pendingTasks={pendingTasks}
-          dayTasks={dayProgramInfo.items}
-          catchUpTasks={catchUpTasks}
-          onStartHomework={handleHwClick}
-          onStartDayTask={handleTaskAction}
-          onViewAllTasks={handleViewAllTasks}
-          onExploreBooks={handleExploreBooks}
-          onViewAnalytics={handleViewAnalytics}
-        />
-
-        {/* 🎛️ 2. GÖRÜNÜM MODU SEÇİCİ (SEGMENTED VIEW SWITCHER) */}
+        {/* 🎛️ GAME MODE SWITCHER (MACERA MODLARI) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -3930,41 +3877,26 @@ export default function StudentDashboard() {
           flexWrap: 'wrap',
           gap: 10
         }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(241, 245, 249, 0.95)',
-            border: '1.5px solid var(--color-border)',
-            borderRadius: 16,
-            padding: 4,
-            gap: 4,
-            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-          }}>
+          <div className="game-tab-bar">
+            {/* 1. Görevler */}
             <button
               type="button"
               onClick={() => handleTabChange('tasks')}
+              className="game-tab-btn"
               style={{
-                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
-                borderRadius: 12,
-                border: 'none',
+                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
                 background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
                 color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
-                fontWeight: activeDashboardTab === 'tasks' ? 900 : 700,
-                fontSize: isMobile ? '0.78rem' : '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
-                transition: 'all 0.2s ease'
+                fontSize: isMobile ? '0.78rem' : '0.86rem',
+                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none'
               }}
             >
-              🎯 Görevler & Ödevler
+              ⚔️ Görevler
               {pendingCount > 0 && (
                 <span style={{
                   background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
                   color: activeDashboardTab === 'tasks' ? '#ffffff' : '#ef4444',
-                  fontSize: '0.68rem',
+                  fontSize: '0.66rem',
                   fontWeight: 900,
                   padding: '0.1rem 0.45rem',
                   borderRadius: 99
@@ -3974,46 +3906,62 @@ export default function StudentDashboard() {
               )}
             </button>
 
+            {/* 2. Kütüphane & Envanter */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('books')}
+              className="game-tab-btn"
+              style={{
+                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
+                background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'transparent',
+                color: activeDashboardTab === 'books' ? '#ffffff' : 'var(--color-text-muted)',
+                fontSize: isMobile ? '0.78rem' : '0.86rem',
+                boxShadow: activeDashboardTab === 'books' ? '0 4px 14px rgba(2, 132, 199, 0.35)' : 'none'
+              }}
+            >
+              🎒 Kütüphane
+              {assignedBooksList.length > 0 && (
+                <span style={{
+                  background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
+                  color: activeDashboardTab === 'books' ? '#ffffff' : '#0284c7',
+                  fontSize: '0.66rem',
+                  fontWeight: 900,
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: 99
+                }}>
+                  {assignedBooksList.length}
+                </span>
+              )}
+            </button>
+
+            {/* 3. Arena & Başarı */}
             <button
               type="button"
               onClick={() => handleTabChange('analytics')}
+              className="game-tab-btn"
               style={{
-                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
-                borderRadius: 12,
-                border: 'none',
+                padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.35rem',
                 background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
                 color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
-                fontWeight: activeDashboardTab === 'analytics' ? 900 : 700,
-                fontSize: isMobile ? '0.78rem' : '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
-                transition: 'all 0.2s ease'
+                fontSize: isMobile ? '0.78rem' : '0.86rem',
+                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none'
               }}
             >
-              📊 Gelişim & Analiz
+              🏆 Arena & Başarı
             </button>
 
+            {/* 4. Tümü */}
             {!isMobile && (
               <button
                 type="button"
                 onClick={() => handleTabChange('all')}
+                className="game-tab-btn"
                 style={{
-                  padding: '0.6rem 1.4rem',
-                  borderRadius: 12,
-                  border: 'none',
+                  padding: '0.6rem 1.35rem',
                   background: activeDashboardTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'transparent',
                   color: activeDashboardTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                  fontWeight: activeDashboardTab === 'all' ? 900 : 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  boxShadow: activeDashboardTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none',
-                  transition: 'all 0.2s ease'
+                  fontSize: '0.86rem',
+                  boxShadow: activeDashboardTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none'
                 }}
               >
                 🌟 Tümü
@@ -4022,22 +3970,36 @@ export default function StudentDashboard() {
           </div>
 
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {activeDashboardTab === 'tasks' && '📌 Günlük görevlerinize ve ödevlerinize odaklanıyorsunuz'}
-            {activeDashboardTab === 'analytics' && '📈 Soru sayıları, seviye ve haftalık başarı analizi'}
-            {activeDashboardTab === 'all' && '✨ Tüm paneller aynı anda görüntüleniyor'}
+            {activeDashboardTab === 'tasks' && '⚔️ Günlük Görevler: Bugünün ders programı, takvim ve öğretmen ödevlerin.'}
+            {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
+            {activeDashboardTab === 'analytics' && '🏆 Arena & İstatistik: Seviye rozetlerin, soru analizlerin, hedeflerin ve sınav geçmişin.'}
+            {activeDashboardTab === 'all' && '🌟 Tam Macera Görünümü: Tüm modül ve paneller tek ekranda.'}
           </div>
         </div>
 
         {/* ════════════════════════════════════════════
-            4. ANA GRID (SOL: GÜNÜN GÖREVLERİ & TAKVİM, ÖDEVLER & TESTLER | SAĞ: PERİYODİK ANALİZ, HEDEFLER & İLHAM)
+            MACERA PANELLERİ
         ════════════════════════════════════════════ */}
-        <div className={(!focusModeOnly && activeDashboardTab === 'all') ? "sd-grid-layout" : "sd-single-layout"}>
 
-          {/* ──── SOL KOLON: GÜNÜN GÖREVLERİ & TAKVİM, ÇALIŞMA, ÖDEVLER & TESTLER ──── */}
-          {(!focusModeOnly ? (activeDashboardTab === 'tasks' || activeDashboardTab === 'all') : true) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+        {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
+        {activeDashboardTab === 'tasks' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+            {/* Öncelikli Görev Spotlight */}
+            <DashboardHeroTaskCard
+              isMobile={isMobile}
+              isDark={isDark}
+              studentName={selectedStudent?.name}
+              pendingTasks={pendingTasks}
+              dayTasks={dayProgramInfo.items}
+              catchUpTasks={catchUpTasks}
+              onStartHomework={handleHwClick}
+              onStartDayTask={handleTaskAction}
+              onViewAllTasks={handleViewAllTasks}
+              onExploreBooks={handleExploreBooks}
+              onViewAnalytics={handleViewAnalytics}
+            />
 
-            {/* 🎯 BİRLEŞİK TAKVİM & GÜNÜN GÖREVLERİ KARTI */}
+            {/* Birleşik Takvim & Bugünün Görevleri */}
             <div
               className="sd-card"
               style={{
@@ -4048,7 +4010,6 @@ export default function StudentDashboard() {
                 boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
               }}
             >
-              {/* ── ÜST KISIM: HAFTALIK ÇALIŞMA & GÖREV TAKVİMİ ── */}
               <DashboardWeeklyCalendar
                 isMobile={isMobile}
                 isDark={isDark}
@@ -4061,14 +4022,12 @@ export default function StudentDashboard() {
                 onAddTask={handleOpenAddTask}
               />
 
-              {/* ── BİRLEŞİK AYIRICI ÇİZGİ ── */}
               <div style={{
                 height: 1,
                 background: 'var(--color-border)',
                 margin: isMobile ? '0.85rem 0' : '1.1rem 0'
               }} />
 
-              {/* ── ALT KISIM: SEÇİLEN GÜNÜN GÖREVLERİ (BUGÜN NE YAPACAĞIM?) ── */}
               <DashboardTodayTasks
                 isMobile={isMobile}
                 isDark={isDark}
@@ -4090,42 +4049,15 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* 📋 BÖLÜM 2: ÖDEVLERİM & GÖREV TAKİBİ */}
+            {/* Öğretmen Ödevleri */}
             {!focusModeOnly && (
-              <>
-                <DashboardHomeworksCard
-                  isMobile={isMobile}
-                  pendingCount={pendingCount}
-                  pendingTasks={pendingTasks}
-                  onHwClick={handleHwClick}
-                  getRowTheme={getRowTheme}
-                />
-
-                {/* 📖 BÖLÜM 3: KİTAPLARIM & İLERLEME HARİTASI (SORU BANKASI) */}
-                <DashboardBooksCard
-                  isMobile={isMobile}
-                  isDark={isDark}
-                  assignedBooksList={assignedBooksList}
-                  onNavigateBooks={handleNavigateBooks}
-                  onNavigateBookDetail={handleNavigateBookDetail}
-                />
-
-                {/* 📚 BÖLÜM 3.5: KİTAP OKUMA & ALIŞKANLIK TAKİBİ */}
-                <DashboardReadingCard
-                  isMobile={isMobile}
-                  isDark={isDark}
-                  onNavigateReading={handleNavigateReading}
-                />
-
-                {/* 🗺️ BÖLÜM 4: YOL HARİTAM & KONU TAKİBİ */}
-                <DashboardRoadmapCard
-                  isMobile={isMobile}
-                  isDark={isDark}
-                  personalRoadmap={personalRoadmap}
-                  myRoadmaps={myRoadmaps}
-                  onNavigateRoadmap={handleNavigateRoadmap}
-                />
-              </>
+              <DashboardHomeworksCard
+                isMobile={isMobile}
+                pendingCount={pendingCount}
+                pendingTasks={pendingTasks}
+                onHwClick={handleHwClick}
+                getRowTheme={getRowTheme}
+              />
             )}
 
             {focusModeOnly && (
@@ -4162,13 +4094,238 @@ export default function StudentDashboard() {
               </div>
             )}
           </div>
-          )}
+        )}
 
-          {/* ──── SAĞ KOLON: ANALİZLER, HEDEFLERİM & İLHAM ──── */}
-          {!focusModeOnly && (activeDashboardTab === 'analytics' || activeDashboardTab === 'all') && (
+        {/* ── 2. MOD: KÜTÜPHANE & ENVANTER (🎒 INVENTORY) ── */}
+        {activeDashboardTab === 'books' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+            {/* Soru Bankası Kitaplarım */}
+            <DashboardBooksCard
+              isMobile={isMobile}
+              isDark={isDark}
+              assignedBooksList={assignedBooksList}
+              onNavigateBooks={handleNavigateBooks}
+              onNavigateBookDetail={handleNavigateBookDetail}
+            />
+
+            {/* Kitap Okuma & Alışkanlık Takibi */}
+            <DashboardReadingCard
+              isMobile={isMobile}
+              isDark={isDark}
+              onNavigateReading={handleNavigateReading}
+            />
+
+            {/* Yol Haritam & Konu Takibi */}
+            <DashboardRoadmapCard
+              isMobile={isMobile}
+              isDark={isDark}
+              personalRoadmap={personalRoadmap}
+              myRoadmaps={myRoadmaps}
+              onNavigateRoadmap={handleNavigateRoadmap}
+            />
+          </div>
+        )}
+
+        {/* ── 3. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
+        {activeDashboardTab === 'analytics' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+            {/* Gamification Seviye & Rozet Kartı */}
+            <StudentGamificationCard
+              student={selectedStudent}
+              submissions={studentSubmissions}
+              homeworks={homeworks}
+              books={books}
+              bookTests={bookTests}
+              mockExams={studentMockExams}
+              studySessions={[]}
+              users={users}
+              gamificationData={studentGamification}
+            />
+
+            {/* Periyodik Soru & Başarı Analizi */}
+            <div>
+              {isAnalyticsReady ? (
+                <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
+                  <PeriodicQuestionAnalytics
+                    homeworkSubmissions={otherHomeworkSubmissions}
+                    mockExams={generalTrialExams}
+                    studentName={selectedStudent?.name || 'Öğrenci'}
+                  />
+                </Suspense>
+              ) : (
+                <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
+                  📊 Analiz hazırlanıyor…
+                </div>
+              )}
+            </div>
+
+            {/* Hedef Takip Panosu */}
+            <DashboardGoalsCard
+              isMobile={isMobile}
+              goalTrackingData={goalTrackingData}
+              solvedQuestionsStats={solvedQuestionsStats}
+              onNavigateGoals={handleNavigateGoals}
+              onUpdateGoalProgress={updateGoalProgress}
+              goalTypeThemes={GOAL_TYPE_THEMES}
+            />
+
+            {/* Son Çözülen Testler */}
+            <DashboardRecentSolvedCard
+              isMobile={isMobile}
+              recentSolvedTests={recentSolvedTests}
+              onOpenManualModal={handleOpenManualModal}
+              onNavigateResults={handleNavigateResults}
+              onReviewTest={handleReviewRecentTest}
+              selectedStudent={selectedStudent}
+            />
+
+            {/* Günün İlhamı */}
+            <div style={{
+              background: 'var(--color-surface, #ffffff)',
+              border: '1.5px solid var(--color-border, #cbd5e1)',
+              borderRadius: 22,
+              padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+              color: 'var(--color-text)'
+            }}>
+              {(() => {
+                const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+                return (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '1.1rem' }}>{currentQuote.emoji}</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Günün İlhamı ({currentQuote.category})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setDashQuoteIdx(p => p + 1)}
+                        style={{ background: 'var(--color-surface-hover, #f1f5f9)', border: '1px solid var(--color-border-input, #cbd5e1)', borderRadius: 8, padding: '0.25rem 0.5rem', color: 'var(--color-text, #334155)', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <RefreshCw size={11} /> Yeni
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text, #1e293b)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 6 }}>
+                      "{currentQuote.quote}"
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '0.72rem', fontWeight: 800, color: '#c084fc' }}>
+                      — {currentQuote.author}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ── 4. MOD: TÜM PANELLER (🌟 ALL MODULES - 2 COLUMN GRID) ── */}
+        {activeDashboardTab === 'all' && (
+          <div className="sd-grid-layout">
+            {/* SOL KOLON: Görevler, Takvim, Ödevler, Kitaplar, Yol Haritası */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+              <DashboardHeroTaskCard
+                isMobile={isMobile}
+                isDark={isDark}
+                studentName={selectedStudent?.name}
+                pendingTasks={pendingTasks}
+                dayTasks={dayProgramInfo.items}
+                catchUpTasks={catchUpTasks}
+                onStartHomework={handleHwClick}
+                onStartDayTask={handleTaskAction}
+                onViewAllTasks={handleViewAllTasks}
+                onExploreBooks={handleExploreBooks}
+                onViewAnalytics={handleViewAnalytics}
+              />
 
-              {/* 🎮 OYUNLAŞTIRMA & SEVİYE KARTI */}
+              <div
+                className="sd-card"
+                style={{
+                  padding: isMobile ? '0.75rem 0.5rem' : '1.35rem 1.6rem',
+                  borderRadius: 18,
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid var(--color-border)',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)'
+                }}
+              >
+                <DashboardWeeklyCalendar
+                  isMobile={isMobile}
+                  isDark={isDark}
+                  daysOfWeek={DAYS_OF_WEEK}
+                  activeDayKey={activeDayKey}
+                  todayDayKey={todayDayKey}
+                  weekTasksCountMap={weekTasksCountMap}
+                  weekInfo={weekInfo}
+                  onSelectDay={setActiveDayKey}
+                  onAddTask={handleOpenAddTask}
+                />
+
+                <div style={{
+                  height: 1,
+                  background: 'var(--color-border)',
+                  margin: isMobile ? '0.85rem 0' : '1.1rem 0'
+                }} />
+
+                <DashboardTodayTasks
+                  isMobile={isMobile}
+                  isDark={isDark}
+                  activeDayConfig={activeDayConfig}
+                  dayProgramInfo={dayProgramInfo}
+                  catchUpTasks={catchUpTasks}
+                  showAllDayTasks={showAllDayTasks}
+                  setShowAllDayTasks={setShowAllDayTasks}
+                  onToggleTask={handleToggleTask}
+                  onTaskClick={handleTaskAction}
+                  getRowTheme={getRowTheme}
+                  onAddTask={handleOpenAddTask}
+                />
+
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    Haftalık Programa Git <ChevronRight size={13} />
+                  </Link>
+                </div>
+              </div>
+
+              {!focusModeOnly && (
+                <>
+                  <DashboardHomeworksCard
+                    isMobile={isMobile}
+                    pendingCount={pendingCount}
+                    pendingTasks={pendingTasks}
+                    onHwClick={handleHwClick}
+                    getRowTheme={getRowTheme}
+                  />
+
+                  <DashboardBooksCard
+                    isMobile={isMobile}
+                    isDark={isDark}
+                    assignedBooksList={assignedBooksList}
+                    onNavigateBooks={handleNavigateBooks}
+                    onNavigateBookDetail={handleNavigateBookDetail}
+                  />
+
+                  <DashboardReadingCard
+                    isMobile={isMobile}
+                    isDark={isDark}
+                    onNavigateReading={handleNavigateReading}
+                  />
+
+                  <DashboardRoadmapCard
+                    isMobile={isMobile}
+                    isDark={isDark}
+                    personalRoadmap={personalRoadmap}
+                    myRoadmaps={myRoadmaps}
+                    onNavigateRoadmap={handleNavigateRoadmap}
+                  />
+                </>
+              )}
+            </div>
+
+            {/* SAĞ KOLON: Analizler, Rozetler, Hedefler, İlham */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
               <StudentGamificationCard
                 student={selectedStudent}
                 submissions={studentSubmissions}
@@ -4181,7 +4338,6 @@ export default function StudentDashboard() {
                 gamificationData={studentGamification}
               />
 
-              {/* 📊 BÖLÜM 1: PERİYODİK SORU & BAŞARI ANALİZİ (GÜNLÜK / HAFTALIK / AYLIK) */}
               <div>
                 {isAnalyticsReady ? (
                   <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
@@ -4198,7 +4354,6 @@ export default function StudentDashboard() {
                 )}
               </div>
 
-              {/* 🎯 BÖLÜM 2: HEDEF TAKİP PANOSU */}
               <DashboardGoalsCard
                 isMobile={isMobile}
                 goalTrackingData={goalTrackingData}
@@ -4208,7 +4363,6 @@ export default function StudentDashboard() {
                 goalTypeThemes={GOAL_TYPE_THEMES}
               />
 
-              {/* 📝 BÖLÜM 3: SON ÇÖZÜLEN TESTLER */}
               <DashboardRecentSolvedCard
                 isMobile={isMobile}
                 recentSolvedTests={recentSolvedTests}
@@ -4218,7 +4372,6 @@ export default function StudentDashboard() {
                 selectedStudent={selectedStudent}
               />
 
-              {/* 🎯 BÖLÜM 5: GÜNÜN MOTİVASYONU & İLHAMI */}
               <div style={{
                 background: 'var(--color-surface, #ffffff)',
                 border: '1.5px solid var(--color-border, #cbd5e1)',
@@ -4257,11 +4410,9 @@ export default function StudentDashboard() {
                   );
                 })()}
               </div>
-
             </div>
-          )}
-
-        </div>
+          </div>
+        )}
 
       </div>
 
