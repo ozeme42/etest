@@ -1,45 +1,14 @@
-import React from 'react';
-import { BookOpen, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { BookOpen, ChevronRight, Trophy, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const BOOK_PALETTES = [
-  { from: '#4f46e5', to: '#6366f1', gradient: 'linear-gradient(135deg, #4f46e5, #6366f1)', border: '#818cf8', shadow: 'rgba(99, 102, 241, 0.35)', tag: '#6366f1' },
-  { from: '#059669', to: '#10b981', gradient: 'linear-gradient(135deg, #059669, #10b981)', border: '#34d399', shadow: 'rgba(16, 185, 129, 0.35)', tag: '#10b981' },
-  { from: '#d97706', to: '#f59e0b', gradient: 'linear-gradient(135deg, #d97706, #f59e0b)', border: '#fbbf24', shadow: 'rgba(245, 158, 11, 0.35)', tag: '#f59e0b' },
-  { from: '#e11d48', to: '#f43f5e', gradient: 'linear-gradient(135deg, #e11d48, #f43f5e)', border: '#fb7185', shadow: 'rgba(244, 63, 94, 0.35)', tag: '#f43f5e' },
-  { from: '#7c3aed', to: '#9333ea', gradient: 'linear-gradient(135deg, #7c3aed, #9333ea)', border: '#c084fc', shadow: 'rgba(147, 51, 234, 0.35)', tag: '#7c3aed' },
-  { from: '#0891b2', to: '#06b6d4', gradient: 'linear-gradient(135deg, #0891b2, #06b6d4)', border: '#38bdf8', shadow: 'rgba(6, 182, 212, 0.35)', tag: '#0891b2' },
+  { from: '#3b82f6', to: '#1d4ed8', border: '#60a5fa', shadow: 'rgba(59, 130, 246, 0.4)', tag: '#2563eb' },
+  { from: '#10b981', to: '#047857', border: '#34d399', shadow: 'rgba(16, 185, 129, 0.4)', tag: '#059669' },
+  { from: '#f59e0b', to: '#b45309', border: '#fbbf24', shadow: 'rgba(245, 158, 11, 0.4)', tag: '#d97706' },
+  { from: '#ec4899', to: '#be185d', border: '#f472b6', shadow: 'rgba(236, 72, 153, 0.4)', tag: '#db2777' },
+  { from: '#8b5cf6', to: '#6d28d9', border: '#c084fc', shadow: 'rgba(139, 92, 246, 0.4)', tag: '#7c3aed' },
+  { from: '#06b6d4', to: '#0e7490', border: '#38bdf8', shadow: 'rgba(6, 182, 212, 0.4)', tag: '#0891b2' },
 ];
-
-function MiniCircularProgress({ pct = 0, size = 44, stroke = 4.5, color = '#6366f1' }) {
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (pct / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="transparent"
-        stroke="var(--color-border, #e2e8f0)"
-        strokeWidth={stroke}
-      />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="transparent"
-        stroke={color}
-        strokeWidth={stroke}
-        strokeDasharray={circumference}
-        strokeDashoffset={strokeDashoffset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-      />
-    </svg>
-  );
-}
 
 const DashboardBooksCard = React.memo(function DashboardBooksCard({
   isMobile,
@@ -48,38 +17,261 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
   onNavigateBooks,
   onNavigateBookDetail
 }) {
+  const [showCompletedBooks, setShowCompletedBooks] = useState(false);
+
+  const activeBooks = useMemo(() => {
+    return (assignedBooksList || []).filter(b => (b.progressPct || 0) < 100);
+  }, [assignedBooksList]);
+
+  const completedBooks = useMemo(() => {
+    return (assignedBooksList || []).filter(b => (b.progressPct || 0) >= 100);
+  }, [assignedBooksList]);
+
+  const renderBookItem = (book, idx, isCompleted) => {
+    const pal = BOOK_PALETTES[idx % BOOK_PALETTES.length];
+
+    return (
+      <div
+        key={book.id || idx}
+        onClick={() => onNavigateBookDetail && onNavigateBookDetail(book.id)}
+        className="game-book-card"
+        style={{
+          borderTop: `5px solid ${isCompleted ? '#10b981' : pal.from}`,
+          borderLeft: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
+          borderRight: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
+          borderBottom: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
+          padding: isMobile ? '1.05rem 0.95rem' : '1.35rem 1.45rem',
+          cursor: 'pointer',
+          background: isDark
+            ? (isCompleted ? 'rgba(16, 185, 129, 0.05)' : 'rgba(15, 23, 42, 0.9)')
+            : (isCompleted ? '#f0fdf4' : '#ffffff'),
+          boxShadow: isCompleted
+            ? '0 6px 20px rgba(16, 185, 129, 0.12)'
+            : `0 8px 24px ${pal.shadow}20`
+        }}
+      >
+        {/* Top Header: Title, Publisher, Badge */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontWeight: 900,
+                fontSize: isMobile ? '0.98rem' : '1.12rem',
+                color: 'var(--color-text, #0f172a)',
+                lineHeight: 1.3,
+                wordBreak: 'break-word',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>{book.title}</span>
+                {isCompleted && (
+                  <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
+                )}
+              </div>
+              {book.publisher && (
+                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, marginTop: 2 }}>
+                  🏢 {book.publisher}
+                </div>
+              )}
+            </div>
+
+            {isCompleted ? (
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '3px 9px',
+                borderRadius: 999,
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                color: '#ffffff',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}>
+                ✓ BİTTİ
+              </span>
+            ) : book.remainingDays !== null ? (
+              <span style={{
+                fontSize: '0.68rem',
+                fontWeight: 900,
+                padding: '3px 9px',
+                borderRadius: 999,
+                background: book.remainingDays <= 3 
+                  ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
+                  : 'linear-gradient(135deg, #0284c7, #0369a1)',
+                color: '#ffffff',
+                boxShadow: book.remainingDays <= 3 ? '0 2px 8px rgba(239, 68, 68, 0.35)' : 'none',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
+              }}>
+                {book.remainingDays === 0 ? '🔥 Bugün Son' : `⏳ ${book.remainingDays} gün`}
+              </span>
+            ) : (
+              <span className="game-badge-xp" style={{ fontSize: '0.65rem' }}>
+                +30 XP
+              </span>
+            )}
+          </div>
+
+          {/* Subjects */}
+          {(book.subjects || []).length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+              {(book.subjects || []).slice(0, 4).map((subj, sIdx) => (
+                <span
+                  key={subj.id || sIdx}
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+                    color: isDark ? '#e2e8f0' : '#334155',
+                    border: '1.5px solid var(--color-border)',
+                    borderRadius: 8,
+                    padding: '2px 8px',
+                    fontSize: '0.66rem',
+                    fontWeight: 800
+                  }}
+                >
+                  {subj.name}
+                </span>
+              ))}
+              {(book.subjects || []).length > 4 && (
+                <span style={{
+                  background: 'var(--color-surface-hover)',
+                  color: 'var(--color-text-muted)',
+                  border: '1.5px solid var(--color-border)',
+                  borderRadius: 8,
+                  padding: '2px 7px',
+                  fontSize: '0.66rem',
+                  fontWeight: 900
+                }}>
+                  +{(book.subjects || []).length - 4}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Test Progress Box */}
+        <div style={{
+          background: isDark ? 'rgba(30, 41, 59, 0.65)' : '#f8fafc',
+          borderRadius: 16,
+          padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+          border: '1.5px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Test İlerlemesi
+            </span>
+            <span style={{
+              fontSize: '0.88rem',
+              fontWeight: 900,
+              color: isCompleted ? '#10b981' : pal.tag,
+              background: isCompleted ? 'rgba(16, 185, 129, 0.15)' : `${pal.tag}22`,
+              border: `1px solid ${isCompleted ? '#10b981' : pal.tag}50`,
+              padding: '2px 10px',
+              borderRadius: 999
+            }}>
+              %{book.progressPct}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? '0.84rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            <span>{book.totalSolvedTests} / {book.totalBookTests} test tamamlandı</span>
+            <span style={{ fontSize: '0.74rem', color: isCompleted ? '#10b981' : 'var(--color-text-muted)', fontWeight: 800 }}>
+              {book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} test kaldı` : '🎉 Tamamı Bitti'}
+            </span>
+          </div>
+
+          <div style={{ height: 9, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 999, overflow: 'hidden', marginTop: 3 }}>
+            <div style={{
+              width: `${book.progressPct}%`,
+              height: '100%',
+              background: isCompleted
+                ? 'linear-gradient(90deg, #10b981, #059669)'
+                : `linear-gradient(90deg, ${pal.from}, #8b5cf6)`,
+              borderRadius: 999,
+              boxShadow: isCompleted ? '0 0 8px rgba(16, 185, 129, 0.5)' : `0 0 8px ${pal.shadow}`,
+              transition: 'width 0.6s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı - Göz Alıcı Renkler */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 6 : 8 }}>
+          <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5', border: '1.5px solid #10b981', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.64rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
+            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
+          </div>
+          <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fef2f2', border: '1.5px solid #ef4444', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.64rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
+            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
+          </div>
+          <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.18)' : '#f8fafc', border: '1.5px solid #94a3b8', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
+            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 1 }}>{book.totalBlank}</div>
+          </div>
+          <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff', border: '1.5px solid #3b82f6', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.64rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
+            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#3b82f6', marginTop: 1 }}>%{book.successRate}</div>
+          </div>
+        </div>
+
+        {/* 3D Action Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigateBookDetail && onNavigateBookDetail(book.id);
+          }}
+          className={`game-btn-3d ${isCompleted ? 'game-btn-emerald' : 'game-btn-primary'}`}
+          style={{
+            width: '100%',
+            padding: isMobile ? '0.75rem' : '0.85rem',
+            borderRadius: 14,
+            fontSize: isMobile ? '0.86rem' : '0.94rem',
+            marginTop: 4
+          }}
+        >
+          <span>{isCompleted ? '🏆 Haritayı & Sonuçları İncele' : '⚔️ Kitaba Devam Et'}</span>
+          <ChevronRight size={17} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="game-card-elevated" style={{
       padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.15rem', flexWrap: 'wrap', gap: '0.6rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: 12,
+            width: 40,
+            height: 40,
+            borderRadius: 14,
             background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.15rem',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+            fontSize: '1.25rem',
+            boxShadow: '0 6px 18px rgba(99, 102, 241, 0.45)',
             color: 'white',
             flexShrink: 0
           }}>
-            <BookOpen size={18} />
+            <BookOpen size={20} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <h2 style={{ fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.28rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
                 Soru Bankası Kitaplarım
               </h2>
-              <span className="game-badge-xp" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
-                🎒 Envanter
+              <span className="game-badge-xp" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                🎒 {activeBooks.length} Aktif Kitap
               </span>
             </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-              Kayıtlı kitaplar, test aşamaları ve başarı haritan
+            <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+              Kayıtlı kitaplar, test basamakları ve başarı haritan
             </span>
           </div>
         </div>
@@ -90,10 +282,10 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
           style={{
             background: 'var(--color-surface)',
             color: 'var(--color-text)',
-            border: '1.5px solid var(--color-border)',
+            border: '2px solid var(--color-border)',
             borderRadius: 999,
-            padding: isMobile ? '0.35rem 0.8rem' : '0.45rem 1.05rem',
-            fontSize: '0.74rem',
+            padding: isMobile ? '0.4rem 0.85rem' : '0.5rem 1.15rem',
+            fontSize: '0.76rem',
             boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
           }}
         >
@@ -103,197 +295,89 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
       </div>
 
       {assignedBooksList.length === 0 ? (
-        <div style={{ padding: '2rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 16, border: '1px dashed var(--color-border-input, #cbd5e1)' }}>
-          <div style={{ fontSize: '2.2rem', marginBottom: 6 }}>📚</div>
-          <div style={{ fontWeight: 800, color: 'var(--color-text, #0f172a)', fontSize: '0.92rem', marginBottom: 4 }}>
+        <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 20, border: '2px dashed var(--color-border-input, #cbd5e1)' }}>
+          <div style={{ fontSize: '2.6rem', marginBottom: 8 }}>📚</div>
+          <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '1rem', marginBottom: 4 }}>
             Henüz kayıtlı veya atanmış bir kitap bulunmuyor
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #64748b)' }}>
+          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
             Kitap eklendiğinde veya ödev verildiğinde kitap ilerleme haritanız burada listelenecektir.
           </div>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : (assignedBooksList.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
-          gap: isMobile ? '0.75rem' : '1.25rem'
-        }}>
-          {assignedBooksList.map((book, idx) => {
-            const pal = (BOOK_PALETTES && BOOK_PALETTES[idx % BOOK_PALETTES.length]) || { from: '#6366f1', to: '#4f46e5', tag: '#6366f1', shadow: 'rgba(99,102,241,0.3)' };
-            const isCompleted = book.progressPct >= 100;
+        <div>
+          {/* 1. AKTİF (DEVAM EDEN) KİTAPLAR */}
+          {activeBooks.length === 0 ? (
+            <div style={{
+              padding: '1.75rem 1.25rem',
+              borderRadius: 18,
+              background: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
+              border: '2px solid #10b981',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <span style={{ fontSize: '2.2rem' }}>🎉</span>
+              <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#10b981' }}>
+                Harika İş! Tüm Aktif Kitaplarını Bitirdin!
+              </div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600, maxWidth: 420 }}>
+                Şu anda devam eden aktif bir kitabın kalmadı. Biten kitaplarını aşağıdaki butondan inceleyebilir veya kütüphaneden yeni kitap ekleyebilirsin.
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : (activeBooks.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
+              gap: isMobile ? '0.85rem' : '1.35rem'
+            }}>
+              {activeBooks.map((book, idx) => renderBookItem(book, idx, false))}
+            </div>
+          )}
 
-            return (
-              <div
-                key={book.id || idx}
-                onClick={() => onNavigateBookDetail && onNavigateBookDetail(book.id)}
-                className="game-book-card"
+          {/* 2. BİTEN KİTAPLAR (AYRICA AÇILIR) */}
+          {completedBooks.length > 0 && (
+            <div style={{ marginTop: '1.35rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowCompletedBooks(prev => !prev)}
+                className="game-btn-3d game-btn-emerald"
                 style={{
-                  borderTop: `4px solid ${pal.from}`,
-                  padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.35rem',
-                  cursor: 'pointer'
+                  width: '100%',
+                  padding: isMobile ? '0.8rem 1rem' : '0.95rem 1.35rem',
+                  borderRadius: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  fontSize: isMobile ? '0.88rem' : '0.98rem'
                 }}
               >
-                {/* Top Header: Title, Publisher, Remaining Days */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 900, fontSize: isMobile ? '0.9rem' : '1.05rem', color: 'var(--color-text, #0f172a)', lineHeight: 1.3, wordBreak: 'break-word' }}>
-                        {book.title}
-                      </div>
-                      {book.publisher && (
-                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700, marginTop: 2 }}>
-                          {book.publisher}
-                        </div>
-                      )}
-                    </div>
-
-                    {book.remainingDays !== null && (
-                      <span style={{
-                        fontSize: '0.64rem',
-                        fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: 99,
-                        background: book.remainingDays <= 3 
-                          ? (isDark ? 'rgba(239, 68, 68, 0.18)' : '#fee2e2') 
-                          : (isDark ? 'rgba(16, 185, 129, 0.18)' : '#f0fdf4'),
-                        color: book.remainingDays <= 3 ? '#ef4444' : '#10b981',
-                        border: isDark 
-                          ? (book.remainingDays <= 3 ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)') 
-                          : (book.remainingDays <= 3 ? '1px solid #fca5a5' : '1px solid #86efac'),
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0
-                      }}>
-                        {book.remainingDays === 0 ? '🔥 Bugün Son' : `⏳ ${book.remainingDays} gün`}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Subjects */}
-                  {(book.subjects || []).length > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
-                      {(book.subjects || []).slice(0, 4).map((subj, sIdx) => (
-                        <span
-                          key={subj.id || sIdx}
-                          style={{
-                            background: 'var(--color-surface-hover, #f1f5f9)',
-                            color: 'var(--color-text, #475569)',
-                            border: '1px solid var(--color-border, #cbd5e1)',
-                            borderRadius: 6,
-                            padding: '2px 7px',
-                            fontSize: '0.64rem',
-                            fontWeight: 700
-                          }}
-                        >
-                          {subj.name}
-                        </span>
-                      ))}
-                      {(book.subjects || []).length > 4 && (
-                        <span style={{
-                          background: 'var(--color-surface-hover, #f1f5f9)',
-                          color: 'var(--color-text-muted, #64748b)',
-                          border: '1px solid var(--color-border, #cbd5e1)',
-                          borderRadius: 6,
-                          padding: '2px 6px',
-                          fontSize: '0.64rem',
-                          fontWeight: 800
-                        }}>
-                          +{(book.subjects || []).length - 4}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: '1.25rem' }}>🏆</span>
+                  <span style={{ fontWeight: 900 }}>Biten / Tamamlanan Kitaplar ({completedBooks.length})</span>
                 </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 900 }}>
+                  <span>{showCompletedBooks ? 'Kapat' : 'Görüntüle / İncele'}</span>
+                  {showCompletedBooks ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </div>
+              </button>
 
-                {/* Test Progress Box - Clean & Spacious */}
+              {showCompletedBooks && (
                 <div style={{
-                  background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc',
-                  borderRadius: 14,
-                  padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1.1rem',
-                  border: '1px solid var(--color-border, #e2e8f0)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6
+                  marginTop: '1rem',
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : (completedBooks.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
+                  gap: isMobile ? '0.85rem' : '1.35rem',
+                  animation: 'sdFadeUp 0.25s ease'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: 'var(--color-text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Test İlerlemesi
-                    </span>
-                    <span style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 900,
-                      color: isCompleted ? '#10b981' : pal.tag,
-                      background: isCompleted ? 'rgba(16, 185, 129, 0.12)' : `${pal.tag}18`,
-                      padding: '2px 8px',
-                      borderRadius: 99
-                    }}>
-                      %{book.progressPct}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? '0.82rem' : '0.88rem', fontWeight: 800, color: 'var(--color-text, #0f172a)' }}>
-                    <span>{book.totalSolvedTests} / {book.totalBookTests} test</span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 600 }}>
-                      {book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} test kaldı` : '🎉 Tamamlandı'}
-                    </span>
-                  </div>
-
-                  <div style={{ height: 7, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginTop: 2 }}>
-                    <div style={{
-                      width: `${book.progressPct}%`,
-                      height: '100%',
-                      background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
-                      borderRadius: 99,
-                      transition: 'width 0.6s ease'
-                    }} />
-                  </div>
+                  {completedBooks.map((book, idx) => renderBookItem(book, idx, true))}
                 </div>
-
-                {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı - Ferah ve Dengeli */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 5 : 8 }}>
-                  <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.12)' : '#f0fdf4', border: isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #bbf7d0', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Doğru</div>
-                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#10b981', marginTop: 2 }}>{book.totalCorrect}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid #fecaca', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Yanlış</div>
-                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#ef4444', marginTop: 2 }}>{book.totalWrong}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? '1px solid rgba(148, 163, 184, 0.25)' : '1px solid #e2e8f0', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Boş</div>
-                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: 'var(--color-text, #64748b)', marginTop: 2 }}>{book.totalBlank}</div>
-                  </div>
-                  <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.12)' : '#eff6ff', border: isDark ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #bfdbfe', borderRadius: 10, padding: isMobile ? '0.4rem 0.2rem' : '0.55rem 0.35rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.62rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Başarı</div>
-                    <div style={{ fontSize: isMobile ? '0.92rem' : '1.15rem', fontWeight: 900, color: '#3b82f6', marginTop: 2 }}>%{book.successRate}</div>
-                  </div>
-                </div>
-
-                {/* Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNavigateBookDetail && onNavigateBookDetail(book.id);
-                  }}
-                  className={`game-btn-3d ${isCompleted ? '' : 'game-btn-primary'}`}
-                  style={{
-                    width: '100%',
-                    padding: isMobile ? '0.7rem' : '0.82rem',
-                    background: isCompleted ? 'var(--color-surface)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
-                    color: isCompleted ? 'var(--color-text)' : '#ffffff',
-                    border: isCompleted ? '2px solid var(--color-border)' : 'none',
-                    borderRadius: 14,
-                    fontSize: isMobile ? '0.84rem' : '0.92rem',
-                    boxShadow: isCompleted ? '0 2px 0 var(--color-border)' : `0 4px 0 ${pal.from}bb, 0 6px 16px ${pal.shadow}`,
-                    marginTop: 4
-                  }}
-                >
-                  <span>{isCompleted ? '📋 Haritayı Görüntüle' : '⚔️ Kitaba Devam Et'}</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

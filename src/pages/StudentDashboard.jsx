@@ -3819,11 +3819,11 @@ export default function StudentDashboard() {
           boxSizing: 'border-box'
         }}>
           {[
-            { label: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(160deg,#4f46e5,#3730a3)', glow: 'rgba(79,70,229,0.35)',   action: () => handleTabChange('tasks') },
-            { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(160deg,#d97706,#b45309)', glow: 'rgba(245,158,11,0.35)',  action: () => handleTabChange('tasks') },
-            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(160deg,#e11d48,#be123c)', glow: 'rgba(239,68,68,0.35)',   action: () => handleTabChange('tasks') },
-            { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(160deg,#059669,#047857)', glow: 'rgba(16,185,129,0.35)',  action: () => navigate('/student/results') },
-            { label: 'BAŞARI',     value: `%${taskStats.completionRate}`,                        emoji: '🏆', grad: 'linear-gradient(160deg,#7c3aed,#6d28d9)', glow: 'rgba(139,92,246,0.35)', action: () => navigate('/student/results') },
+            { label: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5 0%, #312e81 100%)', border: '#818cf8', glow: 'rgba(79,70,229,0.5)',   action: () => handleTabChange('tasks') },
+            { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
+            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('tasks') },
+            { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
+            { label: 'BAŞARI',     value: `%${taskStats.completionRate}`,                        emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
           ].map((kpi) => (
             <div
               key={kpi.label}
@@ -3831,32 +3831,35 @@ export default function StudentDashboard() {
               className="game-resource-card"
               style={{
                 background: kpi.grad,
-                border: '1.5px solid rgba(255,255,255,0.22)',
-                boxShadow: `0 6px 18px ${kpi.glow}, inset 0 1px 0 rgba(255,255,255,0.2)`,
-                minHeight: isMobile ? 56 : 72
+                border: '2px solid rgba(255,255,255,0.35)',
+                borderRadius: isMobile ? 14 : 18,
+                boxShadow: `0 8px 24px ${kpi.glow}, inset 0 2px 0 rgba(255,255,255,0.35)`,
+                minHeight: isMobile ? 60 : 76
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.78rem' : '1.1rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '0.85rem' : '1.2rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
               <div style={{
-                fontSize: isMobile ? '0.98rem' : '1.5rem',
+                fontSize: isMobile ? '1.05rem' : '1.55rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 lineHeight: 1.1,
-                letterSpacing: '-0.02em'
+                letterSpacing: '-0.02em',
+                textShadow: '0 2px 8px rgba(0,0,0,0.3)'
               }}>
                 {kpi.value}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.42rem' : '0.62rem',
+                fontSize: isMobile ? '0.46rem' : '0.64rem',
                 fontWeight: 900,
-                color: 'rgba(255,255,255,0.92)',
-                letterSpacing: '0.04em',
+                color: '#ffffff',
+                letterSpacing: '0.05em',
                 marginTop: 2,
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                maxWidth: '100%'
+                maxWidth: '100%',
+                textShadow: '0 1px 3px rgba(0,0,0,0.4)'
               }}>
                 {kpi.label}
               </div>
