@@ -1811,13 +1811,23 @@ export default function TeacherStudentMistakesPool({
                       type="button"
                       onClick={() => {
                         const rawSub = test.rawSubmission;
-                        const isPhysExam = Boolean(
+                        const isHtmlOrDigital = Boolean(
+                          rawSub?.isHtml ||
+                          rawSub?.contentType === 'html' ||
+                          rawSub?.formatType === 'html' ||
+                          rawSub?.htmlPayload ||
+                          test.contentType === 'html' ||
+                          test.formatType === 'html' ||
+                          test.htmlPayload ||
+                          test.sourceType === 'questionBank' ||
+                          rawSub?.sourceType === 'questionBank'
+                        );
+                        const isPhysExam = !isHtmlOrDigital && Boolean(
                           rawSub?.type === 'physicalExam' ||
                           rawSub?.contentType === 'physicalExam' ||
                           rawSub?.isPhysical ||
                           isExamBook(rawSub) ||
-                          isExamBook(activeBook) ||
-                          (test.fullTitle && (test.fullTitle.toLowerCase().includes('deneme') || test.fullTitle.toLowerCase().includes('hazır bulunuşluk') || test.fullTitle.toLowerCase().includes('hazir bulunusluk')))
+                          isExamBook(activeBook)
                         );
 
                         if (isPhysExam) {

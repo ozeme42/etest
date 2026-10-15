@@ -70,6 +70,19 @@ export function isExamBook(b) {
   if (!b) return false;
   const raw = b.raw_data || {};
 
+  // NEVER treat HTML tests, Question Bank tests, or digital slicer tests as exam books!
+  if (
+    b.formatType === 'html' || raw.formatType === 'html' ||
+    b.contentType === 'html' || raw.contentType === 'html' ||
+    b.type === 'html' || raw.type === 'html' ||
+    b.htmlPayload || raw.htmlPayload ||
+    b.sourceType === 'questionBank' || raw.sourceType === 'questionBank' ||
+    b.isRemedialTest || raw.isRemedialTest ||
+    b.sourceType === 'pdfSlicer' || raw.sourceType === 'pdfSlicer'
+  ) {
+    return false;
+  }
+
   // If this object has a parent bookId of a standard book, it is a sub-test, NOT a standalone exam!
   if (b.bookId && !b.bookType && !b.book_type && !b.isPhysical && b.type !== 'physicalExam' && b.contentType !== 'physicalExam') {
     return false;

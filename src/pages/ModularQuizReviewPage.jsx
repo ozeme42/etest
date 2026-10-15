@@ -59,13 +59,30 @@ export default function ModularQuizReviewPage() {
     // Early Check: If targetId points directly to a physical exam or exam book, redirect immediately
     const earlyHw = (homeworks || []).find(h => String(h.id) === String(targetId) || toUUID(h.id) === String(targetId));
     const earlyBook = (books || []).find(b => String(b.id) === String(targetId) || toUUID(b.id) === String(targetId));
-    if (earlyHw && (earlyHw.type === 'physicalExam' || earlyHw.contentType === 'physicalExam' || earlyHw.isPhysical || isExamBook(earlyHw))) {
-      navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
-      return;
-    }
-    if (earlyBook && isExamBook(earlyBook)) {
-      navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
-      return;
+    const isEarlyHtml = Boolean(
+      earlyHw?.contentType === 'html' ||
+      earlyHw?.raw_data?.contentType === 'html' ||
+      earlyHw?.formatType === 'html' ||
+      earlyHw?.raw_data?.formatType === 'html' ||
+      earlyHw?.type === 'html' ||
+      earlyHw?.htmlPayload ||
+      earlyHw?.raw_data?.htmlPayload ||
+      earlyHw?.sourceType === 'questionBank' ||
+      earlyHw?.raw_data?.sourceType === 'questionBank' ||
+      earlyBook?.contentType === 'html' ||
+      earlyBook?.raw_data?.contentType === 'html' ||
+      earlyBook?.formatType === 'html' ||
+      earlyBook?.htmlPayload
+    );
+    if (!isEarlyHtml) {
+      if (earlyHw && (earlyHw.type === 'physicalExam' || earlyHw.contentType === 'physicalExam' || earlyHw.isPhysical || isExamBook(earlyHw))) {
+        navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
+        return;
+      }
+      if (earlyBook && isExamBook(earlyBook)) {
+        navigate(`/physical-exam/${targetId}?studentId=${effectiveStudentId}&from=${fromPath || '/student'}`, { replace: true });
+        return;
+      }
     }
 
     const { submission: unifiedSub, test: unifiedTest } = findUnifiedSubmissionOrTest(targetId, {
@@ -192,6 +209,21 @@ export default function ModularQuizReviewPage() {
           return new Date(b.submittedAt || b.evaluatedAt || 0) - new Date(a.submittedAt || a.evaluatedAt || 0);
         });
         foundSubmission = candidates[0];
+        if (foundSubmission && foundSubmission.raw_data && typeof foundSubmission.raw_data === 'object') {
+          foundSubmission = {
+            ...foundSubmission.raw_data,
+            ...foundSubmission,
+            answers: foundSubmission.answers || foundSubmission.raw_data.answers,
+            answersMap: foundSubmission.answersMap || foundSubmission.raw_data.answersMap,
+            studentAnswers: foundSubmission.studentAnswers || foundSubmission.raw_data.studentAnswers,
+            htmlPayload: foundSubmission.htmlPayload || foundSubmission.raw_data.htmlPayload,
+            contentPayload: foundSubmission.contentPayload || foundSubmission.raw_data.contentPayload,
+            contentType: foundSubmission.contentType || foundSubmission.raw_data.contentType,
+            correctCount: foundSubmission.correctCount ?? foundSubmission.raw_data.correct_count ?? foundSubmission.raw_data.correctCount,
+            wrongCount: foundSubmission.wrongCount ?? foundSubmission.raw_data.wrong_count ?? foundSubmission.raw_data.wrongCount,
+            blankCount: foundSubmission.blankCount ?? foundSubmission.raw_data.empty_count ?? foundSubmission.raw_data.blankCount
+          };
+        }
       }
     }
 
@@ -208,7 +240,11 @@ export default function ModularQuizReviewPage() {
           return matchStudent && matchTest;
         }) || hwSubs.find(s => String(s.id) === String(targetId) || String(s.submissionId) === String(targetId));
         if (matchSub) {
-          foundSubmission = { ...matchSub, hwId: parentHw.id };
+          foundSubmission = {
+            ...(matchSub.raw_data || {}),
+            ...matchSub,
+            hwId: parentHw.id
+          };
           if (!foundTest) foundTest = parentHw;
         }
       }
@@ -239,7 +275,31 @@ export default function ModularQuizReviewPage() {
       );
 
       if (foundTest) {
-        const isBookHw = Boolean(
+        if (foundTest.raw_data && typeof foundTest.raw_data === 'object') {
+          foundTest = {
+            ...foundTest.raw_data,
+            ...foundTest,
+            contentType: foundTest.raw_data.contentType || foundTest.contentType,
+            htmlPayload: foundTest.raw_data.htmlPayload || foundTest.htmlPayload,
+            contentPayload: foundTest.raw_data.contentPayload || foundTest.contentPayload,
+            formatType: foundTest.raw_data.formatType || foundTest.formatType,
+            sections: foundTest.raw_data.sections || foundTest.sections,
+            answerKey: foundTest.raw_data.answerKey || foundTest.answerKey,
+            questions: foundTest.raw_data.questions || foundTest.questions
+          };
+        }
+
+        const isDigitalOrHtml = Boolean(
+          foundTest.contentType === 'html' ||
+          foundTest.formatType === 'html' ||
+          foundTest.type === 'html' ||
+          foundTest.htmlPayload ||
+          foundTest.sourceType === 'questionBank' ||
+          foundSubmission?.sourceType === 'questionBank' ||
+          foundSubmission?.isHtml
+        );
+
+        const isBookHw = !isDigitalOrHtml && Boolean(
           foundTest.isBookAssignment ||
           foundTest.sourceType === 'trackedBook' ||
           foundTest.bookId ||
@@ -470,12 +530,16 @@ export default function ModularQuizReviewPage() {
         questionsList: foundSubmission.questionsList || [],
         imageUrl: foundSubmission.imageUrl || (foundSubmission.imageUrls && foundSubmission.imageUrls[0]) || '',
         imageUrls: foundSubmission.imageUrls || [],
-        contentPayload: foundSubmission.contentPayload || '',
+        htmlPayload: foundSubmission.htmlPayload || foundSubmission.raw_data?.htmlPayload || '',
+        contentPayload: foundSubmission.contentPayload || foundSubmission.raw_data?.contentPayload || '',
+        contentType: foundSubmission.contentType || foundSubmission.raw_data?.contentType || (foundSubmission.isHtml ? 'html' : undefined),
+        formatType: foundSubmission.formatType || foundSubmission.raw_data?.formatType || (foundSubmission.isHtml ? 'html' : ''),
         questionCount: foundSubmission.totalQuestions || (foundSubmission.answers?.length) || 1,
-        sourceFormat: foundSubmission.sourceFormat || 'digital',
+        sourceFormat: foundSubmission.sourceFormat || (foundSubmission.isHtml ? 'html' : 'digital'),
         sourceType: foundSubmission.sourceType || 'questionBank',
         isRemedial: foundSubmission.isRemedial || false,
-        isRemedialTest: foundSubmission.isRemedialTest || false
+        isRemedialTest: foundSubmission.isRemedialTest || false,
+        raw_data: foundSubmission.raw_data || null
       };
     }
 
@@ -492,8 +556,25 @@ export default function ModularQuizReviewPage() {
       };
     }
 
-    // 🛡️ Always link parent book metadata (pdfUrl, bookTitle) from books for tracked book tests
-    if (foundTest || foundSubmission) {
+    // 🛡️ Always link parent book metadata (pdfUrl, bookTitle) from books for tracked book tests (NEVER overwrite HTML/digital tests)
+    const isDigitalOrHtmlTest = Boolean(
+      foundTest?.contentType === 'html' ||
+      foundTest?.raw_data?.contentType === 'html' ||
+      foundTest?.formatType === 'html' ||
+      foundTest?.type === 'html' ||
+      foundTest?.htmlPayload ||
+      foundTest?.raw_data?.htmlPayload ||
+      foundTest?.sourceType === 'questionBank' ||
+      foundSubmission?.contentType === 'html' ||
+      foundSubmission?.raw_data?.contentType === 'html' ||
+      foundSubmission?.formatType === 'html' ||
+      foundSubmission?.type === 'html' ||
+      foundSubmission?.htmlPayload ||
+      foundSubmission?.raw_data?.htmlPayload ||
+      foundSubmission?.isHtml
+    );
+
+    if (!isDigitalOrHtmlTest && (foundTest || foundSubmission)) {
       const targetBookId = foundTest?.bookId || foundTest?.book_id || foundSubmission?.bookId || foundSubmission?.book_id;
       const targetBookTitle = foundTest?.bookTitle || foundSubmission?.bookTitle;
       const testIdToMatch = String(foundTest?.id || foundSubmission?.testId || resolvedTestId || '');
@@ -562,7 +643,7 @@ export default function ModularQuizReviewPage() {
             pdfPayload: bankQ?.pdfPayload || (typeof item === 'object' ? item.pdfPayload : null),
             contentPayload: bankQ?.contentPayload || (typeof item === 'object' ? item.contentPayload : null),
             pdfUrl: bankQ?.pdfUrl || (typeof item === 'object' ? item.pdfUrl : null),
-            htmlPayload: bankQ?.htmlPayload || (typeof item === 'object' ? item.htmlPayload : null),
+            htmlPayload: bankQ?.htmlPayload || (typeof item === 'object' ? (item.htmlPayload || item.contentPayload) : null),
             contentType: (typeof item === 'object' ? item.contentType : null) || bankQ?.contentType,
             questionType: (typeof item === 'object' ? item.questionType : null) || bankQ?.questionType,
             questionCount: qCount,
@@ -574,6 +655,13 @@ export default function ModularQuizReviewPage() {
 
       if (sections.length > 0) {
         foundTest = { ...foundTest, sections };
+        if (!foundTest.htmlPayload) {
+          const secWithHtml = sections.find(s => s.htmlPayload || (typeof s.contentPayload === 'string' && s.contentPayload.includes('.html')));
+          if (secWithHtml) {
+            foundTest.htmlPayload = secWithHtml.htmlPayload || secWithHtml.contentPayload;
+            foundTest.contentType = 'html';
+          }
+        }
       } else {
         const singleQId = (Array.isArray(questionIdList) && questionIdList.length === 1)
           ? (typeof questionIdList[0] === 'object' ? (questionIdList[0].id || questionIdList[0].questionId) : questionIdList[0])
@@ -747,18 +835,37 @@ export default function ModularQuizReviewPage() {
         ''
       ).toLowerCase();
 
-      const hasExamKeywords = titleToCheck.includes('deneme') || 
-        titleToCheck.includes('hazır bulunuşluk') || 
-        titleToCheck.includes('hazir bulunusluk') ||
-        titleToCheck.includes('lgs') ||
-        titleToCheck.includes('tyt') ||
-        titleToCheck.includes('ayt') ||
-        titleToCheck.includes('yks') ||
-        titleToCheck.includes('msü') ||
-        titleToCheck.includes('kpss') ||
-        titleToCheck.includes('dgs');
+      const isHtmlTest = Boolean(
+        foundTest?.contentType === 'html' ||
+        foundTest?.raw_data?.contentType === 'html' ||
+        foundTest?.formatType === 'html' ||
+        foundTest?.raw_data?.formatType === 'html' ||
+        foundTest?.type === 'html' ||
+        foundTest?.htmlPayload ||
+        foundTest?.raw_data?.htmlPayload ||
+        foundSubmission?.contentType === 'html' ||
+        foundSubmission?.raw_data?.contentType === 'html' ||
+        foundSubmission?.formatType === 'html' ||
+        foundSubmission?.raw_data?.formatType === 'html' ||
+        foundSubmission?.type === 'html' ||
+        foundSubmission?.htmlPayload ||
+        foundSubmission?.raw_data?.htmlPayload ||
+        foundSubmission?.isHtml ||
+        foundTest?.sourceType === 'questionBank' ||
+        matchedHw?.sourceType === 'questionBank' ||
+        foundTest?.raw_data?.sourceType === 'questionBank'
+      );
 
-      const isPhysicalExam = Boolean(
+      const isPdfTest = Boolean(
+        foundTest?.contentType === 'pdf' ||
+        foundTest?.formatType === 'pdf' ||
+        foundTest?.pdfPayload ||
+        foundTest?.pdfUrl ||
+        foundSubmission?.contentType === 'pdf' ||
+        foundSubmission?.formatType === 'pdf'
+      );
+
+      const isPhysicalExam = !isHtmlTest && !isPdfTest && Boolean(
         foundTest?.type === 'physicalExam' ||
         foundSubmission?.type === 'physicalExam' ||
         foundSubmission?.contentType === 'physicalExam' ||
@@ -773,11 +880,7 @@ export default function ModularQuizReviewPage() {
         isExamBook(foundTest) ||
         isExamBook(foundSubmission) ||
         isExamBook(matchedBook) ||
-        isExamBook(matchedHw) ||
-        hasExamKeywords ||
-        (Array.isArray(foundSubmission?.sections) && foundSubmission.sections.length > 1) ||
-        (Array.isArray(foundTest?.sections) && foundTest.sections.length > 1) ||
-        (Array.isArray(foundSubmission?.subjectStats) && foundSubmission.subjectStats.length > 1)
+        isExamBook(matchedHw)
       );
 
       if (isPhysicalExam) {
@@ -1042,17 +1145,34 @@ export default function ModularQuizReviewPage() {
     (str.includes('.pdf') && !str.includes('<html') && !str.includes('<!DOCTYPE'))
   );
 
-  const isHtml = isValidHtmlStr(test.contentPayload) || isValidHtmlStr(test.payload) || Boolean(
+  const isHtml = isValidHtmlStr(test.contentPayload) || isValidHtmlStr(test.payload) || isValidHtmlStr(test.htmlPayload) || isValidHtmlStr(test.raw_data?.contentPayload) || isValidHtmlStr(test.raw_data?.htmlPayload) || Boolean(
     test.htmlPayload ||
+    test.raw_data?.htmlPayload ||
+    (typeof test.contentPayload === 'string' && test.contentPayload.includes('.html')) ||
+    (typeof test.payload === 'string' && test.payload.includes('.html')) ||
+    (typeof test.raw_data?.contentPayload === 'string' && test.raw_data.contentPayload.includes('.html')) ||
+    (typeof submission?.htmlPayload === 'string') ||
+    (typeof submission?.raw_data?.htmlPayload === 'string') ||
+    (typeof submission?.contentPayload === 'string' && submission.contentPayload.includes('.html')) ||
+    (typeof submission?.raw_data?.contentPayload === 'string' && submission.raw_data.contentPayload.includes('.html')) ||
     test.sourceFormat === 'html' ||
     test.formatType === 'html' ||
     test.contentType === 'html' ||
     test.type === 'html' ||
+    test.raw_data?.contentType === 'html' ||
+    test.raw_data?.formatType === 'html' ||
     test.questionType === 'html' ||
+    submission?.sourceFormat === 'html' ||
+    submission?.formatType === 'html' ||
+    submission?.contentType === 'html' ||
+    submission?.type === 'html' ||
+    submission?.isHtml ||
     hasExplicitHtmlQuestions ||
     (test.title && String(test.title).toLowerCase().includes('html')) ||
     (test.name && String(test.name).toLowerCase().includes('html')) ||
-    (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('html'))
+    (submission?.testTitle && String(submission.testTitle).toLowerCase().includes('html')) ||
+    (test.sections && Array.isArray(test.sections) && test.sections.some(s => s.contentType === 'html' || s.htmlPayload || (typeof s.contentPayload === 'string' && s.contentPayload.includes('.html')))) ||
+    (test.raw_data?.sections && Array.isArray(test.raw_data.sections) && test.raw_data.sections.some(s => s.contentType === 'html' || s.htmlPayload || (typeof s.contentPayload === 'string' && s.contentPayload.includes('.html'))))
   );
 
   const isPdf = !isHtml && !isValidHtmlStr(test.contentPayload) && !isValidHtmlStr(test.payload) && Boolean(
@@ -1115,7 +1235,7 @@ export default function ModularQuizReviewPage() {
   );
 
   // Paper book tests, optical form tests, and tracked book tests
-  const isBookOrOptical = !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
+  const isBookOrOptical = !isHtml && !isPdf && !hasExplicitImageQuestions && (isBookOrPhysicalTest || Boolean(
     test.isBookAssignment ||
     test.sourceType === 'trackedBook' ||
     test.sourceType === 'bookTest' ||
@@ -1156,7 +1276,7 @@ export default function ModularQuizReviewPage() {
     ))
   ));
 
-  const isPhysical = isBookOrOptical;
+  const isPhysical = !isHtml && isBookOrOptical;
 
   const hasMultipleDistinctSections = Boolean(
     (test.sections && Array.isArray(test.sections) && test.sections.length > 1) ||
@@ -1168,7 +1288,7 @@ export default function ModularQuizReviewPage() {
     (submission.answers && Array.isArray(submission.answers) && new Set(submission.answers.map(a => a.sectionId || a.sectionIndex).filter(x => x !== undefined && x !== null)).size > 1)
   );
 
-  const isMultiSection = !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
+  const isMultiSection = !isHtml && !isPhysical && !isBookOrOptical && (hasMultipleDistinctSections || Boolean(
     test.isBulk ||
     test.isMulti ||
     test.isComposite
@@ -1224,8 +1344,20 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 1. Physical & Tracked Book Review (Supports Optical Multiple Choice + Linked PDF/E-book)
-  if (isPhysical || isBookOrOptical) {
+  // 1. Single HTML Review (Must precede physical / book checks)
+  if (isHtml) {
+    return (
+      <HtmlQuizReview
+        submission={submission}
+        test={test}
+        questions={questions}
+        onClose={handleCloseReview}
+      />
+    );
+  }
+
+  // 2. Physical & Tracked Book Review (Supports Optical Multiple Choice + Linked PDF/E-book)
+  if (!isHtml && (isPhysical || isBookOrOptical)) {
     return (
       <PhysicalQuizReview
         submission={submission}
@@ -1236,7 +1368,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 2. Multi-section composite homework
+  // 3. Multi-section composite homework
   if (isMultiSection) {
     return (
       <CompositeHomeworkReview
@@ -1249,7 +1381,7 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 3. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
+  // 4. Single Open-Ended Review / Teacher Grading (For Digital Question Bank homework)
   if (!isPhysical && !isBookOrOptical && (isExplicitOpenEnded || isSingleOE)) {
     return (
       <SingleOpenEndedReview
@@ -1262,22 +1394,10 @@ export default function ModularQuizReviewPage() {
     );
   }
 
-  // 4. Single PDF Review (Rendered with PDF Document viewer + questions/optical panel)
+  // 5. Single PDF Review (Rendered with PDF Document viewer + questions/optical panel)
   if (isPdf) {
     return (
       <PdfQuizReview
-        submission={submission}
-        test={test}
-        questions={questions}
-        onClose={handleCloseReview}
-      />
-    );
-  }
-
-  // 5. Single HTML Review
-  if (isHtml) {
-    return (
-      <HtmlQuizReview
         submission={submission}
         test={test}
         questions={questions}

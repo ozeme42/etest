@@ -874,7 +874,17 @@ export default function ModularQuizPage() {
   // If this is a physical exam or tracked book test, redirect to the appropriate specialized runner
   useEffect(() => {
     if (test && !isRetake) {
-      const isPhysicalExam = (
+      const isHtmlOrDigital = Boolean(
+        test.contentType === 'html' ||
+        test.raw_data?.contentType === 'html' ||
+        test.formatType === 'html' ||
+        test.raw_data?.formatType === 'html' ||
+        test.type === 'html' ||
+        test.htmlPayload ||
+        test.raw_data?.htmlPayload ||
+        test.sourceType === 'questionBank'
+      );
+      const isPhysicalExam = !isHtmlOrDigital && (
         test.type === 'physicalExam' ||
         test.contentType === 'physicalExam' ||
         test.bookType === 'exam' ||

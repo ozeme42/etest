@@ -352,7 +352,11 @@ export default function StudentBookDetailsPage() {
 
   const handleReviewTest = useCallback((test) => {
     if (!test) return;
-    const isExam = isExamBook(book) || test.type === 'physicalExam' || test.contentType === 'physicalExam' || (test.title && test.title.toLowerCase().includes('deneme'));
+    const isHtmlOrDigital = Boolean(
+      test.isHtml || test.contentType === 'html' || test.formatType === 'html' || test.htmlPayload ||
+      test.raw_data?.contentType === 'html' || test.raw_data?.htmlPayload || test.sourceType === 'questionBank'
+    );
+    const isExam = !isHtmlOrDigital && (isExamBook(book) || test.type === 'physicalExam' || test.contentType === 'physicalExam');
     if (isExam) {
       navigate(`/physical-exam/${test.hwId || book?.id || test.id}?studentId=${studentId}&submissionId=${test.bestSub?.id || test.latestSubId || test.submissionId || test.submission?.id || ''}&fromTeacher=${isFromTeacher}`, {
         state: { from: `/student/books/${book?.id}?studentId=${studentId}&fromTeacher=${isFromTeacher}` }

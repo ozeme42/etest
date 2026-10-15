@@ -285,11 +285,23 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
   };
 
   const isValidPayload = (p) => typeof p === 'string' && p.trim().length > 5 && p !== '[STORED_IN_INDEXEDDB]' && p !== '[LOCALSTORAGE_CACHE]';
+  const isHtmlUrl = (url) => typeof url === 'string' && (url.includes('.html') || url.includes('/question_files/'));
+
+  const sectionHtmlPayload = (test?.sections || test?.raw_data?.sections || submission?.sections || submission?.raw_data?.sections || [])
+    .map(s => s?.htmlPayload || (typeof s?.contentPayload === 'string' && (s.contentPayload.includes('.html') || s.contentPayload.includes('<html')) ? s.contentPayload : null))
+    .find(isValidPayload);
 
   const directCandidate = [
     test?.htmlPayload, test?.contentPayload, test?.raw_data?.htmlPayload, test?.raw_data?.contentPayload,
+    sectionHtmlPayload,
     questions[0]?.htmlPayload, questions[0]?.contentPayload,
-    submission?.htmlPayload, submission?.contentPayload, submission?.raw_data?.htmlPayload, submission?.raw_data?.contentPayload
+    submission?.htmlPayload, submission?.contentPayload, submission?.raw_data?.htmlPayload, submission?.raw_data?.contentPayload,
+    isHtmlUrl(test?.url) ? test.url : null,
+    isHtmlUrl(test?.link) ? test.link : null,
+    isHtmlUrl(test?.pdfUrl) ? test.pdfUrl : null,
+    isHtmlUrl(test?.raw_data?.url) ? test.raw_data.url : null,
+    isHtmlUrl(test?.raw_data?.link) ? test.raw_data.link : null,
+    isHtmlUrl(submission?.url) ? submission.url : null
   ].find(isValidPayload) || null;
 
   useEffect(() => {
@@ -430,6 +442,10 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
           const numSc = Number(teacherSc);
           if (numSc >= 5) cCount++;
           else wCount++;
+        } else if (ansObj.isCorrect !== undefined) {
+          if (ansObj.isCorrect === true) cCount++;
+          else if (ansObj.isCorrect === false) wCount++;
+          else bCount++;
         } else {
           const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
           const uLetter = formatAnswerLetter(userAns);
@@ -443,18 +459,37 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
       }
     });
 
+    const explicitCorrect = submission?.correct_count ?? submission?.correctCount ?? submission?.correct ?? submission?.raw_data?.correct_count ?? submission?.raw_data?.correctCount;
+    const explicitWrong = submission?.wrong_count ?? submission?.wrongCount ?? submission?.wrong ?? submission?.raw_data?.wrong_count ?? submission?.raw_data?.wrongCount;
+    const explicitBlank = submission?.empty_count ?? submission?.blankCount ?? submission?.blank ?? submission?.raw_data?.empty_count ?? submission?.raw_data?.blankCount;
+
+    if (cCount === 0 && wCount === 0 && explicitCorrect !== undefined && Number(explicitCorrect) > 0) {
+      return {
+        correctCount: Number(explicitCorrect) || 0,
+        wrongCount: Number(explicitWrong) || 0,
+        blankCount: Number(explicitBlank) ?? Math.max(0, qCount - (Number(explicitCorrect) || 0) - (Number(explicitWrong) || 0)),
+        pendingCount: pCount
+      };
+    }
+
     return { correctCount: cCount, wrongCount: wCount, blankCount: bCount, pendingCount: pCount };
   }, [qCount, questions, answers, test, questionScores, isOpenEndedMode, submission]);
 
   const { correctCount, wrongCount, blankCount, pendingCount } = stats;
 
   const scorePercentage = useMemo(() => {
+    if (submission?.score !== undefined && submission?.score !== null && !isNaN(Number(submission.score))) {
+      return Math.round(Number(submission.score));
+    }
+    if (submission?.raw_data?.score !== undefined && submission?.raw_data?.score !== null && !isNaN(Number(submission.raw_data.score))) {
+      return Math.round(Number(submission.raw_data.score));
+    }
     const totalScored = correctCount + wrongCount + blankCount;
     if (totalScored > 0) {
       return Math.min(100, Math.round((correctCount / totalScored) * 100));
     }
     return 0;
-  }, [correctCount, wrongCount, blankCount]);
+  }, [correctCount, wrongCount, blankCount, submission]);
 
   const rawNet = Math.max(0, correctCount - (wrongCount * 0.25));
   const netScore = Number.isInteger(rawNet) ? rawNet : Number(rawNet.toFixed(2));
@@ -813,6 +848,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               let isCorrect;
               if (hasGradedScore) {
                 isCorrect = Number(teacherSc) >= 5;
+              } else if (ansObj.isCorrect !== undefined) {
+                isCorrect = ansObj.isCorrect;
               } else if (hasAnswer && !isItemOE) {
                 if (uLetter && displayCorrectKey) {
                   isCorrect = uLetter === displayCorrectKey;

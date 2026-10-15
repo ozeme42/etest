@@ -486,10 +486,14 @@ export default function StudentHomeworksPage() {
       handleReviewTask(task);
       return;
     }
-    const isPhysical = task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || (task.title && (task.title.toLowerCase().includes('deneme') || task.title.toLowerCase().includes('hazır bulunuşluk') || task.title.toLowerCase().includes('hazir bulunusluk')));
+    const isHtmlOrDigital = Boolean(
+      task.isHtml || task.contentType === 'html' || task.formatType === 'html' || task.htmlPayload ||
+      task.raw_data?.contentType === 'html' || task.raw_data?.htmlPayload || task.sourceType === 'questionBank'
+    );
+    const isPhysical = !isHtmlOrDigital && (task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || isExamBook(task));
     if (isPhysical) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
-    } else if (task.isBookAssignment || task.sourceType === 'trackedBook') {
+    } else if (!isHtmlOrDigital && (task.isBookAssignment || task.sourceType === 'trackedBook')) {
       navigate(`/book-quiz/${task.bookTestId || task.realTestId || task.testId}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
     } else {
       navigate(`/quiz/${task.realTestId || task.hwId || task.id}?studentId=${selectedStudent.id}`, { state: { from: '/student/homeworks' } });
@@ -498,7 +502,11 @@ export default function StudentHomeworksPage() {
 
   const handleReviewTask = (task) => {
     const sId = selectedStudent?.id || '';
-    const isPhysical = task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || (task.title && (task.title.toLowerCase().includes('deneme') || task.title.toLowerCase().includes('hazır bulunuşluk') || task.title.toLowerCase().includes('hazir bulunusluk')));
+    const isHtmlOrDigital = Boolean(
+      task.isHtml || task.contentType === 'html' || task.formatType === 'html' || task.htmlPayload ||
+      task.raw_data?.contentType === 'html' || task.raw_data?.htmlPayload || task.sourceType === 'questionBank'
+    );
+    const isPhysical = !isHtmlOrDigital && (task.type === 'physicalExam' || task.isPhysical || task.contentType === 'physicalExam' || isExamBook(task));
     if (isPhysical) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${sId}`, { state: { from: '/student/homeworks', isReview: true } });
       return;

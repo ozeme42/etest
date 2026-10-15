@@ -995,15 +995,39 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
   const handleOpenReview = (s) => {
     if (!s) return;
     const matchingBook = books?.find(b => String(b.id) === String(s.bookId));
-    const titleToCheck = String(s.title || s.testTitle || s.name || '').toLowerCase();
-    const isPhysical = s.type === 'physicalExam' || s.typeKey === 'physicalExam' || s.isPhysicalExam || s.isPhysical || s.contentType === 'physicalExam' || isExamBook(s) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
+
+    // Explicit digital/HTML test check:
+    const isHtmlOrDigital = Boolean(
+      s.isHtml ||
+      s.formatType === 'html' ||
+      s.contentType === 'html' ||
+      s.type === 'html' ||
+      s.htmlPayload ||
+      s.raw_data?.htmlPayload ||
+      s.raw_data?.contentType === 'html' ||
+      s.raw_data?.formatType === 'html' ||
+      s.sourceType === 'questionBank' ||
+      s.metadata?.sourceType === 'questionBank' ||
+      s.metadata?.contentType === 'html'
+    );
+
+    const isPhysical = !isHtmlOrDigital && (
+      s.type === 'physicalExam' || 
+      s.typeKey === 'physicalExam' || 
+      s.isPhysicalExam || 
+      s.isPhysical || 
+      s.contentType === 'physicalExam' || 
+      isExamBook(s) || 
+      isExamBook(matchingBook)
+    );
+
     if (isPhysical) {
       navigate(`/physical-exam/${s.hwId || s.bookId || s.testId || s.id}?studentId=${selectedStudent?.id || ''}&submissionId=${s.submissionId || s.id || ''}`, {
         state: { from: `/student/results?studentId=${selectedStudent?.id || ''}`, submission: s }
       });
       return;
     }
-    const isBookTest = Boolean(s.bookId || s.bookTestId || s.taskType === 'kitap' || s.sourceType === 'bookTest' || s.metadata?.bookTestId);
+    const isBookTest = !isHtmlOrDigital && Boolean(s.bookId || s.bookTestId || s.taskType === 'kitap' || s.sourceType === 'bookTest' || s.metadata?.bookTestId);
     const bookTestId = s.bookTestId || s.testId || s.realTestId || s.metadata?.bookTestId || s.metadata?.realTestId;
     if (isBookTest && bookTestId) {
       navigate(`/book-quiz/${bookTestId}?studentId=${selectedStudent?.id || ''}`, {

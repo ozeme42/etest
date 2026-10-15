@@ -2918,8 +2918,12 @@ export default function StudentDashboard() {
 
     const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
     const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
-    const taskTitle = String(task.title || hwObj?.title || '').toLowerCase();
-    const isExam = task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || task.contentType === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical || taskTitle.includes('deneme') || taskTitle.includes('hazır bulunuşluk') || taskTitle.includes('hazir bulunusluk');
+    const isHtmlOrDigitalTask = Boolean(
+      task.isHtml || task.contentType === 'html' || task.formatType === 'html' || task.htmlPayload ||
+      hwObj?.contentType === 'html' || hwObj?.raw_data?.contentType === 'html' || hwObj?.formatType === 'html' || hwObj?.raw_data?.formatType === 'html' ||
+      hwObj?.htmlPayload || hwObj?.raw_data?.htmlPayload || hwObj?.sourceType === 'questionBank'
+    );
+    const isExam = !isHtmlOrDigitalTask && (task.isExamTask || task.taskType === 'deneme' || task.type === 'physicalExam' || task.contentType === 'physicalExam' || hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical);
     
     if (isExam) {
       navigate(`/physical-exam/${task.hwId || task.realTestId || task.id}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
@@ -2934,8 +2938,8 @@ export default function StudentDashboard() {
       }
     }
 
-    const targetBookTestId = task.bookTestId || task.testId || task.realTestId ||
-      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null);
+    const targetBookTestId = !isHtmlOrDigitalTask && (task.bookTestId || task.testId || task.realTestId ||
+      (hwObj?.tests && hwObj.tests.length === 1 ? hwObj.tests[0] : null));
 
     if (targetBookTestId) {
       navigate(`/book-quiz/${targetBookTestId}?studentId=${selectedStudent?.id}`, { state: { from: '/student' } });
@@ -2957,7 +2961,12 @@ export default function StudentDashboard() {
     if (!task) return;
     const hwObj = (homeworks || []).find(h => String(h.id) === String(task.hwId || task.id));
     const matchingBook = books?.find(b => String(b.id) === String(hwObj?.bookId || task.bookId));
-    const isExam = hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical;
+    const isHtmlOrDigitalHw = Boolean(
+      task.isHtml || task.contentType === 'html' || task.formatType === 'html' || task.htmlPayload ||
+      hwObj?.contentType === 'html' || hwObj?.raw_data?.contentType === 'html' || hwObj?.formatType === 'html' || hwObj?.raw_data?.formatType === 'html' ||
+      hwObj?.htmlPayload || hwObj?.raw_data?.htmlPayload || hwObj?.sourceType === 'questionBank'
+    );
+    const isExam = !isHtmlOrDigitalHw && (hwObj?.type === 'physicalExam' || hwObj?.contentType === 'physicalExam' || matchingBook?.bookType === 'exam' || isExamBook(matchingBook) || isExamBook(hwObj) || hwObj?.isPhysical);
     const realTestId = task.realTestId || task.testId;
     if (isExam) {
       navigate(`/physical-exam/${task.hwId || task.id}?studentId=${selectedStudent?.id}`);
@@ -3114,8 +3123,11 @@ export default function StudentDashboard() {
   const handleReviewRecentTest = useCallback((test) => {
     const targetId = test.testId || test.submissionId || test.id;
     const matchingBook = books?.find(b => String(b.id) === String(test.bookId));
-    const titleToCheck = String(test.title || test.testTitle || '').toLowerCase();
-    const isPhysical = test.type === 'physicalExam' || test.isPhysical || test.contentType === 'physicalExam' || isExamBook(test) || isExamBook(matchingBook) || titleToCheck.includes('deneme') || titleToCheck.includes('hazır bulunuşluk') || titleToCheck.includes('hazir bulunusluk');
+    const isHtmlOrDigital = Boolean(
+      test.isHtml || test.contentType === 'html' || test.formatType === 'html' || test.htmlPayload ||
+      test.raw_data?.contentType === 'html' || test.raw_data?.htmlPayload || test.sourceType === 'questionBank'
+    );
+    const isPhysical = !isHtmlOrDigital && (test.type === 'physicalExam' || test.isPhysical || test.contentType === 'physicalExam' || isExamBook(test) || isExamBook(matchingBook));
     if (isPhysical) {
       navigate(`/physical-exam/${test.hwId || test.bookId || targetId}?studentId=${selectedStudent?.id || ''}&submissionId=${test.submissionId || test.id || ''}`, {
         state: { from: '/student', submission: test }
