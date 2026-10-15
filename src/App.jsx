@@ -7,7 +7,7 @@ import {
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
   PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck, Scissors,
-  Compass
+  Compass, Rocket, Flame, ChevronRight
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
@@ -271,9 +271,14 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <>
       <div className="mobile-header">
-        <Link to="/" className="brand" onClick={closeSidebar}>
-          <span className="brand-icon">✨</span>
-          <span className="brand-text" style={{ fontSize: '1.2rem' }}>E-Test Premium</span>
+        <Link to="/" className="sidebar-brand-link" onClick={closeSidebar}>
+          <div className="sidebar-brand-avatar" style={{ width: 34, height: 34, borderRadius: 10 }}>
+            <Rocket size={18} />
+          </div>
+          <div>
+            <span className="sidebar-brand-title" style={{ fontSize: '1.15rem' }}>EduQuest</span>
+            <span className="sidebar-brand-sub" style={{ fontSize: '0.58rem' }}>5. Sınıf Maarif Modeli</span>
+          </div>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button 
@@ -316,10 +321,17 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
       )}
 
       <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link to="/" className="brand" onClick={closeSidebar}>
-            <span className="brand-icon">✨</span>
-            <span className="brand-text">E-Test</span>
+        <div className="sidebar-header">
+          <Link to="/" className="sidebar-brand-link" onClick={closeSidebar}>
+            <div className="sidebar-brand-avatar">
+              <Rocket size={20} />
+            </div>
+            <div>
+              <span className="sidebar-brand-title">EduQuest</span>
+              <span className="sidebar-brand-sub">
+                {currentUser?.role === 'student' ? '5. Sınıf Maarif Modeli' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
+              </span>
+            </div>
           </Link>
           <button 
             onClick={isMobile ? closeSidebar : toggleCollapse}
@@ -331,15 +343,18 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
         </div>
 
         {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div style={{ padding: '0.55rem 0.8rem', borderBottom: '1.5px solid var(--color-border)', background: 'var(--color-bg)' }}>
+        <div className="sidebar-profile-bento">
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--color-surface)', padding: '0.45rem 0.65rem', borderRadius: '0.75rem', border: '1.5px solid var(--color-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <div style={{ width: '1.9rem', height: '1.9rem', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0, boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}>
+            <div className="sidebar-user-box">
+              <div className="sidebar-user-avatar">
                 {currentUser.name?.charAt(0).toUpperCase()}
               </div>
-              <div style={{ overflow: 'hidden', flex: 1 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</div>
+              <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+                <div className="sidebar-user-name">{currentUser.name}</div>
+                <div className="sidebar-user-role">
+                  <Sparkles size={10} />
+                  <span>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</span>
+                </div>
               </div>
               <button 
                 onClick={async () => { 
@@ -349,26 +364,27 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 }}
                 title="Oturumu Kapat"
                 style={{ 
-                  width: '1.8rem', height: '1.8rem', borderRadius: '50%', 
-                  background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fef2f2', border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca', 
+                  width: '2rem', height: '2rem', borderRadius: '10px', 
+                  background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', 
+                  border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecaca', 
                   color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                   cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
                 }}
                 className="hover:scale-105 active:scale-95"
               >
-                <LogOut size={13} />
+                <LogOut size={14} />
               </button>
             </div>
           ) : (
             <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', padding: '0.5rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', fontWeight: 900, fontSize: '0.8rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }}>
+              <button style={{ width: '100%', padding: '0.6rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', boxShadow: '0 4px 14px rgba(79,70,229,0.35)' }}>
                 <LogIn size={15} /> Giriş Yap / Kayıt Ol
               </button>
             </Link>
           )}
 
           {/* Quick Search & Theme Switch Row */}
-          <div style={{ marginTop: '0.45rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+          <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
             <button
               onClick={() => {
                 window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
@@ -377,23 +393,24 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '0.4rem 0.55rem',
-                borderRadius: '0.65rem',
+                padding: '0.45rem 0.65rem',
+                borderRadius: '11px',
                 background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border-input)',
+                border: '1.5px solid var(--color-border)',
                 color: 'var(--color-text-secondary)',
-                fontSize: '0.74rem',
+                fontSize: '0.75rem',
                 fontWeight: 700,
                 cursor: 'pointer',
                 flex: 1,
                 boxSizing: 'border-box',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                transition: 'all 0.2s'
               }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Search size={13} color="#6366f1" /> Arama
               </span>
-              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border-input)', borderRadius: '4px', padding: '1px 4px', fontSize: '0.6rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
+              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '5px', padding: '1px 5px', fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
             </button>
 
             {/* Theme Toggle Button */}
@@ -403,9 +420,9 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0.3rem',
-                padding: '0.4rem 0.55rem',
-                borderRadius: '0.65rem',
+                gap: '0.35rem',
+                padding: '0.45rem 0.65rem',
+                borderRadius: '11px',
                 background: isDark ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : 'linear-gradient(135deg, #fef3c7, #fef08a)',
                 border: isDark ? '1.5px solid #4338ca' : '1.5px solid #fde047',
                 color: isDark ? '#c7d2fe' : '#b45309',
@@ -423,7 +440,7 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
           </div>
         </div>
         
-        <div className="nav-links custom-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="nav-links custom-scrollbar">
           
           {/* ═════════ ÖĞRENCİ MENÜ GRUPLARI ═════════ */}
           {currentUser?.role === 'student' && (
@@ -431,94 +448,106 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               {/* Grup 1: Aktif Görevler */}
               <div className="nav-section-title">⚡ Görev &amp; Çalışma</div>
               <NavLink to="/study-room" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #a855f7, #6366f1)', boxShadow: '0 2px 10px rgba(168,85,247,0.4)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>
                   <Headphones size={16} color="white" />
                 </div>
                 <span>Çalışma Odası</span>
-                <span className="nav-hot-badge">CANLI</span>
+                <span className="nav-hot-badge" style={{ background: 'linear-gradient(135deg, #a855f7, #6366f1)' }}>CANLI</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
-              <NavLink to="/student" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 2px 10px rgba(99,102,241,0.35)' }}>
+              <NavLink to="/student" end className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #06b6d4)' }}>
                   <GraduationCap size={16} color="white" />
                 </div>
                 <span>Ana Panel</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/student/homeworks" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ef4444, #f97316)', boxShadow: '0 2px 10px rgba(239,68,68,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ef4444, #f97316)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
                 <span>Ödevlerim</span>
                 {studentOverdueBadgeCount > 0 && (
-                  <span className="nav-hot-badge" style={{ background: '#ef4444', color: 'white', fontWeight: 900 }}>
+                  <span className="nav-hot-badge">
                     🔥 {studentOverdueBadgeCount}
                   </span>
                 )}
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/my-program" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #9333ea, #c084fc)', boxShadow: '0 2px 10px rgba(147,51,234,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #9333ea, #c084fc)' }}>
                   <Calendar size={16} color="white" />
                 </div>
                 <span>Ders Programım</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink 
                 to="/student/roadmap" 
                 className={({ isActive }) => (isActive || location.pathname.startsWith('/student/study-plan') || location.pathname === '/student/roadmap') ? 'nav-link active' : 'nav-link'} 
                 onClick={closeSidebar}
               >
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', boxShadow: '0 2px 10px rgba(139,92,246,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}>
                   <Compass size={16} color="white" />
                 </div>
                 <span>Yol Haritası</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               {isStudentCoached(currentUser?.id) && (
                 <NavLink to="/my-coaching" className="nav-link" onClick={closeSidebar}>
-                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 2px 10px rgba(217,119,6,0.35)', fontSize: '1rem' }}>
-                    📂
+                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
+                    <Target size={16} color="white" />
                   </div>
                   <span>Koçluk Dosyam</span>
+                  <ChevronRight size={13} className="nav-chevron" />
                 </NavLink>
               )}
 
               {/* Grup 2: Kütüphane & İçerik */}
               <div className="nav-section-title">📚 Kütüphane &amp; İçerik</div>
               <NavLink to="/student/reading" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', boxShadow: '0 2px 10px rgba(236,72,153,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
                   <BookOpen size={16} color="white" />
                 </div>
                 <span>Kitap Okuma</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
                   <BookOpen size={16} color="white" />
                 </div>
                 <span>Ders Özetleri</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
                 <span>Kitaplarım (Soru Bankası)</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)' }}>
                   <ClipboardCheck size={16} color="white" />
                 </div>
                 <span>Denemelerim</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
 
               {/* Grup 3: Gelişim & Analiz */}
               <div className="nav-section-title">📊 Gelişim &amp; Takip</div>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
                   <Award size={16} color="white" />
                 </div>
                 <span>Sonuçlarım</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)', boxShadow: '0 2px 10px rgba(225,29,72,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)' }}>
                   <AlertTriangle size={16} color="white" />
                 </div>
                 <span>Hatalarım &amp; Boşlarım</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
             </>
           )}
@@ -528,112 +557,143 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
             <>
               {/* Grup 1: Yönetim & Akış */}
               <div className="nav-section-title">⚡ Yönetim &amp; Takip</div>
-              <NavLink to="/teacher" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)', boxShadow: '0 2px 10px rgba(99,102,241,0.35)' }}>
+              <NavLink to="/teacher" end className="nav-link" onClick={closeSidebar}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
                   <Users size={16} color="white" />
                 </div>
                 <span>Öğretmen Paneli</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/approvals" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 2px 10px rgba(124,58,237,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                   <ShieldCheck size={16} color="white" />
                 </div>
                 <span>Onay Merkezi</span>
                 {pendingApprovalsCount > 0 && (
-                  <span className="nav-hot-badge" style={{ background: '#7c3aed', color: 'white', fontWeight: 900 }}>
+                  <span className="nav-hot-badge" style={{ background: '#7c3aed', color: 'white' }}>
                     {pendingApprovalsCount}
                   </span>
                 )}
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)', boxShadow: '0 2px 10px rgba(234,88,12,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
                 <span>Ödev Yönetimi</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/remedials" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)', boxShadow: '0 2px 10px rgba(244,63,94,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
                   <Scissors size={16} color="white" />
                 </div>
                 <span>Telafi &amp; Ustalık Takibi</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
                   <ClipboardCheck size={16} color="white" />
                 </div>
                 <span>Değerlendirmeler</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }}>
                   <ClipboardCheck size={16} color="white" />
                 </div>
                 <span>Fiziki Deneme &amp; Optik</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
 
               {/* Grup 2: İçerik & Havuz */}
               <div className="nav-section-title">📚 İçerik &amp; Soru Havuzu</div>
               <NavLink to="/summaries" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', boxShadow: '0 2px 10px rgba(16,185,129,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
                   <BookOpen size={16} color="white" />
                 </div>
                 <span>Ders Özetleri Editörü</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }}>
                   <Database size={16} color="white" />
                 </div>
                 <span>Soru Bankası</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/reading" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', boxShadow: '0 2px 10px rgba(236,72,153,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
                   <BookOpen size={16} color="white" />
                 </div>
                 <span>Kitap Okuma</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)', boxShadow: '0 2px 10px rgba(2,132,199,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)' }}>
                   <BookMarked size={16} color="white" />
                 </div>
                 <span>Kitap Takip (Soru Bankası)</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', boxShadow: '0 2px 10px rgba(139,92,246,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)' }}>
                   <Map size={16} color="white" />
                 </div>
                 <span>Yol Haritası</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/scales" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #db2777, #f43f5e)', boxShadow: '0 2px 10px rgba(219,39,119,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #db2777, #f43f5e)' }}>
                   <ListTree size={16} color="white" />
                 </div>
                 <span>Ölçek &amp; Takip</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
 
               {/* Grup 3: İstatistik & Admin */}
               <div className="nav-section-title">📊 Analiz &amp; Sistem</div>
               <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', boxShadow: '0 2px 10px rgba(79,70,229,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
                   <Award size={16} color="white" />
                 </div>
                 <span>Tüm Sonuçlar &amp; Karne</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(8,145,178,0.35)' }}>
+                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)' }}>
                   <BarChart2 size={16} color="white" />
                 </div>
                 <span>İstatistik &amp; Analiz</span>
+                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
               {currentUser?.role === 'admin' && (
                 <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
-                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #475569, #64748b)', boxShadow: '0 2px 10px rgba(71,85,105,0.35)' }}>
+                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #475569, #64748b)' }}>
                     <Settings size={16} color="white" />
                   </div>
                   <span>Admin Kontrolü</span>
+                  <ChevronRight size={13} className="nav-chevron" />
                 </NavLink>
               )}
             </>
           )}
         </div>
+
+        {/* BOTTOM GAMIFIED CARD FOR STUDENT */}
+        {currentUser?.role === 'student' && (
+          <Link to="/study-room" className="sidebar-focus-card" onClick={closeSidebar}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, boxShadow: '0 2px 8px rgba(245,158,11,0.35)' }}>
+                <Flame size={18} />
+              </div>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', fontFamily: 'Outfit, sans-serif' }}>Odak Odası</div>
+                <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#f59e0b' }}>⚡ +50 XP Kazan</div>
+              </div>
+            </div>
+            <ChevronRight size={15} color="var(--color-text-muted)" />
+          </Link>
+        )}
 
       </nav>
     </>
