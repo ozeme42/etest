@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
   Flame, 
@@ -11,7 +12,9 @@ import {
   Compass, 
   AlertTriangle,
   ChevronRight,
-  Target
+  Target,
+  Timer,
+  Headphones
 } from 'lucide-react';
 
 const getDayDiff = (dueDate) => {
@@ -63,6 +66,17 @@ export default memo(function DashboardHeroTaskCard({
   onExploreBooks,
   onViewAnalytics
 }) {
+  const navigate = useNavigate();
+
+  // Daily Milestone calculation (EduQuest style chests progress)
+  const dailyMilestone = useMemo(() => {
+    const total = dayTasks.length || 0;
+    if (total === 0) return { pct: 100, completed: 0, total: 0 };
+    const completed = dayTasks.filter(t => t.done || t.isDone || t.completed).length;
+    const pct = Math.min(100, Math.round((completed / total) * 100));
+    return { pct, completed, total };
+  }, [dayTasks]);
+
   // Determine the highest priority task
   const heroTask = useMemo(() => {
     // 1. Overdue homeworks
@@ -373,6 +387,179 @@ export default memo(function DashboardHeroTaskCard({
           : 'linear-gradient(90deg, #4f46e5, #8b5cf6, #ec4899, #f59e0b)',
         pointerEvents: 'none'
       }} />
+
+      {/* ── EduQuest Bento Header Row ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: '1rem',
+        paddingBottom: '0.75rem',
+        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.15rem',
+            boxShadow: '0 3px 10px rgba(245, 158, 11, 0.35)',
+            flexShrink: 0
+          }}>
+            📜
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                Aktif Görev Panosu
+              </span>
+              <span style={{
+                fontSize: '0.66rem',
+                fontWeight: 900,
+                padding: '2px 7px',
+                borderRadius: 99,
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#10b981',
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}>
+                {dailyMilestone.completed} / {dailyMilestone.total} Günlük
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Görevlerini tamamla, odaklan ve Günlük Görev Sandıklarını aç!
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => navigate('/study-room')}
+            className="game-btn-3d"
+            style={{
+              background: isDark ? 'rgba(244, 63, 94, 0.15)' : '#fff1f2',
+              border: isDark ? '1px solid rgba(244, 63, 94, 0.4)' : '1px solid #fecdd3',
+              color: '#f43f5e',
+              borderRadius: 10,
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.74rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title="Pomodoro Odaklanma Odasını Aç"
+          >
+            <Timer size={13} />
+            <span>Odaklan</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── EduQuest Milestone Chests Track ── */}
+      {dayTasks.length > 0 && (
+        <div style={{
+          background: isDark ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.75)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 14,
+          padding: isMobile ? '0.65rem 0.75rem' : '0.75rem 1rem',
+          marginBottom: '1rem',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            marginBottom: 6
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text)' }}>
+              <span>🎁</span>
+              <span>Günlük Görev Sandığı İlerlemesi</span>
+            </span>
+            <span style={{ color: '#f59e0b', fontWeight: 900 }}>
+              %{dailyMilestone.pct}
+            </span>
+          </div>
+
+          <div style={{
+            width: '100%',
+            height: 7,
+            background: isDark ? 'rgba(30, 41, 59, 0.8)' : 'rgba(226, 232, 240, 0.9)',
+            borderRadius: 99,
+            overflow: 'hidden',
+            marginBottom: 8
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${dailyMilestone.pct}%`,
+              background: 'linear-gradient(90deg, #f59e0b 0%, #ea580c 50%, #f43f5e 100%)',
+              borderRadius: 99,
+              transition: 'width 0.6s ease'
+            }} />
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 6,
+            textAlign: 'center'
+          }}>
+            {[
+              { threshold: 25, label: '%25 Bronz', icon: '📦', xp: 50 },
+              { threshold: 50, label: '%50 Gümüş', icon: '📬', xp: 100 },
+              { threshold: 75, label: '%75 Altın', icon: '💎', xp: 150 },
+              { threshold: 100, label: 'Efsanevi', icon: '👑', xp: 250 },
+            ].map(tier => {
+              const unlocked = dailyMilestone.pct >= tier.threshold;
+              return (
+                <div
+                  key={tier.label}
+                  className={`bento-card ${unlocked ? 'chest-ready' : ''}`}
+                  style={{
+                    background: unlocked
+                      ? (isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb')
+                      : (isDark ? 'rgba(30, 41, 59, 0.35)' : '#f8fafc'),
+                    border: unlocked
+                      ? '1.5px solid #f59e0b'
+                      : '1px solid var(--color-border)',
+                    borderRadius: 10,
+                    padding: '3px 2px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  title={`${tier.label} Sandığı: +${tier.xp} XP (${unlocked ? 'Açıldı!' : 'Kilitli'})`}
+                >
+                  <div style={{ fontSize: isMobile ? '0.95rem' : '1.15rem', lineHeight: 1 }}>{tier.icon}</div>
+                  <div style={{
+                    fontSize: isMobile ? '0.52rem' : '0.62rem',
+                    fontWeight: 900,
+                    color: unlocked ? '#f59e0b' : 'var(--color-text-muted)',
+                    marginTop: 2
+                  }}>
+                    {tier.label}
+                  </div>
+                  <div style={{
+                    fontSize: isMobile ? '0.48rem' : '0.56rem',
+                    fontWeight: 700,
+                    color: unlocked ? '#10b981' : 'var(--color-text-muted)'
+                  }}>
+                    {unlocked ? 'Açıldı ✓' : `+${tier.xp} XP`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={{
         display: 'flex',

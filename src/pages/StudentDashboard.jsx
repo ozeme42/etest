@@ -3467,228 +3467,173 @@ export default function StudentDashboard() {
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px) + 0.85rem)' }}>
       {/* ══════════════════════════════════════════════════════
-          MOBILE GAME UI - PLAYER STATUS HUD & QUEST DOCK
+      {/* ══════════════════════════════════════════════════════
+          EDUQUEST GAMIFIED PLAYER STATUS HUD & COMMAND DECK
       ══════════════════════════════════════════════════════ */}
       <div style={{
         background: isDark
-          ? 'linear-gradient(135deg, #070914 0%, #0d1629 35%, #181d3d 70%, #20244f 100%)'
+          ? 'linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%)'
           : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
         position: 'relative',
         overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        paddingBottom: isMobile ? '2.2rem' : '2.8rem'
+        paddingBottom: isMobile ? '2.4rem' : '3rem',
+        borderBottom: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : 'none'
       }}>
         {/* Subtle decorative game glow effects */}
-        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 200 : 340, height: isMobile ? 200 : 340, borderRadius:'50%', background:'radial-gradient(circle, rgba(196,91,253,0.2) 0%, transparent 68%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 220, height: 220, borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 65%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, transparent 100%)', pointerEvents: 'none' }} />
+        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 220 : 360, height: isMobile ? 220 : 360, borderRadius:'50%', background:'radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 240, height: 240, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.18) 0%, transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 35%, #06b6d4 70%, #f59e0b 100%)', pointerEvents: 'none' }} />
 
         {/* ── Player HUD Main Row ── */}
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '0.85rem 0.75rem 0.65rem' : '1.35rem clamp(1rem, 2vw, 2.5rem) 1rem',
+          padding: isMobile ? '0.95rem 0.85rem 0.75rem' : '1.45rem clamp(1rem, 2vw, 2.5rem) 1.15rem',
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? '0.75rem' : '1.5rem',
+          gap: isMobile ? '0.85rem' : '1.6rem',
           position: 'relative',
           zIndex: 1,
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {/* SOL: Character Plate (Avatar + Lv Badge + Name + Game XP Bar) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.1rem', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem', minWidth: 0, flex: 1 }}>
             
-            {/* Interactive Player Avatar Frame with Circular Progress */}
+            {/* Interactive Player Avatar Frame with EduQuest Frame Glow */}
             <div
               onClick={() => setIsGamificationModalOpen(true)}
+              className="frame-gold"
               style={{
                 position: 'relative',
                 flexShrink: 0,
-                width: isMobile ? 56 : 74,
-                height: isMobile ? 56 : 74,
+                width: isMobile ? 54 : 68,
+                height: isMobile ? 54 : 68,
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'transform 0.18s ease'
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
+                userSelect: 'none'
               }}
-              title={`Rütbe: ${studentRank.title} (Lv. ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} • Rozetleri Gör`}
+              title={`Rütbe: ${studentRank.title} (SV ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} • Rozetleri Aç`}
             >
-              <svg
-                width={isMobile ? 56 : 74}
-                height={isMobile ? 56 : 74}
-                style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}
-              >
-                <defs>
-                  <linearGradient id="avatarProgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#f59e0b" />
-                    <stop offset="50%" stopColor="#ec4899" />
-                    <stop offset="100%" stopColor="#8b5cf6" />
-                  </linearGradient>
-                </defs>
-                <circle
-                  cx={isMobile ? 28 : 37}
-                  cy={isMobile ? 28 : 37}
-                  r={isMobile ? 24 : 33}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.15)"
-                  strokeWidth={isMobile ? 3 : 4}
-                />
-                <circle
-                  cx={isMobile ? 28 : 37}
-                  cy={isMobile ? 28 : 37}
-                  r={isMobile ? 24 : 33}
-                  fill="none"
-                  stroke="url(#avatarProgGrad)"
-                  strokeWidth={isMobile ? 3 : 4}
-                  strokeLinecap="round"
-                  strokeDasharray={`${2 * Math.PI * (isMobile ? 24 : 33)}`}
-                  strokeDashoffset={`${2 * Math.PI * (isMobile ? 24 : 33) * (1 - (studentRank.progressPercent || 0) / 100)}`}
-                  transform={`rotate(-90 ${isMobile ? 28 : 37} ${isMobile ? 28 : 37})`}
-                  style={{
-                    transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)',
-                    filter: (studentRank.progressPercent || 0) > 0 ? 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.7))' : 'none'
-                  }}
-                />
-              </svg>
+              <span style={{ fontSize: isMobile ? '1.5rem' : '1.9rem' }}>{studentRank.icon || '🛡️'}</span>
 
-              {/* Inner Avatar Graphic */}
-              <div
-                style={{
-                  width: isMobile ? 44 : 58,
-                  height: isMobile ? 44 : 58,
-                  borderRadius: '50%',
-                  background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: isMobile ? '1.45rem' : '1.95rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  position: 'relative',
-                  zIndex: 2,
-                  boxShadow: `0 4px 16px ${studentRank.color || avatarColor}60`,
-                  userSelect: 'none'
-                }}
-              >
-                <span>{studentRank.icon || '🛡️'}</span>
-              </div>
-
-              {/* Level Badge in Gold Polygon Pill */}
+              {/* EduQuest Level Badge at Bottom-Right */}
               <div
                 style={{
                   position: 'absolute',
-                  bottom: -3,
-                  right: -3,
+                  bottom: -4,
+                  right: -4,
                   zIndex: 5,
-                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
-                  padding: isMobile ? '1px 5px' : '2px 7px',
-                  fontSize: isMobile ? '0.52rem' : '0.64rem',
+                  padding: isMobile ? '1px 6px' : '2px 8px',
+                  fontSize: isMobile ? '0.58rem' : '0.68rem',
                   fontWeight: 900,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                   whiteSpace: 'nowrap',
                   lineHeight: 1.1,
                   letterSpacing: '0.04em'
                 }}
               >
-                Lv.{studentRank.level}
+                SV {studentRank.level}
               </div>
             </div>
 
-            {/* Character Info & Real XP Progress Bar */}
-            <div style={{ minWidth: 0, flex: 1 }}>
+            {/* Character Info & EduQuest XP Bar */}
+            <div style={{ minWidth: 0, flex: 1, maxWidth: 440 }}>
               <div style={{
-                fontSize: isMobile ? '0.6rem' : '0.7rem',
-                fontWeight: 800,
-                color: 'rgba(196,181,253,0.95)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-                marginBottom: 2,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5
+                justifyContent: 'space-between',
+                gap: 8,
+                marginBottom: 4,
+                flexWrap: 'wrap'
               }}>
-                <span>KAHRAMAN</span>
-                <span>•</span>
-                <span style={{
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  border: '1px solid rgba(245, 158, 11, 0.45)',
-                  color: '#fef08a',
-                  padding: '1px 6px',
-                  borderRadius: 99,
-                  fontSize: isMobile ? '0.58rem' : '0.66rem',
-                  fontWeight: 900
-                }}>
-                  {studentRank.title}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <h1 style={{
+                    fontSize: isMobile ? '1.15rem' : '1.45rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    margin: 0,
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.02em',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {selectedStudent?.name || 'Öğrenci'}
+                  </h1>
+
+                  <span style={{
+                    background: 'rgba(99, 102, 241, 0.25)',
+                    border: '1px solid rgba(165, 180, 252, 0.4)',
+                    color: '#c7d2fe',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    fontSize: isMobile ? '0.6rem' : '0.68rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    display: isMobile ? 'none' : 'inline-block'
+                  }}>
+                    🌟 {studentRank.title}
+                  </span>
+                </div>
+
+                <span
+                  onClick={() => setIsGamificationModalOpen(true)}
+                  style={{
+                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    fontWeight: 900,
+                    color: '#67e8f9',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Rozet ve Seviye Ayrıntılarını Gör"
+                >
+                  {studentRank.inTierXp || 0} / {studentRank.tierSpan || 150} XP
                 </span>
               </div>
 
-              <h1 style={{
-                fontSize: isMobile ? '1.15rem' : '1.65rem',
-                fontWeight: 900,
-                color: '#ffffff',
-                margin: '0 0 5px 0',
-                lineHeight: 1.15,
-                letterSpacing: '-0.025em',
-                textShadow: '0 2px 14px rgba(0,0,0,0.35)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
-              }}>
-                {selectedStudent?.name || 'Öğrenci'}
-              </h1>
-
-              {/* Game Level XP Bar */}
+              {/* EduQuest Sleek XP Progress Bar */}
               <div
                 onClick={() => setIsGamificationModalOpen(true)}
                 style={{
                   cursor: 'pointer',
-                  width: isMobile ? '100%' : '270px',
-                  maxWidth: '100%'
+                  width: '100%',
+                  background: 'rgba(15, 23, 42, 0.55)',
+                  borderRadius: 999,
+                  height: isMobile ? 8 : 10,
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  padding: 1,
+                  boxSizing: 'border-box'
                 }}
-                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP) • Rozetleri Aç`}
+                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP)`}
               >
                 <div style={{
-                  height: isMobile ? 7 : 8,
-                  background: 'rgba(255, 255, 255, 0.14)',
+                  height: '100%',
+                  width: `${studentRank.progressPercent || 0}%`,
+                  background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #06b6d4 100%)',
                   borderRadius: 999,
-                  overflow: 'hidden',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  position: 'relative'
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${studentRank.progressPercent || 0}%`,
-                    background: 'linear-gradient(90deg, #f59e0b 0%, #ec4899 50%, #8b5cf6 100%)',
-                    borderRadius: 999,
-                    boxShadow: '0 0 8px rgba(245, 158, 11, 0.5)',
-                    transition: 'width 0.8s ease'
-                  }} />
-                </div>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: isMobile ? '0.54rem' : '0.62rem',
-                  fontWeight: 800,
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  marginTop: 3
-                }}>
-                  <span>XP: {studentRank.inTierXp || 0}/{studentRank.tierSpan || 150} (%{studentRank.progressPercent || 0})</span>
-                  <span>Sonraki: {studentRank.nextTierTitle || 'Zirve'}</span>
-                </div>
+                  boxShadow: '0 0 10px rgba(6, 182, 212, 0.6)',
+                  transition: 'width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }} />
               </div>
             </div>
           </div>
 
-          {/* SAĞ: Game Status Pills & Quick Actions */}
+          {/* SAĞ: EduQuest Game Status Pills & Quick Actions */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -3697,53 +3642,67 @@ export default function StudentDashboard() {
             justifyContent: isMobile ? 'flex-start' : 'flex-end',
             flexShrink: 0
           }}>
-            {/* Streak Flame Pill */}
+            {/* Günlük Seri (Streak) Pill */}
             <div
               style={{
-                background: studentStreak > 0
-                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(239, 68, 68, 0.22))'
-                  : 'rgba(255,255,255,0.1)',
-                border: studentStreak > 0
-                  ? '1.5px solid rgba(245, 158, 11, 0.55)'
-                  : '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 999,
-                padding: isMobile ? '3px 8px' : '5px 12px',
-                fontSize: isMobile ? '0.65rem' : '0.76rem',
+                background: studentStreak > 0 ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255,255,255,0.08)',
+                border: studentStreak > 0 ? '1.5px solid rgba(249, 115, 22, 0.45)' : '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 16,
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
-                color: studentStreak > 0 ? '#fef08a' : 'rgba(255,255,255,0.85)',
+                color: studentStreak > 0 ? '#fb923c' : 'rgba(255,255,255,0.85)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
-                boxShadow: studentStreak > 0 ? '0 2px 10px rgba(245, 158, 11, 0.3)' : 'none',
+                gap: 5,
+                boxShadow: studentStreak > 0 ? '0 2px 10px rgba(249, 115, 22, 0.25)' : 'none',
                 whiteSpace: 'nowrap'
               }}
-              title="Günlük Kesintisiz Seri"
+              title="14 Günlük Kesintisiz Çalışma Serisi!"
             >
-              <Flame size={isMobile ? 12 : 14} style={{ color: studentStreak > 0 ? '#f59e0b' : '#94a3b8' }} />
-              <span>{studentStreak > 0 ? `${studentStreak} Gün Seri` : 'Seri: 0 Gün'}</span>
-              {streakMultiplier > 1.0 && (
-                <span style={{ fontSize: '0.55rem', background: '#f59e0b', color: '#ffffff', padding: '0 4px', borderRadius: 4, fontWeight: 900 }}>
-                  {streakMultiplier}x
-                </span>
-              )}
+              <Flame size={isMobile ? 14 : 16} style={{ color: '#f97316' }} />
+              <span>{studentStreak > 0 ? `${studentStreak} Gün` : '0 Gün'}</span>
             </div>
 
-            {/* Overall Success Pill */}
+            {/* Altın / XP Puanı Pill */}
+            <div
+              onClick={() => setIsGamificationModalOpen(true)}
+              style={{
+                background: 'rgba(245, 158, 11, 0.18)',
+                border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                borderRadius: 16,
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 900,
+                color: '#fbbf24',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: '0 2px 10px rgba(245, 158, 11, 0.25)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              title="Kazanılan Toplam Puan & XP"
+            >
+              <span>🪙</span>
+              <span>{(studentRank.totalXp || 0).toLocaleString('tr-TR')}</span>
+            </div>
+
+            {/* Başarı Oranı Pill */}
             <button
               type="button"
               onClick={() => navigate('/student/results')}
-              className="sd-btn"
               style={{
-                background: 'rgba(99, 102, 241, 0.22)',
+                background: 'rgba(99, 102, 241, 0.18)',
                 border: '1.5px solid rgba(165, 180, 252, 0.45)',
-                borderRadius: 999,
-                padding: isMobile ? '3px 8px' : '5px 12px',
-                fontSize: isMobile ? '0.65rem' : '0.76rem',
+                borderRadius: 16,
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
-                color: '#ffffff',
+                color: '#a5b4fc',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 5,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap'
               }}
@@ -3753,30 +3712,30 @@ export default function StudentDashboard() {
               <span>%{overallSuccessRate} Başarı</span>
             </button>
 
-            {/* Focus Study Room Button */}
+            {/* Pomodoro Odaklanma / Çalışma Odası Button */}
             <button
               type="button"
               onClick={() => navigate('/study-room')}
-              className="sd-btn"
+              className="game-btn-3d"
               style={{
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: '1.5px solid rgba(255,255,255,0.35)',
-                borderRadius: 999,
-                padding: isMobile ? '3px 9px' : '5px 14px',
-                fontSize: isMobile ? '0.65rem' : '0.78rem',
+                background: 'linear-gradient(135deg, #f43f5e, #f59e0b)',
+                border: 'none',
+                borderRadius: 16,
+                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 4,
+                gap: 5,
                 cursor: 'pointer',
-                boxShadow: '0 3px 12px rgba(16,185,129,0.4)',
+                boxShadow: '0 4px 0 #be123c, 0 6px 16px rgba(244, 63, 94, 0.4)',
                 whiteSpace: 'nowrap'
               }}
-              title="Çalışma Odasını Aç"
+              title="Pomodoro Zamanlayıcı & Çalışma Odasını Başlat"
             >
-              <Headphones size={isMobile ? 12 : 14} />
-              <span>Çalışma Odası</span>
+              <Headphones size={isMobile ? 13 : 15} />
+              <span>Odaklan</span>
             </button>
           </div>
         </div>
