@@ -524,7 +524,7 @@ export default memo(function DashboardHeroTaskCard({
               return (
                 <div
                   key={tier.label}
-                  className={`bento-card ${unlocked ? 'chest-ready' : ''}`}
+                  className="bento-card"
                   style={{
                     background: unlocked
                       ? (isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb')

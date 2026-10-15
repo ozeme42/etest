@@ -69,17 +69,7 @@
   box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
 }
 
-/* Quest Chest Shake & Animations */
-@keyframes chestShake {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(-8deg) scale(1.08); }
-  50% { transform: rotate(8deg) scale(1.12); }
-  75% { transform: rotate(-5deg) scale(1.08); }
-}
 
-.chest-ready {
-  animation: chestShake 1.6s infinite ease-in-out;
-}
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
