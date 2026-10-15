@@ -315,10 +315,10 @@ export default function StudentDashboard() {
   const [activeDashboardTab, setActiveDashboardTab] = useState(() => {
     try {
       const saved = localStorage.getItem('etest_student_active_tab_v2');
-      if (saved) return saved;
-      return 'all';
+      if (saved && saved !== 'all') return saved;
+      return 'tasks';
     } catch {
-      return 'all';
+      return 'tasks';
     }
   });
 
@@ -3880,21 +3880,7 @@ export default function StudentDashboard() {
           gap: 10
         }}>
           <div className="game-nav-dock">
-            {/* 1. Tüm Macera */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('all')}
-              className={`game-nav-tab ${activeDashboardTab === 'all' ? 'game-btn-3d' : ''}`}
-              style={{
-                background: activeDashboardTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #6366f1)' : 'transparent',
-                color: activeDashboardTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'all' ? '0 4px 0 #4f46e5, 0 8px 18px rgba(124, 58, 237, 0.4)' : 'none'
-              }}
-            >
-              <span>🌟 Tüm Macera</span>
-            </button>
-
-            {/* 2. Görevler */}
+            {/* 1. Görevler */}
             <button
               type="button"
               onClick={() => handleTabChange('tasks')}
@@ -3920,7 +3906,7 @@ export default function StudentDashboard() {
               )}
             </button>
 
-            {/* 3. Kütüphane & Envanter */}
+            {/* 2. Kütüphane & Envanter */}
             <button
               type="button"
               onClick={() => handleTabChange('books')}
@@ -3946,7 +3932,7 @@ export default function StudentDashboard() {
               )}
             </button>
 
-            {/* 4. Arena & Başarı */}
+            {/* 3. Arena & Başarı */}
             <button
               type="button"
               onClick={() => handleTabChange('analytics')}
@@ -3965,7 +3951,6 @@ export default function StudentDashboard() {
             {activeDashboardTab === 'tasks' && '⚔️ Günlük Görevler: Bugünün ders programı, takvim ve öğretmen ödevlerin.'}
             {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
             {activeDashboardTab === 'analytics' && '🏆 Arena & İstatistik: Seviye rozetlerin, soru analizlerin, hedeflerin ve sınav geçmişin.'}
-            {activeDashboardTab === 'all' && '🌟 Tam Macera Görünümü: Tüm modül ve paneller tek ekranda.'}
           </div>
         </div>
 
@@ -4216,202 +4201,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ── 4. MOD: TÜM PANELLER (🌟 ALL MODULES - 2 COLUMN GRID) ── */}
-        {activeDashboardTab === 'all' && (
-          <div className="sd-grid-layout">
-            {/* SOL KOLON: Görevler, Takvim, Ödevler, Kitaplar, Yol Haritası */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-              <DashboardHeroTaskCard
-                isMobile={isMobile}
-                isDark={isDark}
-                studentName={selectedStudent?.name}
-                pendingTasks={pendingTasks}
-                dayTasks={dayProgramInfo.items}
-                catchUpTasks={catchUpTasks}
-                onStartHomework={handleHwClick}
-                onStartDayTask={handleTaskAction}
-                onViewAllTasks={handleViewAllTasks}
-                onExploreBooks={handleExploreBooks}
-                onViewAnalytics={handleViewAnalytics}
-              />
 
-              <div
-                className="game-card-elevated"
-                style={{
-                  padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
-                }}
-              >
-                <DashboardWeeklyCalendar
-                  isMobile={isMobile}
-                  isDark={isDark}
-                  daysOfWeek={DAYS_OF_WEEK}
-                  activeDayKey={activeDayKey}
-                  todayDayKey={todayDayKey}
-                  weekTasksCountMap={weekTasksCountMap}
-                  weekInfo={weekInfo}
-                  onSelectDay={setActiveDayKey}
-                  onAddTask={handleOpenAddTask}
-                />
-
-                <div style={{
-                  height: 1,
-                  background: 'var(--color-border)',
-                  margin: isMobile ? '0.85rem 0' : '1.1rem 0'
-                }} />
-
-                <DashboardTodayTasks
-                  isMobile={isMobile}
-                  isDark={isDark}
-                  activeDayConfig={activeDayConfig}
-                  dayProgramInfo={dayProgramInfo}
-                  catchUpTasks={catchUpTasks}
-                  showAllDayTasks={showAllDayTasks}
-                  setShowAllDayTasks={setShowAllDayTasks}
-                  onToggleTask={handleToggleTask}
-                  onTaskClick={handleTaskAction}
-                  getRowTheme={getRowTheme}
-                  onAddTask={handleOpenAddTask}
-                />
-
-                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Link to="/my-program" style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6366f1', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    Haftalık Programa Git <ChevronRight size={13} />
-                  </Link>
-                </div>
-              </div>
-
-              {!focusModeOnly && (
-                <>
-                  <DashboardHomeworksCard
-                    isMobile={isMobile}
-                    pendingCount={pendingCount}
-                    pendingTasks={pendingTasks}
-                    onHwClick={handleHwClick}
-                    getRowTheme={getRowTheme}
-                  />
-
-                  <DashboardBooksCard
-                    isMobile={isMobile}
-                    isDark={isDark}
-                    assignedBooksList={assignedBooksList}
-                    onNavigateBooks={handleNavigateBooks}
-                    onNavigateBookDetail={handleNavigateBookDetail}
-                  />
-
-                  <DashboardReadingCard
-                    isMobile={isMobile}
-                    isDark={isDark}
-                    onNavigateReading={handleNavigateReading}
-                  />
-
-                  <DashboardRoadmapCard
-                    isMobile={isMobile}
-                    isDark={isDark}
-                    personalRoadmap={personalRoadmap}
-                    myRoadmaps={myRoadmaps}
-                    onNavigateRoadmap={handleNavigateRoadmap}
-                  />
-                </>
-              )}
-            </div>
-
-            {/* SAĞ KOLON: Analizler, Rozetler, Hedefler, İlham */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-              <StudentGamificationCard
-                student={selectedStudent}
-                submissions={studentSubmissions}
-                homeworks={homeworks}
-                books={books}
-                bookTests={bookTests}
-                mockExams={studentMockExams}
-                studySessions={[]}
-                users={users}
-                gamificationData={studentGamification}
-              />
-
-              <div>
-                {isAnalyticsReady ? (
-                  <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
-                    <PeriodicQuestionAnalytics
-                      homeworkSubmissions={otherHomeworkSubmissions}
-                      mockExams={generalTrialExams}
-                      studentName={selectedStudent?.name || 'Öğrenci'}
-                    />
-                  </Suspense>
-                ) : (
-                  <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
-                    📊 Analiz hazırlanıyor…
-                  </div>
-                )}
-              </div>
-
-              <DashboardGoalsCard
-                isMobile={isMobile}
-                goalTrackingData={goalTrackingData}
-                solvedQuestionsStats={solvedQuestionsStats}
-                onNavigateGoals={handleNavigateGoals}
-                onUpdateGoalProgress={updateGoalProgress}
-                goalTypeThemes={GOAL_TYPE_THEMES}
-              />
-
-              <DashboardRecentSolvedCard
-                isMobile={isMobile}
-                recentSolvedTests={recentSolvedTests}
-                onOpenManualModal={handleOpenManualModal}
-                onNavigateResults={handleNavigateResults}
-                onReviewTest={handleReviewRecentTest}
-                selectedStudent={selectedStudent}
-              />
-
-              {/* Günün İlhamı (Hikmet Parşömeni) */}
-              <div className="game-wisdom-card">
-                {(() => {
-                  const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
-                  return (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
-                          <div>
-                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
-                              📜 Günün İlham Parşömeni
-                            </span>
-                            <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                              {currentQuote.category}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setDashQuoteIdx(p => p + 1)}
-                          className="game-btn-3d"
-                          style={{
-                            background: 'var(--color-surface)',
-                            color: 'var(--color-text)',
-                            border: '1.5px solid var(--color-border)',
-                            borderRadius: 999,
-                            padding: '0.3rem 0.75rem',
-                            fontSize: '0.7rem',
-                            boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
-                          }}
-                        >
-                          <RefreshCw size={11} /> Yeni İlham
-                        </button>
-                      </div>
-
-                      <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
-                        "{currentQuote.quote}"
-                      </div>
-                      <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
-                        — {currentQuote.author}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
 
