@@ -1,0 +1,1070 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import {
+  Printer,
+  Trash2,
+  Search,
+  Compass,
+  PlayCircle,
+  CheckCircle2,
+  ChevronRight,
+  AlertTriangle,
+  BookOpen,
+  Filter,
+  Check,
+  X,
+  Sparkles
+} from 'lucide-react';
+
+export default function DashboardRemedialCard({
+  isMobile,
+  isDark,
+  catchUpTasks = [],
+  onToggleTask,
+  onTaskClick,
+  onDeleteTask,
+  getRowTheme,
+  onNavigateTasks,
+  onNavigateBooks
+}) {
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isPrintingCatchUp, setIsPrintingCatchUp] = useState(false);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPrintingCatchUp(false);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const handlePrintCatchUp = () => {
+    if (!catchUpTasks || catchUpTasks.length === 0) {
+      alert('Geciken veya telafi edilmesi gereken herhangi bir görev bulunmuyor. 🎉');
+      return;
+    }
+    setIsPrintingCatchUp(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        setIsPrintingCatchUp(false);
+      }, 1000);
+    }, 100);
+  };
+
+  // Category Icon & Badge Resolver for Catch-Up Items
+  const getCatchUpCategoryBadge = (task) => {
+    if (task.categoryType === 'yol_haritasi' || task.isRoadmapTask || task.roadmapAssignmentId) {
+      return { label: '🗺️ Yol Haritası', bg: 'rgba(124, 58, 237, 0.12)', color: '#7c3aed', border: 'rgba(124, 58, 237, 0.3)' };
+    }
+    if (task.categoryType === 'kitap' || task.isBookTask || task.bookTestId || (task.testId && task.bookId)) {
+      return { label: '📚 Kitap Takibi', bg: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: 'rgba(5, 150, 105, 0.3)' };
+    }
+    if (task.categoryType === 'deneme' || task.isExamTask || task.type === 'physicalExam') {
+      return { label: '🎯 Deneme', bg: 'rgba(217, 119, 6, 0.12)', color: '#d97706', border: 'rgba(217, 119, 6, 0.3)' };
+    }
+    return { label: '📝 Ödev / Görev', bg: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', border: 'rgba(99, 102, 241, 0.3)' };
+  };
+
+  // Calculate subject counts
+  const subjectCounts = useMemo(() => {
+    const counts = {};
+    (catchUpTasks || []).forEach(t => {
+      const cleanSubj = (t.subject && t.subject.toLowerCase() === 'geometri') ? 'Matematik' : (t.subject || 'Diğer');
+      counts[cleanSubj] = (counts[cleanSubj] || 0) + 1;
+    });
+    return counts;
+  }, [catchUpTasks]);
+
+  // Total questions count estimation
+  const totalQuestionsEstimate = useMemo(() => {
+    return (catchUpTasks || []).reduce((acc, t) => {
+      const q = Number(t.questionCount || t.targetQuestionCount || 0);
+      return acc + (isNaN(q) ? 0 : q);
+    }, 0);
+  }, [catchUpTasks]);
+
+  // Filtered task list
+  const filteredTasks = useMemo(() => {
+    return (catchUpTasks || []).filter(task => {
+      const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Diğer');
+      if (selectedSubject !== 'all' && cleanSubj !== selectedSubject) return false;
+
+      if (selectedCategory !== 'all') {
+        const isReading = task.taskType === 'okuma' || String(task.topic || '').toLowerCase().includes('okuma');
+        const isRoadmap = Boolean(task.roadmapAssignmentId || task.isRoadmapTask);
+        const isBook = Boolean(task.isBookTask || task.bookTestId);
+        const isHw = Boolean(task.hwId && !task.bookTestId && !task.roadmapAssignmentId);
+
+        if (selectedCategory === 'harita' && !isRoadmap) return false;
+        if (selectedCategory === 'kitap' && !isBook) return false;
+        if (selectedCategory === 'ödev' && !isHw) return false;
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = (task.testName || task.title || '').toLowerCase().includes(q);
+        const matchBook = (task.bookTitle || '').toLowerCase().includes(q);
+        const matchTopic = (task.unitTopic || task.topic || '').toLowerCase().includes(q);
+        const matchSubj = cleanSubj.toLowerCase().includes(q);
+        if (!matchTitle && !matchBook && !matchTopic && !matchSubj) return false;
+      }
+
+      return true;
+    });
+  }, [catchUpTasks, selectedSubject, selectedCategory, searchQuery]);
+
+  const hasTasks = Array.isArray(catchUpTasks) && catchUpTasks.length > 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+      {/* ── Main Remedial Card ── */}
+      <div
+        className="game-card-elevated"
+        style={{
+          padding: isMobile ? '1.1rem 0.95rem' : '1.5rem 1.8rem',
+          border: hasTasks ? '2px solid rgba(245, 158, 11, 0.45)' : '2px solid var(--color-border)',
+          position: 'relative'
+        }}
+      >
+        {/* Neon Gradient Header Top Beam */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 4,
+          background: hasTasks
+            ? 'linear-gradient(90deg, #ea580c, #f59e0b, #ef4444)'
+            : 'linear-gradient(90deg, #10b981, #059669, #34d399)',
+          borderTopLeftRadius: 'inherit',
+          borderTopRightRadius: 'inherit'
+        }} />
+
+        {/* ── Card Header ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: '1.25rem',
+          paddingBottom: '1rem',
+          borderBottom: '1.5px solid var(--color-border)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: isMobile ? 44 : 50,
+              height: isMobile ? 44 : 50,
+              borderRadius: 16,
+              background: hasTasks
+                ? 'linear-gradient(135deg, #f59e0b, #ef4444)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? '1.35rem' : '1.6rem',
+              boxShadow: hasTasks ? '0 4px 14px rgba(239, 68, 68, 0.35)' : '0 4px 14px rgba(16, 185, 129, 0.35)',
+              flexShrink: 0
+            }}>
+              {hasTasks ? '🔥' : '✨'}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: isMobile ? '1.1rem' : '1.35rem',
+                  fontWeight: 900,
+                  color: 'var(--color-text)',
+                  letterSpacing: '-0.02em'
+                }}>
+                  Akıllı Telafi Havuzu
+                </h3>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  padding: '3px 10px',
+                  borderRadius: 99,
+                  background: hasTasks ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #10b981, #059669)',
+                  color: '#ffffff',
+                  boxShadow: hasTasks ? '0 2px 8px rgba(239, 68, 68, 0.35)' : '0 2px 8px rgba(16, 185, 129, 0.35)'
+                }}>
+                  {hasTasks ? `${catchUpTasks.length} Geciken Görev` : '0 Eksik • Tertemiz'}
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                {hasTasks
+                  ? 'Geçmiş günlerden kalan eksikleri, süresi geçmiş ödevleri ve telafi testlerini çözerek haftalık hedefini yakala!'
+                  : 'Harika bir disiplin! Gecikmiş hiçbir görevin yok, programın eksiksiz ilerliyor.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Action Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {hasTasks && (
+              <button
+                type="button"
+                onClick={handlePrintCatchUp}
+                className="game-btn-3d"
+                style={{
+                  background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fff1f2',
+                  border: isDark ? '1.5px solid rgba(239, 68, 68, 0.4)' : '1.5px solid #fecdd3',
+                  color: '#ef4444',
+                  borderRadius: 12,
+                  padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.05rem',
+                  fontSize: isMobile ? '0.76rem' : '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+                title="A4 Çıktı Olarak Yazdır"
+              >
+                <Printer size={15} />
+                <span>Yazdır (A4)</span>
+              </button>
+            )}
+
+            {hasTasks && onDeleteTask && (
+              <button
+                type="button"
+                onClick={() => onDeleteTask('CLEAR_ALL_CATCHUP')}
+                className="game-btn-3d"
+                style={{
+                  background: isDark ? 'rgba(100, 116, 139, 0.15)' : '#f1f5f9',
+                  border: '1.5px solid var(--color-border)',
+                  color: 'var(--color-text-muted)',
+                  borderRadius: 12,
+                  padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.05rem',
+                  fontSize: isMobile ? '0.76rem' : '0.82rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+                title="Tüm telafi havuzundaki görevleri kaldır"
+              >
+                <Trash2 size={14} />
+                <span>Havuzu Temizle</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {hasTasks ? (
+          <>
+            {/* ── Metric Highlights Bar ── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
+              gap: 10,
+              marginBottom: '1.25rem'
+            }}>
+              <div style={{
+                background: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.04)',
+                border: '1.5px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: 14,
+                padding: '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10
+              }}>
+                <span style={{ fontSize: '1.4rem' }}>⏳</span>
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>Geciken Görev</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>{catchUpTasks.length} Adet</div>
+                </div>
+              </div>
+
+              {totalQuestionsEstimate > 0 && (
+                <div style={{
+                  background: isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.04)',
+                  border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                  borderRadius: 14,
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10
+                }}>
+                  <span style={{ fontSize: '1.4rem' }}>📝</span>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>Tahmini Soru</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>~{totalQuestionsEstimate} Soru</div>
+                  </div>
+                </div>
+              )}
+
+              <div style={{
+                background: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
+                border: '1.5px solid rgba(245, 158, 11, 0.25)',
+                borderRadius: 14,
+                padding: '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                gridColumn: isMobile ? 'span 2' : 'auto'
+              }}>
+                <span style={{ fontSize: '1.4rem' }}>📚</span>
+                <div>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>Ders Çeşitliliği</div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                    {Object.keys(subjectCounts).length} Farklı Ders
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Search & Filter Controls ── */}
+            <div style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              marginBottom: '1rem'
+            }}>
+              {/* Subject Filter Pills */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                overflowX: 'auto',
+                paddingBottom: 4,
+                maxWidth: '100%',
+                WebkitOverflowScrolling: 'touch'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubject('all')}
+                  style={{
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: 99,
+                    border: '1.5px solid',
+                    borderColor: selectedSubject === 'all' ? '#6366f1' : 'var(--color-border)',
+                    background: selectedSubject === 'all' ? '#6366f1' : 'var(--color-surface)',
+                    color: selectedSubject === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.74rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Tümü ({catchUpTasks.length})
+                </button>
+
+                {Object.entries(subjectCounts).map(([subj, count]) => {
+                  const isAct = selectedSubject === subj;
+                  return (
+                    <button
+                      key={subj}
+                      type="button"
+                      onClick={() => setSelectedSubject(subj)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 99,
+                        border: '1.5px solid',
+                        borderColor: isAct ? '#f59e0b' : 'var(--color-border)',
+                        background: isAct ? '#f59e0b' : 'var(--color-surface)',
+                        color: isAct ? '#ffffff' : 'var(--color-text)',
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {subj} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Quick Search Box */}
+              <div style={{
+                position: 'relative',
+                minWidth: isMobile ? '100%' : 220
+              }}>
+                <Search
+                  size={14}
+                  style={{
+                    position: 'absolute',
+                    left: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--color-text-muted)',
+                    pointerEvents: 'none'
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Telafi görevi veya kitap ara..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.45rem 1.8rem 0.45rem 2rem',
+                    borderRadius: 10,
+                    border: '1.5px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      padding: 2
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ── Task List ── */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
+            }}>
+              {filteredTasks.length === 0 ? (
+                <div style={{
+                  padding: '2rem 1.5rem',
+                  textAlign: 'center',
+                  background: 'var(--color-surface)',
+                  borderRadius: 14,
+                  border: '1.5px dashed var(--color-border)',
+                  color: 'var(--color-text-muted)'
+                }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>🔍</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>Seçilen kriterlere uygun telafi görevi bulunamadı.</div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedSubject('all'); setSelectedCategory('all'); setSearchQuery(''); }}
+                    style={{
+                      marginTop: 10,
+                      background: 'none',
+                      border: 'none',
+                      color: '#6366f1',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Filtreleri Temizle
+                  </button>
+                </div>
+              ) : (
+                filteredTasks.map((task, cIdx) => {
+                  const isReadingTask = task.taskType === 'okuma' ||
+                    task.subject === 'Kitap Okuma' ||
+                    String(task.topic || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.title || '').toLowerCase().includes('kitap okuma') ||
+                    String(task.taskType || '').toLowerCase().includes('okuma');
+                  const isQuizTask = !isReadingTask && Boolean(task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId);
+                  const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Genel');
+                  const rowTheme = getRowTheme ? getRowTheme(cleanSubj, cIdx) : {};
+                  const catBadge = getCatchUpCategoryBadge(task);
+                  const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+
+                  let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
+                    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                    .replace(/\s*\(Tüm Kitap\)/gi, '')
+                    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                    .replace(/\s*\(Görev\)/gi, '')
+                    .trim();
+
+                  if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                    displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                  }
+
+                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
+                      displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                    } else if (task.unitTopic) {
+                      displayTitle = `${task.unitTopic} Testi`;
+                    } else if (task.subject) {
+                      displayTitle = `${task.subject} Testi`;
+                    } else {
+                      displayTitle = 'Konu Testi';
+                    }
+                  }
+
+                  let pageBadge = null;
+                  const pageMatch = displayTitle.match(/^(\d+(?:[-–]\d+)?\.\s*(?:Sayfa|s\.)|\s*s\.\s*\d+(?:[-–]\d+)?)\s*/i);
+                  if (pageMatch) {
+                    pageBadge = pageMatch[0].trim();
+                    displayTitle = displayTitle.substring(pageMatch[0].length).trim();
+                  }
+
+                  return (
+                    <div
+                      key={`remedial_tab_${task.id || task.hwId || cIdx}`}
+                      onClick={() => {
+                        if (isReadingTask) {
+                          onToggleTask && onToggleTask(task);
+                        } else {
+                          onTaskClick && onTaskClick(task);
+                        }
+                      }}
+                      className="game-quest-row"
+                      style={{
+                        padding: isMobile ? '0.8rem 0.9rem' : '0.95rem 1.25rem',
+                        borderLeft: `5px solid ${rowTheme.accent || '#f59e0b'}`,
+                        cursor: 'pointer',
+                        borderRadius: 14
+                      }}
+                    >
+                      {/* Left: Checkmark + Task Info */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 8 : 12, flex: 1, minWidth: 0 }}>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
+                          style={{
+                            width: isMobile ? 26 : 28,
+                            height: isMobile ? 26 : 28,
+                            borderRadius: '50%',
+                            border: `2px solid ${rowTheme.border || 'rgba(245, 158, 11, 0.6)'}`,
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            cursor: 'pointer',
+                            padding: 0,
+                            marginTop: 2
+                          }}
+                          title="Tamamlandı olarak işaretle"
+                        >
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
+                        </button>
+
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {/* Tags row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            {task.subject && (
+                              <span style={{
+                                fontSize: '0.64rem',
+                                fontWeight: 900,
+                                color: rowTheme.text || '#6366f1',
+                                background: rowTheme.badgeBg || 'rgba(99, 102, 241, 0.12)',
+                                border: `1px solid ${rowTheme.border || 'rgba(165, 180, 252, 0.35)'}`,
+                                padding: '1px 7px',
+                                borderRadius: 6,
+                                flexShrink: 0
+                              }}>
+                                {cleanSubj}
+                              </span>
+                            )}
+
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 900,
+                              color: '#dc2626',
+                              background: '#fef2f2',
+                              border: '1px solid #fecdd3',
+                              padding: '1px 6px',
+                              borderRadius: 6,
+                              flexShrink: 0
+                            }}>
+                              ⚠️ Gecikti
+                            </span>
+
+                            {catBadge && (
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                color: catBadge.color,
+                                background: catBadge.bg,
+                                border: `1px solid ${catBadge.border}`,
+                                padding: '1px 6px',
+                                borderRadius: 6,
+                                flexShrink: 0
+                              }}>
+                                {catBadge.label}
+                              </span>
+                            )}
+
+                            {pageBadge && (
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                color: 'var(--color-text-secondary)',
+                                background: 'var(--color-surface-hover)',
+                                border: '1px solid var(--color-border)',
+                                padding: '1px 5px',
+                                borderRadius: 5,
+                                flexShrink: 0
+                              }}>
+                                📄 {pageBadge}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Title */}
+                          <span style={{
+                            fontSize: isMobile ? '0.86rem' : '0.94rem',
+                            fontWeight: 800,
+                            color: 'var(--color-text)',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.3
+                          }}>
+                            {displayTitle}
+                          </span>
+
+                          {/* Sub-info: Book, topic, question count, reason */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                            {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && (
+                              <span style={{
+                                color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
+                                fontWeight: 700,
+                                background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
+                                padding: '1px 6px',
+                                borderRadius: 5,
+                                border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
+                              }}>
+                                {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
+                              </span>
+                            )}
+
+                            {task.unitTopic && (
+                              <span style={{
+                                color: '#4338ca',
+                                fontWeight: 700,
+                                background: 'rgba(99, 102, 241, 0.12)',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                border: '1px solid rgba(165, 180, 252, 0.3)'
+                              }}>
+                                📌 {task.unitTopic}
+                              </span>
+                            )}
+
+                            {task.questionCount && (
+                              <span style={{ background: 'var(--color-surface-hover)', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--color-border)' }}>
+                                {String(task.questionCount).replace(/\s*soru\s*$/i, '')} Soru
+                              </span>
+                            )}
+
+                            {(task.reason || task.dueDateStr || task.time) && (
+                              <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                                ⏰ {task.reason || task.dueDateStr || task.time}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Action Buttons */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        {task.roadmapAssignmentId ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                            className="game-btn-3d game-btn-accent"
+                            style={{
+                              borderRadius: 10,
+                              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                              fontSize: isMobile ? '0.74rem' : '0.8rem',
+                              fontWeight: 900,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <Compass size={14} /> Haritaya Git
+                          </button>
+                        ) : isQuizTask ? (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
+                            className="game-btn-3d game-btn-primary"
+                            style={{
+                              borderRadius: 10,
+                              padding: isMobile ? '0.4rem 0.85rem' : '0.5rem 1.1rem',
+                              fontSize: isMobile ? '0.74rem' : '0.8rem',
+                              fontWeight: 900,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                          >
+                            <PlayCircle size={14} /> Çözmeye Başla
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
+                            className="game-btn-3d game-btn-emerald"
+                            style={{
+                              borderRadius: 10,
+                              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 0.95rem',
+                              fontSize: isMobile ? '0.74rem' : '0.78rem',
+                              fontWeight: 900,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Tamamla ✓
+                          </button>
+                        )}
+
+                        {onDeleteTask && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: 'transparent',
+                              border: '1px solid var(--color-border)',
+                              color: 'var(--color-text-muted)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                            title="Bu görevi telafi havuzundan kaldır"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        ) : (
+          /* ── Celebratory Empty State ── */
+          <div style={{
+            textAlign: 'center',
+            padding: isMobile ? '2.5rem 1.25rem' : '3.5rem 2rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12
+          }}>
+            <div style={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.35))',
+              border: '2px solid rgba(16, 185, 129, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '2.5rem',
+              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.25)'
+            }}>
+              ✨
+            </div>
+
+            <h4 style={{
+              margin: 0,
+              fontSize: isMobile ? '1.15rem' : '1.35rem',
+              fontWeight: 900,
+              color: 'var(--color-text)'
+            }}>
+              Tebrikler! Telafi Havuzun Tertemiz 🎉
+            </h4>
+
+            <p style={{
+              margin: 0,
+              maxWidth: 480,
+              fontSize: '0.86rem',
+              color: 'var(--color-text-muted)',
+              lineHeight: 1.5,
+              fontWeight: 600
+            }}>
+              Geçmiş günlerden kalan hiçbir gecikmiş görevin veya eksik ödevin bulunmuyor. Harika bir disiplinle ilerliyorsun!
+            </p>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 10,
+              flexWrap: 'wrap',
+              justifyContent: 'center'
+            }}>
+              {onNavigateTasks && (
+                <button
+                  type="button"
+                  onClick={onNavigateTasks}
+                  className="game-btn-3d game-btn-primary"
+                  style={{
+                    borderRadius: 14,
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.84rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>⚔️ Bugünkü Görevlere Git</span>
+                  <ChevronRight size={15} />
+                </button>
+              )}
+
+              {onNavigateBooks && (
+                <button
+                  type="button"
+                  onClick={onNavigateBooks}
+                  className="game-btn-3d"
+                  style={{
+                    background: 'var(--color-surface)',
+                    border: '1.5px solid var(--color-border)',
+                    color: 'var(--color-text)',
+                    borderRadius: 14,
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.84rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <BookOpen size={15} />
+                  <span>🎒 Kütüphaneyi İncele</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── PRINTABLE TELAFİ / CATCH-UP TASKS DOCUMENT (PORTAL DIRECTLY TO BODY FOR FLAWLESS MULTI-PAGE PRINTING) ── */}
+      {isPrintingCatchUp && hasTasks && typeof document !== 'undefined' && createPortal(
+        <div id="print-catchup-tasks-portal" className="print-catchup-tasks-doc">
+          <style>{`
+            .print-catchup-tasks-doc { display: none; }
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 8mm 10mm;
+              }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+              }
+              body > *:not(#print-catchup-tasks-portal) {
+                display: none !important;
+              }
+              #print-catchup-tasks-portal {
+                display: block !important;
+                width: 100% !important;
+                position: static !important;
+                background: #ffffff !important;
+                color: #0f172a !important;
+                font-family: 'Inter', -apple-system, sans-serif !important;
+              }
+              .print-cu-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-start !important;
+                border-bottom: 2.5px solid #dc2626 !important;
+                padding-bottom: 6px !important;
+                margin-bottom: 8px !important;
+              }
+              .print-cu-brand {
+                font-size: 11pt !important;
+                font-weight: 900 !important;
+                color: #0f172a !important;
+                letter-spacing: -0.02em !important;
+              }
+              .print-cu-title {
+                font-size: 9.2pt !important;
+                font-weight: 900 !important;
+                color: #dc2626 !important;
+                margin-top: 2px !important;
+              }
+              .print-cu-alert-box {
+                background: #fff7ed !important;
+                border: 1px solid #fed7aa !important;
+                border-left: 4px solid #f97316 !important;
+                padding: 5px 8px !important;
+                font-size: 7.2pt !important;
+                color: #9a3412 !important;
+                margin-bottom: 10px !important;
+                border-radius: 4px !important;
+                page-break-inside: avoid !important;
+              }
+              .print-cu-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-bottom: 10px !important;
+                font-size: 7.4pt !important;
+                page-break-inside: auto !important;
+              }
+              .print-cu-th {
+                background: #f8fafc !important;
+                border: 1px solid #cbd5e1 !important;
+                padding: 4px 6px !important;
+                font-weight: 900 !important;
+                color: #1e293b !important;
+                text-align: left !important;
+              }
+              .print-cu-tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              .print-cu-td {
+                border: 1px solid #e2e8f0 !important;
+                padding: 4px 6px !important;
+                vertical-align: middle !important;
+                line-height: 1.25 !important;
+              }
+              .print-cu-check {
+                display: inline-flex !important;
+                width: 13px !important;
+                height: 13px !important;
+                border: 1.5px solid #64748b !important;
+                border-radius: 3px !important;
+                background: #ffffff !important;
+              }
+              .print-cu-footer {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                border-top: 1.5px solid #cbd5e1 !important;
+                padding-top: 6px !important;
+                margin-top: 10px !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                font-size: 7.2pt !important;
+                color: #475569 !important;
+              }
+            }
+          `}</style>
+
+          <div className="print-cu-header">
+            <div>
+              <div className="print-cu-brand">E-TEST EĞİTİM & KOÇLUK PLATFORMU</div>
+              <div className="print-cu-title">⚠️ Akıllı Telafi Havuzu • Geciken Görevler Listesi</div>
+            </div>
+            <div style={{ textAlign: 'right', fontSize: '7.8pt', color: '#334155' }}>
+              <div style={{ fontWeight: 900, color: '#dc2626' }}>Toplam: {catchUpTasks.length} Görev</div>
+              <div style={{ color: '#64748b', fontSize: '7.2pt', marginTop: 2 }}>
+                Yazdırma Tarihi: {new Date().toLocaleDateString('tr-TR')}
+              </div>
+            </div>
+          </div>
+
+          <div className="print-cu-alert-box">
+            📌 <strong>Bilgilendirme:</strong> Bu listedeki görevler süresi geçmiş veya telafi edilmesi gereken çalışmaları içerir. Tamamladıkça kutucukları işaretleyiniz ve doğru/yanlış/boş sayılarını not ediniz.
+          </div>
+
+          <table className="print-cu-table">
+            <thead>
+              <tr>
+                <th className="print-cu-th" style={{ width: 24, textAlign: 'center' }}>No</th>
+                <th className="print-cu-th" style={{ width: 70 }}>Ders</th>
+                <th className="print-cu-th" style={{ width: 80 }}>Tür</th>
+                <th className="print-cu-th">Görev / Kitap / Test Adı</th>
+                <th className="print-cu-th" style={{ width: 45, textAlign: 'center' }}>Soru</th>
+                <th className="print-cu-th" style={{ width: 75 }}>Gecikme Sebebi</th>
+                <th className="print-cu-th" style={{ width: 65, textAlign: 'center' }}>Sonuç (D/Y/B)</th>
+                <th className="print-cu-th" style={{ width: 30, textAlign: 'center' }}>Tamam</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catchUpTasks.map((task, idx) => {
+                const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Genel');
+                const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+
+                let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
+                  .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                  .replace(/\s*\(Tüm Kitap\)/gi, '')
+                  .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                  .replace(/\s*\(Görev\)/gi, '')
+                  .trim();
+
+                if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                  displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                }
+
+                if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                  if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
+                    displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                  } else if (task.unitTopic) {
+                    displayTitle = `${task.unitTopic} Testi`;
+                  } else if (task.subject) {
+                    displayTitle = `${task.subject} Testi`;
+                  } else {
+                    displayTitle = 'Konu Testi';
+                  }
+                }
+
+                const catBadge = getCatchUpCategoryBadge(task);
+                const qCountStr = task.questionCount ? String(task.questionCount).replace(/\s*soru\s*$/i, '') : '-';
+
+                return (
+                  <tr key={`print_cu_row_${task.id || idx}`} className="print-cu-tr">
+                    <td className="print-cu-td" style={{ textAlign: 'center', fontWeight: 700 }}>{idx + 1}</td>
+                    <td className="print-cu-td" style={{ fontWeight: 800 }}>{cleanSubj}</td>
+                    <td className="print-cu-td" style={{ fontSize: '6.8pt' }}>{catBadge?.label || 'Görev'}</td>
+                    <td className="print-cu-td">
+                      <div style={{ fontWeight: 800 }}>{displayTitle}</div>
+                      {task.bookTitle && (
+                        <div style={{ fontSize: '6.8pt', color: '#64748b', marginTop: 1 }}>
+                          📖 {task.bookTitle} {task.unitTopic ? `• ${task.unitTopic}` : ''}
+                        </div>
+                      )}
+                    </td>
+                    <td className="print-cu-td" style={{ textAlign: 'center', fontWeight: 700 }}>{qCountStr}</td>
+                    <td className="print-cu-td" style={{ fontSize: '6.8pt', color: '#dc2626' }}>
+                      {task.reason || task.dueDateStr || task.time || 'Gecikti'}
+                    </td>
+                    <td className="print-cu-td" style={{ textAlign: 'center', color: '#94a3b8' }}>
+                      ___ / ___ / ___
+                    </td>
+                    <td className="print-cu-td" style={{ textAlign: 'center' }}>
+                      <div className="print-cu-check" />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <div className="print-cu-footer">
+            <div>Öğrenci Adı Soyadı: ___________________________</div>
+            <div>Veli / Öğretmen İmzası: ___________________________</div>
+            <div>Sayfa 1 / 1</div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}

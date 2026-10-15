@@ -488,6 +488,11 @@
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.game-nav-dock::-webkit-scrollbar {
+  display: none;
 }
 
 [data-theme="dark"] .game-nav-dock {

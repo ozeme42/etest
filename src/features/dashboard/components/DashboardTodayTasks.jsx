@@ -14,7 +14,8 @@ export default memo(function DashboardTodayTasks({
   onToggleTask,
   onTaskClick,
   getRowTheme,
-  onAddTask
+  onAddTask,
+  onNavigateRemedial
 }) {
   const [isCatchUpExpanded, setIsCatchUpExpanded] = useState(false);
   const [isPrintingCatchUp, setIsPrintingCatchUp] = useState(false);
@@ -576,12 +577,39 @@ export default memo(function DashboardTodayTasks({
                   fontWeight: 800,
                   background: 'rgba(239, 68, 68, 0.08)',
                   border: '1px solid rgba(239, 68, 68, 0.25)',
-                  padding: '0.55rem 0.95rem',
-                  borderRadius: 10,
+                  padding: '0.65rem 0.95rem',
+                  borderRadius: 12,
                   margin: '0.5rem auto 0.75rem',
-                  maxWidth: 440
+                  maxWidth: 440,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8
                 }}>
-                  ⚠️ Geçmiş günlerden tamamlanması gereken {catchUpTasks.length} geciken telafi görevin bulunuyor. Hemen aşağıdaki Telafi Havuzundan çözmeye başlayabilirsin:
+                  <span>⚠️ Geçmiş günlerden tamamlanması gereken {catchUpTasks.length} geciken telafi görevin bulunuyor.</span>
+                  {onNavigateRemedial && (
+                    <button
+                      type="button"
+                      onClick={onNavigateRemedial}
+                      className="game-btn-3d"
+                      style={{
+                        background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '0.35rem 0.85rem',
+                        fontSize: '0.75rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <span>🔥 Telafi Havuzuna Git ({catchUpTasks.length} Görev)</span>
+                      <ChevronRight size={13} />
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: onAddTask ? 12 : 0 }}>
@@ -692,6 +720,34 @@ export default memo(function DashboardTodayTasks({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {hasCatchUp && onNavigateRemedial && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigateRemedial();
+                }}
+                className="game-btn-3d"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 0 #b45309'
+                }}
+                title="Akıllı Telafi Havuzu Sekmesine Geç"
+              >
+                <span>🔥 Sekmeye Git</span>
+                <ChevronRight size={12} />
+              </button>
+            )}
             {hasCatchUp && (
               <button
                 type="button"

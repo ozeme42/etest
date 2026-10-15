@@ -43,6 +43,7 @@ import DashboardReadingCard from '../features/dashboard/components/DashboardRead
 import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
 import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
 import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
+import DashboardRemedialCard from '../features/dashboard/components/DashboardRemedialCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
 import GamificationModal from '../components/gamification/GamificationModal';
@@ -331,6 +332,7 @@ export default function StudentDashboard() {
 
   const handleViewAllTasks = useCallback(() => handleTabChange('tasks'), [handleTabChange]);
   const handleExploreBooks = useCallback(() => handleTabChange('books'), [handleTabChange]);
+  const handleViewRemedial = useCallback(() => handleTabChange('remedial'), [handleTabChange]);
   const handleViewAnalytics = useCallback(() => handleTabChange('analytics'), [handleTabChange]);
 
   const handleToggleFocusMode = useCallback(() => {
@@ -3821,7 +3823,7 @@ export default function StudentDashboard() {
           {[
             { label: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5 0%, #312e81 100%)', border: '#818cf8', glow: 'rgba(79,70,229,0.5)',   action: () => handleTabChange('tasks') },
             { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
-            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('tasks') },
+            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('remedial') },
             { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
             { label: 'BAŞARI',     value: `%${taskStats.completionRate}`,                        emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
           ].map((kpi) => (
@@ -3935,7 +3937,33 @@ export default function StudentDashboard() {
               )}
             </button>
 
-            {/* 3. Arena & Başarı */}
+            {/* 3. Akıllı Telafi Havuzu */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('remedial')}
+              className={`game-nav-tab ${activeDashboardTab === 'remedial' ? 'game-btn-3d' : ''}`}
+              style={{
+                background: activeDashboardTab === 'remedial' ? 'linear-gradient(135deg, #ea580c, #f59e0b)' : 'transparent',
+                color: activeDashboardTab === 'remedial' ? '#ffffff' : 'var(--color-text-muted)',
+                boxShadow: activeDashboardTab === 'remedial' ? '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)' : 'none'
+              }}
+            >
+              <span>🔥 Telafi Havuzu</span>
+              {catchUpTasks.length > 0 && (
+                <span style={{
+                  background: activeDashboardTab === 'remedial' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
+                  color: activeDashboardTab === 'remedial' ? '#ffffff' : '#ef4444',
+                  fontSize: '0.66rem',
+                  fontWeight: 900,
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: 99
+                }}>
+                  {catchUpTasks.length}
+                </span>
+              )}
+            </button>
+
+            {/* 4. Arena & Başarı */}
             <button
               type="button"
               onClick={() => handleTabChange('analytics')}
@@ -3953,6 +3981,7 @@ export default function StudentDashboard() {
           <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
             {activeDashboardTab === 'tasks' && '⚔️ Günlük Görevler: Bugünün ders programı, takvim ve öğretmen ödevlerin.'}
             {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
+            {activeDashboardTab === 'remedial' && '🔥 Akıllı Telafi Havuzu: Geçmiş günlerden kalan eksikler, telafi testleri ve geciken ödevler.'}
             {activeDashboardTab === 'analytics' && '🏆 Arena & İstatistik: Seviye rozetlerin, soru analizlerin, hedeflerin ve sınav geçmişin.'}
           </div>
         </div>
@@ -4016,6 +4045,7 @@ export default function StudentDashboard() {
                 onTaskClick={handleTaskAction}
                 getRowTheme={getRowTheme}
                 onAddTask={handleOpenAddTask}
+                onNavigateRemedial={handleViewRemedial}
               />
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
@@ -4102,7 +4132,22 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ── 3. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
+        {/* ── 3. MOD: AKILLI TELAFİ HAVUZU (🔥 REMEDIAL & CATCH-UP) ── */}
+        {activeDashboardTab === 'remedial' && (
+          <DashboardRemedialCard
+            isMobile={isMobile}
+            isDark={isDark}
+            catchUpTasks={catchUpTasks}
+            onToggleTask={handleToggleTask}
+            onTaskClick={handleTaskAction}
+            onDeleteTask={handleDeleteTask}
+            getRowTheme={getRowTheme}
+            onNavigateTasks={handleViewAllTasks}
+            onNavigateBooks={handleExploreBooks}
+          />
+        )}
+
+        {/* ── 4. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
         {activeDashboardTab === 'analytics' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
             {/* Gamification Seviye & Rozet Kartı */}
