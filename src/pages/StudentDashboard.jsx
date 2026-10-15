@@ -1055,36 +1055,32 @@ export default function StudentDashboard() {
     let totalCorrect = 0;
     let totalQuestions = 0;
 
-    (otherHomeworkSubmissions || []).forEach(s => {
-      // 🛡️ Exclude unevaluated open-ended tests from dragging down the overall success percentage
-      if (s.isPendingEvaluation || (s.isOpenEnded && !s.isEvaluated) || s.scorePercentage === null || s.scorePercentage === undefined) return;
+    // Use studentSubmissions first to guarantee 100% sync with Sonuçlarım (/student/results)
+    const primarySubs = (studentSubmissions && studentSubmissions.length > 0)
+      ? studentSubmissions
+      : [...(otherHomeworkSubmissions || []), ...(generalTrialExams || [])];
 
-      const c = Number(s.correctCount) || 0;
-      const w = Number(s.wrongCount) || 0;
-      const e = Number(s.emptyCount) || 0;
-      const explicitTotal = Number(s.totalQuestions) || 0;
+    (primarySubs || []).forEach(s => {
+      // 🛡️ Exclude unevaluated open-ended tests, drafts or pending approval from dragging down the overall success percentage
+      if (s.isPendingEvaluation || s.isPendingApproval || s.isPendingEval || (s.isOpenEnded && !s.isEvaluated && !s.isEvaluatedByTeacher) || s.status === 'in_progress' || s.status === 'draft') return;
+
+      const c = Number(s.correctCount ?? s.correct_count) || 0;
+      const w = Number(s.wrongCount ?? s.wrong_count) || 0;
+      const e = Number(s.emptyCount ?? s.empty_count ?? s.blankCount) || 0;
+      const explicitTotal = Number(s.totalQuestions ?? s.questionCount) || 0;
       const q = (c + w + e > 0) ? (c + w + e) : explicitTotal;
-      totalCorrect += c;
-      totalQuestions += q;
-    });
 
-    (generalTrialExams || []).forEach(m => {
-      if (m.isPendingEvaluation || (m.isOpenEnded && !m.isEvaluated)) return;
-
-      const c = Number(m.totalCorrect ?? m.correctCount) || 0;
-      const w = Number(m.totalWrong ?? m.wrongCount) || 0;
-      const e = Number(m.totalEmpty ?? m.emptyCount ?? m.blankCount) || 0;
-      const explicitTotal = Number(m.totalQuestions) || 0;
-      const q = (c + w + e > 0) ? (c + w + e) : explicitTotal;
-      totalCorrect += c;
-      totalQuestions += q;
+      if (q > 0) {
+        totalCorrect += c;
+        totalQuestions += q;
+      }
     });
 
     if (totalQuestions > 0) {
       return Math.round((totalCorrect / totalQuestions) * 100);
     }
     return 0;
-  }, [otherHomeworkSubmissions, generalTrialExams]);
+  }, [studentSubmissions, otherHomeworkSubmissions, generalTrialExams]);
 
   /* ─── Hero Date for Top Welcome Banner ─── */
   const heroDateStr = useMemo(() => {
@@ -3784,7 +3780,7 @@ export default function StudentDashboard() {
             { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
             { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('remedial') },
             { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
-            { label: 'BAŞARI',     value: `%${taskStats.completionRate}`,                        emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
+            { label: 'BAŞARI',     value: `%${overallSuccessRate}`,                              emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
           ].map((kpi) => (
             <div
               key={kpi.label}
