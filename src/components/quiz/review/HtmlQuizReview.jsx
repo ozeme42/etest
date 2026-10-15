@@ -143,8 +143,7 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                               submission?.teacherScores?.[String(i)] ??
                               submission?.raw_data?.teacherScores?.[i] ??
                               submission?.raw_data?.teacherScores?.[String(i)] ??
-                              a?.teacherScore ??
-                              a?.score;
+                              a?.teacherScore;
 
       if (isQOE) {
         if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
@@ -166,20 +165,19 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         }
       } else {
         const hasAns = hasUserOption || (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
-        if (rawTeacherScore === 'empty') {
+        const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
+        const uLetter = formatAnswerLetter(userAns);
+        const cLetter = formatAnswerLetter(resolvedCorrect);
+        const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : (a?.isCorrect !== undefined ? a.isCorrect : checkIsAnswerCorrect(userAns, qObj, test, i));
+
+        if (!hasAns) {
           scores[i] = 'empty';
+        } else if (isRight === true || a?.isCorrect === true || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (isRight === false || a?.isCorrect === false || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
         } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
           scores[i] = Number(rawTeacherScore);
-        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
-          scores[i] = 10;
-        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
-          scores[i] = 0;
-        } else if (hasAns) {
-          const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
-          const uLetter = formatAnswerLetter(userAns);
-          const cLetter = formatAnswerLetter(resolvedCorrect);
-          const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : checkIsAnswerCorrect(userAns, qObj, test, i);
-          scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
         } else {
           scores[i] = 'empty';
         }
@@ -357,10 +355,12 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
     if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
       return true;
     }
-    // Check if any open ended question has been given a graded score by teacher
-    const hasAnyGradedScore = Object.values(questionScores).some(s => s !== 'pending' && s !== 'empty' && typeof s === 'number');
-    return hasAnyGradedScore;
-  }, [submission, questionScores]);
+    const hasExplicitTeacherScores = Boolean(
+      (submission.teacherScores && Object.keys(submission.teacherScores).length > 0) ||
+      (submission.raw_data?.teacherScores && Object.keys(submission.raw_data.teacherScores).length > 0)
+    );
+    return hasExplicitTeacherScores;
+  }, [submission]);
 
   const totalMaxScore = qCount * 10;
   const totalEarnedScore = useMemo(() => {
@@ -438,19 +438,22 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
         const hasOption = hasUserOption || (userAns !== null && userAns !== undefined && userAns !== '' && userAns !== 'empty');
         if (!hasOption) {
           bCount++;
-        } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc))) {
-          const numSc = Number(teacherSc);
-          if (numSc >= 5) cCount++;
-          else wCount++;
-        } else if (ansObj.isCorrect !== undefined) {
-          if (ansObj.isCorrect === true) cCount++;
-          else if (ansObj.isCorrect === false) wCount++;
-          else bCount++;
         } else {
           const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
           const uLetter = formatAnswerLetter(userAns);
           const cLetter = formatAnswerLetter(resolvedCorrect);
-          const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : checkIsAnswerCorrect(userAns, qObj, test, qNo);
+
+          let isRight;
+          if (uLetter && cLetter) {
+            isRight = (uLetter === cLetter);
+          } else if (ansObj.isCorrect !== undefined) {
+            isRight = ansObj.isCorrect;
+          } else if (teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc))) {
+            const numSc = Number(teacherSc);
+            isRight = numSc >= 5;
+          } else {
+            isRight = checkIsAnswerCorrect(userAns, qObj, test, qNo);
+          }
 
           if (isRight === true) cCount++;
           else if (isRight === false) wCount++;
@@ -846,28 +849,42 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
 
               let isCorrect;
-              if (hasGradedScore) {
-                isCorrect = Number(teacherSc) >= 5;
-              } else if (ansObj.isCorrect !== undefined) {
-                isCorrect = ansObj.isCorrect;
-              } else if (hasAnswer && !isItemOE) {
-                if (uLetter && displayCorrectKey) {
-                  isCorrect = uLetter === displayCorrectKey;
+              if (isItemOE) {
+                if (hasGradedScore) {
+                  isCorrect = Number(teacherSc) >= 5;
+                } else if (ansObj.isCorrect !== undefined) {
+                  isCorrect = ansObj.isCorrect;
+                } else {
+                  isCorrect = null;
+                }
+              } else {
+                if (isBlank || !hasAnswer) {
+                  isCorrect = null;
+                } else if (uLetter && displayCorrectKey) {
+                  isCorrect = (uLetter === displayCorrectKey);
+                } else if (ansObj.isCorrect !== undefined) {
+                  isCorrect = ansObj.isCorrect;
+                } else if (hasGradedScore) {
+                  isCorrect = Number(teacherSc) >= 5;
                 } else {
                   isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
                 }
-              } else {
-                isCorrect = null;
               }
 
               return (
                 <div
                   key={qNo}
                   style={{
-                    background: isItemOE ? (hasGradedScore ? (isCorrect === true ? '#f0fdf4' : '#fef2f2') : (isText ? '#faf5ff' : '#ffffff')) : (isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#ffffff'),
+                    background: isItemOE
+                      ? (hasGradedScore ? (isCorrect === true ? '#f0fdf4' : '#fef2f2') : (isText ? '#faf5ff' : '#ffffff'))
+                      : ((isBlank || isCorrect === null) ? '#ffffff' : isCorrect === true ? '#f0fdf4' : '#fef2f2'),
                     padding: '1rem',
                     borderRadius: '0.85rem',
-                    border: `1.5px solid ${isItemOE ? (hasGradedScore ? (isCorrect === true ? '#bbf7d0' : '#fecaca') : (isText ? '#ddd6fe' : '#e2e8f0')) : (isCorrect === true ? '#bbf7d0' : isCorrect === false ? '#fecaca' : '#e2e8f0')}`,
+                    border: `1.5px solid ${
+                      isItemOE
+                        ? (hasGradedScore ? (isCorrect === true ? '#bbf7d0' : '#fecaca') : (isText ? '#ddd6fe' : '#e2e8f0'))
+                        : ((isBlank || isCorrect === null) ? '#e2e8f0' : isCorrect === true ? '#bbf7d0' : '#fecaca')
+                    }`,
                     color: '#0f172a'
                   }}
                 >
@@ -935,17 +952,17 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                         </span>
                       )
                     ) : (
-                      isCorrect === true ? (
+                      (isBlank || isCorrect === null) ? (
+                        <span style={{ color: '#475569', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem' }}>
+                          ○ BOŞ
+                        </span>
+                      ) : isCorrect === true ? (
                         <span style={{ color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <CheckCircle size={14} color="#16a34a" /> DOĞRU
                         </span>
-                      ) : isCorrect === false ? (
+                      ) : (
                         <span style={{ color: '#b91c1c', background: '#fee2e2', border: '1px solid #fca5a5', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <XCircle size={14} color="#ef4444" /> YANLIŞ
-                        </span>
-                      ) : (
-                        <span style={{ color: '#475569', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.2rem 0.6rem', borderRadius: '0.4rem', fontWeight: 900, fontSize: '0.8rem' }}>
-                          ○ BOŞ
                         </span>
                       )
                     )}
@@ -969,8 +986,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.85rem' }}>
                       <div>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
-                        <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
-                          {hasAnswer ? (uLetter || (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)) : 'Boş'}
+                        <span style={{ fontWeight: 900, color: (isBlank || isCorrect === null) ? '#64748b' : isCorrect === true ? '#15803d' : '#b91c1c' }}>
+                          {hasAnswer && !isBlank ? (uLetter || (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)) : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (
@@ -1122,11 +1139,11 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   {/* ════════════════════════════════════════════
                       MISTAKE DIAGNOSTIC SELECTOR & AI CROP BUTTON
                   ════════════════════════════════════════════ */}
-                  {((!isItemOE && (!isCorrect || isBlank)) || (isItemOE && (!isText || (hasGradedScore && isCorrect === false)))) ? (
+                  {((!isItemOE && (isCorrect === false || isBlank)) || (isItemOE && (!isText || (hasGradedScore && isCorrect === false)))) ? (
                     <div style={{
                       marginTop: '0.65rem',
                       paddingTop: '0.65rem',
-                      borderTop: !isCorrect ? '1px dashed #fecaca' : '1px dashed #e2e8f0',
+                      borderTop: isCorrect === false ? '1px dashed #fecaca' : '1px dashed #e2e8f0',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -1134,8 +1151,8 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                       gap: '0.4rem'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '0.66rem', fontWeight: 800, color: !isCorrect ? '#b91c1c' : '#64748b' }}>
-                          {!isCorrect ? '🤔 Hata Sebebi:' : '⚪ Boş Sebebi:'}
+                        <span style={{ fontSize: '0.66rem', fontWeight: 800, color: isCorrect === false ? '#b91c1c' : '#64748b' }}>
+                          {isCorrect === false ? '🤔 Hata Sebebi:' : '⚪ Boş Sebebi:'}
                         </span>
                         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                           {MISTAKE_REASON_OPTIONS.map(r => {
