@@ -88,66 +88,90 @@ export default function DashboardReadingCard({
         </button>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row - Large Vibrant Bento Tiles */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-        gap: '0.5rem',
-        marginBottom: '0.85rem'
+        gap: isMobile ? '0.65rem' : '0.85rem',
+        marginBottom: '1rem'
       }}>
+        {/* 1. Bugün Okunan */}
         <div style={{
-          padding: '0.6rem 0.75rem',
-          borderRadius: 12,
-          background: isDark ? 'rgba(236, 72, 153, 0.08)' : '#fdf2f8',
-          border: isDark ? '1px solid rgba(244, 114, 182, 0.2)' : '1px solid #fce7f3'
+          padding: isMobile ? '0.85rem 0.95rem' : '1.1rem 1.25rem',
+          borderRadius: 18,
+          background: isDark ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(244, 63, 94, 0.08))' : 'linear-gradient(135deg, #fdf2f8, #fff1f2)',
+          border: isDark ? '1.5px solid rgba(244, 114, 182, 0.3)' : '1.5px solid #fbcfe8',
+          boxShadow: '0 4px 16px rgba(236, 72, 153, 0.08)',
+          transition: 'transform 0.2s ease'
         }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: isDark ? '#f472b6' : '#db2777', textTransform: 'uppercase' }}>
-            Bugün Okunan
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isDark ? '#f472b6' : '#db2777', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Bugün Okunan
+            </span>
+            <span style={{ fontSize: '1.15rem' }}>📖</span>
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>
-            {todayPages} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>sayfa</span>
+          <div style={{ fontFamily: '"Outfit", sans-serif', fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            {todayPages} <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>sayfa</span>
           </div>
         </div>
 
+        {/* 2. Okuma Serisi */}
         <div style={{
-          padding: '0.6rem 0.75rem',
-          borderRadius: 12,
-          background: isDark ? 'rgba(245, 158, 11, 0.08)' : '#fffbeb',
-          border: isDark ? '1px solid rgba(251, 191, 36, 0.2)' : '1px solid #fef3c7'
+          padding: isMobile ? '0.85rem 0.95rem' : '1.1rem 1.25rem',
+          borderRadius: 18,
+          background: isDark ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.08))' : 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+          border: isDark ? '1.5px solid rgba(251, 191, 36, 0.3)' : '1.5px solid #fde68a',
+          boxShadow: '0 4px 16px rgba(245, 158, 11, 0.08)',
+          transition: 'transform 0.2s ease'
         }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: isDark ? '#fbbf24' : '#d97706', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Flame size={12} /> Okuma Serisi
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isDark ? '#fbbf24' : '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 3 }}>
+              Okuma Serisi
+            </span>
+            <Flame size={18} color="#f59e0b" />
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>
-            {streak} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>gün</span>
+          <div style={{ fontFamily: '"Outfit", sans-serif', fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            {streak} <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>gün</span>
           </div>
         </div>
 
+        {/* 3. Bu Ay Toplam */}
         <div style={{
-          padding: '0.6rem 0.75rem',
-          borderRadius: 12,
-          background: isDark ? 'rgba(99, 102, 241, 0.08)' : '#eef2ff',
-          border: isDark ? '1px solid rgba(165, 180, 252, 0.2)' : '1px solid #e0e7ff'
+          padding: isMobile ? '0.85rem 0.95rem' : '1.1rem 1.25rem',
+          borderRadius: 18,
+          background: isDark ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.08))' : 'linear-gradient(135deg, #eef2ff, #e0e7ff)',
+          border: isDark ? '1.5px solid rgba(165, 180, 252, 0.3)' : '1.5px solid #c7d2fe',
+          boxShadow: '0 4px 16px rgba(99, 102, 241, 0.08)',
+          transition: 'transform 0.2s ease'
         }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: isDark ? '#a5b4fc' : '#4f46e5', textTransform: 'uppercase' }}>
-            Bu Ay Toplam
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isDark ? '#a5b4fc' : '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Bu Ay Toplam
+            </span>
+            <span style={{ fontSize: '1.15rem' }}>📅</span>
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>
-            {stats.monthlyPages} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>sf</span>
+          <div style={{ fontFamily: '"Outfit", sans-serif', fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            {stats.monthlyPages} <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>sf</span>
           </div>
         </div>
 
+        {/* 4. Biten Kitap */}
         <div style={{
-          padding: '0.6rem 0.75rem',
-          borderRadius: 12,
-          background: isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4',
-          border: isDark ? '1px solid rgba(52, 211, 153, 0.2)' : '1px solid #dcfce7'
+          padding: isMobile ? '0.85rem 0.95rem' : '1.1rem 1.25rem',
+          borderRadius: 18,
+          background: isDark ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08))' : 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+          border: isDark ? '1.5px solid rgba(52, 211, 153, 0.3)' : '1.5px solid #bbf7d0',
+          boxShadow: '0 4px 16px rgba(16, 185, 129, 0.08)',
+          transition: 'transform 0.2s ease'
         }}>
-          <div style={{ fontSize: '0.65rem', fontWeight: 800, color: isDark ? '#34d399' : '#059669', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 3 }}>
-            <Trophy size={12} /> Biten Kitap
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: isDark ? '#34d399' : '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 3 }}>
+              Biten Kitap
+            </span>
+            <Trophy size={18} color="#10b981" />
           </div>
-          <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>
-            {stats.finishedThisMonth} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>bu ay</span>
+          <div style={{ fontFamily: '"Outfit", sans-serif', fontSize: isMobile ? '1.35rem' : '1.65rem', fontWeight: 900, color: 'var(--color-text)' }}>
+            {stats.finishedThisMonth} <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>bu ay</span>
           </div>
         </div>
       </div>
@@ -157,60 +181,89 @@ export default function DashboardReadingCard({
         <div
           onClick={onNavigateReading}
           style={{
-            padding: '0.85rem 1rem',
-            borderRadius: 14,
-            background: isDark ? 'linear-gradient(135deg, rgba(236,72,153,0.12), rgba(99,102,241,0.08))' : 'linear-gradient(135deg, #fdf2f8, #f5f3ff)',
-            border: isDark ? '1.5px solid rgba(244,114,182,0.25)' : '1.5px solid #fbcfe8',
+            padding: isMobile ? '1.1rem 1rem' : '1.4rem 1.6rem',
+            borderRadius: 20,
+            background: isDark ? 'linear-gradient(135deg, rgba(236,72,153,0.14), rgba(99,102,241,0.1))' : 'linear-gradient(135deg, #fdf2f8, #f5f3ff)',
+            border: isDark ? '2px solid rgba(244,114,182,0.35)' : '2px solid #fbcfe8',
             cursor: 'pointer',
-            transition: 'transform 0.15s ease'
+            boxShadow: '0 8px 24px rgba(236, 72, 153, 0.12)',
+            transition: 'all 0.25s ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                <span style={{
-                  fontSize: '0.64rem',
-                  fontWeight: 800,
-                  padding: '2px 7px',
-                  borderRadius: 99,
-                  background: '#ec4899',
-                  color: 'white',
-                  letterSpacing: '0.03em'
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 220 }}>
+              <div style={{
+                width: isMobile ? 44 : 52,
+                height: isMobile ? 44 : 52,
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.35rem' : '1.65rem',
+                boxShadow: '0 6px 18px rgba(236, 72, 153, 0.45)',
+                color: '#ffffff',
+                flexShrink: 0
+              }}>
+                📚
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
+                  <span style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    padding: '3px 9px',
+                    borderRadius: 999,
+                    background: '#ec4899',
+                    color: 'white',
+                    letterSpacing: '0.04em',
+                    boxShadow: '0 2px 8px rgba(236, 72, 153, 0.4)'
+                  }}>
+                    ŞU AN OKUNUYOR
+                  </span>
+                  {activeBook.category && (
+                    <span style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                      📌 {activeBook.category}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{
+                  fontFamily: '"Outfit", sans-serif',
+                  fontSize: isMobile ? '1.08rem' : '1.25rem',
+                  fontWeight: 900,
+                  color: 'var(--color-text)',
+                  lineHeight: 1.25
                 }}>
-                  ŞU AN OKUNUYOR
-                </span>
-                {activeBook.category && (
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                    {activeBook.category}
-                  </span>
+                  {activeBook.title}
+                </div>
+                {activeBook.author && (
+                  <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>
+                    ✍️ {activeBook.author}
+                  </div>
                 )}
-              </div>
 
-              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                {activeBook.title}
-              </div>
-              {activeBook.author && (
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 1 }}>
-                  {activeBook.author}
-                </div>
-              )}
-
-              {/* Progress bar */}
-              <div style={{ marginTop: '0.6rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 800, marginBottom: 4 }}>
-                  <span style={{ color: '#ec4899' }}>%{pct} tamamlandı</span>
-                  <span style={{ color: 'var(--color-text-muted)' }}>
-                    {activeBook.currentPage || 0} / {activeBook.totalPages} sayfa ({Math.max(0, (activeBook.totalPages || 0) - (activeBook.currentPage || 0))} kaldı)
-                  </span>
-                </div>
-                <div style={{ height: 7, borderRadius: 99, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${pct}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #ec4899, #8b5cf6)',
-                    borderRadius: 99,
-                    transition: 'width 0.4s ease'
-                  }} />
+                {/* Progress bar */}
+                <div style={{ marginTop: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', fontWeight: 900, marginBottom: 5 }}>
+                    <span style={{ color: '#ec4899', background: 'rgba(236,72,153,0.12)', padding: '2px 8px', borderRadius: 999 }}>
+                      %{pct} tamamlandı
+                    </span>
+                    <span style={{ color: 'var(--color-text-muted)', fontWeight: 800 }}>
+                      {activeBook.currentPage || 0} / {activeBook.totalPages} sayfa ({Math.max(0, (activeBook.totalPages || 0) - (activeBook.currentPage || 0))} kaldı)
+                    </span>
+                  </div>
+                  <div style={{ height: 9, borderRadius: 999, background: isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${pct}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #ec4899, #8b5cf6)',
+                      borderRadius: 999,
+                      boxShadow: '0 0 10px rgba(236, 72, 153, 0.5)',
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -222,29 +275,33 @@ export default function DashboardReadingCard({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: isMobile ? 'flex-start' : 'flex-end',
-                gap: 5,
-                alignSelf: 'center'
+                gap: 6,
+                alignSelf: 'center',
+                width: isMobile ? '100%' : 'auto',
+                marginTop: isMobile ? 8 : 0
               }}
             >
-              <span style={{ fontSize: '0.66rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                Hızlı İlerleme:
+              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>
+                ⚡ Hızlı Sayfa Ekle:
               </span>
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ display: 'flex', gap: 6, width: isMobile ? '100%' : 'auto' }}>
                 {[10, 20, 30].map(amt => (
                   <button
                     key={amt}
                     type="button"
                     onClick={e => handleQuickAddPages(e, amt)}
+                    className="game-btn-3d"
                     style={{
-                      background: isDark ? 'rgba(236,72,153,0.2)' : '#ffffff',
-                      border: '1px solid #f472b6',
+                      flex: isMobile ? 1 : 'none',
+                      background: isDark ? 'rgba(236,72,153,0.22)' : '#ffffff',
+                      border: '1.5px solid #f472b6',
                       color: '#ec4899',
-                      borderRadius: 8,
-                      padding: '4px 8px',
-                      fontSize: '0.7rem',
-                      fontWeight: 800,
+                      borderRadius: 12,
+                      padding: isMobile ? '0.5rem' : '0.5rem 0.85rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 900,
                       cursor: 'pointer',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                      textAlign: 'center'
                     }}
                     title={`${amt} sayfa okudum`}
                   >

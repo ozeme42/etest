@@ -13,8 +13,34 @@ import {
   Filter,
   Check,
   X,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
+
+const SUBJECT_THEMES = {
+  'Matematik': { from: '#3b82f6', to: '#1d4ed8', icon: '📐', badgeBg: 'rgba(59, 130, 246, 0.12)', badgeText: '#2563eb', badgeBorder: 'rgba(59, 130, 246, 0.3)', glow: 'rgba(59, 130, 246, 0.22)' },
+  'Türkçe': { from: '#f43f5e', to: '#be123c', icon: '📖', badgeBg: 'rgba(244, 63, 94, 0.12)', badgeText: '#e11d48', badgeBorder: 'rgba(244, 63, 94, 0.3)', glow: 'rgba(244, 63, 94, 0.22)' },
+  'Fen Bilimleri': { from: '#10b981', to: '#047857', icon: '🧪', badgeBg: 'rgba(16, 185, 129, 0.12)', badgeText: '#059669', badgeBorder: 'rgba(16, 185, 129, 0.3)', glow: 'rgba(16, 185, 129, 0.22)' },
+  'Sosyal Bilgiler': { from: '#f59e0b', to: '#b45309', icon: '🌍', badgeBg: 'rgba(245, 158, 11, 0.12)', badgeText: '#d97706', badgeBorder: 'rgba(245, 158, 11, 0.3)', glow: 'rgba(245, 158, 11, 0.22)' },
+  'İngilizce': { from: '#8b5cf6', to: '#6d28d9', icon: '💬', badgeBg: 'rgba(139, 92, 246, 0.12)', badgeText: '#7c3aed', badgeBorder: 'rgba(139, 92, 246, 0.3)', glow: 'rgba(139, 92, 246, 0.22)' },
+  'Din Kültürü': { from: '#06b6d4', to: '#0e7490', icon: '✨', badgeBg: 'rgba(6, 182, 212, 0.12)', badgeText: '#0891b2', badgeBorder: 'rgba(6, 182, 212, 0.3)', glow: 'rgba(6, 182, 212, 0.22)' },
+  'Kitap Okuma': { from: '#ec4899', to: '#be185d', icon: '📚', badgeBg: 'rgba(236, 72, 153, 0.12)', badgeText: '#db2777', badgeBorder: 'rgba(236, 72, 153, 0.3)', glow: 'rgba(236, 72, 153, 0.22)' },
+  'Deneme': { from: '#f97316', to: '#c2410c', icon: '🎯', badgeBg: 'rgba(249, 115, 22, 0.12)', badgeText: '#ea580c', badgeBorder: 'rgba(249, 115, 22, 0.3)', glow: 'rgba(249, 115, 22, 0.22)' }
+};
+
+const resolveSubjectTheme = (subj) => {
+  if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+  const s = subj.toLowerCase();
+  if (s.includes('matematik') || s.includes('geometri')) return SUBJECT_THEMES['Matematik'];
+  if (s.includes('türkçe') || s.includes('edebiyat')) return SUBJECT_THEMES['Türkçe'];
+  if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return SUBJECT_THEMES['Fen Bilimleri'];
+  if (s.includes('sosyal') || s.includes('tarih') || s.includes('coğrafya') || s.includes('inkılap')) return SUBJECT_THEMES['Sosyal Bilgiler'];
+  if (s.includes('ingilizce') || s.includes('dil')) return SUBJECT_THEMES['İngilizce'];
+  if (s.includes('din')) return SUBJECT_THEMES['Din Kültürü'];
+  if (s.includes('okuma') || s.includes('kitap')) return SUBJECT_THEMES['Kitap Okuma'];
+  if (s.includes('deneme')) return SUBJECT_THEMES['Deneme'];
+  return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+};
 
 export default function DashboardRemedialCard({
   isMobile,
@@ -517,6 +543,8 @@ export default function DashboardRemedialCard({
                     displayTitle = displayTitle.substring(pageMatch[0].length).trim();
                   }
 
+                  const sTheme = resolveSubjectTheme(cleanSubj);
+
                   return (
                     <div
                       key={`remedial_tab_${task.id || task.hwId || cIdx}`}
@@ -529,76 +557,107 @@ export default function DashboardRemedialCard({
                       }}
                       className="game-quest-row"
                       style={{
-                        padding: isMobile ? '0.8rem 0.9rem' : '0.95rem 1.25rem',
-                        borderLeft: `5px solid ${rowTheme.accent || '#f59e0b'}`,
+                        padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.55rem',
+                        borderLeft: `7px solid ${sTheme.from}`,
+                        borderTop: '1.5px solid var(--color-border)',
+                        borderRight: '1.5px solid var(--color-border)',
+                        borderBottom: '1.5px solid var(--color-border)',
                         cursor: 'pointer',
-                        borderRadius: 14
+                        borderRadius: 20,
+                        background: 'var(--color-surface)',
+                        boxShadow: `0 6px 20px ${sTheme.glow}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: isMobile ? 'wrap' : 'nowrap',
+                        gap: isMobile ? '0.85rem' : '1.25rem',
+                        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                       }}
                     >
-                      {/* Left: Checkmark + Task Info */}
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: isMobile ? 8 : 12, flex: 1, minWidth: 0 }}>
+                      {/* Left: Avatar + Checkmark + Task Info */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', flex: 1, minWidth: 0 }}>
+                        {/* Büyük Ders Avatar İkonu */}
+                        <div style={{
+                          width: isMobile ? 42 : 50,
+                          height: isMobile ? 42 : 50,
+                          borderRadius: 16,
+                          background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: isMobile ? '1.25rem' : '1.5rem',
+                          boxShadow: `0 6px 16px ${sTheme.glow}`,
+                          flexShrink: 0
+                        }}>
+                          {sTheme.icon}
+                        </div>
+
+                        {/* Checkbox button */}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                           style={{
-                            width: isMobile ? 26 : 28,
-                            height: isMobile ? 26 : 28,
-                            borderRadius: '50%',
-                            border: `2px solid ${rowTheme.border || 'rgba(245, 158, 11, 0.6)'}`,
-                            background: 'transparent',
+                            width: isMobile ? 30 : 34,
+                            height: isMobile ? 30 : 34,
+                            borderRadius: 12,
+                            border: `2px solid ${sTheme.from}`,
+                            background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                             cursor: 'pointer',
                             padding: 0,
-                            marginTop: 2
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                            transition: 'all 0.18s ease'
                           }}
                           title="Tamamlandı olarak işaretle"
                         >
                           <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
                         </button>
 
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {/* Tags row */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            {task.subject && (
-                              <span style={{
-                                fontSize: '0.64rem',
-                                fontWeight: 900,
-                                color: rowTheme.text || '#6366f1',
-                                background: rowTheme.badgeBg || 'rgba(99, 102, 241, 0.12)',
-                                border: `1px solid ${rowTheme.border || 'rgba(165, 180, 252, 0.35)'}`,
-                                padding: '1px 7px',
-                                borderRadius: 6,
-                                flexShrink: 0
-                              }}>
-                                {cleanSubj}
-                              </span>
-                            )}
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 900,
+                              color: sTheme.badgeText,
+                              background: sTheme.badgeBg,
+                              border: `1.5px solid ${sTheme.badgeBorder}`,
+                              padding: '2px 9px',
+                              borderRadius: 8,
+                              flexShrink: 0
+                            }}>
+                              {sTheme.icon} {cleanSubj}
+                            </span>
 
                             <span style={{
-                              fontSize: '0.62rem',
+                              fontSize: '0.66rem',
                               fontWeight: 900,
                               color: '#dc2626',
                               background: '#fef2f2',
-                              border: '1px solid #fecdd3',
-                              padding: '1px 6px',
-                              borderRadius: 6,
-                              flexShrink: 0
+                              border: '1.5px solid #fecdd3',
+                              padding: '2px 8px',
+                              borderRadius: 8,
+                              flexShrink: 0,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
                             }}>
                               ⚠️ Gecikti
                             </span>
 
                             {catBadge && (
                               <span style={{
-                                fontSize: '0.62rem',
+                                fontSize: '0.66rem',
                                 fontWeight: 800,
                                 color: catBadge.color,
                                 background: catBadge.bg,
-                                border: `1px solid ${catBadge.border}`,
-                                padding: '1px 6px',
-                                borderRadius: 6,
+                                border: `1.5px solid ${catBadge.border}`,
+                                padding: '2px 8px',
+                                borderRadius: 8,
                                 flexShrink: 0
                               }}>
                                 {catBadge.label}
@@ -607,40 +666,55 @@ export default function DashboardRemedialCard({
 
                             {pageBadge && (
                               <span style={{
-                                fontSize: '0.62rem',
+                                fontSize: '0.66rem',
                                 fontWeight: 800,
                                 color: 'var(--color-text-secondary)',
                                 background: 'var(--color-surface-hover)',
                                 border: '1px solid var(--color-border)',
-                                padding: '1px 5px',
-                                borderRadius: 5,
+                                padding: '2px 7px',
+                                borderRadius: 6,
                                 flexShrink: 0
                               }}>
                                 📄 {pageBadge}
                               </span>
                             )}
+
+                            {task.questionCount && (
+                              <span style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 800,
+                                color: 'var(--color-text-muted)',
+                                background: 'var(--color-surface-hover)',
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                                border: '1px solid var(--color-border)'
+                              }}>
+                                📝 {String(task.questionCount).replace(/\s*soru\s*$/i, '')} Soru
+                              </span>
+                            )}
                           </div>
 
-                          {/* Title */}
-                          <span style={{
-                            fontSize: isMobile ? '0.86rem' : '0.94rem',
-                            fontWeight: 800,
+                          {/* Title (Büyük & Belirgin) */}
+                          <div style={{
+                            fontSize: isMobile ? '0.98rem' : '1.12rem',
+                            fontWeight: 900,
                             color: 'var(--color-text)',
                             wordBreak: 'break-word',
-                            lineHeight: 1.3
+                            lineHeight: 1.35,
+                            fontFamily: "'Outfit', sans-serif"
                           }}>
                             {displayTitle}
-                          </span>
+                          </div>
 
                           {/* Sub-info: Book, topic, question count, reason */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                             {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && (
                               <span style={{
                                 color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
-                                fontWeight: 700,
+                                fontWeight: 800,
                                 background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
-                                padding: '1px 6px',
-                                borderRadius: 5,
+                                padding: '2px 8px',
+                                borderRadius: 6,
                                 border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
                               }}>
                                 {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
@@ -648,26 +722,13 @@ export default function DashboardRemedialCard({
                             )}
 
                             {task.unitTopic && (
-                              <span style={{
-                                color: '#4338ca',
-                                fontWeight: 700,
-                                background: 'rgba(99, 102, 241, 0.12)',
-                                padding: '1px 6px',
-                                borderRadius: 4,
-                                border: '1px solid rgba(165, 180, 252, 0.3)'
-                              }}>
+                              <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
                                 📌 {task.unitTopic}
                               </span>
                             )}
 
-                            {task.questionCount && (
-                              <span style={{ background: 'var(--color-surface-hover)', padding: '1px 6px', borderRadius: 4, border: '1px solid var(--color-border)' }}>
-                                {String(task.questionCount).replace(/\s*soru\s*$/i, '')} Soru
-                              </span>
-                            )}
-
                             {(task.reason || task.dueDateStr || task.time) && (
-                              <span style={{ color: '#ef4444', fontWeight: 700 }}>
+                              <span style={{ color: '#ef4444', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                 ⏰ {task.reason || task.dueDateStr || task.time}
                               </span>
                             )}
@@ -676,40 +737,48 @@ export default function DashboardRemedialCard({
                       </div>
 
                       {/* Right: Action Buttons */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto', display: 'flex', alignItems: 'center', gap: 8, justifyContent: isMobile ? 'flex-end' : 'center', marginTop: isMobile ? 4 : 0 }}>
                         {task.roadmapAssignmentId ? (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                             className="game-btn-3d game-btn-accent"
                             style={{
-                              borderRadius: 10,
-                              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
-                              fontSize: isMobile ? '0.74rem' : '0.8rem',
+                              borderRadius: 14,
+                              padding: isMobile ? '0.55rem 1rem' : '0.7rem 1.35rem',
+                              fontSize: isMobile ? '0.8rem' : '0.88rem',
                               fontWeight: 900,
-                              display: 'flex',
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5
+                              gap: 6,
+                              width: isMobile ? '100%' : 'auto',
+                              justifyContent: 'center'
                             }}
                           >
-                            <Compass size={14} /> Haritaya Git
+                            <Compass size={15} /> Haritaya Git
                           </button>
                         ) : isQuizTask ? (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
-                            className="game-btn-3d game-btn-primary"
+                            className="game-btn-3d"
                             style={{
-                              borderRadius: 10,
-                              padding: isMobile ? '0.4rem 0.85rem' : '0.5rem 1.1rem',
-                              fontSize: isMobile ? '0.74rem' : '0.8rem',
+                              background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: 14,
+                              padding: isMobile ? '0.6rem 1.1rem' : '0.75rem 1.45rem',
+                              fontSize: isMobile ? '0.84rem' : '0.92rem',
                               fontWeight: 900,
-                              display: 'flex',
+                              boxShadow: `0 4px 14px ${sTheme.glow}`,
+                              display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5
+                              gap: 7,
+                              width: isMobile ? '100%' : 'auto',
+                              justifyContent: 'center'
                             }}
                           >
-                            <PlayCircle size={14} /> Çözmeye Başla
+                            <PlayCircle size={16} /> Telafi Et ⚔️
                           </button>
                         ) : (
                           <button
@@ -717,11 +786,12 @@ export default function DashboardRemedialCard({
                             onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                             className="game-btn-3d game-btn-emerald"
                             style={{
-                              borderRadius: 10,
-                              padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 0.95rem',
-                              fontSize: isMobile ? '0.74rem' : '0.78rem',
+                              borderRadius: 14,
+                              padding: isMobile ? '0.55rem 1rem' : '0.7rem 1.35rem',
+                              fontSize: isMobile ? '0.82rem' : '0.88rem',
                               fontWeight: 900,
-                              whiteSpace: 'nowrap'
+                              width: isMobile ? '100%' : 'auto',
+                              justifyContent: 'center'
                             }}
                           >
                             Tamamla ✓
@@ -733,9 +803,9 @@ export default function DashboardRemedialCard({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
                             style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: 8,
+                              width: 36,
+                              height: 36,
+                              borderRadius: 10,
                               background: 'transparent',
                               border: '1px solid var(--color-border)',
                               color: 'var(--color-text-muted)',
@@ -743,11 +813,12 @@ export default function DashboardRemedialCard({
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
-                              padding: 0
+                              padding: 0,
+                              flexShrink: 0
                             }}
                             title="Bu görevi telafi havuzundan kaldır"
                           >
-                            <X size={14} />
+                            <X size={15} />
                           </button>
                         )}
                       </div>

@@ -81,67 +81,100 @@ const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
           </button>
         </div>
       ) : (
-        /* Haritalar Listesi */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        /* Haritalar Listesi - Large Bento Cards */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.1rem' }}>
           
           {/* 1. ⭐ Öğrencinin Kendi Kişisel Yol Haritası */}
           {hasPersonal && (
             <div
               onClick={() => onNavigateRoadmap && onNavigateRoadmap('curriculum-roadmap')}
-              className="sd-card"
+              className="game-quest-row"
               style={{
                 background: isDark
-                  ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(49, 46, 129, 0.4) 100%)'
+                  ? 'linear-gradient(135deg, rgba(30, 27, 75, 0.7) 0%, rgba(49, 46, 129, 0.45) 100%)'
                   : 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                border: isDark ? '1.5px solid rgba(168, 85, 247, 0.4)' : '1.5px solid #ddd6fe',
-                borderRadius: 14,
-                padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+                border: isDark ? '2px solid rgba(168, 85, 247, 0.45)' : '2px solid #ddd6fe',
+                borderRadius: 18,
+                padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.45rem',
                 cursor: 'pointer',
-                boxShadow: isDark ? '0 4px 14px -2px rgba(124, 58, 237, 0.25)' : '0 4px 14px -2px rgba(124, 58, 237, 0.1)',
-                transition: 'all 0.2s ease'
+                boxShadow: isDark ? '0 6px 20px rgba(124, 58, 237, 0.25)' : '0 6px 20px rgba(124, 58, 237, 0.1)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                transition: 'all 0.22s ease'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Star size={16} color="#f59e0b" fill="#f59e0b" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: isMobile ? 38 : 44,
+                    height: isMobile ? 38 : 44,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+                    color: '#ffffff',
+                    flexShrink: 0
+                  }}>
+                    <Star size={isMobile ? 18 : 22} fill="#ffffff" color="#ffffff" />
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.94rem', color: 'var(--color-text, #0f172a)' }}>
+                    <div style={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, fontSize: isMobile ? '0.98rem' : '1.12rem', color: 'var(--color-text)' }}>
                       Kişisel Yol Haritam
                     </div>
-                    <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1 }}>
                       {personalRoadmap.subjectCount} Ders • {personalRoadmap.unitCount} Ünite
                     </div>
                   </div>
                 </div>
+
                 <span style={{
-                  fontSize: '0.85rem',
+                  fontSize: '0.88rem',
                   fontWeight: 900,
                   color: '#7c3aed',
                   background: isDark ? 'rgba(124, 58, 237, 0.25)' : '#ffffff',
-                  padding: '2px 8px',
-                  borderRadius: 99,
-                  border: '1px solid rgba(124, 58, 237, 0.3)'
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  border: '1.5px solid rgba(124, 58, 237, 0.3)',
+                  boxShadow: '0 2px 8px rgba(124, 58, 237, 0.15)'
                 }}>
                   %{personalRoadmap.pct}
                 </span>
               </div>
 
               {/* Progress Bar */}
-              <div style={{ height: 7, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+              <div style={{ height: 9, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%',
                   width: `${personalRoadmap.pct}%`,
                   background: 'linear-gradient(90deg, #8b5cf6, #10b981)',
-                  borderRadius: 99,
+                  borderRadius: 999,
+                  boxShadow: '0 0 10px rgba(139, 92, 246, 0.5)',
                   transition: 'width 0.8s ease'
                 }} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                <span>{personalRoadmap.doneTopics} / {personalRoadmap.totalTopics} Konu Tamamlandı</span>
-                <span style={{ color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
-                  Haritayı Aç <ChevronRight size={12} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, fontSize: isMobile ? '0.74rem' : '0.8rem', fontWeight: 800 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>
+                  🎯 <strong>{personalRoadmap.doneTopics} / {personalRoadmap.totalTopics}</strong> Konu Tamamlandı
                 </span>
+                <button
+                  type="button"
+                  className="game-btn-3d game-btn-primary"
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 12,
+                    fontSize: '0.78rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <span>Haritayı Aç</span>
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           )}
@@ -151,61 +184,111 @@ const DashboardRoadmapCard = React.memo(function DashboardRoadmapCard({
             <div
               key={assignment.id}
               onClick={() => onNavigateRoadmap && onNavigateRoadmap(assignment.id)}
-              className="sd-card"
+              className="game-quest-row"
               style={{
-                background: 'var(--color-surface, #ffffff)',
-                border: '1.5px solid var(--color-border, #e2e8f0)',
-                borderRadius: 14,
-                padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+                background: 'var(--color-surface)',
+                border: '2px solid var(--color-border)',
+                borderRadius: 18,
+                padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.45rem',
                 cursor: 'pointer',
-                boxShadow: isDark ? '0 4px 14px -2px rgba(0,0,0,0.35)' : '0 4px 14px -2px rgba(0,0,0,0.03)',
-                transition: 'all 0.2s ease'
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                boxShadow: isDark ? '0 6px 20px rgba(0,0,0,0.35)' : '0 6px 20px rgba(0,0,0,0.04)',
+                transition: 'all 0.22s ease'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <BookOpen size={15} color="#3b82f6" />
-                  <div style={{ fontWeight: 900, fontSize: isMobile ? '0.86rem' : '0.92rem', color: 'var(--color-text, #0f172a)' }}>
-                    {plan.title}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: isMobile ? 38 : 44,
+                    height: isMobile ? 38 : 44,
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+                    color: '#ffffff',
+                    flexShrink: 0
+                  }}>
+                    <BookOpen size={isMobile ? 18 : 22} />
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: '"Outfit", sans-serif', fontWeight: 900, fontSize: isMobile ? '0.96rem' : '1.1rem', color: 'var(--color-text)' }}>
+                      {plan.title}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#3b82f6', fontWeight: 800, marginTop: 1 }}>
+                      🏫 Öğretmen Çalışma Planı
+                    </div>
                   </div>
                 </div>
-                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#3b82f6' }}>
+
+                <span style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 900,
+                  color: '#3b82f6',
+                  background: isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff',
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  border: '1.5px solid rgba(59, 130, 246, 0.3)'
+                }}>
                   %{pct}
                 </span>
               </div>
 
               {/* Progress Bar */}
-              <div style={{ height: 6, background: 'var(--color-border, #e2e8f0)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
-                <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #2563eb)', borderRadius: 99, transition: 'width 0.8s ease' }} />
+              <div style={{ height: 8, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #38bdf8, #2563eb)', borderRadius: 999, boxShadow: '0 0 10px rgba(59, 130, 246, 0.4)', transition: 'width 0.8s ease' }} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 700 }}>
-                <span>{doneTopics} / {totalTopics} Konu Tamamlandı (Öğretmen Planı)</span>
-                <span style={{ color: '#2563eb', display: 'flex', alignItems: 'center', gap: 2, fontWeight: 800 }}>
-                  Detayları Gör <ChevronRight size={12} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, fontSize: isMobile ? '0.74rem' : '0.8rem', fontWeight: 800 }}>
+                <span style={{ color: 'var(--color-text-muted)' }}>
+                  📌 <strong>{doneTopics} / {totalTopics}</strong> Konu Tamamlandı
                 </span>
+                <button
+                  type="button"
+                  className="game-btn-3d"
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7, #0369a1)',
+                    color: '#ffffff',
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 12,
+                    fontSize: '0.78rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <span>Detayları Gör</span>
+                  <ChevronRight size={14} />
+                </button>
               </div>
             </div>
           ))}
 
           {/* Haritayı Aç Bağlantısı */}
-          <div style={{ textAlign: 'center', paddingTop: 6, borderTop: isDark ? '1px dashed rgba(255,255,255,0.1)' : '1px dashed #e2e8f0' }}>
+          <div style={{ textAlign: 'center', paddingTop: 8 }}>
             <button
               type="button"
               onClick={() => onNavigateRoadmap && onNavigateRoadmap('curriculum-roadmap')}
+              className="game-btn-3d"
               style={{
-                background: 'none',
-                border: 'none',
-                color: isDark ? '#a5b4fc' : '#6366f1',
-                fontSize: '0.74rem',
-                fontWeight: 800,
+                background: 'var(--color-surface)',
+                border: '2px solid var(--color-border)',
+                color: isDark ? '#c084fc' : '#7c3aed',
+                fontSize: isMobile ? '0.82rem' : '0.88rem',
+                fontWeight: 900,
+                borderRadius: 999,
+                padding: '0.6rem 1.4rem',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5
+                gap: 8,
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.15)'
               }}
             >
-              <Compass size={13} /> Tüm Ders, Ünite &amp; Konu Yol Haritası ↗
+              <Compass size={16} /> 🗺️ Tüm Ders, Ünite &amp; Konu Yol Haritası ↗
             </button>
           </div>
         </div>

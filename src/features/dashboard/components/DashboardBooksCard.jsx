@@ -52,39 +52,58 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
       >
         {/* Top Header: Title, Publisher, Badge */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
               <div style={{
-                fontWeight: 900,
-                fontSize: isMobile ? '0.98rem' : '1.12rem',
-                color: 'var(--color-text, #0f172a)',
-                lineHeight: 1.3,
-                wordBreak: 'break-word',
+                width: isMobile ? 38 : 44,
+                height: isMobile ? 38 : 44,
+                borderRadius: 14,
+                background: isCompleted ? 'linear-gradient(135deg, #10b981, #059669)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.15rem' : '1.35rem',
+                boxShadow: isCompleted ? '0 4px 12px rgba(16, 185, 129, 0.4)' : `0 4px 14px ${pal.shadow}`,
+                color: '#ffffff',
+                flexShrink: 0
               }}>
-                <span>{book.title}</span>
-                {isCompleted && (
-                  <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
+                {isCompleted ? '🏆' : '📚'}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: '"Outfit", sans-serif',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '1.02rem' : '1.18rem',
+                  color: 'var(--color-text, #0f172a)',
+                  lineHeight: 1.25,
+                  wordBreak: 'break-word',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}>
+                  <span>{book.title}</span>
+                  {isCompleted && (
+                    <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0 }} />
+                  )}
+                </div>
+                {book.publisher && (
+                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, marginTop: 2 }}>
+                    🏢 {book.publisher}
+                  </div>
                 )}
               </div>
-              {book.publisher && (
-                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, marginTop: 2 }}>
-                  🏢 {book.publisher}
-                </div>
-              )}
             </div>
 
             {isCompleted ? (
               <span style={{
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 fontWeight: 900,
-                padding: '3px 9px',
+                padding: '4px 10px',
                 borderRadius: 999,
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#ffffff',
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)',
                 whiteSpace: 'nowrap',
                 flexShrink: 0
               }}>
@@ -92,9 +111,9 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
               </span>
             ) : book.remainingDays !== null ? (
               <span style={{
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 fontWeight: 900,
-                padding: '3px 9px',
+                padding: '4px 10px',
                 borderRadius: 999,
                 background: book.remainingDays <= 3 
                   ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
@@ -107,7 +126,7 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
                 {book.remainingDays === 0 ? '🔥 Bugün Son' : `⏳ ${book.remainingDays} gün`}
               </span>
             ) : (
-              <span className="game-badge-xp" style={{ fontSize: '0.65rem' }}>
+              <span className="game-badge-xp" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
                 +30 XP
               </span>
             )}
