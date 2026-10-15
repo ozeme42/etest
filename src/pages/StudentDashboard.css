@@ -633,6 +633,64 @@
   box-shadow: 0 12px 32px rgba(99, 102, 241, 0.35);
 }
 
+/* Next Target Pulsing Focus */
+@keyframes targetPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #6366f1, 0 8px 24px rgba(99, 102, 241, 0.25);
+    border-color: #6366f1;
+  }
+  50% {
+    box-shadow: 0 0 0 3.5px #818cf8, 0 12px 32px rgba(129, 140, 248, 0.45);
+    border-color: #a5b4fc;
+  }
+}
+
+.quest-next-target {
+  animation: targetPulse 2.8s infinite ease-in-out;
+  position: relative;
+}
+
+/* Today Tasks Metric Pill */
+.today-metric-pill {
+  min-width: 130px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  transition: all 0.2s ease;
+}
+
+.today-metric-pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-input);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+
+[data-theme="dark"] .today-metric-pill {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Filter chip */
+.today-filter-chip {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.18s ease;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
 /* ── Game Realm Header ── */
 .game-realm-header {
   display: flex;

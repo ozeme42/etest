@@ -4005,6 +4005,7 @@ export default function StudentDashboard() {
                 getRowTheme={getRowTheme}
                 onAddTask={handleOpenAddTask}
                 onNavigateRemedial={handleViewRemedial}
+                onNavigateBooks={handleExploreBooks}
               />
 
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
