@@ -2,21 +2,21 @@ import React from 'react';
 import { ArrowLeft, Flame, Sun, Settings2, Maximize2, Minimize2, Sparkles, Target, Zap } from 'lucide-react';
 
 export default function StudyRoomHeader({
-  themeObj,
-  isMobile,
-  currentUser,
-  streakData,
-  wakeLockActive,
-  isFullscreen,
-  toggleFullscreen,
-  showSettingsDrawer,
-  setShowSettingsDrawer,
-  activeTheme,
-  setActiveTheme,
-  themes,
-  onBack,
-  isZenFocusMode,
-  onToggleZenMode
+  themeObj = {},
+  isMobile = false,
+  currentUser = null,
+  streakData = { currentStreak: 1 },
+  wakeLockActive = false,
+  isFullscreen = false,
+  toggleFullscreen = () => {},
+  showSettingsDrawer = false,
+  setShowSettingsDrawer = () => {},
+  activeTheme = 'system',
+  setActiveTheme = () => {},
+  themes = [],
+  onBack = () => {},
+  isZenFocusMode = false,
+  onToggleZenMode = () => {}
 }) {
   return (
     <header style={{
@@ -91,7 +91,7 @@ export default function StudyRoomHeader({
               whiteSpace: 'nowrap'
             }}>
               <Flame size={13} color="#f97316" fill="#f97316" />
-              <span>{streakData.currentStreak} Gün Seri</span>
+              <span>{streakData?.currentStreak || 1} Gün Seri</span>
             </span>
 
             {/* XP Rozeti */}
@@ -187,7 +187,7 @@ export default function StudyRoomHeader({
             borderRadius: 12,
             border: `1.5px solid ${themeObj.border}`
           }}>
-            {themes.slice(0, 4).map(t => (
+            {(themes || []).slice(0, 4).map(t => (
               <button
                 key={t.id}
                 onClick={() => setActiveTheme(t.id)}

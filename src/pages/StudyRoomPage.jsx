@@ -66,7 +66,22 @@ export default function StudyRoomPage() {
 
   const THEMES = useMemo(() => getThemeList(isDark), [isDark]);
   const [activeTheme, setActiveTheme] = useState(() => localStorage.getItem('study_theme') || 'system');
-  const themeObj = useMemo(() => THEMES.find(t => t.id === activeTheme) || THEMES[0], [THEMES, activeTheme]);
+  const themeObj = useMemo(() => {
+    return (Array.isArray(THEMES) && THEMES.find(t => t.id === activeTheme)) || THEMES?.[0] || {
+      id: 'cyberpunk',
+      name: 'EduQuest Dark',
+      bg: '#090d16',
+      cardBg: '#0f172a',
+      innerBg: '#1e293b',
+      border: 'rgba(255, 255, 255, 0.08)',
+      text: '#f8fafc',
+      subText: '#94a3b8',
+      accent: '#6366f1',
+      accentGradient: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+      buttonBg: '#1e293b',
+      isDark: true
+    };
+  }, [THEMES, activeTheme]);
 
   // ── 🎯 ÇALIŞMA MODLARI: 'question' | 'pomodoro' | 'stopwatch' ──
   const [activeStudyMode, setActiveStudyMode] = useState(() => localStorage.getItem('study_master_mode') || 'question');
@@ -898,9 +913,9 @@ export default function StudyRoomPage() {
     // Ağaç dikme
     const newTree = {
       id: String(Date.now()),
-      icon: currentTree.icon,
-      name: currentTree.name,
-      task: selectedTask?.title || `${selectedSubject} Çalışması`,
+      icon: currentTree?.icon || '🌲',
+      name: currentTree?.name || 'Ağaç',
+      task: selectedTask?.title || `${selectedSubject || 'Ders'} Çalışması`,
       time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
       duration: Math.max(1, Math.round(elapsedSec / 60))
     };
@@ -1172,12 +1187,16 @@ export default function StudyRoomPage() {
     return Math.round(((total - timeLeft) / total) * 100);
   }, [activeStudyMode, calculatedBudgetMinutes, timeLeft]);
 
+  const handleToggleTimer = () => setIsRunning(r => !r);
+
   const [isZenFocusMode, setIsZenFocusMode] = useState(false);
 
   // Bugünkü Programdaki Bekleyen Görevler
   const todayPendingTasks = useMemo(() => {
-    const todayObj = weeklyProgramGrouped.find(d => d.key === currentTodayKey) || weeklyProgramGrouped[0];
-    return (todayObj?.tasks || []).filter(t => !t.isCompleted);
+    if (!Array.isArray(weeklyProgramGrouped) || weeklyProgramGrouped.length === 0) return [];
+    const todayObj = weeklyProgramGrouped.find(d => d && d.key === currentTodayKey) || weeklyProgramGrouped[0];
+    if (!todayObj || !Array.isArray(todayObj.tasks)) return [];
+    return todayObj.tasks.filter(t => Boolean(t && !t.isCompleted));
   }, [weeklyProgramGrouped, currentTodayKey]);
 
   return (
@@ -1675,7 +1694,7 @@ export default function StudyRoomPage() {
             });
           }}
           isRunning={isRunning}
-          handleToggleTimer={() => setIsRunning(r => !r)}
+          handleToggleTimer={handleToggleTimer}
           handleResetTimer={() => {
             setIsRunning(false);
             setSessionElapsedSeconds(0);

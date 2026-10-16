@@ -51,10 +51,21 @@ export default function StudyHeroCard({
   onSelectTodayTask,
   onToggleZenMode
 }) {
+  const safeTodayTasks = Array.isArray(todayPendingTasks) ? todayPendingTasks.filter(Boolean) : [];
+  const safeTheme = themeObj || {
+    cardBg: '#0f172a',
+    border: 'rgba(255, 255, 255, 0.08)',
+    innerBg: '#1e293b',
+    text: '#ffffff',
+    subText: '#94a3b8',
+    accent: '#6366f1',
+    isDark: true
+  };
+
   return (
     <div style={{
-      background: themeObj.cardBg,
-      border: `1.5px solid ${themeObj.border}`,
+      background: safeTheme.cardBg,
+      border: `1.5px solid ${safeTheme.border}`,
       borderRadius: isMobile ? 22 : 28,
       padding: isMobile ? '1.15rem 1rem' : '1.85rem 2.2rem',
       display: 'flex',
@@ -156,8 +167,8 @@ export default function StudyHeroCard({
                   Bugünün Programındaki Görevlerin:
                 </div>
                 <div style={{ fontSize: '0.7rem', color: themeObj.subText, fontWeight: 700 }}>
-                  {todayPendingTasks.length > 0
-                    ? `${todayPendingTasks.length} planlı görev bekliyor • 1 tıkla seans başlat`
+                  {safeTodayTasks.length > 0
+                    ? `${safeTodayTasks.length} planlı görev bekliyor • 1 tıkla seans başlat`
                     : 'Bugün için atanmış bekleyen görev bulunamadı'}
                 </div>
               </div>
@@ -187,14 +198,16 @@ export default function StudyHeroCard({
           </div>
 
           {/* Bugünkü Görev Kartları */}
-          {todayPendingTasks.length > 0 && (
+          {safeTodayTasks.length > 0 && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
               gap: 8,
               marginTop: 2
             }}>
-              {todayPendingTasks.slice(0, 4).map((t, idx) => (
+              {safeTodayTasks.slice(0, 4).map((t, idx) => {
+                if (!t) return null;
+                return (
                 <div
                   key={t.id || idx}
                   onClick={() => onSelectTodayTask ? onSelectTodayTask(t) : onOpenTaskPicker()}
@@ -242,7 +255,8 @@ export default function StudyHeroCard({
                   </div>
                   <ChevronRight size={15} color="#6366f1" style={{ flexShrink: 0 }} />
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
