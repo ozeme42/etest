@@ -1172,6 +1172,14 @@ export default function StudyRoomPage() {
     return Math.round(((total - timeLeft) / total) * 100);
   }, [activeStudyMode, calculatedBudgetMinutes, timeLeft]);
 
+  const [isZenFocusMode, setIsZenFocusMode] = useState(false);
+
+  // Bugünkü Programdaki Bekleyen Görevler
+  const todayPendingTasks = useMemo(() => {
+    const todayObj = weeklyProgramGrouped.find(d => d.key === currentTodayKey) || weeklyProgramGrouped[0];
+    return (todayObj?.tasks || []).filter(t => !t.isCompleted);
+  }, [weeklyProgramGrouped, currentTodayKey]);
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -1182,6 +1190,407 @@ export default function StudyRoomPage() {
       flexDirection: 'column',
       transition: 'background 0.3s ease, color 0.3s ease'
     }}>
+      {/* ─── 0. TAM EKRAN ZEN ODAK SAHNESİ (ZEN FOCUS STAGE) ─── */}
+      {isZenFocusMode && (
+        <div className="zen-focus-stage">
+          {/* Üst Zen Bar */}
+          <div style={{
+            padding: isMobile ? '0.85rem 1rem' : '1.15rem 2.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(2, 6, 23, 0.72)',
+            backdropFilter: 'blur(20px)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                boxShadow: '0 0 18px rgba(99, 102, 241, 0.65)',
+                fontSize: '1.2rem',
+                flexShrink: 0
+              }}>
+                🎯
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: isMobile ? '0.92rem' : '1.12rem',
+                  fontWeight: 900,
+                  fontFamily: "'Outfit', sans-serif",
+                  color: '#ffffff',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {selectedTask ? (selectedTask.title || selectedTask.name) : `${selectedSubject} Odak Seansı`}
+                </div>
+                <div style={{
+                  fontSize: '0.72rem',
+                  color: '#94a3b8',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 2
+                }}>
+                  <span style={{ color: '#a5b4fc', fontWeight: 800 }}>{selectedSubject}</span>
+                  <span>•</span>
+                  <span>{currentProgressCount} / {targetGoalCount} Soru Çözüldü</span>
+                  <span>•</span>
+                  <span style={{ color: '#38bdf8', fontWeight: 800 }}>⚡ +50 XP</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {/* Streak */}
+              <span style={{
+                background: 'rgba(249, 115, 22, 0.2)',
+                color: '#f97316',
+                border: '1.5px solid rgba(249, 115, 22, 0.4)',
+                borderRadius: 99,
+                padding: '0.2rem 0.6rem',
+                fontSize: '0.72rem',
+                fontWeight: 900,
+                fontFamily: "'Outfit', sans-serif",
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                <span>🔥</span>
+                <span>{streakData?.currentStreak || 1} Gün</span>
+              </span>
+
+              {/* Odaktan Çık Butonu */}
+              <button
+                onClick={() => setIsZenFocusMode(false)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  borderRadius: 12,
+                  height: 38,
+                  padding: '0 0.95rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  fontFamily: "'Outfit', sans-serif",
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s'
+                }}
+                className="hover:bg-white/20 active:scale-95"
+              >
+                <span>✕</span>
+                {!isMobile && <span>Odaktan Çık</span>}
+              </button>
+            </div>
+          </div>
+
+          {/* Orta Alan: Büyük Odak Çemberi & Kontroller */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? '1.5rem 1rem' : '2.5rem 2rem',
+            position: 'relative'
+          }}>
+            {/* Arka plan nefes alan parıltı dairesi */}
+            <div style={{
+              position: 'absolute',
+              width: isMobile ? 320 : 480,
+              height: isMobile ? 320 : 480,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 70%)',
+              filter: 'blur(35px)',
+              pointerEvents: 'none',
+              zIndex: 0
+            }} className="focus-aura-glow" />
+
+            {/* Büyük SVG Odak Halkası */}
+            <div style={{
+              position: 'relative',
+              width: isMobile ? 270 : 350,
+              height: isMobile ? 270 : 350,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1
+            }}>
+              <svg
+                width={isMobile ? 270 : 350}
+                height={isMobile ? 270 : 350}
+                viewBox="0 0 260 260"
+                style={{ position: 'absolute', top: 0, left: 0 }}
+              >
+                <circle
+                  cx="130"
+                  cy="130"
+                  r="112"
+                  fill="none"
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="12"
+                />
+                <circle
+                  cx="130"
+                  cy="130"
+                  r="112"
+                  fill="none"
+                  stroke="url(#zenFocusGradient)"
+                  strokeWidth="12"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 112}
+                  strokeDashoffset={((100 - Math.min(100, Math.max(0, progressPercentage))) / 100) * (2 * Math.PI * 112)}
+                  className="zen-ring-circle"
+                />
+                <defs>
+                  <linearGradient id="zenFocusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="50%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+
+              {/* Halka İçi Metin */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 2,
+                textAlign: 'center',
+                padding: 10
+              }}>
+                {/* Durum Rozeti */}
+                <div style={{
+                  background: isRunning ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.2)',
+                  color: isRunning ? '#34d399' : '#94a3b8',
+                  border: `1.5px solid ${isRunning ? 'rgba(16, 185, 129, 0.4)' : 'rgba(148, 163, 184, 0.3)'}`,
+                  padding: '0.22rem 0.8rem',
+                  borderRadius: 99,
+                  fontSize: '0.74rem',
+                  fontWeight: 900,
+                  fontFamily: "'Outfit', sans-serif",
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginBottom: 6,
+                  boxShadow: isRunning ? '0 0 14px rgba(16, 185, 129, 0.35)' : 'none'
+                }}>
+                  <span style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: isRunning ? '#34d399' : '#94a3b8',
+                    boxShadow: isRunning ? '0 0 8px #34d399' : 'none'
+                  }} />
+                  <span>{timerStatusLabel}</span>
+                </div>
+
+                {/* Devasa Sayaç Metni */}
+                <div style={{
+                  fontSize: isMobile ? '4rem' : '5rem',
+                  fontWeight: 900,
+                  fontFamily: "'Outfit', sans-serif",
+                  letterSpacing: '-0.035em',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: '#ffffff',
+                  lineHeight: 1,
+                  textShadow: '0 0 35px rgba(99, 102, 241, 0.7)'
+                }}>
+                  {displayTimerText}
+                </div>
+
+                {/* Soru Durumu */}
+                <div style={{
+                  marginTop: 10,
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  fontFamily: "'Outfit', sans-serif",
+                  color: '#c7d2fe'
+                }}>
+                  🎯 {currentProgressCount} / {targetGoalCount} Soru Tamamlandı
+                </div>
+              </div>
+            </div>
+
+            {/* Motivasyon Sözü */}
+            {activeQuote && (
+              <div style={{
+                fontSize: isMobile ? '0.76rem' : '0.85rem',
+                color: '#94a3b8',
+                fontStyle: 'italic',
+                textAlign: 'center',
+                marginTop: 20,
+                maxWidth: 480,
+                padding: '0 1rem'
+              }}>
+                “{activeQuote}”
+              </div>
+            )}
+
+            {/* Büyük Aksiyon Butonları */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 24,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              zIndex: 2
+            }}>
+              {/* +1 Soru Çözüldü Butonu */}
+              <button
+                onClick={() => {
+                  handleIncrementProgress();
+                  confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+                }}
+                style={{
+                  height: isMobile ? 52 : 58,
+                  padding: isMobile ? '0 1.35rem' : '0 1.85rem',
+                  borderRadius: 18,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.95rem' : '1.05rem',
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                className="hover:scale-105 active:scale-95"
+              >
+                <span>➕</span>
+                <span>+1 Soru Çözüldü</span>
+              </button>
+
+              {/* Başlat / Duraklat */}
+              <button
+                onClick={handleToggleTimer}
+                style={{
+                  height: isMobile ? 52 : 58,
+                  padding: isMobile ? '0 1.35rem' : '0 1.85rem',
+                  borderRadius: 18,
+                  border: 'none',
+                  background: isRunning ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.95rem' : '1.05rem',
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: isRunning ? '0 6px 20px rgba(239, 68, 68, 0.45)' : '0 6px 20px rgba(99, 102, 241, 0.45)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                className="hover:scale-105 active:scale-95"
+              >
+                <span>{isRunning ? '⏸️ Duraklat' : '▶️ Başlat'}</span>
+              </button>
+
+              {/* Seansı Bitir */}
+              <button
+                onClick={() => {
+                  setIsZenFocusMode(false);
+                  handleCompleteSession();
+                }}
+                style={{
+                  height: isMobile ? 52 : 58,
+                  padding: isMobile ? '0 1.1rem' : '0 1.4rem',
+                  borderRadius: 18,
+                  border: '1.5px solid rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.86rem' : '0.94rem',
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  transition: 'all 0.2s'
+                }}
+                className="hover:bg-white/15 active:scale-95"
+              >
+                <span>✓ Bitir</span>
+              </button>
+            </div>
+
+            {/* Alt Ambiyans Hızlı Ses Çubuğu */}
+            <div style={{
+              marginTop: 26,
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: 16,
+              padding: '0.6rem 1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              zIndex: 2
+            }}>
+              <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 800 }}>🎧 Ambiyans:</span>
+              {[
+                { id: 'rain', icon: '🌧️', name: 'Yağmur' },
+                { id: 'cafe', icon: '☕', name: 'Kafe' },
+                { id: 'forest', icon: '🌲', name: 'Orman' }
+              ].map(snd => {
+                const isPlaying = (soundVolumes[snd.id] || 0) > 0;
+                return (
+                  <button
+                    key={snd.id}
+                    onClick={() => {
+                      const nextVol = isPlaying ? 0 : 50;
+                      setSoundVolumes(v => ({ ...v, [snd.id]: nextVol }));
+                      try {
+                        if (nextVol > 0) ambientAudio.playSound(snd.id, nextVol / 100);
+                        else ambientAudio.stopSound(snd.id);
+                      } catch {}
+                    }}
+                    style={{
+                      background: isPlaying ? 'rgba(99, 102, 241, 0.35)' : 'transparent',
+                      border: `1px solid ${isPlaying ? '#6366f1' : 'rgba(255, 255, 255, 0.15)'}`,
+                      color: isPlaying ? '#ffffff' : '#cbd5e1',
+                      padding: '0.28rem 0.6rem',
+                      borderRadius: 10,
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      fontFamily: "'Outfit', sans-serif",
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <span>{snd.icon}</span>
+                    <span>{snd.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── 1. MODERN HEADER ─── */}
       <StudyRoomHeader
         themeObj={themeObj}
@@ -1206,12 +1615,14 @@ export default function StudyRoomPage() {
         }}
         themes={THEMES}
         onBack={() => navigate('/student')}
+        isZenFocusMode={isZenFocusMode}
+        onToggleZenMode={() => setIsZenFocusMode(z => !z)}
       />
 
       {/* ─── 2. ANA SAYFA GÖVDESİ ─── */}
       <main style={{
         flex: 1,
-        maxWidth: 960,
+        maxWidth: 980,
         margin: '0 auto',
         width: '100%',
         padding: isMobile ? '1rem 0.85rem 4rem' : '2rem 1.5rem 5rem',
@@ -1289,37 +1700,42 @@ export default function StudyRoomPage() {
           opticalAnswerCount={Object.keys(opticalAnswers).length}
           hasAnswerKey={Boolean(resolvedAnswerKey)}
           isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
+          todayPendingTasks={todayPendingTasks}
+          onSelectTodayTask={handleSelectTask}
+          onToggleZenMode={() => setIsZenFocusMode(z => !z)}
         />
 
-        {/* ─── 3. AKILLI YARDIMCI ARAÇLAR SEKMESİ (TAB BAR) ─── */}
+        {/* ─── 3. AKILLI YARDIMCI ARAÇLAR SEKMESİ (BENTO TAB BAR) ─── */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: selectedTask ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-          gap: 6,
+          gap: 7,
           background: themeObj.innerBg,
-          padding: 4,
-          borderRadius: 18,
-          border: `1px solid ${themeObj.border}`
+          padding: 5,
+          borderRadius: 20,
+          border: `1.5px solid ${themeObj.border}`
         }}>
           {selectedTask && (
             <button
               onClick={() => setActiveToolTab('optical')}
               style={{
-                padding: '0.65rem 0.5rem',
+                padding: '0.7rem 0.55rem',
                 borderRadius: 14,
                 border: 'none',
                 background: activeToolTab === 'optical' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
                 color: activeToolTab === 'optical' ? '#ffffff' : themeObj.subText,
-                fontWeight: 800,
-                fontSize: isMobile ? '0.74rem' : '0.82rem',
+                fontWeight: 900,
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
                 transition: 'all 0.15s',
-                boxShadow: activeToolTab === 'optical' ? `0 4px 12px ${themeObj.accent}40` : 'none'
+                boxShadow: activeToolTab === 'optical' ? `0 4px 14px ${themeObj.accent}45` : 'none'
               }}
+              className="hover:scale-[1.02] active:scale-95"
             >
               <span>📋</span>
               <span>{isSmallMobile ? 'Optik' : 'Optik Cevaplar'}</span>
@@ -1329,21 +1745,23 @@ export default function StudyRoomPage() {
           <button
             onClick={() => setActiveToolTab('analytics')}
             style={{
-              padding: '0.65rem 0.5rem',
+              padding: '0.7rem 0.55rem',
               borderRadius: 14,
               border: 'none',
               background: activeToolTab === 'analytics' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
               color: activeToolTab === 'analytics' ? '#ffffff' : themeObj.subText,
-              fontWeight: 800,
-              fontSize: isMobile ? '0.74rem' : '0.82rem',
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
               transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'analytics' ? `0 4px 12px ${themeObj.accent}40` : 'none'
+              boxShadow: activeToolTab === 'analytics' ? `0 4px 14px ${themeObj.accent}45` : 'none'
             }}
+            className="hover:scale-[1.02] active:scale-95"
           >
             <span>📊</span>
             <span>{isSmallMobile ? 'Hız' : 'Hız Analizi'}</span>
@@ -1352,21 +1770,23 @@ export default function StudyRoomPage() {
           <button
             onClick={() => setActiveToolTab('forest')}
             style={{
-              padding: '0.65rem 0.5rem',
+              padding: '0.7rem 0.55rem',
               borderRadius: 14,
               border: 'none',
               background: activeToolTab === 'forest' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
               color: activeToolTab === 'forest' ? '#ffffff' : themeObj.subText,
-              fontWeight: 800,
-              fontSize: isMobile ? '0.74rem' : '0.82rem',
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
               transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'forest' ? `0 4px 12px ${themeObj.accent}40` : 'none'
+              boxShadow: activeToolTab === 'forest' ? `0 4px 14px ${themeObj.accent}45` : 'none'
             }}
+            className="hover:scale-[1.02] active:scale-95"
           >
             <span>🌲</span>
             <span>{isSmallMobile ? 'Orman' : 'Başarı Ormanı'}</span>
@@ -1375,21 +1795,23 @@ export default function StudyRoomPage() {
           <button
             onClick={() => setActiveToolTab('ambient')}
             style={{
-              padding: '0.65rem 0.5rem',
+              padding: '0.7rem 0.55rem',
               borderRadius: 14,
               border: 'none',
               background: activeToolTab === 'ambient' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
               color: activeToolTab === 'ambient' ? '#ffffff' : themeObj.subText,
-              fontWeight: 800,
-              fontSize: isMobile ? '0.74rem' : '0.82rem',
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
               transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'ambient' ? `0 4px 12px ${themeObj.accent}40` : 'none'
+              boxShadow: activeToolTab === 'ambient' ? `0 4px 14px ${themeObj.accent}45` : 'none'
             }}
+            className="hover:scale-[1.02] active:scale-95"
           >
             <span>🎧</span>
             <span>{isSmallMobile ? 'Notlar' : 'Ambiyans & Not'}</span>
