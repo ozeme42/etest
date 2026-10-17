@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Calendar, CalendarDays, ChevronRight, Plus, Sparkles, Zap } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, Plus, Sparkles, Zap, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default memo(function DashboardWeeklyCalendar({
@@ -12,6 +12,7 @@ export default memo(function DashboardWeeklyCalendar({
   weekInfo = { dayDateMap: {} },
   onSelectDay,
   onAddTask,
+  onPrint,
   showProgramButton = true
 }) {
   const navigate = useNavigate();
@@ -135,6 +136,33 @@ export default memo(function DashboardWeeklyCalendar({
             >
               <Plus size={15} strokeWidth={2.8} />
               <span>{isMobile ? 'Ekle' : 'Görev Ekle'}</span>
+            </button>
+          )}
+
+          {onPrint && (
+            <button
+              type="button"
+              onClick={onPrint}
+              className="game-btn-3d"
+              style={{
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
+                borderRadius: 12,
+                padding: isMobile ? '0.45rem 0.65rem' : '0.5rem 1rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: isMobile ? '1 1 auto' : undefined,
+                gap: 5,
+                color: isDark ? '#ffffff' : '#334155',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+              title="Haftalık Programı Yazdır / PDF İndir"
+            >
+              <Printer size={15} />
+              <span>{isMobile ? 'Yazdır' : 'Haftalık Yazdır'}</span>
             </button>
           )}
 

@@ -13,7 +13,8 @@ import {
   Zap,
   CheckCircle2,
   Clock,
-  Compass
+  Compass,
+  Printer
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
@@ -30,6 +31,7 @@ import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardW
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
 import AddTaskModal from '../components/program/AddTaskModal';
 import CurriculumRoadmapView from '../components/roadmap/CurriculumRoadmapView';
+import PrintableWeeklyDocument from '../components/program/PrintableWeeklyDocument';
 import { MonthlyListPanel } from '../components/ProgramCenter';
 import './StudentDashboard.css';
 
@@ -112,6 +114,14 @@ export default function StudentProgramPage() {
   const [activeTab, setActiveTab] = useState('haftalik'); // 'haftalik' | 'aylik' | 'konular'
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
+  const [printMode, setPrintMode] = useState('standard'); // 'standard' | 'overdue'
+
+  const handlePrintWeekly = useCallback((mode = 'standard') => {
+    setPrintMode(mode);
+    setTimeout(() => {
+      window.print();
+    }, 120);
+  }, []);
 
   const weekRange = useMemo(() => getWeekDateRange(), []);
 
@@ -239,6 +249,29 @@ export default function StudentProgramPage() {
               <span>Çalışma Odası</span>
             </button>
 
+            <button
+              onClick={() => handlePrintWeekly('standard')}
+              className="game-btn-3d"
+              style={{
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
+                borderRadius: '0.75rem',
+                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 800,
+                fontSize: isMobile ? '0.78rem' : '0.84rem',
+                color: isDark ? '#ffffff' : '#334155',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+              title="Haftalık Programı Yazdır / PDF İndir"
+            >
+              <Printer size={15} />
+              <span>{isMobile ? 'Yazdır' : '🖨️ Haftalık Yazdır'}</span>
+            </button>
+
             {currentUser?.role !== 'student' && studentMembers.length > 0 && (
               <select
                 value={effectiveStudent?.id || ''}
@@ -352,23 +385,47 @@ export default function StudentProgramPage() {
               </div>
             </div>
 
-            {/* Quick Action Button */}
-            <button
-              onClick={() => setIsAddTaskModalOpen(true)}
-              className="game-btn-3d game-btn-emerald"
-              style={{
-                borderRadius: 14,
-                padding: isMobile ? '0.48rem 0.85rem' : '0.55rem 1.15rem',
-                fontSize: isMobile ? '0.78rem' : '0.84rem',
-                fontWeight: 900,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              <Plus size={16} strokeWidth={2.8} />
-              <span>Yeni Görev Ekle</span>
-            </button>
+            {/* Quick Action Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => handlePrintWeekly('standard')}
+                className="game-btn-3d"
+                style={{
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                  border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
+                  borderRadius: 14,
+                  padding: isMobile ? '0.48rem 0.85rem' : '0.55rem 1.15rem',
+                  fontSize: isMobile ? '0.78rem' : '0.84rem',
+                  fontWeight: 900,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: isDark ? '#ffffff' : '#334155',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                }}
+                title="Haftalık Programı Yazdır veya PDF olarak kaydet"
+              >
+                <Printer size={16} />
+                <span>{isMobile ? 'Yazdır' : 'Haftalık Yazdır'}</span>
+              </button>
+
+              <button
+                onClick={() => setIsAddTaskModalOpen(true)}
+                className="game-btn-3d game-btn-emerald"
+                style={{
+                  borderRadius: 14,
+                  padding: isMobile ? '0.48rem 0.85rem' : '0.55rem 1.15rem',
+                  fontSize: isMobile ? '0.78rem' : '0.84rem',
+                  fontWeight: 900,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Plus size={16} strokeWidth={2.8} />
+                <span>Yeni Görev Ekle</span>
+              </button>
+            </div>
           </div>
 
           {/* Bento KPI Pills */}
@@ -564,6 +621,7 @@ export default function StudentProgramPage() {
               weekInfo={weekInfo}
               onSelectDay={setActiveDayKey}
               onAddTask={() => setIsAddTaskModalOpen(true)}
+              onPrint={() => handlePrintWeekly('standard')}
               showProgramButton={false}
             />
 
@@ -648,6 +706,21 @@ export default function StudentProgramPage() {
           isDark={isDark}
         />
       )}
+
+      {/* ── Yazdırılabilir A4 Haftalık Program Belgesi (Sadece Yazdırmada Görünür) ── */}
+      <PrintableWeeklyDocument
+        studentName={studentDisplayName}
+        weekRange={weekRange}
+        fullProcessedWeekMap={fullProcessedWeekMap}
+        weekInfo={weekInfo}
+        catchUpTasks={catchUpTasks}
+        books={books}
+        bookTests={bookTests}
+        totalItems={totalWeekTasks}
+        doneItems={doneWeekTasks}
+        pct={weekPct}
+        printMode={printMode}
+      />
     </div>
   );
 }
