@@ -6,7 +6,7 @@ import {
   TrendingUp, Zap, CheckCircle2, Award, Clock,
   AlertTriangle, Smile, Gift, Activity, BarChart3,
   GraduationCap, User, Layers, ClipboardList, MessageSquare,
-  FileText, ArrowLeft, Sparkles, Trophy, Heart, Eye, AlertCircle, X, RotateCcw
+  FileText, ArrowLeft, Sparkles, Trophy, Heart, Eye, AlertCircle, X, RotateCcw, Play
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
@@ -1271,11 +1271,65 @@ export default function MyCoachingPage() {
     <div style={{
       minHeight: '100vh',
       background: 'var(--color-bg)',
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(124, 58, 237, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), var(--color-bg)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(124, 58, 237, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 45%), var(--color-bg)',
       color: 'var(--color-text)',
-      padding: isMobile ? '0.65rem 0.5rem calc(80px + env(safe-area-inset-bottom)) 0.5rem' : 'clamp(0.75rem,3vw,1.75rem)',
+      padding: isMobile ? '0.65rem 0.5rem calc(80px + env(safe-area-inset-bottom)) 0.5rem' : '1.25rem 1.25rem 60px',
       fontFamily: 'system-ui,-apple-system,sans-serif',
       boxSizing: 'border-box'
     }}>
+
+      {/* ── TOP ACTION BAR (Öğrenci Paneli & Çalışma Odası) ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.65rem',
+        flexWrap: 'wrap',
+        marginBottom: '1rem'
+      }}>
+        <button
+          onClick={() => navigate('/student')}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+            border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+            borderRadius: '0.75rem',
+            padding: '0.5rem 0.95rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            fontWeight: 800,
+            fontSize: '0.82rem',
+            color: isDark ? '#ffffff' : '#1e293b',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            transition: 'all 0.15s'
+          }}
+        >
+          <ArrowLeft size={16} /> Öğrenci Paneli
+        </button>
+
+        <button
+          onClick={() => navigate('/study-room')}
+          style={{
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            border: 'none',
+            borderRadius: '0.75rem',
+            padding: '0.5rem 0.95rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            fontWeight: 900,
+            fontSize: '0.82rem',
+            color: '#ffffff',
+            boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+            transition: 'all 0.15s'
+          }}
+        >
+          <Play size={13} fill="#ffffff" /> ⏱️ Çalışma Odası
+        </button>
+      </div>
 
       {/* ── NATIVE MOBILE APP / DESKTOP HEADER ── */}
       <div style={{

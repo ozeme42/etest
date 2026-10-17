@@ -8,7 +8,7 @@ import {
   ChevronRight, AlertTriangle, Zap, FileText, BookCheck, GraduationCap as Exam,
   FlameKindling, ThumbsUp, ThumbsDown, Minus, RefreshCw, PieChart as PieIcon,
   LayoutGrid, Plus, Edit3, Trash2, X, ChevronLeft, ChevronsLeft, ChevronsRight,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Play
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -1045,6 +1045,9 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
     <div style={{
       minHeight: '100vh',
       background: 'var(--color-bg)',
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(139, 92, 246, 0.10) 0%, transparent 45%), var(--color-bg)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(139, 92, 246, 0.05) 0%, transparent 45%), var(--color-bg)',
       padding: isMobile ? '0.75rem 0.75rem calc(65px + env(safe-area-inset-bottom) + 20px) 0.75rem' : '1.25rem 1.25rem',
       fontFamily: "'Inter', system-ui, sans-serif",
       color: 'var(--color-text)',
@@ -1185,8 +1188,8 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       else navigate(currentUser?.role === 'student' ? '/student' : '/statistics');
                     }}
                     style={{
-                      background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'var(--color-surface)',
-                      border: embedded ? 'none' : '1.5px solid var(--color-border-input)',
+                      background: embedded ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
+                      border: embedded ? 'none' : (isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1'),
                       borderRadius: 12,
                       padding: '0.55rem 1.1rem',
                       cursor: 'pointer',
@@ -1195,11 +1198,31 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
                       gap: 6,
                       fontWeight: 900,
                       fontSize: '0.82rem',
-                      color: embedded ? '#ffffff' : 'var(--color-text)',
+                      color: embedded ? '#ffffff' : (isDark ? '#ffffff' : '#1e293b'),
                       boxShadow: embedded ? '0 4px 14px rgba(99,102,241,0.3)' : '0 2px 6px rgba(0,0,0,0.03)'
                     }}
                   >
-                    <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : 'Geri'}
+                    <ArrowLeft size={16} /> {embedded ? 'Genel İstatistiklere Dön' : (currentUser?.role === 'student' ? 'Öğrenci Paneli' : 'Geri')}
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/study-room')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      border: 'none',
+                      borderRadius: 12,
+                      padding: '0.55rem 1rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      color: '#ffffff',
+                      boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
+                    }}
+                  >
+                    <Play size={13} fill="#ffffff" /> ⏱️ Çalışma Odası
                   </button>
                   <div>
                     <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>

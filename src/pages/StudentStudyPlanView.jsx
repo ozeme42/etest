@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
-import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronRight, BookOpen, Layers } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronRight, BookOpen, Layers, Play } from 'lucide-react';
 import { isPast, parseISO } from 'date-fns';
 import ManualTestModal from '../components/ManualTestModal';
 import { getSubjectTheme } from './StudyPlanDetail';
@@ -13,6 +14,8 @@ export default function StudentStudyPlanView() {
   const navigate = useNavigate();
   const { currentUser, users } = useAuth();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
+  const { theme } = useTheme() || {};
+  const isDark = theme === 'dark';
   const [manualTestModalData, setManualTestModalData] = useState({ isOpen: false, data: null, topicId: null });
 
   // Effective student (if student, currentUser; if teacher/admin, check selected student)
@@ -167,32 +170,72 @@ export default function StudentStudyPlanView() {
   };
 
   return (
-    <div className="study-plans-page-container custom-scrollbar">
+    <div className="study-plans-page-container custom-scrollbar" style={{
+      minHeight: '100vh',
+      background: 'var(--color-bg)',
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(168, 85, 247, 0.10) 0%, transparent 45%), var(--color-bg)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(168, 85, 247, 0.05) 0%, transparent 45%), var(--color-bg)',
+      padding: '1.25rem 1rem 60px',
+      boxSizing: 'border-box'
+    }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
+        {/* ── TOP ACTION BAR (Öğrenci Paneli & Çalışma Odası) ── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.65rem',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            onClick={() => navigate('/student')}
+            style={{
+              background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
+              borderRadius: '0.75rem',
+              padding: '0.5rem 0.95rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              fontWeight: 800,
+              fontSize: '0.82rem',
+              color: isDark ? '#ffffff' : '#1e293b',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              transition: 'all 0.15s'
+            }}
+          >
+            <ArrowLeft size={16} /> Öğrenci Paneli
+          </button>
+
+          <button
+            onClick={() => navigate('/study-room')}
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none',
+              borderRadius: '0.75rem',
+              padding: '0.5rem 0.95rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              fontWeight: 900,
+              fontSize: '0.82rem',
+              color: '#ffffff',
+              boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+              transition: 'all 0.15s'
+            }}
+          >
+            <Play size={13} fill="#ffffff" /> ⏱️ Çalışma Odası
+          </button>
+        </div>
+
         {/* ── TOP HERO CARD ── */}
         <div className="study-glass-card" style={{ padding: '2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <button 
-                onClick={() => navigate(-1)}
-                style={{
-                  padding: '0.65rem',
-                  borderRadius: '0.85rem',
-                  background: 'var(--color-surface-hover, #f1f5f9)',
-                  border: '1.5px solid var(--color-border, #cbd5e1)',
-                  color: 'var(--color-text, #0f172a)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                title="Geri Dön"
-              >
-                <ArrowLeft size={20} />
-              </button>
-
               <div>
                 <span style={{ fontSize: '0.74rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', background: 'rgba(99,102,241,0.12)', color: '#818cf8', padding: '0.2rem 0.65rem', borderRadius: '0.45rem', border: '1px solid rgba(165,180,252,0.3)', display: 'inline-block', marginBottom: '0.35rem' }}>
                   ÖĞRENCİ YOL HARİTASI

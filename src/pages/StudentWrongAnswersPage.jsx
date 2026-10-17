@@ -1966,7 +1966,10 @@ export default function StudentWrongAnswersPage() {
     <div style={{
       minHeight: '100vh',
       background: 'var(--color-bg)',
-      padding: '1.25rem 1.25rem',
+      backgroundImage: isDark
+        ? 'radial-gradient(ellipse at 15% 15%, rgba(239, 68, 68, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), var(--color-bg)'
+        : 'radial-gradient(ellipse at 15% 15%, rgba(239, 68, 68, 0.06) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 45%), var(--color-bg)',
+      padding: '1.25rem 1.25rem 60px',
       fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       color: 'var(--color-text)',
       boxSizing: 'border-box'
@@ -2059,12 +2062,12 @@ export default function StudentWrongAnswersPage() {
             1. ÜST BAŞLIK & HIZLI AKSİYON
         ════════════════════════════════════════════ */}
         <div className="wa-top-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-          <div className="wa-header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+          <div className="wa-header-left" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => navigate('/student')}
               style={{
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
                 borderRadius: '12px',
                 padding: '0.55rem 0.95rem',
                 cursor: 'pointer',
@@ -2073,13 +2076,34 @@ export default function StudentWrongAnswersPage() {
                 gap: '0.4rem',
                 fontWeight: 800,
                 fontSize: '0.82rem',
-                color: 'var(--color-text)',
+                color: isDark ? '#ffffff' : '#1e293b',
                 transition: 'all 0.15s',
                 whiteSpace: 'nowrap',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
               }}
             >
               <ArrowLeft size={16} /> Öğrenci Paneli
+            </button>
+
+            <button
+              onClick={() => navigate('/study-room')}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '0.55rem 0.95rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                color: '#ffffff',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 3px 10px rgba(245,158,11,0.3)'
+              }}
+            >
+              <Play size={13} fill="#ffffff" /> ⏱️ Çalışma Odası
             </button>
             <div>
               <h1 className="wa-header-title" style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: '0.45rem', letterSpacing: '-0.02em' }}>

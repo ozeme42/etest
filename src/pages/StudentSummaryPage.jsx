@@ -10,7 +10,7 @@ import {
   Printer, ZoomIn, ZoomOut, FileText, CheckCircle2,
   ArrowLeft, ArrowRight, BookMarked, X,
   LayoutGrid, Grid3X3, Grid2X2, Columns, List, Sparkles,
-  ChevronsUpDown, Check, Award, Maximize2, Minimize2
+  ChevronsUpDown, Check, Award, Maximize2, Minimize2, Play
 } from 'lucide-react';
 import './StudentSummaryPage.css';
 
@@ -460,10 +460,32 @@ export default function StudentSummaryPage() {
           <div className="ssp-hero">
             <div className="ssp-hero-inner">
               <div className="ssp-hero-top">
-                <button className="ssp-back-btn" onClick={() => navigate('/student')}>
-                  <ArrowLeft size={15} />
-                  <span>Öğrenci Paneli</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button className="ssp-back-btn" onClick={() => navigate('/student')}>
+                    <ArrowLeft size={15} />
+                    <span>Öğrenci Paneli</span>
+                  </button>
+                  <button
+                    onClick={() => navigate('/study-room')}
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      border: 'none',
+                      borderRadius: '0.75rem',
+                      padding: '0.45rem 0.85rem',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      color: '#ffffff',
+                      boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <Play size={12} fill="#ffffff" /> ⏱️ Çalışma Odası
+                  </button>
+                </div>
                 <div className="ssp-grade-pills">
                   <span className="ssp-grade-label">Sınıf:</span>
                   {grades.map(g => (

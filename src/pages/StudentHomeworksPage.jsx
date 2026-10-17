@@ -6,6 +6,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
+import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, normalizeId, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
@@ -13,7 +14,7 @@ import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
 import {
   BookMarked, CheckCircle2, Clock, PlayCircle, AlertCircle,
   Search, ArrowLeft, ChevronRight, Eye, Sparkles, Filter,
-  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target, RefreshCw, Trash2
+  Layers, Trophy, Calendar, CheckSquare, Award, BookOpen, Brain, Zap, Target, RefreshCw, Trash2, Play
 } from 'lucide-react';
 
 const SUBJECT_ROW_THEMES = {
@@ -61,6 +62,8 @@ export default function StudentHomeworksPage() {
   const { submissions, syncFromSupabase } = useEvaluation();
   const { data: curData } = useCurriculum();
   const { users } = useUser();
+  const { theme } = useTheme() || {};
+  const isDark = theme === 'dark';
 
   const [isRefreshingManual, setIsRefreshingManual] = useState(false);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'completed' | 'all'
@@ -530,6 +533,9 @@ export default function StudentHomeworksPage() {
       <div style={{
         minHeight: '100vh',
         background: 'var(--color-bg)',
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(239, 68, 68, 0.10) 0%, transparent 45%), var(--color-bg)'
+          : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(239, 68, 68, 0.05) 0%, transparent 45%), var(--color-bg)',
         color: 'var(--color-text)',
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         padding: '1.25rem 1rem 5rem',
@@ -538,7 +544,7 @@ export default function StudentHomeworksPage() {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .hw-anim { animation: fadeIn 0.25s ease both; }
-        .hw-row:hover { filter: brightness(0.96); }
+        .hw-row:hover { filter: brightness(0.97); transform: translateY(-1px); }
         .hw-row {
           display: flex;
           align-items: center;
@@ -550,26 +556,20 @@ export default function StudentHomeworksPage() {
         @media (max-width: 640px) {
           .hw-header-wrap { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
           .hw-row {
-            padding: 0.75rem 0.85rem !important;
-            gap: 0.6rem !important;
-          }
-          .hw-icon-box {
-            width: 30px !important;
-            height: 30px !important;
-            font-size: 0.82rem !important;
-          }
-          .hw-title-text {
-            font-size: 0.85rem !important;
-          }
-          .hw-meta-text {
-            font-size: 0.68rem !important;
+            padding: 0.85rem 0.95rem !important;
+            gap: 0.75rem !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
           }
           .hw-row-actions {
-            gap: 4px !important;
+            width: 100% !important;
+            margin-top: 6px !important;
           }
           .hw-row-actions button {
-            padding: 0.42rem 0.75rem !important;
-            font-size: 0.75rem !important;
+            width: 100% !important;
+            justify-content: center !important;
+            height: 42px !important;
+            font-size: 0.84rem !important;
           }
         }
       `}</style>
@@ -582,8 +582,8 @@ export default function StudentHomeworksPage() {
             <button
               onClick={() => navigate('/student')}
               style={{
-                background: 'var(--color-surface-hover)',
-                border: '1.5px solid var(--color-border-input)',
+                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #cbd5e1',
                 borderRadius: '0.75rem',
                 padding: '0.5rem 0.95rem',
                 cursor: 'pointer',
@@ -592,7 +592,7 @@ export default function StudentHomeworksPage() {
                 gap: '0.45rem',
                 fontWeight: 800,
                 fontSize: '0.82rem',
-                color: 'var(--color-text)',
+                color: isDark ? '#ffffff' : '#1e293b',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s'
               }}
@@ -601,12 +601,33 @@ export default function StudentHomeworksPage() {
             </button>
 
             <button
+              onClick={() => navigate('/study-room')}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                border: 'none',
+                borderRadius: '0.75rem',
+                padding: '0.5rem 0.95rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 900,
+                fontSize: '0.82rem',
+                color: '#ffffff',
+                boxShadow: '0 3px 10px rgba(245,158,11,0.3)',
+                transition: 'all 0.15s'
+              }}
+            >
+              <Play size={13} fill="#ffffff" /> ⏱️ Çalışma Odası
+            </button>
+
+            <button
               onClick={handleManualRefresh}
               disabled={isRefreshingManual}
               title="Ödev listesini ve son durumları sunucudan anında yenile"
               style={{
-                background: isRefreshingManual ? 'rgba(59, 130, 246, 0.15)' : 'var(--color-surface-hover)',
-                border: isRefreshingManual ? '1.5px solid #3b82f6' : '1.5px solid var(--color-border-input)',
+                background: isRefreshingManual ? 'rgba(59, 130, 246, 0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-surface-hover)'),
+                border: isRefreshingManual ? '1.5px solid #3b82f6' : (isDark ? '1px solid rgba(255,255,255,0.12)' : '1.5px solid var(--color-border-input)'),
                 borderRadius: '0.75rem',
                 padding: '0.5rem 0.85rem',
                 cursor: isRefreshingManual ? 'wait' : 'pointer',
