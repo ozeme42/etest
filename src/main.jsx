@@ -21,10 +21,23 @@ window.addEventListener('vite:preloadError', (event) => {
   window.location.reload();
 });
 
-// Register Service Worker for PWA
+// Register Service Worker for PWA with auto-update
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('/sw.js').then((registration) => {
+      registration.update();
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('Yeni sürüm yüklendi, sayfa güncelleniyor...');
+              window.location.reload();
+            }
+          });
+        }
+      });
+    }).catch(err => {
       console.log('SW registration error:', err);
     });
   });
