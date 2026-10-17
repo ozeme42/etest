@@ -11,7 +11,8 @@ export default memo(function DashboardWeeklyCalendar({
   weekTasksCountMap = {},
   weekInfo = { dayDateMap: {} },
   onSelectDay,
-  onAddTask
+  onAddTask,
+  showProgramButton = true
 }) {
   const navigate = useNavigate();
 
@@ -137,26 +138,28 @@ export default memo(function DashboardWeeklyCalendar({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => navigate('/my-program')}
-            className="game-btn-3d game-btn-primary"
-            style={{
-              borderRadius: 12,
-              padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1.05rem',
-              fontSize: isMobile ? '0.74rem' : '0.8rem',
-              fontWeight: 900,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flex: isMobile ? '1 1 auto' : undefined,
-              gap: 5
-            }}
-          >
-            <CalendarDays size={15} />
-            <span>{isMobile ? 'Program' : 'Haftalık Tam Program'}</span>
-            <ChevronRight size={14} />
-          </button>
+          {showProgramButton && (
+            <button
+              type="button"
+              onClick={() => navigate('/my-program')}
+              className="game-btn-3d game-btn-primary"
+              style={{
+                borderRadius: 12,
+                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1.05rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                fontWeight: 900,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: isMobile ? '1 1 auto' : undefined,
+                gap: 5
+              }}
+            >
+              <CalendarDays size={15} />
+              <span>{isMobile ? 'Program' : 'Haftalık Tam Program'}</span>
+              <ChevronRight size={14} />
+            </button>
+          )}
         </div>
       </div>
 
