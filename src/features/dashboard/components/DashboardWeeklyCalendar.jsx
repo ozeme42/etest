@@ -81,7 +81,14 @@ export default memo(function DashboardWeeklyCalendar({
         </div>
 
         {/* Aksiyon Butonları */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? 6 : 8,
+          flexWrap: 'wrap',
+          width: isMobile ? '100%' : 'auto',
+          justifyContent: isMobile ? 'space-between' : 'flex-end'
+        }}>
           {activeDayKey !== todayDayKey && (
             <button
               type="button"
@@ -92,17 +99,19 @@ export default memo(function DashboardWeeklyCalendar({
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: 12,
-                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1rem',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.5rem 1rem',
                 fontSize: isMobile ? '0.74rem' : '0.8rem',
                 fontWeight: 900,
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
+                flex: isMobile ? '1 1 auto' : undefined,
                 gap: 5,
                 boxShadow: '0 3px 10px rgba(245, 158, 11, 0.35)'
               }}
             >
               <Zap size={14} fill="#ffffff" />
-              <span>Bugüne Dön</span>
+              <span>Bugün</span>
             </button>
           )}
 
@@ -113,11 +122,13 @@ export default memo(function DashboardWeeklyCalendar({
               className="game-btn-3d game-btn-emerald"
               style={{
                 borderRadius: 12,
-                padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 1rem',
+                padding: isMobile ? '0.45rem 0.65rem' : '0.5rem 1rem',
                 fontSize: isMobile ? '0.74rem' : '0.8rem',
                 fontWeight: 900,
                 display: 'inline-flex',
                 alignItems: 'center',
+                justifyContent: 'center',
+                flex: isMobile ? '1 1 auto' : undefined,
                 gap: 5
               }}
             >
@@ -137,6 +148,8 @@ export default memo(function DashboardWeeklyCalendar({
               fontWeight: 900,
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
+              flex: isMobile ? '1 1 auto' : undefined,
               gap: 5
             }}
           >
@@ -151,13 +164,14 @@ export default memo(function DashboardWeeklyCalendar({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: isMobile ? 6 : 10,
+          gridTemplateColumns: isMobile ? 'repeat(7, minmax(64px, 1fr))' : 'repeat(7, minmax(0, 1fr))',
+          gap: isMobile ? 8 : 10,
           width: '100%',
           boxSizing: 'border-box',
           overflowX: isMobile ? 'auto' : 'visible',
+          WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          paddingBottom: 4
+          paddingBottom: isMobile ? 6 : 4
         }}
       >
         {daysOfWeek.map(day => {
@@ -185,7 +199,7 @@ export default memo(function DashboardWeeklyCalendar({
                   ? '2px solid #f59e0b'
                   : '1.5px solid var(--color-border)',
                 borderRadius: isMobile ? 14 : 18,
-                padding: isMobile ? '0.65rem 0.25rem' : '0.95rem 0.6rem',
+                padding: isMobile ? '0.65rem 0.35rem' : '0.95rem 0.6rem',
                 color: isSelected ? '#ffffff' : isCurrentToday ? (isDark ? '#fcd34d' : '#b45309') : 'var(--color-text)',
                 cursor: 'pointer',
                 display: 'flex',
@@ -200,7 +214,7 @@ export default memo(function DashboardWeeklyCalendar({
                   : '0 2px 8px rgba(0, 0, 0, 0.03)',
                 transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 transform: isSelected ? 'translateY(-4px)' : 'translateY(0)',
-                minWidth: isMobile ? 54 : 0,
+                minWidth: isMobile ? 64 : 0,
                 width: '100%',
                 boxSizing: 'border-box',
                 position: 'relative',

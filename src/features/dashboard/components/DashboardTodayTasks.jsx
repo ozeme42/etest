@@ -320,43 +320,44 @@ export default memo(function DashboardTodayTasks({
         {/* ── Bento KPI İlerleme Şeridi ── */}
         {totalTasks > 0 && (
           <div style={{
-            padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.6rem',
+            padding: isMobile ? '0.75rem 0.65rem' : '1.1rem 1.6rem',
             background: isDark ? 'rgba(15, 23, 42, 0.65)' : '#f8fafc',
             borderBottom: '1.5px solid var(--color-border)',
-            display: 'flex',
+            display: isMobile ? 'grid' : 'flex',
+            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : undefined,
             alignItems: 'stretch',
-            gap: 12,
-            flexWrap: 'wrap'
+            gap: isMobile ? 8 : 12,
+            flexWrap: isMobile ? undefined : 'wrap'
           }}>
             {/* 1. Görev Durumu */}
-            <div className="today-metric-pill" style={{ flex: '1 1 180px' }}>
+            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 180px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
               <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
+                width: isMobile ? 32 : 38,
+                height: isMobile ? 32 : 38,
+                borderRadius: 10,
                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.15rem',
+                fontSize: isMobile ? '1rem' : '1.15rem',
                 flexShrink: 0
               }}>
                 🎯
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Görev İlerlemesi
+                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Görevler
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontSize: '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
-                    {completedTasks} / {totalTasks}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+                  <span style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                    {completedTasks}/{totalTasks}
                   </span>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
                     %{completionPct}
                   </span>
                 </div>
-                <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
+                <div style={{ height: 5, background: 'var(--color-border)', borderRadius: 99, marginTop: 3, overflow: 'hidden' }}>
                   <div style={{
                     width: `${completionPct}%`,
                     height: '100%',
@@ -370,64 +371,64 @@ export default memo(function DashboardTodayTasks({
 
             {/* 2. Soru Hedefi */}
             {totalQuestions > 0 && (
-              <div className="today-metric-pill" style={{ flex: '1 1 150px' }}>
+              <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 150px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
                 <div style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 12,
+                  width: isMobile ? 32 : 38,
+                  height: isMobile ? 32 : 38,
+                  borderRadius: 10,
                   background: 'linear-gradient(135deg, #0284c7, #06b6d4)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.15rem',
+                  fontSize: isMobile ? '1rem' : '1.15rem',
                   flexShrink: 0
                 }}>
                   📝
                 </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Hedef Soru
                   </div>
-                  <div style={{ fontSize: '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
-                    {completedQuestions} <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions} Soru</span>
+                  <div style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {completedQuestions} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions}</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* 3. XP Kazancı */}
-            <div className="today-metric-pill" style={{ flex: '1 1 140px' }}>
+            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 140px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
               <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
+                width: isMobile ? 32 : 38,
+                height: isMobile ? 32 : 38,
+                borderRadius: 10,
                 background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.15rem',
+                fontSize: isMobile ? '1rem' : '1.15rem',
                 flexShrink: 0
               }}>
                 ⚡
               </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   XP Kazancı
                 </div>
-                <div style={{ fontSize: '1.12rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif" }}>
-                  +{earnedXp} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp} XP</span>
+                <div style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  +{earnedXp} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp}</span>
                 </div>
               </div>
             </div>
 
             {/* 4. Durum */}
-            <div className="today-metric-pill" style={{ flex: '1 1 150px' }}>
+            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 150px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
               <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 12,
+                width: isMobile ? 32 : 38,
+                height: isMobile ? 32 : 38,
+                borderRadius: 10,
                 background: dayProgramInfo.hasAllCompleted
                   ? 'linear-gradient(135deg, #10b981, #059669)'
                   : 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
@@ -435,16 +436,16 @@ export default memo(function DashboardTodayTasks({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.15rem',
+                fontSize: isMobile ? '1rem' : '1.15rem',
                 flexShrink: 0
               }}>
                 {dayProgramInfo.hasAllCompleted ? '🏆' : '🔥'}
               </div>
-              <div>
-                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Durum
                 </div>
-                <div style={{ fontSize: '0.98rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                <div style={{ fontSize: isMobile ? '0.86rem' : '0.98rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {dayProgramInfo.hasAllCompleted ? 'Tümü Bitti 🎉' : `${remainingTasks} Hedef Kaldı`}
                 </div>
               </div>
@@ -836,7 +837,7 @@ export default memo(function DashboardTodayTasks({
                   </div>
 
                   {/* Sağ Aksiyon Butonu */}
-                  <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto', display: 'flex', justifyContent: isMobile ? 'flex-end' : 'center', marginTop: isMobile ? 4 : 0 }}>
+                  <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto', display: 'flex', justifyContent: isMobile ? 'stretch' : 'center', marginTop: isMobile ? 6 : 0 }}>
                     {task.done ? (
                       isReadingTask || !isQuizTask ? (
                         <span
@@ -848,7 +849,11 @@ export default memo(function DashboardTodayTasks({
                             border: '1.5px solid rgba(16, 185, 129, 0.4)',
                             padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
                             borderRadius: 14,
-                            whiteSpace: 'nowrap'
+                            whiteSpace: 'nowrap',
+                            width: isMobile ? '100%' : 'auto',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
                           }}
                         >
                           ✓ Tamamlandı
@@ -869,6 +874,8 @@ export default memo(function DashboardTodayTasks({
                             whiteSpace: 'nowrap',
                             display: 'inline-flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
+                            width: isMobile ? '100%' : 'auto',
                             gap: 6
                           }}
                         >
@@ -895,6 +902,8 @@ export default memo(function DashboardTodayTasks({
                               fontSize: '0.76rem',
                               display: 'inline-flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
+                              width: isMobile ? '100%' : 'auto',
                               gap: 6
                             }}
                             title={lockStatus.lockMessage}

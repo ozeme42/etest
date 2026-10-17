@@ -3486,19 +3486,19 @@ export default function StudentDashboard() {
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
-          padding: isMobile ? '0.95rem 0.85rem 0.75rem' : '1.45rem clamp(1rem, 2vw, 2.5rem) 1.15rem',
+          padding: isMobile ? '0.85rem 0.75rem 0.75rem' : '1.45rem clamp(1rem, 2vw, 2.5rem) 1.15rem',
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? '0.85rem' : '1.6rem',
+          gap: isMobile ? '0.75rem' : '1.6rem',
           position: 'relative',
           zIndex: 1,
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {/* SOL: Character Plate (Avatar + Lv Badge + Name + Game XP Bar) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.85rem' : '1.25rem', minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
             
             {/* Interactive Player Avatar Frame with EduQuest Frame Glow */}
             <div
@@ -3507,8 +3507,8 @@ export default function StudentDashboard() {
               style={{
                 position: 'relative',
                 flexShrink: 0,
-                width: isMobile ? 54 : 68,
-                height: isMobile ? 54 : 68,
+                width: isMobile ? 52 : 68,
+                height: isMobile ? 52 : 68,
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -3520,20 +3520,20 @@ export default function StudentDashboard() {
               }}
               title={`Rütbe: ${studentRank.title} (SV ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} • Rozetleri Aç`}
             >
-              <span style={{ fontSize: isMobile ? '1.5rem' : '1.9rem' }}>{studentRank.icon || '🛡️'}</span>
+              <span style={{ fontSize: isMobile ? '1.45rem' : '1.9rem' }}>{studentRank.icon || '🛡️'}</span>
 
               {/* EduQuest Level Badge at Bottom-Right */}
               <div
                 style={{
                   position: 'absolute',
-                  bottom: -4,
-                  right: -4,
+                  bottom: -3,
+                  right: -3,
                   zIndex: 5,
                   background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                   color: '#ffffff',
                   border: '2px solid #ffffff',
                   borderRadius: 99,
-                  padding: isMobile ? '1px 6px' : '2px 8px',
+                  padding: isMobile ? '1px 5px' : '2px 8px',
                   fontSize: isMobile ? '0.58rem' : '0.68rem',
                   fontWeight: 900,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
@@ -3554,11 +3554,11 @@ export default function StudentDashboard() {
                 justifyContent: 'space-between',
                 gap: 8,
                 marginBottom: 4,
-                flexWrap: 'wrap'
+                flexWrap: 'nowrap'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                   <h1 style={{
-                    fontSize: isMobile ? '1.15rem' : '1.45rem',
+                    fontSize: isMobile ? '1.1rem' : '1.45rem',
                     fontWeight: 900,
                     color: '#ffffff',
                     margin: 0,
@@ -3575,12 +3575,12 @@ export default function StudentDashboard() {
                     background: 'rgba(99, 102, 241, 0.25)',
                     border: '1px solid rgba(165, 180, 252, 0.4)',
                     color: '#c7d2fe',
-                    padding: '2px 8px',
+                    padding: '2px 7px',
                     borderRadius: 99,
-                    fontSize: isMobile ? '0.6rem' : '0.68rem',
+                    fontSize: isMobile ? '0.58rem' : '0.68rem',
                     fontWeight: 900,
                     whiteSpace: 'nowrap',
-                    display: isMobile ? 'none' : 'inline-block'
+                    display: 'inline-block'
                   }}>
                     🌟 {studentRank.title}
                   </span>
@@ -3589,7 +3589,7 @@ export default function StudentDashboard() {
                 <span
                   onClick={() => setIsGamificationModalOpen(true)}
                   style={{
-                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    fontSize: isMobile ? '0.66rem' : '0.74rem',
                     fontWeight: 900,
                     color: '#67e8f9',
                     cursor: 'pointer',
@@ -3597,7 +3597,7 @@ export default function StudentDashboard() {
                   }}
                   title="Rozet ve Seviye Ayrıntılarını Gör"
                 >
-                  {studentRank.inTierXp || 0} / {studentRank.tierSpan || 150} XP
+                  {studentRank.inTierXp || 0}/{studentRank.tierSpan || 150} XP
                 </span>
               </div>
 
@@ -3631,11 +3631,12 @@ export default function StudentDashboard() {
 
           {/* SAĞ: EduQuest Game Status Pills & Quick Actions */}
           <div style={{
-            display: 'flex',
+            display: isMobile ? 'grid' : 'flex',
+            gridTemplateColumns: isMobile ? 'repeat(4, minmax(0, 1fr))' : undefined,
             alignItems: 'center',
-            gap: isMobile ? 6 : 8,
-            flexWrap: 'wrap',
-            justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            gap: isMobile ? 5 : 8,
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: isMobile ? 'stretch' : 'flex-end',
             flexShrink: 0
           }}>
             {/* Günlük Seri (Streak) Pill */}
@@ -3643,21 +3644,22 @@ export default function StudentDashboard() {
               style={{
                 background: studentStreak > 0 ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255,255,255,0.08)',
                 border: studentStreak > 0 ? '1.5px solid rgba(249, 115, 22, 0.45)' : '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 16,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
                 fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
                 color: studentStreak > 0 ? '#fb923c' : 'rgba(255,255,255,0.85)',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                justifyContent: 'center',
+                gap: 4,
                 boxShadow: studentStreak > 0 ? '0 2px 10px rgba(249, 115, 22, 0.25)' : 'none',
                 whiteSpace: 'nowrap'
               }}
               title="14 Günlük Kesintisiz Çalışma Serisi!"
             >
-              <Flame size={isMobile ? 14 : 16} style={{ color: '#f97316' }} />
-              <span>{studentStreak > 0 ? `${studentStreak} Gün` : '0 Gün'}</span>
+              <Flame size={isMobile ? 13 : 16} style={{ color: '#f97316' }} />
+              <span>{studentStreak > 0 ? `${studentStreak}g` : '0g'}</span>
             </div>
 
             {/* Altın / XP Puanı Pill */}
@@ -3666,14 +3668,15 @@ export default function StudentDashboard() {
               style={{
                 background: 'rgba(245, 158, 11, 0.18)',
                 border: '1.5px solid rgba(245, 158, 11, 0.45)',
-                borderRadius: 16,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
                 fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
                 color: '#fbbf24',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                justifyContent: 'center',
+                gap: 4,
                 boxShadow: '0 2px 10px rgba(245, 158, 11, 0.25)',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer'
@@ -3691,21 +3694,22 @@ export default function StudentDashboard() {
               style={{
                 background: 'rgba(99, 102, 241, 0.18)',
                 border: '1.5px solid rgba(165, 180, 252, 0.45)',
-                borderRadius: 16,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
                 fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
                 color: '#a5b4fc',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                justifyContent: 'center',
+                gap: 4,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap'
               }}
               title="Sınav ve Ödev Başarı Raporunu Aç"
             >
               <span>⚡</span>
-              <span>%{overallSuccessRate} Başarı</span>
+              <span>%{overallSuccessRate}</span>
             </button>
 
             {/* Pomodoro Odaklanma / Çalışma Odası Button */}
@@ -3716,14 +3720,15 @@ export default function StudentDashboard() {
               style={{
                 background: 'linear-gradient(135deg, #f43f5e, #f59e0b)',
                 border: 'none',
-                borderRadius: 16,
-                padding: isMobile ? '0.4rem 0.75rem' : '0.5rem 1rem',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.5rem 1rem',
                 fontSize: isMobile ? '0.72rem' : '0.8rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                justifyContent: 'center',
+                gap: 4,
                 cursor: 'pointer',
                 boxShadow: '0 4px 0 #be123c, 0 6px 16px rgba(244, 63, 94, 0.4)',
                 whiteSpace: 'nowrap'
@@ -3771,16 +3776,16 @@ export default function StudentDashboard() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: isMobile ? '0.25rem' : '0.65rem',
+          gap: isMobile ? '0.3rem' : '0.65rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5 0%, #312e81 100%)', border: '#818cf8', glow: 'rgba(79,70,229,0.5)',   action: () => handleTabChange('tasks') },
-            { label: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
-            { label: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('remedial') },
-            { label: 'TAMAMLANDI', value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
-            { label: 'BAŞARI',     value: `%${overallSuccessRate}`,                              emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
+            { label: 'TOPLAM',     shortLabel: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5 0%, #312e81 100%)', border: '#818cf8', glow: 'rgba(79,70,229,0.5)',   action: () => handleTabChange('tasks') },
+            { label: 'BEKLEYEN',   shortLabel: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
+            { label: 'GECİKEN',    shortLabel: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('remedial') },
+            { label: 'TAMAMLANDI', shortLabel: 'BİTEN',      value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
+            { label: 'BAŞARI',     shortLabel: 'BAŞARI',     value: `%${overallSuccessRate}`,                              emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
           ].map((kpi) => (
             <div
               key={kpi.label}
@@ -3788,15 +3793,16 @@ export default function StudentDashboard() {
               className="game-resource-card"
               style={{
                 background: kpi.grad,
-                border: '2px solid rgba(255,255,255,0.35)',
+                border: '1.5px solid rgba(255,255,255,0.4)',
                 borderRadius: isMobile ? 14 : 18,
                 boxShadow: `0 8px 24px ${kpi.glow}, inset 0 2px 0 rgba(255,255,255,0.35)`,
-                minHeight: isMobile ? 60 : 76
+                padding: isMobile ? '0.55rem 0.15rem' : '0.65rem 0.35rem',
+                minHeight: isMobile ? 64 : 76
               }}
             >
-              <div style={{ fontSize: isMobile ? '0.85rem' : '1.2rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
+              <div style={{ fontSize: isMobile ? '0.95rem' : '1.2rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
               <div style={{
-                fontSize: isMobile ? '1.05rem' : '1.55rem',
+                fontSize: isMobile ? '1.12rem' : '1.55rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 lineHeight: 1.1,
@@ -3806,10 +3812,10 @@ export default function StudentDashboard() {
                 {kpi.value}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.46rem' : '0.64rem',
+                fontSize: isMobile ? '0.58rem' : '0.64rem',
                 fontWeight: 900,
                 color: '#ffffff',
-                letterSpacing: '0.05em',
+                letterSpacing: isMobile ? '0.01em' : '0.05em',
                 marginTop: 2,
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
@@ -3818,7 +3824,7 @@ export default function StudentDashboard() {
                 maxWidth: '100%',
                 textShadow: '0 1px 3px rgba(0,0,0,0.4)'
               }}>
-                {kpi.label}
+                {isMobile ? kpi.shortLabel : kpi.label}
               </div>
             </div>
           ))}

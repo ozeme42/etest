@@ -99,7 +99,8 @@ export default memo(function DashboardHomeworksCard({
                 className="game-quest-row"
                 style={{
                   borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flexWrap: isMobile ? 'wrap' : 'nowrap'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.65rem' : '0.85rem', flex: 1, minWidth: 0 }}>
@@ -170,8 +171,10 @@ export default memo(function DashboardHomeworksCard({
                   className="game-btn-3d game-btn-primary"
                   style={{
                     borderRadius: 12,
-                    padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
-                    fontSize: isMobile ? '0.78rem' : '0.84rem'
+                    padding: isMobile ? '0.55rem 0.95rem' : '0.55rem 1.15rem',
+                    fontSize: isMobile ? '0.8rem' : '0.84rem',
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: 'center'
                   }}
                 >
                   Görevi Çöz <ChevronRight size={14} />
