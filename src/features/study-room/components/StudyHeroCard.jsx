@@ -46,6 +46,7 @@ export default function StudyHeroCard({
   opticalAnswerCount,
   hasAnswerKey,
   isSelectedTaskOpenEnded,
+  selectedTaskIsReading = false,
   // New props for focused view & daily program integration
   todayPendingTasks = [],
   onSelectTodayTask,
@@ -62,6 +63,17 @@ export default function StudyHeroCard({
     isDark: true
   };
 
+  const availableModes = selectedTaskIsReading
+    ? [
+        { id: 'pomodoro', label: 'Pomodoro Okuma', icon: '⏳' },
+        { id: 'stopwatch', label: 'Serbest Okuma', icon: '⏱️' }
+      ]
+    : [
+        { id: 'question', label: 'Soru Çözümü', icon: '✏️' },
+        { id: 'pomodoro', label: 'Pomodoro', icon: '⏳' },
+        { id: 'stopwatch', label: 'Kronometre', icon: '⏱️' }
+      ];
+
   return (
     <div style={{
       background: safeTheme.cardBg,
@@ -71,7 +83,7 @@ export default function StudyHeroCard({
       display: 'flex',
       flexDirection: 'column',
       gap: isMobile ? '1.1rem' : '1.35rem',
-      boxShadow: themeObj.isDark
+      boxShadow: safeTheme.isDark
         ? '0 24px 48px -12px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.06)'
         : '0 20px 45px -12px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)',
       position: 'relative',
@@ -81,18 +93,14 @@ export default function StudyHeroCard({
       {/* 1. MOD SEÇİCİ SEGMENLER (HAP BUTONLAR) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateColumns: `repeat(${availableModes.length}, 1fr)`,
         gap: 6,
-        background: themeObj.innerBg,
+        background: safeTheme.innerBg,
         padding: 5,
         borderRadius: 18,
-        border: `1.5px solid ${themeObj.border}`
+        border: `1.5px solid ${safeTheme.border}`
       }}>
-        {[
-          { id: 'question', label: 'Soru Çözümü', icon: '✏️' },
-          { id: 'pomodoro', label: 'Pomodoro', icon: '⏳' },
-          { id: 'stopwatch', label: 'Kronometre', icon: '⏱️' }
-        ].map(m => {
+        {availableModes.map(m => {
           const isActive = activeStudyMode === m.id;
           return (
             <button
@@ -237,21 +245,37 @@ export default function StudyHeroCard({
                     }}>
                       {t.title || t.topic || 'Ders Görevi'}
                     </div>
-                    <div style={{
-                      fontSize: '0.68rem',
-                      color: themeObj.subText,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      marginTop: 2
-                    }}>
-                      <span style={{ color: '#4f46e5', fontWeight: 800 }}>{t.subject || 'Ders'}</span>
-                      <span>•</span>
-                      <span>{t.questionCount || 20} Soru</span>
-                      <span>•</span>
-                      <span style={{ color: '#10b981', fontWeight: 800 }}>+50 XP</span>
-                    </div>
+                    {(() => {
+                      const isTReading = t.isReadingTask ||
+                        t.taskType === 'okuma' ||
+                        t.subject === 'Kitap Okuma' ||
+                        String(t.title || '').toLowerCase().includes('kitap okuma') ||
+                        String(t.topic || '').toLowerCase().includes('kitap okuma') ||
+                        Boolean(t.readingBookId);
+                      return (
+                        <div style={{
+                          fontSize: '0.68rem',
+                          color: safeTheme.subText,
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          marginTop: 2
+                        }}>
+                          <span style={{ color: isTReading ? '#ec4899' : '#4f46e5', fontWeight: 800 }}>
+                            {isTReading ? 'Kitap Okuma' : (t.subject || 'Ders')}
+                          </span>
+                          <span>•</span>
+                          {isTReading ? (
+                            <span style={{ color: '#ec4899', fontWeight: 800 }}>📖 Okuma Görevi</span>
+                          ) : (
+                            <span>{t.questionCount || 20} Soru</span>
+                          )}
+                          <span>•</span>
+                          <span style={{ color: '#10b981', fontWeight: 800 }}>+50 XP</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <ChevronRight size={15} color="#6366f1" style={{ flexShrink: 0 }} />
                 </div>
@@ -304,16 +328,22 @@ export default function StudyHeroCard({
               </div>
               <div style={{
                 fontSize: '0.72rem',
-                color: themeObj.subText,
+                color: safeTheme.subText,
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 marginTop: 2
               }}>
-                <span style={{ color: '#4f46e5', fontWeight: 800 }}>{selectedSubject}</span>
+                <span style={{ color: selectedTaskIsReading ? '#ec4899' : '#4f46e5', fontWeight: 800 }}>
+                  {selectedTaskIsReading ? 'Kitap Okuma' : selectedSubject}
+                </span>
                 <span>•</span>
-                <span>{targetGoalCount} Soru</span>
+                {selectedTaskIsReading ? (
+                  <span style={{ color: '#ec4899', fontWeight: 800 }}>📖 Okuma Seansı</span>
+                ) : (
+                  <span>{targetGoalCount} Soru</span>
+                )}
                 {selectedTask.sourceLabel && <span>• {selectedTask.sourceLabel}</span>}
                 <span>•</span>
                 <span style={{ color: '#10b981', fontWeight: 800 }}>⚡ +50 XP</span>
@@ -497,8 +527,86 @@ export default function StudyHeroCard({
 
       {/* 4. MODA ÖZEL AKILLI DENETLEYİCİLER */}
 
-      {/* A. Soru Çözümü Modu: Soru Sayacı & Hedef */}
-      {activeStudyMode === 'question' && (
+      {/* A. Kitap Okuma Modu vs Soru Çözümü Modu */}
+      {selectedTaskIsReading ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%)',
+          padding: isMobile ? '0.85rem 1rem' : '1rem 1.35rem',
+          borderRadius: 20,
+          border: '1.5px solid rgba(16, 185, 129, 0.3)',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              background: '#10b981',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.4rem',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+            }}>
+              📖
+            </div>
+            <div>
+              <div style={{
+                fontSize: '0.92rem',
+                fontWeight: 900,
+                fontFamily: "'Outfit', sans-serif",
+                color: themeObj.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                Kitap Okuma Odak Seansı
+                <span style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  background: 'rgba(16, 185, 129, 0.2)',
+                  color: '#10b981',
+                  fontWeight: 800
+                }}>
+                  Soru Çözümü Yoktur
+                </span>
+              </div>
+              <div style={{ fontSize: '0.76rem', color: themeObj.subText, fontWeight: 600, marginTop: 2 }}>
+                Sayacını başlat ve kitabını odaklanarak oku. Bitirdiğinde görevi tamamla!
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={handleConfirmFinish}
+            style={{
+              padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.25rem',
+              borderRadius: 14,
+              border: 'none',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+            }}
+            className="hover:scale-105 active:scale-95"
+          >
+            <Check size={16} />
+            <span>Okumayı Tamamla ✓</span>
+          </button>
+        </div>
+      ) : activeStudyMode === 'question' ? (
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
@@ -642,7 +750,7 @@ export default function StudyHeroCard({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* B. Pomodoro Modu: Faz Seçimi & Ağaç Büyüme */}
       {activeStudyMode === 'pomodoro' && (
@@ -796,7 +904,7 @@ export default function StudyHeroCard({
       </div>
 
       {/* 6. HIZLI OPTİK FORM BUTONU (SEÇİLİ TEST VARSA GÖZÜKÜR) */}
-      {selectedTask && (
+      {selectedTask && !selectedTaskIsReading && (
         <button
           onClick={() => setActiveToolTab('optical')}
           style={{

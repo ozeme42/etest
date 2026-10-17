@@ -130,11 +130,18 @@ export default memo(function DashboardTodayTasks({
   const remainingTasks = totalTasks - completedTasks;
   const completionPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Soru ve XP hesaplamaları
+  // Soru ve XP hesaplamaları (Kitap okuma görevleri soru çözüm DEĞİLDİR)
   const { totalQuestions, completedQuestions } = useMemo(() => {
     let tot = 0;
     let comp = 0;
     items.forEach(t => {
+      const isReading = t.taskType === 'okuma' ||
+        t.subject === 'Kitap Okuma' ||
+        String(t.topic || '').toLowerCase().includes('kitap okuma') ||
+        String(t.title || '').toLowerCase().includes('kitap okuma') ||
+        String(t.taskType || '').toLowerCase().includes('okuma') ||
+        Boolean(t.readingBookId);
+      if (isReading) return; // Kitap okuma görevinde soru bulunmaz!
       const q = Number(t.questionCount || t.targetQuestionCount || 0);
       const val = isNaN(q) ? 0 : q;
       tot += val;
@@ -568,11 +575,11 @@ export default memo(function DashboardTodayTasks({
                 } else if (task.unitTopic) {
                   displayTitle = `${task.unitTopic} Testi`;
                 } else if (task.isBookTask) {
-                  displayTitle = task.testName || task.title || (rawBook ? `${rawBook} Testi` : 'Kitap Testi');
+                  displayTitle = isReadingTask ? (task.title || 'Kitap Okuma') : (task.testName || task.title || (rawBook ? `${rawBook} Testi` : 'Kitap Testi'));
                 } else if (task.subject) {
-                  displayTitle = `${task.subject} Testi`;
+                  displayTitle = isReadingTask ? (task.title || 'Kitap Okuma') : `${task.subject} Testi`;
                 } else {
-                  displayTitle = 'Konu Testi';
+                  displayTitle = isReadingTask ? 'Kitap Okuma' : 'Konu Testi';
                 }
               }
 
@@ -754,7 +761,7 @@ export default memo(function DashboardTodayTasks({
                           </span>
                         )}
 
-                        {task.questionCount && (
+                        {task.questionCount && !isReadingTask && (
                           <span style={{
                             fontSize: '0.66rem',
                             fontWeight: 800,
@@ -765,6 +772,20 @@ export default memo(function DashboardTodayTasks({
                             border: '1px solid var(--color-border)'
                           }}>
                             📝 {task.questionCount} Soru
+                          </span>
+                        )}
+
+                        {isReadingTask && (
+                          <span style={{
+                            fontSize: '0.66rem',
+                            fontWeight: 800,
+                            color: '#ec4899',
+                            background: 'rgba(236, 72, 153, 0.1)',
+                            padding: '2px 7px',
+                            borderRadius: 6,
+                            border: '1px solid rgba(236, 72, 153, 0.3)'
+                          }}>
+                            📖 Okuma Görevi
                           </span>
                         )}
                       </div>
@@ -925,10 +946,19 @@ export default memo(function DashboardTodayTasks({
                           fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 900,
                           width: isMobile ? '100%' : 'auto',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6
                         }}
                       >
-                        Tamamla ✓
+                        {isReadingTask ? (
+                          <>
+                            <BookOpen size={16} /> Okudum ✓
+                          </>
+                        ) : (
+                          'Tamamla ✓'
+                        )}
                       </button>
                     )}
                   </div>
@@ -1090,7 +1120,7 @@ export default memo(function DashboardTodayTasks({
                   Tebrikler! Bugünün Tüm Görevlerini Bitirdin!
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>
-                  +{earnedXp} XP kazandın • {completedQuestions} Soru tamamlandı. Harika bir gün!
+                  +{earnedXp} XP kazandın • {completedQuestions > 0 ? `${completedQuestions} Soru tamamlandı.` : `${completedTasks} Görev tamamlandı.`} Harika bir gün!
                 </div>
               </div>
             </div>

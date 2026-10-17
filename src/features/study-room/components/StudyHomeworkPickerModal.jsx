@@ -334,6 +334,11 @@ export default function StudyHomeworkPickerModal({
 }
 
 function TaskListItem({ task, themeObj, onSelectTask }) {
+  const isReading = task.isReadingTask ||
+    task.taskType === 'okuma' ||
+    task.subject === 'Kitap Okuma' ||
+    (task.title && task.title.toLowerCase().includes('kitap okuma'));
+
   return (
     <div
       onClick={() => onSelectTask(task)}
@@ -352,7 +357,7 @@ function TaskListItem({ task, themeObj, onSelectTask }) {
       <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {task.title || task.name || 'Test'}
+            {task.title || task.name || (isReading ? 'Kitap Okuma' : 'Test')}
           </span>
           {task.isCompleted && (
             <span style={{
@@ -369,7 +374,7 @@ function TaskListItem({ task, themeObj, onSelectTask }) {
         </div>
 
         <div style={{ fontSize: '0.7rem', color: themeObj.subText, fontWeight: 600, marginTop: 2 }}>
-          {task.subject} · {task.questionCount || 12} Soru
+          {task.subject} · {isReading ? '📖 Okuma Görevi' : `${task.questionCount || 12} Soru`}
           {task.bookTitle && ` · ${task.bookTitle}`}
           {task.sourceLabel && ` · ${task.sourceLabel}`}
         </div>

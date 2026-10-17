@@ -349,10 +349,17 @@ export default function StudyRoomPage() {
           }
         }
 
+        const isReading = item.taskType === 'okuma' ||
+          item.subject === 'Kitap Okuma' ||
+          String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+          String(item.title || '').toLowerCase().includes('kitap okuma') ||
+          String(item.taskType || '').toLowerCase().includes('okuma') ||
+          Boolean(item.readingBookId);
+
         const dedupeKey = `prog_${dayKey}_${item.id || idx}_${item.text || item.topic}`;
         if (!seenTaskKeys.has(dedupeKey)) {
           seenTaskKeys.add(dedupeKey);
-          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const qCount = isReading ? 0 : (Number(item.targetQuestions || item.questionCount) || 20);
           const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
 
           taskList.push({
@@ -366,8 +373,9 @@ export default function StudyRoomPage() {
             unit: item.unit || '',
             topic: item.topic || item.text || '',
             questionCount: qCount,
-            sourceType: matchedBookTest ? 'bookTest' : 'program',
-            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            isReadingTask: isReading,
+            sourceType: isReading ? 'okuma' : (matchedBookTest ? 'bookTest' : 'program'),
+            sourceLabel: isReading ? '📖 Kitap Okuma' : (matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı'),
             bookTestId: matchedBookTest?.id || item.bookTestId,
             realTestId: matchedBookTest?.id || item.realTestId || item.testId,
             bookTitle: matchedBook?.title,
@@ -406,10 +414,17 @@ export default function StudyRoomPage() {
       const progItems = dayProgObj?.items || [];
 
       progItems.forEach((item, idx) => {
+        const isReading = item.taskType === 'okuma' ||
+          item.subject === 'Kitap Okuma' ||
+          String(item.topic || '').toLowerCase().includes('kitap okuma') ||
+          String(item.title || '').toLowerCase().includes('kitap okuma') ||
+          String(item.taskType || '').toLowerCase().includes('okuma') ||
+          Boolean(item.readingBookId);
+
         const dedupeKey = `prog_${dayCfg.key}_${item.id || idx}_${item.text || item.topic}`;
         if (!seenDayTaskKeys.has(dedupeKey)) {
           seenDayTaskKeys.add(dedupeKey);
-          const qCount = Number(item.targetQuestions || item.questionCount) || 20;
+          const qCount = isReading ? 0 : (Number(item.targetQuestions || item.questionCount) || 20);
           const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
           const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
           const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
@@ -425,8 +440,9 @@ export default function StudyRoomPage() {
             unit: item.unit || matchedBookTest?.unit || '',
             topic: item.topic || item.text || matchedBookTest?.topic || '',
             questionCount: qCount,
-            sourceType: matchedBookTest ? 'bookTest' : 'program',
-            sourceLabel: matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı',
+            isReadingTask: isReading,
+            sourceType: isReading ? 'okuma' : (matchedBookTest ? 'bookTest' : 'program'),
+            sourceLabel: isReading ? '📖 Kitap Okuma' : (matchedBookTest ? '📚 Kitap Testi' : '📅 Ders Programı'),
             bookTestId: matchedBookTest?.id || item.bookTestId,
             realTestId: matchedBookTest?.id || item.realTestId || item.testId,
             bookTitle: matchedBook?.title,
@@ -966,6 +982,29 @@ export default function StudyRoomPage() {
     if (!task) return;
     setSelectedTask(task);
     setShowHomeworkPickerModal(false);
+
+    const isReading = task.isReadingTask ||
+      task.taskType === 'okuma' ||
+      task.subject === 'Kitap Okuma' ||
+      String(task.topic || '').toLowerCase().includes('kitap okuma') ||
+      String(task.title || '').toLowerCase().includes('kitap okuma') ||
+      String(task.taskType || '').toLowerCase().includes('okuma') ||
+      Boolean(task.readingBookId);
+
+    if (isReading) {
+      // Kitap okuma görevi soru çözüm DEĞİLDİR: Odaklı okuma seansıdır
+      if (activeStudyMode === 'question') {
+        setActiveStudyMode('pomodoro');
+        localStorage.setItem('study_master_mode', 'pomodoro');
+      }
+      setActiveToolTab('ambient');
+      setTargetGoalCount(0);
+      localStorage.setItem('study_target_goal', '0');
+      setSelectedSubject('Türkçe');
+      setOpticalAnswers({});
+      return;
+    }
+
     setActiveToolTab('optical');
 
     const matchedSubj = matchSubjectFromTask(task);
@@ -1189,6 +1228,19 @@ export default function StudyRoomPage() {
 
   const handleToggleTimer = () => setIsRunning(r => !r);
 
+  const selectedTaskIsReading = useMemo(() => {
+    if (!selectedTask) return false;
+    return Boolean(
+      selectedTask.isReadingTask ||
+      selectedTask.taskType === 'okuma' ||
+      selectedTask.subject === 'Kitap Okuma' ||
+      String(selectedTask.topic || '').toLowerCase().includes('kitap okuma') ||
+      String(selectedTask.title || '').toLowerCase().includes('kitap okuma') ||
+      String(selectedTask.taskType || '').toLowerCase().includes('okuma') ||
+      selectedTask.readingBookId
+    );
+  }, [selectedTask]);
+
   const [isZenFocusMode, setIsZenFocusMode] = useState(false);
 
   // Bugünkü Programdaki Bekleyen Görevler
@@ -1231,16 +1283,16 @@ export default function StudyRoomPage() {
                 width: 40,
                 height: 40,
                 borderRadius: 14,
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                background: selectedTaskIsReading ? 'linear-gradient(135deg, #ec4899, #be185d)' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                boxShadow: '0 0 18px rgba(99, 102, 241, 0.65)',
+                boxShadow: selectedTaskIsReading ? '0 0 18px rgba(236, 72, 153, 0.65)' : '0 0 18px rgba(99, 102, 241, 0.65)',
                 fontSize: '1.2rem',
                 flexShrink: 0
               }}>
-                🎯
+                {selectedTaskIsReading ? '📖' : '🎯'}
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{
@@ -1252,7 +1304,7 @@ export default function StudyRoomPage() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'
                 }}>
-                  {selectedTask ? (selectedTask.title || selectedTask.name) : `${selectedSubject} Odak Seansı`}
+                  {selectedTask ? (selectedTask.title || selectedTask.name) : (selectedTaskIsReading ? 'Kitap Okuma Odak Seansı' : `${selectedSubject} Odak Seansı`)}
                 </div>
                 <div style={{
                   fontSize: '0.72rem',
@@ -1263,9 +1315,15 @@ export default function StudyRoomPage() {
                   gap: 6,
                   marginTop: 2
                 }}>
-                  <span style={{ color: '#a5b4fc', fontWeight: 800 }}>{selectedSubject}</span>
+                  <span style={{ color: selectedTaskIsReading ? '#f472b6' : '#a5b4fc', fontWeight: 800 }}>
+                    {selectedTaskIsReading ? 'Kitap Okuma' : selectedSubject}
+                  </span>
                   <span>•</span>
-                  <span>{currentProgressCount} / {targetGoalCount} Soru Çözüldü</span>
+                  {selectedTaskIsReading ? (
+                    <span style={{ color: '#e0e7ff', fontWeight: 800 }}>📖 Odaklı Okuma Seansı</span>
+                  ) : (
+                    <span>{currentProgressCount} / {targetGoalCount} Soru Çözüldü</span>
+                  )}
                   <span>•</span>
                   <span style={{ color: '#38bdf8', fontWeight: 800 }}>⚡ +50 XP</span>
                 </div>
@@ -1435,7 +1493,7 @@ export default function StudyRoomPage() {
                   {displayTimerText}
                 </div>
 
-                {/* Soru Durumu */}
+                {/* Soru / Okuma Durumu */}
                 <div style={{
                   marginTop: 10,
                   fontSize: '0.85rem',
@@ -1443,7 +1501,7 @@ export default function StudyRoomPage() {
                   fontFamily: "'Outfit', sans-serif",
                   color: '#c7d2fe'
                 }}>
-                  🎯 {currentProgressCount} / {targetGoalCount} Soru Tamamlandı
+                  {selectedTaskIsReading ? '📖 Kitap Okuma Odak Seansı' : `🎯 ${currentProgressCount} / ${targetGoalCount} Soru Tamamlandı`}
                 </div>
               </div>
             </div>
@@ -1473,34 +1531,36 @@ export default function StudyRoomPage() {
               justifyContent: 'center',
               zIndex: 2
             }}>
-              {/* +1 Soru Çözüldü Butonu */}
-              <button
-                onClick={() => {
-                  handleIncrementProgress();
-                  confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
-                }}
-                style={{
-                  height: isMobile ? 52 : 58,
-                  padding: isMobile ? '0 1.35rem' : '0 1.85rem',
-                  borderRadius: 18,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.95rem' : '1.05rem',
-                  fontFamily: "'Outfit', sans-serif",
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                className="hover:scale-105 active:scale-95"
-              >
-                <span>➕</span>
-                <span>+1 Soru Çözüldü</span>
-              </button>
+              {/* +1 Soru Çözüldü Butonu (Kitap okuma görevinde gösterilmez) */}
+              {!selectedTaskIsReading && (
+                <button
+                  onClick={() => {
+                    handleIncrementProgress();
+                    confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+                  }}
+                  style={{
+                    height: isMobile ? 52 : 58,
+                    padding: isMobile ? '0 1.35rem' : '0 1.85rem',
+                    borderRadius: 18,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: isMobile ? '0.95rem' : '1.05rem',
+                    fontFamily: "'Outfit', sans-serif",
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                  className="hover:scale-105 active:scale-95"
+                >
+                  <span>➕</span>
+                  <span>+1 Soru Çözüldü</span>
+                </button>
+              )}
 
               {/* Başlat / Duraklat */}
               <button
@@ -1719,6 +1779,7 @@ export default function StudyRoomPage() {
           opticalAnswerCount={Object.keys(opticalAnswers).length}
           hasAnswerKey={Boolean(resolvedAnswerKey)}
           isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
+          selectedTaskIsReading={selectedTaskIsReading}
           todayPendingTasks={todayPendingTasks}
           onSelectTodayTask={handleSelectTask}
           onToggleZenMode={() => setIsZenFocusMode(z => !z)}
@@ -1727,14 +1788,14 @@ export default function StudyRoomPage() {
         {/* ─── 3. AKILLI YARDIMCI ARAÇLAR SEKMESİ (BENTO TAB BAR) ─── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: selectedTask ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
+          gridTemplateColumns: (selectedTask && !selectedTaskIsReading) ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
           gap: 7,
           background: themeObj.innerBg,
           padding: 5,
           borderRadius: 20,
           border: `1.5px solid ${themeObj.border}`
         }}>
-          {selectedTask && (
+          {selectedTask && !selectedTaskIsReading && (
             <button
               onClick={() => setActiveToolTab('optical')}
               style={{
@@ -1839,7 +1900,7 @@ export default function StudyRoomPage() {
 
         {/* ─── 4. AKTİF SEKME PANELİ ─── */}
         <div>
-          {activeToolTab === 'optical' && selectedTask && (
+          {activeToolTab === 'optical' && selectedTask && !selectedTaskIsReading && (
             <StudyOpticalPanel
               themeObj={themeObj}
               isMobile={isMobile}
