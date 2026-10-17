@@ -7,6 +7,7 @@ import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useUser } from '../context/UserContext';
 import { useTheme } from '../context/ThemeContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { isHomeworkForStudent, normalizeId, isSubmissionMatchingBookTest } from '../utils/testResolver';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../utils/answerEvaluation';
 import { toUUID } from '../services/supabaseService';
@@ -64,6 +65,7 @@ export default function StudentHomeworksPage() {
   const { users } = useUser();
   const { theme } = useTheme() || {};
   const isDark = theme === 'dark';
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [isRefreshingManual, setIsRefreshingManual] = useState(false);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'completed' | 'all'
@@ -538,7 +540,7 @@ export default function StudentHomeworksPage() {
           : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(239, 68, 68, 0.05) 0%, transparent 45%), var(--color-bg)',
         color: 'var(--color-text)',
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        padding: '1.25rem 1rem 5rem',
+        padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1rem 5rem',
         boxSizing: 'border-box'
       }}>
       <style>{`
@@ -695,8 +697,8 @@ export default function StudentHomeworksPage() {
         {/* ─── 4 SUMMARY METRIC CARDS ─── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '0.85rem',
+          gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: isMobile ? '0.5rem' : '0.85rem',
           marginBottom: '1.25rem'
         }}>
           {/* Card 1: Toplam Görev */}
@@ -704,20 +706,20 @@ export default function StudentHomeworksPage() {
             background: 'var(--color-surface)',
             border: '1.5px solid var(--color-border)',
             borderRadius: '1.15rem',
-            padding: '0.9rem 1.15rem',
+            padding: isMobile ? '0.65rem 0.75rem' : '0.9rem 1.15rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.85rem',
+            gap: isMobile ? '0.55rem' : '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: isMobile ? 36 : 44, height: isMobile ? 36 : 44, borderRadius: '0.85rem', background: 'rgba(37,99,235,0.12)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1rem' : '1.2rem', flexShrink: 0 }}>
               📚
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Görev</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>{allTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>({homeworkGroups.length} Set)</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Toplam Görev</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>{allTests.length}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>({homeworkGroups.length} Set)</span>
               </div>
             </div>
           </div>
@@ -727,20 +729,20 @@ export default function StudentHomeworksPage() {
             background: 'var(--color-surface)',
             border: pendingTests.length > 0 ? '1.5px solid rgba(244,63,94,0.35)' : '1.5px solid var(--color-border)',
             borderRadius: '1.15rem',
-            padding: '0.9rem 1.15rem',
+            padding: isMobile ? '0.65rem 0.75rem' : '0.9rem 1.15rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.85rem',
+            gap: isMobile ? '0.55rem' : '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: isMobile ? 36 : 44, height: isMobile ? 36 : 44, borderRadius: '0.85rem', background: 'rgba(239,68,68,0.12)', color: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1rem' : '1.2rem', flexShrink: 0 }}>
               ⏳
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Bekleyen Ödev</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f87171' }}>{pendingTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>Çözüm bekliyor</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Bekleyen</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#f87171' }}>{pendingTests.length}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>ödev</span>
               </div>
             </div>
           </div>
@@ -750,20 +752,20 @@ export default function StudentHomeworksPage() {
             background: 'var(--color-surface)',
             border: '1.5px solid rgba(16,185,129,0.3)',
             borderRadius: '1.15rem',
-            padding: '0.9rem 1.15rem',
+            padding: isMobile ? '0.65rem 0.75rem' : '0.9rem 1.15rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.85rem',
+            gap: isMobile ? '0.55rem' : '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: isMobile ? 36 : 44, height: isMobile ? 36 : 44, borderRadius: '0.85rem', background: 'rgba(16,185,129,0.12)', color: '#34d399', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1rem' : '1.2rem', flexShrink: 0 }}>
               ✅
             </div>
             <div>
-              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Tamamlanan</span>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#34d399' }}>{completedTests.length}</span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34d399' }}>Bitti 🎉</span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block' }}>Tamamlanan</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <span style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: '#34d399' }}>{completedTests.length}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#34d399' }}>Bitti 🎉</span>
               </div>
             </div>
           </div>
@@ -773,21 +775,21 @@ export default function StudentHomeworksPage() {
             background: 'var(--color-surface)',
             border: '1.5px solid rgba(139,92,246,0.3)',
             borderRadius: '1.15rem',
-            padding: '0.9rem 1.15rem',
+            padding: isMobile ? '0.65rem 0.75rem' : '0.9rem 1.15rem',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.85rem',
+            gap: isMobile ? '0.55rem' : '0.85rem',
             boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ width: 44, height: 44, borderRadius: '0.85rem', background: 'rgba(124,58,237,0.12)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
+            <div style={{ width: isMobile ? 36 : 44, height: isMobile ? 36 : 44, borderRadius: '0.85rem', background: 'rgba(124,58,237,0.12)', color: '#c084fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '1rem' : '1.2rem', flexShrink: 0 }}>
               🎯
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.68rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İlerleme</span>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.04em' }}>İlerleme</span>
                 <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#c084fc' }}>%{totalPct}</span>
               </div>
-              <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
+              <div style={{ height: 5, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${totalPct}%`, background: 'linear-gradient(90deg, #4f46e5, #7c3aed)', borderRadius: 99, transition: 'width 0.6s ease' }} />
               </div>
             </div>

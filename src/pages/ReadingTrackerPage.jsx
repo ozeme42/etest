@@ -341,7 +341,7 @@ export default function ReadingTrackerPage() {
         : 'radial-gradient(ellipse at 15% 15%, rgba(236, 72, 153, 0.06) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 45%), var(--color-bg)',
       color: isDark ? '#f8fafc' : '#0f172a',
       fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      padding: isMobile ? '0.75rem 0.65rem 6rem' : '1.25rem 1.25rem 4rem',
+      padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1.25rem 4rem',
       boxSizing: 'border-box'
     }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>

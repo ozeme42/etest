@@ -8,6 +8,7 @@ import { useCoaching } from '../context/CoachingContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { useTheme } from '../context/ThemeContext';
 import { isHomeworkForStudent, isExamBook } from '../utils/testResolver';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   BookOpen, ArrowRight, Star, Plus, X, ClipboardList, TrendingUp,
   Pencil, Trash2, LayoutGrid, List, Trophy, Target, Activity,
@@ -59,36 +60,36 @@ function Ring({ pct, size = 52, stroke = 5, color, isDark = false }) {
 }
 
 /* ── Stat card ─── */
-function KPI({ icon, label, value, iconBg = 'var(--color-surface-hover)', iconColor = '#6366f1', sub }) {
+function KPI({ icon, label, value, iconBg = 'var(--color-surface-hover)', iconColor = '#6366f1', sub, isMobile = false }) {
   return (
     <div style={{
       background: 'var(--color-surface)',
-      borderRadius: 18,
-      padding: '1.1rem 1.25rem',
+      borderRadius: isMobile ? 14 : 18,
+      padding: isMobile ? '0.75rem 0.85rem' : '1.1rem 1.25rem',
       border: '1.5px solid var(--color-border)',
       boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)',
       display: 'flex',
       alignItems: 'center',
-      gap: 14,
+      gap: isMobile ? 8 : 14,
       position: 'relative',
       overflow: 'hidden'
     }}>
       <div style={{
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+        width: isMobile ? 36 : 44,
+        height: isMobile ? 36 : 44,
+        borderRadius: isMobile ? 10 : 12,
         background: iconBg,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0
       }}>
-        {React.cloneElement(icon, { size: 22, color: iconColor })}
+        {React.cloneElement(icon, { size: isMobile ? 18 : 22, color: iconColor })}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{value}</div>
-        <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 3 }}>{label}</div>
-        {sub && <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 2 }}>{sub}</div>}
+        <div style={{ fontSize: isMobile ? '1.15rem' : '1.45rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: isMobile ? '0.66rem' : '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        {sub && <div style={{ fontSize: isMobile ? '0.62rem' : '0.66rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
       </div>
     </div>
   );
@@ -113,6 +114,7 @@ function ChartTip({ active, payload, label }) {
 }
 
 export default function StudentExamsPage() {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { currentUser } = useAuth();
@@ -1021,7 +1023,7 @@ export default function StudentExamsPage() {
         backgroundImage: isDark
           ? 'radial-gradient(ellipse at 15% 15%, rgba(139, 92, 246, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.10) 0%, transparent 45%), var(--color-bg)'
           : 'radial-gradient(ellipse at 15% 15%, rgba(139, 92, 246, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(99, 102, 241, 0.05) 0%, transparent 45%), var(--color-bg)',
-        padding: '1.25rem 1.25rem 60px',
+        padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1.25rem 60px',
         fontFamily: "'Inter', system-ui, sans-serif",
         color: 'var(--color-text)',
         boxSizing: 'border-box'
@@ -1145,13 +1147,18 @@ export default function StudentExamsPage() {
 
         {/* ── STAT CARDS ── */}
         {!isEmpty && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
-            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg={isDark ? "rgba(37,99,235,0.18)" : "#eff6ff"} iconColor="#3b82f6" sub={`${overallStats.completedCount} çözüldü · ${overallStats.total - overallStats.completedCount} bekliyor`} />
-            <KPI icon={<Target />} label="Genel Başarı" value={`%${overallStats.successRate}`} iconBg={isDark ? "rgba(16,185,129,0.18)" : "#ecfdf5"} iconColor="#10b981" sub={`${overallStats.totalD} doğru soru`} />
-            <KPI icon={<Activity />} label="Ortalama Net" value={overallStats.avgNet} iconBg={isDark ? "rgba(139,92,246,0.18)" : "#faf5ff"} iconColor="#8b5cf6" sub="deneme başı net" />
-            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg={isDark ? "rgba(245,158,11,0.18)" : "#fffbeb"} iconColor="#f59e0b" sub="zirve performans" />
-            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg={isDark ? "rgba(5,150,105,0.18)" : "#f0fdf4"} iconColor="#059669" sub="kazanılan soru" />
-            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg={isDark ? "rgba(225,29,72,0.18)" : "#fff1f2"} iconColor="#e11d48" sub="kaybedilen soru" />
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: isMobile ? 8 : 12,
+            marginBottom: 20
+          }}>
+            <KPI icon={<FileBarChart2 />} label="Toplam Deneme" value={overallStats.total} iconBg={isDark ? "rgba(37,99,235,0.18)" : "#eff6ff"} iconColor="#3b82f6" sub={`${overallStats.completedCount} çözüldü · ${overallStats.total - overallStats.completedCount} bekliyor`} isMobile={isMobile} />
+            <KPI icon={<Target />} label="Genel Başarı" value={`%${overallStats.successRate}`} iconBg={isDark ? "rgba(16,185,129,0.18)" : "#ecfdf5"} iconColor="#10b981" sub={`${overallStats.totalD} doğru soru`} isMobile={isMobile} />
+            <KPI icon={<Activity />} label="Ortalama Net" value={overallStats.avgNet} iconBg={isDark ? "rgba(139,92,246,0.18)" : "#faf5ff"} iconColor="#8b5cf6" sub="deneme başı net" isMobile={isMobile} />
+            <KPI icon={<Trophy />} label="En Yüksek Net" value={overallStats.maxNet} iconBg={isDark ? "rgba(245,158,11,0.18)" : "#fffbeb"} iconColor="#f59e0b" sub="zirve performans" isMobile={isMobile} />
+            <KPI icon={<CheckCircle2 />} label="Toplam Doğru" value={overallStats.totalD} iconBg={isDark ? "rgba(5,150,105,0.18)" : "#f0fdf4"} iconColor="#059669" sub="kazanılan soru" isMobile={isMobile} />
+            <KPI icon={<AlertCircle />} label="Toplam Yanlış" value={overallStats.totalY} iconBg={isDark ? "rgba(225,29,72,0.18)" : "#fff1f2"} iconColor="#e11d48" sub="kaybedilen soru" isMobile={isMobile} />
           </div>
         )}
 
@@ -1202,7 +1209,7 @@ export default function StudentExamsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
               {overallStats.subjects.map(s => {
                 const totalQ = s.totalQ || (s.d + s.y + s.b);
                 const sRate = totalQ > 0 ? Math.round((s.d / totalQ) * 100) : 0;
@@ -1456,7 +1463,7 @@ export default function StudentExamsPage() {
             {showChart && (
               <div style={{ padding: '1.25rem 1.4rem' }}>
                 {/* Interactive Mini Exam / Subject Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginBottom: '1.25rem' }}>
                   {activeExamChartData.map((item, idx) => {
                     const rateColor = item.rate >= 70 ? '#10b981' : item.rate >= 50 ? '#f59e0b' : item.totalQ === 0 ? '#94a3b8' : '#ef4444';
                     const rateBg = isDark
@@ -1932,7 +1939,7 @@ export default function StudentExamsPage() {
 
         {/* ── CARDS VIEW ── */}
         {!isEmpty && activeMainTab === 'exams' && viewMode === 'cards' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {displayedExams.map((exam, idx) => {
               const p = pal(idx);
               const isMock = exam.type === 'mock';

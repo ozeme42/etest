@@ -1452,7 +1452,7 @@ html.ssp-in-fullscreen .main-content {
 
 @media (max-width: 768px) {
   .ssp-catalog {
-    padding: 1rem 0.85rem 6rem;
+    padding: 0.85rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px));
     gap: 0.9rem;
   }
   .ssp-hero {

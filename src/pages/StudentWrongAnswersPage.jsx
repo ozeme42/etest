@@ -1963,7 +1963,7 @@ export default function StudentWrongAnswersPage() {
   };
 
   return (
-    <div style={{
+    <div className="wa-root-container" style={{
       minHeight: '100vh',
       background: 'var(--color-bg)',
       backgroundImage: isDark
@@ -1976,6 +1976,11 @@ export default function StudentWrongAnswersPage() {
     }}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 768px) {
+          .wa-root-container {
+            padding: 0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+          }
+        }
         .wa-section-card {
           background: var(--color-surface);
           border: 1.5px solid var(--color-border);

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
 import { useTheme } from '../context/ThemeContext';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink, Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronRight, BookOpen, Layers, Play } from 'lucide-react';
 import { isPast, parseISO } from 'date-fns';
 import ManualTestModal from '../components/ManualTestModal';
@@ -10,6 +11,7 @@ import { getSubjectTheme } from './StudyPlanDetail';
 import './StudyPlan.css';
 
 export default function StudentStudyPlanView() {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const { assignmentId: paramAssignmentId } = useParams();
   const navigate = useNavigate();
   const { currentUser, users } = useAuth();
@@ -176,7 +178,7 @@ export default function StudentStudyPlanView() {
       backgroundImage: isDark
         ? 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(168, 85, 247, 0.10) 0%, transparent 45%), var(--color-bg)'
         : 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(168, 85, 247, 0.05) 0%, transparent 45%), var(--color-bg)',
-      padding: '1.25rem 1rem 60px',
+      padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1rem 60px',
       boxSizing: 'border-box'
     }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -232,7 +234,7 @@ export default function StudentStudyPlanView() {
         </div>
 
         {/* ── TOP HERO CARD ── */}
-        <div className="study-glass-card" style={{ padding: '2rem', position: 'relative', overflow: 'hidden' }}>
+        <div className="study-glass-card" style={{ padding: isMobile ? '1.25rem 1rem' : '2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -567,7 +569,7 @@ export default function StudentStudyPlanView() {
                                         </div>
 
                                         {/* Right Buttons */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start', flexWrap: 'wrap' }}>
                                           {(topic.resourceUrl || subject.resourceUrl) && (
                                             <a
                                               href={topic.resourceUrl || subject.resourceUrl}

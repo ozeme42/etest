@@ -1704,7 +1704,7 @@ export default function StudyRoomPage() {
         maxWidth: 980,
         margin: '0 auto',
         width: '100%',
-        padding: isMobile ? '1rem 0.85rem 4rem' : '2rem 1.5rem 5rem',
+        padding: isMobile ? '1rem 0.85rem calc(75px + env(safe-area-inset-bottom, 0px))' : '2rem 1.5rem 5rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
