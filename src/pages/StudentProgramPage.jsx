@@ -32,7 +32,7 @@ import DashboardTodayTasks from '../features/dashboard/components/DashboardToday
 import AddTaskModal from '../components/program/AddTaskModal';
 import CurriculumRoadmapView from '../components/roadmap/CurriculumRoadmapView';
 import PrintableWeeklyDocument from '../components/program/PrintableWeeklyDocument';
-import { MonthlyListPanel } from '../components/ProgramCenter';
+import { MonthlyListPanel, normalizeWeeklyProgram } from '../components/ProgramCenter';
 import './StudentDashboard.css';
 
 function getWeekDateRange() {
@@ -89,6 +89,7 @@ export default function StudentProgramPage() {
     activeDayKey,
     setActiveDayKey,
     activeDayConfig,
+    fullProcessedWeekMap,
     dayProgramInfo,
     weekTasksCountMap,
     catchUpTasks,
@@ -129,25 +130,44 @@ export default function StudentProgramPage() {
   const { totalWeekTasks, doneWeekTasks, weekPct } = useMemo(() => {
     let total = 0;
     let done = 0;
-    (rawWeeklyProgram || []).forEach(dayRow => {
-      (dayRow.items || []).forEach(it => {
-        total++;
-        if (it.done) done++;
-      });
+    const safeProgram = Array.isArray(rawWeeklyProgram)
+      ? rawWeeklyProgram
+      : normalizeWeeklyProgram(rawWeeklyProgram);
+    safeProgram.forEach(dayRow => {
+      if (dayRow && Array.isArray(dayRow.items)) {
+        dayRow.items.forEach(it => {
+          if (!it) return;
+          total++;
+          if (it.done) done++;
+        });
+      }
     });
     const pct = total > 0 ? Math.round((done / total) * 100) : 0;
     return { totalWeekTasks: total, doneWeekTasks: done, weekPct: pct };
   }, [rawWeeklyProgram]);
 
   // Selected Day Progress
-  const dayItems = dayProgramInfo.items || [];
+  const dayItems = Array.isArray(dayProgramInfo?.items) ? dayProgramInfo.items : [];
   const dayTotal = dayItems.length;
-  const dayDone = dayItems.filter(i => i.done).length;
+  const dayDone = dayItems.filter(i => i?.done).length;
   const dayPct = dayTotal > 0 ? Math.round((dayDone / dayTotal) * 100) : 0;
 
   // Topic Pool Progress
-  const totalTopics = useMemo(() => (topicPool || []).reduce((acc, sub) => acc + (sub.topics?.length || 0), 0), [topicPool]);
-  const doneTopics = useMemo(() => (topicPool || []).reduce((acc, sub) => acc + (sub.topics?.filter(t => t.status === 'Tamamlandı')?.length || 0), 0), [topicPool]);
+  const totalTopics = useMemo(() => {
+    if (!Array.isArray(topicPool)) return 0;
+    return topicPool.reduce((acc, sub) => {
+      const list = Array.isArray(sub?.topics) ? sub.topics : [];
+      return acc + list.length;
+    }, 0);
+  }, [topicPool]);
+
+  const doneTopics = useMemo(() => {
+    if (!Array.isArray(topicPool)) return 0;
+    return topicPool.reduce((acc, sub) => {
+      const list = Array.isArray(sub?.topics) ? sub.topics : [];
+      return acc + list.filter(t => t?.status === 'Tamamlandı').length;
+    }, 0);
+  }, [topicPool]);
 
   // Handle Save Topic Pool for CurriculumRoadmapView
   const handleSaveTopicPool = useCallback(async (newPoolOrFn) => {

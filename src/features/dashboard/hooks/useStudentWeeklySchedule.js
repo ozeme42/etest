@@ -17,7 +17,6 @@ import {
   isExamBook,
   sortItemsByBookOrder
 } from '../../../utils/testResolver';
-import { extractItemYMD } from '../../../pages/StudentDashboard';
 import { normalizeWeeklyProgram, checkIsTaskSolved } from '../../../components/ProgramCenter';
 
 export const SUBJECT_ROW_THEMES = {
@@ -73,6 +72,56 @@ export function formatLocalYMD(d) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+export function extractItemYMD(item) {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    const str = item.trim();
+    const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (trMatch) return `${trMatch[3]}-${trMatch[2].padStart(2, '0')}-${trMatch[1].padStart(2, '0')}`;
+    return null;
+  }
+  if (item instanceof Date && !isNaN(item.getTime())) {
+    return formatLocalYMD(item);
+  }
+  if (typeof item !== 'object') return null;
+
+  const candidates = [
+    item.singleDate,
+    item.specificDate,
+    item.scheduledDate,
+    item.date,
+    item.targetDate,
+    item.dueDate,
+    item.assignedDueDate,
+    item.time,
+    item.saat,
+    item.note
+  ];
+
+  for (const val of candidates) {
+    if (!val) continue;
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      const res = formatLocalYMD(val);
+      if (res) return res;
+    }
+    const str = String(val).trim();
+    const isoMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    }
+    const trMatch = str.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (trMatch) {
+      const d = trMatch[1].padStart(2, '0');
+      const m = trMatch[2].padStart(2, '0');
+      const y = trMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return null;
 }
 
 export function useStudentWeeklySchedule(overrideStudentId = null, overrideStudentObj = null) {
@@ -389,14 +438,36 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
         const allItems = [];
 
         rawAllItems.forEach(item => {
+          if (!item) return;
           const itemKey = String(item.id || item.testId || item.title || '');
           if (seenIds.has(itemKey)) return;
           seenIds.add(itemKey);
 
           const isSolved = checkIsTaskSolved(item, studentId, submissions, homeworks, studyAssignments, studentSolvedSet, bookTests, books);
+
+          const rawSubj = typeof item.subject === 'object' ? (item.subject?.name || item.subject?.title || 'Ders') : (item.subject || 'Ders');
+          const cleanSubj = String(rawSubj).trim();
+
+          const rawTopic = typeof item.topic === 'object' ? (item.topic?.name || item.topic?.title || '') : (item.topic || item.unitTopic || '');
+          const cleanTopic = String(rawTopic).trim();
+
+          const rawTitle = typeof item.title === 'object' ? (item.title?.name || item.title?.title || '') : (item.title || item.testName || '');
+          const cleanTitle = String(rawTitle).trim();
+
+          const rawTestName = typeof item.testName === 'object' ? (item.testName?.name || item.testName?.title || '') : (item.testName || '');
+          const cleanTestName = String(rawTestName).trim();
+
+          const rawBook = typeof item.bookTitle === 'object' ? (item.bookTitle?.title || item.bookTitle?.name || '') : (item.bookTitle || '');
+          const cleanBookTitle = String(rawBook).trim();
+
           allItems.push({
             ...item,
-            done: item.done || isSolved
+            subject: cleanSubj,
+            topic: cleanTopic,
+            title: cleanTitle || cleanTopic || cleanSubj || 'Görev',
+            testName: cleanTestName,
+            bookTitle: cleanBookTitle,
+            done: Boolean(item.done || isSolved)
           });
         });
 
@@ -664,7 +735,7 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
     handleDeleteScheduleTask,
     getRowTheme,
     coachingProfile: activeProfile,
-    topicPool: activeProfile?.topicPool || [],
-    rawWeeklyProgram: activeProfile?.weeklyProgram || []
+    topicPool: Array.isArray(activeProfile?.topicPool) ? activeProfile.topicPool : [],
+    rawWeeklyProgram: normalizeWeeklyProgram(activeProfile?.weeklyProgram)
   };
 }

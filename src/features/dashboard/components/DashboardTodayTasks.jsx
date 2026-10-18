@@ -94,7 +94,8 @@ const SUBJECT_THEMES = {
 
 const resolveSubjectTheme = (subj) => {
   if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
-  const s = subj.toLowerCase();
+  const sStr = typeof subj === 'object' ? (subj?.name || subj?.title || subj?.subject || '') : String(subj || '');
+  const s = sStr.toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) return SUBJECT_THEMES['Matematik'];
   if (s.includes('türkçe') || s.includes('edebiyat')) return SUBJECT_THEMES['Türkçe'];
   if (s.includes('fen') || s.includes('fizik') || s.includes('kimya') || s.includes('biyoloji')) return SUBJECT_THEMES['Fen Bilimleri'];
@@ -124,10 +125,11 @@ export default memo(function DashboardTodayTasks({
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'completed'
   const [selectedSubject, setSelectedSubject] = useState('all');
 
-  const items = dayProgramInfo.items || [];
+  const safeDayInfo = dayProgramInfo || { items: [], isToday: true, totalCount: 0, completedCount: 0 };
+  const items = Array.isArray(safeDayInfo.items) ? safeDayInfo.items : [];
   const totalTasks = items.length;
-  const completedTasks = useMemo(() => items.filter(t => t.done).length, [items]);
-  const remainingTasks = totalTasks - completedTasks;
+  const completedTasks = useMemo(() => items.filter(t => t?.done).length, [items]);
+  const remainingTasks = Math.max(0, totalTasks - completedTasks);
   const completionPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Soru ve XP hesaplamaları (Kitap okuma görevleri soru çözüm DEĞİLDİR)
@@ -135,11 +137,16 @@ export default memo(function DashboardTodayTasks({
     let tot = 0;
     let comp = 0;
     items.forEach(t => {
-      const isReading = t.taskType === 'okuma' ||
-        t.subject === 'Kitap Okuma' ||
-        String(t.topic || '').toLowerCase().includes('kitap okuma') ||
-        String(t.title || '').toLowerCase().includes('kitap okuma') ||
-        String(t.taskType || '').toLowerCase().includes('okuma') ||
+      if (!t) return;
+      const sSubj = typeof t.subject === 'object' ? (t.subject?.name || '') : String(t.subject || '');
+      const sTopic = typeof t.topic === 'object' ? (t.topic?.name || '') : String(t.topic || '');
+      const sTitle = typeof t.title === 'object' ? (t.title?.name || '') : String(t.title || '');
+      const sType = typeof t.taskType === 'object' ? (t.taskType?.name || '') : String(t.taskType || '');
+
+      const isReading = sType.toLowerCase().includes('okuma') ||
+        sSubj === 'Kitap Okuma' ||
+        sTopic.toLowerCase().includes('kitap okuma') ||
+        sTitle.toLowerCase().includes('kitap okuma') ||
         Boolean(t.readingBookId);
       if (isReading) return; // Kitap okuma görevinde soru bulunmaz!
       const q = Number(t.questionCount || t.targetQuestionCount || 0);
@@ -154,6 +161,7 @@ export default memo(function DashboardTodayTasks({
     let tot = 0;
     let earned = 0;
     items.forEach(t => {
+      if (!t) return;
       const isExam = t.isExamTask || t.taskType === 'deneme' || Boolean(t.roadmapAssignmentId);
       const xpVal = isExam ? 50 : 25;
       tot += xpVal;
@@ -165,30 +173,36 @@ export default memo(function DashboardTodayTasks({
   const subjects = useMemo(() => {
     const map = new Map();
     items.forEach(t => {
-      const cleanSubj = (t.subject && t.subject.toLowerCase() === 'geometri') ? 'Matematik' : (t.subject || 'Diğer');
+      if (!t) return;
+      const rawSubj = typeof t.subject === 'object' ? (t.subject?.name || t.subject?.title || 'Diğer') : (t.subject || 'Diğer');
+      const sLower = String(rawSubj).toLowerCase().trim();
+      const cleanSubj = sLower === 'geometri' ? 'Matematik' : String(rawSubj).trim();
       map.set(cleanSubj, (map.get(cleanSubj) || 0) + 1);
     });
     return Array.from(map.entries());
   }, [items]);
 
   const firstIncompleteIdx = useMemo(() => {
-    return items.findIndex(t => !t.done);
+    return items.findIndex(t => !t?.done);
   }, [items]);
 
   const filteredTasks = useMemo(() => {
     return items.filter(task => {
+      if (!task) return false;
       if (filterStatus === 'pending' && task.done) return false;
       if (filterStatus === 'completed' && !task.done) return false;
 
       if (selectedSubject !== 'all') {
-        const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Diğer');
+        const rawSubj = typeof task.subject === 'object' ? (task.subject?.name || task.subject?.title || 'Diğer') : (task.subject || 'Diğer');
+        const sLower = String(rawSubj).toLowerCase().trim();
+        const cleanSubj = sLower === 'geometri' ? 'Matematik' : String(rawSubj).trim();
         if (cleanSubj !== selectedSubject) return false;
       }
       return true;
     });
   }, [items, filterStatus, selectedSubject]);
 
-  const headerGradient = dayProgramInfo.isToday
+  const headerGradient = safeDayInfo.isToday
     ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%)'
     : activeDayConfig?.color
     ? `linear-gradient(135deg, ${activeDayConfig.color}, #3b82f6)`
@@ -429,7 +443,7 @@ export default memo(function DashboardTodayTasks({
                 width: isMobile ? 32 : 38,
                 height: isMobile ? 32 : 38,
                 borderRadius: 10,
-                background: dayProgramInfo.hasAllCompleted
+                background: safeDayInfo.hasAllCompleted
                   ? 'linear-gradient(135deg, #10b981, #059669)'
                   : 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                 color: '#fff',
@@ -546,18 +560,27 @@ export default memo(function DashboardTodayTasks({
             gap: '0.85rem'
           }}>
             {(showAllDayTasks || !isMobile ? filteredTasks : filteredTasks.slice(0, 6)).map((task, idx) => {
-              const isReadingTask = task.taskType === 'okuma' ||
-                task.subject === 'Kitap Okuma' ||
-                String(task.topic || '').toLowerCase().includes('kitap okuma') ||
-                String(task.title || '').toLowerCase().includes('kitap okuma') ||
-                String(task.taskType || '').toLowerCase().includes('okuma');
+              if (!task) return null;
+              const sSubj = typeof task.subject === 'object' ? (task.subject?.name || '') : String(task.subject || '');
+              const sTopic = typeof task.topic === 'object' ? (task.topic?.name || '') : String(task.topic || '');
+              const sTitle = typeof task.title === 'object' ? (task.title?.name || '') : String(task.title || '');
+              const sTestName = typeof task.testName === 'object' ? (task.testName?.name || '') : String(task.testName || '');
+              const sType = typeof task.taskType === 'object' ? (task.taskType?.name || '') : String(task.taskType || '');
+              const sUnit = typeof task.unitTopic === 'object' ? (task.unitTopic?.name || '') : String(task.unitTopic || '');
+              const sBook = typeof task.bookTitle === 'object' ? (task.bookTitle?.title || task.bookTitle?.name || '') : String(task.bookTitle || '');
+
+              const isReadingTask = sType.toLowerCase().includes('okuma') ||
+                sSubj === 'Kitap Okuma' ||
+                sTopic.toLowerCase().includes('kitap okuma') ||
+                sTitle.toLowerCase().includes('kitap okuma') ||
+                Boolean(task.readingBookId);
               const isQuizTask = !isReadingTask && Boolean(task.isAutoHomework || task.testId || task.hwId || task.roadmapAssignmentId);
-              const cleanSubj = (task.subject && task.subject.toLowerCase() === 'geometri') ? 'Matematik' : (task.subject || 'Ders');
+              const cleanSubj = sSubj.toLowerCase() === 'geometri' ? 'Matematik' : (sSubj || 'Ders');
               const sTheme = resolveSubjectTheme(cleanSubj);
               const isExamItem = task.isExamTask || task.taskType === 'deneme';
 
-              const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
-              let displayTitle = (task.testName || task.title || task.topic || 'Ders Çalışması')
+              const rawBook = sBook.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+              let displayTitle = String(sTestName || sTitle || sTopic || 'Ders Çalışması')
                 .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
                 .replace(/\s*\(Tüm Kitap\)/gi, '')
                 .replace(/\s*\(Kendi Eklediğim\)/gi, '')
@@ -571,14 +594,14 @@ export default memo(function DashboardTodayTasks({
               }
 
               if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
-                if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
-                  displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
-                } else if (task.unitTopic) {
-                  displayTitle = `${task.unitTopic} Testi`;
+                if (sTestName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(sTestName.trim()) && sTestName.toLowerCase() !== rawBook.toLowerCase()) {
+                  displayTitle = sTestName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                } else if (sUnit) {
+                  displayTitle = `${sUnit} Testi`;
                 } else if (task.isBookTask) {
-                  displayTitle = isReadingTask ? (task.title || 'Kitap Okuma') : (task.testName || task.title || (rawBook ? `${rawBook} Testi` : 'Kitap Testi'));
-                } else if (task.subject) {
-                  displayTitle = isReadingTask ? (task.title || 'Kitap Okuma') : `${task.subject} Testi`;
+                  displayTitle = isReadingTask ? (sTitle || 'Kitap Okuma') : (sTestName || sTitle || (rawBook ? `${rawBook} Testi` : 'Kitap Testi'));
+                } else if (cleanSubj) {
+                  displayTitle = isReadingTask ? (sTitle || 'Kitap Okuma') : `${cleanSubj} Testi`;
                 } else {
                   displayTitle = isReadingTask ? 'Kitap Okuma' : 'Konu Testi';
                 }
@@ -592,13 +615,13 @@ export default memo(function DashboardTodayTasks({
               }
 
               // Remedial Stage
-              const stageMatch = (task.text || task.title || task.topic || '').match(/\[(\d+)\.\s*Tekrar(?:\s*[-–(]\s*(\d+)g\s*[)]?)?/i);
+              const stageMatch = String(task.text || sTitle || sTopic || '').match(/\[(\d+)\.\s*Tekrar(?:\s*[-–(]\s*(\d+)g\s*[)]?)?/i);
               const detectedStage = task.stage || (stageMatch ? parseInt(stageMatch[1], 10) : null);
               const detectedInterval = task.intervalDays || (stageMatch && stageMatch[2] ? parseInt(stageMatch[2], 10) : null);
               const isRemedialTask = Boolean(task.isRemedial || task.isRemedialTest || task.type === 'remedialTest' || task.taskType === 'remedialTest' || task.isTeacherRemedial || task.isSpacedRepetition || detectedStage);
               const syncAttemptNumber = task.attemptNumber || (detectedStage ? detectedStage : (task.pastAttemptCount != null ? task.pastAttemptCount + 1 : 1));
 
-              const isNextTarget = dayProgramInfo.isToday && !task.done && (idx === firstIncompleteIdx);
+              const isNextTarget = safeDayInfo.isToday && !task.done && (idx === firstIncompleteIdx);
 
               return (
                 <div
@@ -806,7 +829,7 @@ export default memo(function DashboardTodayTasks({
 
                       {/* Alt Meta Şeridi */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                        {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && !/^takip kitabı$/i.test(task.bookTitle.trim()) && (
+                        {sBook && !/^kitap$/i.test(sBook.trim()) && !/^takip kitabı$/i.test(sBook.trim()) && (
                           <span style={{
                             color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
                             fontWeight: 800,
@@ -819,17 +842,17 @@ export default memo(function DashboardTodayTasks({
                             borderRadius: 6,
                             border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
                           }}>
-                            {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
+                            {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${sBook}` : `📖 ${sBook}`}
                           </span>
                         )}
-                        {task.unitTopic && (
+                        {sUnit && (
                           <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
-                            📌 {task.unitTopic}
+                            📌 {sUnit}
                           </span>
                         )}
                         {(task.time || task.dueDateStr) && (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <Clock size={12} /> {task.time || task.dueDateStr}
+                            <Clock size={12} /> {String(task.time || task.dueDateStr || '')}
                           </span>
                         )}
                       </div>

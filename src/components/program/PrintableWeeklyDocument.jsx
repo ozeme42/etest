@@ -1,6 +1,16 @@
 import React from 'react';
 import { resolveBookTestInfo } from '../ProgramCenter';
 
+const cleanText = (val, fallback = '') => {
+  if (val == null) return fallback;
+  if (typeof val === 'string') return val.trim();
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'object') {
+    return String(val.name || val.title || val.label || val.subject || fallback);
+  }
+  return String(val || fallback);
+};
+
 const DAYS_META = [
   { key: 'Pzt', name: 'Pazartesi' },
   { key: 'Sal', name: 'Salı' },
@@ -68,49 +78,49 @@ export default function PrintableWeeklyDocument({
                   <div className="print-wk-subject">
                     {bookInfo?.isBookTest ? (
                       <>
-                        <span>📚 {bookInfo.subject}</span>
+                        <span>📚 {cleanText(bookInfo.subject, 'Ders')}</span>
                         {bookInfo.publisher && (
                           <span style={{ color: '#4f46e5', marginLeft: 4 }}>
-                            ({bookInfo.publisher})
+                            ({cleanText(bookInfo.publisher)})
                           </span>
                         )}
                         {bookInfo.bookTitle && (
                           <span style={{ fontSize: '7.2pt', color: '#334155', fontWeight: 700, marginLeft: 4 }}>
-                            • 📖 {bookInfo.bookTitle}
+                            • 📖 {cleanText(bookInfo.bookTitle)}
                           </span>
                         )}
                       </>
                     ) : (
-                      item.bookName || item.subject || 'Çalışma Görevi'
+                      cleanText(item.bookName || item.subject, 'Çalışma Görevi')
                     )}
                   </div>
 
                   {bookInfo?.isBookTest ? (
                     <div className="print-wk-topic" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 1 }}>
-                      {bookInfo.unit && <span>📂 {bookInfo.unit}</span>}
-                      {bookInfo.testName && <span>🎯 {bookInfo.testName}</span>}
+                      {bookInfo.unit && <span>📂 {cleanText(bookInfo.unit)}</span>}
+                      {bookInfo.testName && <span>🎯 {cleanText(bookInfo.testName)}</span>}
                     </div>
                   ) : (
-                    item.topic && <div className="print-wk-topic">{item.topic}</div>
+                    item.topic && <div className="print-wk-topic">{cleanText(item.topic)}</div>
                   )}
                 </div>
 
                 <div className="print-wk-col-details">
                   {item.taskType && (
                     <span className="print-wk-pill">
-                      {item.taskType === 'soru' ? 'Soru Çözümü' : item.taskType === 'okuma' ? 'Kitap Okuma' : item.taskType === 'deneme' ? 'Deneme' : item.taskType}
+                      {cleanText(item.taskType === 'soru' ? 'Soru Çözümü' : item.taskType === 'okuma' ? 'Kitap Okuma' : item.taskType === 'deneme' ? 'Deneme' : item.taskType)}
                     </span>
                   )}
                   {(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount) && (
                     <span className="print-wk-pill print-wk-pill-q">
                       ✏️ {String(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount).includes('soru')
-                        ? (bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)
-                        : `${bookInfo?.questionCount || item.questionCount || item.targetQuestionCount} soru`}
+                        ? cleanText(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)
+                        : `${cleanText(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)} soru`}
                     </span>
                   )}
                   {(item.startTime || item.time) && (
                     <span className="print-wk-pill">
-                      🕐 {item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : item.time}
+                      🕐 {cleanText(item.startTime ? `${item.startTime}${item.endTime ? ` → ${item.endTime}` : ''}` : item.time)}
                     </span>
                   )}
                 </div>
@@ -534,37 +544,37 @@ export default function PrintableWeeklyDocument({
                         <div className="print-wk-subject">
                           {bookInfo?.isBookTest ? (
                             <>
-                              <span>📚 {bookInfo.subject}</span>
+                              <span>📚 {cleanText(bookInfo.subject, 'Ders')}</span>
                               {bookInfo.bookTitle && (
                                 <span style={{ fontSize: '7.2pt', color: '#334155', fontWeight: 700, marginLeft: 4 }}>
-                                  • 📖 {bookInfo.bookTitle}
+                                  • 📖 {cleanText(bookInfo.bookTitle)}
                                 </span>
                               )}
                             </>
                           ) : (
-                            item.bookName || item.subject || 'Telafi Görevi'
+                            cleanText(item.bookName || item.subject, 'Telafi Görevi')
                           )}
                         </div>
                         {bookInfo?.isBookTest ? (
                           <div className="print-wk-topic" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 1 }}>
-                            {bookInfo.unit && <span>📂 {bookInfo.unit}</span>}
-                            {bookInfo.testName && <span>🎯 {bookInfo.testName}</span>}
+                            {bookInfo.unit && <span>📂 {cleanText(bookInfo.unit)}</span>}
+                            {bookInfo.testName && <span>🎯 {cleanText(bookInfo.testName)}</span>}
                           </div>
                         ) : (
-                          item.topic && <div className="print-wk-topic">{item.topic}</div>
+                          item.topic && <div className="print-wk-topic">{cleanText(item.topic)}</div>
                         )}
                       </div>
                       <div className="print-wk-col-details">
                         {item.pastDayName && (
                           <span className="print-wk-pill print-wk-pill-overdue">
-                            {item.pastDayName} gününden
+                            {cleanText(item.pastDayName)} gününden
                           </span>
                         )}
                         {(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount) && (
                           <span className="print-wk-pill print-wk-pill-q">
                             ✏️ {String(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount).includes('soru')
-                              ? (bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)
-                              : `${bookInfo?.questionCount || item.questionCount || item.targetQuestionCount} soru`}
+                              ? cleanText(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)
+                              : `${cleanText(bookInfo?.questionCount || item.questionCount || item.targetQuestionCount)} soru`}
                           </span>
                         )}
                       </div>
