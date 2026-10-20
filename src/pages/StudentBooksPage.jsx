@@ -19,7 +19,7 @@ import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
   ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList, User,
-  ArrowLeft, Play, Sparkles, Flame, ShieldCheck, Check
+  ArrowLeft, Play, Sparkles, Flame, ShieldCheck, Check, Gamepad2, LayoutGrid, PlayCircle
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -42,6 +42,15 @@ const BOOK_PALETTES = [
   { from: '#f43f5e', to: '#e11d48', accent: '#fb7185', shadow: 'rgba(244,63,94,0.35)', badgeBg: 'rgba(244,63,94,0.12)' },
 ];
 const palette = (idx) => BOOK_PALETTES[idx % BOOK_PALETTES.length];
+
+/* ── Gamified Book Rank / Level Helper ─── */
+const getBookRank = (pct = 0) => {
+  if (pct >= 100) return { level: 5, label: '👑 Şampiyon', color: '#10b981', badgeBg: 'rgba(16, 185, 129, 0.15)', borderColor: '#10b981' };
+  if (pct >= 75) return { level: 4, label: '⚡ Efsane', color: '#8b5cf6', badgeBg: 'rgba(139, 92, 246, 0.15)', borderColor: '#a78bfa' };
+  if (pct >= 50) return { level: 3, label: '🛡️ Usta', color: '#3b82f6', badgeBg: 'rgba(59, 130, 246, 0.15)', borderColor: '#60a5fa' };
+  if (pct >= 25) return { level: 2, label: '⚔️ Çırak', color: '#f59e0b', badgeBg: 'rgba(245, 158, 11, 0.15)', borderColor: '#fbbf24' };
+  return { level: 1, label: '🌱 Başlangıç', color: '#06b6d4', badgeBg: 'rgba(6, 182, 212, 0.15)', borderColor: '#38bdf8' };
+};
 
 /* ── Mini Circular Progress Bar ─── */
 function CircularProgress({ pct, size = 52, stroke = 5, color = '#6366f1' }) {
@@ -156,6 +165,26 @@ export default function StudentBooksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'in_progress' | 'completed' | 'urgent'
   const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'success' | 'title'
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [gameModeView, setGameModeView] = useState('quest'); // 'quest' | 'list'
+  const [selectedFocusBookId, setSelectedFocusBookId] = useState(null);
+  const [focusModeOnly, setFocusModeOnly] = useState(() => {
+    try {
+      return localStorage.getItem('etest_books_focus_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleFocusMode = () => {
+    setFocusModeOnly(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('etest_books_focus_mode', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Chart View Options
   const [bookChartViewMode, setBookChartViewMode] = useState('books'); // 'books' | 'subjects'
@@ -410,6 +439,8 @@ export default function StudentBooksPage() {
       let totalWrong = 0;
       let totalBlank = 0;
       let totalSolvedTests = 0;
+      let nextIncompleteTest = null;
+      const incompleteTests = [];
 
       testsInBook.forEach(t => {
         const parentSubj = subjects.find(s => String(s.id) === String(t.subject_id || t.subjectId));
@@ -442,8 +473,16 @@ export default function StudentBooksPage() {
           totalCorrect += Number(bestSub.correct_count ?? bestSub.correctCount ?? bestSub.correct ?? 0);
           totalWrong += Number(bestSub.wrong_count ?? bestSub.wrongCount ?? bestSub.wrong ?? 0);
           totalBlank += Number(bestSub.empty_count ?? bestSub.blankCount ?? bestSub.blank ?? 0);
+        } else {
+          incompleteTests.push(contextualTest);
+          if (!nextIncompleteTest) {
+            nextIncompleteTest = contextualTest;
+          }
         }
       });
+
+      b.nextIncompleteTest = nextIncompleteTest;
+      b.incompleteTests = incompleteTests;
 
       if (b.targetDueDate) {
         const diff = b.targetDueDate.getTime() - new Date().getTime();
@@ -496,12 +535,58 @@ export default function StudentBooksPage() {
     };
   }, [assignedBooks]);
 
+  // Gamified Hero Active Book (The primary quest for the student)
+  const heroBook = useMemo(() => {
+    if (!assignedBooks || assignedBooks.length === 0) return null;
+    const urgent = assignedBooks.find(b => b.progressPct < 100 && b.remainingDays !== undefined && b.remainingDays <= 3);
+    if (urgent) return urgent;
+    const inProgress = assignedBooks
+      .filter(b => b.progressPct > 0 && b.progressPct < 100)
+      .sort((a, b) => (b.progressPct || 0) - (a.progressPct || 0))[0];
+    if (inProgress) return inProgress;
+    const unstarted = assignedBooks.find(b => b.progressPct < 100);
+    if (unstarted) return unstarted;
+    return assignedBooks[0];
+  }, [assignedBooks]);
+
+  // Active book for Focus Mode (custom selection or highest priority hero)
+  const activeFocusBook = useMemo(() => {
+    if (!assignedBooks || assignedBooks.length === 0) return null;
+    if (selectedFocusBookId) {
+      const found = assignedBooks.find(b => String(b.id) === String(selectedFocusBookId));
+      if (found) return found;
+    }
+    return heroBook || assignedBooks[0];
+  }, [assignedBooks, selectedFocusBookId, heroBook]);
+
+  // Distinct subjects for gaming category filters
+  const availableSubjects = useMemo(() => {
+    const set = new Set();
+    assignedBooks.forEach(b => {
+      (b.subjects || []).forEach(s => {
+        const name = s?.name || s;
+        if (name && typeof name === 'string' && name.trim() !== '' && name.toLowerCase() !== 'genel') {
+          set.add(name.trim());
+        }
+      });
+    });
+    return Array.from(set);
+  }, [assignedBooks]);
+
   // Filter + Sort Books
   const displayedBooks = useMemo(() => {
     let list = assignedBooks.filter(b => {
       const matchSearch = String(b.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         String(b.publisher || '').toLowerCase().includes(searchQuery.toLowerCase());
       if (!matchSearch) return false;
+
+      if (subjectFilter !== 'all') {
+        const hasSubj = (b.subjects || []).some(s => {
+          const n = (s?.name || s || '').toLowerCase();
+          return n.includes(subjectFilter.toLowerCase());
+        });
+        if (!hasSubj) return false;
+      }
 
       if (statusFilter === 'in_progress') return b.progressPct < 100;
       if (statusFilter === 'completed') return b.progressPct >= 100;
@@ -514,7 +599,7 @@ export default function StudentBooksPage() {
     else if (sortBy === 'success') list = [...list].sort((a, b) => b.successRate - a.successRate);
     else if (sortBy === 'title') list = [...list].sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
     return list;
-  }, [assignedBooks, searchQuery, statusFilter, sortBy]);
+  }, [assignedBooks, searchQuery, statusFilter, subjectFilter, sortBy]);
 
   // Bar Chart Data (Books)
   const chartData = useMemo(() =>
@@ -930,6 +1015,67 @@ export default function StudentBooksPage() {
               <Activity size={16} color="#6366f1" />
               <span>Haftalık Program</span>
             </button>
+
+            {/* Odak Modu Toggle Button */}
+            <button
+              onClick={handleToggleFocusMode}
+              className="game-btn-3d"
+              style={{
+                background: focusModeOnly
+                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
+                border: focusModeOnly ? 'none' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1'),
+                borderRadius: '0.75rem',
+                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 900,
+                fontSize: isMobile ? '0.78rem' : '0.84rem',
+                color: focusModeOnly ? '#ffffff' : (isDark ? '#ffffff' : '#334155'),
+                boxShadow: focusModeOnly ? '0 3px 12px rgba(16, 185, 129, 0.45)' : '0 2px 8px rgba(0,0,0,0.04)'
+              }}
+              title="Sadece seçili kitaba odaklanmak için tıkla"
+            >
+              <Target size={15} color={focusModeOnly ? '#ffffff' : '#10b981'} />
+              <span>{focusModeOnly ? '🎯 Odak Modu Açık' : '🎯 Odak Modu'}</span>
+            </button>
+
+            {/* Quest vs List Mode Switcher */}
+            {!focusModeOnly && (
+              <button
+                onClick={() => setGameModeView(prev => prev === 'quest' ? 'list' : 'quest')}
+                className="game-btn-3d"
+                style={{
+                  background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                  border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
+                  borderRadius: '0.75rem',
+                  padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontWeight: 800,
+                  fontSize: isMobile ? '0.78rem' : '0.84rem',
+                  color: isDark ? '#ffffff' : '#334155',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                }}
+                title={gameModeView === 'quest' ? 'Liste Görünümüne Geç' : 'Oyun Kartları Görünümüne Geç'}
+              >
+                {gameModeView === 'quest' ? (
+                  <>
+                    <LayoutGrid size={15} color="#8b5cf6" />
+                    <span>📋 Liste</span>
+                  </>
+                ) : (
+                  <>
+                    <Gamepad2 size={15} color="#8b5cf6" />
+                    <span>🎮 Oyun Kartları</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Teacher/Admin Student Selector */}
@@ -969,7 +1115,499 @@ export default function StudentBooksPage() {
           )}
         </div>
 
-        {/* ── GAMIFIED HERO BENTO CARD ── */}
+        {focusModeOnly ? (
+          <div className="books-anim-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+            {/* Focus Notice Banner */}
+            <div style={{
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15))'
+                : 'linear-gradient(135deg, #ecfdf5, #eff6ff)',
+              border: '1.5px solid rgba(16, 185, 129, 0.4)',
+              borderRadius: 20,
+              padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.4rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.85rem',
+              boxShadow: '0 4px 18px rgba(16, 185, 129, 0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 3px 10px rgba(16, 185, 129, 0.4)'
+                }}>
+                  <Target size={22} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: isMobile ? '0.92rem' : '1.05rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>🎯 Sade Odak Modu Etkin</span>
+                    <span style={{ fontSize: '0.65rem', background: '#10b981', color: '#ffffff', padding: '2px 7px', borderRadius: 99, fontWeight: 900 }}>AKTİF</span>
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                    Dikkat dağıtıcı tüm grafikler ve listeler gizlendi. Sadece bu kitaptaki testlerini sırayla çöz!
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => setIsManualTestModalOpen(true)}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 10,
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <Edit3 size={14} />
+                  <span>Manuel Test Gir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToggleFocusMode}
+                  className="game-btn-3d"
+                  style={{
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '0.45rem 0.95rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.35)'
+                  }}
+                >
+                  Odak Modundan Çık
+                </button>
+              </div>
+            </div>
+
+            {/* Book Switcher Pills */}
+            {assignedBooks.length > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                overflowX: 'auto',
+                paddingBottom: 4,
+                scrollbarWidth: 'none'
+              }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  Kitap Seç:
+                </span>
+                {assignedBooks.map(b => {
+                  const isSelected = activeFocusBook && String(b.id) === String(activeFocusBook.id);
+                  const r = getBookRank(b.progressPct);
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => setSelectedFocusBookId(b.id)}
+                      className="tab-btn-pill"
+                      style={{
+                        background: isSelected
+                          ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                          : (isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-surface)'),
+                        border: isSelected ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                        borderRadius: 12,
+                        padding: '0.45rem 0.85rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        cursor: 'pointer',
+                        color: isSelected ? '#ffffff' : 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.78rem',
+                        whiteSpace: 'nowrap',
+                        boxShadow: isSelected ? '0 3px 10px rgba(37,99,235,0.35)' : 'none'
+                      }}
+                    >
+                      <span>{r.label.split(' ')[0]}</span>
+                      <span>{b.title}</span>
+                      <span style={{
+                        background: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--color-surface-hover)',
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                        fontSize: '0.68rem',
+                        fontWeight: 900
+                      }}>
+                        %{b.progressPct || 0}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Focused Book Stage Arena */}
+            {activeFocusBook ? (() => {
+              const b = activeFocusBook;
+              const rank = getBookRank(b.progressPct);
+              const isCompleted = b.progressPct >= 100;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                  {/* Main Focus Card */}
+                  <div
+                    className="game-card-elevated"
+                    style={{
+                      background: 'var(--color-surface, #ffffff)',
+                      border: '2px solid rgba(99, 102, 241, 0.4)',
+                      borderRadius: 24,
+                      padding: isMobile ? '1.25rem 1rem' : '1.75rem 2rem',
+                      boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.45)' : '0 10px 30px rgba(99, 102, 241, 0.1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1.25rem'
+                    }}
+                  >
+                    {/* Top row: Rank Badge + Deadline */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          background: rank.badgeBg,
+                          color: rank.color,
+                          border: `1.5px solid ${rank.borderColor}`,
+                          padding: '4px 12px',
+                          borderRadius: 99,
+                          fontSize: '0.76rem',
+                          fontWeight: 900,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}>
+                          {rank.label} • Seviye {rank.level}
+                        </span>
+
+                        <span className="game-badge-xp" style={{ fontSize: '0.72rem', padding: '3px 9px' }}>
+                          +{b.totalSolvedTests * 25} XP
+                        </span>
+                      </div>
+
+                      {b.remainingDays !== undefined && !isCompleted && (
+                        <span style={{
+                          background: b.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                          color: b.remainingDays <= 3 ? '#ef4444' : '#f59e0b',
+                          border: `1px solid ${b.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                          padding: '3px 10px',
+                          borderRadius: 99,
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}>
+                          <Clock size={13} /> {b.remainingDays} Gün Kaldı
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Book Details + Big Progress Ring */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexDirection: isMobile ? 'column' : 'row',
+                      gap: '1.25rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0, width: isMobile ? '100%' : 'auto' }}>
+                        <div style={{
+                          width: isMobile ? 62 : 76,
+                          height: isMobile ? 86 : 105,
+                          borderRadius: 16,
+                          background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 8px 24px rgba(79, 70, 229, 0.4)',
+                          flexShrink: 0
+                        }}>
+                          <BookMarked size={isMobile ? 30 : 38} color="#ffffff" />
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <h2 style={{
+                            margin: '0 0 4px',
+                            fontSize: isMobile ? '1.15rem' : '1.45rem',
+                            fontWeight: 900,
+                            color: 'var(--color-text)',
+                            fontFamily: "'Outfit', sans-serif",
+                            lineHeight: 1.2
+                          }}>
+                            {b.title}
+                          </h2>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            {b.publisher || 'Kaynak Kitap'} • {b.totalSolvedTests} / {b.totalAssignedTests} test çözüldü
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                            {(b.subjects || []).map((s, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  background: 'var(--color-surface-hover)',
+                                  color: 'var(--color-text)',
+                                  border: '1px solid var(--color-border)',
+                                  borderRadius: 8,
+                                  padding: '3px 9px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800
+                                }}
+                              >
+                                {s?.name || s}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Progress Ring & Stats */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 16,
+                        justifyContent: isMobile ? 'space-between' : 'flex-end',
+                        width: isMobile ? '100%' : 'auto',
+                        borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
+                        paddingTop: isMobile ? '1rem' : 0
+                      }}>
+                        <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                          <div style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                            Genel İlerleme
+                          </div>
+                          <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#6366f1', lineHeight: 1.1 }}>
+                            %{b.progressPct || 0}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: '#10b981', fontWeight: 800, marginTop: 2 }}>
+                            %{b.successRate} Başarı
+                          </div>
+                        </div>
+
+                        <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CircularProgress pct={b.progressPct || 0} size={64} stroke={6} color="#6366f1" />
+                          <div style={{ position: 'absolute', fontSize: '0.82rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                            %{b.progressPct || 0}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4 Mini KPI Stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                      {[
+                        { label: 'Doğru', value: b.totalCorrect, color: '#10b981', bg: isDark ? 'rgba(16, 185, 129, 0.14)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.3)' : '#bbf7d0' },
+                        { label: 'Yanlış', value: b.totalWrong, color: '#ef4444', bg: isDark ? 'rgba(239, 68, 68, 0.14)' : '#fef2f2', border: isDark ? 'rgba(239, 68, 68, 0.3)' : '#fecaca' },
+                        { label: 'Boş', value: b.totalBlank, color: 'var(--color-text-muted)', bg: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? 'rgba(148, 163, 184, 0.25)' : '#e2e8f0' },
+                        { label: 'Başarı', value: `%${b.successRate}`, color: '#2563eb', bg: isDark ? 'rgba(37, 99, 235, 0.14)' : '#eff6ff', border: isDark ? 'rgba(37, 99, 235, 0.3)' : '#bfdbfe' },
+                      ].map((s, i) => (
+                        <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 12, padding: '0.55rem 0.3rem', textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.62rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
+                          <div style={{ fontSize: '0.98rem', fontWeight: 900, color: s.color, marginTop: 2 }}>{s.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Huge CTA Buttons */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: '0.5rem' }}>
+                      {b.nextIncompleteTest ? (
+                        <button
+                          onClick={() => navigate(`/book-quiz/${b.nextIncompleteTest.id}?studentId=${studentId}`)}
+                          className="game-btn-3d game-btn-primary"
+                          style={{
+                            flex: isMobile ? '1 1 100%' : '1 1 280px',
+                            padding: isMobile ? '0.78rem 1.25rem' : '0.88rem 1.6rem',
+                            borderRadius: 16,
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.88rem' : '0.98rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 6px 20px rgba(99, 102, 241, 0.45)'
+                          }}
+                        >
+                          <Play size={18} fill="#ffffff" />
+                          <span>⚡ Sıradaki Testi Çöz: {b.nextIncompleteTest.name}</span>
+                        </button>
+                      ) : (
+                        <div style={{
+                          flex: 1,
+                          padding: '0.8rem 1.25rem',
+                          borderRadius: 14,
+                          background: 'rgba(16, 185, 129, 0.15)',
+                          color: '#10b981',
+                          fontWeight: 900,
+                          fontSize: '0.9rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}>
+                          <CheckCircle2 size={20} />
+                          <span>🎉 Bu kitaptaki tüm testleri tamamladın! Tebrikler!</span>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => navigate(`/student/books/${b.id}`)}
+                        className="game-btn-3d"
+                        style={{
+                          padding: isMobile ? '0.78rem 1.25rem' : '0.88rem 1.5rem',
+                          borderRadius: 16,
+                          fontWeight: 800,
+                          fontSize: isMobile ? '0.84rem' : '0.92rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                          border: '1.5px solid var(--color-border)',
+                          color: 'var(--color-text)',
+                          flex: isMobile ? '1 1 100%' : 'none'
+                        }}
+                      >
+                        <MapIcon size={18} color="#06b6d4" />
+                        <span>Kitap Haritasını Aç</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Upcoming Tests of this Book */}
+                  {b.incompleteTests && b.incompleteTests.length > 0 && (
+                    <div
+                      className="game-card-elevated"
+                      style={{
+                        background: 'var(--color-surface, #ffffff)',
+                        border: '1.5px solid var(--color-border)',
+                        borderRadius: 20,
+                        padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.85rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.98rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>📋 Sıradaki Görev Testleri</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                            ({b.incompleteTests.length} test kaldı)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/student/books/${b.id}`)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#6366f1',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          Tümünü Gör <ChevronRight size={14} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                        {b.incompleteTests.slice(0, 5).map((test, tIdx) => (
+                          <div
+                            key={test.id || tIdx}
+                            style={{
+                              background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 14,
+                              padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1.15rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 10
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <div style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 10,
+                                background: tIdx === 0 ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : (isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0'),
+                                color: tIdx === 0 ? '#ffffff' : 'var(--color-text-muted)',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                {tIdx + 1}
+                              </div>
+
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{
+                                  fontWeight: 800,
+                                  fontSize: isMobile ? '0.8rem' : '0.86rem',
+                                  color: 'var(--color-text)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}>
+                                  {test.name || test.title || `Test ${tIdx + 1}`}
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                                  {test.unit || test.subject || b.title} • {test.questionCount || 20} Soru
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                              className={`game-btn-3d ${tIdx === 0 ? 'game-btn-primary' : ''}`}
+                              style={{
+                                padding: isMobile ? '0.42rem 0.85rem' : '0.5rem 1.15rem',
+                                borderRadius: 10,
+                                fontWeight: 900,
+                                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 5,
+                                flexShrink: 0,
+                                background: tIdx === 0 ? undefined : 'var(--color-surface)',
+                                border: tIdx === 0 ? undefined : '1px solid var(--color-border)',
+                                color: tIdx === 0 ? undefined : 'var(--color-text)'
+                              }}
+                            >
+                              <Play size={13} fill="currentColor" />
+                              <span>{tIdx === 0 ? 'Hemen Başla' : 'Çöz'}</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })() : null}
+          </div>
+        ) : (
+          <>
+            {/* ── GAMIFIED HERO BENTO CARD ── */}
         <div
           className="game-card-elevated"
           style={{
@@ -1303,6 +1941,313 @@ export default function StudentBooksPage() {
         {activeTab === 'kitaplar' && (
           <div className="books-anim-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
 
+            {/* ── HERO BOOK QUEST CARD (Günün / Dönemin Aktif Kitap Görevi) ── */}
+            {heroBook && (
+              <div
+                className="game-card-elevated"
+                style={{
+                  background: isDark
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))'
+                    : 'linear-gradient(135deg, #ffffff, #f8fafc)',
+                  border: '2px solid rgba(99, 102, 241, 0.35)',
+                  borderRadius: 22,
+                  padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
+                  boxShadow: '0 8px 28px rgba(99, 102, 241, 0.12)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}
+              >
+                {/* Glowing accent top line */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 4,
+                  background: 'linear-gradient(90deg, #6366f1, #06b6d4, #10b981)'
+                }} />
+
+                {/* Top Row: Quest Badge + Level Rank */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      background: 'linear-gradient(135deg, #ef4444, #f97316)',
+                      color: '#ffffff',
+                      padding: '3px 10px',
+                      borderRadius: 99,
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.35)'
+                    }}>
+                      <Flame size={12} fill="#ffffff" /> GÜNÜN AKTİF KİTAP GÖREVİ
+                    </span>
+
+                    {(() => {
+                      const rank = getBookRank(heroBook.progressPct);
+                      return (
+                        <span style={{
+                          background: rank.badgeBg,
+                          color: rank.color,
+                          border: `1px solid ${rank.borderColor}`,
+                          padding: '3px 9px',
+                          borderRadius: 99,
+                          fontSize: '0.7rem',
+                          fontWeight: 900,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}>
+                          {rank.label} • Seviye {rank.level}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  {heroBook.remainingDays !== undefined && heroBook.progressPct < 100 && (
+                    <span style={{
+                      background: heroBook.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                      color: heroBook.remainingDays <= 3 ? '#ef4444' : '#f59e0b',
+                      border: `1px solid ${heroBook.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      padding: '2px 8px',
+                      borderRadius: 8,
+                      fontSize: '0.68rem',
+                      fontWeight: 900,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <Clock size={12} /> {heroBook.remainingDays} Gün Kaldı
+                    </span>
+                  )}
+                </div>
+
+                {/* Middle content: Spine & Details & Progress */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  justifyContent: 'space-between',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: '1rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
+                    {/* 3D Spine */}
+                    <div style={{
+                      width: isMobile ? 54 : 64,
+                      height: isMobile ? 74 : 88,
+                      borderRadius: 14,
+                      background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)',
+                      flexShrink: 0
+                    }}>
+                      <BookMarked size={isMobile ? 26 : 32} color="#ffffff" />
+                    </div>
+
+                    <div style={{ minWidth: 0 }}>
+                      <h2 style={{
+                        margin: '0 0 4px',
+                        fontSize: isMobile ? '1.05rem' : '1.25rem',
+                        fontWeight: 900,
+                        color: 'var(--color-text)',
+                        fontFamily: "'Outfit', sans-serif"
+                      }}>
+                        {heroBook.title}
+                      </h2>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                        {heroBook.publisher || 'Kaynak Kitap'} • {heroBook.totalSolvedTests} / {heroBook.totalAssignedTests} test çözüldü
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+                        {(heroBook.subjects || []).slice(0, 3).map((s, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              background: 'var(--color-surface-hover)',
+                              color: 'var(--color-text)',
+                              border: '1px solid var(--color-border)',
+                              borderRadius: 6,
+                              padding: '2px 7px',
+                              fontSize: '0.66rem',
+                              fontWeight: 800
+                            }}
+                          >
+                            {s?.name || s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress & Circular Stats */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: isMobile ? 'space-between' : 'flex-end',
+                    borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
+                    paddingTop: isMobile ? '0.75rem' : 0
+                  }}>
+                    <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                        Tamamlanma Oranı
+                      </div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6366f1' }}>
+                        %{heroBook.progressPct || 0}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 800 }}>
+                        %{heroBook.successRate} Başarı
+                      </div>
+                    </div>
+
+                    <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <CircularProgress pct={heroBook.progressPct || 0} size={54} stroke={5} color="#6366f1" />
+                      <div style={{ position: 'absolute', fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        %{heroBook.progressPct || 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Actions Row: Big Quick Start & Book Map */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                  paddingTop: '0.5rem',
+                  borderTop: '1px solid var(--color-border)'
+                }}>
+                  {heroBook.nextIncompleteTest ? (
+                    <button
+                      onClick={() => navigate(`/book-quiz/${heroBook.nextIncompleteTest.id}?studentId=${studentId}`)}
+                      className="game-btn-3d game-btn-primary"
+                      style={{
+                        flex: isMobile ? '1 1 100%' : '1 1 260px',
+                        padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.35rem',
+                        borderRadius: 14,
+                        fontWeight: 900,
+                        fontSize: isMobile ? '0.84rem' : '0.92rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 4px 16px rgba(99, 102, 241, 0.4)'
+                      }}
+                    >
+                      <Play size={16} fill="#ffffff" />
+                      <span>⚡ Sıradaki Testi Çöz: {heroBook.nextIncompleteTest.name}</span>
+                    </button>
+                  ) : (
+                    <div style={{
+                      flex: 1,
+                      padding: '0.6rem 1rem',
+                      borderRadius: 12,
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      color: '#10b981',
+                      fontWeight: 900,
+                      fontSize: '0.82rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      <CheckCircle2 size={16} />
+                      <span>Bu kitaptaki tüm testler çözüldü! Harika iş çıkardın!</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => navigate(`/student/books/${heroBook.id}`)}
+                    className="game-btn-3d"
+                    style={{
+                      padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
+                      borderRadius: 14,
+                      fontWeight: 800,
+                      fontSize: isMobile ? '0.82rem' : '0.88rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      background: isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-surface)',
+                      border: '1.5px solid var(--color-border)',
+                      color: 'var(--color-text)',
+                      flex: isMobile ? '1 1 100%' : 'none'
+                    }}
+                  >
+                    <MapIcon size={16} color="#06b6d4" />
+                    <span>Kitap Haritası & Tüm Testler</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── SUBJECT CATEGORY FILTER CHIPS ── */}
+            {availableSubjects.length > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                overflowX: 'auto',
+                paddingBottom: 2,
+                scrollbarWidth: 'none'
+              }}>
+                <button
+                  onClick={() => setSubjectFilter('all')}
+                  className="filter-chip-pill"
+                  style={{
+                    background: subjectFilter === 'all'
+                      ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                      : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
+                    color: subjectFilter === 'all' ? '#ffffff' : 'var(--color-text)',
+                    border: subjectFilter === 'all' ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                    borderRadius: 12,
+                    padding: '0.4rem 0.85rem',
+                    fontWeight: 800,
+                    fontSize: '0.76rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: subjectFilter === 'all' ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                  }}
+                >
+                  🎯 Tüm Dersler
+                </button>
+                {availableSubjects.map(subj => {
+                  const isSel = subjectFilter.toLowerCase() === subj.toLowerCase();
+                  return (
+                    <button
+                      key={subj}
+                      onClick={() => setSubjectFilter(isSel ? 'all' : subj)}
+                      className="filter-chip-pill"
+                      style={{
+                        background: isSel
+                          ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                          : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
+                        color: isSel ? '#ffffff' : 'var(--color-text)',
+                        border: isSel ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                        borderRadius: 12,
+                        padding: '0.4rem 0.85rem',
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                      }}
+                    >
+                      {subj}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Quick Status Filters + Search + Sort Bar */}
             {assignedBooks.length > 0 && (
               <div
@@ -1549,6 +2494,136 @@ export default function StudentBooksPage() {
                   Filtreleri Temizle
                 </button>
               </div>
+            ) : gameModeView === 'list' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {displayedBooks.map((book, bookIdx) => {
+                  const pal = palette(bookIdx);
+                  const isCompleted = book.progressPct >= 100;
+                  const pct = book.progressPct || 0;
+                  const rank = getBookRank(pct);
+
+                  return (
+                    <div
+                      key={book.id || bookIdx}
+                      onClick={() => navigate(`/student/books/${book.id}`)}
+                      className="game-card-elevated"
+                      style={{
+                        background: 'var(--color-surface)',
+                        border: isCompleted ? '1.5px solid #10b981' : '1px solid var(--color-border)',
+                        borderRadius: 16,
+                        padding: isMobile ? '0.85rem' : '1rem 1.35rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.85rem',
+                        cursor: 'pointer',
+                        boxShadow: isCompleted ? '0 4px 16px rgba(16, 185, 129, 0.12)' : '0 2px 8px rgba(0,0,0,0.03)'
+                      }}
+                    >
+                      {/* Left: Book Cover + Title + Subjects */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 240px' }}>
+                        <div style={{
+                          width: 44,
+                          height: 58,
+                          borderRadius: 10,
+                          background: `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ffffff',
+                          boxShadow: `0 4px 12px ${pal.shadow}`,
+                          flexShrink: 0
+                        }}>
+                          <BookMarked size={22} />
+                        </div>
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.98rem', color: 'var(--color-text)' }}>
+                              {book.title}
+                            </h4>
+                            <span style={{
+                              background: rank.badgeBg,
+                              color: rank.color,
+                              border: `1px solid ${rank.borderColor}`,
+                              padding: '1px 6px',
+                              borderRadius: 99,
+                              fontSize: '0.62rem',
+                              fontWeight: 900
+                            }}>
+                              {rank.label}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                            {book.publisher || 'Kaynak'} • {book.totalSolvedTests} / {book.totalAssignedTests} Test
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Middle: Progress Bar */}
+                      <div style={{ flex: '1 1 140px', minWidth: 120 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', fontWeight: 800, marginBottom: 4, color: 'var(--color-text-muted)' }}>
+                          <span>İlerleme</span>
+                          <span style={{ color: isCompleted ? '#10b981' : pal.to }}>%{pct}</span>
+                        </div>
+                        <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`, borderRadius: 99 }} />
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
+                        {book.nextIncompleteTest && !isCompleted ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
+                            }}
+                            className="game-btn-3d game-btn-primary"
+                            style={{
+                              padding: '0.45rem 0.85rem',
+                              borderRadius: 10,
+                              fontWeight: 900,
+                              fontSize: '0.76rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}
+                            title={`${book.nextIncompleteTest.name} testini hemen çöz`}
+                          >
+                            <Play size={12} fill="#ffffff" />
+                            <span>⚡ {book.nextIncompleteTest.name}</span>
+                          </button>
+                        ) : null}
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/student/books/${book.id}`);
+                          }}
+                          className="game-btn-3d"
+                          style={{
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: 10,
+                            background: 'var(--color-surface-hover)',
+                            border: '1px solid var(--color-border)',
+                            fontWeight: 800,
+                            fontSize: '0.76rem',
+                            color: 'var(--color-text)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <MapIcon size={13} color="#06b6d4" />
+                          <span>Harita</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
               <div style={{
                 display: 'grid',
@@ -1559,6 +2634,7 @@ export default function StudentBooksPage() {
                   const pal = palette(bookIdx);
                   const isCompleted = book.progressPct >= 100;
                   const pct = book.progressPct || 0;
+                  const rank = getBookRank(pct);
                   const urgentDue = book.remainingDays !== undefined && book.remainingDays <= 3 && !isCompleted;
 
                   return (
@@ -1635,8 +2711,23 @@ export default function StudentBooksPage() {
                             )}
                           </div>
 
-                          {/* Top Badges */}
+                          {/* Top Badges: Rank + Urgency/XP */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                            <span style={{
+                              background: rank.badgeBg,
+                              color: rank.color,
+                              border: `1px solid ${rank.borderColor}`,
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                              fontSize: '0.65rem',
+                              fontWeight: 900,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              {rank.label}
+                            </span>
+
                             {isCompleted ? (
                               <span style={{
                                 background: 'linear-gradient(135deg, #10b981, #059669)',
@@ -1796,28 +2887,84 @@ export default function StudentBooksPage() {
                         </div>
                       </div>
 
-                      {/* 3D Action Button */}
-                      <button
-                        onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                        className={`game-btn-3d ${isCompleted ? '' : 'game-btn-primary'}`}
-                        style={{
-                          width: '100%',
-                          padding: isMobile ? '0.62rem' : '0.72rem',
-                          background: isCompleted ? 'var(--color-surface-hover, #f1f5f9)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
-                          color: isCompleted ? 'var(--color-text)' : '#ffffff',
-                          border: isCompleted ? '1.5px solid var(--color-border)' : 'none',
-                          borderRadius: 12,
-                          fontWeight: 900,
-                          fontSize: isMobile ? '0.8rem' : '0.86rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6
-                        }}
-                      >
-                        {isCompleted ? '📋 Haritayı Görüntüle' : '▶ Kitaba Devam Et'}
-                        <ArrowRight size={15} />
-                      </button>
+                      {/* Dual 3D Action Buttons */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto' }}>
+                        {isCompleted ? (
+                          <button
+                            onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
+                            className="game-btn-3d"
+                            style={{
+                              width: '100%',
+                              padding: isMobile ? '0.62rem' : '0.72rem',
+                              background: 'var(--color-surface-hover, #f1f5f9)',
+                              color: 'var(--color-text)',
+                              border: '1.5px solid var(--color-border)',
+                              borderRadius: 12,
+                              fontWeight: 900,
+                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <span>🏆 Haritayı İncele</span>
+                            <ArrowRight size={15} />
+                          </button>
+                        ) : (
+                          <>
+                            {book.nextIncompleteTest ? (
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
+                                }}
+                                className="game-btn-3d game-btn-primary"
+                                style={{
+                                  flex: 1,
+                                  padding: isMobile ? '0.62rem 0.65rem' : '0.72rem 0.85rem',
+                                  borderRadius: 12,
+                                  fontWeight: 900,
+                                  fontSize: isMobile ? '0.76rem' : '0.84rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6
+                                }}
+                                title={`${book.nextIncompleteTest.name} testini hemen çöz`}
+                              >
+                                <Play size={13} fill="#ffffff" />
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  ⚡ {book.nextIncompleteTest.name}
+                                </span>
+                              </button>
+                            ) : null}
+
+                            <button
+                              onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
+                              className="game-btn-3d"
+                              style={{
+                                padding: isMobile ? '0.62rem 0.75rem' : '0.72rem 1rem',
+                                background: 'var(--color-surface-hover, #f1f5f9)',
+                                color: 'var(--color-text)',
+                                border: '1.5px solid var(--color-border)',
+                                borderRadius: 12,
+                                fontWeight: 900,
+                                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 5,
+                                flexShrink: 0
+                              }}
+                              title="Kitap Haritası ve Tüm Üniteleri Görüntüle"
+                            >
+                              <MapIcon size={14} color="#06b6d4" />
+                              <span>Harita</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -2293,6 +3440,9 @@ export default function StudentBooksPage() {
               </div>
             )}
           </div>
+        )}
+
+          </>
         )}
 
       </div>
