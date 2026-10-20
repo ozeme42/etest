@@ -663,7 +663,16 @@ export default function TrackedBookQuizRunner() {
   const calculateTestResults = useCallback((answersToCalc) => {
     if (!resolvedTest) return null;
     const targetAnswers = answersToCalc || answers;
-    const answerKey = resolvedTest.answerKey || resolvedBook?.answerKey || {};
+    const answerKey = resolvedTest?.answerKey || 
+      resolvedTest?.answer_key || 
+      resolvedTest?.raw_data?.answerKey || 
+      resolvedTest?.raw_data?.answer_key || 
+      resolvedTest?.correctAnswers ||
+      resolvedTest?.opticAnswers ||
+      resolvedBook?.answerKey || 
+      resolvedBook?.answer_key || 
+      resolvedBook?.raw_data?.answerKey || 
+      resolvedBook?.raw_data?.answer_key || {};
     const penaltyRatio = resolvedBook?.penaltyRatio !== undefined ? resolvedBook.penaltyRatio : 3;
     const testIsOpenEnded = isOpenEnded;
 
@@ -698,9 +707,27 @@ export default function TrackedBookQuizRunner() {
       const qNo = startQ + (i - 1);
       const rawUserAns = targetAnswers[qNo] ?? targetAnswers[String(qNo)] ?? targetAnswers[i] ?? targetAnswers[String(i)] ?? '';
 
-      const rawCorrectKey = Array.isArray(answerKey)
-        ? (answerKey[i - 1] ?? answerKey[qNo] ?? answerKey[i] ?? '')
-        : (answerKey[qNo] ?? answerKey[String(qNo)] ?? answerKey[i] ?? answerKey[String(i)] ?? '');
+      let rawCorrectKey = '';
+      if (Array.isArray(answerKey)) {
+        rawCorrectKey = answerKey[i - 1] ?? answerKey[qNo] ?? answerKey[i] ?? '';
+      } else if (typeof answerKey === 'object' && answerKey !== null) {
+        if (answerKey[qNo] !== undefined && answerKey[qNo] !== null && answerKey[qNo] !== '') {
+          rawCorrectKey = answerKey[qNo];
+        } else if (answerKey[String(qNo)] !== undefined && answerKey[String(qNo)] !== null && answerKey[String(qNo)] !== '') {
+          rawCorrectKey = answerKey[String(qNo)];
+        } else if (answerKey[i] !== undefined && answerKey[i] !== null && answerKey[i] !== '') {
+          rawCorrectKey = answerKey[i];
+        } else if (answerKey[String(i)] !== undefined && answerKey[String(i)] !== null && answerKey[String(i)] !== '') {
+          rawCorrectKey = answerKey[String(i)];
+        } else if (answerKey[i - 1] !== undefined && answerKey[i - 1] !== null && answerKey[i - 1] !== '') {
+          rawCorrectKey = answerKey[i - 1];
+        } else if (answerKey[String(i - 1)] !== undefined && answerKey[String(i - 1)] !== null && answerKey[String(i - 1)] !== '') {
+          rawCorrectKey = answerKey[String(i - 1)];
+        }
+      } else if (typeof answerKey === 'string') {
+        const cleanStr = answerKey.replace(/[^A-Ea-e]/g, '');
+        if (cleanStr.length >= i) rawCorrectKey = cleanStr[i - 1];
+      }
 
       let isCorrect = false;
       let isWrong = false;
@@ -719,15 +746,13 @@ export default function TrackedBookQuizRunner() {
           if (isMatch === true) {
             correct++;
             isCorrect = true;
-          } else if (isMatch === false) {
+          } else {
+            // Cevap anahtarı tanımlıysa ve eşleşmediyse YANLIŞ say (otomatik değerlendirme)
             wrong++;
             isWrong = true;
-          } else {
-            pending++;
-            isPending = true;
           }
         } else {
-          // Cevap anahtarı yok — pending (öğretmen onayı bekliyor)
+          // Cevap anahtarı hiç tanımlanmamışsa kontrol bekliyor
           pending++;
           isPending = true;
         }
@@ -764,7 +789,7 @@ export default function TrackedBookQuizRunner() {
     }
 
     const hasAnswerKey = testIsOpenEnded
-      ? Object.keys(answerKey).filter(k => k !== '__meta').length > 0
+      ? (Array.isArray(answerKey) ? answerKey.length > 0 : (typeof answerKey === 'object' && answerKey !== null ? Object.keys(answerKey).filter(k => k !== '__meta' && k !== 'meta').length > 0 : Boolean(answerKey)))
       : true;
 
     const rawNet = correct - (penaltyRatio > 0 ? wrong / penaltyRatio : 0);
@@ -1293,7 +1318,11 @@ export default function TrackedBookQuizRunner() {
       questionNo: d.questionNo,
       userAnswer: d.userAnswer,
       correctAnswer: d.correctAnswer,
-      isCorrect: d.isCorrect
+      isCorrect: d.isCorrect,
+      isWrong: d.isWrong,
+      isBlank: d.isBlank,
+      isPending: d.isPending,
+      status: d.isCorrect ? 'correct' : (d.isWrong ? 'wrong' : 'empty')
     }));
 
     // 1. Save to EvaluationContext
@@ -1315,6 +1344,11 @@ export default function TrackedBookQuizRunner() {
             ? `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${finalUnitTopic} (${resolvedTest.name})`
             : `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} (${resolvedTest.name})`);
 
+      const hasPendingEvaluation = Boolean(calculated.pending > 0);
+      const isApproved = !hasPendingEvaluation;
+      const approvalStatus = isApproved ? 'approved' : 'pending';
+      const finalStatus = hasPendingEvaluation ? 'pending_evaluation' : 'completed';
+
       const newSubId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       await addSubmission({
         id: newSubId,
@@ -1335,7 +1369,10 @@ export default function TrackedBookQuizRunner() {
         studentId: studentId,
         score: calculated.net,
         scorePercentage: calculated.scorePct,
-        status: 'completed',
+        status: finalStatus,
+        approvalStatus: approvalStatus,
+        isApproved: isApproved,
+        isAutoEvaluated: Boolean(calculated.isOpenEnded && !hasPendingEvaluation),
         correctCount: calculated.correct,
         wrongCount: calculated.wrong,
         blankCount: calculated.blank,
@@ -1360,7 +1397,10 @@ export default function TrackedBookQuizRunner() {
             testTitle: fullTestTitle,
             totalQuestions: calculated.totalQuestions,
             totalNet: calculated.net,
-            sourceType: isExam ? 'physicalExam' : 'trackedBook'
+            sourceType: isExam ? 'physicalExam' : 'trackedBook',
+            approvalStatus: approvalStatus,
+            isApproved: isApproved,
+            isAutoEvaluated: Boolean(calculated.isOpenEnded && !hasPendingEvaluation)
           }
         ],
         studentAnswers: answers,
@@ -2458,7 +2498,11 @@ export default function TrackedBookQuizRunner() {
                             let correctKey = '';
 
                             if (isSubmitted) {
-                              const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+                              const answerKey = resolvedTest?.answerKey || 
+                                resolvedTest?.answer_key || 
+                                resolvedTest?.raw_data?.answerKey || 
+                                resolvedBook?.answerKey || 
+                                resolvedBook?.answer_key || {};
                               correctKey = Array.isArray(answerKey) 
                                 ? (answerKey[idx] || '') 
                                 : (answerKey[qNo] || answerKey[String(qNo)] || '');
@@ -2468,10 +2512,23 @@ export default function TrackedBookQuizRunner() {
 
                             if (isOpenEnded) {
                               // Açık uçlu soru değerlendirmesi
-                              const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
-                              const rawCorrectKey = Array.isArray(answerKey)
-                                ? (answerKey[idx] ?? '')
-                                : (answerKey[qNo] ?? answerKey[String(qNo)] ?? '');
+                              const answerKey = resolvedTest?.answerKey || 
+                                resolvedTest?.answer_key || 
+                                resolvedTest?.raw_data?.answerKey || 
+                                resolvedTest?.raw_data?.answer_key || 
+                                resolvedTest?.correctAnswers ||
+                                resolvedBook?.answerKey || 
+                                resolvedBook?.answer_key || 
+                                resolvedBook?.raw_data?.answerKey || {};
+                              let rawCorrectKey = '';
+                              if (Array.isArray(answerKey)) {
+                                rawCorrectKey = answerKey[idx] ?? answerKey[qNo] ?? '';
+                              } else if (typeof answerKey === 'object' && answerKey !== null) {
+                                if (answerKey[qNo] !== undefined && answerKey[qNo] !== null && answerKey[qNo] !== '') rawCorrectKey = answerKey[qNo];
+                                else if (answerKey[String(qNo)] !== undefined && answerKey[String(qNo)] !== null && answerKey[String(qNo)] !== '') rawCorrectKey = answerKey[String(qNo)];
+                                else if (answerKey[idx] !== undefined && answerKey[idx] !== null && answerKey[idx] !== '') rawCorrectKey = answerKey[idx];
+                                else if (answerKey[String(idx)] !== undefined && answerKey[String(idx)] !== null && answerKey[String(idx)] !== '') rawCorrectKey = answerKey[String(idx)];
+                              }
                               const hasKey = rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined;
                               const isOeMatch = isSubmitted && hasKey && selected ? compareOpenEndedAnswers(selected, rawCorrectKey) : null;
                               const isOeCorrect = isOeMatch === true;

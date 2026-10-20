@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X, Check, Plus, BookOpen, CheckCircle2, AlertCircle,
-  HelpCircle, Calendar, Sparkles, TrendingUp, ChevronDown, Layers
+  HelpCircle, Calendar, Sparkles, TrendingUp, ChevronDown, Layers,
+  FileText, Zap, Edit3, RotateCcw, Clipboard, CheckCheck
 } from 'lucide-react';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
@@ -11,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyToday } from '../utils/dateHelpers';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 
 const MISTAKE_REASONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -60,6 +62,12 @@ export default function ManualTestModal({
   const [mistakeReasons, setMistakeReasons] = useState({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // Open-ended / Auto-evaluation State
+  const [entryMode, setEntryMode] = useState('by_question'); // 'by_question' | 'manual_counts'
+  const [questionAnswers, setQuestionAnswers] = useState({});
+  const [bulkInput, setBulkInput] = useState('');
+  const [showBulkInput, setShowBulkInput] = useState(false);
+
   // Guard against re-renders wiping user-entered input while modal is open
   const prevIsOpenRef = useRef(false);
   const prevDataKeyRef = useRef(null);
@@ -108,6 +116,137 @@ export default function ManualTestModal({
     });
   }, [selectedBook, bookTests, selectedSubject, selectedTopicId]);
 
+  // Selected test object
+  const currentTestObj = useMemo(() => {
+    if (selectedTestId && selectedTestId !== '__custom__') {
+      return (
+        availableTests.find(t => String(t.id) === String(selectedTestId) || toUUID(t.id) === toUUID(selectedTestId)) ||
+        (bookTests || []).find(t => String(t.id) === String(selectedTestId) || toUUID(t.id) === toUUID(selectedTestId)) ||
+        null
+      );
+    }
+    if (initialData?.testId && initialData.testId !== '__custom__') {
+      return (
+        availableTests.find(t => String(t.id) === String(initialData.testId) || toUUID(t.id) === toUUID(initialData.testId)) ||
+        (bookTests || []).find(t => String(t.id) === String(initialData.testId) || toUUID(t.id) === toUUID(initialData.testId)) ||
+        null
+      );
+    }
+    return null;
+  }, [selectedTestId, availableTests, bookTests, initialData]);
+
+  // Answer Key for selected test or book
+  const testAnswerKey = useMemo(() => {
+    const raw =
+      initialData?.answerKey ||
+      initialData?.answer_key ||
+      currentTestObj?.answerKey ||
+      currentTestObj?.answer_key ||
+      currentTestObj?.raw_data?.answerKey ||
+      currentTestObj?.raw_data?.answer_key ||
+      currentTestObj?.correctAnswers ||
+      currentTestObj?.opticAnswers ||
+      selectedBook?.answerKey ||
+      selectedBook?.answer_key ||
+      selectedBook?.raw_data?.answerKey ||
+      null;
+
+    if (!raw) return null;
+    if (Array.isArray(raw) && raw.length > 0) return raw;
+    if (typeof raw === 'object' && Object.keys(raw).filter(k => k !== '__meta' && k !== 'meta').length > 0) {
+      return raw;
+    }
+    if (typeof raw === 'string' && raw.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') return parsed;
+      } catch {}
+      return raw.trim();
+    }
+    return null;
+  }, [initialData, currentTestObj, selectedBook]);
+
+  // Check if test or book is open-ended
+  const isTestOpenEnded = useMemo(() => {
+    if (initialData?.isOpenEnded !== undefined) return Boolean(initialData.isOpenEnded);
+    if (currentTestObj) {
+      if (
+        currentTestObj.isOpenEnded === true ||
+        currentTestObj.is_open_ended === true ||
+        currentTestObj.questionType === 'acik_uclu' ||
+        currentTestObj.question_type === 'acik_uclu'
+      ) return true;
+      if (currentTestObj.name && /açık\s*uçlu|acik\s*uclu|yazılı\s*klasik/i.test(currentTestObj.name)) return true;
+    }
+    if (selectedBook && (selectedBook.bookType === 'open_ended' || selectedBook.book_type === 'open_ended')) return true;
+    return false;
+  }, [initialData, currentTestObj, selectedBook]);
+
+  // Check if there is a defined answer key
+  const hasDefinedAnswerKey = useMemo(() => {
+    if (!testAnswerKey) return false;
+    if (Array.isArray(testAnswerKey)) return testAnswerKey.length > 0;
+    if (typeof testAnswerKey === 'object') {
+      return Object.keys(testAnswerKey).filter(k => k !== '__meta' && k !== 'meta').length > 0;
+    }
+    if (typeof testAnswerKey === 'string') return testAnswerKey.trim().length > 0;
+    return false;
+  }, [testAnswerKey]);
+
+  // Retrieve correct answer key for a specific question number
+  const getCorrectKeyForQ = (qNo) => {
+    if (!testAnswerKey) return '';
+    if (Array.isArray(testAnswerKey)) {
+      return String(testAnswerKey[qNo - 1] ?? testAnswerKey[qNo] ?? '').trim();
+    }
+    if (typeof testAnswerKey === 'object') {
+      if (testAnswerKey[qNo] !== undefined && testAnswerKey[qNo] !== null && testAnswerKey[qNo] !== '') {
+        return String(testAnswerKey[qNo]).trim();
+      }
+      if (testAnswerKey[String(qNo)] !== undefined && testAnswerKey[String(qNo)] !== null && testAnswerKey[String(qNo)] !== '') {
+        return String(testAnswerKey[String(qNo)]).trim();
+      }
+      if (testAnswerKey[qNo - 1] !== undefined && testAnswerKey[qNo - 1] !== null && testAnswerKey[qNo - 1] !== '') {
+        return String(testAnswerKey[qNo - 1]).trim();
+      }
+      if (testAnswerKey[String(qNo - 1)] !== undefined && testAnswerKey[String(qNo - 1)] !== null && testAnswerKey[String(qNo - 1)] !== '') {
+        return String(testAnswerKey[String(qNo - 1)]).trim();
+      }
+    }
+    if (typeof testAnswerKey === 'string') {
+      const clean = testAnswerKey.replace(/[^A-Ea-e]/g, '');
+      if (clean.length >= qNo) return clean[qNo - 1];
+    }
+    return '';
+  };
+
+  // Evaluate an answers map against answerKey
+  const evaluateAnswersMap = (answersMap, totQ = totalQuestions) => {
+    let cor = 0;
+    let wrg = 0;
+    let emp = 0;
+
+    for (let i = 1; i <= totQ; i++) {
+      const rawUserAns = answersMap[i] ?? answersMap[String(i)] ?? '';
+      const rawCorrectKey = getCorrectKeyForQ(i);
+
+      if (rawUserAns === '' || rawUserAns === null || rawUserAns === undefined) {
+        emp++;
+      } else if (rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined) {
+        const isMatch = compareOpenEndedAnswers(rawUserAns, rawCorrectKey);
+        if (isMatch === true) {
+          cor++;
+        } else {
+          wrg++;
+        }
+      } else {
+        cor++;
+      }
+    }
+
+    return { cor, wrg, emp };
+  };
+
   // Init when modal opens or target test data changes
   useEffect(() => {
     const dataKey = initialData ? (initialData.submissionId || initialData.id || initialData.testId || initialData.bookId || '__init__') : '__null__';
@@ -149,11 +288,43 @@ export default function ManualTestModal({
       const emp = initialData.emptyCount !== undefined ? Number(initialData.emptyCount) : Math.max(0, tot - (cor + wrg));
 
       setTotalQuestions(tot);
-      setCorrectCount(cor);
-      setWrongCount(wrg);
-      setEmptyCount(emp);
       setDate(initialData.date || new Date().toISOString().split('T')[0]);
       setMistakeReasons(initialData.mistakeReasons || {});
+
+      // Populate question answers if available
+      const existingAnswers = {};
+      if (initialData?.studentAnswers && typeof initialData.studentAnswers === 'object') {
+        Object.entries(initialData.studentAnswers).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) existingAnswers[k] = String(v);
+        });
+      } else if (Array.isArray(initialData?.answers)) {
+        initialData.answers.forEach((a, idx) => {
+          const qNo = a.questionNo || a.questionIndex || (idx + 1);
+          const v = a.userAnswer ?? a.userAnswerText ?? a.userAnswerLetter ?? '';
+          if (v !== undefined && v !== null && v !== '') existingAnswers[qNo] = String(v);
+        });
+      }
+      setQuestionAnswers(existingAnswers);
+      setBulkInput('');
+      setShowBulkInput(false);
+
+      if (hasDefinedAnswerKey || (initialData?.answerKey && Object.keys(initialData.answerKey).length > 0)) {
+        setEntryMode('by_question');
+        if (Object.keys(existingAnswers).length > 0) {
+          const { cor: evaluatedCor, wrg: evaluatedWrg, emp: evaluatedEmp } = evaluateAnswersMap(existingAnswers, tot);
+          setCorrectCount(evaluatedCor);
+          setWrongCount(evaluatedWrg);
+          setEmptyCount(evaluatedEmp);
+        } else {
+          setCorrectCount(cor);
+          setWrongCount(wrg);
+          setEmptyCount(emp);
+        }
+      } else {
+        setCorrectCount(cor);
+        setWrongCount(wrg);
+        setEmptyCount(emp);
+      }
     } else {
       // Default reset for fresh entry
       if (availableBooks.length > 0) {
@@ -178,8 +349,12 @@ export default function ManualTestModal({
       setEmptyCount(20);
       setDate(new Date().toISOString().split('T')[0]);
       setMistakeReasons({});
+      setQuestionAnswers({});
+      setBulkInput('');
+      setShowBulkInput(false);
+      setEntryMode('by_question');
     }
-  }, [isOpen, initialData, availableBooks]);
+  }, [isOpen, initialData, availableBooks, hasDefinedAnswerKey]);
 
   // When book changes, auto-select first subject
   const handleBookChange = (e) => {
@@ -205,13 +380,54 @@ export default function ManualTestModal({
     const tId = e.target.value;
     setSelectedTestId(tId);
     if (tId && tId !== '__custom__') {
-      const tObj = availableTests.find(t => String(t.id) === String(tId));
+      const tObj = availableTests.find(t => String(t.id) === String(tId)) || (bookTests || []).find(t => String(t.id) === String(tId));
       if (tObj?.questionCount) {
         const qCount = Number(tObj.questionCount);
         setTotalQuestions(qCount);
-        setEmptyCount(Math.max(0, qCount - (correctCount + wrongCount)));
+        const { cor, wrg, emp } = evaluateAnswersMap(questionAnswers, qCount);
+        setCorrectCount(cor);
+        setWrongCount(wrg);
+        setEmptyCount(emp);
+      }
+      if (tObj?.answerKey || tObj?.answer_key) {
+        setEntryMode('by_question');
       }
     }
+  };
+
+  // Handler for question-by-question answer changes
+  const handleAnswerChange = (qNo, val) => {
+    const nextAnswers = { ...questionAnswers, [qNo]: val, [String(qNo)]: val };
+    setQuestionAnswers(nextAnswers);
+
+    if (hasDefinedAnswerKey) {
+      const { cor, wrg, emp } = evaluateAnswersMap(nextAnswers, totalQuestions);
+      setCorrectCount(cor);
+      setWrongCount(wrg);
+      setEmptyCount(emp);
+    }
+  };
+
+  // Handler for bulk paste answers
+  const handleApplyBulkInput = () => {
+    if (!bulkInput.trim()) return;
+    const tokens = bulkInput.trim().split(/[,;\n\t]+/).map(s => s.trim()).filter(Boolean);
+    const nextAnswers = { ...questionAnswers };
+    tokens.forEach((token, idx) => {
+      const qNo = idx + 1;
+      if (qNo <= totalQuestions) {
+        nextAnswers[qNo] = token;
+        nextAnswers[String(qNo)] = token;
+      }
+    });
+    setQuestionAnswers(nextAnswers);
+    if (hasDefinedAnswerKey) {
+      const { cor, wrg, emp } = evaluateAnswersMap(nextAnswers, totalQuestions);
+      setCorrectCount(cor);
+      setWrongCount(wrg);
+      setEmptyCount(emp);
+    }
+    setShowBulkInput(false);
   };
 
   // Handlers for Score Inputs with auto-calculation
@@ -297,44 +513,73 @@ export default function ManualTestModal({
 
       // Synthesize individual answers for detailed mistake analysis & review
       const answersList = [];
-      let qNum = 1;
-      for (let i = 0; i < correctCount; i++) {
-        answersList.push({
-          questionIndex: qNum,
-          userAnswer: 'A',
-          correctAnswer: 'A',
-          isCorrect: true,
-          status: 'correct'
-        });
-        qNum++;
-      }
-      for (let i = 0; i < wrongCount; i++) {
-        const reason = mistakeReasons[i + 1] || null;
-        answersList.push({
-          questionIndex: qNum,
-          userAnswer: 'B',
-          correctAnswer: 'A',
-          isCorrect: false,
-          status: 'wrong',
-          mistakeReason: reason
-        });
-        qNum++;
-      }
-      for (let i = 0; i < emptyCount; i++) {
-        answersList.push({
-          questionIndex: qNum,
-          userAnswer: '',
-          correctAnswer: 'A',
-          isCorrect: null,
-          status: 'empty'
-        });
-        qNum++;
+      const isAutoEvaluated = Boolean(hasDefinedAnswerKey && entryMode === 'by_question');
+
+      if (isAutoEvaluated) {
+        for (let i = 1; i <= totQ; i++) {
+          const uAns = questionAnswers[i] ?? questionAnswers[String(i)] ?? '';
+          const cKey = getCorrectKeyForQ(i);
+          const isCor = Boolean(uAns !== '' && cKey !== '' && compareOpenEndedAnswers(uAns, cKey) === true);
+          const isWrg = Boolean(uAns !== '' && cKey !== '' && !isCor);
+          const reason = mistakeReasons[i] || null;
+
+          answersList.push({
+            questionIndex: i,
+            questionNo: i,
+            userAnswer: uAns,
+            correctAnswer: cKey,
+            isCorrect: isCor,
+            isWrong: isWrg,
+            status: isCor ? 'correct' : (isWrg ? 'wrong' : 'empty'),
+            mistakeReason: reason
+          });
+        }
+      } else {
+        let qNum = 1;
+        for (let i = 0; i < correctCount; i++) {
+          answersList.push({
+            questionIndex: qNum,
+            questionNo: qNum,
+            userAnswer: 'A',
+            correctAnswer: 'A',
+            isCorrect: true,
+            isWrong: false,
+            status: 'correct'
+          });
+          qNum++;
+        }
+        for (let i = 0; i < wrongCount; i++) {
+          const reason = mistakeReasons[i + 1] || null;
+          answersList.push({
+            questionIndex: qNum,
+            questionNo: qNum,
+            userAnswer: 'B',
+            correctAnswer: 'A',
+            isCorrect: false,
+            isWrong: true,
+            status: 'wrong',
+            mistakeReason: reason
+          });
+          qNum++;
+        }
+        for (let i = 0; i < emptyCount; i++) {
+          answersList.push({
+            questionIndex: qNum,
+            questionNo: qNum,
+            userAnswer: '',
+            correctAnswer: 'A',
+            isCorrect: null,
+            isWrong: false,
+            status: 'empty'
+          });
+          qNum++;
+        }
       }
 
       const submissionId = initialData?.submissionId || initialData?.id || `sub_manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
       const isStaff = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
-      const isApproved = isStaff || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
+      const isApproved = isStaff || isAutoEvaluated || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
       const approvalStatus = isApproved ? 'approved' : 'pending';
       const finalStatus = isApproved ? 'completed' : 'pending_approval';
 
@@ -363,14 +608,16 @@ export default function ManualTestModal({
         status: finalStatus,
         approvalStatus: approvalStatus,
         isApproved: isApproved,
+        isAutoEvaluated: isAutoEvaluated,
         isManual: true,
         sourceType: 'manual_test',
         submittedByRole: currentUser?.role || 'student',
         submittedByName: currentUser?.name || 'Öğrenci',
-        approvedBy: isApproved ? (currentUser?.id || initialData?.approvedBy || null) : null,
-        approvedByName: isApproved ? (currentUser?.name || initialData?.approvedByName || null) : null,
+        approvedBy: isApproved ? (currentUser?.id || initialData?.approvedBy || (isAutoEvaluated ? 'auto_system' : null)) : null,
+        approvedByName: isApproved ? (currentUser?.name || initialData?.approvedByName || (isAutoEvaluated ? 'Otomatik Değerlendirme Sistemi' : null)) : null,
         approvedAt: isApproved ? new Date().toISOString() : null,
         answers: answersList,
+        studentAnswers: questionAnswers,
         mistakeReasons: mistakeReasons
       };
 
@@ -494,7 +741,26 @@ export default function ManualTestModal({
         </div>
 
         {/* Approval Info Banner */}
-        {currentUser?.role === 'teacher' || currentUser?.role === 'admin' ? (
+        {hasDefinedAnswerKey ? (
+          <div style={{
+            margin: '0.85rem 1.5rem 0',
+            padding: '0.7rem 0.95rem',
+            borderRadius: 12,
+            background: isDark ? 'rgba(16, 185, 129, 0.15)' : '#f0fdf4',
+            border: isDark ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid #bbf7d0',
+            color: isDark ? '#34d399' : '#15803d',
+            fontSize: '0.76rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10
+          }}>
+            <Sparkles size={18} style={{ flexShrink: 0 }} />
+            <div>
+              <strong>🤖 Otomatik Değerlendirme Aktif:</strong> Bu testin {isTestOpenEnded ? 'açık uçlu' : ''} cevap anahtarı sistemde kayıtlı. Girdiğiniz cevaplar otomatik değerlendirilir, anında onaylanır ve kitap haritanıza yansır.
+            </div>
+          </div>
+        ) : currentUser?.role === 'teacher' || currentUser?.role === 'admin' ? (
           <div style={{
             margin: '0.85rem 1.5rem 0',
             padding: '0.65rem 0.9rem',
@@ -776,13 +1042,265 @@ export default function ManualTestModal({
             </div>
           )}
 
-          {/* 4. Soru ve Sonuç Girişi (Toplam, D, Y, B) */}
+          {/* 4. Soru ve Sonuç Girişi */}
           <div style={{
             background: isDark ? 'rgba(30, 41, 59, 0.4)' : '#f8fafc',
             border: '1.5px solid var(--color-border, #e2e8f0)',
             borderRadius: '1.25rem',
-            padding: '1.1rem'
+            padding: '1.1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.9rem'
           }}>
+            {/* Giriş Modu Seçimi (Eğer cevap anahtarı varsa) */}
+            {hasDefinedAnswerKey ? (
+              <div style={{
+                display: 'flex',
+                background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#e2e8f0',
+                padding: 3,
+                borderRadius: '0.75rem',
+                gap: 4
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setEntryMode('by_question')}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.65rem',
+                    border: 'none',
+                    background: entryMode === 'by_question' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                    color: entryMode === 'by_question' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontWeight: 900,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: entryMode === 'by_question' ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Zap size={14} /> ✍️ Soru Soru Cevap Gir (Otomatik Değerlendir)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEntryMode('manual_counts')}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '0.65rem',
+                    border: 'none',
+                    background: entryMode === 'manual_counts' ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'transparent',
+                    color: entryMode === 'manual_counts' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontWeight: 800,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: entryMode === 'manual_counts' ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Edit3 size={14} /> 🔢 Manuel Sayı Gir (D / Y / B)
+                </button>
+              </div>
+            ) : null}
+
+            {/* Soru Soru Cevap Girişi Modu */}
+            {hasDefinedAnswerKey && entryMode === 'by_question' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Toplu Yapıştır Butonu ve Alanı */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                    {isTestOpenEnded ? '📝 Açık Uçlu Soru Cevapları' : '📝 Soru Cevapları'} ({totalQuestions} Soru):
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkInput(!showBulkInput)}
+                    style={{
+                      background: 'none',
+                      border: '1px dashed var(--color-border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: 'var(--color-primary, #6366f1)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Clipboard size={12} /> {showBulkInput ? 'Yapıştırmayı Gizle' : 'Toplu Cevap Yapıştır'}
+                  </button>
+                </div>
+
+                {showBulkInput && (
+                  <div style={{
+                    background: isDark ? 'rgba(15, 23, 42, 0.7)' : '#ffffff',
+                    border: '1.5px solid #cbd5e1',
+                    borderRadius: '0.75rem',
+                    padding: '0.65rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6
+                  }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                      Cevapları virgülle, boşlukla veya satır satır yapıştırın:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={bulkInput}
+                      onChange={e => setBulkInput(e.target.value)}
+                      placeholder={isTestOpenEnded ? "Örn: 103959, 2, 503976, 22..." : "Örn: A, B, C, D, E..."}
+                      style={{
+                        width: '100%',
+                        padding: '0.45rem',
+                        fontSize: '0.8rem',
+                        fontFamily: 'monospace',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        color: 'var(--color-text)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={handleApplyBulkInput}
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          borderRadius: '0.5rem',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          color: '#fff',
+                          fontWeight: 900,
+                          fontSize: '0.74rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        ✓ Dağıt ve Otomatik Değerlendir
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Soru Soru Liste / Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                  gap: '0.55rem',
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  padding: '0.35rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid var(--color-border, #e2e8f0)',
+                  background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff'
+                }}>
+                  {Array.from({ length: totalQuestions }, (_, idx) => {
+                    const qNo = idx + 1;
+                    const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
+                    const correctKey = getCorrectKeyForQ(qNo);
+                    const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;
+
+                    const isMatch = val !== '' && hasKey ? compareOpenEndedAnswers(val, correctKey) : null;
+                    const isCor = isMatch === true;
+                    const isWrg = isMatch === false;
+                    const isEmp = val === '';
+
+                    const borderColor = isCor ? '#86efac' : isWrg ? '#fca5a5' : 'var(--color-border, #cbd5e1)';
+                    const bg = isCor ? (isDark ? 'rgba(22, 163, 74, 0.12)' : '#f0fdf4')
+                      : isWrg ? (isDark ? 'rgba(220, 38, 38, 0.12)' : '#fef2f2')
+                      : 'var(--color-surface, #ffffff)';
+
+                    return (
+                      <div
+                        key={qNo}
+                        style={{
+                          background: bg,
+                          border: `1.5px solid ${borderColor}`,
+                          borderRadius: '0.65rem',
+                          padding: '0.45rem 0.6rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                            {qNo}. Soru
+                          </span>
+                          {isCor && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a' }}>✓ Doğru</span>
+                          )}
+                          {isWrg && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626' }}>✗ Yanlış</span>
+                          )}
+                          {isEmp && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>○ Boş</span>
+                          )}
+                        </div>
+
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={e => handleAnswerChange(qNo, e.target.value)}
+                          placeholder={isTestOpenEnded ? "Öğrenci cevabı..." : "Seçenek..."}
+                          style={{
+                            width: '100%',
+                            padding: '0.35rem 0.5rem',
+                            fontSize: '0.82rem',
+                            fontWeight: 800,
+                            borderRadius: '0.45rem',
+                            border: `1px solid ${borderColor}`,
+                            background: 'var(--color-surface, #ffffff)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            outline: 'none'
+                          }}
+                        />
+
+                        {isWrg && (
+                          <select
+                            value={mistakeReasons[qNo] || ''}
+                            onChange={e => {
+                              const r = e.target.value;
+                              setMistakeReasons(prev => ({
+                                ...prev,
+                                [qNo]: r
+                              }));
+                            }}
+                            style={{
+                              fontSize: '0.66rem',
+                              fontWeight: 700,
+                              padding: '0.2rem',
+                              borderRadius: '0.35rem',
+                              border: '1px solid #fca5a5',
+                              background: '#fff',
+                              color: '#dc2626',
+                              outline: 'none',
+                              marginTop: 2
+                            }}
+                          >
+                            <option value="">Hata Sebebi Seçin</option>
+                            {MISTAKE_REASONS.map(mr => (
+                              <option key={mr.label} value={mr.label}>{mr.label}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Otomatik Hesaplanmış Veya Manuel Skor Kutuları */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.6rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', marginBottom: 4, textAlign: 'center' }}>

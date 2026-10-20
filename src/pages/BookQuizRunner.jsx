@@ -9,6 +9,7 @@ import {
   FileText, ChevronDown, ChevronUp, ExternalLink, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import PdfViewerPanel from '../components/PdfViewerPanel';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 
 export default function BookQuizRunner() {
   const params = useParams();
@@ -102,19 +103,40 @@ export default function BookQuizRunner() {
 
     for (let i = 1; i <= qCount; i++) {
       const qNumStr = String(i);
-      const userAns = studentAnswers[qNumStr] || null;
+      const userAns = studentAnswers[qNumStr] !== undefined && studentAnswers[qNumStr] !== null ? studentAnswers[qNumStr] : null;
+      const correctAns = testDef.answerKey?.[qNumStr] ?? testDef.answerKey?.[String(i)] ?? testDef.answer_key?.[qNumStr] ?? null;
       
       if (isOpenEnded) {
-        if (userAns) pendingCount++;
+        let isCorrect = false;
+        let isWrong = false;
+        let isPending = false;
+
+        if (userAns !== null && String(userAns).trim() !== '') {
+          if (correctAns !== null && String(correctAns).trim() !== '') {
+            const isMatch = compareOpenEndedAnswers(userAns, correctAns);
+            if (isMatch === true) {
+              isCorrect = true;
+              correctCount++;
+              totalScore += (100 / qCount);
+            } else {
+              isWrong = true;
+            }
+          } else {
+            pendingCount++;
+            isPending = true;
+          }
+        }
+
         answers.push({
           questionId: qNumStr,
           type: 'acik_uclu',
           userAnswer: userAns,
-          correctAnswer: null,
-          isCorrect: null
+          correctAnswer: correctAns,
+          isCorrect: userAns ? isCorrect : null,
+          isWrong: userAns ? isWrong : null,
+          isPending
         });
       } else {
-        const correctAns = testDef.answerKey?.[qNumStr] || null;
         let isCorrect = false;
         
         if (userAns && correctAns && userAns === correctAns) {
@@ -134,6 +156,8 @@ export default function BookQuizRunner() {
     }
 
     const subStatus = (isOpenEnded && pendingCount > 0) ? 'pending_evaluation' : 'completed';
+    const isApproved = pendingCount === 0;
+    const approvalStatus = isApproved ? 'approved' : 'pending';
 
     const submissionData = {
       testId: hw.id,
@@ -144,7 +168,13 @@ export default function BookQuizRunner() {
       studentName: student.name,
       isHomework: true,
       status: subStatus,
+      approvalStatus: approvalStatus,
+      isApproved: isApproved,
+      isAutoEvaluated: Boolean(isOpenEnded && isApproved),
       score: Math.round(totalScore),
+      scorePercentage: Math.round(totalScore),
+      correctCount,
+      wrongCount: qCount - correctCount - (qCount - Object.values(studentAnswers).filter(Boolean).length),
       submittedAt: new Date().toISOString(),
       answers
     };

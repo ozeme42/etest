@@ -89,7 +89,10 @@ export default function BookContentManager() {
         wrongCount: testItem.testSub?.wrongCount || 0,
         emptyCount: testItem.testSub?.emptyCount ?? Math.max(0, (testDef.questionCount || 12) - ((testItem.testSub?.correctCount || 0) + (testItem.testSub?.wrongCount || 0))),
         hwId: hw?.id,
-        submissionId: testItem.testSub?.id
+        submissionId: testItem.testSub?.id,
+        answerKey: testDef.answerKey || testDef.answer_key || testDef.raw_data?.answerKey,
+        isOpenEnded: Boolean(testDef.isOpenEnded || testDef.is_open_ended || testDef.questionType === 'acik_uclu' || (book?.bookType === 'open_ended')),
+        studentAnswers: testItem.testSub?.studentAnswers || testItem.testSub?.studentAnswersMap || testItem.testSub?.answers
       }
     });
   };

@@ -162,7 +162,10 @@ export default function StudentBookDetailsPage() {
           wrongCount: bestSub?.wrongCount || 0,
           emptyCount: bestSub?.blankCount ?? bestSub?.emptyCount ?? Math.max(0, (test.questionCount || 20) - ((bestSub?.correctCount || 0) + (bestSub?.wrongCount || 0))),
           submissionId: test.latestSubId || bestSub?.id,
-          mistakeReasons: bestSub?.mistakeReasons || {}
+          mistakeReasons: bestSub?.mistakeReasons || {},
+          answerKey: test.answerKey || test.answer_key || test.raw_data?.answerKey,
+          isOpenEnded: Boolean(test.isOpenEnded || test.is_open_ended || test.questionType === 'acik_uclu' || (book?.bookType === 'open_ended')),
+          studentAnswers: bestSub?.studentAnswers || bestSub?.studentAnswersMap || bestSub?.answers
         }
       });
     } else {

@@ -1030,6 +1030,7 @@ export function EvaluationProvider({ children }) {
         const rawNet = correct - (pRatio > 0 ? wrong / pRatio : 0);
         const net = Math.max(0, Number(rawNet.toFixed(2)));
         const scorePct = qCount > 0 ? Math.round((correct / qCount) * 100) : 0;
+        const isApproved = pending === 0;
 
         const updated = {
           ...sub,
@@ -1048,7 +1049,12 @@ export function EvaluationProvider({ children }) {
           score: scorePct,
           scorePct: scorePct,
           totalQuestions: qCount,
-          total_questions: qCount
+          total_questions: qCount,
+          ...(isApproved ? {
+            status: 'completed',
+            approvalStatus: 'approved',
+            isApproved: true
+          } : {})
         };
 
         updatedList.push(updated);
