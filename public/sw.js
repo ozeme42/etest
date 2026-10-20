@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etest-pwa-v10';
+const CACHE_NAME = 'etest-pwa-v11';
 const IMAGE_CACHE_NAME = 'etest-supabase-images-v1';
 
 self.addEventListener('install', (event) => {
