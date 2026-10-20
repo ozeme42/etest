@@ -261,6 +261,11 @@ export default function EvaluationManager() {
       const isAlreadyEvaluated = Boolean(
         sub.isEvaluatedByTeacher === true ||
         sub.isEvaluated === true ||
+        sub.isAutoEvaluated === true ||
+        sub.sourceType === 'trackedBook' ||
+        sub.status === 'completed' ||
+        sub.approvalStatus === 'approved' ||
+        sub.isApproved === true ||
         sub.status === 'evaluated' ||
         sub.status === 'graded' ||
         sub.evaluatedByTeacher === true ||
@@ -341,8 +346,11 @@ export default function EvaluationManager() {
       );
 
       // 6. Sınav Değerlendirmeleri YALNIZCA öğretmen notlandırması bekleyen açık uçlu / yazılı sınavlar içindir
-      // Çoktan seçmeli şık işaretlenmiş ve metin yazılmamış testler ASLA hedef olamaz!
-      const isEvaluationTarget = !isExplicitMC && (hasStudentWrittenText || (hasOEQuestionFlag && !hasOptionAnswers) || (hasOEKeywords && !hasOptionAnswers));
+      // Çoktan seçmeli şık işaretlenmiş ve metin yazılmamış testler, kitap testleri ve otomatik değerlendirilenler ASLA hedef olamaz!
+      const isEvaluationTarget = !isExplicitMC &&
+        sub.sourceType !== 'trackedBook' &&
+        !sub.isAutoEvaluated &&
+        (hasStudentWrittenText || (hasOEQuestionFlag && !hasOptionAnswers) || (hasOEKeywords && !hasOptionAnswers));
 
       const isPending = isManual
         ? isManualPending

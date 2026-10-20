@@ -752,9 +752,13 @@ export default function TrackedBookQuizRunner() {
             isWrong = true;
           }
         } else {
-          // Cevap anahtarı hiç tanımlanmamışsa kontrol bekliyor
-          pending++;
-          isPending = true;
+          // Cevap anahtarı hiç tanımlanmamışsa: öğrenci cevap yazdıysa doğru say, yazmadıysa boş
+          if (rawUserAns && String(rawUserAns).trim()) {
+            correct++;
+            isCorrect = true;
+          } else {
+            blank++;
+          }
         }
       } else {
         // Çoktan seçmeli mod (harf karşılaştırma)
@@ -1344,10 +1348,11 @@ export default function TrackedBookQuizRunner() {
             ? `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} › ${finalUnitTopic} (${resolvedTest.name})`
             : `${resolvedBook?.title || 'Kitap'} — ${resolvedSubject || 'Türkçe'} (${resolvedTest.name})`);
 
-      const hasPendingEvaluation = Boolean(calculated.pending > 0);
-      const isApproved = !hasPendingEvaluation;
-      const approvalStatus = isApproved ? 'approved' : 'pending';
-      const finalStatus = hasPendingEvaluation ? 'pending_evaluation' : 'completed';
+      // Kitap testleri her zaman otomatik değerlendirilir ve doğrudan tamamlanır (asla öğretmen değerlendirmesine gitmez)
+      const hasPendingEvaluation = false;
+      const isApproved = true;
+      const approvalStatus = 'approved';
+      const finalStatus = 'completed';
 
       const newSubId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       await addSubmission({
@@ -1369,10 +1374,10 @@ export default function TrackedBookQuizRunner() {
         studentId: studentId,
         score: calculated.net,
         scorePercentage: calculated.scorePct,
-        status: finalStatus,
-        approvalStatus: approvalStatus,
-        isApproved: isApproved,
-        isAutoEvaluated: Boolean(calculated.isOpenEnded && !hasPendingEvaluation),
+        status: 'completed',
+        approvalStatus: 'approved',
+        isApproved: true,
+        isAutoEvaluated: true,
         correctCount: calculated.correct,
         wrongCount: calculated.wrong,
         blankCount: calculated.blank,
@@ -1398,9 +1403,9 @@ export default function TrackedBookQuizRunner() {
             totalQuestions: calculated.totalQuestions,
             totalNet: calculated.net,
             sourceType: isExam ? 'physicalExam' : 'trackedBook',
-            approvalStatus: approvalStatus,
-            isApproved: isApproved,
-            isAutoEvaluated: Boolean(calculated.isOpenEnded && !hasPendingEvaluation)
+            approvalStatus: 'approved',
+            isApproved: true,
+            isAutoEvaluated: true
           }
         ],
         studentAnswers: answers,
@@ -3387,7 +3392,7 @@ export default function TrackedBookQuizRunner() {
                     }}
                   >
                     <CheckCircle2 size={20} />
-                    Testi Kaydet ve Tamamla
+                    Testi Bitir
                   </button>
                 </div>
               )}
@@ -3408,7 +3413,7 @@ export default function TrackedBookQuizRunner() {
             </div>
             <h3 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 900, color: 'var(--color-text)' }}>Testi Bitiriyorsunuz</h3>
             <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              {answeredCount}/{questionCount} soru işaretlediniz. Testi tamamlayıp sonuçlarınızı kaydetmek istiyor musunuz?
+              {answeredCount}/{questionCount} soru işaretlediniz. Testi tamamlayıp sonuçlarınızı görmek istiyor musunuz?
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '0.5rem' }}>
               <button 
@@ -3421,7 +3426,7 @@ export default function TrackedBookQuizRunner() {
                 onClick={() => handleSubmit(true)}
                 style={{ flex: 1, padding: '0.8rem', borderRadius: '0.75rem', background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', color: 'white', fontWeight: 900, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
               >
-                Kaydet
+                Testi Bitir
               </button>
             </div>
           </div>

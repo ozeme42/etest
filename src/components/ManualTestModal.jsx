@@ -579,7 +579,8 @@ export default function ManualTestModal({
       const submissionId = initialData?.submissionId || initialData?.id || `sub_manual_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
       const isStaff = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
-      const isApproved = isStaff || isAutoEvaluated || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
+      const isBookTest = Boolean(bookId || currentTestObj || selectedBook);
+      const isApproved = isStaff || isAutoEvaluated || isBookTest || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
       const approvalStatus = isApproved ? 'approved' : 'pending';
       const finalStatus = isApproved ? 'completed' : 'pending_approval';
 
