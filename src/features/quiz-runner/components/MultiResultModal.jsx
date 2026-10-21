@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from 'react';
 import { isSectionOpenEnded, isQuestionOE, checkIsOE, unwrapUserAnswer } from './quizFormatHelpers';
 import { triggerCelebrationConfetti } from '../../../services/feedbackService';
+import { compareOpenEndedAnswers } from '../../../utils/answerEvaluation';
 
 export default function MultiResultModal({ test, sections, sectionAnswers, onConfirmClose, onReview, teacherScores = {}, teacherNotes = {}, overallFeedback = '', isReviewMode = false, isTeacher = false }) {
   useEffect(() => {
@@ -78,8 +79,35 @@ export default function MultiResultModal({ test, sections, sectionAnswers, onCon
             }
           }
         } else {
-          secBoş++;
-          totalBoş++;
+          const userAnsObj = sa.answers?.[i];
+          const ansText = textVal || (typeof userAnsObj === 'object' ? (userAnsObj?.userAnswerText || userAnsObj?.userAnswer) : userAnsObj) || '';
+          const hasUserText = Boolean(ansText && String(ansText).trim() !== '' && String(ansText).trim() !== 'empty');
+
+          if (!hasUserText) {
+            secBoş++;
+            totalBoş++;
+          } else {
+            oeEvaluated++;
+            totalOEEvaluated++;
+            const correctKey = qObj.correctAnswer 
+              || (sec.answerKey ? (sec.answerKey[i] ?? sec.answerKey[String(i)] ?? (Array.isArray(sec.answerKey) ? sec.answerKey[i - 1] : null)) : null)
+              || (test?.answerKey ? (test.answerKey[i] ?? test.answerKey[String(i)] ?? (Array.isArray(test.answerKey) ? test.answerKey[i - 1] : null)) : null);
+
+            let isMatch = true;
+            if (correctKey) {
+              const res = compareOpenEndedAnswers(ansText, correctKey);
+              if (res !== null) isMatch = res;
+            }
+            if (isMatch) {
+              secEarnedPts += 10;
+              totalAllEarnedPts += 10;
+              secDoğru++;
+              totalDoğru++;
+            } else {
+              secYanlış++;
+              totalYanlış++;
+            }
+          }
         }
       } else {
         totalMCQuestions++;

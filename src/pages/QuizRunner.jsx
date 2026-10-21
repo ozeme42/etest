@@ -12,6 +12,7 @@ import { idbGetPayload, idbSetPayload } from '../services/indexedDbService';
 import { dbGetQuestionPayload } from '../services/supabaseService';
 import PdfViewerWithControls from '../components/PdfViewerWithControls';
 import HtmlViewerWithControls from '../components/HtmlViewerWithControls';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 import './QuizRunner.css';
 
 export default function QuizRunner({ reviewSubmission = null, isReviewMode = false, submissionId: propsSubId = null }) {
@@ -664,28 +665,45 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
           });
         }
       } else {
-        // Open-ended
+        // Open-ended - Auto evaluate using compareOpenEndedAnswers
         const userText = typeof ans === 'string' ? ans.trim() : '';
+        const correctKey = q.correctAnswer ?? q.answerKey ?? (test?.answerKey ? (test.answerKey[globalQIndex] ?? test.answerKey[String(globalQIndex + 1)]) : null);
         if (userText.length > 0) {
-          pendingCount++;
+          let isCorrect = true;
+          if (correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '') {
+            const isMatch = compareOpenEndedAnswers(userText, correctKey);
+            if (isMatch !== null) isCorrect = isMatch;
+          }
+          if (isCorrect) {
+            correctCount++;
+            totalScore += 10;
+          } else {
+            wrongCount++;
+            wrongList.push({ qId: targetQId, subIndex: subIdx, isBundle: isBundleItem });
+          }
           collected.push({
             questionId: targetQId,
             isBundle: isBundleItem,
             subIndex: subIdx,
             type: 'acik_uclu',
             userAnswerText: userText,
+            userAnswer: userText,
+            correctAnswer: correctKey || null,
             questionText: q.questionText || q.text || q.title || `Soru ${globalQIndex + 1}`,
-            isCorrect: null, // Pending evaluation
-            earnedPoints: 0
+            isCorrect: isCorrect,
+            earnedPoints: isCorrect ? 10 : 0
           });
         } else {
           blankCount++;
+          wrongList.push({ qId: targetQId, subIndex: subIdx, isBundle: isBundleItem });
           collected.push({
             questionId: targetQId,
             isBundle: isBundleItem,
             subIndex: subIdx,
             type: 'acik_uclu',
             userAnswerText: null,
+            userAnswer: null,
+            correctAnswer: correctKey || null,
             questionText: q.questionText || q.text || q.title || `Soru ${globalQIndex + 1}`,
             isCorrect: false, // Left blank, implicitly 0 points
             earnedPoints: 0
@@ -695,7 +713,7 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
     });
 
     const hasPending = collected.some(a => a.isCorrect === null);
-    const finalStatus = hasPending ? 'pending_evaluation' : 'completed';
+    const finalStatus = 'completed';
     
     setFinalStats({
       correct: correctCount,
@@ -730,7 +748,10 @@ export default function QuizRunner({ reviewSubmission = null, isReviewMode = fal
       sourceFormat: test?.sourceFormat || test?.formatType || null,
       isOpenEnded: finalStatus === 'pending_evaluation',
       isHomework: isHomework,
-      status: finalStatus,
+      status: 'completed',
+      isApproved: true,
+      approvalStatus: 'approved',
+      isAutoEvaluated: true,
       score: totalScore,
       correctCount: correctCount,
       wrongCount: wrongCount,

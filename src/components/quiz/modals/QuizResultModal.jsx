@@ -44,19 +44,8 @@ export default function QuizResultModal({
     test?.contentType === 'coktan_secmeli' ||
     hasMultipleChoiceAnswers;
 
-  const isPureOpenEnded = !isExplicitMultipleChoice && !hasScoreOrGrading && Boolean(
-    isOpenEnded ||
-    submission?.isOpenEnded ||
-    submission?.test?.isOpenEnded ||
-    isSectionOpenEnded(test) ||
-    test?.type === 'acik_uclu' ||
-    test?.questionType === 'acik_uclu' ||
-    test?.type === 'gorsel_klasik' ||
-    test?.questionType === 'gorsel_klasik' ||
-    (Array.isArray(sectionBreakdown) && sectionBreakdown.length > 0 && sectionBreakdown.every(s => s.isOE || s.type === 'open_ended')) ||
-    (submission?.answers && submission.answers.some(a => a.isOpenEnded)) ||
-    (stats.pending > 0 && stats.correct === 0 && stats.wrong === 0)
-  );
+  const isPendingOpenEnded = !isExplicitMultipleChoice && !hasScoreOrGrading && (submission?.status === 'pending_evaluation' || submission?.status === 'pending' || (stats?.pending > 0 && stats?.correct === 0 && stats?.wrong === 0)) && !submission?.isAutoEvaluated && !submission?.isApproved;
+  const isPureOpenEnded = isPendingOpenEnded;
 
   const scoreNum = Number(stats.score ?? submission?.score ?? 0);
   const correctNum = Number(stats.correct ?? 0);
@@ -390,7 +379,7 @@ export default function QuizResultModal({
                   </div>
 
                   <div>
-                    {sec.isOE ? (
+                    {sec.isOE && !sec.isSecEvaluated && !submission?.isAutoEvaluated && submission?.status === 'pending' ? (
                       <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#a78bfa', background: 'rgba(124,58,237,0.1)', padding: '0.2rem 0.5rem', borderRadius: '0.35rem', border: '1px solid rgba(167,139,250,0.3)' }}>
                         Değerlendirmede
                       </span>

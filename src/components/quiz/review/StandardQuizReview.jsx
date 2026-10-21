@@ -444,7 +444,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
           </button>
 
           <div style={{
-            background: isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+            background: (isOpenEnded && !submission?.isEvaluatedByTeacher && !submission?.isAutoEvaluated && submission?.status !== 'completed' && !submission?.isApproved && Object.keys(questionScores).length === 0) ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
             color: '#ffffff',
             padding: isMobile ? '0.25rem 0.55rem' : '0.4rem 0.95rem',
             borderRadius: '0.5rem',
@@ -452,7 +452,7 @@ export default function StandardQuizReview({ submission, test, questions = [], o
             fontSize: isMobile ? '0.78rem' : '0.9rem',
             boxShadow: '0 2px 8px rgba(99, 102, 241, 0.25)'
           }}>
-            {isOpenEnded && !submission?.isEvaluatedByTeacher && Object.keys(questionScores).length === 0 ? '⏳ Değerlendirmede' : `%${scorePercentage} Puan`}
+            {(isOpenEnded && !submission?.isEvaluatedByTeacher && !submission?.isAutoEvaluated && submission?.status !== 'completed' && !submission?.isApproved && Object.keys(questionScores).length === 0) ? '⏳ Değerlendirmede' : `%${scorePercentage} Puan`}
           </div>
 
           {isTeacherMode && (

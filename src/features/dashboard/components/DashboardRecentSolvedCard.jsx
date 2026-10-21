@@ -191,6 +191,11 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
             const empty = Number(test.emptyCount) || 0;
 
             const isEvaluated = Boolean(
+              test.isAutoEvaluated === true ||
+              test.status === 'completed' ||
+              test.status === 'approved' ||
+              test.isApproved === true ||
+              test.approvalStatus === 'approved' ||
               test.isEvaluated === true ||
               test.isEvaluatedByTeacher === true ||
               test.evaluatedByTeacher === true ||
@@ -263,7 +268,7 @@ const DashboardRecentSolvedCard = React.memo(function DashboardRecentSolvedCard(
                 test.isManualPending ||
                 (isWritten && !isEvaluated) ||
                 (!isEvaluated && (hasWrittenAnswers || hasOEKeywords) && (!test.isPhysicalExam && !test.isExam && test.type !== 'physicalExam' && test.type !== 'optik_form' && test.type !== 'multiple_choice'))
-              )
+              ) && test.status !== 'completed' && test.isAutoEvaluated !== true
             );
 
             const scoreRate = (test.score !== undefined && test.score !== null && !isPending)

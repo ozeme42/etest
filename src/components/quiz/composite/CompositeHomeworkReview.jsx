@@ -179,6 +179,10 @@ export default function CompositeHomeworkReview({
 
     const dbTS = submission?.teacherScores || {};
     const isAlreadyEvaluated = Boolean(
+      submission?.isAutoEvaluated ||
+      submission?.isApproved ||
+      submission?.approvalStatus === 'approved' ||
+      submission?.status === 'completed' ||
       submission?.isEvaluatedByTeacher ||
       submission?.isEvaluated ||
       submission?.status === 'evaluated' ||
@@ -260,7 +264,14 @@ export default function CompositeHomeworkReview({
             // Evaluated test: student text is counted as evaluated (correct)
             correctCount++;
           } else if (hasText) {
-            pendingCount++;
+            const correctKey = qObj.correctAnswer ?? sec.answerKey?.[i] ?? sec.answerKey?.[String(i)] ?? test?.answerKey?.[globalQNo] ?? test?.answerKey?.[String(globalQNo)];
+            let isMatch = true;
+            if (correctKey) {
+              const res = compareOpenEndedAnswers(textVal, correctKey);
+              if (res !== null) isMatch = res;
+            }
+            if (isMatch) correctCount++;
+            else wrongCount++;
           } else {
             blankCount++;
           }

@@ -204,8 +204,14 @@ const answeredCount = Array.from({ length: qCount }).filter((_, idx) => {
                         )
                       ) : isTeacherMode ? (
                         <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✍️ Puan Ver</span>
+                      ) : isCorrect === true ? (
+                        <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
+                      ) : isCorrect === false ? (
+                        <span style={{ fontSize: '0.68rem', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✗ YANLIŞ (0P)</span>
+                      ) : !isAnswered ? (
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>○ BOŞ (0P)</span>
                       ) : (
-                        <span style={{ fontSize: '0.68rem', color: '#7c3aed', background: '#f5f3ff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>⏳ Değerlendirmede</span>
+                        <span style={{ fontSize: '0.68rem', color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 900 }}>✓ DOĞRU (10P)</span>
                       )
                     ) : (
                       !isAnswered ? (

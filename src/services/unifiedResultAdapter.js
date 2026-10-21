@@ -1,6 +1,7 @@
 import { toUUID } from './supabaseService';
 import { getTurkeyYMD, extractItemDate } from '../utils/dateHelpers';
 import { isExamBook, isStandardOrMixedBook } from '../utils/testResolver';
+import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
 
 /**
  * 🛡️ UNIFIED RESULT ADAPTER (Single Source of Truth)
@@ -765,6 +766,11 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
       );
 
   const isEvaluated = Boolean(
+    rawSub.isAutoEvaluated === true ||
+    rawSub.status === 'completed' ||
+    rawSub.status === 'approved' ||
+    rawSub.isApproved === true ||
+    rawSub.approvalStatus === 'approved' ||
     rawSub.isEvaluated === true ||
     rawSub.isEvaluatedByTeacher === true ||
     rawSub.evaluatedByTeacher === true ||
@@ -776,7 +782,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     (Array.isArray(rawSub.answers) && rawSub.answers.some(a => a && (a.evaluatedByTeacher || (a.score !== undefined && a.score !== null && a.score !== 'empty' && a.score !== 'pending' && a.score !== ''))))
   );
 
-  const isPendingEvaluation = isSubWritten && !isEvaluated;
+  const isPendingEvaluation = isSubWritten && !isEvaluated && rawSub.status !== 'completed' && rawSub.status !== 'approved' && rawSub.isAutoEvaluated !== true;
 
   const hasGenuineAnswers = answersList.length > 0 && answersList.some(a =>
     (a?.userAnswer !== undefined && a?.userAnswer !== null && String(a.userAnswer).trim() !== '') ||
@@ -811,7 +817,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         } else if (isBlank) {
           isCorrect = null;
         } else if (cAnsStr && uAnsStr) {
-          isCorrect = (uAnsStr.toLowerCase() === cAnsStr.toLowerCase());
+          const matchResult = compareOpenEndedAnswers(uAnsStr, cAnsStr);
+          isCorrect = matchResult !== null ? matchResult : (uAnsStr.toLowerCase() === cAnsStr.toLowerCase());
         }
       }
 
@@ -1113,6 +1120,7 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
     isEvaluated,
     isEvaluatedByTeacher: isEvaluated,
     isPendingEvaluation,
+    isPendingEval: isPendingEvaluation,
     type: isSubWritten ? 'acik_uclu' : (rawSub.type || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
     questionType: isSubWritten ? 'acik_uclu' : (rawSub.questionType || (matchedBookTest ? 'optik_form' : 'coktan_secmeli')),
     sourceFormat: isSubWritten ? 'yazili' : (matchedBookTest ? 'physical' : 'digital'),

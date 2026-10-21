@@ -990,22 +990,26 @@ export default function ModularQuizPage() {
       let isCorrect = ans.isCorrect;
       if (isQExplicitOE) {
         // Açık uçlu sorular optik/harf anahtarlarıyla (A, B vs.) otomatik yanlış yapılamaz
-        const correctKey = qObj.correctAnswer || (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)]) : null);
+        const correctKey = qObj.correctAnswer || (test.answerKey ? (test.answerKey[qNo] ?? test.answerKey[String(qNo)] ?? (Array.isArray(test.answerKey) ? test.answerKey[qNo - 1] : null)) : null) || (questions && questions[qNo - 1]?.correctAnswer) || null;
         const isLetterKey = typeof correctKey === 'string' && /^[A-Ea-e]$/.test(correctKey.trim());
 
-        if (!isLetterKey && correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '' && test.autoGradeOpenEnded) {
-          isCorrect = compareOpenEndedAnswers(textVal || userAns, correctKey);
-        } else {
-          isCorrect = null; // Açık uçlu sorular öğretmen puanlayana kadar daima 'pending' kalır
-        }
-
-        if (hasTextVal) {
-          pendingCount++;
-          isCorrect = null;
-        } else {
+        if (!hasTextVal) {
           blankCount++;
           isCorrect = null;
+        } else if (!isLetterKey && correctKey !== null && correctKey !== undefined && String(correctKey).trim() !== '') {
+          const matchResult = compareOpenEndedAnswers(textVal || userAns, correctKey);
+          if (matchResult === true) {
+            correctCount++;
+            isCorrect = true;
+          } else {
+            wrongCount++;
+            isCorrect = false;
+          }
+        } else {
+          correctCount++;
+          isCorrect = true;
         }
+
       } else {
         if (isCorrect === undefined || isCorrect === null) {
           const testCtx = {
@@ -1066,7 +1070,7 @@ export default function ModularQuizPage() {
         formattedAnswers.some(a => a.isOpenEnded)
       )
     );
-    const finalStatus = isAcikUclu ? 'pending' : 'completed';
+    const finalStatus = 'completed';
     const newSubId = `sub_${Date.now()}`;
 
     const derivedOpenEndedText = {
@@ -1129,6 +1133,9 @@ export default function ModularQuizPage() {
       totalQuestions: totalQ,
       score,
       status: finalStatus,
+      isApproved: true,
+      approvalStatus: 'approved',
+      isAutoEvaluated: true,
       submittedAt: new Date().toISOString()
     };
 
@@ -1850,7 +1857,7 @@ export default function ModularQuizPage() {
               )}
 
               {/* Open Ended Evaluation Banner */}
-              {submittedResult.isOpenEnded ? (
+              {submittedResult.isOpenEnded && submittedResult.status === 'pending' ? (
                 <div style={{
                   background: 'rgba(124, 58, 237, 0.08)',
                   border: '1.5px solid rgba(167, 139, 250, 0.4)',
@@ -2050,7 +2057,7 @@ export default function ModularQuizPage() {
                       {pCount} / {totQ} Soru
                     </div>
                     <span style={{ fontSize: '0.72rem', color: '#a78bfa', fontWeight: 700 }}>
-                      ⏳ Değerlendirmede
+                      {submittedResult.status === 'pending' ? '⏳ Değerlendirmede' : '✓ Otomatik Değerlendirildi'}
                     </span>
                   </div>
                 )}

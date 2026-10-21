@@ -148,11 +148,11 @@ export default function SingleOpenEndedReview({
 
   // 1. isTrulyEvaluated check
   const isTrulyEvaluated = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+    if (submission.isAutoEvaluated === true || submission.isApproved === true || submission.approvalStatus === 'approved' || submission.status === 'completed' || submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
       const hasPositiveScore = (submission.score !== undefined && submission.score !== null && Number(submission.score) > 0);
       const hasFeedback = Boolean(submission.teacherFeedback || submission.teacherNote);
-      const hasGradedAns = answers.some(a => a.evaluatedByTeacher === true || (typeof a.score === 'number' && a.score > 0));
-      return hasPositiveScore || hasFeedback || hasGradedAns;
+      const hasGradedAns = answers.some(a => a.evaluatedByTeacher === true || (typeof a.score === 'number' && a.score > 0) || a.isCorrect !== undefined);
+      return submission.isAutoEvaluated === true || submission.status === 'completed' || hasPositiveScore || hasFeedback || hasGradedAns;
     }
     return false;
   }, [submission, answers]);

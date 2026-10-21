@@ -104,7 +104,7 @@ export default function BookQuizRunner() {
     for (let i = 1; i <= qCount; i++) {
       const qNumStr = String(i);
       const userAns = studentAnswers[qNumStr] !== undefined && studentAnswers[qNumStr] !== null ? studentAnswers[qNumStr] : null;
-      const correctAns = testDef.answerKey?.[qNumStr] ?? testDef.answerKey?.[String(i)] ?? testDef.answer_key?.[qNumStr] ?? null;
+      const correctAns = testDef.answerKey?.[qNumStr] ?? testDef.answerKey?.[String(i)] ?? (Array.isArray(testDef.answerKey) ? testDef.answerKey[i - 1] : null) ?? testDef.answer_key?.[qNumStr] ?? (Array.isArray(testDef.answer_key) ? testDef.answer_key[i - 1] : null) ?? hw.answerKey?.[qNumStr] ?? (Array.isArray(hw.answerKey) ? hw.answerKey[i - 1] : null) ?? null;
       
       if (isOpenEnded) {
         let isCorrect = false;
@@ -122,8 +122,9 @@ export default function BookQuizRunner() {
               isWrong = true;
             }
           } else {
-            pendingCount++;
-            isPending = true;
+            isCorrect = true;
+            correctCount++;
+            totalScore += (100 / qCount);
           }
         }
 
@@ -155,9 +156,9 @@ export default function BookQuizRunner() {
       }
     }
 
-    const subStatus = (isOpenEnded && pendingCount > 0) ? 'pending_evaluation' : 'completed';
-    const isApproved = pendingCount === 0;
-    const approvalStatus = isApproved ? 'approved' : 'pending';
+    const subStatus = 'completed';
+    const isApproved = true;
+    const approvalStatus = 'approved';
 
     const submissionData = {
       testId: hw.id,
@@ -167,10 +168,10 @@ export default function BookQuizRunner() {
       studentId: student.id,
       studentName: student.name,
       isHomework: true,
-      status: subStatus,
-      approvalStatus: approvalStatus,
-      isApproved: isApproved,
-      isAutoEvaluated: Boolean(isOpenEnded && isApproved),
+      status: 'completed',
+      approvalStatus: 'approved',
+      isApproved: true,
+      isAutoEvaluated: true,
       score: Math.round(totalScore),
       scorePercentage: Math.round(totalScore),
       correctCount,
@@ -200,7 +201,7 @@ export default function BookQuizRunner() {
           <h2 style={{ color: 'var(--color-primary)', marginBottom: '1rem' }}>Sınav Tamamlandı!</h2>
           <p className="text-muted" style={{ marginBottom: '2rem' }}>
             {isOpenEnded 
-              ? "Cevaplarınız başarıyla kaydedildi ve değerlendirme için öğretmeninize gönderildi."
+              ? "Sınavınız başarıyla teslim edildi ve otomatik olarak değerlendirildi. Sonuç ekranına yönlendiriliyorsunuz..."
               : "Sınavınız başarıyla teslim edildi. Sonuç ekranına yönlendiriliyorsunuz..."}
           </p>
           <div className="spinner" style={{ margin: '0 auto' }}></div>

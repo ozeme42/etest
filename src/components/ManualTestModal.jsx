@@ -580,9 +580,9 @@ export default function ManualTestModal({
 
       const isStaff = currentUser?.role === 'teacher' || currentUser?.role === 'admin';
       const isBookTest = Boolean(bookId || currentTestObj || selectedBook);
-      const isApproved = isStaff || isAutoEvaluated || isBookTest || initialData?.isApproved === true || initialData?.approvalStatus === 'approved';
-      const approvalStatus = isApproved ? 'approved' : 'pending';
-      const finalStatus = isApproved ? 'completed' : 'pending_approval';
+      const isApproved = true;
+      const approvalStatus = 'approved';
+      const finalStatus = 'completed';
 
       const newSubmission = {
         id: submissionId,
