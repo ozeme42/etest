@@ -26,7 +26,8 @@ export default function BookQuizRunner() {
   const [studentAnswers, setStudentAnswers] = useState({});
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
-  const [showPdf, setShowPdf] = useState(true);
+  const [showPdf, setShowPdf] = useState(false);
+  useEffect(() => { setShowPdf(hasPdf); }, [hasPdf]);
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const isSubmittingRef = useRef(false);
@@ -71,7 +72,15 @@ export default function BookQuizRunner() {
   const isOpenEnded = book.bookType === 'open_ended';
   const qCount = testDef.questionCount || 0;
   const options = ['A', 'B', 'C', 'D', 'E'];
-  const hasPdf = !!(book.pdfUrl);
+  const rawPdfUrl = book?.pdfUrl || testDef?.pdfUrl || hw?.pdfUrl || '';
+  const hasPdf = Boolean(
+    rawPdfUrl &&
+    String(rawPdfUrl).trim() !== '' &&
+    rawPdfUrl !== 'null' &&
+    rawPdfUrl !== 'undefined' &&
+    rawPdfUrl !== 'about:blank' &&
+    (String(rawPdfUrl).startsWith('http://') || String(rawPdfUrl).startsWith('https://') || String(rawPdfUrl).startsWith('/') || String(rawPdfUrl).startsWith('blob:') || String(rawPdfUrl).startsWith('data:'))
+  );
 
   const answeredCount = Object.values(studentAnswers).filter(Boolean).length;
   const progressPct = qCount > 0 ? Math.round((answeredCount / qCount) * 100) : 0;
@@ -310,13 +319,12 @@ export default function BookQuizRunner() {
           flex-direction: column !important;
         }
         .book-quiz-optic-area-desktop {
-          width: 380px !important;
+          ${hasPdf ? 'width: 380px !important; border-left: 1px solid #e2e8f0 !important;' : 'flex: 1 !important; max-width: 900px !important; margin: 0 auto !important; border: none !important;'}
           height: 100% !important;
           overflow-y: auto !important;
           background: #f8fafc !important;
           padding: 1.25rem !important;
           box-sizing: border-box !important;
-          border-left: 1px solid #e2e8f0 !important;
         }
         .mobile-optic-fab-btn {
           display: none !important;
@@ -335,10 +343,10 @@ export default function BookQuizRunner() {
             border-right: none !important;
           }
           .book-quiz-optic-area-desktop {
-            display: none !important;
+            ${hasPdf ? 'display: none !important;' : 'display: block !important; width: 100% !important; max-width: 100% !important; padding: 0.75rem 0.5rem 6rem 0.5rem !important; border: none !important;'}
           }
           .mobile-optic-fab-btn {
-            display: flex !important;
+            ${hasPdf ? 'display: flex !important;' : 'display: none !important;'}
             position: fixed !important;
             bottom: 1.5rem !important;
             right: 1.25rem !important;
@@ -362,10 +370,10 @@ export default function BookQuizRunner() {
       <div className="book-quiz-main-container">
 
         {/* PDF Viewer (100% Full Height on Mobile) */}
-        {hasPdf && (
+        {hasPdf && showPdf && (
           <div className="book-quiz-pdf-area">
             <PdfViewerPanel
-              pdfUrl={book.pdfUrl}
+              pdfUrl={rawPdfUrl}
               title={book.title}
               testName={test?.name || ''}
               maxPage={book.maxPage || null}

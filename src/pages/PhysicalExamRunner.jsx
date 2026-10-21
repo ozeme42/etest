@@ -276,7 +276,15 @@ export default function PhysicalExamRunner() {
     return null;
   }, [homeworks, books, bookTests, evalSubmissions, hwId, paramSubmissionId, location.state?.submission]);
 
-  const hasPdf = Boolean(homework?.pdfUrl);
+  const rawPdfUrl = homework?.pdfUrl || '';
+  const hasPdf = Boolean(
+    rawPdfUrl &&
+    String(rawPdfUrl).trim() !== '' &&
+    rawPdfUrl !== 'null' &&
+    rawPdfUrl !== 'undefined' &&
+    rawPdfUrl !== 'about:blank' &&
+    (String(rawPdfUrl).startsWith('http://') || String(rawPdfUrl).startsWith('https://') || String(rawPdfUrl).startsWith('/') || String(rawPdfUrl).startsWith('blob:') || String(rawPdfUrl).startsWith('data:'))
+  );
 
   // PDF modes: 'side' | 'top' | 'float' | 'hidden'
   const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
@@ -285,7 +293,14 @@ export default function PhysicalExamRunner() {
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [aiModalQuestion, setAiModalQuestion] = useState(null);
-  const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
+  const effectivePdfMode = !hasPdf ? 'hidden' : ((isMobile && pdfMode === 'side') ? 'top' : pdfMode);
+
+  useEffect(() => {
+    if (!hasPdf) {
+      if (pdfMode !== 'hidden') setPdfMode('hidden');
+      if (!showOptikForm) setShowOptikForm(true);
+    }
+  }, [hasPdf, pdfMode, showOptikForm]);
   const [activeSubjectIndex, setActiveSubjectIndex] = useState(0);
 
   const isSubmittingRef = useRef(false);
@@ -1391,52 +1406,56 @@ export default function PhysicalExamRunner() {
 
             {/* Quick Actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              {/* Optik Toggle Button */}
-              <button
-                onClick={() => {
-                  const nextState = !showOptikForm;
-                  setShowOptikForm(nextState);
-                  if (nextState) setPdfMode('top');
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: 6,
-                  background: showOptikForm ? '#eff6ff' : 'var(--color-surface)',
-                  border: `1px solid ${showOptikForm ? '#bfdbfe' : 'var(--color-border)'}`,
-                  color: showOptikForm ? '#1d4ed8' : 'var(--color-text)',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                {showOptikForm ? <EyeOff size={11} /> : <Eye size={11} />}
-                <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
-              </button>
+              {/* Optik Toggle & Drawing Button — only when hasPdf */}
+              {hasPdf && (
+                <>
+                  <button
+                    onClick={() => {
+                      const nextState = !showOptikForm;
+                      setShowOptikForm(nextState);
+                      if (nextState) setPdfMode('top');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: 6,
+                      background: showOptikForm ? '#eff6ff' : 'var(--color-surface)',
+                      border: `1px solid ${showOptikForm ? '#bfdbfe' : 'var(--color-border)'}`,
+                      color: showOptikForm ? '#1d4ed8' : 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {showOptikForm ? <EyeOff size={11} /> : <Eye size={11} />}
+                    <span>{showOptikForm ? 'Optik Gizle' : 'Optik Göster'}</span>
+                  </button>
 
-              {/* Drawing Button */}
-              <button
-                onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 3,
-                  padding: '0.25rem 0.45rem',
-                  borderRadius: 6,
-                  background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
-                  border: `1px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
-                  color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
-                  fontSize: '0.68rem',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-                title="Çizim Aracı"
-              >
-                <Pencil size={11} />
-                <span>Çizim</span>
-              </button>
+                  {/* Drawing Button */}
+                  <button
+                    onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      padding: '0.25rem 0.45rem',
+                      borderRadius: 6,
+                      background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
+                      border: `1px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
+                      color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                    title="Çizim Aracı"
+                  >
+                    <Pencil size={11} />
+                    <span>Çizim</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -1736,7 +1755,7 @@ export default function PhysicalExamRunner() {
         }}
       >
         {/* LEFT/TOP: PDF panel */}
-        {hasPdf && (
+        {hasPdf && effectivePdfMode !== 'hidden' && (
           <ResizablePdfPanel
             pdfUrl={homework.pdfUrl}
             title={homework.title}
@@ -2768,7 +2787,7 @@ export default function PhysicalExamRunner() {
       )}
 
       {/* ── DESKTOP FLOATING ACTION BUTTON ── */}
-      {!isMobile && (!showOptikForm || pdfMode === 'float') && (
+      {hasPdf && !isMobile && (!showOptikForm || pdfMode === 'float') && (
         <button
           onClick={() => {
             setShowOptikForm(true);

@@ -245,7 +245,16 @@ export default function ResizablePdfPanel({
     );
   };
 
-  if (!pdfUrl) return null;
+  const cleanUrl = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
+  const isValidUrl = Boolean(
+    cleanUrl &&
+    cleanUrl !== 'null' &&
+    cleanUrl !== 'undefined' &&
+    cleanUrl !== 'about:blank' &&
+    (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('/') || cleanUrl.startsWith('blob:') || cleanUrl.startsWith('data:'))
+  );
+
+  if (!isValidUrl || mode === 'hidden') return null;
 
   if (mode === 'float') {
     return (

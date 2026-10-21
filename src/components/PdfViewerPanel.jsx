@@ -62,7 +62,16 @@ export default function PdfViewerPanel({
 
   const embedUrl = useMemo(() => getEmbedUrl(pdfUrl), [pdfUrl]);
 
-  if (!pdfUrl) return null;
+  const cleanUrl = typeof pdfUrl === 'string' ? pdfUrl.trim() : '';
+  const isValidUrl = Boolean(
+    cleanUrl &&
+    cleanUrl !== 'null' &&
+    cleanUrl !== 'undefined' &&
+    cleanUrl !== 'about:blank' &&
+    (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('/') || cleanUrl.startsWith('blob:') || cleanUrl.startsWith('data:'))
+  );
+
+  if (!isValidUrl) return null;
 
   return (
     <div className={className} style={{

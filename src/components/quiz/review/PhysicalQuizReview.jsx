@@ -169,22 +169,32 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     };
   }, [resolvedBook, test, submission, matchedBt]);
 
-  const pdfUrl = 
+  const rawPdfUrl = 
     test?.pdfUrl || test?.pdf_url || test?.link || test?.url || test?.fileUrl ||
     matchedBt?.pdfUrl || matchedBt?.pdf_url || matchedBt?.link || matchedBt?.url ||
     resolvedBook?.pdfUrl || resolvedBook?.pdf_url || resolvedBook?.link || resolvedBook?.url || resolvedBook?.fileUrl ||
     submission?.pdfUrl || submission?.pdf_url || submission?.link || submission?.url || submission?.fileUrl ||
     metaAnswer?.pdfUrl || metaAnswer?.pdf_url || metaAnswer?.link || metaAnswer?.url || '';
-  const hasPdf = Boolean(pdfUrl);
+  const pdfUrl = typeof rawPdfUrl === 'string' ? rawPdfUrl.trim() : '';
+  const hasPdf = Boolean(
+    pdfUrl &&
+    pdfUrl !== '' &&
+    pdfUrl !== 'null' &&
+    pdfUrl !== 'undefined' &&
+    pdfUrl !== 'about:blank' &&
+    (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://') || pdfUrl.startsWith('/') || pdfUrl.startsWith('blob:') || pdfUrl.startsWith('data:'))
+  );
 
   const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
 
   useEffect(() => {
     if (hasPdf && pdfMode === 'hidden') {
       setPdfMode(isMobile ? 'top' : 'side');
+    } else if (!hasPdf && pdfMode !== 'hidden') {
+      setPdfMode('hidden');
     }
   }, [hasPdf, isMobile]);
-  const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
+  const effectivePdfMode = !hasPdf ? 'hidden' : ((isMobile && pdfMode === 'side') ? 'top' : pdfMode);
   const [showOptikForm, setShowOptikForm] = useState(true);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showMistakeSummary, setShowMistakeSummary] = useState(true);
@@ -818,7 +828,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
         minHeight: 0
       }}>
         {/* PDF Panel if PDF exists */}
-        {hasPdf && (
+        {hasPdf && effectivePdfMode !== 'hidden' && (
           <ResizablePdfPanel
             pdfUrl={pdfUrl}
             title={test?.title || test?.name || resolvedBook?.title || 'Kitap PDF'}

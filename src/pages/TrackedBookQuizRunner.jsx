@@ -453,13 +453,39 @@ export default function TrackedBookQuizRunner() {
     }
   }, [resolvedBook, resolvedHw, resolvedTest, booksLoading, hwLoading, homeworks, cleanId, studentId, submissions, isTeacherReviewing, returnUrl, navigate]);
 
-  const pdfUrl = resolvedTest?.pdfUrl || resolvedBook?.pdfUrl || resolvedHw?.pdfUrl || '';
-  const hasPdf = Boolean(pdfUrl);
+  const rawPdfCandidate = (
+    resolvedTest?.pdfUrl ||
+    resolvedBook?.pdfUrl ||
+    resolvedHw?.pdfUrl ||
+    resolvedBook?.contentUrl ||
+    resolvedTest?.contentUrl ||
+    resolvedBook?.driveUrl ||
+    resolvedTest?.driveUrl ||
+    resolvedBook?.link ||
+    resolvedTest?.link ||
+    ''
+  );
+  const pdfUrl = typeof rawPdfCandidate === 'string' ? rawPdfCandidate.trim() : '';
+  const hasPdf = Boolean(
+    pdfUrl &&
+    pdfUrl !== '' &&
+    pdfUrl !== 'null' &&
+    pdfUrl !== 'undefined' &&
+    pdfUrl !== 'about:blank' &&
+    (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://') || pdfUrl.startsWith('/') || pdfUrl.startsWith('blob:') || pdfUrl.startsWith('data:'))
+  );
 
   // Layout and mode states
   const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
-  const effectivePdfMode = (isMobile && pdfMode === 'side') ? 'top' : pdfMode;
+  const effectivePdfMode = !hasPdf ? 'hidden' : ((isMobile && pdfMode === 'side') ? 'top' : pdfMode);
   const [showOptikForm, setShowOptikForm] = useState(true);
+
+  useEffect(() => {
+    if (!hasPdf) {
+      if (pdfMode !== 'hidden') setPdfMode('hidden');
+      if (!showOptikForm) setShowOptikForm(true);
+    }
+  }, [hasPdf, pdfMode, showOptikForm]);
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -2126,49 +2152,53 @@ export default function TrackedBookQuizRunner() {
               </div>
             )}
 
-            {/* Optik / Cevap Formu Göster / Gizle Button */}
-            <button
-              onClick={() => setShowOptikForm(!showOptikForm)}
-              style={{
-                padding: '0.45rem 0.85rem',
-                borderRadius: '0.7rem',
-                background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
-                border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
-                color: showOptikForm ? (isOpenEnded ? '#a78bfa' : '#60a5fa') : 'var(--color-text)',
-                fontWeight: 800,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-              title={showOptikForm ? (isOpenEnded ? "Cevap Formunu Gizle" : "Optik Alanı Gizle") : (isOpenEnded ? "Cevap Formunu Göster" : "Optik Alanı Göster")}
-            >
-              {showOptikForm ? <EyeOff size={15} /> : <Eye size={15} />}
-              <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
-            </button>
+            {/* Optik / Cevap Formu Göster / Gizle Button — only when hasPdf */}
+            {hasPdf && (
+              <>
+                <button
+                  onClick={() => setShowOptikForm(!showOptikForm)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '0.7rem',
+                    background: showOptikForm ? (isOpenEnded ? 'rgba(124,58,237,0.15)' : 'rgba(37,99,235,0.15)') : 'var(--color-surface)',
+                    border: `1.5px solid ${showOptikForm ? (isOpenEnded ? '#7c3aed' : '#3b82f6') : 'var(--color-border)'}`,
+                    color: showOptikForm ? (isOpenEnded ? '#a78bfa' : '#60a5fa') : 'var(--color-text)',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                  title={showOptikForm ? (isOpenEnded ? "Cevap Formunu Gizle" : "Optik Alanı Gizle") : (isOpenEnded ? "Cevap Formunu Göster" : "Optik Alanı Göster")}
+                >
+                  {showOptikForm ? <EyeOff size={15} /> : <Eye size={15} />}
+                  <span>{showOptikForm ? (isOpenEnded ? 'Cevapları Gizle' : 'Optik Gizle') : (isOpenEnded ? 'Cevapları Göster' : 'Optik Göster')}</span>
+                </button>
 
-            {/* Drawing Canvas Button */}
-            <button
-              onClick={() => setIsDrawingOpen(!isDrawingOpen)}
-              style={{
-                padding: '0.45rem 0.85rem',
-                borderRadius: '0.7rem',
-                background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
-                border: `1.5px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
-                color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
-                fontWeight: 800,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem'
-              }}
-              title="Çizim Aracı"
-            >
-              <Pencil size={15} /> 
-              {isDrawingOpen ? "Çizimi Kapat" : "Çizim"}
-            </button>
+                {/* Drawing Canvas Button */}
+                <button
+                  onClick={() => setIsDrawingOpen(!isDrawingOpen)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '0.7rem',
+                    background: isDrawingOpen ? '#fffbeb' : 'var(--color-surface)',
+                    border: `1.5px solid ${isDrawingOpen ? '#fde68a' : 'var(--color-border)'}`,
+                    color: isDrawingOpen ? '#b45309' : 'var(--color-text)',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}
+                  title="Çizim Aracı"
+                >
+                  <Pencil size={15} /> 
+                  {isDrawingOpen ? "Çizimi Kapat" : "Çizim"}
+                </button>
+              </>
+            )}
 
             {/* Submit Button */}
             {!isSubmitted && !isTeacherReviewing && (
@@ -2267,7 +2297,7 @@ export default function TrackedBookQuizRunner() {
         }}
       >
         {/* PDF Panel */}
-        {hasPdf && (
+        {hasPdf && effectivePdfMode !== 'hidden' && (
           <ResizablePdfPanel
             pdfUrl={pdfUrl}
             title={resolvedTest.name || resolvedBook?.title || 'Kitap PDF'}
@@ -3434,7 +3464,7 @@ export default function TrackedBookQuizRunner() {
       )}
 
       {/* ── MOBILE FLOATING ACTION BUTTON ── */}
-      {isMobile && !showOptikForm && (
+      {hasPdf && isMobile && !showOptikForm && (
         <button
           onClick={() => setShowMobileOpticModal(true)}
           style={{
@@ -4068,7 +4098,7 @@ export default function TrackedBookQuizRunner() {
       )}
 
       {/* ── DESKTOP FLOATING ACTION BUTTON ── */}
-      {!isMobile && (!showOptikForm || effectivePdfMode === 'float') && (
+      {hasPdf && !isMobile && (!showOptikForm || effectivePdfMode === 'float') && (
         <button
           onClick={() => {
             setShowOptikForm(true);

@@ -10,12 +10,27 @@ import { isSectionOpenEnded } from '../utils/quizTypeDetector';
 export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSave, draftAnswers, bookPdfUrl }) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { isDark, toggleTheme } = useTheme();
-  const hasPdf = !!(bookPdfUrl);
+  const rawBookPdfUrl = bookPdfUrl || test?.pdfUrl || test?.book?.pdfUrl || '';
+  const hasPdf = Boolean(
+    rawBookPdfUrl &&
+    String(rawBookPdfUrl).trim() !== '' &&
+    rawBookPdfUrl !== 'null' &&
+    rawBookPdfUrl !== 'undefined' &&
+    rawBookPdfUrl !== 'about:blank' &&
+    (String(rawBookPdfUrl).startsWith('http://') || String(rawBookPdfUrl).startsWith('https://') || String(rawBookPdfUrl).startsWith('/') || String(rawBookPdfUrl).startsWith('blob:') || String(rawBookPdfUrl).startsWith('data:'))
+  );
   const navigate = useNavigate();
   // 'side' | 'top' | 'float' | 'hidden'
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const [pdfMode, setPdfMode] = useState(hasPdf ? (isMobile ? 'hidden' : 'side') : 'hidden');
-  const [showOptikForm, setShowOptikForm] = useState(!isMobile);
+  const [showOptikForm, setShowOptikForm] = useState(true);
+
+  useEffect(() => {
+    if (!hasPdf) {
+      if (pdfMode !== 'hidden') setPdfMode('hidden');
+      if (!showOptikForm) setShowOptikForm(true);
+    }
+  }, [hasPdf, pdfMode, showOptikForm]);
   const draftKey = useMemo(() => `draft_quiz_${test.id || 'test'}`, [test.id]);
 
   const [answers, setAnswers] = useState(() => {
@@ -532,7 +547,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
         }}
       >
         {/* LEFT/TOP: PDF panel (rendered inline by ResizablePdfPanel) */}
-        {hasPdf && (
+        {hasPdf && pdfMode !== 'hidden' && (
           <ResizablePdfPanel
             pdfUrl={bookPdfUrl}
             title={test.title || test.name || 'Kitap PDF'}
@@ -895,7 +910,7 @@ export default function PhysicalQuizRunner({ test, questions, onSubmit, onAutoSa
       )}
 
       {/* Desktop Floating Action Button */}
-      {!isMobile && (!showOptikForm || pdfMode === 'float') && (
+      {hasPdf && !isMobile && (!showOptikForm || pdfMode === 'float') && (
         <button
           onClick={() => {
             setShowOptikForm(true);
