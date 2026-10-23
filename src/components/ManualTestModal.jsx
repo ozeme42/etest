@@ -13,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import { getTurkeyToday } from '../utils/dateHelpers';
 import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
+import { createCompositeTestKey } from '../utils/testResolver';
 
 const MISTAKE_REASONS = [
   { label: '⚡ İşlem Hatası', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -584,6 +585,29 @@ export default function ManualTestModal({
       const approvalStatus = 'approved';
       const finalStatus = 'completed';
 
+      const finalCompKey = createCompositeTestKey(finalBookTitle, finalSubject, finalTopic, finalTestName);
+
+      // Append metadata answer item to answersList
+      answersList.push({
+        type: 'metadata',
+        realId: submissionId,
+        submissionId: submissionId,
+        realTestId: testId ? String(testId) : null,
+        bookTestId: testId ? String(testId) : null,
+        testId: testId ? String(testId) : submissionId,
+        bookId: bookId ? String(bookId) : null,
+        bookTitle: finalBookTitle,
+        subjectName: finalSubject,
+        unitTopic: finalTopic || null,
+        topicName: finalTopic || null,
+        testName: finalTestName,
+        testTitle: finalTestName,
+        compositeKey: finalCompKey,
+        isAutoEvaluated: isAutoEvaluated,
+        approvalStatus: approvalStatus,
+        isApproved: isApproved
+      });
+
       const newSubmission = {
         id: submissionId,
         studentId: String(studentId),
@@ -595,7 +619,15 @@ export default function ManualTestModal({
         testTitle: finalTestName,
         bookTitle: finalBookTitle,
         subject: finalSubject,
+        subjectName: finalSubject,
         unitTopic: finalTopic || null,
+        unit: finalTopic || null,
+        unitName: finalTopic || null,
+        topic: finalTopic || null,
+        topicName: finalTopic || null,
+        topicId: selectedTopicId && selectedTopicId !== '__custom__' ? String(selectedTopicId) : (currentTestObj?.topicId ? String(currentTestObj.topicId) : null),
+        subjectId: selectedSubjectId && selectedSubjectId !== '__custom__' ? String(selectedSubjectId) : (currentTestObj?.subjectId ? String(currentTestObj.subjectId) : null),
+        compositeKey: finalCompKey,
         correctCount: Number(correctCount),
         wrongCount: Number(wrongCount),
         emptyCount: Number(emptyCount),

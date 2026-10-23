@@ -417,8 +417,24 @@ export default function StudentBookDetailsPage() {
       return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
     });
 
+    const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+
     const solvedSubsMap = new Map();
     allStudentSubs.forEach(s => {
+      // 1. Strict Book Isolation: skip submissions belonging to other books
+      const sBId = String(s.bookId || s.metadata?.bookId || '');
+      const sBUuid = toUUID(sBId);
+      if (sBId && sBId !== bId && (!sBUuid || sBUuid !== bUuid)) {
+        return;
+      }
+      const sBTitle = normClean(s.bookTitle || s.metadata?.bookTitle || '');
+      const normBookTitle = normClean(bTitle);
+      if (sBTitle && normBookTitle && sBTitle.length >= 3 && normBookTitle.length >= 3) {
+        if (!normBookTitle.includes(sBTitle) && !sBTitle.includes(normBookTitle)) {
+          return;
+        }
+      }
+
       const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
       const compKey = getSubmissionCompositeKey(s);
       if (compKey) {
@@ -429,23 +445,43 @@ export default function StudentBookDetailsPage() {
         }
       }
 
+      const sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '').trim();
+      const sTopicName = normClean(s.unitTopic || s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unitTopic || s.metadata?.topicName || '');
+      const sTopicNum = sTopicName.match(/(\d+)/)?.[1] || '';
+
       const matchIds = [
-        s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
+        s.testId, s.test_id, s.bookTestId, s.realTestId,
         s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
       ];
       if (Array.isArray(s.bookTestIds)) matchIds.push(...s.bookTestIds);
       matchIds.forEach(id => {
         if (!id) return;
         const strId = String(id);
-        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '');
-        const uuid = toUUID(strId);
+        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         
-        const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
-        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
-        if (!existing || score >= exScore) {
-          solvedSubsMap.set(strId, s);
-          solvedSubsMap.set(cleanId, s);
-          if (uuid) solvedSubsMap.set(uuid, s);
+        // Topic-scoped keys prevent collisions with other topics having the same test number/id
+        if (sTopicId) {
+          solvedSubsMap.set(`top_${sTopicId}:::${strId}`, s);
+          solvedSubsMap.set(`top_${sTopicId}:::${cleanId}`, s);
+        }
+        if (sTopicName) {
+          solvedSubsMap.set(`top_${sTopicName}:::${strId}`, s);
+          solvedSubsMap.set(`top_${sTopicName}:::${cleanId}`, s);
+        }
+        if (sTopicNum) {
+          solvedSubsMap.set(`u${sTopicNum}:::${strId}`, s);
+          solvedSubsMap.set(`u${sTopicNum}:::${cleanId}`, s);
+        }
+
+        // Global ID key ONLY if it's a real 36-char UUID or prefixed with book/topic unique id (tbt_...)
+        const isUniqueSysId = strId.length >= 20 || (toUUID(strId) === strId && strId.length === 36);
+        if (isUniqueSysId) {
+          const existing = solvedSubsMap.get(strId);
+          const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+          if (!existing || score >= exScore) {
+            solvedSubsMap.set(strId, s);
+            solvedSubsMap.set(cleanId, s);
+          }
         }
       });
     });
@@ -532,10 +568,23 @@ export default function StudentBookDetailsPage() {
         };
 
         const testCompKey = createCompositeTestKey(book?.title, subject.name, parentTopic?.name, t.name || t.title);
-        const directSub = solvedSubsMap.get(tIdStr) ||
-                          solvedSubsMap.get(tCleanId) ||
-                          (tUuidStr && solvedSubsMap.get(tUuidStr)) ||
-                          (testCompKey && solvedSubsMap.get(testCompKey));
+        const tTopicId = String(t.topicId || t.topic_id || parentTopic?.id || '').trim();
+        const tTopicName = normClean(parentTopic?.name || t.unit || t.unitName || t.topic || '');
+        const tTopicNum = tTopicName.match(/(\d+)/)?.[1] || '';
+
+        const candidateSub = (testCompKey && solvedSubsMap.get(testCompKey)) ||
+                             (tTopicId && solvedSubsMap.get(`top_${tTopicId}:::${tIdStr}`)) ||
+                             (tTopicId && solvedSubsMap.get(`top_${tTopicId}:::${tCleanId}`)) ||
+                             (tTopicName && solvedSubsMap.get(`top_${tTopicName}:::${tIdStr}`)) ||
+                             (tTopicName && solvedSubsMap.get(`top_${tTopicName}:::${tCleanId}`)) ||
+                             (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tIdStr}`)) ||
+                             (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tCleanId}`)) ||
+                             (tIdStr.length >= 20 ? (solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId)) : null);
+
+        let directSub = null;
+        if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
+          directSub = candidateSub;
+        }
 
         const solvedSubs = directSub ? [directSub] : allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
 

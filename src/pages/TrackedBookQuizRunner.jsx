@@ -15,6 +15,7 @@ import ResizablePdfPanel from '../components/ResizablePdfPanel';
 import DrawingCanvas from '../components/quiz/common/DrawingCanvas';
 import ScreenSnipperAndSolverModal from '../components/quiz/ai/ScreenSnipperAndSolverModal';
 import { compareOpenEndedAnswers } from '../utils/answerEvaluation';
+import { createCompositeTestKey } from '../utils/testResolver';
 import { 
   ArrowLeft, CheckCircle2, Clock, FileSpreadsheet, X as XIcon, 
   PanelLeft, PanelTop, Maximize2, Eye, EyeOff, Pencil, ChevronRight, ChevronLeft, ChevronUp, ChevronDown,
@@ -1380,6 +1381,9 @@ export default function TrackedBookQuizRunner() {
       const approvalStatus = 'approved';
       const finalStatus = 'completed';
 
+      const finalSubj = isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe');
+      const testCompKey = createCompositeTestKey(resolvedBook?.title, finalSubj, finalUnitTopic, isExam ? examTitle : resolvedTest.name);
+
       const newSubId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       await addSubmission({
         id: newSubId,
@@ -1388,10 +1392,15 @@ export default function TrackedBookQuizRunner() {
         bookTestId: resolvedTest.id,
         bookId: resolvedBook?.id,
         bookTitle: resolvedBook?.title || 'Kitap',
-        subject: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
-        subjectName: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+        subject: finalSubj,
+        subjectName: finalSubj,
         topicName: finalUnitTopic,
         unitTopic: finalUnitTopic,
+        unit: finalUnitTopic,
+        unitName: finalUnitTopic,
+        topic: finalUnitTopic,
+        topicId: resolvedTest.topicId || null,
+        compositeKey: testCompKey,
         testName: isExam ? examTitle : resolvedTest.name,
         testTitle: fullTestTitle,
         title: isExam ? examTitle : resolvedTest.name,
@@ -1421,11 +1430,12 @@ export default function TrackedBookQuizRunner() {
             realTestId: resolvedTest.id,
             bookTestId: resolvedTest.id,
             bookTitle: resolvedBook?.title || 'Kitap',
-            subjectName: isExam ? 'Genel' : (resolvedSubject || resolvedBook?.subject || 'Türkçe'),
+            subjectName: finalSubj,
             topicName: finalUnitTopic,
             unitTopic: finalUnitTopic,
             testName: isExam ? examTitle : resolvedTest.name,
             testTitle: fullTestTitle,
+            compositeKey: testCompKey,
             totalQuestions: calculated.totalQuestions,
             totalNet: calculated.net,
             sourceType: isExam ? 'physicalExam' : 'trackedBook',

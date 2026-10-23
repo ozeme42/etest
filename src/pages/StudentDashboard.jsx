@@ -1219,23 +1219,40 @@ export default function StudentDashboard() {
         }
       }
 
+      const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+      const sBId = String(s.bookId || s.metadata?.bookId || '');
+      const sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '').trim();
+      const sTopicName = normClean(s.unitTopic || s.unit || s.unitName || s.topic || s.topicName || s.metadata?.unitTopic || s.metadata?.topicName || '');
+      const sTopicNum = sTopicName.match(/(\d+)/)?.[1] || '';
+
       const matchIds = [
-        s.testId, s.test_id, s.bookTestId, s.realTestId, s.id,
+        s.testId, s.test_id, s.bookTestId, s.realTestId,
         s.metadata?.testId, s.metadata?.bookTestId, s.metadata?.realTestId
       ];
       if (Array.isArray(s.bookTestIds)) matchIds.push(...s.bookTestIds);
       matchIds.forEach(id => {
         if (!id) return;
         const strId = String(id);
-        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '');
-        const uuid = toUUID(strId);
+        const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         
-        const existing = solvedSubsMap.get(strId) || solvedSubsMap.get(cleanId);
-        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
-        if (!existing || score >= exScore) {
-          solvedSubsMap.set(strId, s);
-          solvedSubsMap.set(cleanId, s);
-          if (uuid) solvedSubsMap.set(uuid, s);
+        // Book & Topic scoped indexing
+        if (sBId) {
+          if (sTopicId) {
+            solvedSubsMap.set(`${sBId}:::top_${sTopicId}:::${strId}`, s);
+            solvedSubsMap.set(`${sBId}:::top_${sTopicId}:::${cleanId}`, s);
+          }
+          if (sTopicName) {
+            solvedSubsMap.set(`${sBId}:::top_${sTopicName}:::${strId}`, s);
+            solvedSubsMap.set(`${sBId}:::top_${sTopicName}:::${cleanId}`, s);
+          }
+          if (sTopicNum) {
+            solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${strId}`, s);
+            solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${cleanId}`, s);
+          }
+          if (strId.length >= 20) {
+            solvedSubsMap.set(`${sBId}:::${strId}`, s);
+            solvedSubsMap.set(`${sBId}:::${cleanId}`, s);
+          }
         }
       });
     });
@@ -1292,11 +1309,29 @@ export default function StudentDashboard() {
         const tCleanUuid = toUUID(tCleanId);
         const tCompKey = createCompositeTestKey(book.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
 
-        let bestSub = solvedSubsMap.get(tIdStr) || 
-                      solvedSubsMap.get(tCleanId) ||
-                      (tUuid && solvedSubsMap.get(tUuid)) ||
-                      (tCleanUuid && solvedSubsMap.get(tCleanUuid)) ||
-                      (tCompKey && solvedSubsMap.get(tCompKey));
+        const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+        const bTopicId = String(t.topic_id || t.topicId || parentTopic?.id || '').trim();
+        const bTopicName = normClean(contextualTest.unit || parentTopic?.name || '');
+        const bTopicNum = bTopicName.match(/(\d+)/)?.[1] || '';
+
+        const candidateSub = (tCompKey && solvedSubsMap.get(tCompKey)) ||
+                             (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tIdStr}`)) ||
+                             (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tCleanId}`)) ||
+                             (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tIdStr}`)) ||
+                             (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tCleanId}`)) ||
+                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tIdStr}`)) ||
+                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`)) ||
+                             (tIdStr.length >= 20 ? solvedSubsMap.get(`${bId}:::${tIdStr}`) : null);
+
+        let bestSub = null;
+        if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
+          bestSub = candidateSub;
+        } else {
+          const matching = (submissions || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
+          if (matching.length > 0) {
+            bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
+          }
+        }
 
         if (bestSub) {
           totalSolvedTests++;
