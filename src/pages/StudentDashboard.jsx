@@ -1249,9 +1249,14 @@ export default function StudentDashboard() {
             solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${strId}`, s);
             solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${cleanId}`, s);
           }
-          if (strId.length >= 20) {
-            solvedSubsMap.set(`${sBId}:::${strId}`, s);
+          // Always index by strId and cleanId and UUID
+          solvedSubsMap.set(`${sBId}:::${strId}`, s);
+          if (cleanId && cleanId !== strId) {
             solvedSubsMap.set(`${sBId}:::${cleanId}`, s);
+          }
+          const u = toUUID(strId);
+          if (u) {
+            solvedSubsMap.set(`${sBId}:::${u}`, s);
           }
         }
       });
@@ -1290,6 +1295,7 @@ export default function StudentDashboard() {
         if (!sBId) return true;
         return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
       });
+      const unmatchedSubs = new Set(bookSubs);
 
       let totalCorrect = 0;
       let totalWrong = 0;
@@ -1297,9 +1303,20 @@ export default function StudentDashboard() {
       let totalSolvedTests = 0;
       let nextTest = null;
 
+      const subjectsMap = new Map();
+      const topicsMap = new Map();
+      subjects.forEach(s => {
+        subjectsMap.set(String(s.id), s);
+        (s.topics || []).forEach(tp => {
+          topicsMap.set(String(tp.id), tp);
+        });
+      });
+
       testsInBook.forEach(t => {
-        const parentSubj = subjects.find(s => String(s.id) === String(t.subject_id || t.subjectId));
-        const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(t.topic_id || t.topicId)) : null;
+        const tSubjId = String(t.subject_id || t.subjectId || '');
+        const tTopId = String(t.topic_id || t.topicId || '');
+        const parentSubj = tSubjId ? subjectsMap.get(tSubjId) : null;
+        const parentTopic = tTopId ? (topicsMap.get(tTopId) || (parentSubj?.topics || []).find(tp => String(tp.id) === tTopId)) : null;
 
         const contextualTest = {
           ...t,
@@ -1317,26 +1334,32 @@ export default function StudentDashboard() {
         const tCompKey = createCompositeTestKey(book.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
 
         const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-        const bTopicId = String(t.topic_id || t.topicId || parentTopic?.id || '').trim();
+        const bTopicId = String(tTopId || parentTopic?.id || '').trim();
         const bTopicName = normClean(contextualTest.unit || parentTopic?.name || '');
         const bTopicNum = bTopicName.match(/(\d+)/)?.[1] || '';
 
         const candidateSub = (tCompKey && solvedSubsMap.get(tCompKey)) ||
+                             solvedSubsMap.get(`${bId}:::${tIdStr}`) ||
+                             solvedSubsMap.get(`${bId}:::${tCleanId}`) ||
+                             (tUuid ? solvedSubsMap.get(`${bId}:::${tUuid}`) : null) ||
+                             (bUuid ? solvedSubsMap.get(`${bUuid}:::${tIdStr}`) : null) ||
+                             (bUuid ? solvedSubsMap.get(`${bUuid}:::${tCleanId}`) : null) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tIdStr}`)) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tCleanId}`)) ||
                              (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tIdStr}`)) ||
                              (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tCleanId}`)) ||
                              (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tIdStr}`)) ||
-                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`)) ||
-                             (tIdStr.length >= 20 ? solvedSubsMap.get(`${bId}:::${tIdStr}`) : null);
+                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`));
 
         let bestSub = null;
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
           bestSub = candidateSub;
-        } else {
-          const matching = (bookSubs || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
+          unmatchedSubs.delete(candidateSub);
+        } else if (unmatchedSubs.size > 0) {
+          const matching = Array.from(unmatchedSubs).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
           if (matching.length > 0) {
             bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
+            matching.forEach(m => unmatchedSubs.delete(m));
           }
         }
 
@@ -1869,21 +1892,43 @@ export default function StudentDashboard() {
 
       const resultMap = {};
 
+      const studentIdStr = String(studentId || '');
+      const studentUuidStr = String(toUUID(studentId) || '');
+      const isMatchStudent = (s) => {
+        if (!s) return false;
+        const subStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
+        return subStudentId === studentIdStr ||
+          (studentUuidStr && subStudentId === studentUuidStr) ||
+          toUUID(subStudentId) === studentIdStr ||
+          (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
+      };
+
+      const validScheduleSubs = (studentSubmissions || submissions || []).filter(s => {
+        if (!s || s.status === 'in_progress' || s.status === 'draft' || String(s.id || '').startsWith('draft_') || String(s.id || '').startsWith('64726166')) return false;
+        return isMatchStudent(s);
+      });
+
+      const scheduleSubsByTestId = new Map();
+      validScheduleSubs.forEach(s => {
+        const tIds = [s.testId, s.test_id, s.bookTestId, s.realTestId, s.metadata?.testId, s.metadata?.bookTestId];
+        if (Array.isArray(s.bookTestIds)) tIds.push(...s.bookTestIds);
+        tIds.forEach(id => {
+          if (!id) return;
+          const str = String(id);
+          const clean = str.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+          if (!scheduleSubsByTestId.has(str)) scheduleSubsByTestId.set(str, []);
+          scheduleSubsByTestId.get(str).push(s);
+          if (clean && clean !== str) {
+            if (!scheduleSubsByTestId.has(clean)) scheduleSubsByTestId.set(clean, []);
+            scheduleSubsByTestId.get(clean).push(s);
+          }
+        });
+      });
+
       DAYS_OF_WEEK.forEach(dayMeta => {
         const dayInfo = weekInfo?.dayDateMap?.[dayMeta.key];
         const dayYMD = dayInfo?.ymd || '';
         const dayTime = dayInfo?.time || 0;
-
-        const studentIdStr = String(studentId || '');
-        const studentUuidStr = String(toUUID(studentId) || '');
-        const isMatchStudent = (s) => {
-          if (!s) return false;
-          const subStudentId = String(s.studentId || s.student_id || s.user_id || s.userId || '');
-          return subStudentId === studentIdStr ||
-            (studentUuidStr && subStudentId === studentUuidStr) ||
-            toUUID(subStudentId) === studentIdStr ||
-            (studentUuidStr && toUUID(subStudentId) === studentUuidStr);
-        };
 
         const isMatchHwSub = (s, targetHw = null, specificTestId = null) => {
           if (!s || !isMatchStudent(s)) return false;
@@ -2228,14 +2273,14 @@ export default function StudentDashboard() {
           const studentIdStr = String(studentId || '').trim();
           const studentUuid = String(toUUID(studentId) || '').trim();
 
-          const matchingSubs = (studentSubmissions || submissions || []).filter(s => {
-            if (!s || s.status === 'in_progress' || s.status === 'draft' || String(s.id || '').startsWith('draft_') || String(s.id || '').startsWith('64726166')) return false;
-            const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
-            const isStudentMatch = !studentIdStr || sId === studentIdStr || sId === studentUuid || (toUUID(sId) && toUUID(sId) === studentUuid);
-            if (!isStudentMatch) return false;
-
-            return isSubmissionMatchingBookTest(s, item, bookTests, books);
-          });
+          let matchingSubs = [];
+          if (currentTestClean && scheduleSubsByTestId.has(currentTestClean)) {
+            matchingSubs = scheduleSubsByTestId.get(currentTestClean);
+          } else if (currentTestId && scheduleSubsByTestId.has(currentTestId)) {
+            matchingSubs = scheduleSubsByTestId.get(currentTestId);
+          } else {
+            matchingSubs = validScheduleSubs.filter(s => isSubmissionMatchingBookTest(s, item, bookTests, books));
+          }
 
           const pastCount = matchingSubs.length;
 

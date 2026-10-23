@@ -419,22 +419,26 @@ export default function StudentBookDetailsPage() {
 
     const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
 
-    const solvedSubsMap = new Map();
-    allStudentSubs.forEach(s => {
-      // 1. Strict Book Isolation: skip submissions belonging to other books
+    // Pre-filter submissions strictly for this book
+    const bookSubs = (allStudentSubs || []).filter(s => {
       const sBId = String(s.bookId || s.metadata?.bookId || '');
       const sBUuid = toUUID(sBId);
       if (sBId && sBId !== bId && (!sBUuid || sBUuid !== bUuid)) {
-        return;
+        return false;
       }
       const sBTitle = normClean(s.bookTitle || s.metadata?.bookTitle || '');
       const normBookTitle = normClean(bTitle);
       if (sBTitle && normBookTitle && sBTitle.length >= 3 && normBookTitle.length >= 3) {
         if (!normBookTitle.includes(sBTitle) && !sBTitle.includes(normBookTitle)) {
-          return;
+          return false;
         }
       }
+      return true;
+    });
+    const unmatchedSubs = new Set(bookSubs);
 
+    const solvedSubsMap = new Map();
+    bookSubs.forEach(s => {
       const score = Number(s.score || s.computedScore || (s.correct_count ?? s.correctCount ?? s.correct ?? 0));
       const compKey = getSubmissionCompositeKey(s);
       if (compKey) {
@@ -473,14 +477,17 @@ export default function StudentBookDetailsPage() {
           solvedSubsMap.set(`u${sTopicNum}:::${cleanId}`, s);
         }
 
-        // Global ID key ONLY if it's a real 36-char UUID or prefixed with book/topic unique id (tbt_...)
-        const isUniqueSysId = strId.length >= 20 || (toUUID(strId) === strId && strId.length === 36);
-        if (isUniqueSysId) {
-          const existing = solvedSubsMap.get(strId);
-          const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
-          if (!existing || score >= exScore) {
-            solvedSubsMap.set(strId, s);
+        // Always index by strId and cleanId and UUID
+        const existing = solvedSubsMap.get(strId);
+        const exScore = Number(existing?.score || existing?.computedScore || (existing?.correct_count ?? existing?.correctCount ?? existing?.correct ?? 0));
+        if (!existing || score >= exScore) {
+          solvedSubsMap.set(strId, s);
+          if (cleanId && cleanId !== strId) {
             solvedSubsMap.set(cleanId, s);
+          }
+          const u = toUUID(strId);
+          if (u) {
+            solvedSubsMap.set(u, s);
           }
         }
       });
@@ -573,20 +580,30 @@ export default function StudentBookDetailsPage() {
         const tTopicNum = tTopicName.match(/(\d+)/)?.[1] || '';
 
         const candidateSub = (testCompKey && solvedSubsMap.get(testCompKey)) ||
+                             solvedSubsMap.get(tIdStr) ||
+                             solvedSubsMap.get(tCleanId) ||
+                             (tUuidStr ? solvedSubsMap.get(tUuidStr) : null) ||
                              (tTopicId && solvedSubsMap.get(`top_${tTopicId}:::${tIdStr}`)) ||
                              (tTopicId && solvedSubsMap.get(`top_${tTopicId}:::${tCleanId}`)) ||
                              (tTopicName && solvedSubsMap.get(`top_${tTopicName}:::${tIdStr}`)) ||
                              (tTopicName && solvedSubsMap.get(`top_${tTopicName}:::${tCleanId}`)) ||
                              (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tIdStr}`)) ||
-                             (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tCleanId}`)) ||
-                             (tIdStr.length >= 20 ? (solvedSubsMap.get(tIdStr) || solvedSubsMap.get(tCleanId)) : null);
+                             (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tCleanId}`));
 
         let directSub = null;
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
           directSub = candidateSub;
+          unmatchedSubs.delete(candidateSub);
         }
 
-        const solvedSubs = directSub ? [directSub] : allStudentSubs.filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+        let solvedSubs = directSub ? [directSub] : [];
+        if (!directSub && unmatchedSubs.size > 0) {
+          const matching = Array.from(unmatchedSubs).filter(s => isSubmissionMatchingBookTest(s, contextualTest, testsInBook, books));
+          if (matching.length > 0) {
+            solvedSubs = matching;
+            matching.forEach(m => unmatchedSubs.delete(m));
+          }
+        }
 
         const isCompleted = solvedSubs.length > 0;
 

@@ -407,9 +407,14 @@ export default function StudentBooksPage() {
             solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${strId}`, s);
             solvedSubsMap.set(`${sBId}:::u${sTopicNum}:::${cleanId}`, s);
           }
-          if (strId.length >= 20) {
-            solvedSubsMap.set(`${sBId}:::${strId}`, s);
+          // Always index by strId and cleanId and UUID
+          solvedSubsMap.set(`${sBId}:::${strId}`, s);
+          if (cleanId && cleanId !== strId) {
             solvedSubsMap.set(`${sBId}:::${cleanId}`, s);
+          }
+          const u = toUUID(strId);
+          if (u) {
+            solvedSubsMap.set(`${sBId}:::${u}`, s);
           }
         }
       });
@@ -459,6 +464,7 @@ export default function StudentBooksPage() {
         if (!sBId) return true;
         return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
       });
+      const unmatchedSubs = new Set(bookSubs);
 
       let totalCorrect = 0;
       let totalWrong = 0;
@@ -467,9 +473,20 @@ export default function StudentBooksPage() {
       let nextIncompleteTest = null;
       const incompleteTests = [];
 
+      const subjectsMap = new Map();
+      const topicsMap = new Map();
+      subjects.forEach(s => {
+        subjectsMap.set(String(s.id), s);
+        (s.topics || []).forEach(tp => {
+          topicsMap.set(String(tp.id), tp);
+        });
+      });
+
       testsInBook.forEach(t => {
-        const parentSubj = subjects.find(s => String(s.id) === String(t.subject_id || t.subjectId));
-        const parentTopic = parentSubj ? (parentSubj.topics || []).find(tp => String(tp.id) === String(t.topic_id || t.topicId)) : null;
+        const tSubjId = String(t.subject_id || t.subjectId || '');
+        const tTopId = String(t.topic_id || t.topicId || '');
+        const parentSubj = tSubjId ? subjectsMap.get(tSubjId) : null;
+        const parentTopic = tTopId ? (topicsMap.get(tTopId) || (parentSubj?.topics || []).find(tp => String(tp.id) === tTopId)) : null;
 
         const contextualTest = {
           ...t,
@@ -487,26 +504,32 @@ export default function StudentBooksPage() {
         const tCleanUuid = toUUID(tCleanId);
         const tCompKey = createCompositeTestKey(b.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
 
-        const bTopicId = String(t.topic_id || t.topicId || parentTopic?.id || '').trim();
+        const bTopicId = String(tTopId || parentTopic?.id || '').trim();
         const bTopicName = normClean(contextualTest.unit || parentTopic?.name || '');
         const bTopicNum = bTopicName.match(/(\d+)/)?.[1] || '';
 
         const candidateSub = (tCompKey && solvedSubsMap.get(tCompKey)) ||
+                             solvedSubsMap.get(`${bId}:::${tIdStr}`) ||
+                             solvedSubsMap.get(`${bId}:::${tCleanId}`) ||
+                             (tUuid ? solvedSubsMap.get(`${bId}:::${tUuid}`) : null) ||
+                             (bUuid ? solvedSubsMap.get(`${bUuid}:::${tIdStr}`) : null) ||
+                             (bUuid ? solvedSubsMap.get(`${bUuid}:::${tCleanId}`) : null) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tIdStr}`)) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tCleanId}`)) ||
                              (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tIdStr}`)) ||
                              (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tCleanId}`)) ||
                              (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tIdStr}`)) ||
-                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`)) ||
-                             (tIdStr.length >= 20 ? solvedSubsMap.get(`${bId}:::${tIdStr}`) : null);
+                             (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`));
 
         let bestSub = null;
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
           bestSub = candidateSub;
-        } else {
-          const matching = (bookSubs || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
+          unmatchedSubs.delete(candidateSub);
+        } else if (unmatchedSubs.size > 0) {
+          const matching = Array.from(unmatchedSubs).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
           if (matching.length > 0) {
             bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
+            matching.forEach(m => unmatchedSubs.delete(m));
           }
         }
 
