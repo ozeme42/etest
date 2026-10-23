@@ -1633,7 +1633,46 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     .replace(/\s+/g, ' ')
     .trim();
 
-  // 🛡️ 1. STRICT BOOK ISOLATION
+  // 🛡️ 1. IDENTIFY SUBMISSION AND TEST IDs
+  const sTestId = String(s.testId || s.test_id || '');
+  const sClean = sTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+  const sUuid = String(toUUID(sClean || sTestId) || '');
+
+  const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
+  const sRealClean = sRealTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+
+  const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
+  const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+
+  // 🛡️ 2. AUTO-ENRICH SUBMISSION FROM bookTests IF NEEDED
+  let sBookTitle = cleanHelper(s.bookTitle || s.metadata?.bookTitle || '');
+  let sSubj = cleanHelper(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.subjectName || s.lesson || '');
+  let sUnitName = cleanHelper(s.unit || s.unitName || s.topic || s.topicName || s.unitTopic || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || s.metadata?.topicName || '');
+  let sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '');
+
+  if ((!sUnitName || !sBookTitle) && (bookTests || []).length > 0) {
+    const sIdToCheck = sTestId || sRealTestId || sBookTestId;
+    if (sIdToCheck) {
+      const sUuidToCheck = toUUID(sIdToCheck);
+      const foundBt = (bookTests || []).find(bt => {
+        const btId = String(bt.id || '');
+        const btClean = btId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        return btId === sIdToCheck || btClean === sClean || (toUUID(btId) && toUUID(btId) === sUuidToCheck);
+      });
+      if (foundBt) {
+        if (!sBookTitle && foundBt.bookTitle) sBookTitle = cleanHelper(foundBt.bookTitle);
+        if (!sSubj && foundBt.subject) sSubj = cleanHelper(foundBt.subject);
+        if (!sUnitName && (foundBt.unit || foundBt.unitName || foundBt.topicName)) {
+          sUnitName = cleanHelper(foundBt.unit || foundBt.unitName || foundBt.topicName);
+        }
+        if (!sTopicId && (foundBt.topicId || foundBt.topic_id)) {
+          sTopicId = String(foundBt.topicId || foundBt.topic_id);
+        }
+      }
+    }
+  }
+
+  // 🛡️ 3. STRICT BOOK ISOLATION
   const sBId = String(s.bookId || s.metadata?.bookId || '');
   const tBId = String(targetTest?.bookId || targetTest?.book_id || '');
   if (sBId && tBId) {
@@ -1644,7 +1683,6 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  const sBookTitle = cleanHelper(s.bookTitle || s.metadata?.bookTitle || '');
   const tBookTitle = cleanHelper(targetTest?.bookTitle || targetTest?.bookName || '');
   if (sBookTitle && tBookTitle && sBookTitle.length >= 3 && tBookTitle.length >= 3) {
     const normSB = sBookTitle.replace(/[^a-z0-9]/g, '');
@@ -1655,8 +1693,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  // 🛡️ 2. STRICT SUBJECT ISOLATION
-  const sSubj = cleanHelper(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.subjectName || s.lesson || '');
+  // 🛡️ 4. STRICT SUBJECT ISOLATION
   const tSubj = cleanHelper(targetTest?.subject || targetTest?.subjectName || targetTest?.parentSubjectName || targetTest?.ders || '');
   if (sSubj && tSubj) {
     const normS = sSubj.replace(/[^a-z0-9]/g, '');
@@ -1671,8 +1708,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     if (isCrossConflict) return false;
   }
 
-  // 🛡️ 3. STRICT TOPIC / UNIT ISOLATION
-  const sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '');
+  // 🛡️ 5. STRICT TOPIC / UNIT ISOLATION
   const tTopicId = String(targetTest?.topicId || targetTest?.topic_id || '');
   if (sTopicId && tTopicId && sTopicId !== tTopicId) {
     const sTopUuid = toUUID(sTopicId);
@@ -1682,7 +1718,6 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  const sUnitName = cleanHelper(s.unit || s.unitName || s.topic || s.topicName || s.unitTopic || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || s.metadata?.topicName || '');
   const tUnitName = cleanHelper(targetTest?.unit || targetTest?.unitName || targetTest?.topic || targetTest?.topicName || targetTest?.unitTopic || '');
 
   const tUnitNum = tUnitName.match(/(\d+)\.\s*(tema|ünite)/i)?.[1] || tUnitName.match(/(tema|ünite)\s*(\d+)/i)?.[2] || tUnitName.match(/(\d+)/)?.[1];
@@ -1692,30 +1727,21 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   }
 
   // ⚡ FAST PATH: Direct ID Matching
-  const sTestId = String(s.testId || s.test_id || '');
-  const sClean = sTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-  const sUuid = String(toUUID(sClean || sTestId) || '');
-
-  const sRealTestId = String(s.realTestId || s.metadata?.realTestId || '');
-  const sRealClean = sRealTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-
-  const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
-  const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
-
   const isDirectIdMatch = specIds.some(spId => {
     if (!spId || spId === 'undefined' || spId === 'null') return false;
     const spClean = spId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
     if (spClean.length < 3) return false;
     const spUuid = String(toUUID(spClean || spId) || '');
+    const spRawUuid = String(toUUID(spId) || '');
 
-    return (sTestId && (sTestId === spId || sClean === spClean || (spUuid && sUuid === spUuid))) ||
-           (sRealTestId && (sRealTestId === spId || sRealClean === spClean || (spUuid && toUUID(sRealClean) === spUuid))) ||
-           (sBookTestId && (sBookTestId === spId || sBookClean === spClean || (spUuid && toUUID(sBookClean) === spUuid))) ||
-           (s.metadata?.testId && String(s.metadata.testId) === spId) ||
-           (s.metadata?.realTestId && String(s.metadata.realTestId) === spId) ||
-           (s.metadata?.bookTestId && String(s.metadata.bookTestId) === spId) ||
-           (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === spId || (spUuid && toUUID(id) === spUuid))) ||
-           (Array.isArray(s.tests) && s.tests.some(id => String(id) === spId || (spUuid && toUUID(id) === spUuid)));
+    return (sTestId && (sTestId === spId || sClean === spClean || (spUuid && sUuid === spUuid) || (spRawUuid && sUuid === spRawUuid))) ||
+           (sRealTestId && (sRealTestId === spId || sRealClean === spClean || (spUuid && toUUID(sRealClean) === spUuid) || (spRawUuid && toUUID(sRealTestId) === spRawUuid))) ||
+           (sBookTestId && (sBookTestId === spId || sBookClean === spClean || (spUuid && toUUID(sBookClean) === spUuid) || (spRawUuid && toUUID(sBookTestId) === spRawUuid))) ||
+           (s.metadata?.testId && (String(s.metadata.testId) === spId || toUUID(s.metadata.testId) === spRawUuid)) ||
+           (s.metadata?.realTestId && (String(s.metadata.realTestId) === spId || toUUID(s.metadata.realTestId) === spRawUuid)) ||
+           (s.metadata?.bookTestId && (String(s.metadata.bookTestId) === spId || toUUID(s.metadata.bookTestId) === spRawUuid)) ||
+           (Array.isArray(s.bookTestIds) && s.bookTestIds.some(id => String(id) === spId || (spRawUuid && toUUID(id) === spRawUuid))) ||
+           (Array.isArray(s.tests) && s.tests.some(id => String(id) === spId || (spRawUuid && toUUID(id) === spRawUuid)));
   });
 
   if (isDirectIdMatch) {
@@ -1727,7 +1753,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
       if (sUnitName && tUnitName) {
         const normSU = sUnitName.replace(/[^a-z0-9]/g, '');
         const normTU = tUnitName.replace(/[^a-z0-9]/g, '');
-        if (normSU && normTU && !normTU.includes(normSU) && !normSU.includes(normTU)) {
+        if (normSU && normTU && !normTU.includes(normSU) && !normTU.includes(normTU)) {
           return false;
         }
       }
@@ -1735,7 +1761,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return true;
   }
 
-  // 🛡️ 4. COMPOSITE SIGNATURE MATCHING (Pillar 1: Guaranteed Cross-Disciplinary Safety)
+  // 🛡️ 6. COMPOSITE SIGNATURE MATCHING (Pillar 1: Guaranteed Cross-Disciplinary Safety)
   if (targetTest) {
     const tBookTitleVal = targetTest.bookTitle || '';
     const tSubjName = targetTest.subject || targetTest.subjectName || targetTest.parentSubjectName || '';
@@ -1751,7 +1777,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     }
   }
 
-  // 🛡️ 5. STRING / NAME MATCHING WITH RIGOROUS TOPIC ISOLATION
+  // 🛡️ 7. STRING / NAME MATCHING WITH RIGOROUS TOPIC ISOLATION
   const tName = cleanHelper(targetTest?.name || targetTest?.testName || targetTest?.title || '');
   if (!tName || tName.length < 2) return false;
 
@@ -1769,8 +1795,9 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const normSubChars = normOnlyChars(normSubTest);
   const normTChars = normOnlyChars(cleanTName);
 
-  // Check if test name has a recurring pattern across topics/units
-  const isPatternTest = /^((kavratan|bumerang|beceritemelli|etkinlik|yazili|baglam|test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|sorubankasi|yapraksoru|denemesinavi|konutesti)[\s-]*\d*|\d+|test)$/i.test(normTChars);
+  // Check if test name has a recurring pattern across topics/units or ends with a number
+  const isPatternTest = /^(kavratan|bumerang|beceritemelli|etkinlik|yazili|baglam|test|yeninesil|udeg|unite|unitedegerlendirme|problemsayfasi|paragraftesti|kazanimtesti|degerlendirmetesti|sorubankasi|yapraksoru|denemesinavi|konutesti)/i.test(normTChars) ||
+                        /\d+$/.test(normTChars);
 
   if (isPatternTest) {
     // For pattern tests, book MUST match and topic/unit MUST match!
@@ -1801,6 +1828,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   // Exact match between normalized test names
   if (normSubChars === normTChars && normTChars.length >= 2) {
     if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
+    if ((tUnitNum || sUnitNum || isPatternTest) && (!tUnitNum || !sUnitNum || tUnitNum !== sUnitNum)) return false;
     return true;
   }
 
@@ -1815,6 +1843,7 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
 
   if (normSubTest === cleanTName) {
     if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
+    if ((tUnitNum || sUnitNum || isPatternTest) && (!tUnitNum || !sUnitNum || tUnitNum !== sUnitNum)) return false;
     return true;
   }
 
