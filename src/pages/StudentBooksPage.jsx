@@ -453,6 +453,13 @@ export default function StudentBooksPage() {
       const testsInBook = Array.from(deduplicatedMap.values());
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (b.total_tests || b.totalTests || 1);
 
+      // Pre-filter submissions for this book for massive speedup
+      const bookSubs = (studentSubmissions || []).filter(s => {
+        const sBId = String(s.bookId || s.metadata?.bookId || '');
+        if (!sBId) return true;
+        return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
+      });
+
       let totalCorrect = 0;
       let totalWrong = 0;
       let totalBlank = 0;
@@ -497,7 +504,7 @@ export default function StudentBooksPage() {
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
           bestSub = candidateSub;
         } else {
-          const matching = (studentSubmissions || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
+          const matching = (bookSubs || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
           if (matching.length > 0) {
             bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
           }

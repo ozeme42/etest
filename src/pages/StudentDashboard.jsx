@@ -1284,6 +1284,13 @@ export default function StudentDashboard() {
 
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (book.totalTests || 1);
 
+      // Pre-filter submissions for this book for massive speedup
+      const bookSubs = (submissions || []).filter(s => {
+        const sBId = String(s.bookId || s.metadata?.bookId || '');
+        if (!sBId) return true;
+        return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
+      });
+
       let totalCorrect = 0;
       let totalWrong = 0;
       let totalBlank = 0;
@@ -1327,7 +1334,7 @@ export default function StudentDashboard() {
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
           bestSub = candidateSub;
         } else {
-          const matching = (submissions || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
+          const matching = (bookSubs || []).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
           if (matching.length > 0) {
             bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
           }

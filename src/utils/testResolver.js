@@ -1551,6 +1551,31 @@ export function getSubmissionCompositeKey(s) {
 /**
  * Accurately checks if a submission matches a specific book test without falsely matching generic names or cross-subject tests.
  */
+// Fast O(1) lookup cache for bookTests in isSubmissionMatchingBookTest
+let _btLookupCache = null;
+let _btLookupSource = null;
+
+function getCachedBtLookupMap(bookTests) {
+  if (!bookTests || bookTests.length === 0) return null;
+  if (_btLookupSource === bookTests && _btLookupCache) return _btLookupCache;
+  const map = new Map();
+  for (let i = 0; i < bookTests.length; i++) {
+    const bt = bookTests[i];
+    if (!bt) continue;
+    const btId = String(bt.id || '');
+    if (btId) {
+      map.set(btId, bt);
+      const btClean = btId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      if (btClean && btClean !== btId) map.set(btClean, bt);
+      const u = toUUID(btId);
+      if (u) map.set(u, bt);
+    }
+  }
+  _btLookupCache = map;
+  _btLookupSource = bookTests;
+  return map;
+}
+
 export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], books = []) {
   if (!s || !targetTestOrId) return false;
   if (s.status === 'in_progress' || s.status === 'draft') return false;
@@ -1587,14 +1612,15 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const specClean = specId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
   const specUuid = String(toUUID(specClean || specId) || '');
 
-  let targetTest = targetObj || (bookTests || []).find(bt => {
-    const btId = String(bt.id || '');
-    const btClean = btId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-    return btId === specId || btClean === specClean || (toUUID(btId) && toUUID(btId) === specUuid);
-  });
+  let targetTest = targetObj;
+  if (!targetTest && (bookTests || []).length > 0) {
+    const btMap = getCachedBtLookupMap(bookTests);
+    targetTest = btMap ? (btMap.get(specId) || btMap.get(specClean) || (specUuid ? btMap.get(specUuid) : null)) : null;
+  }
 
   // Enrich targetTest with book metadata if needed
-  if (targetTest && (!targetTest.subject || !targetTest.unit || !targetTest.bookTitle)) {
+  if (targetTest && (!targetTest.subject || !targetTest.unit || !targetTest.bookTitle) && !targetTest._resolvedEnriched) {
+    targetTest._resolvedEnriched = true;
     const sId = targetTest.subjectId || targetTest.subject_id;
     const tId = targetTest.topicId || targetTest.topic_id;
     const bId = targetTest.bookId || targetTest.book_id;
@@ -1644,33 +1670,34 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   const sBookTestId = String(s.bookTestId || s.metadata?.bookTestId || '');
   const sBookClean = sBookTestId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
 
-  // 🛡️ 2. AUTO-ENRICH SUBMISSION FROM bookTests IF NEEDED
-  let sBookTitle = cleanHelper(s.bookTitle || s.metadata?.bookTitle || '');
-  let sSubj = cleanHelper(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.subjectName || s.lesson || '');
-  let sUnitName = cleanHelper(s.unit || s.unitName || s.topic || s.topicName || s.unitTopic || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || s.metadata?.topicName || '');
-  let sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '');
+  // 🛡️ 2. AUTO-ENRICH SUBMISSION FROM bookTests IF NEEDED (Cached on submission for instant reuse)
+  if (!s._resolvedEnrichment) {
+    let sBookTitle = cleanHelper(s.bookTitle || s.metadata?.bookTitle || '');
+    let sSubj = cleanHelper(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.subjectName || s.lesson || '');
+    let sUnitName = cleanHelper(s.unit || s.unitName || s.topic || s.topicName || s.unitTopic || s.metadata?.unit || s.metadata?.topic || s.metadata?.unitTopic || s.metadata?.topicName || '');
+    let sTopicId = String(s.topicId || s.topic_id || s.metadata?.topicId || '');
 
-  if ((!sUnitName || !sBookTitle) && (bookTests || []).length > 0) {
-    const sIdToCheck = sTestId || sRealTestId || sBookTestId;
-    if (sIdToCheck) {
-      const sUuidToCheck = toUUID(sIdToCheck);
-      const foundBt = (bookTests || []).find(bt => {
-        const btId = String(bt.id || '');
-        const btClean = btId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-        return btId === sIdToCheck || btClean === sClean || (toUUID(btId) && toUUID(btId) === sUuidToCheck);
-      });
-      if (foundBt) {
-        if (!sBookTitle && foundBt.bookTitle) sBookTitle = cleanHelper(foundBt.bookTitle);
-        if (!sSubj && foundBt.subject) sSubj = cleanHelper(foundBt.subject);
-        if (!sUnitName && (foundBt.unit || foundBt.unitName || foundBt.topicName)) {
-          sUnitName = cleanHelper(foundBt.unit || foundBt.unitName || foundBt.topicName);
-        }
-        if (!sTopicId && (foundBt.topicId || foundBt.topic_id)) {
-          sTopicId = String(foundBt.topicId || foundBt.topic_id);
+    if ((!sUnitName || !sBookTitle) && (bookTests || []).length > 0) {
+      const sIdToCheck = sTestId || sRealTestId || sBookTestId;
+      if (sIdToCheck) {
+        const btMap = getCachedBtLookupMap(bookTests);
+        const sUuidToCheck = toUUID(sIdToCheck);
+        const foundBt = btMap ? (btMap.get(sIdToCheck) || btMap.get(sClean) || (sUuidToCheck ? btMap.get(sUuidToCheck) : null)) : null;
+        if (foundBt) {
+          if (!sBookTitle && foundBt.bookTitle) sBookTitle = cleanHelper(foundBt.bookTitle);
+          if (!sSubj && foundBt.subject) sSubj = cleanHelper(foundBt.subject);
+          if (!sUnitName && (foundBt.unit || foundBt.unitName || foundBt.topicName)) {
+            sUnitName = cleanHelper(foundBt.unit || foundBt.unitName || foundBt.topicName);
+          }
+          if (!sTopicId && (foundBt.topicId || foundBt.topic_id)) {
+            sTopicId = String(foundBt.topicId || foundBt.topic_id);
+          }
         }
       }
     }
+    s._resolvedEnrichment = { sBookTitle, sSubj, sUnitName, sTopicId };
   }
+  const { sBookTitle, sSubj, sUnitName, sTopicId } = s._resolvedEnrichment;
 
   // 🛡️ 3. STRICT BOOK ISOLATION
   const sBId = String(s.bookId || s.metadata?.bookId || '');
