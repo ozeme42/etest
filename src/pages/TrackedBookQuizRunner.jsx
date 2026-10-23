@@ -1161,7 +1161,7 @@ export default function TrackedBookQuizRunner() {
   };
 
   const inputRefs = useRef({});
-  const [activeFocusedQ, setActiveFocusedQ] = useState(null);
+  const [activeFocusedQ, setActiveFocusedQ] = useState(() => startQuestionNumber || 1);
 
   const scrollToQuestion = (qNum) => {
     setTimeout(() => {
@@ -1229,21 +1229,75 @@ export default function TrackedBookQuizRunner() {
 
   const openEndedAnswerPool = useMemo(() => {
     if (!isOpenEnded) return [];
-    const answerKey = resolvedTest?.answerKey || resolvedBook?.answerKey || {};
+    const answerKey = resolvedTest?.answer_key ||
+      resolvedTest?.answerKey ||
+      resolvedTest?.raw_data?.answer_key ||
+      resolvedTest?.raw_data?.answerKey ||
+      resolvedTest?.correctAnswers ||
+      resolvedBook?.answer_key ||
+      resolvedBook?.answerKey ||
+      resolvedBook?.raw_data?.answer_key || {};
+
     const rawItems = [];
+    const seenTexts = new Set();
+    const addPoolItem = (txt) => {
+      if (!txt) return;
+      const s = String(txt).trim();
+      if (s.length >= 2 && !seenTexts.has(s.toLowerCase())) {
+        seenTexts.add(s.toLowerCase());
+        rawItems.push({ id: `key_${rawItems.length + 1}`, text: s });
+      }
+    };
+
+    // 1. Explicit pool in __meta
+    if (answerKey && typeof answerKey === 'object') {
+      const meta = answerKey.__meta || answerKey.meta;
+      if (meta && Array.isArray(meta.wordPool)) meta.wordPool.forEach(addPoolItem);
+      if (meta && Array.isArray(meta.pool)) meta.pool.forEach(addPoolItem);
+      if (meta && Array.isArray(meta.options)) meta.options.forEach(addPoolItem);
+    }
+
+    // 2. Process each answer key entry
+    const processVal = (val) => {
+      if (val === undefined || val === null) return;
+      const s = String(val).trim();
+      if (!s) return;
+      if (s.length <= 45) {
+        addPoolItem(s);
+      } else {
+        const parts = s
+          .split(/[,;\n•|]+/)
+          .map(p => p.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
+          .filter(p => p.length >= 2 && p.length <= 40);
+        if (parts.length > 0) parts.forEach(addPoolItem);
+        else addPoolItem(s);
+      }
+    };
 
     if (Array.isArray(answerKey)) {
-      answerKey.forEach((val, idx) => {
-        if (val !== undefined && val !== null && String(val).trim() !== '') {
-          rawItems.push({ id: `key_${idx + 1}`, text: String(val).trim() });
-        }
-      });
+      answerKey.forEach(processVal);
     } else if (typeof answerKey === 'object') {
       Object.entries(answerKey).forEach(([k, val]) => {
-        if (k !== '__meta' && val !== undefined && val !== null && String(val).trim() !== '') {
-          rawItems.push({ id: `key_${k}`, text: String(val).trim() });
+        if (k !== '__meta' && k !== 'meta') {
+          processVal(val);
         }
       });
+    }
+
+    // 3. Common dichotomies / trichotomies if detected in test
+    const fullStr = JSON.stringify(answerKey).toLowerCase();
+    if (fullStr.includes('doğru') || fullStr.includes('yanlış')) {
+      addPoolItem('Doğru');
+      addPoolItem('Yanlış');
+    }
+    if (fullStr.includes('artar') || fullStr.includes('azalır')) {
+      addPoolItem('Artar');
+      addPoolItem('Azalır');
+      addPoolItem('Değişmez');
+    }
+    if (fullStr.includes('evet') || fullStr.includes('hayır')) {
+      addPoolItem('Evet');
+      addPoolItem('Hayır');
     }
 
     if (rawItems.length === 0) return [];
@@ -2515,6 +2569,677 @@ export default function TrackedBookQuizRunner() {
 
                 {/* 🎯 AÇIK UÇLU VE ÇOKTAN SEÇMELİ OPTİK DÜZENİ */}
                 {(() => {
+                  // ─── AÇIK UÇLU TESTLER İÇİN BÜYÜK SORU KARTLARI DÜZENİ ───
+                  if (isOpenEnded) {
+                    const allQNumbers = Array.from({ length: questionCount || 1 }, (_, i) => (startQuestionNumber || 1) + i);
+                    const minQ = startQuestionNumber || 1;
+                    const maxQ = minQ + (questionCount || 1) - 1;
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: 880, margin: '0 auto' }}>
+                        {/* 🎯 HIZLI SORU SEÇİM / İLERLEME ÇUBUĞU */}
+                        <div style={{
+                          background: 'var(--color-surface)',
+                          border: '1.5px solid var(--color-border)',
+                          borderRadius: '1rem',
+                          padding: '0.85rem 1rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.65rem',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>📌 Sorular</span>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                ({answeredCount}/{questionCount} Yanıtlandı)
+                              </span>
+                            </span>
+                            <span style={{ fontSize: '0.72rem', color: '#6366f1', fontWeight: 800 }}>
+                              💡 Soru kartına dokunarak seçenekleri açın veya cevap yazın
+                            </span>
+                          </div>
+
+                          {/* Soru Atlama Hapları */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {allQNumbers.map(qNo => {
+                              const ans = answers[qNo] || answers[String(qNo)] || '';
+                              const isFilled = Boolean(String(ans).trim());
+                              const isFocused = activeFocusedQ === qNo;
+                              return (
+                                <button
+                                  key={qNo}
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveFocusedQ(qNo);
+                                    scrollToQuestion(qNo);
+                                  }}
+                                  style={{
+                                    minWidth: 38,
+                                    height: 38,
+                                    borderRadius: '0.65rem',
+                                    padding: '0 0.5rem',
+                                    border: isFocused ? '2px solid #6366f1' : (isFilled ? '1.5px solid #86efac' : '1.5px solid var(--color-border)'),
+                                    background: isFocused ? '#6366f1' : (isFilled ? (isDark ? 'rgba(22,163,74,0.25)' : '#dcfce7') : 'var(--color-surface-hover)'),
+                                    color: isFocused ? '#ffffff' : (isFilled ? (isDark ? '#86efac' : '#15803d') : 'var(--color-text)'),
+                                    fontSize: '0.85rem',
+                                    fontWeight: 900,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 3,
+                                    transition: 'all 0.15s ease',
+                                    boxShadow: isFocused ? '0 2px 8px rgba(99,102,241,0.35)' : 'none'
+                                  }}
+                                  title={`${qNo}. Soru ${isFilled ? `(Cevap: ${ans})` : '(Boş)'}`}
+                                >
+                                  <span>{qNo}</span>
+                                  {isFilled && !isFocused && <span style={{ fontSize: '0.7rem' }}>✓</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 📝 BÜYÜK SORU KARTLARI LİSTESİ */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+                          {allQNumbers.map(qNo => {
+                            const idx = qNo - minQ;
+                            const selected = answers[qNo] || answers[String(qNo)] || '';
+                            const isFocused = activeFocusedQ === qNo;
+                            const isLastQ = qNo === maxQ;
+
+                            // Cevap anahtarı ve değerlendirme
+                            const answerKey = resolvedTest?.answerKey || 
+                              resolvedTest?.answer_key || 
+                              resolvedTest?.raw_data?.answerKey || 
+                              resolvedTest?.raw_data?.answer_key || 
+                              resolvedTest?.correctAnswers ||
+                              resolvedBook?.answerKey || 
+                              resolvedBook?.answer_key || 
+                              resolvedBook?.raw_data?.answerKey || {};
+                            let rawCorrectKey = '';
+                            if (Array.isArray(answerKey)) {
+                              rawCorrectKey = answerKey[idx] ?? answerKey[qNo] ?? '';
+                            } else if (typeof answerKey === 'object' && answerKey !== null) {
+                              if (answerKey[qNo] !== undefined && answerKey[qNo] !== null && answerKey[qNo] !== '') rawCorrectKey = answerKey[qNo];
+                              else if (answerKey[String(qNo)] !== undefined && answerKey[String(qNo)] !== null && answerKey[String(qNo)] !== '') rawCorrectKey = answerKey[String(qNo)];
+                              else if (answerKey[idx] !== undefined && answerKey[idx] !== null && answerKey[idx] !== '') rawCorrectKey = answerKey[idx];
+                              else if (answerKey[String(idx)] !== undefined && answerKey[String(idx)] !== null && answerKey[String(idx)] !== '') rawCorrectKey = answerKey[String(idx)];
+                            }
+                            const hasKey = rawCorrectKey !== '' && rawCorrectKey !== null && rawCorrectKey !== undefined;
+                            const isOeMatch = isSubmitted && hasKey && selected ? compareOpenEndedAnswers(selected, rawCorrectKey) : null;
+                            const isOeCorrect = isOeMatch === true;
+                            const isOeWrong = isOeMatch === false;
+                            const isOePending = isSubmitted && !hasKey && selected;
+
+                            // Seçilen havuz maddesi eşleşmesi ve renk teması
+                            const matchedPoolItem = openEndedAnswerPool.find(p => p.text === String(selected || '').trim());
+                            const matchedPoolTheme = matchedPoolItem?.colorTheme || (matchedPoolItem ? OE_POOL_PALETTES[openEndedAnswerPool.findIndex(p => p.text === matchedPoolItem.text) % OE_POOL_PALETTES.length] : null);
+
+                            return (
+                              <div
+                                key={qNo}
+                                id={`oe-question-box-${qNo}`}
+                                style={{
+                                  background: 'var(--color-surface)',
+                                  borderRadius: '1.25rem',
+                                  border: isFocused ? '2.5px solid #6366f1'
+                                    : isOeCorrect ? '2px solid #86efac'
+                                    : isOeWrong ? '2px solid #fca5a5'
+                                    : isOePending ? '2px solid #fde68a'
+                                    : selected ? '2px solid #93c5fd'
+                                    : '1.5px solid var(--color-border)',
+                                  boxShadow: isFocused ? '0 8px 30px rgba(99,102,241,0.2)' : '0 2px 8px rgba(0,0,0,0.03)',
+                                  transition: 'all 0.2s ease',
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  width: '100%'
+                                }}
+                              >
+                                {/* KART BAŞLIĞI / TIKLANABİLİR ALAN */}
+                                <div
+                                  onClick={() => {
+                                    setActiveFocusedQ(qNo);
+                                    scrollToQuestion(qNo);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: isMobile ? '0.85rem 1rem' : '1.1rem 1.35rem',
+                                    background: isFocused 
+                                      ? (isDark ? 'rgba(99,102,241,0.16)' : 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(124,58,237,0.08))')
+                                      : 'transparent',
+                                    borderBottom: isFocused ? '1px solid rgba(99,102,241,0.2)' : 'none',
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                    gap: 10,
+                                    flexWrap: 'wrap'
+                                  }}
+                                >
+                                  {/* Soru No & Rozet */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <div style={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: '0.8rem',
+                                      background: isFocused ? '#6366f1' : (selected ? (matchedPoolTheme ? matchedPoolTheme.badgeBg : '#2563eb') : 'var(--color-surface-hover)'),
+                                      color: isFocused || selected ? '#ffffff' : 'var(--color-text)',
+                                      border: isFocused ? 'none' : '1.5px solid var(--color-border)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 900,
+                                      fontSize: '1.05rem',
+                                      flexShrink: 0,
+                                      boxShadow: isFocused ? '0 2px 8px rgba(99,102,241,0.3)' : 'none'
+                                    }}>
+                                      {qNo}
+                                    </div>
+
+                                    <div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ fontWeight: 900, fontSize: '1.1rem', color: isFocused ? '#6366f1' : 'var(--color-text)' }}>
+                                          {qNo}. Soru
+                                        </span>
+                                        {flagged[qNo] && !isSubmitted && (
+                                          <Flag size={14} color="#d97706" fill="#d97706" />
+                                        )}
+                                      </div>
+                                      <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                                        {isFocused ? 'Seçeneklerden dokunun veya yazın' : (selected ? 'Cevap verildi' : 'Cevaplamak için dokunun 👇')}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Sağ Taraf: Cevap Özeti & Aç/Kapa Butonu */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                    {/* Seçili Cevap Rozeti (Renkli & Rozetli) */}
+                                    {selected ? (
+                                      <div style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        padding: '0.35rem 0.85rem',
+                                        borderRadius: 99,
+                                        background: matchedPoolTheme 
+                                          ? (isDark ? matchedPoolTheme.darkBg : matchedPoolTheme.bg) 
+                                          : (isDark ? 'rgba(37,99,235,0.25)' : '#eff6ff'),
+                                        border: `1.5px solid ${matchedPoolTheme 
+                                          ? (isDark ? matchedPoolTheme.darkBorder : matchedPoolTheme.border) 
+                                          : '#93c5fd'}`,
+                                        color: matchedPoolTheme 
+                                          ? (isDark ? matchedPoolTheme.darkText : matchedPoolTheme.text) 
+                                          : (isDark ? '#93c5fd' : '#1d4ed8'),
+                                        fontWeight: 800,
+                                        fontSize: '0.88rem',
+                                        maxWidth: 280
+                                      }}>
+                                        {matchedPoolItem && (
+                                          <span style={{
+                                            width: 22,
+                                            height: 22,
+                                            borderRadius: '50%',
+                                            background: matchedPoolTheme 
+                                              ? (isDark ? matchedPoolTheme.darkBadgeBg : matchedPoolTheme.badgeBg) 
+                                              : '#2563eb',
+                                            color: matchedPoolTheme 
+                                              ? (isDark ? matchedPoolTheme.darkBadgeText : matchedPoolTheme.badgeText) 
+                                              : '#fff',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '0.74rem',
+                                            fontWeight: 900,
+                                            flexShrink: 0
+                                          }}>
+                                            {matchedPoolItem.label}
+                                          </span>
+                                        )}
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {selected}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span style={{
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        color: 'var(--color-text-muted)',
+                                        padding: '0.25rem 0.65rem',
+                                        borderRadius: 99,
+                                        background: 'var(--color-surface-hover)'
+                                      }}>
+                                        ○ Henüz Cevaplanmadı
+                                      </span>
+                                    )}
+
+                                    {/* Gönderim Sonrası Durum */}
+                                    {isOeCorrect && (
+                                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#15803d', background: '#dcfce7', padding: '0.25rem 0.65rem', borderRadius: 99, border: '1.5px solid #86efac' }}>
+                                        ✓ Doğru
+                                      </span>
+                                    )}
+                                    {isOeWrong && (
+                                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b91c1c', background: '#fee2e2', padding: '0.25rem 0.65rem', borderRadius: 99, border: '1.5px solid #fca5a5' }}>
+                                        ✗ Yanlış
+                                      </span>
+                                    )}
+                                    {isOePending && (
+                                      <span style={{ fontSize: '0.78rem', fontWeight: 900, color: '#b45309', background: '#fef3c7', padding: '0.25rem 0.65rem', borderRadius: 99, border: '1.5px solid #fde68a' }}>
+                                        ? Kontrol
+                                      </span>
+                                    )}
+
+                                    {/* Bayrak Butonu */}
+                                    {!isSubmitted && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); toggleFlag(qNo); }}
+                                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.2rem', display: 'flex', alignItems: 'center' }}
+                                        title={flagged[qNo] ? 'İşareti Kaldır' : 'Soruyu İşaretle'}
+                                      >
+                                        <Flag size={17} color={flagged[qNo] ? '#d97706' : '#94a3b8'} fill={flagged[qNo] ? '#d97706' : 'none'} />
+                                      </button>
+                                    )}
+
+                                    {/* Açık/Kapalı İkonu */}
+                                    <div style={{ color: isFocused ? '#6366f1' : 'var(--color-text-muted)', display: 'flex', alignItems: 'center' }}>
+                                      {isFocused ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* KART GÖVDESİ (ODAKLIYKEN BÜYÜK SEÇENEKLER VE GİRİŞ ALANI) */}
+                                {isFocused && (
+                                  <div style={{
+                                    padding: isMobile ? '1rem' : '1.35rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1.25rem',
+                                    background: isDark ? 'rgba(0,0,0,0.1)' : '#fafafa'
+                                  }}>
+                                    {/* 1. BÜYÜK SEÇENEKLER HAVUZU (VARSA) */}
+                                    {openEndedAnswerPool.length > 0 && (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                          <span style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Target size={18} color="#7c3aed" />
+                                            <span>Seçenekler Havuzu (Cevabınızı Seçin):</span>
+                                          </span>
+                                          {selected && !isSubmitted && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleOpenEndedChange(qNo, '')}
+                                              style={{
+                                                fontSize: '0.78rem',
+                                                fontWeight: 800,
+                                                color: '#ef4444',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                padding: 0
+                                              }}
+                                            >
+                                              Seçimi Temizle ✕
+                                            </button>
+                                          )}
+                                        </div>
+
+                                        {/* BÜYÜK RENKLİ SEÇENEK BUTONLARI GRİDİ */}
+                                        <div style={{
+                                          display: 'grid',
+                                          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(220px, 1fr))',
+                                          gap: '0.75rem'
+                                        }}>
+                                          {openEndedAnswerPool.map((p, pIdx) => {
+                                            const isSelected = String(selected || '').trim() === p.text;
+                                            const otherQMatch = Object.entries(answers)
+                                              .filter(([k, v]) => Number(k) !== qNo && String(v).trim() === p.text)
+                                              .map(([k]) => k);
+                                            const isAssignedOther = otherQMatch.length > 0;
+                                            const theme = p.colorTheme || OE_POOL_PALETTES[pIdx % OE_POOL_PALETTES.length];
+
+                                            const cardBg = isSelected
+                                              ? `linear-gradient(135deg, ${theme.badgeBg}, #4f46e5)`
+                                              : (isDark ? theme.darkBg : theme.bg);
+                                            const cardBorder = isSelected
+                                              ? `2.5px solid ${theme.badgeBg}`
+                                              : `1.5px solid ${isDark ? theme.darkBorder : theme.border}`;
+                                            const cardTextColor = isSelected
+                                              ? '#ffffff'
+                                              : (isDark ? theme.darkText : theme.text);
+                                            const badgeBg = isSelected
+                                              ? 'rgba(255, 255, 255, 0.28)'
+                                              : (isDark ? theme.darkBadgeBg : theme.badgeBg);
+                                            const badgeTextColor = isSelected
+                                              ? '#ffffff'
+                                              : (isDark ? theme.darkBadgeText : theme.badgeText);
+                                            const shadow = isSelected
+                                              ? `0 6px 20px ${theme.badgeBg}55`
+                                              : (isDark ? '0 1px 4px rgba(0,0,0,0.2)' : '0 1px 4px rgba(0,0,0,0.06)');
+
+                                            return (
+                                              <button
+                                                key={p.id || pIdx}
+                                                type="button"
+                                                disabled={isSubmitted || isTeacherReviewing}
+                                                onClick={() => {
+                                                  if (isSelected) {
+                                                    handleOpenEndedChange(qNo, '');
+                                                  } else {
+                                                    handleOpenEndedChange(qNo, p.text);
+                                                  }
+                                                }}
+                                                style={{
+                                                  minHeight: 56,
+                                                  padding: '0.85rem 1rem',
+                                                  borderRadius: '0.9rem',
+                                                  border: cardBorder,
+                                                  background: cardBg,
+                                                  color: cardTextColor,
+                                                  boxShadow: shadow,
+                                                  cursor: isSubmitted ? 'default' : 'pointer',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'space-between',
+                                                  gap: 12,
+                                                  textAlign: 'left',
+                                                  transition: 'all 0.15s ease',
+                                                  userSelect: 'none'
+                                                }}
+                                              >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                                                  {/* Seçenek Harf Rozeti */}
+                                                  <div style={{
+                                                    width: 32,
+                                                    height: 32,
+                                                    borderRadius: '50%',
+                                                    background: badgeBg,
+                                                    color: badgeTextColor,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    fontWeight: 900,
+                                                    fontSize: '0.86rem',
+                                                    flexShrink: 0,
+                                                    boxShadow: '0 2px 5px rgba(0,0,0,0.12)'
+                                                  }}>
+                                                    {p.label || getOptionLetterLabel(pIdx)}
+                                                  </div>
+
+                                                  {/* Seçenek Metni */}
+                                                  <span style={{
+                                                    fontSize: '1rem',
+                                                    fontWeight: 800,
+                                                    lineHeight: 1.3,
+                                                    wordBreak: 'break-word'
+                                                  }}>
+                                                    {p.text}
+                                                  </span>
+                                                </div>
+
+                                                {/* Sağ Durum Simgesi */}
+                                                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                  {isSelected ? (
+                                                    <span style={{
+                                                      width: 24,
+                                                      height: 24,
+                                                      borderRadius: '50%',
+                                                      background: '#ffffff',
+                                                      color: theme.badgeBg,
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      fontWeight: 900,
+                                                      fontSize: '0.85rem',
+                                                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                                                    }}>
+                                                      ✓
+                                                    </span>
+                                                  ) : isAssignedOther ? (
+                                                    <span style={{
+                                                      fontSize: '0.68rem',
+                                                      fontWeight: 800,
+                                                      color: isDark ? theme.darkText : theme.text,
+                                                      background: isDark ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.7)',
+                                                      padding: '0.15rem 0.45rem',
+                                                      borderRadius: 6,
+                                                      border: `1px solid ${isDark ? theme.darkBorder : theme.border}`
+                                                    }}>
+                                                      {otherQMatch.map(q => `${q}.S`).join(',')}
+                                                    </span>
+                                                  ) : null}
+                                                </div>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* 2. KENDİ CEVABINI YAZMA ALANI */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                      <label style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <Keyboard size={16} color="#2563eb" />
+                                        <span>{openEndedAnswerPool.length > 0 ? 'Veya Kendi Cevabınızı Yazın:' : 'Cevabınızı Yazın:'}</span>
+                                      </label>
+
+                                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        <input
+                                          ref={el => { inputRefs.current[qNo] = el; }}
+                                          type="text"
+                                          inputMode="text"
+                                          autoCapitalize="sentences"
+                                          spellCheck="true"
+                                          enterKeyHint={isLastQ ? "done" : "next"}
+                                          disabled={isSubmitted || isTeacherReviewing}
+                                          value={selected || ''}
+                                          onFocus={() => handleInputFocus(qNo)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              e.preventDefault();
+                                              goToNextQuestion(qNo);
+                                            }
+                                          }}
+                                          onChange={e => handleOpenEndedChange(qNo, e.target.value)}
+                                          placeholder={isSubmitted ? (selected ? '' : '— boş —') : (openEndedAnswerPool.length > 0 ? 'Farklı bir cevap girmek isterseniz buraya yazın...' : 'Cevabınızı yazın (sayı veya metin)...')}
+                                          style={{
+                                            width: '100%',
+                                            background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+                                            border: '2px solid var(--color-border-input)',
+                                            borderRadius: '0.85rem',
+                                            padding: '0.85rem 1.1rem',
+                                            paddingRight: selected && !isSubmitted ? '2.5rem' : '1.1rem',
+                                            color: 'var(--color-text)',
+                                            fontSize: '1.05rem',
+                                            fontWeight: 700,
+                                            fontFamily: 'inherit',
+                                            boxSizing: 'border-box',
+                                            outline: 'none',
+                                            transition: 'border-color 0.15s ease'
+                                          }}
+                                        />
+                                        {selected && !isSubmitted && !isTeacherReviewing && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenEndedChange(qNo, '')}
+                                            style={{
+                                              position: 'absolute',
+                                              right: 12,
+                                              background: 'var(--color-surface-hover)',
+                                              border: 'none',
+                                              borderRadius: '50%',
+                                              width: 26,
+                                              height: 26,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              cursor: 'pointer',
+                                              color: 'var(--color-text-muted)'
+                                            }}
+                                            title="Cevabı Temizle"
+                                          >
+                                            <XIcon size={14} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* 3. KART ALTI NAVİGASYON (ÖNCEKİ / SONRAKİ SORU) */}
+                                    {!isSubmitted && (
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        paddingTop: '0.75rem',
+                                        borderTop: '1px solid var(--color-border)',
+                                        flexWrap: 'wrap',
+                                        gap: 8
+                                      }}>
+                                        <button
+                                          type="button"
+                                          disabled={qNo <= minQ}
+                                          onClick={() => goToPrevQuestion(qNo)}
+                                          style={{
+                                            padding: '0.6rem 1.1rem',
+                                            borderRadius: '0.75rem',
+                                            border: '1.5px solid var(--color-border)',
+                                            background: 'var(--color-surface)',
+                                            color: qNo <= minQ ? 'var(--color-text-muted)' : 'var(--color-text)',
+                                            fontWeight: 800,
+                                            fontSize: '0.85rem',
+                                            cursor: qNo <= minQ ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6
+                                          }}
+                                        >
+                                          <ChevronLeft size={16} />
+                                          <span>Önceki Soru</span>
+                                        </button>
+
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                                          {qNo} / {maxQ}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          onClick={() => goToNextQuestion(qNo)}
+                                          style={{
+                                            padding: '0.6rem 1.25rem',
+                                            borderRadius: '0.75rem',
+                                            border: 'none',
+                                            background: isLastQ 
+                                              ? 'linear-gradient(135deg, #10b981, #059669)'
+                                              : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                                            color: '#ffffff',
+                                            fontWeight: 900,
+                                            fontSize: '0.88rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                            boxShadow: '0 2px 8px rgba(99,102,241,0.3)'
+                                          }}
+                                        >
+                                          <span>{isLastQ ? 'Girişi Tamamla' : 'Sonraki Soru'}</span>
+                                          <ChevronRight size={16} />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {/* 4. GÖNDERİM SONRASI CEVAP VE AI ÇÖZÜM */}
+                                    {isSubmitted && (
+                                      <div style={{
+                                        padding: '0.85rem 1.1rem',
+                                        borderRadius: '0.85rem',
+                                        background: isOeCorrect ? '#f0fdf4' : (isOeWrong ? '#fef2f2' : '#fffbeb'),
+                                        border: `1.5px solid ${isOeCorrect ? '#bbf7d0' : (isOeWrong ? '#fecaca' : '#fde68a')}`,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.65rem'
+                                      }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                          {hasKey ? (
+                                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: isOeCorrect ? '#15803d' : '#b91c1c' }}>
+                                              <span style={{ color: '#64748b', fontWeight: 600 }}>Doğru Yanıt: </span>
+                                              <span style={{ fontFamily: 'monospace', fontWeight: 900 }}>{rawCorrectKey}</span>
+                                            </div>
+                                          ) : (
+                                            <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 700 }}>
+                                              ⚠️ Cevap anahtarı girilmemiş — öğretmen kontrolünde
+                                            </span>
+                                          )}
+
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setAiModalQuestionNo(qNo); }}
+                                            style={{
+                                              padding: '0.35rem 0.8rem',
+                                              fontSize: '0.78rem',
+                                              fontWeight: 900,
+                                              borderRadius: 8,
+                                              border: '1.5px solid #a855f7',
+                                              background: 'linear-gradient(135deg, rgba(168,85,247,0.15), rgba(124,58,237,0.1))',
+                                              color: '#7c3aed',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 4
+                                            }}
+                                          >
+                                            <Sparkles size={14} color="#a855f7" />
+                                            <span>✨ AI Çözüm & Kırp</span>
+                                          </button>
+                                        </div>
+
+                                        {/* Hata Sebebi Seçimi */}
+                                        {(isOeWrong || !selected) && (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', paddingTop: 6, borderTop: '1px dashed #cbd5e1' }}>
+                                            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b' }}>
+                                              {isOeWrong ? 'Yanlış Sebebi:' : 'Boş Sebebi:'}
+                                            </span>
+                                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                              {MISTAKE_REASON_OPTIONS.map(r => {
+                                                const isSel = Boolean(mistakeReasons && mistakeReasons[qNo] && mistakeReasons[qNo] === r.label);
+                                                return (
+                                                  <button
+                                                    key={r.label}
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); handleSetMistakeReason(qNo, r.label); }}
+                                                    style={{
+                                                      padding: '0.2rem 0.55rem',
+                                                      fontSize: '0.7rem',
+                                                      fontWeight: 800,
+                                                      borderRadius: 6,
+                                                      border: `1.5px solid ${isSel ? r.color : r.border}`,
+                                                      background: isSel ? r.color : r.bg,
+                                                      color: isSel ? '#ffffff' : r.color,
+                                                      cursor: 'pointer'
+                                                    }}
+                                                  >
+                                                    {r.label}
+                                                  </button>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   const renderQuestionGrid = () => {
                     const isVeryNarrow = !isMobile && containerWidth < 460;
                     const isCompact = !isMobile && containerWidth < 680;

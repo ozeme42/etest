@@ -68,6 +68,7 @@ export default function ManualTestModal({
   const [questionAnswers, setQuestionAnswers] = useState({});
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkInput, setShowBulkInput] = useState(false);
+  const [activeOpenEndedQ, setActiveOpenEndedQ] = useState(1);
 
   // Guard against re-renders wiping user-entered input while modal is open
   const prevIsOpenRef = useRef(false);
@@ -219,6 +220,77 @@ export default function ManualTestModal({
       if (clean.length >= qNo) return clean[qNo - 1];
     }
     return '';
+  };
+
+  // Helper to extract options pool for open-ended questions
+  const getOpenEndedPoolForQuestion = (qNo) => {
+    const pool = new Set();
+
+    // 1. Explicit pool in answer_key meta
+    if (testAnswerKey && typeof testAnswerKey === 'object') {
+      const meta = testAnswerKey.__meta || testAnswerKey.meta;
+      if (meta && Array.isArray(meta.wordPool)) {
+        meta.wordPool.forEach(w => pool.add(String(w).trim()));
+      }
+      if (meta && Array.isArray(meta.pool)) {
+        meta.pool.forEach(w => pool.add(String(w).trim()));
+      }
+      if (meta && Array.isArray(meta.options)) {
+        meta.options.forEach(w => pool.add(String(w).trim()));
+      }
+    }
+
+    // 2. Question's own correct answer (or sub-items)
+    const currentKey = getCorrectKeyForQ(qNo);
+    if (currentKey && typeof currentKey === 'string') {
+      const trimmed = currentKey.trim();
+      if (trimmed.length > 0 && trimmed.length <= 45) {
+        pool.add(trimmed);
+      } else if (trimmed.length > 45) {
+        const sub = trimmed
+          .split(/[,;\n•|]+/)
+          .map(s => s.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
+          .filter(s => s.length >= 2 && s.length <= 40);
+        sub.forEach(s => pool.add(s));
+      }
+    }
+
+    // 3. Other questions' answers in the same test
+    if (testAnswerKey && typeof testAnswerKey === 'object') {
+      Object.entries(testAnswerKey).forEach(([k, v]) => {
+        if (k === '__meta' || k === 'meta') return;
+        if (typeof v === 'string') {
+          const tr = v.trim();
+          if (tr.length > 0 && tr.length <= 40) {
+            pool.add(tr);
+          } else if (tr.length > 40) {
+            const sub = tr
+              .split(/[,;\n•|]+/)
+              .map(s => s.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
+              .filter(s => s.length >= 2 && s.length <= 40);
+            sub.forEach(s => pool.add(s));
+          }
+        }
+      });
+    }
+
+    // 4. Common standard dichotomies / trichotomies based on keywords
+    const lowerKey = (currentKey || '').toLowerCase();
+    if (lowerKey.includes('doğru') || lowerKey.includes('yanlış') || lowerKey.includes('d / y') || lowerKey.includes('d/y')) {
+      pool.add('Doğru');
+      pool.add('Yanlış');
+    }
+    if (lowerKey.includes('artar') || lowerKey.includes('azalır') || lowerKey.includes('değişmez')) {
+      pool.add('Artar');
+      pool.add('Azalır');
+      pool.add('Değişmez');
+    }
+    if (lowerKey.includes('evet') || lowerKey.includes('hayır')) {
+      pool.add('Evet');
+      pool.add('Hayır');
+    }
+
+    return Array.from(pool).filter(Boolean);
   };
 
   // Evaluate an answers map against answerKey
@@ -1223,113 +1295,500 @@ export default function ManualTestModal({
                   </div>
                 )}
 
-                {/* Soru Soru Liste / Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-                  gap: '0.55rem',
-                  maxHeight: '260px',
-                  overflowY: 'auto',
-                  padding: '0.35rem',
-                  borderRadius: '0.75rem',
-                  border: '1px solid var(--color-border, #e2e8f0)',
-                  background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff'
-                }}>
-                  {Array.from({ length: totalQuestions }, (_, idx) => {
-                    const qNo = idx + 1;
-                    const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
-                    const correctKey = getCorrectKeyForQ(qNo);
-                    const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;
+                {/* Soru Soru Liste / Grid / Büyük Kartlar */}
+                {isTestOpenEnded ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {/* Hızlı Soru Navigasyon Bandı */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      overflowX: 'auto',
+                      padding: '0.4rem 0.2rem',
+                      scrollbarWidth: 'thin'
+                    }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginRight: 4 }}>
+                        Sorular:
+                      </span>
+                      {Array.from({ length: totalQuestions }, (_, idx) => {
+                        const qNum = idx + 1;
+                        const v = questionAnswers[qNum] ?? questionAnswers[String(qNum)] ?? '';
+                        const cKey = getCorrectKeyForQ(qNum);
+                        const match = v !== '' && cKey ? compareOpenEndedAnswers(v, cKey) : null;
+                        const isC = match === true;
+                        const isW = match === false;
+                        const isActive = activeOpenEndedQ === qNum;
 
-                    const isMatch = val !== '' && hasKey ? compareOpenEndedAnswers(val, correctKey) : null;
-                    const isCor = isMatch === true;
-                    const isWrg = isMatch === false;
-                    const isEmp = val === '';
+                        let pillBg = isDark ? 'rgba(30, 41, 59, 0.8)' : '#f1f5f9';
+                        let pillColor = 'var(--color-text-muted)';
+                        let pillBorder = '1px solid var(--color-border, #cbd5e1)';
 
-                    const borderColor = isCor ? '#86efac' : isWrg ? '#fca5a5' : 'var(--color-border, #cbd5e1)';
-                    const bg = isCor ? (isDark ? 'rgba(22, 163, 74, 0.12)' : '#f0fdf4')
-                      : isWrg ? (isDark ? 'rgba(220, 38, 38, 0.12)' : '#fef2f2')
-                      : 'var(--color-surface, #ffffff)';
+                        if (isC) {
+                          pillBg = '#dcfce7';
+                          pillColor = '#15803d';
+                          pillBorder = '1px solid #86efac';
+                        } else if (isW) {
+                          pillBg = '#fee2e2';
+                          pillColor = '#b91c1c';
+                          pillBorder = '1px solid #fca5a5';
+                        } else if (v !== '') {
+                          pillBg = '#e0e7ff';
+                          pillColor = '#4338ca';
+                          pillBorder = '1px solid #c7d2fe';
+                        }
 
-                    return (
-                      <div
-                        key={qNo}
-                        style={{
-                          background: bg,
-                          border: `1.5px solid ${borderColor}`,
-                          borderRadius: '0.65rem',
-                          padding: '0.45rem 0.6rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 4
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                            {qNo}. Soru
-                          </span>
-                          {isCor && (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a' }}>✓ Doğru</span>
-                          )}
-                          {isWrg && (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626' }}>✗ Yanlış</span>
-                          )}
-                          {isEmp && (
-                            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>○ Boş</span>
-                          )}
-                        </div>
+                        if (isActive) {
+                          pillBorder = '2px solid #4f46e5';
+                          pillBg = isC ? '#bbf7d0' : isW ? '#fecaca' : (isDark ? '#312e81' : '#e0e7ff');
+                        }
 
-                        <input
-                          type="text"
-                          value={val}
-                          onChange={e => handleAnswerChange(qNo, e.target.value)}
-                          placeholder={isTestOpenEnded ? "Öğrenci cevabı..." : "Seçenek..."}
-                          style={{
-                            width: '100%',
-                            padding: '0.35rem 0.5rem',
-                            fontSize: '0.82rem',
-                            fontWeight: 800,
-                            borderRadius: '0.45rem',
-                            border: `1px solid ${borderColor}`,
-                            background: 'var(--color-surface, #ffffff)',
-                            color: 'var(--color-text)',
-                            boxSizing: 'border-box',
-                            outline: 'none'
-                          }}
-                        />
-
-                        {isWrg && (
-                          <select
-                            value={mistakeReasons[qNo] || ''}
-                            onChange={e => {
-                              const r = e.target.value;
-                              setMistakeReasons(prev => ({
-                                ...prev,
-                                [qNo]: r
-                              }));
-                            }}
+                        return (
+                          <button
+                            key={qNum}
+                            type="button"
+                            onClick={() => setActiveOpenEndedQ(qNum)}
                             style={{
-                              fontSize: '0.66rem',
-                              fontWeight: 700,
-                              padding: '0.2rem',
-                              borderRadius: '0.35rem',
-                              border: '1px solid #fca5a5',
-                              background: '#fff',
-                              color: '#dc2626',
-                              outline: 'none',
-                              marginTop: 2
+                              minWidth: '2.1rem',
+                              height: '2.1rem',
+                              borderRadius: '0.55rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.78rem',
+                              fontWeight: 900,
+                              background: pillBg,
+                              color: pillColor,
+                              border: pillBorder,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              flexShrink: 0
                             }}
                           >
-                            <option value="">Hata Sebebi Seçin</option>
-                            {MISTAKE_REASONS.map(mr => (
-                              <option key={mr.label} value={mr.label}>{mr.label}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                            {qNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Büyük Soru Kartları Listesi */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      maxHeight: '380px',
+                      overflowY: 'auto',
+                      padding: '0.35rem',
+                      borderRadius: '0.85rem',
+                      border: '1px solid var(--color-border, #e2e8f0)',
+                      background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#f8fafc'
+                    }}>
+                      {Array.from({ length: totalQuestions }, (_, idx) => {
+                        const qNo = idx + 1;
+                        const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
+                        const correctKey = getCorrectKeyForQ(qNo);
+                        const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;
+                        const isMatch = val !== '' && hasKey ? compareOpenEndedAnswers(val, correctKey) : null;
+                        const isCor = isMatch === true;
+                        const isWrg = isMatch === false;
+                        const isEmp = val === '';
+                        const isExpanded = activeOpenEndedQ === qNo;
+
+                        const poolOptions = getOpenEndedPoolForQuestion(qNo);
+
+                        const cardBorder = isExpanded
+                          ? '2px solid #6366f1'
+                          : isCor
+                          ? '1.5px solid #86efac'
+                          : isWrg
+                          ? '1.5px solid #fca5a5'
+                          : '1px solid var(--color-border, #cbd5e1)';
+
+                        const cardBg = isCor
+                          ? (isDark ? 'rgba(22, 163, 74, 0.12)' : '#f0fdf4')
+                          : isWrg
+                          ? (isDark ? 'rgba(220, 38, 38, 0.12)' : '#fef2f2')
+                          : (isDark ? 'rgba(30, 41, 59, 0.7)' : '#ffffff');
+
+                        return (
+                          <div
+                            key={qNo}
+                            style={{
+                              background: cardBg,
+                              border: cardBorder,
+                              borderRadius: '0.85rem',
+                              padding: '0.75rem 0.95rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.65rem',
+                              boxShadow: isExpanded ? '0 4px 14px rgba(99, 102, 241, 0.15)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {/* Kart Başlığı (Tıklanabilir) */}
+                            <div
+                              onClick={() => setActiveOpenEndedQ(isExpanded ? null : qNo)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                cursor: 'pointer',
+                                userSelect: 'none'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                                <span style={{
+                                  fontSize: '0.98rem',
+                                  fontWeight: 900,
+                                  color: 'var(--color-text)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6
+                                }}>
+                                  📌 {qNo}. Soru
+                                </span>
+
+                                {val ? (
+                                  <span style={{
+                                    fontSize: '0.82rem',
+                                    fontWeight: 800,
+                                    padding: '0.25rem 0.65rem',
+                                    borderRadius: '0.55rem',
+                                    background: isCor ? '#bbf7d0' : isWrg ? '#fecaca' : '#e0e7ff',
+                                    color: isCor ? '#15803d' : isWrg ? '#b91c1c' : '#3730a3',
+                                    maxWidth: '320px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    Cevap: {val}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                                    (Cevaplamak için dokunun)
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {isCor && (
+                                  <span style={{ fontSize: '0.76rem', fontWeight: 900, color: '#16a34a' }}>✓ Doğru</span>
+                                )}
+                                {isWrg && (
+                                  <span style={{ fontSize: '0.76rem', fontWeight: 900, color: '#dc2626' }}>✗ Yanlış</span>
+                                )}
+                                {isEmp && (
+                                  <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>○ Boş</span>
+                                )}
+                                <span style={{
+                                  fontSize: '0.8rem',
+                                  fontWeight: 900,
+                                  color: 'var(--color-text-muted)',
+                                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                  transition: 'transform 0.2s ease',
+                                  marginLeft: 4
+                                }}>
+                                  ▼
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Genişletilmiş Seçim ve Giriş Gövdesi */}
+                            {isExpanded && (
+                              <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.75rem',
+                                paddingTop: '0.55rem',
+                                borderTop: '1px dashed var(--color-border, #e2e8f0)'
+                              }}>
+                                {/* Havuz Seçenekleri */}
+                                {poolOptions.length > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                                    <label style={{ fontSize: '0.74rem', fontWeight: 900, color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                      🎯 Seçenekler Havuzu (Dokun ve Seç):
+                                    </label>
+                                    <div style={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: '0.55rem',
+                                      maxHeight: '160px',
+                                      overflowY: 'auto',
+                                      padding: '2px'
+                                    }}>
+                                      {poolOptions.map((opt, optIdx) => {
+                                        const isSelected = val === opt;
+                                        return (
+                                          <button
+                                            key={optIdx}
+                                            type="button"
+                                            onClick={() => {
+                                              handleAnswerChange(qNo, opt);
+                                              if (qNo < totalQuestions) {
+                                                setActiveOpenEndedQ(qNo + 1);
+                                              }
+                                            }}
+                                            style={{
+                                              padding: '0.55rem 1.05rem',
+                                              minHeight: '44px',
+                                              borderRadius: '0.7rem',
+                                              fontSize: '0.9rem',
+                                              fontWeight: 800,
+                                              border: isSelected ? '2px solid #4f46e5' : '1.5px solid var(--color-border, #cbd5e1)',
+                                              background: isSelected
+                                                ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                                                : (isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff'),
+                                              color: isSelected ? '#ffffff' : 'var(--color-text)',
+                                              cursor: 'pointer',
+                                              boxShadow: isSelected ? '0 3px 10px rgba(99, 102, 241, 0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
+                                              transition: 'all 0.15s ease',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 6
+                                            }}
+                                          >
+                                            {isSelected && <span>✓</span>}
+                                            <span>{opt}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Kendi Cevabını Yazma Alanı */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  <label style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                                    ✍️ Veya Kendi Cevabınızı Yazın:
+                                  </label>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <input
+                                      type="text"
+                                      value={val}
+                                      onChange={e => handleAnswerChange(qNo, e.target.value)}
+                                      placeholder="Cevabınızı buraya yazabilirsiniz..."
+                                      style={{
+                                        flex: 1,
+                                        padding: '0.6rem 0.85rem',
+                                        fontSize: '0.92rem',
+                                        fontWeight: 800,
+                                        borderRadius: '0.6rem',
+                                        border: '1.5px solid var(--color-border, #cbd5e1)',
+                                        background: 'var(--color-surface, #ffffff)',
+                                        color: 'var(--color-text)',
+                                        boxSizing: 'border-box',
+                                        outline: 'none'
+                                      }}
+                                    />
+                                    {val && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAnswerChange(qNo, '')}
+                                        style={{
+                                          padding: '0.55rem 0.8rem',
+                                          borderRadius: '0.6rem',
+                                          border: '1px solid var(--color-border)',
+                                          background: 'none',
+                                          color: 'var(--color-text-muted)',
+                                          cursor: 'pointer',
+                                          fontSize: '0.76rem',
+                                          fontWeight: 800
+                                        }}
+                                      >
+                                        Temizle
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Yanlışsa Hata Sebebi & Navigasyon */}
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: '0.5rem',
+                                  paddingTop: '0.3rem'
+                                }}>
+                                  {isWrg ? (
+                                    <select
+                                      value={mistakeReasons[qNo] || ''}
+                                      onChange={e => {
+                                        const r = e.target.value;
+                                        setMistakeReasons(prev => ({ ...prev, [qNo]: r }));
+                                      }}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        fontWeight: 800,
+                                        padding: '0.35rem 0.6rem',
+                                        borderRadius: '0.5rem',
+                                        border: '1px solid #fca5a5',
+                                        background: '#fff',
+                                        color: '#dc2626',
+                                        outline: 'none'
+                                      }}
+                                    >
+                                      <option value="">Hata Sebebi Seçin</option>
+                                      {MISTAKE_REASONS.map(mr => (
+                                        <option key={mr.label} value={mr.label}>{mr.label}</option>
+                                      ))}
+                                    </select>
+                                  ) : <div />}
+
+                                  <div style={{ display: 'flex', gap: '0.45rem', marginLeft: 'auto' }}>
+                                    {qNo > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveOpenEndedQ(qNo - 1)}
+                                        style={{
+                                          padding: '0.4rem 0.85rem',
+                                          borderRadius: '0.55rem',
+                                          border: '1px solid var(--color-border)',
+                                          background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#ffffff',
+                                          color: 'var(--color-text)',
+                                          fontSize: '0.78rem',
+                                          fontWeight: 800,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        ◀ Önceki Soru
+                                      </button>
+                                    )}
+                                    {qNo < totalQuestions && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveOpenEndedQ(qNo + 1)}
+                                        style={{
+                                          padding: '0.4rem 0.95rem',
+                                          borderRadius: '0.55rem',
+                                          border: 'none',
+                                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                          color: '#ffffff',
+                                          fontSize: '0.78rem',
+                                          fontWeight: 900,
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        Sonraki Soru ▶
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  /* Çoktan Seçmeli Testler İçin Standart Grid */
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
+                    gap: '0.55rem',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    padding: '0.35rem',
+                    borderRadius: '0.75rem',
+                    border: '1px solid var(--color-border, #e2e8f0)',
+                    background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff'
+                  }}>
+                    {Array.from({ length: totalQuestions }, (_, idx) => {
+                      const qNo = idx + 1;
+                      const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
+                      const correctKey = getCorrectKeyForQ(qNo);
+                      const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;
+
+                      const isMatch = val !== '' && hasKey ? compareOpenEndedAnswers(val, correctKey) : null;
+                      const isCor = isMatch === true;
+                      const isWrg = isMatch === false;
+                      const isEmp = val === '';
+
+                      const borderColor = isCor ? '#86efac' : isWrg ? '#fca5a5' : 'var(--color-border, #cbd5e1)';
+                      const bg = isCor ? (isDark ? 'rgba(22, 163, 74, 0.12)' : '#f0fdf4')
+                        : isWrg ? (isDark ? 'rgba(220, 38, 38, 0.12)' : '#fef2f2')
+                        : 'var(--color-surface, #ffffff)';
+
+                      return (
+                        <div
+                          key={qNo}
+                          style={{
+                            background: bg,
+                            border: `1.5px solid ${borderColor}`,
+                            borderRadius: '0.65rem',
+                            padding: '0.45rem 0.6rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                              {qNo}. Soru
+                            </span>
+                            {isCor && (
+                              <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#16a34a' }}>✓ Doğru</span>
+                            )}
+                            {isWrg && (
+                              <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#dc2626' }}>✗ Yanlış</span>
+                            )}
+                            {isEmp && (
+                              <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>○ Boş</span>
+                            )}
+                          </div>
+
+                          <input
+                            type="text"
+                            value={val}
+                            onChange={e => handleAnswerChange(qNo, e.target.value)}
+                            placeholder="Seçenek..."
+                            style={{
+                              width: '100%',
+                              padding: '0.35rem 0.5rem',
+                              fontSize: '0.82rem',
+                              fontWeight: 800,
+                              borderRadius: '0.45rem',
+                              border: `1px solid ${borderColor}`,
+                              background: 'var(--color-surface, #ffffff)',
+                              color: 'var(--color-text)',
+                              boxSizing: 'border-box',
+                              outline: 'none'
+                            }}
+                          />
+
+                          {isWrg && (
+                            <select
+                              value={mistakeReasons[qNo] || ''}
+                              onChange={e => {
+                                const r = e.target.value;
+                                setMistakeReasons(prev => ({
+                                  ...prev,
+                                  [qNo]: r
+                                }));
+                              }}
+                              style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                padding: '0.2rem',
+                                borderRadius: '0.35rem',
+                                border: '1px solid #fca5a5',
+                                background: '#fff',
+                                color: '#dc2626',
+                                outline: 'none',
+                                marginTop: 2
+                              }}
+                            >
+                              <option value="">Hata Sebebi Seçin</option>
+                              {MISTAKE_REASONS.map(mr => (
+                                <option key={mr.label} value={mr.label}>{mr.label}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : null}
 
