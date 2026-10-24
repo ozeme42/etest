@@ -832,18 +832,22 @@
 
   .game-nav-dock {
     width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     border-radius: 18px 18px 0 0 !important;
     border-bottom: none !important;
     padding: 4px !important;
-    gap: 6px !important;
-    justify-content: flex-start;
+    gap: 0 !important;
+    justify-content: stretch !important;
+    align-items: stretch !important;
   }
 
   .game-nav-tab {
-    padding: 0.55rem 0.9rem !important;
-    font-size: 0.8rem !important;
-    border-radius: 14px !important;
+    padding: 0.52rem 0.15rem !important;
+    font-size: 0.74rem !important;
+    border-radius: 12px !important;
     flex-shrink: 0;
+    border: none !important;
   }
 
   .game-book-card {
@@ -885,5 +889,28 @@
   .game-wisdom-card {
     padding: 0.95rem 0.85rem !important;
     border-radius: 16px !important;
+  }
+}
+
+.game-dock-divider {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .game-dock-divider {
+    display: block;
+    position: absolute;
+    right: 0;
+    top: 16%;
+    bottom: 16%;
+    width: 2px;
+    background: rgba(15, 23, 42, 0.18);
+    border-radius: 1px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  [data-theme="dark"] .game-dock-divider {
+    background: rgba(255, 255, 255, 0.22);
   }
 }

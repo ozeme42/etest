@@ -3896,7 +3896,7 @@ export default function StudentDashboard() {
               width: '100%',
               display: 'grid',
               gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: isMobile ? 4 : 8,
+              gap: isMobile ? 0 : 8,
               boxSizing: 'border-box',
               padding: isMobile ? '4px' : '8px',
               borderRadius: isMobile ? 18 : 22,
@@ -3907,145 +3907,112 @@ export default function StudentDashboard() {
               boxShadow: 'none'
             }}
           >
-            {/* 1. Görevler */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('tasks')}
-              className={`game-nav-tab ${activeDashboardTab === 'tasks' ? 'game-btn-3d' : ''}`}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: isMobile ? 3 : 8,
-                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.74rem' : '0.96rem',
-                fontWeight: 900,
-                borderRadius: isMobile ? 12 : 16,
-                background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #3b82f6)' : 'transparent',
-                color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span>{isMobile ? '⚔️ Görev' : '⚔️ Görevler'}</span>
-              {pendingCount > 0 && (
-                <span style={{
-                  background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
-                  color: activeDashboardTab === 'tasks' ? '#ffffff' : '#ef4444',
-                  fontSize: isMobile ? '0.62rem' : '0.68rem',
-                  fontWeight: 900,
-                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
-                  borderRadius: 99
-                }}>
-                  {pendingCount}
-                </span>
-              )}
-            </button>
+            {[
+              {
+                id: 'tasks',
+                label: isMobile ? '⚔️ Görev' : '⚔️ Görevler',
+                count: pendingCount,
+                countColor: '#ef4444',
+                gradient: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
+                shadow: '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)'
+              },
+              {
+                id: 'books',
+                label: isMobile ? '🎒 Kitap' : '🎒 Kütüphane',
+                count: assignedBooksCount || assignedBooksList.length,
+                countColor: '#0284c7',
+                gradient: 'linear-gradient(135deg, #0284c7, #06b6d4)',
+                shadow: '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)'
+              },
+              {
+                id: 'remedial',
+                label: isMobile ? '🔥 Telafi' : '🔥 Telafi Havuzu',
+                count: catchUpTasks.length,
+                countColor: '#ef4444',
+                gradient: 'linear-gradient(135deg, #ea580c, #f59e0b)',
+                shadow: '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)'
+              },
+              {
+                id: 'analytics',
+                label: '🏆 Arena',
+                count: 0,
+                countColor: '',
+                gradient: 'linear-gradient(135deg, #059669, #10b981)',
+                shadow: '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)'
+              }
+            ].map((tab, idx) => {
+              const isActive = activeDashboardTab === tab.id;
+              return (
+                <div
+                  key={tab.id}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`game-nav-tab ${isActive ? 'game-btn-3d' : ''}`}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: isMobile ? 3 : 8,
+                      margin: isMobile ? '0 2px' : 0,
+                      padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
+                      fontSize: isMobile ? '0.74rem' : '0.96rem',
+                      fontWeight: 900,
+                      borderRadius: isMobile ? 12 : 16,
+                      background: isActive ? tab.gradient : 'transparent',
+                      color: isActive ? '#ffffff' : (isDark ? '#cbd5e1' : '#475569'),
+                      boxShadow: isActive ? tab.shadow : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.count > 0 && (
+                      <span style={{
+                        background: isActive ? 'rgba(255,255,255,0.25)' : (tab.id === 'books' ? 'rgba(2, 132, 199, 0.15)' : 'rgba(239,68,68,0.15)'),
+                        color: isActive ? '#ffffff' : tab.countColor,
+                        fontSize: isMobile ? '0.62rem' : '0.68rem',
+                        fontWeight: 900,
+                        padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
+                        borderRadius: 99
+                      }}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
 
-            {/* 2. Kütüphane & Envanter */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('books')}
-              className={`game-nav-tab ${activeDashboardTab === 'books' ? 'game-btn-3d' : ''}`}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: isMobile ? 3 : 8,
-                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.74rem' : '0.96rem',
-                fontWeight: 900,
-                borderRadius: isMobile ? 12 : 16,
-                background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #06b6d4)' : 'transparent',
-                color: activeDashboardTab === 'books' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'books' ? '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span>{isMobile ? '🎒 Kitap' : '🎒 Kütüphane'}</span>
-              {(assignedBooksCount > 0 || assignedBooksList.length > 0) && (
-                <span style={{
-                  background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
-                  color: activeDashboardTab === 'books' ? '#ffffff' : '#0284c7',
-                  fontSize: isMobile ? '0.62rem' : '0.68rem',
-                  fontWeight: 900,
-                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
-                  borderRadius: 99
-                }}>
-                  {assignedBooksCount || assignedBooksList.length}
-                </span>
-              )}
-            </button>
-
-            {/* 3. Akıllı Telafi Havuzu */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('remedial')}
-              className={`game-nav-tab ${activeDashboardTab === 'remedial' ? 'game-btn-3d' : ''}`}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: isMobile ? 3 : 8,
-                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.74rem' : '0.96rem',
-                fontWeight: 900,
-                borderRadius: isMobile ? 12 : 16,
-                background: activeDashboardTab === 'remedial' ? 'linear-gradient(135deg, #ea580c, #f59e0b)' : 'transparent',
-                color: activeDashboardTab === 'remedial' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'remedial' ? '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span>{isMobile ? '🔥 Telafi' : '🔥 Telafi Havuzu'}</span>
-              {catchUpTasks.length > 0 && (
-                <span style={{
-                  background: activeDashboardTab === 'remedial' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
-                  color: activeDashboardTab === 'remedial' ? '#ffffff' : '#ef4444',
-                  fontSize: isMobile ? '0.62rem' : '0.68rem',
-                  fontWeight: 900,
-                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
-                  borderRadius: 99
-                }}>
-                  {catchUpTasks.length}
-                </span>
-              )}
-            </button>
-
-            {/* 4. Arena & Başarı */}
-            <button
-              type="button"
-              onClick={() => handleTabChange('analytics')}
-              className={`game-nav-tab ${activeDashboardTab === 'analytics' ? 'game-btn-3d' : ''}`}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: isMobile ? 3 : 8,
-                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.74rem' : '0.96rem',
-                fontWeight: 900,
-                borderRadius: isMobile ? 12 : 16,
-                background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
-                color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)' : 'none',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span>🏆 Arena</span>
-            </button>
+                  {/* Mobilde sekmeler arasına çok belirgin dikey ayırıcı çizgi */}
+                  {idx < 3 && (
+                    <span
+                      className="game-dock-divider"
+                      aria-hidden="true"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '16%',
+                        bottom: '16%',
+                        width: 2,
+                        background: isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(15, 23, 42, 0.18)',
+                        borderRadius: 1,
+                        pointerEvents: 'none',
+                        zIndex: 2
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
