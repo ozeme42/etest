@@ -612,15 +612,15 @@ export default memo(function DashboardTodayTasks({
           </div>
         )}
 
-{/* ── Filtre Çipleri ── */}
+        {/* ── Filtre Çipleri ── */}
         {totalTasks > 1 && (
           <div style={{
-            padding: '0.75rem 1.4rem',
+            padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.4rem',
             background: 'var(--color-surface)',
             borderBottom: '1.5px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: isMobile ? 6 : 8,
             overflowX: 'auto',
             scrollbarWidth: 'none',
             WebkitOverflowScrolling: 'touch'
@@ -637,8 +637,8 @@ export default memo(function DashboardTodayTasks({
                 borderColor: filterStatus === 'pending' ? '#dc2626' : 'transparent',
                 boxShadow: filterStatus === 'pending' ? '0 4px 12px rgba(239, 68, 68, 0.35)' : 'none',
                 fontWeight: 900,
-                fontSize: '0.8rem',
-                padding: '0.45rem 1rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                padding: isMobile ? '0.35rem 0.7rem' : '0.45rem 1rem',
                 borderRadius: 12
               }}
             >
@@ -657,8 +657,8 @@ export default memo(function DashboardTodayTasks({
                 borderColor: filterStatus === 'completed' ? '#059669' : 'transparent',
                 boxShadow: filterStatus === 'completed' ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
                 fontWeight: 900,
-                fontSize: '0.8rem',
-                padding: '0.45rem 1rem',
+                fontSize: isMobile ? '0.74rem' : '0.8rem',
+                padding: isMobile ? '0.35rem 0.7rem' : '0.45rem 1rem',
                 borderRadius: 12
               }}
             >
@@ -682,7 +682,8 @@ export default memo(function DashboardTodayTasks({
                         background: isSelected ? sTheme.badgeBg : 'transparent',
                         color: isSelected ? sTheme.badgeText : 'var(--color-text-muted)',
                         border: isSelected ? `1.5px solid ${sTheme.from}` : '1.5px solid var(--color-border)',
-                        fontSize: '0.78rem'
+                        fontSize: isMobile ? '0.72rem' : '0.78rem',
+                        padding: isMobile ? '0.32rem 0.65rem' : '0.45rem 0.85rem'
                       }}
                     >
                       <span>{sTheme.icon} {subj} ({count})</span>
@@ -697,10 +698,10 @@ export default memo(function DashboardTodayTasks({
         {/* ── BÜYÜK, RENKLİ & ŞIK GÖREV KARTLARI LİSTESİ ── */}
         {filteredTasks.length > 0 ? (
           <div style={{
-            padding: isMobile ? '0.85rem 0.65rem' : '1.15rem 1.25rem',
+            padding: isMobile ? '0.5rem 0.5rem' : '1.15rem 1.25rem',
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
-            gap: isMobile ? '0.85rem' : '1rem',
+            gap: isMobile ? '0.5rem' : '1rem',
             width: '100%',
             boxSizing: 'border-box'
           }}>
@@ -789,8 +790,8 @@ export default memo(function DashboardTodayTasks({
                     borderLeft: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
                     borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
                     borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
-                    borderRadius: 18,
-                    padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+                    borderRadius: isMobile ? 14 : 18,
+                    padding: isMobile ? '0.55rem 0.7rem' : '1rem 1.15rem',
                     cursor: 'pointer',
                     boxShadow: isNextTarget 
                       ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 8px 22px rgba(99, 102, 241, 0.18)' 
@@ -800,7 +801,7 @@ export default memo(function DashboardTodayTasks({
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    gap: '0.65rem',
+                    gap: isMobile ? '0.35rem' : '0.65rem',
                     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     boxSizing: 'border-box'
                   }}
@@ -810,46 +811,46 @@ export default memo(function DashboardTodayTasks({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: 8,
+                    gap: isMobile ? 6 : 8,
                     width: '100%',
-                    paddingBottom: '0.6rem',
+                    paddingBottom: isMobile ? '0.35rem' : '0.6rem',
                     borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                       {isNextTarget && (
                         <span style={{
-                          fontSize: '0.64rem',
+                          fontSize: isMobile ? '0.58rem' : '0.64rem',
                           fontWeight: 900,
                           color: '#ffffff',
                           background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                          padding: '2px 8px',
+                          padding: isMobile ? '1px 6px' : '2px 8px',
                           borderRadius: 99,
                           boxShadow: '0 2px 6px rgba(99, 102, 241, 0.35)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 3
                         }}>
-                          <Zap size={11} fill="#ffffff" /> ŞİMDİKİ HEDEF
+                          <Zap size={isMobile ? 10 : 11} fill="#ffffff" /> ŞİMDİKİ HEDEF
                         </span>
                       )}
 
                       <span style={{
-                        fontSize: '0.72rem',
+                        fontSize: isMobile ? '0.66rem' : '0.72rem',
                         fontWeight: 900,
                         color: sTheme.badgeText,
                         background: sTheme.badgeBg,
                         border: `1.5px solid ${sTheme.badgeBorder}`,
-                        padding: '3px 9px',
-                        borderRadius: 8,
+                        padding: isMobile ? '2px 6px' : '3px 9px',
+                        borderRadius: isMobile ? 6 : 8,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 5
+                        gap: isMobile ? 3 : 5
                       }}>
-                        <span style={{ fontSize: '0.92rem', lineHeight: 1 }}>{sTheme.icon}</span>
+                        <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', lineHeight: 1 }}>{sTheme.icon}</span>
                         <span>{cleanSubj}</span>
                       </span>
 
-                      <span className="game-badge-xp" style={{ fontSize: '0.66rem', padding: '2px 7px' }}>
+                      <span className="game-badge-xp" style={{ fontSize: isMobile ? '0.6rem' : '0.66rem', padding: isMobile ? '1px 5px' : '2px 7px' }}>
                         +{isExamItem || task.roadmapAssignmentId ? '50' : '25'} XP
                       </span>
                     </div>
@@ -859,10 +860,10 @@ export default memo(function DashboardTodayTasks({
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                       style={{
-                        width: 32,
-                        height: 32,
-                        minWidth: 32,
-                        borderRadius: 10,
+                        width: isMobile ? 26 : 32,
+                        height: isMobile ? 26 : 32,
+                        minWidth: isMobile ? 26 : 32,
+                        borderRadius: isMobile ? 7 : 10,
                         border: task.done 
                           ? '2px solid #10b981' 
                           : isDark ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #cbd5e1',
@@ -882,7 +883,7 @@ export default memo(function DashboardTodayTasks({
                       title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                     >
                       {task.done ? (
-                        <Check size={18} color="#ffffff" strokeWidth={3.5} />
+                        <Check size={isMobile ? 15 : 18} color="#ffffff" strokeWidth={3.5} />
                       ) : (
                         <span style={{ width: 6, height: 6, borderRadius: 2, background: 'transparent' }} />
                       )}
@@ -891,22 +892,22 @@ export default memo(function DashboardTodayTasks({
 
                   {/* Görev Başlığı (Tüm genişliği kaplar, belirgin & net) */}
                   <div style={{
-                    fontSize: isMobile ? '0.94rem' : '1.02rem',
+                    fontSize: isMobile ? '0.85rem' : '1.02rem',
                     fontWeight: 800,
                     color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
                     textDecoration: task.done ? 'line-through' : 'none',
                     wordBreak: 'break-word',
-                    lineHeight: 1.35,
+                    lineHeight: isMobile ? 1.3 : 1.35,
                     fontFamily: "'Outfit', sans-serif",
                     width: '100%',
-                    paddingBottom: '0.5rem',
+                    paddingBottom: isMobile ? '0.35rem' : '0.5rem',
                     borderBottom: isDark ? '1px dashed rgba(255, 255, 255, 0.08)' : '1px dashed rgba(0, 0, 0, 0.06)'
                   }}>
                     {displayTitle}
                   </div>
 
                   {/* Renkli & Dolu Bilgi Etiketleri Şeridi */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, flexWrap: 'wrap', width: '100%' }}>
                     {sBook && !/^kitap$/i.test(sBook.trim()) && !/^takip kitabı$/i.test(sBook.trim()) && (
                       <span style={{
                         fontSize: '0.68rem',
@@ -914,15 +915,15 @@ export default memo(function DashboardTodayTasks({
                         color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : '#2563eb',
                         background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : (isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)'),
                         border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(37, 99, 235, 0.25)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
-                        maxWidth: 220,
+                        maxWidth: isMobile ? 180 : 220,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 4
+                        gap: 3
                       }}>
                         {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${sBook}` : `📖 ${sBook}`}
                       </span>
@@ -935,7 +936,7 @@ export default memo(function DashboardTodayTasks({
                         color: '#059669',
                         background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.09)',
                         border: '1px solid rgba(16, 185, 129, 0.25)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -952,7 +953,7 @@ export default memo(function DashboardTodayTasks({
                         color: '#db2777',
                         background: 'rgba(236, 72, 153, 0.12)',
                         border: '1px solid rgba(236, 72, 153, 0.3)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -969,7 +970,7 @@ export default memo(function DashboardTodayTasks({
                         color: '#ea580c',
                         background: isDark ? 'rgba(234, 88, 12, 0.15)' : 'rgba(234, 88, 12, 0.08)',
                         border: '1px solid rgba(234, 88, 12, 0.25)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -986,7 +987,7 @@ export default memo(function DashboardTodayTasks({
                         color: '#7c3aed',
                         background: 'rgba(124, 58, 237, 0.12)',
                         border: '1px solid rgba(124, 58, 237, 0.3)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1003,7 +1004,7 @@ export default memo(function DashboardTodayTasks({
                         color: 'var(--color-text-secondary)',
                         background: 'var(--color-surface-hover)',
                         border: '1px solid var(--color-border)',
-                        padding: '2px 7px',
+                        padding: isMobile ? '1.5px 5px' : '2px 7px',
                         borderRadius: 6,
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1034,7 +1035,7 @@ export default memo(function DashboardTodayTasks({
                     display: 'flex',
                     justifyContent: 'stretch',
                     marginTop: 'auto',
-                    paddingTop: '0.65rem',
+                    paddingTop: isMobile ? '0.35rem' : '0.65rem',
                     borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
                   }}>
                     {task.done ? (
@@ -1063,13 +1064,13 @@ export default memo(function DashboardTodayTasks({
                           onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                           className="game-btn-3d"
                           style={{
-                            fontSize: '0.78rem',
+                            fontSize: isMobile ? '0.72rem' : '0.78rem',
                             fontWeight: 900,
                             color: '#10b981',
                             background: isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.1)',
                             border: '1px solid rgba(16, 185, 129, 0.35)',
-                            padding: '0.45rem 0.85rem',
-                            borderRadius: 12,
+                            padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.85rem',
+                            borderRadius: isMobile ? 9 : 12,
                             whiteSpace: 'nowrap',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1078,7 +1079,7 @@ export default memo(function DashboardTodayTasks({
                             gap: 5
                           }}
                         >
-                          <Eye size={14} /> İncele
+                          <Eye size={isMobile ? 12 : 14} /> İncele
                         </button>
                       )
                     ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
@@ -1122,24 +1123,25 @@ export default memo(function DashboardTodayTasks({
                           color: '#ffffff',
                           border: 'none',
                           borderRadius: 12,
-                          padding: '0.55rem 1rem',
-                          fontSize: '0.82rem',
+                          padding: isMobile ? '0.4rem 0.75rem' : '0.55rem 1rem',
+                          fontSize: isMobile ? '0.76rem' : '0.82rem',
                           fontWeight: 900,
+                          borderRadius: isMobile ? 10 : 12,
                           boxShadow: `0 3px 12px ${sTheme.glow}`,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 6,
+                          gap: isMobile ? 4 : 6,
                           width: '100%',
                           justifyContent: 'center'
                         }}
                       >
                         {isRemedialTask && syncAttemptNumber > 1 ? (
                           <>
-                            <RotateCcw size={15} /> {`${syncAttemptNumber}. Tekrar`}
+                            <RotateCcw size={isMobile ? 13 : 15} /> {`${syncAttemptNumber}. Tekrar`}
                           </>
                         ) : (
                           <>
-                            <PlayCircle size={16} /> Başlat ⚔️
+                            <PlayCircle size={isMobile ? 14 : 16} /> Başlat ⚔️
                           </>
                         )}
                       </button>
@@ -1149,20 +1151,20 @@ export default memo(function DashboardTodayTasks({
                         onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                         className="game-btn-3d game-btn-emerald"
                         style={{
-                          borderRadius: 12,
-                          padding: '0.55rem 1rem',
-                          fontSize: '0.82rem',
+                          borderRadius: isMobile ? 10 : 12,
+                          padding: isMobile ? '0.4rem 0.75rem' : '0.55rem 1rem',
+                          fontSize: isMobile ? '0.76rem' : '0.82rem',
                           fontWeight: 900,
                           width: '100%',
                           justifyContent: 'center',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 6
+                          gap: isMobile ? 4 : 6
                         }}
                       >
                         {isReadingTask ? (
                           <>
-                            <BookOpen size={15} /> Okudum ✓
+                            <BookOpen size={isMobile ? 13 : 15} /> Okudum ✓
                           </>
                         ) : (
                           'Tamamla ✓'

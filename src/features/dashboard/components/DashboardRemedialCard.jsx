@@ -300,10 +300,10 @@ export default function DashboardRemedialCard({
                 background: isDark ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.04)',
                 border: '1.5px solid rgba(239, 68, 68, 0.25)',
                 borderRadius: 14,
-                padding: '0.75rem 1rem',
+                padding: isMobile ? '0.5rem 0.7rem' : '0.75rem 1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10
+                gap: isMobile ? 7 : 10
               }}>
                 <span style={{ fontSize: '1.4rem' }}>⏳</span>
                 <div>
@@ -317,10 +317,10 @@ export default function DashboardRemedialCard({
                   background: isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.04)',
                   border: '1.5px solid rgba(99, 102, 241, 0.25)',
                   borderRadius: 14,
-                  padding: '0.75rem 1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10
+                  padding: isMobile ? '0.5rem 0.7rem' : '0.75rem 1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: isMobile ? 7 : 10
                 }}>
                   <span style={{ fontSize: '1.4rem' }}>📝</span>
                   <div>
@@ -334,10 +334,10 @@ export default function DashboardRemedialCard({
                 background: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.04)',
                 border: '1.5px solid rgba(245, 158, 11, 0.25)',
                 borderRadius: 14,
-                padding: '0.75rem 1rem',
+                padding: isMobile ? '0.5rem 0.7rem' : '0.75rem 1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: isMobile ? 7 : 10,
                 gridColumn: isMobile ? 'span 2' : 'auto'
               }}>
                 <span style={{ fontSize: '1.4rem' }}>📚</span>
@@ -464,7 +464,7 @@ export default function DashboardRemedialCard({
                       padding: 2
                     }}
                   >
-                    <X size={13} />
+                    <X size={isMobile ? 11 : 13} />
                   </button>
                 )}
               </div>
@@ -474,7 +474,7 @@ export default function DashboardRemedialCard({
             <div style={{
               display: 'grid',
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
-              gap: isMobile ? '0.85rem' : '1rem',
+              gap: isMobile ? '0.5rem' : '1rem',
               width: '100%',
               boxSizing: 'border-box'
             }}>
@@ -570,8 +570,8 @@ export default function DashboardRemedialCard({
                         borderLeft: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : 'var(--color-border)'}`,
                         borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : 'var(--color-border)'}`,
                         borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : 'var(--color-border)'}`,
-                        borderRadius: 18,
-                        padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+                        borderRadius: isMobile ? 14 : 18,
+                        padding: isMobile ? '0.55rem 0.7rem' : '1rem 1.15rem',
                         cursor: 'pointer',
                         boxShadow: task.done 
                           ? '0 2px 10px rgba(16,185,129,0.08)' 
@@ -579,7 +579,7 @@ export default function DashboardRemedialCard({
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '0.65rem',
+                        gap: isMobile ? '0.35rem' : '0.65rem',
                         transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         boxSizing: 'border-box'
                       }}
@@ -589,38 +589,38 @@ export default function DashboardRemedialCard({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        gap: 8,
+                        gap: isMobile ? 6 : 8,
                         width: '100%',
-                        paddingBottom: '0.6rem',
+                        paddingBottom: isMobile ? '0.35rem' : '0.6rem',
                         borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                           {/* Ders Rozeti */}
                           <span style={{
-                            fontSize: '0.72rem',
+                            fontSize: isMobile ? '0.66rem' : '0.72rem',
                             fontWeight: 900,
                             color: sTheme.badgeText,
                             background: sTheme.badgeBg,
                             border: `1.5px solid ${sTheme.badgeBorder}`,
-                            padding: '3px 9px',
-                            borderRadius: 8,
+                            padding: isMobile ? '2px 6px' : '3px 9px',
+                            borderRadius: isMobile ? 6 : 8,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 5
+                            gap: isMobile ? 3 : 5
                           }}>
-                            <span style={{ fontSize: '0.92rem', lineHeight: 1 }}>{sTheme.icon}</span>
+                            <span style={{ fontSize: isMobile ? '0.78rem' : '0.92rem', lineHeight: 1 }}>{sTheme.icon}</span>
                             <span>{cleanSubj}</span>
                           </span>
 
                           {/* Gecikti Rozeti */}
                           <span style={{
-                            fontSize: '0.66rem',
+                            fontSize: isMobile ? '0.6rem' : '0.66rem',
                             fontWeight: 900,
                             color: '#dc2626',
                             background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
                             border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecdd3',
-                            padding: '2px 8px',
-                            borderRadius: 8,
+                            padding: isMobile ? '1.5px 6px' : '2px 8px',
+                            borderRadius: isMobile ? 6 : 8,
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: 3
@@ -630,12 +630,12 @@ export default function DashboardRemedialCard({
 
                           {catBadge && (
                             <span style={{
-                              fontSize: '0.66rem',
+                              fontSize: isMobile ? '0.6rem' : '0.66rem',
                               fontWeight: 800,
                               color: catBadge.color,
                               background: catBadge.bg,
                               border: `1px solid ${catBadge.border}`,
-                              padding: '2px 7px',
+                              padding: isMobile ? '1.5px 5px' : '2px 7px',
                               borderRadius: 6
                             }}>
                               {catBadge.label}
@@ -650,9 +650,9 @@ export default function DashboardRemedialCard({
                               type="button"
                               onClick={(e) => { e.stopPropagation(); onDeleteTask(task); }}
                               style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: 8,
+                                width: isMobile ? 24 : 28,
+                                height: isMobile ? 24 : 28,
+                                borderRadius: isMobile ? 6 : 8,
                                 background: 'transparent',
                                 border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid var(--color-border)',
                                 color: 'var(--color-text-muted)',
@@ -673,10 +673,10 @@ export default function DashboardRemedialCard({
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                             style={{
-                              width: 32,
-                              height: 32,
-                              minWidth: 32,
-                              borderRadius: 10,
+                              width: isMobile ? 26 : 32,
+                              height: isMobile ? 26 : 32,
+                              minWidth: isMobile ? 26 : 32,
+                              borderRadius: isMobile ? 7 : 10,
                               border: task.done 
                                 ? '2px solid #10b981' 
                                 : isDark ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #cbd5e1',
@@ -696,7 +696,7 @@ export default function DashboardRemedialCard({
                             title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                           >
                             {task.done ? (
-                              <Check size={18} color="#ffffff" strokeWidth={3.5} />
+                              <Check size={isMobile ? 15 : 18} color="#ffffff" strokeWidth={3.5} />
                             ) : (
                               <span style={{ width: 6, height: 6, borderRadius: 2, background: 'transparent' }} />
                             )}
@@ -706,22 +706,22 @@ export default function DashboardRemedialCard({
 
                       {/* Görev Başlığı (Tam genişlik & belirgin) */}
                       <div style={{
-                        fontSize: isMobile ? '0.94rem' : '1.02rem',
+                        fontSize: isMobile ? '0.85rem' : '1.02rem',
                         fontWeight: 800,
                         color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
                         textDecoration: task.done ? 'line-through' : 'none',
                         wordBreak: 'break-word',
-                        lineHeight: 1.35,
+                        lineHeight: isMobile ? 1.3 : 1.35,
                         fontFamily: "'Outfit', sans-serif",
                         width: '100%',
-                        paddingBottom: '0.5rem',
+                        paddingBottom: isMobile ? '0.35rem' : '0.5rem',
                         borderBottom: isDark ? '1px dashed rgba(255, 255, 255, 0.08)' : '1px dashed rgba(0, 0, 0, 0.06)'
                       }}>
                         {displayTitle}
                       </div>
 
                       {/* Renkli & Dolu Bilgi Etiketleri Şeridi */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, flexWrap: 'wrap', width: '100%' }}>
                         {task.bookTitle && !/^kitap$/i.test(task.bookTitle.trim()) && (
                           <span style={{
                             fontSize: '0.68rem',
@@ -729,15 +729,15 @@ export default function DashboardRemedialCard({
                             color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : '#2563eb',
                             background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : (isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)'),
                             border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(37, 99, 235, 0.25)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: 220,
+                            maxWidth: isMobile ? 180 : 220,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4
+                            gap: 3
                           }}>
                             {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${task.bookTitle}` : `📖 ${task.bookTitle}`}
                           </span>
@@ -750,7 +750,7 @@ export default function DashboardRemedialCard({
                             color: '#059669',
                             background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.09)',
                             border: '1px solid rgba(16, 185, 129, 0.25)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -767,7 +767,7 @@ export default function DashboardRemedialCard({
                             color: '#db2777',
                             background: 'rgba(236, 72, 153, 0.12)',
                             border: '1px solid rgba(236, 72, 153, 0.3)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -784,7 +784,7 @@ export default function DashboardRemedialCard({
                             color: '#ea580c',
                             background: isDark ? 'rgba(234, 88, 12, 0.15)' : 'rgba(234, 88, 12, 0.08)',
                             border: '1px solid rgba(234, 88, 12, 0.25)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -801,7 +801,7 @@ export default function DashboardRemedialCard({
                             color: 'var(--color-text-secondary)',
                             background: 'var(--color-surface-hover)',
                             border: '1px solid var(--color-border)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -818,7 +818,7 @@ export default function DashboardRemedialCard({
                             color: '#ef4444',
                             background: isDark ? 'rgba(239, 68, 68, 0.12)' : '#fff1f2',
                             border: '1px solid rgba(239, 68, 68, 0.25)',
-                            padding: '2px 7px',
+                            padding: isMobile ? '1.5px 5px' : '2px 7px',
                             borderRadius: 6,
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -836,7 +836,7 @@ export default function DashboardRemedialCard({
                         display: 'flex',
                         justifyContent: 'stretch',
                         marginTop: 'auto',
-                        paddingTop: '0.65rem',
+                        paddingTop: isMobile ? '0.35rem' : '0.65rem',
                         borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
                       }}>
                         {task.roadmapAssignmentId ? (
@@ -867,19 +867,19 @@ export default function DashboardRemedialCard({
                               background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
                               color: '#ffffff',
                               border: 'none',
-                              borderRadius: 12,
-                              padding: '0.55rem 1rem',
-                              fontSize: '0.82rem',
+                              borderRadius: isMobile ? 10 : 12,
+                              padding: isMobile ? '0.4rem 0.75rem' : '0.55rem 1rem',
+                              fontSize: isMobile ? '0.76rem' : '0.82rem',
                               fontWeight: 900,
                               boxShadow: `0 3px 12px ${sTheme.glow}`,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 6,
+                              gap: isMobile ? 4 : 6,
                               width: '100%',
                               justifyContent: 'center'
                             }}
                           >
-                            <PlayCircle size={16} /> Telafi Et ⚔️
+                            <PlayCircle size={isMobile ? 14 : 16} /> Telafi Et ⚔️
                           </button>
                         ) : (
                           <button
@@ -887,20 +887,20 @@ export default function DashboardRemedialCard({
                             onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                             className="game-btn-3d game-btn-emerald"
                             style={{
-                              borderRadius: 12,
-                              padding: '0.55rem 1rem',
-                              fontSize: '0.82rem',
+                              borderRadius: isMobile ? 10 : 12,
+                              padding: isMobile ? '0.4rem 0.75rem' : '0.55rem 1rem',
+                              fontSize: isMobile ? '0.76rem' : '0.82rem',
                               fontWeight: 900,
                               width: '100%',
                               justifyContent: 'center',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 6
+                              gap: isMobile ? 4 : 6
                             }}
                           >
                             {isReadingTask ? (
                               <>
-                                <BookOpen size={15} /> Okudum ✓
+                                <BookOpen size={isMobile ? 13 : 15} /> Okudum ✓
                               </>
                             ) : (
                               'Tamamla ✓'
