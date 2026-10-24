@@ -436,90 +436,46 @@ export default memo(function DashboardTodayTasks({
                     key={day.key}
                     type="button"
                     onClick={() => onSelectDay(day.key)}
+                    title={`${day.name} (${dateNumber || ''})`}
                     style={{
-                      background: isSelected
-                        ? (isDark ? 'linear-gradient(135deg, #4f46e5, #4338ca)' : '#ffffff')
-                        : isCurrentToday
-                        ? (isDark ? 'rgba(245, 158, 11, 0.12)' : 'rgba(245, 158, 11, 0.08)')
-                        : 'transparent',
+                      height: isMobile ? 38 : 44,
+                      borderRadius: 10,
                       border: isSelected
                         ? (isDark ? '2px solid #818cf8' : '2px solid #4f46e5')
                         : isCurrentToday
-                        ? '1.5px solid #f59e0b'
-                        : (isDark ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid transparent'),
-                      borderRadius: 12,
-                      padding: isMobile ? '0.35rem 0.15rem' : '0.45rem 0.4rem',
-                      color: isSelected ? (isDark ? '#ffffff' : '#312e81') : 'var(--color-text)',
+                        ? '2px solid #f59e0b'
+                        : (isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #cbd5e1'),
+                      background: isSelected
+                        ? (isDark ? 'rgba(99, 102, 241, 0.22)' : 'rgba(99, 102, 241, 0.08)')
+                        : isCurrentToday
+                        ? (isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.06)')
+                        : (isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff'),
+                      color: isSelected
+                        ? (isDark ? '#a5b4fc' : '#4f46e5')
+                        : isCurrentToday
+                        ? '#f59e0b'
+                        : 'var(--color-text)',
                       cursor: 'pointer',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 2,
                       boxShadow: isSelected
-                        ? (isDark ? '0 4px 14px rgba(99, 102, 241, 0.35)' : '0 4px 12px rgba(79, 70, 229, 0.16)')
+                        ? (isDark ? '0 0 14px rgba(99, 102, 241, 0.35)' : '0 3px 10px rgba(79, 70, 229, 0.15)')
                         : 'none',
                       transition: 'all 0.16s ease',
                       width: '100%',
                       boxSizing: 'border-box',
-                      minHeight: isMobile ? 44 : 50
+                      padding: 0
                     }}
                   >
-                    {/* Üst: Gün İsmi Kısaltması */}
                     <span style={{
-                      fontSize: isMobile ? '0.62rem' : '0.7rem',
-                      fontWeight: 800,
-                      color: isSelected
-                        ? (isDark ? '#ffffff' : '#4338ca')
-                        : isCurrentToday
-                        ? '#f59e0b'
-                        : 'var(--color-text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      lineHeight: 1
-                    }}>
-                      {shortDayName}
-                    </span>
-
-                    {/* Orta: Tarih Numarası */}
-                    <span style={{
-                      fontSize: isMobile ? '0.85rem' : '0.98rem',
+                      fontSize: isMobile ? '1.05rem' : '1.22rem',
                       fontWeight: 900,
-                      color: isSelected
-                        ? (isDark ? '#ffffff' : '#1e1b4b')
-                        : 'var(--color-text)',
                       fontFamily: "'Outfit', sans-serif",
-                      lineHeight: 1.1
+                      lineHeight: 1
                     }}>
                       {dateNumber || '-'}
                     </span>
-
-                    {/* Alt: Minik Görev İndikatörü */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 12 }}>
-                      {isCurrentToday ? (
-                        <span style={{
-                          fontSize: '0.55rem',
-                          fontWeight: 900,
-                          padding: '0 4px',
-                          borderRadius: 99,
-                          background: '#f59e0b',
-                          color: '#ffffff',
-                          lineHeight: '12px'
-                        }}>
-                          ⚡
-                        </span>
-                      ) : taskCount > 0 ? (
-                        <span style={{
-                          fontSize: '0.6rem',
-                          fontWeight: 800,
-                          color: isSelected ? (isDark ? '#c7d2fe' : '#4338ca') : 'var(--color-text-muted)'
-                        }}>
-                          {taskCount}g
-                        </span>
-                      ) : (
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1' }} />
-                      )}
-                    </div>
                   </button>
                 );
               })}
