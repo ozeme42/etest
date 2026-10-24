@@ -728,7 +728,15 @@ export default memo(function DashboardTodayTasks({
                   }}
                 >
                   {/* Kart Üst Başlık Satırı: Ders + XP + Tamamlama Kutusu */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    width: '100%',
+                    paddingBottom: '0.6rem',
+                    borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
+                  }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
                       {isNextTarget && (
                         <span style={{
@@ -812,7 +820,9 @@ export default memo(function DashboardTodayTasks({
                     wordBreak: 'break-word',
                     lineHeight: 1.35,
                     fontFamily: "'Outfit', sans-serif",
-                    width: '100%'
+                    width: '100%',
+                    paddingBottom: '0.5rem',
+                    borderBottom: isDark ? '1px dashed rgba(255, 255, 255, 0.08)' : '1px dashed rgba(0, 0, 0, 0.06)'
                   }}>
                     {displayTitle}
                   </div>
@@ -946,7 +956,8 @@ export default memo(function DashboardTodayTasks({
                     display: 'flex',
                     justifyContent: 'stretch',
                     marginTop: 'auto',
-                    paddingTop: 4
+                    paddingTop: '0.65rem',
+                    borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.06)'
                   }}>
                     {task.done ? (
                       isReadingTask || !isQuizTask ? (
