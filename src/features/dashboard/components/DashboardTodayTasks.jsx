@@ -465,17 +465,44 @@ export default memo(function DashboardTodayTasks({
                       transition: 'all 0.16s ease',
                       width: '100%',
                       boxSizing: 'border-box',
-                      padding: 0
+                      padding: isMobile ? '0 2px' : '0 6px'
                     }}
                   >
-                    <span style={{
-                      fontSize: isMobile ? '1.05rem' : '1.22rem',
-                      fontWeight: 900,
-                      fontFamily: "'Outfit', sans-serif",
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: isMobile ? 3 : 6,
                       lineHeight: 1
                     }}>
-                      {dateNumber || '-'}
-                    </span>
+                      {/* Tarih Numarası */}
+                      <span style={{
+                        fontSize: isMobile ? '0.88rem' : '1.05rem',
+                        fontWeight: 900,
+                        fontFamily: "'Outfit', sans-serif"
+                      }}>
+                        {dateNumber || '-'}
+                      </span>
+
+                      {/* Kısa Dik Çizgi */}
+                      <span style={{
+                        width: '1.5px',
+                        height: isMobile ? '10px' : '13px',
+                        background: 'currentColor',
+                        opacity: 0.35,
+                        borderRadius: 99
+                      }} />
+
+                      {/* Gün İsmi */}
+                      <span style={{
+                        fontSize: isMobile ? '0.7rem' : '0.82rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.01em',
+                        opacity: 0.95
+                      }}>
+                        {shortDayName}
+                      </span>
+                    </div>
                   </button>
                 );
               })}
