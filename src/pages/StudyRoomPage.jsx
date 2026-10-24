@@ -11,7 +11,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { toUUID } from '../services/supabaseService';
 import { checkIsTaskSolved } from '../components/ProgramCenter';
-import { isHomeworkForStudent } from '../utils/testResolver';
+import { isHomeworkForStudent, createCompositeTestKey } from '../utils/testResolver';
 
 import { AmbientEngine } from '../features/study-room/services/ambientAudioEngine';
 import {
@@ -49,9 +49,9 @@ export default function StudyRoomPage() {
 
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
   const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
-  const { homeworks = [] } = useHomework() || {};
+  const { homeworks = [], submitHomework } = useHomework() || {};
   const { submissions = [], addSubmission } = useEvaluation() || {};
-  const { coachingProfiles = {}, getCoachingProfileForStudent } = useCoaching() || {};
+  const { coachingProfiles = {}, getCoachingProfileForStudent, saveCoachingProfile } = useCoaching() || {};
 
   const coachingProfile = useMemo(() => {
     if (!currentUser?.id) return {};
@@ -201,7 +201,7 @@ export default function StudyRoomPage() {
       const hasIndividualTestDates = !isExam && Object.keys(testDates).length > 0;
 
       if (isExam || !hasIndividualTestDates) {
-        const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
+        const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books);
         const qCount = Number(hw.totalQuestions || hw.questionCount || (Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(hw.questions) ? hw.questions.length : 0))) || (isExam ? 54 : 10);
         const hwDueDate = hw.dueDate || hw.due_date || hw.raw_data?.dueDate;
         const assignedDayKey = resolveDayKey(hwDueDate || hw.startDate || hw.assignedAt);
@@ -279,7 +279,7 @@ export default function StudyRoomPage() {
       );
 
       testsForBook.forEach(bt => {
-        const isSolved = checkIsTaskSolved({ testId: bt.id, bookTestId: bt.id, taskType: 'kitap' }, currentUser.id, submissions, homeworks, studyAssignments);
+        const isSolved = checkIsTaskSolved({ testId: bt.id, bookTestId: bt.id, taskType: 'kitap', bookTitle: cleanBookTitle, subject: bt.subject || book.subject }, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books);
         const qCount = Number(bt.questionCount) || (bt.answerKey ? Object.keys(bt.answerKey).length : 12);
 
         let testDayKey = null;
@@ -361,7 +361,7 @@ export default function StudyRoomPage() {
         if (!seenTaskKeys.has(dedupeKey)) {
           seenTaskKeys.add(dedupeKey);
           const qCount = isReading ? 0 : (Number(item.targetQuestions || item.questionCount) || 20);
-          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books));
 
           taskList.push({
             id: dedupeKey,
@@ -426,7 +426,7 @@ export default function StudyRoomPage() {
         if (!seenDayTaskKeys.has(dedupeKey)) {
           seenDayTaskKeys.add(dedupeKey);
           const qCount = isReading ? 0 : (Number(item.targetQuestions || item.questionCount) || 20);
-          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments));
+          const isSolved = Boolean(item.done || checkIsTaskSolved(item, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books));
           const matchedBookTest = (bookTests || []).find(bt => String(bt.id) === String(item.bookTestId || item.testId || item.realTestId));
           const matchedBook = (books || []).find(b => String(b.id) === String(matchedBookTest?.bookId || item.bookId));
 
@@ -561,7 +561,7 @@ export default function StudyRoomPage() {
 
               const qCount = Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
-                const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap', subject: resolvedSubject, unitTopic: resolvedUnit }, currentUser.id, submissions, homeworks, studyAssignments);
+                const isSolved = checkIsTaskSolved({ testId: cleanTestId, bookTestId: cleanTestId, hwId: hw.id, taskType: 'kitap', subject: resolvedSubject, unitTopic: resolvedUnit, bookTitle: cleanBookTitle }, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books);
 
                 dayTasks.push({
                   id: dedupeKey,
@@ -616,7 +616,7 @@ export default function StudyRoomPage() {
             if (!seenDayTaskKeys.has(dedupeKey)) {
               seenDayTaskKeys.add(dedupeKey);
               const qCount = Number(hw.totalQuestions || hw.questionCount || (Array.isArray(hw.tests) ? hw.tests.length : (Array.isArray(hw.questions) ? hw.questions.length : 0))) || (isExam ? 54 : 12);
-              const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments);
+              const isSolved = checkIsTaskSolved({ hwId: hw.id, id: hw.id }, currentUser.id, submissions, homeworks, studyAssignments, null, bookTests, books);
 
               dayTasks.push({
                 id: dedupeKey,
@@ -1134,9 +1134,9 @@ export default function StudyRoomPage() {
 
     for (let i = 1; i <= totalQ; i++) {
       const userRaw = opticalAnswers[i] ?? opticalAnswers[String(i)] ?? null;
-      const userAns = userRaw ? String(userRaw).trim().toUpperCase() : '';
+      const userAns = userRaw ? String(userRaw).trim() : '';
       const correctRaw = resolvedAnswerKey ? (resolvedAnswerKey[i - 1] || null) : null;
-      const correctAns = correctRaw ? String(correctRaw).trim().toUpperCase() : '';
+      const correctAns = correctRaw ? String(correctRaw).trim() : '';
       let isCorrect = null;
 
       if (!userAns) {
@@ -1163,25 +1163,74 @@ export default function StudyRoomPage() {
     const scorePct = Math.round((correctCount / totalQ) * 100);
     const submissionId = `sub_study_${Date.now()}`;
 
+    const targetTestId = String(
+      matchedTestObj?.id ||
+      selectedTask?.realTestId ||
+      selectedTask?.bookTestId ||
+      selectedTask?.testId ||
+      selectedTask?.id ||
+      submissionId
+    );
+    const cleanTestId = targetTestId.replace(/^bt_|^test_|^prog_|^hw_/, '');
+    const targetHwId = selectedTask?.hwId || selectedTask?.homeworkId || (homeworks?.find(h => String(h.id) === String(selectedTask?.id))?.id) || null;
+    const targetBookId = selectedTask?.bookId || matchedTestObj?.book_id || matchedTestObj?.bookId || null;
+    const targetBook = (books || []).find(b => String(b.id) === String(targetBookId));
+    const targetBookTitle = targetBook?.title || selectedTask?.bookTitle || matchedTestObj?.bookTitle || 'Kitap';
+    const targetUnit = selectedTask?.unit || selectedTask?.topic || matchedTestObj?.unit || matchedTestObj?.unitName || matchedTestObj?.topic || '';
+    const targetTitle = selectedTask?.testName || selectedTask?.title || matchedTestObj?.name || matchedTestObj?.title || `${selectedSubject} Testi`;
+    const finalCompKey = createCompositeTestKey(targetBookTitle, selectedSubject, targetUnit, targetTitle);
+
     const subPayload = {
       id: submissionId,
       studentId: currentUser?.id || 'guest',
+      student_id: currentUser?.id || 'guest',
+      userId: currentUser?.id || 'guest',
+      user_id: currentUser?.id || 'guest',
       studentName: currentUser?.name || 'Öğrenci',
-      testId: selectedTask?.bookTestId || selectedTask?.id || submissionId,
-      bookId: selectedTask?.bookId || null,
-      bookTitle: selectedTask?.bookTitle || null,
-      title: selectedTask?.title || `${selectedSubject} Testi`,
+      testId: targetTestId,
+      test_id: targetTestId,
+      realTestId: targetTestId,
+      bookTestId: matchedTestObj?.id || selectedTask?.bookTestId || targetTestId,
+      bookId: targetBookId,
+      book_id: targetBookId,
+      bookTitle: targetBookTitle,
+      title: targetTitle,
+      testTitle: targetTitle,
+      testName: targetTitle,
       subject: selectedSubject,
+      subjectName: selectedSubject,
+      unitTopic: targetUnit,
+      unit: targetUnit,
+      topic: targetUnit,
+      compositeKey: finalCompKey,
+      hwId: targetHwId,
+      homeworkId: targetHwId,
       answers: answersList,
       correctCount,
       wrongCount,
       blankCount,
+      emptyCount: blankCount,
       totalQuestions: totalQ,
       netScore: Number.isInteger(netScore) ? netScore : Number(netScore.toFixed(2)),
+      totalNet: Number.isInteger(netScore) ? netScore : Number(netScore.toFixed(2)),
       score: scorePct,
+      scorePercentage: scorePct,
       durationSeconds: sessionElapsedSeconds,
       status: 'completed',
-      submittedAt: new Date().toISOString()
+      approvalStatus: 'approved',
+      isApproved: true,
+      isAutoEvaluated: true,
+      sourceType: 'study_room',
+      submittedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      metadata: {
+        realTestId: targetTestId,
+        bookTestId: matchedTestObj?.id || selectedTask?.bookTestId || targetTestId,
+        hwId: targetHwId,
+        bookTitle: targetBookTitle,
+        unitTopic: targetUnit,
+        compositeKey: finalCompKey
+      }
     };
 
     if (typeof addSubmission === 'function') {
@@ -1190,6 +1239,50 @@ export default function StudyRoomPage() {
       } catch (e) {
         console.warn('Submission save error:', e);
       }
+    }
+
+    // 1. Ödev Senkronizasyonu
+    if (targetHwId && typeof submitHomework === 'function') {
+      try {
+        await submitHomework(targetHwId, currentUser?.id, scorePct, totalQ, {
+          testId: targetTestId,
+          correctCount,
+          wrongCount,
+          emptyCount: blankCount,
+          netScore,
+          score: scorePct
+        });
+      } catch (hwErr) {
+        console.warn('Homework submit sync error:', hwErr);
+      }
+    }
+
+    // 2. Koçluk Haftalık Program Senkronizasyonu
+    if (selectedTask?.programItem && coachingProfile?.weeklyProgram && typeof saveCoachingProfile === 'function') {
+      try {
+        const pItem = selectedTask.programItem;
+        const updatedWeekly = coachingProfile.weeklyProgram.map(d => ({
+          ...d,
+          items: (d.items || []).map(it => {
+            if (it.id === pItem.id || (it.text && it.text === pItem.text && it.day === pItem.day)) {
+              return { ...it, done: true };
+            }
+            return it;
+          })
+        }));
+        await saveCoachingProfile({
+          ...coachingProfile,
+          weeklyProgram: updatedWeekly
+        });
+      } catch (cpErr) {
+        console.warn('Coaching profile program update error:', cpErr);
+      }
+    }
+
+    // 3. Global olayları tetikle
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('submissions-updated', { detail: { testId: targetTestId, studentId: currentUser?.id } }));
+      window.dispatchEvent(new CustomEvent('etest-submissions-updated', { detail: { newSubId: submissionId } }));
     }
 
     recordSubjectStudy(selectedSubject, Object.keys(opticalAnswers).length, sessionElapsedSeconds);
@@ -2365,9 +2458,10 @@ export default function StudyRoomPage() {
 
       <StudyResultModal
         result={completedQuizResult}
-        onClose={() => setCompletedQuizResult(null)}
+        onClose={() => { setCompletedQuizResult(null); handleClearTask(); }}
         onViewResults={() => {
           setCompletedQuizResult(null);
+          handleClearTask();
           navigate('/student-results');
         }}
         themeObj={themeObj}
