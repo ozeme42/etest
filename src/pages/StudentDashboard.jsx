@@ -3895,10 +3895,10 @@ export default function StudentDashboard() {
             style={{
               width: '100%',
               display: 'grid',
-              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
-              gap: isMobile ? 8 : 10,
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gap: isMobile ? 4 : 8,
               boxSizing: 'border-box',
-              padding: isMobile ? '6px' : '8px',
+              padding: isMobile ? '4px' : '8px',
               borderRadius: isMobile ? 18 : 22,
               borderBottomLeftRadius: 0,
               borderBottomRightRadius: 0,
@@ -3917,26 +3917,27 @@ export default function StudentDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                gap: isMobile ? 3 : 8,
+                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.74rem' : '0.96rem',
                 fontWeight: 900,
-                borderRadius: isMobile ? 14 : 16,
+                borderRadius: isMobile ? 12 : 16,
                 background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #3b82f6)' : 'transparent',
                 color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: activeDashboardTab === 'tasks' ? '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.18s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <span>⚔️ Görevler</span>
+              <span>{isMobile ? '⚔️ Görev' : '⚔️ Görevler'}</span>
               {pendingCount > 0 && (
                 <span style={{
                   background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
                   color: activeDashboardTab === 'tasks' ? '#ffffff' : '#ef4444',
-                  fontSize: '0.68rem',
+                  fontSize: isMobile ? '0.62rem' : '0.68rem',
                   fontWeight: 900,
-                  padding: '0.12rem 0.5rem',
+                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {pendingCount}
@@ -3954,26 +3955,27 @@ export default function StudentDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                gap: isMobile ? 3 : 8,
+                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.74rem' : '0.96rem',
                 fontWeight: 900,
-                borderRadius: isMobile ? 14 : 16,
+                borderRadius: isMobile ? 12 : 16,
                 background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #06b6d4)' : 'transparent',
                 color: activeDashboardTab === 'books' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: activeDashboardTab === 'books' ? '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.18s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <span>🎒 Kütüphane</span>
+              <span>{isMobile ? '🎒 Kitap' : '🎒 Kütüphane'}</span>
               {(assignedBooksCount > 0 || assignedBooksList.length > 0) && (
                 <span style={{
                   background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
                   color: activeDashboardTab === 'books' ? '#ffffff' : '#0284c7',
-                  fontSize: '0.68rem',
+                  fontSize: isMobile ? '0.62rem' : '0.68rem',
                   fontWeight: 900,
-                  padding: '0.12rem 0.5rem',
+                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {assignedBooksCount || assignedBooksList.length}
@@ -3991,26 +3993,27 @@ export default function StudentDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                gap: isMobile ? 3 : 8,
+                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.74rem' : '0.96rem',
                 fontWeight: 900,
-                borderRadius: isMobile ? 14 : 16,
+                borderRadius: isMobile ? 12 : 16,
                 background: activeDashboardTab === 'remedial' ? 'linear-gradient(135deg, #ea580c, #f59e0b)' : 'transparent',
                 color: activeDashboardTab === 'remedial' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: activeDashboardTab === 'remedial' ? '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.18s ease',
+                whiteSpace: 'nowrap'
               }}
             >
-              <span>🔥 Telafi Havuzu</span>
+              <span>{isMobile ? '🔥 Telafi' : '🔥 Telafi Havuzu'}</span>
               {catchUpTasks.length > 0 && (
                 <span style={{
                   background: activeDashboardTab === 'remedial' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
                   color: activeDashboardTab === 'remedial' ? '#ffffff' : '#ef4444',
-                  fontSize: '0.68rem',
+                  fontSize: isMobile ? '0.62rem' : '0.68rem',
                   fontWeight: 900,
-                  padding: '0.12rem 0.5rem',
+                  padding: isMobile ? '0.08rem 0.32rem' : '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {catchUpTasks.length}
@@ -4028,16 +4031,17 @@ export default function StudentDashboard() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
-                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
-                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                gap: isMobile ? 3 : 8,
+                padding: isMobile ? '0.52rem 0.15rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.74rem' : '0.96rem',
                 fontWeight: 900,
-                borderRadius: isMobile ? 14 : 16,
+                borderRadius: isMobile ? 12 : 16,
                 background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
                 color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
                 boxShadow: activeDashboardTab === 'analytics' ? '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)' : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.18s ease',
+                whiteSpace: 'nowrap'
               }}
             >
               <span>🏆 Arena</span>

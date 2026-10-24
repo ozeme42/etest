@@ -832,7 +832,8 @@
 
   .game-nav-dock {
     width: 100%;
-    border-radius: 18px !important;
+    border-radius: 18px 18px 0 0 !important;
+    border-bottom: none !important;
     padding: 4px !important;
     gap: 6px !important;
     justify-content: flex-start;

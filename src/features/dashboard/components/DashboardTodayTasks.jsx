@@ -549,37 +549,41 @@ export default memo(function DashboardTodayTasks({
                       gap: isMobile ? 3 : 6,
                       lineHeight: 1
                     }}>
-                      {/* Tarih Numarası ve Simge */}
+                      {/* Tarih Numarası ve Simge (Mobilde sadece sayı & simge, gün adı yok) */}
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: isMobile ? 2 : 4,
-                        fontSize: isMobile ? '0.82rem' : '1rem',
+                        gap: isMobile ? 3 : 4,
+                        fontSize: isMobile ? '0.88rem' : '1rem',
                         fontWeight: 900,
                         fontFamily: "'Outfit', sans-serif"
                       }}>
-                        <Calendar size={isMobile ? 10 : 12} style={{ opacity: isSelected ? 1 : 0.7, flexShrink: 0 }} />
+                        <Calendar size={isMobile ? 11 : 12} style={{ opacity: isSelected ? 1 : 0.7, flexShrink: 0 }} />
                         {dateNumber || '-'}
                       </span>
 
-                      {/* Kısa Dik Çizgi */}
-                      <span style={{
-                        width: '1.5px',
-                        height: isMobile ? '10px' : '13px',
-                        background: 'currentColor',
-                        opacity: isSelected ? 0.6 : 0.4,
-                        borderRadius: 99
-                      }} />
+                      {/* Kısa Dik Çizgi (Sadece Masaüstü) */}
+                      {!isMobile && (
+                        <span style={{
+                          width: '1.5px',
+                          height: '13px',
+                          background: 'currentColor',
+                          opacity: isSelected ? 0.6 : 0.4,
+                          borderRadius: 99
+                        }} />
+                      )}
 
-                      {/* Gün İsmi */}
-                      <span style={{
-                        fontSize: isMobile ? '0.7rem' : '0.82rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.01em',
-                        opacity: isSelected ? 1 : 0.95
-                      }}>
-                        {shortDayName}
-                      </span>
+                      {/* Gün İsmi (Sadece Masaüstü) */}
+                      {!isMobile && (
+                        <span style={{
+                          fontSize: '0.82rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.01em',
+                          opacity: isSelected ? 1 : 0.95
+                        }}>
+                          {shortDayName}
+                        </span>
+                      )}
 
                       {/* Masaüstünde Küçük Görev Sayısı */}
                       {!isMobile && (
