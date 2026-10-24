@@ -98,6 +98,79 @@ const SUBJECT_THEMES = {
   }
 };
 
+const DAY_PALETTE = [
+  // 0: Pazartesi - Mavi
+  {
+    bg: 'rgba(59, 130, 246, 0.12)',
+    darkBg: 'rgba(59, 130, 246, 0.2)',
+    border: 'rgba(59, 130, 246, 0.35)',
+    text: '#2563eb',
+    darkText: '#93c5fd',
+    activeBg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    glow: 'rgba(59, 130, 246, 0.4)'
+  },
+  // 1: Salı - Mor
+  {
+    bg: 'rgba(139, 92, 246, 0.12)',
+    darkBg: 'rgba(139, 92, 246, 0.2)',
+    border: 'rgba(139, 92, 246, 0.35)',
+    text: '#7c3aed',
+    darkText: '#c4b5fd',
+    activeBg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    glow: 'rgba(139, 92, 246, 0.4)'
+  },
+  // 2: Çarşamba - Camgöbeği
+  {
+    bg: 'rgba(6, 182, 212, 0.12)',
+    darkBg: 'rgba(6, 182, 212, 0.2)',
+    border: 'rgba(6, 182, 212, 0.35)',
+    text: '#0891b2',
+    darkText: '#67e8f9',
+    activeBg: 'linear-gradient(135deg, #06b6d4, #0891b2)',
+    glow: 'rgba(6, 182, 212, 0.4)'
+  },
+  // 3: Perşembe - Zümrüt Yeşil
+  {
+    bg: 'rgba(16, 185, 129, 0.12)',
+    darkBg: 'rgba(16, 185, 129, 0.2)',
+    border: 'rgba(16, 185, 129, 0.35)',
+    text: '#059669',
+    darkText: '#6ee7b7',
+    activeBg: 'linear-gradient(135deg, #10b981, #047857)',
+    glow: 'rgba(16, 185, 129, 0.4)'
+  },
+  // 4: Cuma - Turuncu / Amber
+  {
+    bg: 'rgba(245, 158, 11, 0.12)',
+    darkBg: 'rgba(245, 158, 11, 0.2)',
+    border: 'rgba(245, 158, 11, 0.35)',
+    text: '#d97706',
+    darkText: '#fcd34d',
+    activeBg: 'linear-gradient(135deg, #f59e0b, #b45309)',
+    glow: 'rgba(245, 158, 11, 0.4)'
+  },
+  // 5: Cumartesi - Mercan Kırmızı
+  {
+    bg: 'rgba(244, 63, 94, 0.12)',
+    darkBg: 'rgba(244, 63, 94, 0.2)',
+    border: 'rgba(244, 63, 94, 0.35)',
+    text: '#e11d48',
+    darkText: '#fda4af',
+    activeBg: 'linear-gradient(135deg, #f43f5e, #be123c)',
+    glow: 'rgba(244, 63, 94, 0.4)'
+  },
+  // 6: Pazar - Pembe / Fuşya
+  {
+    bg: 'rgba(236, 72, 153, 0.12)',
+    darkBg: 'rgba(236, 72, 153, 0.2)',
+    border: 'rgba(236, 72, 153, 0.35)',
+    text: '#db2777',
+    darkText: '#f472b6',
+    activeBg: 'linear-gradient(135deg, #ec4899, #be185d)',
+    glow: 'rgba(236, 72, 153, 0.4)'
+  }
+];
+
 const resolveSubjectTheme = (subj) => {
   if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
   const sStr = typeof subj === 'object' ? (subj?.name || subj?.title || subj?.subject || '') : String(subj || '');
@@ -423,7 +496,8 @@ export default memo(function DashboardTodayTasks({
               width: '100%',
               boxSizing: 'border-box'
             }}>
-              {daysOfWeek.map(day => {
+              {daysOfWeek.map((day, dayIdx) => {
+                const dayCol = DAY_PALETTE[dayIdx % DAY_PALETTE.length];
                 const isSelected = activeDayKey === day.key;
                 const isCurrentToday = todayDayKey === day.key;
                 const taskCount = (weekTasksCountMap && weekTasksCountMap[day.key]) || 0;
@@ -439,33 +513,30 @@ export default memo(function DashboardTodayTasks({
                     title={`${day.name} (${dateNumber || ''})`}
                     style={{
                       height: isMobile ? 38 : 44,
-                      borderRadius: 10,
+                      borderRadius: 11,
                       border: isSelected
-                        ? (isDark ? '2px solid #818cf8' : '2px solid #4f46e5')
+                        ? (isDark ? '2px solid #ffffff' : `2px solid ${dayCol.activeBorder}`)
                         : isCurrentToday
                         ? '2px solid #f59e0b'
-                        : (isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #cbd5e1'),
+                        : `1.5px solid ${dayCol.border}`,
                       background: isSelected
-                        ? (isDark ? 'rgba(99, 102, 241, 0.22)' : 'rgba(99, 102, 241, 0.08)')
-                        : isCurrentToday
-                        ? (isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.06)')
-                        : (isDark ? 'rgba(255, 255, 255, 0.02)' : '#ffffff'),
+                        ? dayCol.activeBg
+                        : (isDark ? dayCol.darkBg : dayCol.bg),
                       color: isSelected
-                        ? (isDark ? '#a5b4fc' : '#4f46e5')
-                        : isCurrentToday
-                        ? '#f59e0b'
-                        : 'var(--color-text)',
+                        ? '#ffffff'
+                        : (isDark ? dayCol.darkText : dayCol.text),
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       boxShadow: isSelected
-                        ? (isDark ? '0 0 14px rgba(99, 102, 241, 0.35)' : '0 3px 10px rgba(79, 70, 229, 0.15)')
-                        : 'none',
+                        ? `0 4px 14px ${dayCol.glow}`
+                        : (isCurrentToday ? '0 0 0 1px #f59e0b' : 'none'),
                       transition: 'all 0.16s ease',
                       width: '100%',
                       boxSizing: 'border-box',
-                      padding: isMobile ? '0 2px' : '0 6px'
+                      padding: isMobile ? '0 2px' : '0 6px',
+                      transform: isSelected && !isMobile ? 'translateY(-1px)' : 'none'
                     }}
                   >
                     <div style={{
@@ -484,7 +555,7 @@ export default memo(function DashboardTodayTasks({
                         fontWeight: 900,
                         fontFamily: "'Outfit', sans-serif"
                       }}>
-                        <Calendar size={isMobile ? 10 : 12} style={{ opacity: isSelected ? 0.95 : 0.6, flexShrink: 0 }} />
+                        <Calendar size={isMobile ? 10 : 12} style={{ opacity: isSelected ? 1 : 0.7, flexShrink: 0 }} />
                         {dateNumber || '-'}
                       </span>
 
@@ -493,7 +564,7 @@ export default memo(function DashboardTodayTasks({
                         width: '1.5px',
                         height: isMobile ? '10px' : '13px',
                         background: 'currentColor',
-                        opacity: 0.35,
+                        opacity: isSelected ? 0.6 : 0.4,
                         borderRadius: 99
                       }} />
 
@@ -502,7 +573,7 @@ export default memo(function DashboardTodayTasks({
                         fontSize: isMobile ? '0.7rem' : '0.82rem',
                         fontWeight: 800,
                         letterSpacing: '0.01em',
-                        opacity: 0.95
+                        opacity: isSelected ? 1 : 0.95
                       }}>
                         {shortDayName}
                       </span>
@@ -515,15 +586,11 @@ export default memo(function DashboardTodayTasks({
                           padding: '1px 6px',
                           borderRadius: 99,
                           background: isSelected
-                            ? (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(79, 70, 229, 0.14)')
-                            : isCurrentToday
-                            ? 'rgba(245, 158, 11, 0.15)'
-                            : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                            ? 'rgba(255, 255, 255, 0.28)'
+                            : (isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.75)'),
                           color: isSelected
-                            ? (isDark ? '#ffffff' : '#4338ca')
-                            : isCurrentToday
-                            ? '#f59e0b'
-                            : 'var(--color-text-muted)',
+                            ? '#ffffff'
+                            : 'currentColor',
                           marginLeft: 2,
                           whiteSpace: 'nowrap'
                         }}>
