@@ -827,12 +827,17 @@ export default memo(function DashboardTodayTasks({
                 .trim();
 
               if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
-                displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                const stripped = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                if (stripped && !/^(test|testi)$/i.test(stripped)) {
+                  displayTitle = stripped;
+                }
               }
 
-              if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
-                if (sTestName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(sTestName.trim()) && sTestName.toLowerCase() !== rawBook.toLowerCase()) {
+              if (!displayTitle || /^(ödev|görev|test|testi|sınav|kitap testi|ders çalışması)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                if (sTestName && !/^(ödev|görev|test|testi|sınav|kitap testi)$/i.test(sTestName.trim()) && sTestName.toLowerCase() !== rawBook.toLowerCase()) {
                   displayTitle = sTestName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                } else if (sTopic && !/^(ödev|görev|test|testi|sınav|kitap testi)$/i.test(sTopic.trim())) {
+                  displayTitle = `${sTopic} Testi`;
                 } else if (sUnit) {
                   displayTitle = `${sUnit} Testi`;
                 } else if (task.isBookTask) {

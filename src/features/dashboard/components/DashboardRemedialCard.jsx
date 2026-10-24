@@ -1314,11 +1314,14 @@ export default function DashboardRemedialCard({
                   .trim();
 
                 if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
-                  displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                  const stripped = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                  if (stripped && !/^(test|testi)$/i.test(stripped)) {
+                    displayTitle = stripped;
+                  }
                 }
 
-                if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
-                  if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
+                if (!displayTitle || /^(ödev|görev|test|testi|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                  if (task.testName && !/^(ödev|görev|test|testi|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
                     displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
                   } else if (task.unitTopic) {
                     displayTitle = `${task.unitTopic} Testi`;

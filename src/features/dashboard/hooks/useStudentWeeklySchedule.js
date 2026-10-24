@@ -216,22 +216,112 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
     return map;
   }, [books]);
 
-  // Pre-index book test info cache
+  // Pre-index book test info cache (deeply indexing both bookTests and books.subjects.topics.tests)
   const bookTestInfoCache = useMemo(() => {
     const cache = new Map();
+    const addToCache = (testId, info) => {
+      if (!testId) return;
+      const idStr = String(testId);
+      const idClean = idStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+      const idUuid = String(toUUID(idStr) || '');
+      cache.set(idStr, info);
+      cache.set(idClean, info);
+      cache.set(`bt_${idClean}`, info);
+      cache.set(`tbt_${idClean}`, info);
+      cache.set(`q_${idClean}`, info);
+      if (idUuid && idUuid !== idStr) cache.set(idUuid, info);
+    };
+
+    // 1. Index from bookTests array
     (bookTests || []).forEach(bt => {
       if (!bt?.id) return;
-      const bObj = bt.bookId ? booksByIdMap.get(String(bt.bookId)) : null;
-      cache.set(String(bt.id), {
+      const bookId = String(bt.bookId || bt.book_id || '');
+      const currentBook = booksByIdMap.get(bookId) || (toUUID(bookId) && booksByIdMap.get(toUUID(bookId))) || null;
+      let subjObj = null;
+      let topicObj = null;
+      if (currentBook?.subjects) {
+        let subs = currentBook.subjects;
+        if (typeof subs === 'string') { try { subs = JSON.parse(subs); } catch(e){} }
+        if (Array.isArray(subs)) {
+          const sId = String(bt.subject_id || bt.subjectId || '');
+          const topId = String(bt.topic_id || bt.topicId || '');
+          for (const s of subs) {
+            if (!s || s.__meta || !s.name) continue;
+            if (sId && (String(s.id) === sId || ((isValidUUID(s.id) || isValidUUID(sId)) && toUUID(s.id) === toUUID(sId)))) {
+              subjObj = s;
+              if (topId && s.topics) {
+                topicObj = s.topics.find(tp => String(tp.id) === topId || ((isValidUUID(tp.id) || isValidUUID(topId)) && toUUID(tp.id) === toUUID(topId))) || null;
+              }
+              break;
+            }
+          }
+        }
+      }
+      const tName = bt.name || bt.title || bt.testName || 'Test';
+      const qCount = Number(bt.questionCount || bt.question_count) || (bt.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+      addToCache(bt.id, {
         tObj: bt,
-        cleanBookTitle: bObj?.title || 'Kitap',
-        resolvedSubject: bt.subject || bObj?.subject || 'Genel',
-        resolvedUnit: bt.unit || bt.topic || '',
-        qCount: bt.questionCount || 12
+        testTitle: tName,
+        cleanBookTitle: currentBook?.title || 'Kitap',
+        resolvedSubject: bt.subject || subjObj?.name || currentBook?.subject || 'Genel Ders',
+        resolvedUnit: bt.unit || bt.topic || topicObj?.name || '',
+        qCount
       });
     });
+
+    // 2. Index from books.subjects.topics.tests (deep scan)
+    (books || []).forEach(book => {
+      if (!book) return;
+      let subs = book.subjects;
+      if (typeof subs === 'string') { try { subs = JSON.parse(subs); } catch(e){} }
+      if (!Array.isArray(subs)) return;
+
+      const cleanBookTitle = (book.title || 'Kitap')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .trim();
+
+      subs.forEach(subj => {
+        if (!subj || subj.__meta) return;
+        const subjName = subj.name || book.subject || 'Genel Ders';
+
+        (subj.tests || []).forEach(t => {
+          if (!t) return;
+          const tName = t.name || t.title || t.testName || 'Test';
+          const qCount = Number(t.questionCount || t.question_count) || (t.answerKey ? Object.keys(t.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+          addToCache(t.id, {
+            tObj: t,
+            testTitle: tName,
+            cleanBookTitle,
+            resolvedSubject: subjName,
+            resolvedUnit: '',
+            qCount
+          });
+        });
+
+        (subj.topics || []).forEach(topic => {
+          if (!topic) return;
+          const topicName = topic.name || topic.title || '';
+
+          (topic.tests || []).forEach(t => {
+            if (!t) return;
+            const tName = t.name || t.title || t.testName || 'Test';
+            const qCount = Number(t.questionCount || t.question_count) || (t.answerKey ? Object.keys(t.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
+            addToCache(t.id, {
+              tObj: t,
+              testTitle: tName,
+              cleanBookTitle,
+              resolvedSubject: subjName,
+              resolvedUnit: topicName,
+              qCount
+            });
+          });
+        });
+      });
+    });
+
     return cache;
-  }, [bookTests, booksByIdMap]);
+  }, [bookTests, books, booksByIdMap]);
 
   // Solved sets
   const studentSolvedSet = useMemo(() => {
@@ -340,7 +430,7 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
           if (typeof testDates !== 'object' || Object.keys(testDates).length === 0) return;
 
           const hwBookKey = String(hw.bookId || hw.raw_data?.bookId || '');
-          const bookObj = hwBookKey ? booksByIdMap.get(hwBookKey) : null;
+          const bookObj = hwBookKey ? (booksByIdMap.get(hwBookKey) || (toUUID(hwBookKey) && booksByIdMap.get(toUUID(hwBookKey))) || null) : null;
           const cleanBookTitle = (bookObj?.title || hw.title || 'Kitap')
             .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
             .replace(/\s*\(Tüm Kitap\)/gi, '')
@@ -351,15 +441,24 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
             const isMatchDate = dayYMD && String(tDateStr).startsWith(dayYMD);
             if (!isMatchDate) return;
 
-            const cleanTestId = String(testIdKey).replace(/^bt_/, '').replace(/^q_/, '');
+            const rawTestKey = String(testIdKey);
+            const cleanTestId = rawTestKey.replace(/^bt_/, '').replace(/^q_/, '');
             const canonicalTestId = toUUID(cleanTestId) || cleanTestId;
             const dedupeKey = `bt_${canonicalTestId}`;
             if (seenDayBtKeys.has(dedupeKey)) return;
             seenDayBtKeys.add(dedupeKey);
 
-            const cached = bookTestInfoCache.get(cleanTestId) || {};
-            const testTitle = cached?.tObj?.name || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
-            const qCount = cached?.qCount || 12;
+            const cached = bookTestInfoCache.get(rawTestKey) ||
+                           bookTestInfoCache.get(cleanTestId) ||
+                           bookTestInfoCache.get(canonicalTestId) ||
+                           bookTestInfoCache.get(cleanTestId.replace(/^tbt_/, '')) ||
+                           {};
+
+            const bt = cached?.tObj;
+            const resolvedSubject = cached?.resolvedSubject || bookObj?.subject || hw.subject || 'Genel Ders';
+            const resolvedUnit = cached?.resolvedUnit || '';
+            const testTitle = cached?.testTitle || bt?.name || bt?.title || (cleanBookTitle ? `${cleanBookTitle} Testi` : 'Test');
+            const qCount = cached?.qCount || Number(bt?.questionCount || bt?.question_count) || (bt?.answerKey ? Object.keys(bt.answerKey).filter(k => k !== '__meta' && k !== 'meta').length : 12);
 
             scheduledBookItems.push({
               id: dedupeKey,
@@ -372,9 +471,9 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
               bookTitle: cleanBookTitle,
               title: testTitle,
               testName: testTitle,
-              subject: cached?.resolvedSubject || hw.subject || 'Genel Ders',
-              unitTopic: cached?.resolvedUnit || '',
-              topic: cached?.resolvedUnit || '',
+              subject: resolvedSubject,
+              unitTopic: resolvedUnit,
+              topic: resolvedUnit,
               questionCount: qCount,
               targetQuestionCount: qCount,
               categoryType: 'kitap',
