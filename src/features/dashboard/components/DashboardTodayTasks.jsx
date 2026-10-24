@@ -620,9 +620,11 @@ export default memo(function DashboardTodayTasks({
         {filteredTasks.length > 0 ? (
           <div style={{
             padding: isMobile ? '0.85rem 0.65rem' : '1.15rem 1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.85rem'
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, 1fr))',
+            gap: isMobile ? '0.85rem' : '1rem',
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
             {(showAllDayTasks || !isMobile ? filteredTasks : filteredTasks.slice(0, 6)).map((task, idx) => {
               if (!task) return null;
@@ -710,7 +712,7 @@ export default memo(function DashboardTodayTasks({
                     borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
                     borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
                     borderRadius: 20,
-                    padding: isMobile ? '1rem 0.95rem' : '1.25rem 1.55rem',
+                    padding: isMobile ? '1rem 0.95rem' : '1.15rem 1.25rem',
                     cursor: 'pointer',
                     boxShadow: isNextTarget 
                       ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 10px 28px rgba(99, 102, 241, 0.22)' 
@@ -718,14 +720,23 @@ export default memo(function DashboardTodayTasks({
                           ? '0 4px 14px rgba(16,185,129,0.08)' 
                           : `0 6px 20px ${sTheme.glow}`),
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: isMobile ? 'row' : 'column',
+                    alignItems: isMobile ? 'center' : 'stretch',
                     justifyContent: 'space-between',
                     flexWrap: isMobile ? 'wrap' : 'nowrap',
-                    gap: isMobile ? '0.85rem' : '1.25rem',
-                    transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    gap: isMobile ? '0.85rem' : '1rem',
+                    transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    boxSizing: 'border-box'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: isMobile ? 'center' : 'flex-start',
+                    gap: isMobile ? '0.75rem' : '0.85rem',
+                    flex: 1,
+                    minWidth: 0,
+                    width: '100%'
+                  }}>
                     
                     {/* Tekli Ders İkonlu Görev Tamamlama / Checkbox Butonu */}
                     <button
@@ -904,7 +915,7 @@ export default memo(function DashboardTodayTasks({
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
-                            maxWidth: isMobile ? 220 : 380,
+                            maxWidth: isMobile ? 220 : 240,
                             background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
                             padding: '2px 8px',
                             borderRadius: 6,
@@ -927,8 +938,16 @@ export default memo(function DashboardTodayTasks({
                     </div>
                   </div>
 
-                  {/* Sağ Aksiyon Butonu */}
-                  <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto', display: 'flex', justifyContent: isMobile ? 'stretch' : 'center', marginTop: isMobile ? 6 : 0 }}>
+                  {/* Sağ / Alt Aksiyon Butonu */}
+                  <div style={{
+                    flexShrink: 0,
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'stretch',
+                    marginTop: isMobile ? 6 : 'auto',
+                    paddingTop: !isMobile ? '0.75rem' : 0,
+                    borderTop: !isMobile ? (isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7') : 'none'
+                  }}>
                     {task.done ? (
                       isReadingTask || !isQuizTask ? (
                         <span
@@ -941,7 +960,7 @@ export default memo(function DashboardTodayTasks({
                             padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
                             borderRadius: 14,
                             whiteSpace: 'nowrap',
-                            width: isMobile ? '100%' : 'auto',
+                            width: '100%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
@@ -966,7 +985,7 @@ export default memo(function DashboardTodayTasks({
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: isMobile ? '100%' : 'auto',
+                            width: '100%',
                             gap: 6
                           }}
                         >
@@ -994,7 +1013,7 @@ export default memo(function DashboardTodayTasks({
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              width: isMobile ? '100%' : 'auto',
+                              width: '100%',
                               gap: 6
                             }}
                             title={lockStatus.lockMessage}
@@ -1021,7 +1040,7 @@ export default memo(function DashboardTodayTasks({
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 7,
-                          width: isMobile ? '100%' : 'auto',
+                          width: '100%',
                           justifyContent: 'center'
                         }}
                       >
@@ -1045,7 +1064,7 @@ export default memo(function DashboardTodayTasks({
                           padding: isMobile ? '0.55rem 1rem' : '0.7rem 1.35rem',
                           fontSize: isMobile ? '0.82rem' : '0.88rem',
                           fontWeight: 900,
-                          width: isMobile ? '100%' : 'auto',
+                          width: '100%',
                           justifyContent: 'center',
                           display: 'inline-flex',
                           alignItems: 'center',
