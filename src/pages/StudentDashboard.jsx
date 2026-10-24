@@ -34,24 +34,51 @@ import { getTurkeyYMD, getTurkeyToday, getTurkeyWeekRange, getTurkeyMonthRange }
 import { checkHasItemBeenAttempted, normalizeWeeklyProgram, getDersNameForRoadmap } from '../components/ProgramCenter';
 import AddTaskModal from '../components/program/AddTaskModal';
 import ManualTestModal from '../components/ManualTestModal';
-import DashboardWeeklyCalendar from '../features/dashboard/components/DashboardWeeklyCalendar';
 import DashboardTodayTasks from '../features/dashboard/components/DashboardTodayTasks';
 import DashboardHomeworksCard from '../features/dashboard/components/DashboardHomeworksCard';
 import DashboardHeroTaskCard from '../features/dashboard/components/DashboardHeroTaskCard';
-import DashboardBooksCard from '../features/dashboard/components/DashboardBooksCard';
-import DashboardReadingCard from '../features/dashboard/components/DashboardReadingCard';
-import DashboardRoadmapCard from '../features/dashboard/components/DashboardRoadmapCard';
-import DashboardGoalsCard from '../features/dashboard/components/DashboardGoalsCard';
-import DashboardRecentSolvedCard from '../features/dashboard/components/DashboardRecentSolvedCard';
-import DashboardRemedialCard from '../features/dashboard/components/DashboardRemedialCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
-import StudentGamificationCard from '../components/gamification/StudentGamificationCard';
-import GamificationModal from '../components/gamification/GamificationModal';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
-// Lazy-loaded: PeriodicQuestionAnalytics is large (40KB) and not needed on first paint
+// ─── LAZY LOADED TAB VE MODAL BİLEŞENLERİ (SAYFA AÇILIŞ HIZINI ARTIRMAK İÇİN SADECE SEKME AÇILINCA YÜKLENİR) ───
+const DashboardBooksCard = lazy(() => import('../features/dashboard/components/DashboardBooksCard'));
+const DashboardReadingCard = lazy(() => import('../features/dashboard/components/DashboardReadingCard'));
+const DashboardRoadmapCard = lazy(() => import('../features/dashboard/components/DashboardRoadmapCard'));
+const DashboardGoalsCard = lazy(() => import('../features/dashboard/components/DashboardGoalsCard'));
+const DashboardRecentSolvedCard = lazy(() => import('../features/dashboard/components/DashboardRecentSolvedCard'));
+const DashboardRemedialCard = lazy(() => import('../features/dashboard/components/DashboardRemedialCard'));
+const StudentGamificationCard = lazy(() => import('../components/gamification/StudentGamificationCard'));
+const GamificationModal = lazy(() => import('../components/gamification/GamificationModal'));
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
+
+// Hafif ve Şık Sekme Yükleme İskeleti
+const TabLoadingSkeleton = ({ text = 'Yükleniyor...' }) => (
+  <div style={{
+    padding: '3.5rem 2rem',
+    borderRadius: 22,
+    background: 'var(--color-surface)',
+    border: '1.5px solid var(--color-border)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.03)'
+  }}>
+    <div style={{
+      width: 38,
+      height: 38,
+      borderRadius: '50%',
+      border: '3px solid var(--color-border)',
+      borderTopColor: '#6366f1',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+      {text}
+    </span>
+  </div>
+);
 const SUBJECT_ROW_THEMES = {
   'matematik':       { bg: '#f0f7ff', border: '#bfdbfe', accent: '#3b82f6', text: '#1d4ed8', badgeBg: '#dbeafe' },
   'türkçe':          { bg: '#fff1f2', border: '#fecdd3', accent: '#f43f5e', text: '#be123c', badgeBg: '#ffe4e6' },
@@ -3923,25 +3950,46 @@ export default function StudentDashboard() {
       ════════════════════════════════════════════ */}
       <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.85rem 0.65rem 2rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* 🎛️ GAME MODE SWITCHER (MACERA MODLARI) */}
+        {/* 🎛️ GAME MODE SWITCHER (MACERA MODLARI) — SAĞA SOLA YASLANMIŞ EŞİT DÜZEN */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          flexDirection: 'column',
+          gap: '0.65rem',
           marginBottom: '1.25rem',
-          flexWrap: 'wrap',
-          gap: 10
+          width: '100%'
         }}>
-          <div className="game-nav-dock">
+          <div
+            className="game-nav-dock"
+            style={{
+              width: '100%',
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+              gap: isMobile ? 8 : 10,
+              boxSizing: 'border-box',
+              padding: isMobile ? '6px' : '8px',
+              borderRadius: isMobile ? 18 : 22
+            }}
+          >
             {/* 1. Görevler */}
             <button
               type="button"
               onClick={() => handleTabChange('tasks')}
               className={`game-nav-tab ${activeDashboardTab === 'tasks' ? 'game-btn-3d' : ''}`}
               style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                fontWeight: 900,
+                borderRadius: isMobile ? 14 : 16,
                 background: activeDashboardTab === 'tasks' ? 'linear-gradient(135deg, #4f46e5, #3b82f6)' : 'transparent',
                 color: activeDashboardTab === 'tasks' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)' : 'none'
+                boxShadow: activeDashboardTab === 'tasks' ? '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
               }}
             >
               <span>⚔️ Görevler</span>
@@ -3949,9 +3997,9 @@ export default function StudentDashboard() {
                 <span style={{
                   background: activeDashboardTab === 'tasks' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
                   color: activeDashboardTab === 'tasks' ? '#ffffff' : '#ef4444',
-                  fontSize: '0.66rem',
+                  fontSize: '0.68rem',
                   fontWeight: 900,
-                  padding: '0.1rem 0.45rem',
+                  padding: '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {pendingCount}
@@ -3965,9 +4013,20 @@ export default function StudentDashboard() {
               onClick={() => handleTabChange('books')}
               className={`game-nav-tab ${activeDashboardTab === 'books' ? 'game-btn-3d' : ''}`}
               style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                fontWeight: 900,
+                borderRadius: isMobile ? 14 : 16,
                 background: activeDashboardTab === 'books' ? 'linear-gradient(135deg, #0284c7, #06b6d4)' : 'transparent',
                 color: activeDashboardTab === 'books' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'books' ? '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)' : 'none'
+                boxShadow: activeDashboardTab === 'books' ? '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
               }}
             >
               <span>🎒 Kütüphane</span>
@@ -3975,9 +4034,9 @@ export default function StudentDashboard() {
                 <span style={{
                   background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
                   color: activeDashboardTab === 'books' ? '#ffffff' : '#0284c7',
-                  fontSize: '0.66rem',
+                  fontSize: '0.68rem',
                   fontWeight: 900,
-                  padding: '0.1rem 0.45rem',
+                  padding: '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {assignedBooksList.length}
@@ -3991,9 +4050,20 @@ export default function StudentDashboard() {
               onClick={() => handleTabChange('remedial')}
               className={`game-nav-tab ${activeDashboardTab === 'remedial' ? 'game-btn-3d' : ''}`}
               style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                fontWeight: 900,
+                borderRadius: isMobile ? 14 : 16,
                 background: activeDashboardTab === 'remedial' ? 'linear-gradient(135deg, #ea580c, #f59e0b)' : 'transparent',
                 color: activeDashboardTab === 'remedial' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'remedial' ? '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)' : 'none'
+                boxShadow: activeDashboardTab === 'remedial' ? '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
               }}
             >
               <span>🔥 Telafi Havuzu</span>
@@ -4001,9 +4071,9 @@ export default function StudentDashboard() {
                 <span style={{
                   background: activeDashboardTab === 'remedial' ? 'rgba(255,255,255,0.25)' : 'rgba(239,68,68,0.15)',
                   color: activeDashboardTab === 'remedial' ? '#ffffff' : '#ef4444',
-                  fontSize: '0.66rem',
+                  fontSize: '0.68rem',
                   fontWeight: 900,
-                  padding: '0.1rem 0.45rem',
+                  padding: '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
                   {catchUpTasks.length}
@@ -4017,16 +4087,27 @@ export default function StudentDashboard() {
               onClick={() => handleTabChange('analytics')}
               className={`game-nav-tab ${activeDashboardTab === 'analytics' ? 'game-btn-3d' : ''}`}
               style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: isMobile ? '0.7rem 0.5rem' : '0.85rem 1.1rem',
+                fontSize: isMobile ? '0.84rem' : '0.96rem',
+                fontWeight: 900,
+                borderRadius: isMobile ? 14 : 16,
                 background: activeDashboardTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
                 color: activeDashboardTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
-                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)' : 'none'
+                boxShadow: activeDashboardTab === 'analytics' ? '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.18s ease'
               }}
             >
               <span>🏆 Arena</span>
             </button>
           </div>
 
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, padding: '0 4px', textAlign: isMobile ? 'center' : 'left' }}>
             {activeDashboardTab === 'tasks' && '⚔️ Günlük Görevler: Bugünün ders programı, takvim ve öğretmen ödevlerin.'}
             {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
             {activeDashboardTab === 'remedial' && '🔥 Akıllı Telafi Havuzu: Geçmiş günlerden kalan eksikler, telafi testleri ve geciken ödevler.'}
@@ -4116,149 +4197,155 @@ export default function StudentDashboard() {
 
         {/* ── 2. MOD: KÜTÜPHANE & ENVANTER (🎒 INVENTORY) ── */}
         {activeDashboardTab === 'books' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-            {/* Soru Bankası Kitaplarım */}
-            <DashboardBooksCard
-              isMobile={isMobile}
-              isDark={isDark}
-              assignedBooksList={assignedBooksList}
-              onNavigateBooks={handleNavigateBooks}
-              onNavigateBookDetail={handleNavigateBookDetail}
-            />
+          <Suspense fallback={<TabLoadingSkeleton text="🎒 Kütüphane yükleniyor..." />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+              {/* Soru Bankası Kitaplarım */}
+              <DashboardBooksCard
+                isMobile={isMobile}
+                isDark={isDark}
+                assignedBooksList={assignedBooksList}
+                onNavigateBooks={handleNavigateBooks}
+                onNavigateBookDetail={handleNavigateBookDetail}
+              />
 
-            {/* Kitap Okuma & Alışkanlık Takibi */}
-            <DashboardReadingCard
-              isMobile={isMobile}
-              isDark={isDark}
-              onNavigateReading={handleNavigateReading}
-            />
+              {/* Kitap Okuma & Alışkanlık Takibi */}
+              <DashboardReadingCard
+                isMobile={isMobile}
+                isDark={isDark}
+                onNavigateReading={handleNavigateReading}
+              />
 
-            {/* Yol Haritam & Konu Takibi */}
-            <DashboardRoadmapCard
-              isMobile={isMobile}
-              isDark={isDark}
-              personalRoadmap={personalRoadmap}
-              myRoadmaps={myRoadmaps}
-              onNavigateRoadmap={handleNavigateRoadmap}
-            />
-          </div>
+              {/* Yol Haritam & Konu Takibi */}
+              <DashboardRoadmapCard
+                isMobile={isMobile}
+                isDark={isDark}
+                personalRoadmap={personalRoadmap}
+                myRoadmaps={myRoadmaps}
+                onNavigateRoadmap={handleNavigateRoadmap}
+              />
+            </div>
+          </Suspense>
         )}
 
         {/* ── 3. MOD: AKILLI TELAFİ HAVUZU (🔥 REMEDIAL & CATCH-UP) ── */}
         {activeDashboardTab === 'remedial' && (
-          <DashboardRemedialCard
-            isMobile={isMobile}
-            isDark={isDark}
-            catchUpTasks={catchUpTasks}
-            onToggleTask={handleToggleTask}
-            onTaskClick={handleTaskAction}
-            onDeleteTask={handleDeleteTask}
-            getRowTheme={getRowTheme}
-            onNavigateTasks={handleViewAllTasks}
-            onNavigateBooks={handleExploreBooks}
-          />
+          <Suspense fallback={<TabLoadingSkeleton text="🔥 Akıllı Telafi Havuzu yükleniyor..." />}>
+            <DashboardRemedialCard
+              isMobile={isMobile}
+              isDark={isDark}
+              catchUpTasks={catchUpTasks}
+              onToggleTask={handleToggleTask}
+              onTaskClick={handleTaskAction}
+              onDeleteTask={handleDeleteTask}
+              getRowTheme={getRowTheme}
+              onNavigateTasks={handleViewAllTasks}
+              onNavigateBooks={handleExploreBooks}
+            />
+          </Suspense>
         )}
 
         {/* ── 4. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
         {activeDashboardTab === 'analytics' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-            {/* Gamification Seviye & Rozet Kartı */}
-            <StudentGamificationCard
-              student={selectedStudent}
-              submissions={studentSubmissions}
-              homeworks={homeworks}
-              books={books}
-              bookTests={bookTests}
-              mockExams={studentMockExams}
-              studySessions={[]}
-              users={users}
-              gamificationData={studentGamification}
-            />
+          <Suspense fallback={<TabLoadingSkeleton text="🏆 Arena & İstatistikler yükleniyor..." />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+              {/* Gamification Seviye & Rozet Kartı */}
+              <StudentGamificationCard
+                student={selectedStudent}
+                submissions={studentSubmissions}
+                homeworks={homeworks}
+                books={books}
+                bookTests={bookTests}
+                mockExams={studentMockExams}
+                studySessions={[]}
+                users={users}
+                gamificationData={studentGamification}
+              />
 
-            {/* Periyodik Soru & Başarı Analizi */}
-            <div>
-              {isAnalyticsReady ? (
-                <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
-                  <PeriodicQuestionAnalytics
-                    homeworkSubmissions={otherHomeworkSubmissions}
-                    mockExams={generalTrialExams}
-                    studentName={selectedStudent?.name || 'Öğrenci'}
-                  />
-                </Suspense>
-              ) : (
-                <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
-                  📊 Analiz hazırlanıyor…
-                </div>
-              )}
-            </div>
-
-            {/* Hedef Takip Panosu */}
-            <DashboardGoalsCard
-              isMobile={isMobile}
-              goalTrackingData={goalTrackingData}
-              solvedQuestionsStats={solvedQuestionsStats}
-              onNavigateGoals={handleNavigateGoals}
-              onUpdateGoalProgress={updateGoalProgress}
-              goalTypeThemes={GOAL_TYPE_THEMES}
-            />
-
-            {/* Son Çözülen Testler */}
-            <DashboardRecentSolvedCard
-              isMobile={isMobile}
-              recentSolvedTests={recentSolvedTests}
-              onOpenManualModal={handleOpenManualModal}
-              onNavigateResults={handleNavigateResults}
-              onReviewTest={handleReviewRecentTest}
-              selectedStudent={selectedStudent}
-            />
-
-            {/* Günün İlhamı (Hikmet Parşömeni) */}
-            <div className="game-wisdom-card">
-              {(() => {
-                const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
-                return (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
-                        <div>
-                          <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
-                            📜 Günün İlham Parşömeni
-                          </span>
-                          <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            {currentQuote.category}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setDashQuoteIdx(p => p + 1)}
-                        className="game-btn-3d"
-                        style={{
-                          background: 'var(--color-surface)',
-                          color: 'var(--color-text)',
-                          border: '1.5px solid var(--color-border)',
-                          borderRadius: 999,
-                          padding: '0.3rem 0.75rem',
-                          fontSize: '0.7rem',
-                          boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <RefreshCw size={11} /> Yeni İlham
-                      </button>
-                    </div>
-
-                    <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
-                      "{currentQuote.quote}"
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
-                      — {currentQuote.author}
-                    </div>
+              {/* Periyodik Soru & Başarı Analizi */}
+              <div>
+                {isAnalyticsReady ? (
+                  <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
+                    <PeriodicQuestionAnalytics
+                      homeworkSubmissions={otherHomeworkSubmissions}
+                      mockExams={generalTrialExams}
+                      studentName={selectedStudent?.name || 'Öğrenci'}
+                    />
+                  </Suspense>
+                ) : (
+                  <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
+                    📊 Analiz hazırlanıyor…
                   </div>
-                );
-              })()}
+                )}
+              </div>
+
+              {/* Hedef Takip Panosu */}
+              <DashboardGoalsCard
+                isMobile={isMobile}
+                goalTrackingData={goalTrackingData}
+                solvedQuestionsStats={solvedQuestionsStats}
+                onNavigateGoals={handleNavigateGoals}
+                onUpdateGoalProgress={updateGoalProgress}
+                goalTypeThemes={GOAL_TYPE_THEMES}
+              />
+
+              {/* Son Çözülen Testler */}
+              <DashboardRecentSolvedCard
+                isMobile={isMobile}
+                recentSolvedTests={recentSolvedTests}
+                onOpenManualModal={handleOpenManualModal}
+                onNavigateResults={handleNavigateResults}
+                onReviewTest={handleReviewRecentTest}
+                selectedStudent={selectedStudent}
+              />
+
+              {/* Günün İlhamı (Hikmet Parşömeni) */}
+              <div className="game-wisdom-card">
+                {(() => {
+                  const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
+                          <div>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
+                              📜 Günün İlham Parşömeni
+                            </span>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              {currentQuote.category}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDashQuoteIdx(p => p + 1)}
+                          className="game-btn-3d"
+                          style={{
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                            border: '1.5px solid var(--color-border)',
+                            borderRadius: 999,
+                            padding: '0.3rem 0.75rem',
+                            fontSize: '0.7rem',
+                            boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <RefreshCw size={11} /> Yeni İlham
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
+                        "{currentQuote.quote}"
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
+                        — {currentQuote.author}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
-          </div>
+          </Suspense>
         )}
 
 
@@ -4318,17 +4405,19 @@ export default function StudentDashboard() {
 
       {/* Rozetler ve Gamification Modalı */}
       {isGamificationModalOpen && (
-        <GamificationModal
-          student={selectedStudent}
-          submissions={studentSubmissions}
-          homeworks={homeworks}
-          books={books}
-          bookTests={bookTests}
-          mockExams={studentMockExams}
-          studySessions={[]}
-          users={users}
-          onClose={() => setIsGamificationModalOpen(false)}
-        />
+        <Suspense fallback={null}>
+          <GamificationModal
+            student={selectedStudent}
+            submissions={studentSubmissions}
+            homeworks={homeworks}
+            books={books}
+            bookTests={bookTests}
+            mockExams={studentMockExams}
+            studySessions={[]}
+            users={users}
+            onClose={() => setIsGamificationModalOpen(false)}
+          />
+        </Suspense>
       )}
     </div>
     </SmartPullToRefresh>

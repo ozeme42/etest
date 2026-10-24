@@ -45,6 +45,7 @@ export default function StudyRoomPage() {
   const { isDark } = useTheme();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isSmallMobile = useMediaQuery('(max-width: 480px)');
+  const isDesktop = useMediaQuery('(min-width: 960px)');
 
   const { books = [], bookTests = [] } = useTrackedBooks() || {};
   const { studyPlans = [], studyAssignments = [] } = useStudyPlan() || {};
@@ -703,34 +704,72 @@ export default function StudyRoomPage() {
         return btId === testId || btId.replace(/^bt_|^test_/, '') === cleanTId;
       });
       if (found) return found;
+
+      if (selectedTask.bookId) {
+        const byBook = bookTests.filter(bt => String(bt.book_id || bt.bookId) === String(selectedTask.bookId));
+        if (selectedTask.testOrder !== undefined) {
+          const byOrder = byBook.find(bt => Number(bt.test_order || bt.testOrder) === Number(selectedTask.testOrder));
+          if (byOrder) return byOrder;
+        }
+        if (selectedTask.title) {
+          const cleanTitle = (t) => String(t || '').trim().toLowerCase();
+          const byTitle = byBook.find(bt => cleanTitle(bt.title) === cleanTitle(selectedTask.title));
+          if (byTitle) return byTitle;
+        }
+      }
     }
     return null;
   }, [selectedTask, bookTests]);
 
-  const resolvedAnswerKey = useMemo(() => {
+  const rawAnswerKey = useMemo(() => {
     const src = matchedTestObj || selectedTask;
     if (!src) return null;
-    let key = src.answerKey || src.answer_key || src.correctAnswers;
-    if (key && typeof key === 'object' && !Array.isArray(key)) {
+    return (
+      src.answer_key ||
+      src.answerKey ||
+      src.correctAnswers ||
+      src.raw_data?.answer_key ||
+      src.raw_data?.answerKey ||
+      selectedTask?.answer_key ||
+      selectedTask?.answerKey ||
+      selectedTask?.raw_data?.answer_key ||
+      null
+    );
+  }, [matchedTestObj, selectedTask]);
+
+  const resolvedAnswerKey = useMemo(() => {
+    const key = rawAnswerKey;
+    if (!key) return null;
+    if (typeof key === 'object' && !Array.isArray(key)) {
       const arr = [];
-      const total = Math.max(Object.keys(key).length, targetGoalCount || 1);
+      const total = Math.max(Object.keys(key).filter(k => k !== '__meta' && k !== 'meta').length, targetGoalCount || 1);
       for (let i = 1; i <= total; i++) {
         const val = key[String(i)] ?? key[i] ?? key[String(i - 1)] ?? key[i - 1];
-        arr.push(val ? String(val).trim().toUpperCase() : null);
+        arr.push(val !== undefined && val !== null ? String(val).trim() : null);
       }
       return arr.some(Boolean) ? arr : null;
     }
     if (Array.isArray(key) && key.length > 0) {
-      return key.map(k => k ? String(k).trim().toUpperCase() : null);
+      return key.map(k => (k !== undefined && k !== null ? String(k).trim() : null));
     }
     return null;
-  }, [matchedTestObj, selectedTask, targetGoalCount]);
+  }, [rawAnswerKey, targetGoalCount]);
 
   const isSelectedTaskOpenEnded = useMemo(() => {
-    if (selectedTask?.isOpenEnded === true || selectedTask?.questionType === 'acik_uclu') return true;
-    if (matchedTestObj?.isOpenEnded === true || matchedTestObj?.questionType === 'acik_uclu') return true;
+    if (selectedTask?.isOpenEnded === true || selectedTask?.questionType === 'acik_uclu' || selectedTask?.type === 'acik_uclu') return true;
+    if (matchedTestObj?.isOpenEnded === true || matchedTestObj?.questionType === 'acik_uclu' || matchedTestObj?.type === 'acik_uclu') return true;
+    if (rawAnswerKey && typeof rawAnswerKey === 'object') {
+      const meta = rawAnswerKey.__meta || rawAnswerKey.meta;
+      if (meta && (meta.isOpenEnded || meta.type === 'acik_uclu')) return true;
+      const nonMetaVals = Object.entries(rawAnswerKey)
+        .filter(([k]) => k !== '__meta' && k !== 'meta')
+        .map(([, v]) => String(v || '').trim());
+      if (nonMetaVals.length > 0 && nonMetaVals.some(v => v.length > 1 && !/^[A-E]$/i.test(v))) {
+        return true;
+      }
+    }
     return false;
-  }, [selectedTask, matchedTestObj]);
+  }, [selectedTask, matchedTestObj, rawAnswerKey]);
 
   // ── ⏳ ZAMANLAYICI MOTORU ──
   const [durations, setDurations] = useState(() => ({
@@ -1103,7 +1142,8 @@ export default function StudyRoomPage() {
       if (!userAns) {
         blankCount++;
       } else if (correctAns) {
-        isCorrect = userAns === correctAns;
+        const cleanCompare = (s) => String(s || '').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+        isCorrect = cleanCompare(userAns) === cleanCompare(correctAns);
         if (isCorrect) correctCount++;
         else wrongCount++;
       } else {
@@ -1701,17 +1741,27 @@ export default function StudyRoomPage() {
       {/* ─── 2. ANA SAYFA GÖVDESİ ─── */}
       <main style={{
         flex: 1,
-        maxWidth: 980,
+        maxWidth: (isDesktop && selectedTask && !selectedTaskIsReading) ? 1340 : 980,
         margin: '0 auto',
         width: '100%',
-        padding: isMobile ? '1rem 0.85rem calc(75px + env(safe-area-inset-bottom, 0px))' : '2rem 1.5rem 5rem',
+        padding: isMobile ? '1rem 0.85rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.75rem 1.5rem 5rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '1.5rem',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        transition: 'max-width 0.25s ease'
       }}>
-        {/* MERKEZ ODAK SAYAÇ KARTI (HERO CARD) */}
-        <StudyHeroCard
+        {isDesktop && selectedTask && !selectedTaskIsReading ? (
+          /* ─── MASAÜSTÜ YAN YANA GÖRÜNÜM: SOLDA SAYAÇ, SAĞDA OPTİK FORM ─── */
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(460px, 1.2fr) minmax(380px, 1fr)',
+            gap: '1.5rem',
+            alignItems: 'start'
+          }}>
+            {/* SOL SÜTUN: Sayaç Kartı & Sekmeler */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <StudyHeroCard
           themeObj={themeObj}
           isMobile={isMobile}
           activeStudyMode={activeStudyMode}
@@ -1785,8 +1835,7 @@ export default function StudyRoomPage() {
           onToggleZenMode={() => setIsZenFocusMode(z => !z)}
         />
 
-        {/* ─── 3. AKILLI YARDIMCI ARAÇLAR SEKMESİ (BENTO TAB BAR) ─── */}
-        <div style={{
+              <div style={{
           display: 'grid',
           gridTemplateColumns: (selectedTask && !selectedTaskIsReading) ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
           gap: 7,
@@ -1898,25 +1947,10 @@ export default function StudyRoomPage() {
           </button>
         </div>
 
-        {/* ─── 4. AKTİF SEKME PANELİ ─── */}
-        <div>
-          {activeToolTab === 'optical' && selectedTask && !selectedTaskIsReading && (
-            <StudyOpticalPanel
-              themeObj={themeObj}
-              isMobile={isMobile}
-              targetGoalCount={targetGoalCount}
-              opticalAnswers={opticalAnswers}
-              handleSelectOpticalOption={handleSelectOpticalOption}
-              handleSetOpticalTextAnswer={handleSetOpticalTextAnswer}
-              handleClearOpticalAnswers={handleClearOpticalAnswers}
-              handleFinishOpticalQuiz={handleFinishOpticalQuiz}
-              isSubmittingOptical={isSubmittingOptical}
-              isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
-              resolvedAnswerKey={resolvedAnswerKey}
-            />
-          )}
-
-          {activeToolTab === 'analytics' && (
+              {/* Kullanıcı Hız Analizi, Orman veya Ambiyans seçtiğinde sol sütunda açılır */}
+              {activeToolTab !== 'optical' && (
+                <div>
+                  {activeToolTab === 'analytics' && (
             <StudySpeedAnalytics
               themeObj={themeObj}
               isMobile={isMobile}
@@ -1995,7 +2029,317 @@ export default function StudyRoomPage() {
               }}
             />
           )}
+                </div>
+              )}
+            </div>
+
+            {/* SAĞ SÜTUN: Optik Form (Sayacın Tam Sağında Sabit Konumlanır) */}
+            <div style={{ position: 'sticky', top: '1.25rem', zIndex: 10 }}>
+              <StudyOpticalPanel
+                themeObj={themeObj}
+                isMobile={isMobile}
+                targetGoalCount={targetGoalCount}
+                opticalAnswers={opticalAnswers}
+                handleSelectOpticalOption={handleSelectOpticalOption}
+                handleSetOpticalTextAnswer={handleSetOpticalTextAnswer}
+                handleClearOpticalAnswers={handleClearOpticalAnswers}
+                handleFinishOpticalQuiz={handleFinishOpticalQuiz}
+                isSubmittingOptical={isSubmittingOptical}
+                isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
+                rawAnswerKey={rawAnswerKey}
+                resolvedAnswerKey={resolvedAnswerKey}
+              />
+            </div>
+          </div>
+        ) : (
+          /* ─── MOBİL VEYA GÖREVSİZ SERBEST ÇALIŞMA DÜZENİ (DİKEY SIRALI) ─── */
+          <>
+            <StudyHeroCard
+          themeObj={themeObj}
+          isMobile={isMobile}
+          activeStudyMode={activeStudyMode}
+          handleSwitchMasterMode={m => {
+            setActiveStudyMode(m);
+            localStorage.setItem('study_master_mode', m);
+            setIsRunning(false);
+          }}
+          selectedTask={selectedTask}
+          onOpenTaskPicker={() => setShowHomeworkPickerModal(true)}
+          onClearTask={handleClearTask}
+          selectedSubject={selectedSubject}
+          handleSelectSubject={handleSelectSubject}
+          minutesPerQuestion={minutesPerQuestion}
+          setMinutesPerQuestion={m => {
+            setMinutesPerQuestion(m);
+            localStorage.setItem('study_min_per_q', String(m));
+          }}
+          targetGoalCount={targetGoalCount}
+          handleSetNewTargetGoal={q => {
+            setTargetGoalCount(q);
+            localStorage.setItem('study_target_goal', String(q));
+          }}
+          currentProgressCount={currentProgressCount}
+          handleIncrementProgress={() => {
+            setCurrentProgressCount(c => {
+              const next = c + 1;
+              const todayKey = new Date().toISOString().split('T')[0];
+              localStorage.setItem(`study_progress_${todayKey}`, String(next));
+              return next;
+            });
+            if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
+          }}
+          handleDecrementProgress={() => {
+            setCurrentProgressCount(c => {
+              const next = Math.max(0, c - 1);
+              const todayKey = new Date().toISOString().split('T')[0];
+              localStorage.setItem(`study_progress_${todayKey}`, String(next));
+              return next;
+            });
+          }}
+          isRunning={isRunning}
+          handleToggleTimer={handleToggleTimer}
+          handleResetTimer={() => {
+            setIsRunning(false);
+            setSessionElapsedSeconds(0);
+            setStopwatchSeconds(0);
+            setTimeLeft(calculatedBudgetMinutes * 60);
+          }}
+          handleConfirmFinish={handleCompleteSession}
+          displayTimerText={displayTimerText}
+          timerStatusLabel={timerStatusLabel}
+          progressPercentage={progressPercentage}
+          activeQuote={activeQuote}
+          onNextQuote={() => setActiveQuoteIndex(i => i + 1)}
+          pomodoroMode={pomodoroMode}
+          handleSelectPomodoroMode={m => {
+            setPomodoroMode(m);
+            setIsRunning(false);
+          }}
+          completedCycles={completedCycles}
+          currentTree={currentTree}
+          activeToolTab={activeToolTab}
+          setActiveToolTab={setActiveToolTab}
+          opticalAnswerCount={Object.keys(opticalAnswers).length}
+          hasAnswerKey={Boolean(resolvedAnswerKey)}
+          isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
+          selectedTaskIsReading={selectedTaskIsReading}
+          todayPendingTasks={todayPendingTasks}
+          onSelectTodayTask={handleSelectTask}
+          onToggleZenMode={() => setIsZenFocusMode(z => !z)}
+        />
+
+            <div style={{
+          display: 'grid',
+          gridTemplateColumns: (selectedTask && !selectedTaskIsReading) ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
+          gap: 7,
+          background: themeObj.innerBg,
+          padding: 5,
+          borderRadius: 20,
+          border: `1.5px solid ${themeObj.border}`
+        }}>
+          {selectedTask && !selectedTaskIsReading && (
+            <button
+              onClick={() => setActiveToolTab('optical')}
+              style={{
+                padding: '0.7rem 0.55rem',
+                borderRadius: 14,
+                border: 'none',
+                background: activeToolTab === 'optical' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
+                color: activeToolTab === 'optical' ? '#ffffff' : themeObj.subText,
+                fontWeight: 900,
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: isMobile ? '0.76rem' : '0.84rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+                boxShadow: activeToolTab === 'optical' ? `0 4px 14px ${themeObj.accent}45` : 'none'
+              }}
+              className="hover:scale-[1.02] active:scale-95"
+            >
+              <span>📋</span>
+              <span>{isSmallMobile ? 'Optik' : 'Optik Cevaplar'}</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setActiveToolTab('analytics')}
+            style={{
+              padding: '0.7rem 0.55rem',
+              borderRadius: 14,
+              border: 'none',
+              background: activeToolTab === 'analytics' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
+              color: activeToolTab === 'analytics' ? '#ffffff' : themeObj.subText,
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.15s',
+              boxShadow: activeToolTab === 'analytics' ? `0 4px 14px ${themeObj.accent}45` : 'none'
+            }}
+            className="hover:scale-[1.02] active:scale-95"
+          >
+            <span>📊</span>
+            <span>{isSmallMobile ? 'Hız' : 'Hız Analizi'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveToolTab('forest')}
+            style={{
+              padding: '0.7rem 0.55rem',
+              borderRadius: 14,
+              border: 'none',
+              background: activeToolTab === 'forest' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
+              color: activeToolTab === 'forest' ? '#ffffff' : themeObj.subText,
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.15s',
+              boxShadow: activeToolTab === 'forest' ? `0 4px 14px ${themeObj.accent}45` : 'none'
+            }}
+            className="hover:scale-[1.02] active:scale-95"
+          >
+            <span>🌲</span>
+            <span>{isSmallMobile ? 'Orman' : 'Başarı Ormanı'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveToolTab('ambient')}
+            style={{
+              padding: '0.7rem 0.55rem',
+              borderRadius: 14,
+              border: 'none',
+              background: activeToolTab === 'ambient' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
+              color: activeToolTab === 'ambient' ? '#ffffff' : themeObj.subText,
+              fontWeight: 900,
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: isMobile ? '0.76rem' : '0.84rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              transition: 'all 0.15s',
+              boxShadow: activeToolTab === 'ambient' ? `0 4px 14px ${themeObj.accent}45` : 'none'
+            }}
+            className="hover:scale-[1.02] active:scale-95"
+          >
+            <span>🎧</span>
+            <span>{isSmallMobile ? 'Notlar' : 'Ambiyans & Not'}</span>
+          </button>
         </div>
+
+            <div>
+              {activeToolTab === 'optical' && selectedTask && !selectedTaskIsReading && (
+                <StudyOpticalPanel
+                  themeObj={themeObj}
+                  isMobile={isMobile}
+                  targetGoalCount={targetGoalCount}
+                  opticalAnswers={opticalAnswers}
+                  handleSelectOpticalOption={handleSelectOpticalOption}
+                  handleSetOpticalTextAnswer={handleSetOpticalTextAnswer}
+                  handleClearOpticalAnswers={handleClearOpticalAnswers}
+                  handleFinishOpticalQuiz={handleFinishOpticalQuiz}
+                  isSubmittingOptical={isSubmittingOptical}
+                  isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
+                  rawAnswerKey={rawAnswerKey}
+                  resolvedAnswerKey={resolvedAnswerKey}
+                />
+              )}
+
+              {activeToolTab === 'analytics' && (
+            <StudySpeedAnalytics
+              themeObj={themeObj}
+              isMobile={isMobile}
+              overallAvgSecPerQ={overallAvgSecPerQ}
+              totalTrackedQuestions={allAssignedTasks.length}
+              fastestSubject={fastestSubject}
+              slowestSubject={slowestSubject}
+              trackedSubjectsList={trackedSubjectsList}
+              activeTrackedCount={activeTrackedCount}
+              selectedSubject={selectedSubject}
+              handleSelectSubject={handleSelectSubject}
+              handleSwitchMasterMode={m => setActiveStudyMode(m)}
+              clearSubjectStats={() => {
+                setSubjectStats({});
+                localStorage.removeItem('study_subject_stats');
+              }}
+              loadDemoSubjectStats={() => {
+                const demo = {
+                  'Matematik': { totalQuestions: 40, totalSeconds: 4800, sessionCount: 4 },
+                  'Türkçe': { totalQuestions: 35, totalSeconds: 2450, sessionCount: 3 },
+                  'Fen Bilimleri': { totalQuestions: 25, totalSeconds: 2250, sessionCount: 2 }
+                };
+                setSubjectStats(demo);
+                localStorage.setItem('study_subject_stats', JSON.stringify(demo));
+              }}
+            />
+          )}
+
+          {activeToolTab === 'forest' && (
+            <StudyForestBadges
+              themeObj={themeObj}
+              isMobile={isMobile}
+              plantedForest={plantedForest}
+              dailyStats={dailyStats}
+            />
+          )}
+
+          {activeToolTab === 'ambient' && (
+            <StudyAmbientNotes
+              themeObj={themeObj}
+              isMobile={isMobile}
+              soundVolumes={soundVolumes}
+              handleVolumeChange={(id, vol) => {
+                setSoundVolumes(v => ({ ...v, [id]: vol }));
+                try {
+                  if (vol > 0) ambientAudio.playSound(id, vol / 100);
+                  else ambientAudio.stopSound(id);
+                } catch {}
+              }}
+              ambientAudio={ambientAudio}
+              todoList={todoList}
+              newTodoText={newTodoText}
+              setNewTodoText={setNewTodoText}
+              handleAddTodo={() => {
+                if (!newTodoText.trim()) return;
+                const newItem = { id: Date.now(), text: newTodoText.trim(), completed: false };
+                const nextList = [...todoList, newItem];
+                setTodoList(nextList);
+                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+                setNewTodoText('');
+              }}
+              handleToggleTodo={id => {
+                const nextList = todoList.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+                setTodoList(nextList);
+                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+              }}
+              handleDeleteTodo={id => {
+                const nextList = todoList.filter(t => t.id !== id);
+                setTodoList(nextList);
+                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+              }}
+              scratchNotes={scratchNotes}
+              setScratchNotes={text => {
+                setScratchNotes(text);
+                localStorage.setItem('study_scratch_notes', text);
+              }}
+            />
+          )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* ─── 5. MODAL VE ÇEKMECELER ─── */}
