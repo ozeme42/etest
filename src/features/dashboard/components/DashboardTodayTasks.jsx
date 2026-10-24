@@ -306,8 +306,11 @@ export default memo(function DashboardTodayTasks({
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
         borderRadius: isMobile ? 20 : 24,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
         overflow: 'hidden',
         border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
+        borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
         background: isDark
           ? 'linear-gradient(180deg, #13192f 0%, #0d1222 100%)'
           : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',

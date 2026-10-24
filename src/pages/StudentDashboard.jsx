@@ -3886,8 +3886,8 @@ export default function StudentDashboard() {
         <div style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.65rem',
-          marginBottom: '1.25rem',
+          gap: 0,
+          marginBottom: activeDashboardTab === 'tasks' ? 0 : '1.25rem',
           width: '100%'
         }}>
           <div
@@ -3899,7 +3899,12 @@ export default function StudentDashboard() {
               gap: isMobile ? 8 : 10,
               boxSizing: 'border-box',
               padding: isMobile ? '6px' : '8px',
-              borderRadius: isMobile ? 18 : 22
+              borderRadius: isMobile ? 18 : 22,
+              borderBottomLeftRadius: activeDashboardTab === 'tasks' ? 0 : (isMobile ? 18 : 22),
+              borderBottomRightRadius: activeDashboardTab === 'tasks' ? 0 : (isMobile ? 18 : 22),
+              border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
+              borderBottom: activeDashboardTab === 'tasks' ? 'none' : (isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0'),
+              boxShadow: activeDashboardTab === 'tasks' ? 'none' : undefined
             }}
           >
             {/* 1. Görevler */}
@@ -4039,12 +4044,13 @@ export default function StudentDashboard() {
             </button>
           </div>
 
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, padding: '0 4px', textAlign: isMobile ? 'center' : 'left' }}>
-            {activeDashboardTab === 'tasks' && '⚔️ Günlük Görevler: Bugünün ders programı, takvim ve öğretmen ödevlerin.'}
-            {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
-            {activeDashboardTab === 'remedial' && '🔥 Akıllı Telafi Havuzu: Geçmiş günlerden kalan eksikler, telafi testleri ve geciken ödevler.'}
-            {activeDashboardTab === 'analytics' && '🏆 Arena & İstatistik: Seviye rozetlerin, soru analizlerin, hedeflerin ve sınav geçmişin.'}
-          </div>
+          {activeDashboardTab !== 'tasks' && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, padding: '0 4px', marginTop: '0.5rem', textAlign: isMobile ? 'center' : 'left' }}>
+              {activeDashboardTab === 'books' && '🎒 Kütüphane & Envanter: Soru bankası kitapların, okuma takibin ve konu haritan.'}
+              {activeDashboardTab === 'remedial' && '🔥 Akıllı Telafi Havuzu: Geçmiş günlerden kalan eksikler, telafi testleri ve geciken ödevler.'}
+              {activeDashboardTab === 'analytics' && '🏆 Arena & İstatistik: Seviye rozetlerin, soru analizlerin, hedeflerin ve sınav geçmişin.'}
+            </div>
+          )}
         </div>
 
         {/* ════════════════════════════════════════════
@@ -4053,7 +4059,7 @@ export default function StudentDashboard() {
 
         {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
         {activeDashboardTab === 'tasks' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%' }}>
             {/* 🎯 BİRLEŞTİRİLMİŞ MODERN HAFTALIK TAKVİM & GÜNLÜK GÖREV MERKEZİ */}
             <DashboardTodayTasks
               isMobile={isMobile}
