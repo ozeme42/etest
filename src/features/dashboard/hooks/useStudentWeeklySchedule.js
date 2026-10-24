@@ -9,7 +9,7 @@ import { useStudyPlan } from '../../../context/StudyPlanContext';
 import { useCurriculum } from '../../../context/CurriculumContext';
 import { useSchedule } from '../../../context/ScheduleContext';
 import { useReading } from '../../../context/ReadingContext';
-import { toUUID } from '../../../services/supabaseService';
+import { toUUID, isValidUUID } from '../../../services/supabaseService';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 import {
   isHomeworkForStudent,
