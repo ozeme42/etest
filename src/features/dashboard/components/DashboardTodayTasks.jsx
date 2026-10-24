@@ -705,260 +705,260 @@ export default memo(function DashboardTodayTasks({
                     background: task.done 
                       ? (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)') 
                       : (isNextTarget 
-                          ? (isDark ? 'rgba(99, 102, 241, 0.12)' : 'rgba(99, 102, 241, 0.05)') 
-                          : 'var(--color-surface)'),
-                    borderLeft: `7px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : sTheme.from}`,
-                    borderTop: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
-                    borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
-                    borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.3)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
-                    borderRadius: 20,
-                    padding: isMobile ? '1rem 0.95rem' : '1.15rem 1.25rem',
+                          ? (isDark ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.16), var(--color-surface))' : 'linear-gradient(145deg, rgba(99, 102, 241, 0.08), #ffffff)') 
+                          : (isDark ? 'linear-gradient(145deg, rgba(255,255,255,0.035), var(--color-surface))' : 'linear-gradient(145deg, #ffffff, #fcfcfd)')),
+                    borderTop: `4px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : sTheme.from}`,
+                    borderLeft: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderRight: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderBottom: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : 'var(--color-border)'}`,
+                    borderRadius: 18,
+                    padding: isMobile ? '0.85rem' : '1rem 1.15rem',
                     cursor: 'pointer',
                     boxShadow: isNextTarget 
-                      ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 10px 28px rgba(99, 102, 241, 0.22)' 
+                      ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 8px 22px rgba(99, 102, 241, 0.18)' 
                       : (task.done 
-                          ? '0 4px 14px rgba(16,185,129,0.08)' 
-                          : `0 6px 20px ${sTheme.glow}`),
+                          ? '0 2px 10px rgba(16,185,129,0.08)' 
+                          : `0 4px 16px ${sTheme.glow}`),
                     display: 'flex',
-                    flexDirection: isMobile ? 'row' : 'column',
-                    alignItems: isMobile ? 'center' : 'stretch',
+                    flexDirection: 'column',
                     justifyContent: 'space-between',
-                    flexWrap: isMobile ? 'wrap' : 'nowrap',
-                    gap: isMobile ? '0.85rem' : '1rem',
+                    gap: '0.65rem',
                     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     boxSizing: 'border-box'
                   }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: isMobile ? 'center' : 'flex-start',
-                    gap: isMobile ? '0.75rem' : '0.85rem',
-                    flex: 1,
-                    minWidth: 0,
-                    width: '100%'
-                  }}>
-                    
-                    {/* Tekli Ders İkonlu Görev Tamamlama / Checkbox Butonu */}
+                  {/* Kart Üst Başlık Satırı: Ders + XP + Tamamlama Kutusu */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                      {isNextTarget && (
+                        <span style={{
+                          fontSize: '0.64rem',
+                          fontWeight: 900,
+                          color: '#ffffff',
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          padding: '2px 8px',
+                          borderRadius: 99,
+                          boxShadow: '0 2px 6px rgba(99, 102, 241, 0.35)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}>
+                          <Zap size={11} fill="#ffffff" /> ŞİMDİKİ HEDEF
+                        </span>
+                      )}
+
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        color: sTheme.badgeText,
+                        background: sTheme.badgeBg,
+                        border: `1.5px solid ${sTheme.badgeBorder}`,
+                        padding: '3px 9px',
+                        borderRadius: 8,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}>
+                        <span style={{ fontSize: '0.92rem', lineHeight: 1 }}>{sTheme.icon}</span>
+                        <span>{cleanSubj}</span>
+                      </span>
+
+                      <span className="game-badge-xp" style={{ fontSize: '0.66rem', padding: '2px 7px' }}>
+                        +{isExamItem || task.roadmapAssignmentId ? '50' : '25'} XP
+                      </span>
+                    </div>
+
+                    {/* Hızlı Tamamlama Kutusu */}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                       style={{
-                        width: isMobile ? 42 : 48,
-                        height: isMobile ? 42 : 48,
-                        borderRadius: 16,
+                        width: 32,
+                        height: 32,
+                        minWidth: 32,
+                        borderRadius: 10,
                         border: task.done 
                           ? '2px solid #10b981' 
-                          : isNextTarget 
-                          ? '2px solid #6366f1' 
-                          : '2px solid transparent',
+                          : isDark ? '2px solid rgba(255, 255, 255, 0.2)' : '2px solid #cbd5e1',
                         background: task.done
                           ? 'linear-gradient(135deg, #10b981, #059669)'
-                          : `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                          : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff'),
                         color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: isMobile ? '1.25rem' : '1.45rem',
-                        boxShadow: task.done
-                          ? '0 4px 14px rgba(16, 185, 129, 0.4)'
-                          : `0 6px 16px ${sTheme.glow}`,
                         flexShrink: 0,
                         cursor: 'pointer',
                         padding: 0,
-                        position: 'relative',
-                        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                        boxShadow: task.done ? '0 2px 8px rgba(16, 185, 129, 0.35)' : 'none',
+                        transition: 'all 0.15s ease'
                       }}
                       title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                     >
                       {task.done ? (
-                        <Check size={isMobile ? 22 : 26} color="#ffffff" strokeWidth={3.5} />
+                        <Check size={18} color="#ffffff" strokeWidth={3.5} />
                       ) : (
-                        sTheme.icon
-                      )}
-
-                      {/* Sıradaki hedef ise odak çipi */}
-                      {isNextTarget && !task.done && (
-                        <span style={{
-                          position: 'absolute',
-                          top: -3,
-                          right: -3,
-                          width: 11,
-                          height: 11,
-                          borderRadius: '50%',
-                          background: '#6366f1',
-                          border: '2px solid #ffffff',
-                          boxShadow: '0 0 8px #6366f1'
-                        }} />
+                        <span style={{ width: 6, height: 6, borderRadius: 2, background: 'transparent' }} />
                       )}
                     </button>
-
-                    {/* Görev Detayları */}
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      
-                      {/* Üst Satır: Ders Rozeti & Etiketler */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        {isNextTarget && (
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 900,
-                            color: '#ffffff',
-                            background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                            padding: '3px 9px',
-                            borderRadius: 99,
-                            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.4)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}>
-                            <Zap size={12} fill="#ffffff" /> ŞİMDİKİ HEDEF
-                          </span>
-                        )}
-
-                        <span style={{
-                          fontSize: '0.7rem',
-                          fontWeight: 900,
-                          color: sTheme.badgeText,
-                          background: sTheme.badgeBg,
-                          border: `1.5px solid ${sTheme.badgeBorder}`,
-                          padding: '2px 9px',
-                          borderRadius: 8,
-                          flexShrink: 0
-                        }}>
-                          {sTheme.icon} {cleanSubj}
-                        </span>
-
-                        <span className="game-badge-xp" style={{ fontSize: '0.66rem', padding: '2px 7px' }}>
-                          +{isExamItem || task.roadmapAssignmentId ? '50' : '25'} XP
-                        </span>
-
-                        {isRemedialTask && (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 900,
-                            color: '#7c3aed',
-                            background: 'rgba(124, 58, 237, 0.12)',
-                            border: '1px solid rgba(124, 58, 237, 0.3)',
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            flexShrink: 0
-                          }}>
-                            🔄 {syncAttemptNumber}. Tekrar
-                          </span>
-                        )}
-
-                        {pageBadge && (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            color: 'var(--color-text-secondary)',
-                            background: 'var(--color-surface-hover)',
-                            border: '1px solid var(--color-border)',
-                            padding: '2px 7px',
-                            borderRadius: 6,
-                            flexShrink: 0
-                          }}>
-                            📄 {pageBadge}
-                          </span>
-                        )}
-
-                        {task.questionCount && !isReadingTask && (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            color: 'var(--color-text-muted)',
-                            background: 'var(--color-surface-hover)',
-                            padding: '2px 7px',
-                            borderRadius: 6,
-                            border: '1px solid var(--color-border)'
-                          }}>
-                            📝 {task.questionCount} Soru
-                          </span>
-                        )}
-
-                        {isReadingTask && (
-                          <span style={{
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            color: '#ec4899',
-                            background: 'rgba(236, 72, 153, 0.1)',
-                            padding: '2px 7px',
-                            borderRadius: 6,
-                            border: '1px solid rgba(236, 72, 153, 0.3)'
-                          }}>
-                            📖 Okuma Görevi
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Başlık (Büyük & Belirgin) */}
-                      <div style={{
-                        fontSize: isMobile ? '0.98rem' : '1.12rem',
-                        fontWeight: 900,
-                        color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
-                        textDecoration: task.done ? 'line-through' : 'none',
-                        wordBreak: 'break-word',
-                        lineHeight: 1.35,
-                        fontFamily: "'Outfit', sans-serif"
-                      }}>
-                        {displayTitle}
-                      </div>
-
-                      {/* Alt Meta Şeridi */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                        {sBook && !/^kitap$/i.test(sBook.trim()) && !/^takip kitabı$/i.test(sBook.trim()) && (
-                          <span style={{
-                            color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
-                            fontWeight: 800,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            maxWidth: isMobile ? 220 : 240,
-                            background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : 'var(--color-surface-hover)',
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid var(--color-border)'
-                          }}>
-                            {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${sBook}` : `📖 ${sBook}`}
-                          </span>
-                        )}
-                        {sUnit && (
-                          <span style={{ color: 'var(--color-text-secondary)', fontWeight: 700 }}>
-                            📌 {sUnit}
-                          </span>
-                        )}
-                        {(task.time || task.dueDateStr) && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <Clock size={12} /> {String(task.time || task.dueDateStr || '')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Sağ / Alt Aksiyon Butonu */}
+                  {/* Görev Başlığı (Tüm genişliği kaplar, belirgin & net) */}
+                  <div style={{
+                    fontSize: isMobile ? '0.94rem' : '1.02rem',
+                    fontWeight: 800,
+                    color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
+                    textDecoration: task.done ? 'line-through' : 'none',
+                    wordBreak: 'break-word',
+                    lineHeight: 1.35,
+                    fontFamily: "'Outfit', sans-serif",
+                    width: '100%'
+                  }}>
+                    {displayTitle}
+                  </div>
+
+                  {/* Renkli & Dolu Bilgi Etiketleri Şeridi */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', width: '100%' }}>
+                    {sBook && !/^kitap$/i.test(sBook.trim()) && !/^takip kitabı$/i.test(sBook.trim()) && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : '#2563eb',
+                        background: (task.roadmapAssignmentId || task.isRoadmapTask) ? 'rgba(124, 58, 237, 0.12)' : (isDark ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)'),
+                        border: (task.roadmapAssignmentId || task.isRoadmapTask) ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(37, 99, 235, 0.25)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: 220,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${sBook}` : `📖 ${sBook}`}
+                      </span>
+                    )}
+
+                    {task.questionCount && !isReadingTask && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: '#059669',
+                        background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.09)',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        📝 {task.questionCount} Soru
+                      </span>
+                    )}
+
+                    {isReadingTask && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: '#db2777',
+                        background: 'rgba(236, 72, 153, 0.12)',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        📚 Okuma Görevi
+                      </span>
+                    )}
+
+                    {pageBadge && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: '#ea580c',
+                        background: isDark ? 'rgba(234, 88, 12, 0.15)' : 'rgba(234, 88, 12, 0.08)',
+                        border: '1px solid rgba(234, 88, 12, 0.25)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        📄 {pageBadge}
+                      </span>
+                    )}
+
+                    {isRemedialTask && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        color: '#7c3aed',
+                        background: 'rgba(124, 58, 237, 0.12)',
+                        border: '1px solid rgba(124, 58, 237, 0.3)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        🔄 {syncAttemptNumber}. Tekrar
+                      </span>
+                    )}
+
+                    {sUnit && (
+                      <span style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: 'var(--color-text-secondary)',
+                        background: 'var(--color-surface-hover)',
+                        border: '1px solid var(--color-border)',
+                        padding: '2px 7px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        📌 {sUnit}
+                      </span>
+                    )}
+
+                    {(task.time || task.dueDateStr) && (
+                      <span style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 600,
+                        color: 'var(--color-text-muted)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3
+                      }}>
+                        <Clock size={11} /> {String(task.time || task.dueDateStr || '')}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Alt Aksiyon Butonu (Kompakt & Tam Genişlik) */}
                   <div style={{
                     flexShrink: 0,
                     width: '100%',
                     display: 'flex',
                     justifyContent: 'stretch',
-                    marginTop: isMobile ? 6 : 'auto',
-                    paddingTop: !isMobile ? '0.75rem' : 0,
-                    borderTop: !isMobile ? (isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7') : 'none'
+                    marginTop: 'auto',
+                    paddingTop: 4
                   }}>
                     {task.done ? (
                       isReadingTask || !isQuizTask ? (
                         <span
                           style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.78rem',
                             fontWeight: 900,
                             color: '#10b981',
-                            background: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.12)',
-                            border: '1.5px solid rgba(16, 185, 129, 0.4)',
-                            padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
-                            borderRadius: 14,
+                            background: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: 12,
                             whiteSpace: 'nowrap',
                             width: '100%',
                             display: 'flex',
@@ -974,22 +974,22 @@ export default memo(function DashboardTodayTasks({
                           onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                           className="game-btn-3d"
                           style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.78rem',
                             fontWeight: 900,
                             color: '#10b981',
-                            background: isDark ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.12)',
-                            border: '1.5px solid rgba(16, 185, 129, 0.4)',
-                            padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
-                            borderRadius: 14,
+                            background: isDark ? 'rgba(16, 185, 129, 0.16)' : 'rgba(16, 185, 129, 0.1)',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            padding: '0.45rem 0.85rem',
+                            borderRadius: 12,
                             whiteSpace: 'nowrap',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             width: '100%',
-                            gap: 6
+                            gap: 5
                           }}
                         >
-                          <Eye size={15} /> İncele
+                          <Eye size={14} /> İncele
                         </button>
                       )
                     ) : isRemedialTask && getRemedialLockStatus(task).isLocked ? (
@@ -1006,19 +1006,19 @@ export default memo(function DashboardTodayTasks({
                             style={{
                               background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
                               color: isDark ? '#94a3b8' : '#64748b',
-                              border: isDark ? '1.5px solid rgba(255, 255, 255, 0.14)' : '1.5px solid #e2e8f0',
-                              borderRadius: 14,
-                              padding: isMobile ? '0.5rem 0.95rem' : '0.65rem 1.25rem',
-                              fontSize: '0.76rem',
+                              border: isDark ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid #e2e8f0',
+                              borderRadius: 12,
+                              padding: '0.45rem 0.85rem',
+                              fontSize: '0.74rem',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               width: '100%',
-                              gap: 6
+                              gap: 5
                             }}
                             title={lockStatus.lockMessage}
                           >
-                            <Lock size={14} color="#f59e0b" />
+                            <Lock size={13} color="#f59e0b" />
                             <span>{lockStatus.daysLeft === 1 ? 'Yarın Açılacak' : lockStatus.formattedDate}</span>
                           </button>
                         );
@@ -1032,25 +1032,25 @@ export default memo(function DashboardTodayTasks({
                           background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
                           color: '#ffffff',
                           border: 'none',
-                          borderRadius: 14,
-                          padding: isMobile ? '0.6rem 1.1rem' : '0.75rem 1.45rem',
-                          fontSize: isMobile ? '0.84rem' : '0.92rem',
+                          borderRadius: 12,
+                          padding: '0.55rem 1rem',
+                          fontSize: '0.82rem',
                           fontWeight: 900,
-                          boxShadow: `0 4px 14px ${sTheme.glow}`,
+                          boxShadow: `0 3px 12px ${sTheme.glow}`,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 7,
+                          gap: 6,
                           width: '100%',
                           justifyContent: 'center'
                         }}
                       >
                         {isRemedialTask && syncAttemptNumber > 1 ? (
                           <>
-                            <RotateCcw size={16} /> {`${syncAttemptNumber}. Tekrar`}
+                            <RotateCcw size={15} /> {`${syncAttemptNumber}. Tekrar`}
                           </>
                         ) : (
                           <>
-                            <PlayCircle size={17} /> Başlat ⚔️
+                            <PlayCircle size={16} /> Başlat ⚔️
                           </>
                         )}
                       </button>
@@ -1060,9 +1060,9 @@ export default memo(function DashboardTodayTasks({
                         onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                         className="game-btn-3d game-btn-emerald"
                         style={{
-                          borderRadius: 14,
-                          padding: isMobile ? '0.55rem 1rem' : '0.7rem 1.35rem',
-                          fontSize: isMobile ? '0.82rem' : '0.88rem',
+                          borderRadius: 12,
+                          padding: '0.55rem 1rem',
+                          fontSize: '0.82rem',
                           fontWeight: 900,
                           width: '100%',
                           justifyContent: 'center',
@@ -1073,7 +1073,7 @@ export default memo(function DashboardTodayTasks({
                       >
                         {isReadingTask ? (
                           <>
-                            <BookOpen size={16} /> Okudum ✓
+                            <BookOpen size={15} /> Okudum ✓
                           </>
                         ) : (
                           'Tamamla ✓'
