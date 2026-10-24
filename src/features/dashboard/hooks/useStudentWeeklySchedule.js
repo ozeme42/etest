@@ -460,6 +460,51 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
           const rawBook = typeof item.bookTitle === 'object' ? (item.bookTitle?.title || item.bookTitle?.name || '') : (item.bookTitle || '');
           const cleanBookTitle = String(rawBook).trim();
 
+          // Find matching submission if solved
+          let matchedSub = null;
+          if (submissions && submissions.length > 0) {
+            const targetTid = String(item.testId || item.bookTestId || item.realTestId || item.id || '');
+            const cleanTid = targetTid.replace(/^bt_/, '').replace(/^q_/, '');
+            matchedSub = submissions.find(s => {
+              if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+              const sTid = String(s.testId || s.bookTestId || s.realTestId || '');
+              const sClean = sTid.replace(/^bt_/, '').replace(/^q_/, '');
+              if (targetTid && (sTid === targetTid || sClean === cleanTid)) return true;
+              if (item.hwId && String(s.hwId || s.homeworkId) === String(item.hwId)) return true;
+              return false;
+            }) || null;
+          }
+
+          let testResult = null;
+          if (matchedSub) {
+            const c = Number(matchedSub.correctCount ?? matchedSub.correct_count ?? matchedSub.correct ?? 0);
+            const w = Number(matchedSub.wrongCount ?? matchedSub.wrong_count ?? matchedSub.wrong ?? 0);
+            const e = Number(matchedSub.emptyCount ?? matchedSub.empty_count ?? matchedSub.blankCount ?? matchedSub.blank_count ?? 0);
+            const explicitQ = Number(matchedSub.totalQuestions ?? matchedSub.questionCount ?? item.questionCount ?? 0);
+            const q = (c + w + e > 0) ? (c + w + e) : explicitQ;
+            let scoreVal = 0;
+            if (matchedSub.score !== undefined && matchedSub.score !== null && !isNaN(Number(matchedSub.score))) {
+              scoreVal = Math.round(Number(matchedSub.score));
+            } else if (q > 0) {
+              scoreVal = Math.round((c / q) * 100);
+            }
+            const netVal = (matchedSub.net !== undefined && matchedSub.net !== null && !isNaN(Number(matchedSub.net)))
+              ? Number(matchedSub.net)
+              : Math.max(0, Math.round((c - (w / 3)) * 100) / 100);
+
+            testResult = {
+              score: scoreVal,
+              correctCount: c,
+              wrongCount: w,
+              emptyCount: e,
+              totalQuestions: q,
+              net: netVal,
+              submissionId: matchedSub.id,
+              isPendingApproval: Boolean(matchedSub.isPendingApproval),
+              isPendingEval: Boolean(matchedSub.isPendingEval)
+            };
+          }
+
           allItems.push({
             ...item,
             subject: cleanSubj,
@@ -467,7 +512,9 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
             title: cleanTitle || cleanTopic || cleanSubj || 'Görev',
             testName: cleanTestName,
             bookTitle: cleanBookTitle,
-            done: Boolean(item.done || isSolved)
+            done: Boolean(item.done || isSolved),
+            submission: matchedSub,
+            testResult: testResult
           });
         });
 

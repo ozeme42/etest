@@ -1907,6 +1907,21 @@ export default function StudentDashboard() {
             scheduleSubsByTestId.get(clean).push(s);
           }
         });
+        if (s.hwId) {
+          const hwStr = String(s.hwId);
+          if (!scheduleSubsByTestId.has(hwStr)) scheduleSubsByTestId.set(hwStr, []);
+          scheduleSubsByTestId.get(hwStr).push(s);
+        }
+        if (s.homeworkId) {
+          const hwStr = String(s.homeworkId);
+          if (!scheduleSubsByTestId.has(hwStr)) scheduleSubsByTestId.set(hwStr, []);
+          scheduleSubsByTestId.get(hwStr).push(s);
+        }
+        const sComp = getSubmissionCompositeKey(s);
+        if (sComp) {
+          if (!scheduleSubsByTestId.has(sComp)) scheduleSubsByTestId.set(sComp, []);
+          scheduleSubsByTestId.get(sComp).push(s);
+        }
       });
 
       DAYS_OF_WEEK.forEach(dayMeta => {
@@ -2262,11 +2277,51 @@ export default function StudentDashboard() {
             matchingSubs = scheduleSubsByTestId.get(currentTestClean);
           } else if (currentTestId && scheduleSubsByTestId.has(currentTestId)) {
             matchingSubs = scheduleSubsByTestId.get(currentTestId);
+          } else if (item.hwId && scheduleSubsByTestId.has(String(item.hwId))) {
+            matchingSubs = scheduleSubsByTestId.get(String(item.hwId));
           } else {
-            matchingSubs = validScheduleSubs.filter(s => isSubmissionMatchingBookTest(s, item, bookTests, books));
+            const itemComp = createCompositeTestKey(item.bookTitle, item.subject || item.subjectName, item.unitTopic || item.topicName || item.unit, item.testName || item.name || item.title);
+            if (itemComp && scheduleSubsByTestId.has(itemComp)) {
+              matchingSubs = scheduleSubsByTestId.get(itemComp);
+            } else {
+              matchingSubs = validScheduleSubs.filter(s => isSubmissionMatchingBookTest(s, item, bookTests, books));
+            }
           }
 
           const pastCount = matchingSubs.length;
+          const latestSub = matchingSubs.length > 0 ? matchingSubs[matchingSubs.length - 1] : null;
+          let testResult = null;
+          if (latestSub) {
+            const c = Number(latestSub.correctCount ?? latestSub.correct_count ?? latestSub.correct ?? 0);
+            const w = Number(latestSub.wrongCount ?? latestSub.wrong_count ?? latestSub.wrong ?? 0);
+            const e = Number(latestSub.emptyCount ?? latestSub.empty_count ?? latestSub.blankCount ?? latestSub.blank_count ?? 0);
+            const explicitQ = Number(latestSub.totalQuestions ?? latestSub.questionCount ?? item.questionCount ?? 0);
+            const q = (c + w + e > 0) ? (c + w + e) : explicitQ;
+
+            let scoreVal = 0;
+            if (latestSub.score !== undefined && latestSub.score !== null && !isNaN(Number(latestSub.score))) {
+              scoreVal = Math.round(Number(latestSub.score));
+            } else if (q > 0) {
+              scoreVal = Math.round((c / q) * 100);
+            }
+
+            const netVal = (latestSub.net !== undefined && latestSub.net !== null && !isNaN(Number(latestSub.net)))
+              ? Number(latestSub.net)
+              : Math.max(0, Math.round((c - (w / 3)) * 100) / 100);
+
+            testResult = {
+              score: scoreVal,
+              correctCount: c,
+              wrongCount: w,
+              emptyCount: e,
+              totalQuestions: q,
+              net: netVal,
+              submissionId: latestSub.id,
+              submittedAt: latestSub.createdAt || latestSub.created_at || latestSub.date,
+              isPendingApproval: Boolean(latestSub.isPendingApproval || latestSub.approvalStatus === 'pending'),
+              isPendingEval: Boolean(latestSub.isPendingEval || latestSub.isPendingEvaluation)
+            };
+          }
 
           // Parse stage number for spaced repetition item
           const stageMatch = (item.text || item.title || item.topic || '').match(/\[(\d+)\.\s*Tekrar(?:\s*[-–(]\s*(\d+)g\s*[)]?)?/i);
@@ -2300,7 +2355,9 @@ export default function StudentDashboard() {
             pastAttemptCount: pastCount,
             stage: detectedStage || item.stage,
             attemptNumber: targetAttemptNumber,
-            pastSubmissionsCount: pastCount
+            pastSubmissionsCount: pastCount,
+            submission: latestSub,
+            testResult: testResult
           };
         });
         const completedItems = allItems.filter(i => i.done);

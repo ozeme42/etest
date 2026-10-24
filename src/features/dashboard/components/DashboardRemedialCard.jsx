@@ -519,35 +519,30 @@ export default function DashboardRemedialCard({
                   const catBadge = getCatchUpCategoryBadge(task);
                   const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
-                  let displayTitle = (task.testName || task.title || task.topic || 'Telafi Görevi')
-                    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
-                    .replace(/\s*\(Tüm Kitap\)/gi, '')
-                    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
-                    .replace(/\s*\(Görev\)/gi, '')
-                    .trim();
+                  const isTestTask = !isReadingTask && (
+                    Boolean(task.testResult) ||
+                    isQuizTask ||
+                    Boolean(task.testId || task.bookTestId || task.realTestId) ||
+                    Boolean(task.isExamTask || task.taskType === 'deneme' || task.taskType === 'test' || task.taskType === 'remedialTest') ||
+                    Boolean(task.questionCount) ||
+                    /test|deneme|sınav|soru/i.test(task.title || task.topic || task.testName)
+                  );
 
-                  if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
-                    displayTitle = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
-                  }
+                  const testResult = task.testResult || (task.submission ? {
+                    score: task.submission.score !== undefined && !isNaN(Number(task.submission.score)) ? Math.round(Number(task.submission.score)) : (task.submission.totalQuestions ? Math.round(((task.submission.correctCount || 0) / task.submission.totalQuestions) * 100) : 0),
+                    correctCount: Number(task.submission.correctCount ?? task.submission.correct_count ?? 0),
+                    wrongCount: Number(task.submission.wrongCount ?? task.submission.wrong_count ?? 0),
+                    emptyCount: Number(task.submission.emptyCount ?? task.submission.blankCount ?? 0),
+                    totalQuestions: Number(task.submission.totalQuestions ?? task.submission.questionCount ?? 0),
+                    net: task.submission.net !== undefined ? Number(task.submission.net) : Math.max(0, Math.round(((Number(task.submission.correctCount ?? 0)) - (Number(task.submission.wrongCount ?? 0) / 3)) * 100) / 100)
+                  } : null);
 
-                  if (!displayTitle || /^(ödev|görev|test|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
-                    if (task.testName && !/^(ödev|görev|test|sınav|kitap testi)$/i.test(task.testName.trim()) && task.testName.toLowerCase() !== rawBook.toLowerCase()) {
-                      displayTitle = task.testName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
-                    } else if (task.unitTopic) {
-                      displayTitle = `${task.unitTopic} Testi`;
-                    } else if (task.subject) {
-                      displayTitle = `${task.subject} Testi`;
-                    } else {
-                      displayTitle = 'Konu Testi';
-                    }
-                  }
-
-                  let pageBadge = null;
-                  const pageMatch = displayTitle.match(/^(\d+(?:[-–]\d+)?\.\s*(?:Sayfa|s\.)|\s*s\.\s*\d+(?:[-–]\d+)?)\s*/i);
-                  if (pageMatch) {
-                    pageBadge = pageMatch[0].trim();
-                    displayTitle = displayTitle.substring(pageMatch[0].length).trim();
-                  }
+                  const successScore = testResult ? Number(testResult.score || 0) : null;
+                  const statusTag = successScore !== null ? (
+                    successScore >= 80 ? { icon: '🏆', label: 'Güçlü', color: '#10b981', bg: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7', border: 'rgba(16,185,129,0.35)' }
+                    : successScore >= 60 ? { icon: '📈', label: 'Gelişiyor', color: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', border: 'rgba(245,158,11,0.35)' }
+                    : { icon: '⚠️', label: 'Tekrar Etmeli', color: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', border: 'rgba(239,68,68,0.35)' }
+                  ) : null;
 
                   const sTheme = resolveSubjectTheme(cleanSubj);
 
@@ -719,6 +714,121 @@ export default function DashboardRemedialCard({
                       }}>
                         {displayTitle}
                       </div>
+
+                      {/* ── Test Sonucu & Başarı Durumu Paneli (Tamamlanan Testler İçin) ── */}
+                      {task.done && isTestTask && (
+                        <div style={{
+                          background: isDark
+                            ? (testResult ? 'rgba(16, 185, 129, 0.09)' : 'rgba(255, 255, 255, 0.03)')
+                            : (testResult ? 'rgba(16, 185, 129, 0.06)' : '#f8fafc'),
+                          border: isDark
+                            ? (testResult ? '1.5px solid rgba(16, 185, 129, 0.28)' : '1px solid rgba(255, 255, 255, 0.08)')
+                            : (testResult ? '1.5px solid #bbf7d0' : '#e2e8f0'),
+                          borderRadius: 10,
+                          padding: isMobile ? '0.4rem 0.6rem' : '0.5rem 0.75rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 4,
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}>
+                          {testResult ? (
+                            <>
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: 6
+                              }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{
+                                    fontSize: isMobile ? '0.78rem' : '0.86rem',
+                                    fontWeight: 900,
+                                    color: statusTag ? statusTag.color : '#10b981',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4
+                                  }}>
+                                    {statusTag ? statusTag.icon : '🏆'} %{testResult.score} Başarı
+                                  </span>
+
+                                  {statusTag && (
+                                    <span style={{
+                                      fontSize: isMobile ? '0.62rem' : '0.68rem',
+                                      fontWeight: 900,
+                                      padding: '1px 6px',
+                                      borderRadius: 6,
+                                      background: statusTag.bg,
+                                      color: statusTag.color,
+                                      border: `1px solid ${statusTag.border}`
+                                    }}>
+                                      {statusTag.label}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {testResult.net !== undefined && testResult.net !== null && (
+                                  <span style={{
+                                    fontSize: isMobile ? '0.7rem' : '0.76rem',
+                                    fontWeight: 900,
+                                    color: '#2563eb',
+                                    background: isDark ? 'rgba(37,99,235,0.18)' : '#eff6ff',
+                                    border: isDark ? '1px solid rgba(37,99,235,0.35)' : '1px solid #bfdbfe',
+                                    padding: '1px 7px',
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3
+                                  }}>
+                                    🎯 {testResult.net} Net
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                fontSize: isMobile ? '0.66rem' : '0.72rem',
+                                fontWeight: 800,
+                                paddingTop: 3,
+                                borderTop: isDark ? '1px dashed rgba(255,255,255,0.08)' : '1px dashed rgba(0,0,0,0.06)'
+                              }}>
+                                <span style={{ color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                  ✅ {testResult.correctCount} Doğru
+                                </span>
+                                <span style={{ color: 'var(--color-border)', margin: '0 1px' }}>•</span>
+                                <span style={{ color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                  ❌ {testResult.wrongCount} Yanlış
+                                </span>
+                                {testResult.emptyCount > 0 && (
+                                  <>
+                                    <span style={{ color: 'var(--color-border)', margin: '0 1px' }}>•</span>
+                                    <span style={{ color: 'var(--color-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                                      ⚪ {testResult.emptyCount} Boş
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              fontSize: isMobile ? '0.72rem' : '0.78rem',
+                              fontWeight: 800,
+                              color: '#10b981'
+                            }}>
+                              <span>✓ Test Tamamlandı</span>
+                              <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                Manuel İşaretlendi
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Renkli & Dolu Bilgi Etiketleri Şeridi */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, flexWrap: 'wrap', width: '100%' }}>
