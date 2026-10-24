@@ -741,8 +741,8 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
       {/* ── 5'Lİ YENİ NESİL ODAK HUD PERFORMANS KAPSÜLLERİ ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-        gap: isMobile ? '0.4rem' : '0.85rem',
+        gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))',
+        gap: isMobile ? '0.65rem' : '0.85rem',
         marginBottom: isMobile ? '1rem' : '1.4rem',
         width: '100%',
         maxWidth: '100%',
@@ -1009,6 +1009,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
         {/* 5. BAŞARI SKORU KAPSÜLÜ */}
         <div style={{
           position: 'relative',
+          gridColumn: isMobile ? 'span 2' : 'auto',
           background: totals.avgRate >= 70
             ? (isDark ? 'linear-gradient(145deg, rgba(126, 34, 206, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)' : 'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%)')
             : (isDark ? 'linear-gradient(145deg, rgba(180, 83, 9, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)' : 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)'),
