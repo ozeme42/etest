@@ -969,54 +969,57 @@ export default memo(function DashboardTodayTasks({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', flex: 1, minWidth: 0 }}>
                     
-                    {/* Büyük Ders Avatar İkonu */}
-                    <div style={{
-                      width: isMobile ? 42 : 50,
-                      height: isMobile ? 42 : 50,
-                      borderRadius: 16,
-                      background: task.done
-                        ? 'linear-gradient(135deg, #10b981, #059669)'
-                        : `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isMobile ? '1.25rem' : '1.5rem',
-                      boxShadow: task.done
-                        ? '0 4px 14px rgba(16, 185, 129, 0.35)'
-                        : `0 6px 16px ${sTheme.glow}`,
-                      flexShrink: 0
-                    }}>
-                      {task.done ? '✓' : sTheme.icon}
-                    </div>
-
-                    {/* Checkbox / Toggle Button */}
+                    {/* Tekli Ders İkonlu Görev Tamamlama / Checkbox Butonu */}
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                       style={{
-                        width: isMobile ? 32 : 36,
-                        height: isMobile ? 32 : 36,
-                        borderRadius: 12,
-                        border: task.done ? 'none' : `2px solid ${isNextTarget ? '#6366f1' : 'var(--color-border-input)'}`,
-                        background: task.done ? 'linear-gradient(135deg, #10b981, #059669)' : (isDark ? 'rgba(255,255,255,0.06)' : '#ffffff'),
+                        width: isMobile ? 42 : 48,
+                        height: isMobile ? 42 : 48,
+                        borderRadius: 16,
+                        border: task.done 
+                          ? '2px solid #10b981' 
+                          : isNextTarget 
+                          ? '2px solid #6366f1' 
+                          : '2px solid transparent',
+                        background: task.done
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                        color: '#ffffff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        fontSize: isMobile ? '1.25rem' : '1.45rem',
+                        boxShadow: task.done
+                          ? '0 4px 14px rgba(16, 185, 129, 0.4)'
+                          : `0 6px 16px ${sTheme.glow}`,
                         flexShrink: 0,
                         cursor: 'pointer',
                         padding: 0,
-                        boxShadow: task.done ? '0 4px 12px rgba(16,185,129,0.45)' : '0 2px 6px rgba(0,0,0,0.06)',
-                        transition: 'all 0.18s ease'
+                        position: 'relative',
+                        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                       }}
-                      title={task.done ? 'Tamamlandı' : 'Tamamlandı olarak işaretle'}
+                      title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                     >
                       {task.done ? (
-                        <Check size={18} color="#ffffff" strokeWidth={3.5} />
-                      ) : isNextTarget ? (
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }} />
+                        <Check size={isMobile ? 22 : 26} color="#ffffff" strokeWidth={3.5} />
                       ) : (
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
+                        sTheme.icon
+                      )}
+
+                      {/* Sıradaki hedef ise odak çipi */}
+                      {isNextTarget && !task.done && (
+                        <span style={{
+                          position: 'absolute',
+                          top: -3,
+                          right: -3,
+                          width: 11,
+                          height: 11,
+                          borderRadius: '50%',
+                          background: '#6366f1',
+                          border: '2px solid #ffffff',
+                          boxShadow: '0 0 8px #6366f1'
+                        }} />
                       )}
                     </button>
 

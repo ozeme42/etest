@@ -576,45 +576,40 @@ export default function DashboardRemedialCard({
                     >
                       {/* Left: Avatar + Checkmark + Task Info */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.15rem', flex: 1, minWidth: 0 }}>
-                        {/* Büyük Ders Avatar İkonu */}
-                        <div style={{
-                          width: isMobile ? 42 : 50,
-                          height: isMobile ? 42 : 50,
-                          borderRadius: 16,
-                          background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: isMobile ? '1.25rem' : '1.5rem',
-                          boxShadow: `0 6px 16px ${sTheme.glow}`,
-                          flexShrink: 0
-                        }}>
-                          {sTheme.icon}
-                        </div>
-
-                        {/* Checkbox button */}
+                        {/* Tekli Ders İkonlu Görev Tamamlama / Checkbox Butonu */}
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                           style={{
-                            width: isMobile ? 30 : 34,
-                            height: isMobile ? 30 : 34,
-                            borderRadius: 12,
-                            border: `2px solid ${sTheme.from}`,
-                            background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                            width: isMobile ? 42 : 48,
+                            height: isMobile ? 42 : 48,
+                            borderRadius: 16,
+                            border: task.done 
+                              ? '2px solid #10b981' 
+                              : `1.5px solid ${sTheme.from}`,
+                            background: task.done
+                              ? 'linear-gradient(135deg, #10b981, #059669)'
+                              : `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
+                            color: '#ffffff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            fontSize: isMobile ? '1.25rem' : '1.45rem',
+                            boxShadow: task.done
+                              ? '0 4px 14px rgba(16, 185, 129, 0.4)'
+                              : `0 6px 16px ${sTheme.glow}`,
                             flexShrink: 0,
                             cursor: 'pointer',
                             padding: 0,
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                            transition: 'all 0.18s ease'
+                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
                           }}
-                          title="Tamamlandı olarak işaretle"
+                          title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                         >
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent' }} />
+                          {task.done ? (
+                            <Check size={isMobile ? 22 : 26} color="#ffffff" strokeWidth={3.5} />
+                          ) : (
+                            sTheme.icon
+                          )}
                         </button>
 
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
