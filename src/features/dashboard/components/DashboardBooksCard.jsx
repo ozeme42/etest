@@ -261,7 +261,11 @@ const DashboardBooksCard = React.memo(function DashboardBooksCard({
 
   return (
     <div className="game-card-elevated" style={{
-      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem'
+      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem',
+      borderTopLeftRadius: 0,
+      borderTopRightRadius: 0,
+      borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
+      marginTop: 0
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.6rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
