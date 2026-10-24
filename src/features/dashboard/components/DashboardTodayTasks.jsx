@@ -502,6 +502,30 @@ export default memo(function DashboardTodayTasks({
                       }}>
                         {shortDayName}
                       </span>
+
+                      {/* Masaüstünde Küçük Görev Sayısı */}
+                      {!isMobile && (
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '1px 6px',
+                          borderRadius: 99,
+                          background: isSelected
+                            ? (isDark ? 'rgba(255,255,255,0.22)' : 'rgba(79, 70, 229, 0.14)')
+                            : isCurrentToday
+                            ? 'rgba(245, 158, 11, 0.15)'
+                            : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'),
+                          color: isSelected
+                            ? (isDark ? '#ffffff' : '#4338ca')
+                            : isCurrentToday
+                            ? '#f59e0b'
+                            : 'var(--color-text-muted)',
+                          marginLeft: 2,
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {taskCount > 0 ? `${taskCount} görev` : '-'}
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
