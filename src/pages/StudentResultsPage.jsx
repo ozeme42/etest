@@ -1512,7 +1512,28 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
               gap: isMobile ? 12 : 16
             }}>
               {/* Performance Radar/Bar */}
-              <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.35rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{
+                position: 'relative',
+                background: isDark
+                  ? 'radial-gradient(120% 120% at 50% 0%, #171c38 0%, #0c1222 65%, #050811 100%)'
+                  : 'radial-gradient(120% 120% at 50% 0%, #ffffff 0%, #f4f6fb 65%, #eef2f9 100%)',
+                borderRadius: isMobile ? 18 : 24,
+                padding: isMobile ? '1.1rem 0.9rem' : '1.4rem 1.6rem',
+                border: isDark ? '1.5px solid rgba(139, 92, 246, 0.35)' : '1.5px solid #dbe2ef',
+                boxShadow: isDark
+                  ? '0 16px 40px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.15)'
+                  : '0 12px 32px -8px rgba(99, 102, 241, 0.12)',
+                minWidth: 0,
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  background: 'linear-gradient(90deg, #38bdf8 0%, #6366f1 40%, #a855f7 70%, #10b981 100%)'
+                }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                   <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Target size={18} color="#6366f1" /> Ders Yetkinlik Grafiği
@@ -1881,7 +1902,27 @@ export default function StudentResultsPage({ studentId: propStudentId, onBack, e
         {activeTab === 'subjects' && (
           <div className="sr-anim" style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 16 }}>
             {/* Chart Container */}
-            <div style={{ background: 'var(--color-surface)', borderRadius: isMobile ? 16 : 22, padding: isMobile ? '1rem' : '1.4rem', border: '1.5px solid var(--color-border)', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
+            <div style={{
+              position: 'relative',
+              background: isDark
+                ? 'radial-gradient(120% 120% at 50% 0%, #171c38 0%, #0c1222 65%, #050811 100%)'
+                : 'radial-gradient(120% 120% at 50% 0%, #ffffff 0%, #f4f6fb 65%, #eef2f9 100%)',
+              borderRadius: isMobile ? 18 : 24,
+              padding: isMobile ? '1.1rem 0.95rem' : '1.5rem 1.6rem',
+              border: isDark ? '1.5px solid rgba(139, 92, 246, 0.35)' : '1.5px solid #dbe2ef',
+              boxShadow: isDark
+                ? '0 16px 40px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.15)'
+                : '0 12px 32px -8px rgba(99, 102, 241, 0.12)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'linear-gradient(90deg, #38bdf8 0%, #6366f1 40%, #a855f7 70%, #10b981 100%)'
+              }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 12, flexDirection: isMobile ? 'column' : 'row', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{

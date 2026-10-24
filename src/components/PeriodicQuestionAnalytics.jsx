@@ -4,7 +4,7 @@ import {
   BarChart3, TrendingUp, CheckCircle2, XCircle, MinusCircle,
   Clock, Zap, Target, BookOpen, ChevronRight, Layers, Flame,
   Table as TableIcon, Sparkles, Activity, Award, Trophy, Filter,
-  Calendar, Info
+  Calendar, Info, ArrowUpRight, ShieldCheck, Compass
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -436,75 +436,76 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
     };
   }, [filteredItems, selectedSubject, isMobile]);
 
-  // ── YENİLENMİŞ ULTRA ŞIK TOOLTIP ──
+  // ── YENİ NESİL CYBER GLASS TOOLTIP ──
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
     const data = payload[0]?.payload;
     return (
       <div style={{
-        background: isDark ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        color: isDark ? '#f8fafc' : '#0f172a',
-        padding: '10px 14px',
-        borderRadius: '14px',
-        border: isDark ? '1.5px solid rgba(99, 102, 241, 0.4)' : '1.5px solid rgba(99, 102, 241, 0.25)',
+        background: isDark ? 'rgba(10, 15, 30, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        color: isDark ? '#ffffff' : '#0f172a',
+        padding: '12px 16px',
+        borderRadius: '16px',
+        border: isDark ? '1.5px solid rgba(129, 140, 248, 0.4)' : '1.5px solid rgba(99, 102, 241, 0.3)',
         boxShadow: isDark
-          ? '0 16px 36px -4px rgba(0, 0, 0, 0.65), 0 0 16px rgba(99, 102, 241, 0.25)'
-          : '0 16px 36px -4px rgba(99, 102, 241, 0.2), 0 4px 12px rgba(0, 0, 0, 0.05)',
-        fontSize: '0.8rem',
-        minWidth: 150,
+          ? '0 20px 40px -6px rgba(0, 0, 0, 0.8), 0 0 20px rgba(99, 102, 241, 0.3)'
+          : '0 20px 40px -6px rgba(99, 102, 241, 0.22), 0 4px 16px rgba(0, 0, 0, 0.06)',
+        fontSize: '0.82rem',
+        minWidth: 165,
         zIndex: 100
       }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 8,
-          marginBottom: 6,
-          paddingBottom: 5,
-          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0'
+          gap: 10,
+          marginBottom: 8,
+          paddingBottom: 6,
+          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid #e2e8f0'
         }}>
-          <span style={{ fontWeight: 900, color: '#6366f1' }}>
+          <span style={{ fontWeight: 900, color: '#818cf8', fontSize: '0.9rem' }}>
             {data?.fullLabel || data?.label || label}
           </span>
           {data?.testSayısı > 0 && (
             <span style={{
               fontSize: '0.68rem',
-              fontWeight: 800,
-              padding: '1px 6px',
-              borderRadius: 6,
-              background: isDark ? 'rgba(99, 102, 241, 0.2)' : '#e0e7ff',
-              color: '#4f46e5'
+              fontWeight: 900,
+              padding: '2px 8px',
+              borderRadius: 99,
+              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              color: '#ffffff',
+              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.4)'
             }}>
               {data.testSayısı} Test
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8' }} /> Toplam Soru:
+            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} /> Toplam Soru:
             </span>
-            <span style={{ fontWeight: 900, color: isDark ? '#38bdf8' : '#0284c7' }}>{data?.toplamSoru || 0}</span>
+            <span style={{ fontWeight: 900, color: isDark ? '#38bdf8' : '#0284c7', fontSize: '0.9rem' }}>{data?.toplamSoru || 0}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} /> Doğru (D):
+            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} /> Doğru (D):
             </span>
-            <span style={{ fontWeight: 900, color: '#10b981' }}>{data?.doğru || 0}</span>
+            <span style={{ fontWeight: 900, color: '#10b981', fontSize: '0.9rem' }}>{data?.doğru || 0}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f43f5e' }} /> Yanlış (Y):
+            <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f43f5e' }} /> Yanlış (Y):
             </span>
-            <span style={{ fontWeight: 900, color: '#f43f5e' }}>{data?.yanlış || 0}</span>
+            <span style={{ fontWeight: 900, color: '#f43f5e', fontSize: '0.9rem' }}>{data?.yanlış || 0}</span>
           </div>
           {data?.boş > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8' }} /> Boş (B):
+              <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} /> Boş (B):
               </span>
               <span style={{ fontWeight: 800, color: 'var(--color-text-muted)' }}>{data.boş}</span>
             </div>
@@ -512,18 +513,18 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
         </div>
 
         <div style={{
-          marginTop: 6,
-          paddingTop: 5,
-          borderTop: isDark ? '1px dashed rgba(255, 255, 255, 0.12)' : '1px dashed #cbd5e1',
+          marginTop: 8,
+          paddingTop: 6,
+          borderTop: isDark ? '1px dashed rgba(255, 255, 255, 0.15)' : '1px dashed #cbd5e1',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: data?.başarıOranı >= 70 ? '#10b981' : data?.başarıOranı >= 50 ? '#f59e0b' : '#f43f5e' }}>
-            Başarı Oranı:
+          <span style={{ fontSize: '0.76rem', fontWeight: 900, color: data?.başarıOranı >= 70 ? '#10b981' : data?.başarıOranı >= 50 ? '#f59e0b' : '#f43f5e' }}>
+            Başarı İsabeti:
           </span>
           <span style={{
-            fontSize: '0.88rem',
+            fontSize: '0.96rem',
             fontWeight: 900,
             color: data?.başarıOranı >= 70 ? '#10b981' : data?.başarıOranı >= 50 ? '#f59e0b' : '#f43f5e'
           }}>
@@ -538,14 +539,14 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
     <div style={{
       position: 'relative',
       background: isDark
-        ? 'linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(10, 15, 30, 0.98) 100%)'
-        : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-      borderRadius: isMobile ? '1.25rem' : '1.5rem',
-      border: isDark ? '1.5px solid rgba(99, 102, 241, 0.25)' : '1.5px solid #e2e8f0',
-      padding: isMobile ? '1rem 0.85rem' : '1.5rem 1.65rem',
+        ? 'radial-gradient(120% 120% at 50% 0%, #171c38 0%, #0c1222 55%, #050811 100%)'
+        : 'radial-gradient(120% 120% at 50% 0%, #ffffff 0%, #f4f6fb 55%, #eef2f9 100%)',
+      borderRadius: isMobile ? '1.25rem' : '1.75rem',
+      border: isDark ? '1.5px solid rgba(139, 92, 246, 0.35)' : '1.5px solid #dbe2ef',
+      padding: isMobile ? '1.1rem 0.9rem' : '1.75rem 2rem',
       boxShadow: isDark
-        ? '0 16px 40px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(99, 102, 241, 0.15)'
-        : '0 16px 36px -10px rgba(99, 102, 241, 0.08), 0 2px 10px rgba(0, 0, 0, 0.02)',
+        ? '0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+        : '0 20px 50px -12px rgba(99, 102, 241, 0.15), 0 4px 14px rgba(0, 0, 0, 0.03)',
       fontFamily: "'Outfit', 'Inter', -apple-system, system-ui, sans-serif",
       color: 'var(--color-text)',
       width: '100%',
@@ -555,80 +556,105 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
       overflow: 'hidden'
     }}>
 
-      {/* ── ÜST AMBİYANS IŞIK ÇİZGİSİ (ODAK MODU VURGUSU) ── */}
+      {/* ── ÜST NEON LAZER IŞIK HATTI (FUTURISTIC GLOW ACCENT) ── */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        height: '3px',
-        background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 40%, #10b981 80%, #38bdf8 100%)'
+        height: '4px',
+        background: 'linear-gradient(90deg, #38bdf8 0%, #6366f1 30%, #a855f7 60%, #10b981 100%)',
+        boxShadow: '0 0 16px rgba(99, 102, 241, 0.7)'
       }} />
 
-      {/* ── ÜST KONTROL & BAŞLIK BÖLÜMÜ ── */}
+      {/* ── ARKA PLAN RADIAL PARILTI ETKİSİ ── */}
+      <div style={{
+        position: 'absolute',
+        top: -80,
+        right: isMobile ? -50 : 40,
+        width: isMobile ? 220 : 340,
+        height: isMobile ? 220 : 340,
+        borderRadius: '50%',
+        background: isDark
+          ? 'radial-gradient(circle, rgba(129, 140, 248, 0.18) 0%, transparent 70%)'
+          : 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)',
+        pointerEvents: 'none'
+      }} />
+
+      {/* ── ÜST KONTROL & BAŞLIK BÖLÜMÜ (APP HEADER) ── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
         gap: '0.85rem',
-        marginBottom: isMobile ? '1rem' : '1.25rem'
+        marginBottom: isMobile ? '1.1rem' : '1.4rem',
+        position: 'relative',
+        zIndex: 2
       }}>
         {/* Sol: Başlık ve Odak Rozeti */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
-            width: isMobile ? 38 : 44,
-            height: isMobile ? 38 : 44,
-            borderRadius: isMobile ? '0.75rem' : '0.9rem',
-            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+            width: isMobile ? 42 : 50,
+            height: isMobile ? 42 : 50,
+            borderRadius: isMobile ? '0.85rem' : '1rem',
+            background: 'linear-gradient(135deg, #4f46e5 0%, #9333ea 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
-            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4), inset 0 1px 1px rgba(255,255,255,0.4)',
+            boxShadow: '0 6px 20px rgba(99, 102, 241, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.5)',
             flexShrink: 0
           }}>
-            <BarChart3 size={isMobile ? 20 : 22} />
+            <BarChart3 size={isMobile ? 22 : 26} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: isMobile ? '1rem' : '1.18rem', fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{
+                fontSize: isMobile ? '1.08rem' : '1.35rem',
+                fontWeight: 900,
+                color: 'var(--color-text)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2
+              }}>
                 Soru & Başarı Analizi
               </span>
               <span style={{
-                background: isDark ? 'rgba(99, 102, 241, 0.18)' : '#e0e7ff',
-                color: '#6366f1',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                padding: '2px 7px',
+                background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7',
+                color: '#10b981',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                padding: '2px 8px',
                 borderRadius: 99,
-                fontSize: '0.62rem',
+                fontSize: '0.64rem',
                 fontWeight: 900,
                 textTransform: 'uppercase',
                 letterSpacing: '0.04em',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 3
+                gap: 4
               }}>
-                <Sparkles size={10} /> ODAK GRAFİĞİ
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+                CANLI ODAK
               </span>
             </div>
-            <div style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-              {studentName ? `${studentName} — ` : ''}Dönemsel soru temposu, net başarı eğrisi ve istatistikler
+            <div style={{ fontSize: isMobile ? '0.74rem' : '0.82rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 3 }}>
+              {studentName ? `${studentName} — ` : ''}Soru çözüm hacmi, net başarı eğrisi ve hedef takibi
             </div>
           </div>
         </div>
 
-        {/* Sağ: Periyot & Filtreler (Modern Segmented Dock) */}
+        {/* Sağ: Periyot & Filtreler */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          {/* iOS Tarzı Segmented Control */}
+          {/* iOS / Gaming Segmented Dock */}
           <div style={{
-            background: isDark ? 'rgba(30, 41, 59, 0.8)' : '#f1f5f9',
+            background: isDark ? 'rgba(15, 23, 42, 0.85)' : '#e2e8f0',
             padding: '3px',
-            borderRadius: '0.75rem',
+            borderRadius: '0.85rem',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 3,
-            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #e2e8f0'
+            border: isDark ? '1.5px solid rgba(255, 255, 255, 0.1)' : '1.5px solid #cbd5e1',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
           }}>
             {[
               { id: 'daily', label: 'Günlük' },
@@ -642,16 +668,16 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                   type="button"
                   onClick={() => setPeriod(tab.id)}
                   style={{
-                    padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.85rem',
-                    borderRadius: '0.55rem',
+                    padding: isMobile ? '0.38rem 0.72rem' : '0.45rem 0.95rem',
+                    borderRadius: '0.65rem',
                     border: 'none',
-                    background: isSelected ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)' : 'transparent',
+                    background: isSelected ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' : 'transparent',
                     color: isSelected ? '#ffffff' : 'var(--color-text-muted)',
                     fontWeight: 900,
-                    fontSize: isMobile ? '0.72rem' : '0.78rem',
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
                     cursor: 'pointer',
                     transition: 'all 0.18s ease',
-                    boxShadow: isSelected ? '0 2px 8px rgba(79, 70, 229, 0.35)' : 'none'
+                    boxShadow: isSelected ? '0 4px 12px rgba(79, 70, 229, 0.45)' : 'none'
                   }}
                 >
                   {tab.label}
@@ -666,15 +692,16 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               value={dayRange}
               onChange={e => setDayRange(Number(e.target.value))}
               style={{
-                padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.75rem',
-                borderRadius: '0.65rem',
-                border: isDark ? '1px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #cbd5e1',
-                background: isDark ? 'rgba(30, 41, 59, 0.8)' : '#ffffff',
-                fontSize: isMobile ? '0.72rem' : '0.78rem',
-                fontWeight: 800,
+                padding: isMobile ? '0.38rem 0.6rem' : '0.45rem 0.85rem',
+                borderRadius: '0.75rem',
+                border: isDark ? '1.5px solid rgba(99, 102, 241, 0.4)' : '1.5px solid #cbd5e1',
+                background: isDark ? 'rgba(15, 23, 42, 0.9)' : '#ffffff',
+                fontSize: isMobile ? '0.74rem' : '0.82rem',
+                fontWeight: 900,
                 color: 'var(--color-text)',
                 cursor: 'pointer',
-                outline: 'none'
+                outline: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
               }}
             >
               <option value={7}>📅 7 Gün</option>
@@ -689,16 +716,17 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               value={selectedSubject}
               onChange={e => setSelectedSubject(e.target.value)}
               style={{
-                padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.75rem',
-                borderRadius: '0.65rem',
-                border: isDark ? '1px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #cbd5e1',
-                background: isDark ? 'rgba(30, 41, 59, 0.8)' : '#ffffff',
-                fontSize: isMobile ? '0.72rem' : '0.78rem',
-                fontWeight: 800,
+                padding: isMobile ? '0.38rem 0.6rem' : '0.45rem 0.85rem',
+                borderRadius: '0.75rem',
+                border: isDark ? '1.5px solid rgba(99, 102, 241, 0.4)' : '1.5px solid #cbd5e1',
+                background: isDark ? 'rgba(15, 23, 42, 0.9)' : '#ffffff',
+                fontSize: isMobile ? '0.74rem' : '0.82rem',
+                fontWeight: 900,
                 color: 'var(--color-text)',
                 cursor: 'pointer',
                 outline: 'none',
-                maxWidth: isMobile ? 120 : 180
+                maxWidth: isMobile ? 120 : 180,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
               }}
             >
               <option value="all">🌐 Tüm Dersler</option>
@@ -710,44 +738,49 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
         </div>
       </div>
 
-      {/* ── 5'Lİ YENİ NESİL ODAK KPI METRİK KARTLARI (ULTRA ŞIK GLASS KARTLAR) ── */}
+      {/* ── 5'Lİ YENİ NESİL ODAK HUD PERFORMANS KAPSÜLLERİ ── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-        gap: isMobile ? '0.35rem' : '0.65rem',
-        marginBottom: isMobile ? '0.85rem' : '1.25rem',
+        gap: isMobile ? '0.4rem' : '0.85rem',
+        marginBottom: isMobile ? '1rem' : '1.4rem',
         width: '100%',
         maxWidth: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        position: 'relative',
+        zIndex: 2
       }}>
-        {/* 1. TOPLAM SORU */}
+        {/* 1. TOPLAM SORU KAPSÜLÜ */}
         <div style={{
+          position: 'relative',
           background: isDark
-            ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%)'
-            : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-          border: isDark ? '1.5px solid rgba(59, 130, 246, 0.35)' : '1.5px solid #bfdbfe',
-          borderRadius: isMobile ? '0.75rem' : '1rem',
-          padding: isMobile ? '0.45rem 0.3rem' : '0.75rem 0.65rem',
+            ? 'linear-gradient(145deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%)'
+            : 'linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%)',
+          border: isDark ? '1.5px solid rgba(59, 130, 246, 0.45)' : '1.5px solid #93c5fd',
+          borderRadius: isMobile ? '0.85rem' : '1.15rem',
+          padding: isMobile ? '0.55rem 0.4rem' : '0.85rem 0.8rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '56px' : '78px',
+          minHeight: isMobile ? '64px' : '90px',
           overflow: 'hidden',
-          boxShadow: isDark ? '0 4px 14px rgba(59, 130, 246, 0.08)' : '0 2px 8px rgba(59, 130, 246, 0.08)',
-          transition: 'transform 0.18s ease'
+          boxShadow: isDark
+            ? '0 8px 20px -4px rgba(59, 130, 246, 0.25)'
+            : '0 6px 16px -3px rgba(59, 130, 246, 0.15)',
+          transition: 'all 0.2s ease'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.76rem',
               fontWeight: 900,
               color: isDark ? '#93c5fd' : '#1d4ed8',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap'
             }}>
               {isMobile ? 'Toplam' : 'Toplam Soru'}
             </span>
-            <span style={{ fontSize: isMobile ? '0.75rem' : '0.9rem' }}>📝</span>
+            <span style={{ fontSize: isMobile ? '0.85rem' : '1.05rem' }}>📝</span>
           </div>
 
           <div style={{
@@ -756,10 +789,10 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
             alignItems: isMobile ? 'flex-start' : 'baseline',
             justifyContent: 'space-between',
             gap: 2,
-            marginTop: 2
+            marginTop: 4
           }}>
             <span style={{
-              fontSize: isMobile ? '1.1rem' : '1.45rem',
+              fontSize: isMobile ? '1.25rem' : '1.65rem',
               fontWeight: 900,
               color: isDark ? '#bfdbfe' : '#1e3a8a',
               lineHeight: 1
@@ -767,13 +800,13 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               {totals.totQ}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.55rem' : '0.68rem',
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
               fontWeight: 900,
               color: isDark ? '#93c5fd' : '#1d4ed8',
               background: isDark ? 'rgba(59, 130, 246, 0.25)' : '#ffffff',
-              padding: '1px 5px',
+              padding: '2px 6px',
               borderRadius: 6,
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid #bfdbfe',
+              border: isDark ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid #bfdbfe',
               whiteSpace: 'nowrap'
             }}>
               {totals.totTests} Test
@@ -781,34 +814,37 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         </div>
 
-        {/* 2. GÜNLÜK ORTALAMA */}
+        {/* 2. GÜNLÜK HIZ / ORTALAMA KAPSÜLÜ */}
         <div style={{
+          position: 'relative',
           background: isDark
-            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.05) 100%)'
-            : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-          border: isDark ? '1.5px solid rgba(245, 158, 11, 0.35)' : '1.5px solid #fde68a',
-          borderRadius: isMobile ? '0.75rem' : '1rem',
-          padding: isMobile ? '0.45rem 0.3rem' : '0.75rem 0.65rem',
+            ? 'linear-gradient(145deg, rgba(180, 83, 9, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%)'
+            : 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+          border: isDark ? '1.5px solid rgba(245, 158, 11, 0.45)' : '1.5px solid #fcd34d',
+          borderRadius: isMobile ? '0.85rem' : '1.15rem',
+          padding: isMobile ? '0.55rem 0.4rem' : '0.85rem 0.8rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '56px' : '78px',
+          minHeight: isMobile ? '64px' : '90px',
           overflow: 'hidden',
-          boxShadow: isDark ? '0 4px 14px rgba(245, 158, 11, 0.08)' : '0 2px 8px rgba(245, 158, 11, 0.08)',
-          transition: 'transform 0.18s ease'
+          boxShadow: isDark
+            ? '0 8px 20px -4px rgba(245, 158, 11, 0.25)'
+            : '0 6px 16px -3px rgba(245, 158, 11, 0.15)',
+          transition: 'all 0.2s ease'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.76rem',
               fontWeight: 900,
-              color: isDark ? '#fcd34d' : '#b45309',
+              color: isDark ? '#fde68a' : '#b45309',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap'
             }}>
-              {isMobile ? 'Tempo' : 'Günlük Tempo'}
+              {isMobile ? 'Tempo' : 'Günlük Hız'}
             </span>
-            <span style={{ fontSize: isMobile ? '0.75rem' : '0.9rem' }}>⚡</span>
+            <span style={{ fontSize: isMobile ? '0.85rem' : '1.05rem' }}>⚡</span>
           </div>
 
           <div style={{
@@ -817,10 +853,10 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
             alignItems: isMobile ? 'flex-start' : 'baseline',
             justifyContent: 'space-between',
             gap: 2,
-            marginTop: 2
+            marginTop: 4
           }}>
             <span style={{
-              fontSize: isMobile ? '1.1rem' : '1.45rem',
+              fontSize: isMobile ? '1.25rem' : '1.65rem',
               fontWeight: 900,
               color: isDark ? '#fef3c7' : '#78350f',
               lineHeight: 1
@@ -828,13 +864,13 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               {totals.dailyAvg}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.55rem' : '0.68rem',
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
               fontWeight: 900,
-              color: isDark ? '#fcd34d' : '#b45309',
+              color: isDark ? '#fde68a' : '#b45309',
               background: isDark ? 'rgba(245, 158, 11, 0.25)' : '#ffffff',
-              padding: '1px 5px',
+              padding: '2px 6px',
               borderRadius: 6,
-              border: isDark ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid #fde68a',
+              border: isDark ? '1px solid rgba(245, 158, 11, 0.5)' : '1px solid #fde68a',
               whiteSpace: 'nowrap'
             }}>
               {period === 'daily' ? `${totals.activeDaysCount}/${dayRange} Gün` : 'Soru/G'}
@@ -842,34 +878,37 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         </div>
 
-        {/* 3. DOĞRU (D) */}
+        {/* 3. DOĞRU (D) KAPSÜLÜ */}
         <div style={{
+          position: 'relative',
           background: isDark
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.05) 100%)'
-            : 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-          border: isDark ? '1.5px solid rgba(16, 185, 129, 0.35)' : '1.5px solid #a7f3d0',
-          borderRadius: isMobile ? '0.75rem' : '1rem',
-          padding: isMobile ? '0.45rem 0.3rem' : '0.75rem 0.65rem',
+            ? 'linear-gradient(145deg, rgba(6, 95, 70, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%)'
+            : 'linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%)',
+          border: isDark ? '1.5px solid rgba(16, 185, 129, 0.45)' : '1.5px solid #6ee7b7',
+          borderRadius: isMobile ? '0.85rem' : '1.15rem',
+          padding: isMobile ? '0.55rem 0.4rem' : '0.85rem 0.8rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '56px' : '78px',
+          minHeight: isMobile ? '64px' : '90px',
           overflow: 'hidden',
-          boxShadow: isDark ? '0 4px 14px rgba(16, 185, 129, 0.08)' : '0 2px 8px rgba(16, 185, 129, 0.08)',
-          transition: 'transform 0.18s ease'
+          boxShadow: isDark
+            ? '0 8px 20px -4px rgba(16, 185, 129, 0.25)'
+            : '0 6px 16px -3px rgba(16, 185, 129, 0.15)',
+          transition: 'all 0.2s ease'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.76rem',
               fontWeight: 900,
               color: isDark ? '#6ee7b7' : '#047857',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap'
             }}>
               {isMobile ? 'Doğru' : 'Doğru (D)'}
             </span>
-            <span style={{ fontSize: isMobile ? '0.75rem' : '0.9rem' }}>🎯</span>
+            <span style={{ fontSize: isMobile ? '0.85rem' : '1.05rem' }}>🎯</span>
           </div>
 
           <div style={{
@@ -878,10 +917,10 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
             alignItems: isMobile ? 'flex-start' : 'baseline',
             justifyContent: 'space-between',
             gap: 2,
-            marginTop: 2
+            marginTop: 4
           }}>
             <span style={{
-              fontSize: isMobile ? '1.1rem' : '1.45rem',
+              fontSize: isMobile ? '1.25rem' : '1.65rem',
               fontWeight: 900,
               color: isDark ? '#a7f3d0' : '#064e3b',
               lineHeight: 1
@@ -889,13 +928,13 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               {totals.totD}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.55rem' : '0.68rem',
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
               fontWeight: 900,
               color: isDark ? '#6ee7b7' : '#047857',
               background: isDark ? 'rgba(16, 185, 129, 0.25)' : '#ffffff',
-              padding: '1px 5px',
+              padding: '2px 6px',
               borderRadius: 6,
-              border: isDark ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid #a7f3d0',
+              border: isDark ? '1px solid rgba(16, 185, 129, 0.5)' : '1px solid #a7f3d0',
               whiteSpace: 'nowrap'
             }}>
               %{totals.totQ > 0 ? Math.round((totals.totD / totals.totQ) * 100) : 0} D
@@ -903,34 +942,37 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         </div>
 
-        {/* 4. YANLIŞ & BOŞ */}
+        {/* 4. YANLIŞ & BOŞ KAPSÜLÜ */}
         <div style={{
+          position: 'relative',
           background: isDark
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.05) 100%)'
-            : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-          border: isDark ? '1.5px solid rgba(239, 68, 68, 0.35)' : '1.5px solid #fecaca',
-          borderRadius: isMobile ? '0.75rem' : '1rem',
-          padding: isMobile ? '0.45rem 0.3rem' : '0.75rem 0.65rem',
+            ? 'linear-gradient(145deg, rgba(153, 27, 27, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%)'
+            : 'linear-gradient(145deg, #fef2f2 0%, #fee2e2 100%)',
+          border: isDark ? '1.5px solid rgba(239, 68, 68, 0.45)' : '1.5px solid #fca5a5',
+          borderRadius: isMobile ? '0.85rem' : '1.15rem',
+          padding: isMobile ? '0.55rem 0.4rem' : '0.85rem 0.8rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '56px' : '78px',
+          minHeight: isMobile ? '64px' : '90px',
           overflow: 'hidden',
-          boxShadow: isDark ? '0 4px 14px rgba(239, 68, 68, 0.08)' : '0 2px 8px rgba(239, 68, 68, 0.08)',
-          transition: 'transform 0.18s ease'
+          boxShadow: isDark
+            ? '0 8px 20px -4px rgba(239, 68, 68, 0.25)'
+            : '0 6px 16px -3px rgba(239, 68, 68, 0.15)',
+          transition: 'all 0.2s ease'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.76rem',
               fontWeight: 900,
               color: isDark ? '#fca5a5' : '#b91c1c',
               textTransform: 'uppercase',
-              letterSpacing: '0.02em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap'
             }}>
               {isMobile ? 'Yanlış' : 'Yanlış / Boş'}
             </span>
-            <span style={{ fontSize: isMobile ? '0.75rem' : '0.9rem' }}>❌</span>
+            <span style={{ fontSize: isMobile ? '0.85rem' : '1.05rem' }}>❌</span>
           </div>
 
           <div style={{
@@ -939,10 +981,10 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
             alignItems: isMobile ? 'flex-start' : 'baseline',
             justifyContent: 'space-between',
             gap: 2,
-            marginTop: 2
+            marginTop: 4
           }}>
             <span style={{
-              fontSize: isMobile ? '1.1rem' : '1.45rem',
+              fontSize: isMobile ? '1.25rem' : '1.65rem',
               fontWeight: 900,
               color: isDark ? '#fecaca' : '#7f1d1d',
               lineHeight: 1
@@ -950,13 +992,13 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               {totals.totY}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.55rem' : '0.68rem',
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
               fontWeight: 900,
               color: isDark ? '#fca5a5' : '#991b1b',
               background: isDark ? 'rgba(239, 68, 68, 0.25)' : '#ffffff',
-              padding: '1px 5px',
+              padding: '2px 6px',
               borderRadius: 6,
-              border: isDark ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid #fecaca',
+              border: isDark ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid #fecaca',
               whiteSpace: 'nowrap'
             }}>
               {totals.totB} Boş
@@ -964,36 +1006,39 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         </div>
 
-        {/* 5. BAŞARI ORANI */}
+        {/* 5. BAŞARI SKORU KAPSÜLÜ */}
         <div style={{
+          position: 'relative',
           background: totals.avgRate >= 70
-            ? (isDark ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.18) 0%, rgba(147, 51, 234, 0.05) 100%)' : 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)')
-            : (isDark ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.05) 100%)' : 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)'),
+            ? (isDark ? 'linear-gradient(145deg, rgba(126, 34, 206, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)' : 'linear-gradient(145deg, #faf5ff 0%, #f3e8ff 100%)')
+            : (isDark ? 'linear-gradient(145deg, rgba(180, 83, 9, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%)' : 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)'),
           border: totals.avgRate >= 70
-            ? (isDark ? '1.5px solid rgba(168, 85, 247, 0.38)' : '1.5px solid #e9d5ff')
-            : (isDark ? '1.5px solid rgba(245, 158, 11, 0.38)' : '1.5px solid #fde68a'),
-          borderRadius: isMobile ? '0.75rem' : '1rem',
-          padding: isMobile ? '0.45rem 0.3rem' : '0.75rem 0.65rem',
+            ? (isDark ? '1.5px solid rgba(168, 85, 247, 0.5)' : '1.5px solid #d8b4fe')
+            : (isDark ? '1.5px solid rgba(245, 158, 11, 0.5)' : '1.5px solid #fde68a'),
+          borderRadius: isMobile ? '0.85rem' : '1.15rem',
+          padding: isMobile ? '0.55rem 0.4rem' : '0.85rem 0.8rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: isMobile ? '56px' : '78px',
+          minHeight: isMobile ? '64px' : '90px',
           overflow: 'hidden',
-          boxShadow: isDark ? '0 4px 14px rgba(168, 85, 247, 0.08)' : '0 2px 8px rgba(168, 85, 247, 0.08)',
-          transition: 'transform 0.18s ease'
+          boxShadow: isDark
+            ? (totals.avgRate >= 70 ? '0 8px 24px -4px rgba(168, 85, 247, 0.35)' : '0 8px 20px -4px rgba(245, 158, 11, 0.25)')
+            : '0 6px 16px -3px rgba(168, 85, 247, 0.15)',
+          transition: 'all 0.2s ease'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
-              fontSize: isMobile ? '0.58rem' : '0.72rem',
+              fontSize: isMobile ? '0.62rem' : '0.76rem',
               fontWeight: 900,
-              color: totals.avgRate >= 70 ? (isDark ? '#d8b4fe' : '#6b21a8') : (isDark ? '#fcd34d' : '#b45309'),
+              color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#6b21a8') : (isDark ? '#fde68a' : '#b45309'),
               textTransform: 'uppercase',
-              letterSpacing: '0.02em',
+              letterSpacing: '0.04em',
               whiteSpace: 'nowrap'
             }}>
               {isMobile ? 'Başarı' : 'Başarı Oranı'}
             </span>
-            <span style={{ fontSize: isMobile ? '0.75rem' : '0.9rem' }}>
+            <span style={{ fontSize: isMobile ? '0.85rem' : '1.05rem' }}>
               {totals.avgRate >= 70 ? '👑' : totals.avgRate >= 50 ? '📈' : '🎯'}
             </span>
           </div>
@@ -1004,42 +1049,42 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
             alignItems: isMobile ? 'flex-start' : 'baseline',
             justifyContent: 'space-between',
             gap: 2,
-            marginTop: 2
+            marginTop: 4
           }}>
             <span style={{
-              fontSize: isMobile ? '1.1rem' : '1.45rem',
+              fontSize: isMobile ? '1.25rem' : '1.65rem',
               fontWeight: 900,
-              color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#581c87') : (isDark ? '#fef3c7' : '#78350f'),
+              color: totals.avgRate >= 70 ? (isDark ? '#f3e8ff' : '#581c87') : (isDark ? '#fef3c7' : '#78350f'),
               lineHeight: 1
             }}>
               %{totals.avgRate}
             </span>
             <span style={{
-              fontSize: isMobile ? '0.55rem' : '0.68rem',
+              fontSize: isMobile ? '0.58rem' : '0.72rem',
               fontWeight: 900,
-              color: totals.avgRate >= 70 ? (isDark ? '#e9d5ff' : '#7e22ce') : (isDark ? '#fef3c7' : '#92400e'),
-              background: isDark ? (totals.avgRate >= 70 ? 'rgba(168, 85, 247, 0.25)' : 'rgba(245, 158, 11, 0.25)') : '#ffffff',
-              padding: '1px 5px',
+              color: totals.avgRate >= 70 ? (isDark ? '#f3e8ff' : '#7e22ce') : (isDark ? '#fef3c7' : '#92400e'),
+              background: isDark ? (totals.avgRate >= 70 ? 'rgba(168, 85, 247, 0.3)' : 'rgba(245, 158, 11, 0.3)') : '#ffffff',
+              padding: '2px 6px',
               borderRadius: 6,
-              border: isDark ? (totals.avgRate >= 70 ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(245, 158, 11, 0.4)') : (totals.avgRate >= 70 ? '1px solid #e9d5ff' : '1px solid #fde68a'),
+              border: isDark ? (totals.avgRate >= 70 ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(245, 158, 11, 0.5)') : (totals.avgRate >= 70 ? '1px solid #d8b4fe' : '1px solid #fde68a'),
               whiteSpace: 'nowrap'
             }}>
-              {totals.avgRate >= 70 ? 'Harika' : totals.avgRate >= 50 ? 'İyi' : 'Geliştir'}
+              {totals.avgRate >= 70 ? '🌟 Efsane' : totals.avgRate >= 50 ? 'Dengeli' : 'Geliştir'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ── GÖRÜNÜM SEÇİCİ SEKMELERİ (MODERN OYUN DOCK ÇUBUĞU) ── */}
+      {/* ── GÖRÜNÜM SEÇİCİ SEKMELERİ (FUTURISTIC GAME DOCK) ── */}
       <div style={{
-        background: isDark ? 'rgba(30, 41, 59, 0.65)' : '#f1f5f9',
-        borderRadius: '0.85rem',
-        padding: '3px',
+        background: isDark ? 'rgba(15, 23, 42, 0.85)' : '#f1f5f9',
+        borderRadius: '0.95rem',
+        padding: '4px',
         display: 'flex',
         alignItems: 'center',
-        gap: 3,
-        marginBottom: '1rem',
-        border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #cbd5e1',
+        gap: 4,
+        marginBottom: '1.25rem',
+        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #cbd5e1',
         overflowX: 'auto',
         width: '100%',
         maxWidth: '100%',
@@ -1061,16 +1106,16 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               style={{
                 flex: '1 1 0',
                 minWidth: 0,
-                padding: isMobile ? '0.42rem 0.35rem' : '0.55rem 0.6rem',
-                borderRadius: '0.65rem',
+                padding: isMobile ? '0.48rem 0.4rem' : '0.62rem 0.75rem',
+                borderRadius: '0.75rem',
                 border: 'none',
-                background: isActive ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)' : 'transparent',
+                background: isActive ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' : 'transparent',
                 color: isActive ? '#ffffff' : 'var(--color-text-muted)',
                 fontWeight: 900,
-                fontSize: isMobile ? '0.72rem' : '0.82rem',
+                fontSize: isMobile ? '0.74rem' : '0.86rem',
                 cursor: 'pointer',
                 transition: 'all 0.18s ease',
-                boxShadow: isActive ? '0 3px 10px rgba(79, 70, 229, 0.35)' : 'none',
+                boxShadow: isActive ? '0 4px 16px rgba(99, 102, 241, 0.45)' : 'none',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -1084,17 +1129,17 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
         })}
       </div>
 
-      {/* ── GRAFİK VE İÇERİK ALANI ── */}
+      {/* ── GRAFİK VE İÇERİK ARENASI ── */}
       <div style={{
-        background: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(255, 255, 255, 0.8)',
-        borderRadius: '1rem',
-        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.06)' : '1.5px solid #f1f5f9',
-        padding: isMobile ? '0.85rem 0.65rem' : '1.25rem 1.1rem',
-        minHeight: isMobile ? 220 : 270,
-        boxShadow: isDark ? 'inset 0 1px 0 rgba(255,255,255,0.05)' : 'inset 0 1px 0 rgba(0,0,0,0.02)'
+        background: isDark ? 'rgba(10, 15, 30, 0.75)' : '#ffffff',
+        borderRadius: '1.25rem',
+        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #e2e8f0',
+        padding: isMobile ? '1rem 0.75rem' : '1.4rem 1.35rem',
+        minHeight: isMobile ? 240 : 290,
+        boxShadow: isDark ? 'inset 0 2px 4px rgba(0,0,0,0.4)' : '0 4px 16px rgba(0,0,0,0.02)'
       }}>
 
-        {/* 1. Soru Dağılım Grafiği (Modern Stacked Bar) */}
+        {/* 1. Soru Dağılım Grafiği (BarChart - Gradient Pill Bars) */}
         {activeChartView === 'distribution' && (
           <div>
             <div style={{
@@ -1103,27 +1148,41 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               justifyContent: 'space-between',
               flexWrap: 'wrap',
               gap: 8,
-              padding: isMobile ? '0 0.25rem 0.65rem' : '0 0.5rem 0.85rem'
+              padding: isMobile ? '0 0.25rem 0.75rem' : '0 0.5rem 1rem'
             }}>
-              <span style={{ fontSize: isMobile ? '0.78rem' : '0.88rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span>📊 Dönemsel Soru Hacmi (D / Y / B)</span>
+              <span style={{ fontSize: isMobile ? '0.82rem' : '0.94rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📊 Dönemsel Soru Hacmi (Doğru / Yanlış / Boş)</span>
               </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, fontSize: isMobile ? '0.68rem' : '0.76rem', fontWeight: 800 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 900 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#10b981' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: '#10b981' }} /> Doğru
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: '#10b981' }} /> Doğru
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#f43f5e' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: '#f43f5e' }} /> Yanlış
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: '#f43f5e' }} /> Yanlış
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-text-muted)' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: '#94a3b8' }} /> Boş
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: '#94a3b8' }} /> Boş
                 </span>
               </div>
             </div>
 
-            <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
+            <div style={{ width: '100%', height: isMobile ? 210 : 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="cyberGreenBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
+                    </linearGradient>
+                    <linearGradient id="cyberRedBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
+                    </linearGradient>
+                    <linearGradient id="cyberGrayBar" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.9} />
+                      <stop offset="100%" stopColor="#64748b" stopOpacity={0.8} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(148, 163, 184, 0.2)'} vertical={false} />
                   <XAxis 
                     dataKey={isMobile ? "shortLabel" : "label"} 
@@ -1140,9 +1199,9 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                     axisLine={false}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="doğru" name="Doğru" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="yanlış" name="Yanlış" stackId="a" fill="#f43f5e" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="boş" name="Boş" stackId="a" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="doğru" name="Doğru" stackId="a" fill="url(#cyberGreenBar)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="yanlış" name="Yanlış" stackId="a" fill="url(#cyberRedBar)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="boş" name="Boş" stackId="a" fill="url(#cyberGrayBar)" radius={[5, 5, 0, 0]} />
                   {totals.dailyAvg > 0 && (
                     <ReferenceLine
                       y={totals.dailyAvg}
@@ -1158,7 +1217,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         )}
 
-        {/* 2. Başarı Eğrisi (Area Chart - Glow Gradient) */}
+        {/* 2. Başarı Eğrisi (AreaChart - Neon Wave) */}
         {activeChartView === 'trend' && (
           <div>
             <div style={{
@@ -1167,32 +1226,32 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
               justifyContent: 'space-between',
               flexWrap: 'wrap',
               gap: 8,
-              padding: isMobile ? '0 0.25rem 0.65rem' : '0 0.5rem 0.85rem'
+              padding: isMobile ? '0 0.25rem 0.75rem' : '0 0.5rem 1rem'
             }}>
-              <span style={{ fontSize: isMobile ? '0.78rem' : '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+              <span style={{ fontSize: isMobile ? '0.82rem' : '0.94rem', fontWeight: 900, color: 'var(--color-text)' }}>
                 📈 Başarı Yüzdesi Gelişim Eğrisi (%)
               </span>
               <span style={{
                 background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7',
                 color: '#10b981',
-                border: '1px solid rgba(16, 185, 129, 0.35)',
-                padding: '2px 8px',
+                border: '1.5px solid rgba(16, 185, 129, 0.45)',
+                padding: '3px 10px',
                 borderRadius: 8,
-                fontSize: isMobile ? '0.65rem' : '0.74rem',
+                fontSize: isMobile ? '0.68rem' : '0.78rem',
                 fontWeight: 900
               }}>
                 🎯 Hedef Çizgisi: %70
               </span>
             </div>
 
-            <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
+            <div style={{ width: '100%', height: isMobile ? 210 : 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="rateGradientModern" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.5}/>
-                      <stop offset="60%" stopColor="#8b5cf6" stopOpacity={0.15}/>
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.0}/>
+                    <linearGradient id="cyberNeonRateGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.6}/>
+                      <stop offset="60%" stopColor="#a855f7" stopOpacity={0.2}/>
+                      <stop offset="100%" stopColor="#a855f7" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(148, 163, 184, 0.2)'} vertical={false} />
@@ -1212,18 +1271,18 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                     axisLine={false}
                     tickFormatter={v => `%${v}`}
                   />
-                  <ReferenceLine y={70} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5} />
+                  <ReferenceLine y={70} stroke="#10b981" strokeDasharray="4 4" strokeWidth={2} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area 
                     type="monotone" 
                     dataKey="başarıOranı" 
                     name="Başarı Oranı" 
-                    stroke="#6366f1" 
-                    strokeWidth={3}
+                    stroke="#818cf8" 
+                    strokeWidth={3.5}
                     fillOpacity={1} 
-                    fill="url(#rateGradientModern)" 
-                    dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#0f172a' : '#ffffff' }}
-                    activeDot={{ r: 6, fill: '#4f46e5', strokeWidth: 3, stroke: '#ffffff' }}
+                    fill="url(#cyberNeonRateGradient)" 
+                    dot={{ r: 4.5, fill: '#6366f1', strokeWidth: 2.5, stroke: '#ffffff' }}
+                    activeDot={{ r: 7, fill: '#4f46e5', strokeWidth: 3, stroke: '#ffffff' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -1231,40 +1290,40 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
           </div>
         )}
 
-        {/* 3. GitHub Tarzı Çalışma Isı Haritası (Study Heatmap) */}
+        {/* 3. GitHub Tarzı Çalışma Isı Haritası (OLED Tiles) */}
         {activeChartView === 'heatmap' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
             {/* Heatmap Üst Başlık & Rozetler */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
               <div>
-                <div style={{ fontSize: isMobile ? '0.84rem' : '0.96rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: isMobile ? '0.86rem' : '1rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>📅 Günlük Çalışma Isı Haritası</span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 900, background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7', color: '#10b981', padding: '2px 8px', borderRadius: 8 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 900, background: isDark ? 'rgba(16, 185, 129, 0.2)' : '#dcfce7', color: '#10b981', padding: '2px 8px', borderRadius: 8 }}>
                     Son {heatmapData.totalWeeks} Hafta
                   </span>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                  Kutular günleri temsil eder; renk koyulaştıkça çözülen soru hacmi artar.
+                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                  Kutular günleri temsil eder; renk parladıkça çözülen soru adedi artar.
                 </div>
               </div>
 
               {/* KPI Rozetleri */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, padding: '3px 10px', borderRadius: 8, background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
                   ⚡ <strong>{heatmapData.activeDaysCount}</strong> Aktif Gün
                 </span>
                 {heatmapData.bestDay.q > 0 && (
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', border: '1px solid rgba(245,158,11,0.3)', color: '#d97706' }}>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 900, padding: '3px 10px', borderRadius: 8, background: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', border: '1px solid rgba(245,158,11,0.4)', color: '#d97706' }}>
                     👑 Rekor: <strong>{heatmapData.bestDay.q} Soru</strong>
                   </span>
                 )}
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, background: isDark ? 'rgba(99,102,241,0.15)' : '#e0e7ff', border: '1px solid rgba(99,102,241,0.3)', color: '#4f46e5' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, padding: '3px 10px', borderRadius: 8, background: isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff', border: '1px solid rgba(99,102,241,0.4)', color: '#4f46e5' }}>
                   📈 %{heatmapData.consistencyRate} Devamlılık
                 </span>
               </div>
             </div>
 
-            {/* Isı Haritası Matrisi (100% Genişlik & Sağa-Sola Yaslı Grid) */}
+            {/* Isı Haritası Matrisi */}
             <div style={{ width: '100%', overflowX: 'auto', paddingBottom: 4, WebkitOverflowScrolling: 'touch' }}>
               <div style={{ width: '100%', minWidth: isMobile ? '360px' : 'auto', display: 'flex', flexDirection: 'column', gap: isMobile ? 3 : 5 }}>
                 
@@ -1282,7 +1341,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                       const prevWeekFirstDay = wIdx > 0 ? heatmapData.weeks[wIdx - 1][0] : null;
                       const isNewMonth = !prevWeekFirstDay || (firstDay && firstDay.monthName !== prevWeekFirstDay.monthName);
                       return (
-                        <div key={wIdx} style={{ fontSize: '0.64rem', fontWeight: 900, color: 'var(--color-text-muted)', overflow: 'visible', whiteSpace: 'nowrap', userSelect: 'none' }}>
+                        <div key={wIdx} style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', overflow: 'visible', whiteSpace: 'nowrap', userSelect: 'none' }}>
                           {isNewMonth ? firstDay.monthName : ''}
                         </div>
                       );
@@ -1295,7 +1354,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                   <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 6, width: '100%' }}>
                     <span style={{
                       width: isMobile ? 26 : 32,
-                      fontSize: isMobile ? '0.62rem' : '0.72rem',
+                      fontSize: isMobile ? '0.62rem' : '0.74rem',
                       fontWeight: 800,
                       color: 'var(--color-text-muted)',
                       textAlign: 'right',
@@ -1316,7 +1375,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                         if (!day) return <div key={wIdx} style={{ width: '100%', aspectRatio: '1/1' }} />;
 
                         let bg = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
-                        let border = isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid #cbd5e1';
+                        let border = isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #cbd5e1';
                         let shadow = 'none';
 
                         if (!day.isFuture) {
@@ -1332,7 +1391,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                           } else if (day.level === 4) {
                             bg = isDark ? '#10b981' : '#15803d';
                             border = '1.5px solid #f59e0b';
-                            shadow = '0 0 10px rgba(16,185,129,0.55)';
+                            shadow = '0 0 12px rgba(16,185,129,0.6)';
                           }
                         }
 
@@ -1343,7 +1402,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                         const isSelected = selectedHeatmapDay?.date === day.date;
                         if (isSelected) {
                           border = '2px solid #ffffff';
-                          shadow = '0 0 12px #6366f1';
+                          shadow = '0 0 14px #6366f1';
                         }
 
                         return (
@@ -1356,7 +1415,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                               aspectRatio: '1/1',
                               minHeight: isMobile ? 14 : 18,
                               maxHeight: 28,
-                              borderRadius: isMobile ? 4 : 5,
+                              borderRadius: isMobile ? 4 : 6,
                               background: bg,
                               border,
                               boxShadow: shadow,
@@ -1378,13 +1437,13 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
 
             {/* Lejant & Seçili Gün Detay Çubuğu */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 8, borderTop: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
                 <span>Daha Az</span>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', display: 'inline-block' }} />
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: isDark ? '#064e3b' : '#bbf7d0', display: 'inline-block' }} />
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: isDark ? '#047857' : '#4ade80', display: 'inline-block' }} />
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: isDark ? '#059669' : '#22c55e', display: 'inline-block' }} />
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: isDark ? '#10b981' : '#15803d', border: '1px solid #f59e0b', display: 'inline-block' }} />
+                <span style={{ width: 13, height: 13, borderRadius: 3, background: isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0', display: 'inline-block' }} />
+                <span style={{ width: 13, height: 13, borderRadius: 3, background: isDark ? '#064e3b' : '#bbf7d0', display: 'inline-block' }} />
+                <span style={{ width: 13, height: 13, borderRadius: 3, background: isDark ? '#047857' : '#4ade80', display: 'inline-block' }} />
+                <span style={{ width: 13, height: 13, borderRadius: 3, background: isDark ? '#059669' : '#22c55e', display: 'inline-block' }} />
+                <span style={{ width: 13, height: 13, borderRadius: 3, background: isDark ? '#10b981' : '#15803d', border: '1px solid #f59e0b', display: 'inline-block' }} />
                 <span>Daha Çok</span>
               </div>
 
@@ -1393,11 +1452,11 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  background: isDark ? 'rgba(99, 102, 241, 0.2)' : '#e0e7ff',
-                  padding: '4px 12px',
+                  background: isDark ? 'rgba(99, 102, 241, 0.25)' : '#e0e7ff',
+                  padding: '5px 14px',
                   borderRadius: 10,
-                  border: '1px solid rgba(99, 102, 241, 0.35)',
-                  fontSize: '0.76rem',
+                  border: '1.5px solid rgba(99, 102, 241, 0.45)',
+                  fontSize: '0.78rem',
                   fontWeight: 900
                 }}>
                   <span style={{ color: 'var(--color-text)' }}>📅 {selectedHeatmapDay.fullLabel}:</span>
@@ -1411,7 +1470,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontStyle: 'italic', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontStyle: 'italic', fontWeight: 600 }}>
                   Detay görmek için bir güne dokunun veya üzerine gelin 👆
                 </div>
               )}
@@ -1423,39 +1482,39 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
         {activeChartView === 'subjects' && (
           <div style={{ padding: '0.2rem' }}>
             {subjectBreakdown.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: isMobile ? '250px' : '300px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: isMobile ? '260px' : '320px', overflowY: 'auto' }}>
                 {subjectBreakdown.map((sb, idx) => {
                   const rateColor = sb.rate >= 70 ? '#10b981' : sb.rate >= 50 ? '#f59e0b' : '#f43f5e';
                   return (
                     <div
                       key={`${sb.name}_${idx}`}
                       style={{
-                        background: isDark ? 'rgba(30, 41, 59, 0.55)' : '#ffffff',
-                        padding: isMobile ? '0.55rem 0.75rem' : '0.75rem 1rem',
-                        borderRadius: '0.85rem',
+                        background: isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc',
+                        padding: isMobile ? '0.65rem 0.85rem' : '0.85rem 1.15rem',
+                        borderRadius: '0.95rem',
                         border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e2e8f0',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.82rem' : '0.92rem', color: 'var(--color-text)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                        <span style={{ fontWeight: 900, fontSize: isMobile ? '0.85rem' : '0.96rem', color: 'var(--color-text)' }}>
                           {sb.name}
                         </span>
                         <span style={{
                           fontWeight: 900,
-                          fontSize: isMobile ? '0.75rem' : '0.84rem',
+                          fontSize: isMobile ? '0.78rem' : '0.88rem',
                           color: rateColor,
-                          background: `${rateColor}18`,
-                          border: `1px solid ${rateColor}35`,
-                          padding: '1px 7px',
-                          borderRadius: 6
+                          background: `${rateColor}20`,
+                          border: `1px solid ${rateColor}45`,
+                          padding: '2px 8px',
+                          borderRadius: 8
                         }}>
                           %{sb.rate} Başarı
                         </span>
                       </div>
                       
                       {/* Çift Tonlu İlerleme Çubuğu */}
-                      <div style={{ width: '100%', height: 6, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden', margin: '5px 0' }}>
+                      <div style={{ width: '100%', height: 7, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden', margin: '6px 0' }}>
                         <div style={{
                           width: `${Math.min(100, sb.rate)}%`,
                           height: '100%',
@@ -1465,7 +1524,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                         }} />
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? '0.68rem' : '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: isMobile ? '0.72rem' : '0.78rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
                         <span>{sb.q} Soru ({sb.tests} Test)</span>
                         <span>✅ {sb.d}D · ❌ {sb.y}Y {sb.b > 0 ? `· ⭕ ${sb.b}B` : ''}</span>
                       </div>
@@ -1474,7 +1533,7 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
                 })}
               </div>
             ) : (
-              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.8rem', padding: '2.5rem 0', fontWeight: 700 }}>
+              <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.82rem', padding: '2.5rem 0', fontWeight: 800 }}>
                 Ders bazlı soru kaydı bulunmuyor.
               </div>
             )}
@@ -1483,29 +1542,29 @@ const PeriodicQuestionAnalytics = React.memo(function PeriodicQuestionAnalytics(
 
         {/* 5. Döküm Tablosu */}
         {activeChartView === 'table' && (
-          <div style={{ overflowX: 'auto', maxHeight: isMobile ? '250px' : '300px', borderRadius: '0.75rem' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isMobile ? '0.72rem' : '0.8rem' }}>
+          <div style={{ overflowX: 'auto', maxHeight: isMobile ? '260px' : '320px', borderRadius: '0.85rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isMobile ? '0.74rem' : '0.84rem' }}>
               <thead>
-                <tr style={{ background: isDark ? 'rgba(30, 41, 59, 0.9)' : '#f1f5f9', color: 'var(--color-text-muted)', position: 'sticky', top: 0, zIndex: 1 }}>
-                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'left', fontWeight: 900 }}>Tarih / Periyot</th>
-                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 900 }}>Soru</th>
-                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 900 }}>D / Y</th>
-                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 900 }}>Başarı</th>
+                <tr style={{ background: isDark ? 'rgba(30, 41, 59, 0.95)' : '#f1f5f9', color: 'var(--color-text-muted)', position: 'sticky', top: 0, zIndex: 1 }}>
+                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'left', fontWeight: 900 }}>Tarih / Periyot</th>
+                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 900 }}>Soru</th>
+                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 900 }}>D / Y</th>
+                  <th style={{ border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 900 }}>Başarı</th>
                 </tr>
               </thead>
               <tbody>
                 {chartData.map((d, idx) => (
                   <tr key={d.key || idx} style={{ borderBottom: isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #f1f5f9' }}>
-                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '6px 10px', fontWeight: 900, color: 'var(--color-text)' }}>
+                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '8px 12px', fontWeight: 900, color: 'var(--color-text)' }}>
                       {d.shortLabel || d.label} {d.subLabel && period === 'daily' ? `(${d.subLabel})` : ''}
                     </td>
-                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 900, color: '#3b82f6' }}>
+                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 900, color: '#3b82f6' }}>
                       {d.toplamSoru}
                     </td>
-                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 800 }}>
+                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 800 }}>
                       <span style={{ color: '#10b981' }}>{d.doğru}</span> / <span style={{ color: '#f43f5e' }}>{d.yanlış}</span>
                     </td>
-                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '6px 10px', textAlign: 'center', fontWeight: 900, color: d.başarıOranı >= 70 ? '#10b981' : d.başarıOranı >= 50 ? '#f59e0b' : '#f43f5e' }}>
+                    <td style={{ border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0', padding: '8px 12px', textAlign: 'center', fontWeight: 900, color: d.başarıOranı >= 70 ? '#10b981' : d.başarıOranı >= 50 ? '#f59e0b' : '#f43f5e' }}>
                       %{d.başarıOranı}
                     </td>
                   </tr>
