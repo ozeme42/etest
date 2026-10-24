@@ -20,7 +20,6 @@ import { useGoal } from '../context/GoalContext';
 import { useSchedule } from '../context/ScheduleContext';
 import { useAuth } from '../context/AuthContext';
 import { useCoaching } from '../context/CoachingContext';
-import { useQuestionBank } from '../context/QuestionBankContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useReading } from '../context/ReadingContext';
 import { useTheme } from '../context/ThemeContext';
@@ -271,8 +270,7 @@ export default function StudentDashboard() {
   const { isDark } = useTheme();
   const [dashQuoteIdx, setDashQuoteIdx] = useState(0);
   const { data: curData } = useCurriculum();
-  const { questions: allQuestions } = useQuestionBank();
-  const { homeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
+    const { homeworks, refreshHomeworks, addHomework, updateHomework, deleteHomework, clearHomeworkSubmissionsForStudent } = useHomework();
   const { submissions, syncFromSupabase, deleteSubmission, deleteSubmissionsByTestId, deleteStudentSubmissionsForBookOrHw } = useEvaluation();
   const { users } = useUser();
   const { studyAssignments, studyPlans, updateStudyAssignment } = useStudyPlan();
@@ -283,13 +281,16 @@ export default function StudentDashboard() {
   const { books: readingBooksList = [], updateReadingProgress } = useReading() || {};
   const { getCoachingNoteForStudent, getMeetingsForStudent, getCoachingProfileForStudent, coachingProfiles = [], coachingLinks, saveCoachingProfile, getMockExamsForStudent, refreshCoaching } = useCoaching();
 
-  // Background sync when opening the dashboard (runs strictly ONCE on mount, cache-first)
+  // Background sync when opening the dashboard (deferred by 2.5s so initial UI paint is instantaneous)
   useEffect(() => {
-    refreshHomeworks?.(false);
-    refreshTrackedBooks?.(false);
-    syncFromSupabase?.(false, false);
-    refreshCoaching?.(false);
-    refreshSchedules?.(false);
+    const timer = setTimeout(() => {
+      refreshHomeworks?.(false);
+      refreshTrackedBooks?.(false);
+      syncFromSupabase?.(false, false);
+      refreshCoaching?.(false);
+      refreshSchedules?.(false);
+    }, 2500);
+    return () => clearTimeout(timer);
   }, []);
 
   // Listen to remote submission updates with debouncing
@@ -416,18 +417,20 @@ export default function StudentDashboard() {
     }
   });
 
-  const isTaskDismissed = useCallback((task) => {
-    if (!task || !Array.isArray(dismissedTaskKeys) || dismissedTaskKeys.length === 0) return false;
-    const testId = task.testId || task.bookTestId || task.realTestId;
-    const keysToCheck = [
-      String(task.id || ''),
-      String(task.uniqueKey || ''),
-      testId ? `book_due_${task.bookId || task.hwId}_${testId}` : null,
-      testId ? `dismiss_${testId}` : null
-    ].filter(Boolean);
+  const dismissedTaskSet = useMemo(() => new Set(dismissedTaskKeys), [dismissedTaskKeys]);
 
-    return keysToCheck.some(k => dismissedTaskKeys.includes(k));
-  }, [dismissedTaskKeys]);
+  const isTaskDismissed = useCallback((task) => {
+    if (!task || dismissedTaskSet.size === 0) return false;
+    if (task.id && dismissedTaskSet.has(String(task.id))) return true;
+    if (task.uniqueKey && dismissedTaskSet.has(String(task.uniqueKey))) return true;
+    const testId = task.testId || task.bookTestId || task.realTestId;
+    if (testId) {
+      if (dismissedTaskSet.has(`dismiss_${testId}`)) return true;
+      if (task.bookId && dismissedTaskSet.has(`book_due_${task.bookId}_${testId}`)) return true;
+      if (task.hwId && dismissedTaskSet.has(`book_due_${task.hwId}_${testId}`)) return true;
+    }
+    return false;
+  }, [dismissedTaskSet]);
 
   const prevPersistedStudentIdRef = useRef(selectedStudent?.id);
   useEffect(() => {
@@ -465,6 +468,7 @@ export default function StudentDashboard() {
   }, [studyAssignments, selectedStudent]);
 
   const myRoadmaps = useMemo(() => {
+    if (activeDashboardTab !== 'books' && activeDashboardTab !== 'all') return [];
     return (myStudyAssignments || []).map(assignment => {
       const targetPlanId = assignment.planId || assignment.studyPlanId;
       const plan = (studyPlans || []).find(p => String(p.id) === String(targetPlanId));
@@ -486,16 +490,13 @@ export default function StudentDashboard() {
 
   const studentId = selectedStudent?.id;
 
-  const coachingNote = useMemo(
-    () => getCoachingNoteForStudent(studentId),
-    [studentId, getCoachingNoteForStudent]
-  );
   const coachingProfile = useMemo(
     () => getCoachingProfileForStudent(studentId),
     [studentId, getCoachingProfileForStudent]
   );
 
   const personalRoadmap = useMemo(() => {
+    if (activeDashboardTab !== 'books' && activeDashboardTab !== 'all') return null;
     const rawPool = coachingProfile?.topicPool;
     if (!Array.isArray(rawPool) || rawPool.length === 0) return null;
 
@@ -544,14 +545,6 @@ export default function StudentDashboard() {
   const studentMeetings = useMemo(
     () => getMeetingsForStudent(studentId),
     [studentId, getMeetingsForStudent]
-  );
-  const upcomingMeeting = useMemo(
-    () => studentMeetings.find(m => m.nextMeetingDate),
-    [studentMeetings]
-  );
-  const hasCoach = useMemo(
-    () => coachingLinks?.some(l => String(l.studentId) === String(studentId)),
-    [coachingLinks, studentId]
   );
 
 
@@ -1025,39 +1018,6 @@ export default function StudentDashboard() {
     return hwTests;
   }, [homeworks, studentSubmissions, selectedStudent, curData, books, bookTests]);
 
-  /* ─── Homework Summary Groups for Dashboard Card ─── */
-  const homeworkSummaryGroups = useMemo(() => {
-    if (!tests || tests.length === 0) return [];
-    const groups = {};
-    tests.forEach(item => {
-      const groupKey = item.bookId ? `book_${item.bookId}` : `hw_${item.hwId || item.id}`;
-      const groupTitle = item.bookTitle || item.title?.split('—')?.[0]?.trim() || item.name || 'Ödev Seti';
-      const subject = item.subject || '';
-
-      if (!groups[groupKey]) {
-        groups[groupKey] = {
-          id: groupKey,
-          title: groupTitle,
-          subject,
-          totalCount: 0,
-          doneCount: 0,
-          pendingCount: 0,
-          pct: 0
-        };
-      }
-      groups[groupKey].totalCount++;
-      const isDone = item.status === 'Sonuçlandı' || item.status === 'Tamamlandı';
-      if (isDone) groups[groupKey].doneCount++;
-      else groups[groupKey].pendingCount++;
-    });
-
-    return Object.values(groups)
-      .map(g => ({
-        ...g,
-        pct: g.totalCount > 0 ? Math.round((g.doneCount / g.totalCount) * 100) : 0
-      }))
-      .filter(g => g.pendingCount > 0);
-  }, [tests]);
 
   /* ─── All Submissions & Mock Exams For Question Analytics (Synced with Coaching & Results) ─── */
   const studentMockExams = useMemo(() => {
@@ -1109,15 +1069,21 @@ export default function StudentDashboard() {
     return 0;
   }, [studentSubmissions, otherHomeworkSubmissions, generalTrialExams]);
 
-  /* ─── Hero Date for Top Welcome Banner ─── */
-  const heroDateStr = useMemo(() => {
-    const d = new Date();
-    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' });
-  }, []);
 
   /* ─── Assigned Books Summary List for Student ─── */
+  const assignedBooksCount = useMemo(() => {
+    if (!selectedStudent || !books || books.length === 0) return 0;
+    const sid = String(selectedStudent.id);
+    return books.filter(b => isStandardOrMixedBook(b) && (
+      String(b.studentId) === sid || String(b.userId) === sid ||
+      (Array.isArray(b.assignedStudents) && b.assignedStudents.some(s => String(s) === sid)) ||
+      (homeworks || []).some(hw => (String(hw.bookId) === String(b.id) || (hw.title && hw.title.includes(b.title))) && isHomeworkForStudent(hw, selectedStudent, curData?.grades))
+    )).length;
+  }, [books, homeworks, selectedStudent, curData?.grades]);
+
   const assignedBooksList = useMemo(() => {
     if (!selectedStudent || !books || books.length === 0) return [];
+    if (activeDashboardTab !== 'books') return [];
     
     // Build comprehensive ID set for selected student (aliases, UUIDs, matching email/name)
     const allStudentIds = new Set();
@@ -1485,15 +1451,8 @@ export default function StudentDashboard() {
       if (!resolvedType || resolvedType === 'test') {
         if (t.isOpenEnded || t.questionType === 'acik_uclu') {
           resolvedType = 'acik_uclu';
-        } else if (t.questionType === 'coktan_secmeli') {
-          resolvedType = 'coktan_secmeli';
         } else {
-          const firstQId = t.questionIds?.[0];
-          const firstQ = allQuestions?.find(q => q.id === firstQId);
-          if (firstQ) {
-            resolvedType = firstQ.type || 'coktan_secmeli';
-            if (!resolvedSourceType) resolvedSourceType = firstQ.sourceType || firstQ.contentType;
-          }
+          resolvedType = t.questionType || 'coktan_secmeli';
         }
       }
       
@@ -1516,7 +1475,7 @@ export default function StudentDashboard() {
       };
     });
     return [...tTasks].sort((a, b) => a.dueDateObj - b.dueDateObj);
-  }, [tests, allQuestions]);
+  }, [tests]);
 
   /* ─── Current Week Dates Mapping (Pzt -> Paz) ─── */
   const weekInfo = useMemo(() => {
@@ -1886,13 +1845,11 @@ export default function StudentDashboard() {
         const u = toUUID(b.id);
         if (u) validBtIdSet.add(u);
       });
-
-      const validQIdSet = new Set();
-      (allQuestions || []).forEach(q => {
-        if (!q?.id) return;
-        validQIdSet.add(String(q.id));
-        const u = toUUID(q.id);
-        if (u) validQIdSet.add(u);
+      (tests || []).forEach(t => {
+        if (!t?.id) return;
+        validBtIdSet.add(String(t.id));
+        const u = toUUID(t.id);
+        if (u) validBtIdSet.add(u);
       });
 
       const studyAssignmentMap = new Map();
@@ -2049,7 +2006,7 @@ export default function StudentDashboard() {
           }
           if (item.hwId && !validHwIdSet.has(String(item.hwId))) return false;
           if (item.testId && !item.hwId && item.type !== 'remedialTest' && !item.isRemedial && !item.isTeacherRemedial && !item.isSpacedRepetition) {
-            if (!validBtIdSet.has(String(item.testId)) && !validQIdSet.has(String(item.testId))) return false;
+            if (!validBtIdSet.has(String(item.testId))) return false;
           }
           if (item.roadmapAssignmentId || item.isRoadmapTask || item.taskType === 'yol_haritasi' || item.taskType === 'konu') {
             const assignment = studyAssignmentMap.get(String(item.roadmapAssignmentId));
@@ -3362,32 +3319,7 @@ export default function StudentDashboard() {
   const todayStr = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const studentStreak = studentGamification?.stats?.dailyStreak || studentGamification?.streakTierInfo?.streak || 0;
-  const streakMultiplier = studentGamification?.streakTierInfo?.multiplier || 1.0;
 
-  const dailyGoalProgress = useMemo(() => {
-    const total = dayProgramInfo?.totalCount || 0;
-    const completed = dayProgramInfo?.completedCount || 0;
-
-    if (total > 0) {
-      const pct = Math.min(100, Math.round((completed / total) * 100));
-      return {
-        pct,
-        completed,
-        total,
-        isAllDone: completed >= total,
-        label: `${completed}/${total} Görev`
-      };
-    }
-
-    // Bugünün planlanan görevi yoksa veya hepsi tamamlandıysa
-    return {
-      pct: 100,
-      completed: 0,
-      total: 0,
-      isAllDone: true,
-      label: 'Bugün Tamam'
-    };
-  }, [dayProgramInfo?.totalCount, dayProgramInfo?.completedCount]);
 
   const solvedQuestionsStats = useMemo(() => {
     if (!selectedStudent || (activeDashboardTab !== 'analytics' && activeDashboardTab !== 'all')) {
@@ -4030,7 +3962,7 @@ export default function StudentDashboard() {
               }}
             >
               <span>🎒 Kütüphane</span>
-              {assignedBooksList.length > 0 && (
+              {(assignedBooksCount > 0 || assignedBooksList.length > 0) && (
                 <span style={{
                   background: activeDashboardTab === 'books' ? 'rgba(255,255,255,0.25)' : 'rgba(2, 132, 199, 0.15)',
                   color: activeDashboardTab === 'books' ? '#ffffff' : '#0284c7',
@@ -4039,7 +3971,7 @@ export default function StudentDashboard() {
                   padding: '0.12rem 0.5rem',
                   borderRadius: 99
                 }}>
-                  {assignedBooksList.length}
+                  {assignedBooksCount || assignedBooksList.length}
                 </span>
               )}
             </button>
