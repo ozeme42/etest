@@ -139,7 +139,7 @@ export default memo(function DashboardTodayTasks({
   onNavigateBooks
 }) {
   const navigate = useNavigate();
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'completed'
+  const [filterStatus, setFilterStatus] = useState('pending'); // 'pending', 'completed'
   const [selectedSubject, setSelectedSubject] = useState('all');
 
   const safeDayInfo = dayProgramInfo || { items: [], isToday: true, totalCount: 0, completedCount: 0 };
@@ -789,27 +789,19 @@ export default memo(function DashboardTodayTasks({
           }}>
             <button
               type="button"
-              onClick={() => setFilterStatus('all')}
-              className="today-filter-chip"
-              style={{
-                background: filterStatus === 'all' ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
-                color: filterStatus === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'all' ? '#4f46e5' : 'transparent',
-                fontSize: '0.78rem'
-              }}
-            >
-              <span>Tümü ({totalTasks})</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setFilterStatus('pending')}
               className="today-filter-chip"
               style={{
-                background: filterStatus === 'pending' ? '#ef4444' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+                background: filterStatus === 'pending'
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
                 color: filterStatus === 'pending' ? '#ffffff' : 'var(--color-text-muted)',
                 borderColor: filterStatus === 'pending' ? '#dc2626' : 'transparent',
-                fontSize: '0.78rem'
+                boxShadow: filterStatus === 'pending' ? '0 4px 12px rgba(239, 68, 68, 0.35)' : 'none',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                padding: '0.45rem 1rem',
+                borderRadius: 12
               }}
             >
               <span>⏳ Bekleyen ({remainingTasks})</span>
@@ -820,10 +812,16 @@ export default memo(function DashboardTodayTasks({
               onClick={() => setFilterStatus('completed')}
               className="today-filter-chip"
               style={{
-                background: filterStatus === 'completed' ? '#10b981' : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+                background: filterStatus === 'completed'
+                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
                 color: filterStatus === 'completed' ? '#ffffff' : 'var(--color-text-muted)',
                 borderColor: filterStatus === 'completed' ? '#059669' : 'transparent',
-                fontSize: '0.78rem'
+                boxShadow: filterStatus === 'completed' ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                padding: '0.45rem 1rem',
+                borderRadius: 12
               }}
             >
               <span>✓ Tamamlanan ({completedTasks})</span>
@@ -1310,24 +1308,55 @@ export default memo(function DashboardTodayTasks({
           </div>
         ) : totalTasks > 0 ? (
           <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
-            <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Seçilen filtreye uygun görev bulunamadı.</div>
-            <button
-              type="button"
-              onClick={() => { setFilterStatus('all'); setSelectedSubject('all'); }}
-              style={{
-                marginTop: 10,
-                background: 'none',
-                border: 'none',
-                color: '#6366f1',
-                fontWeight: 800,
-                cursor: 'pointer',
-                fontSize: '0.84rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Tüm Görevleri Göster ({totalTasks})
-            </button>
+            {filterStatus === 'pending' && remainingTasks === 0 ? (
+              <div>
+                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
+                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#10b981', marginBottom: 6, fontFamily: "'Outfit', sans-serif" }}>
+                  Harika! Bekleyen hiçbir görev kalmadı.
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 14 }}>
+                  Günün tüm hedeflerini tamamladın!
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFilterStatus('completed')}
+                  className="game-btn-3d game-btn-emerald"
+                  style={{
+                    padding: '0.6rem 1.35rem',
+                    borderRadius: 14,
+                    fontSize: '0.84rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>✓ Tamamlanan Görevleri Gör ({completedTasks})</span>
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Seçilen filtreye uygun görev bulunamadı.</div>
+                <button
+                  type="button"
+                  onClick={() => { setFilterStatus('pending'); setSelectedSubject('all'); }}
+                  style={{
+                    marginTop: 10,
+                    background: 'none',
+                    border: 'none',
+                    color: '#6366f1',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Filtreleri Sıfırla
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           /* Hiç görev yok */
