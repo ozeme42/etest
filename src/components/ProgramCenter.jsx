@@ -410,13 +410,18 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
     return !studentIdStr || subStudentId === studentIdStr || subStudentId === studentUuidStr || toUUID(subStudentId) === studentUuidStr;
   };
 
+  const hasSpecificTest = Boolean(
+    item.testId || item.bookTestId || item.realTestId || item.testName ||
+    (item.title && /etkinlik|test|deneme|soru|kazanım|bumerang|kavratan/i.test(item.title))
+  );
+
   const targetIds = [
     item.submissionId,
     item.realTestId,
     item.testId,
     item.bookTestId,
-    item.hwId,
-    item.id
+    !hasSpecificTest ? item.hwId : null,
+    !hasSpecificTest ? item.id : null
   ].filter(Boolean).map(String);
 
   const cleanTargetIds = [];
@@ -441,19 +446,20 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
     if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
     if (!isMatchStudent(s)) return false;
 
+    const sHasSpecificTest = Boolean(s.testId || s.test_id || s.realTestId || s.bookTestId);
     const sIds = [
       s.id,
       s.submissionId,
       s.testId,
       s.test_id,
       s.realTestId,
-      s.hwId,
-      s.homeworkId,
-      s.homework_id,
       s.bookTestId,
       s.metadata?.realTestId,
       s.metadata?.bookTestId,
-      s.metadata?.testId
+      s.metadata?.testId,
+      (!hasSpecificTest && !sHasSpecificTest) ? s.hwId : null,
+      (!hasSpecificTest && !sHasSpecificTest) ? s.homeworkId : null,
+      (!hasSpecificTest && !sHasSpecificTest) ? s.homework_id : null,
     ].filter(Boolean).map(String);
 
     const hasIdMatch = cleanTargetIds.some(tId => sIds.some(sId => {
@@ -484,7 +490,13 @@ export function checkHasItemBeenAttempted(item, studentId, submissions, allHomew
 
       return hw.submissions.some(s => {
         if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
-        return isMatchStudent(s);
+        if (!isMatchStudent(s)) return false;
+        if (hasSpecificTest) {
+          const sTid = String(s.testId || s.test_id || s.realTestId || s.bookTestId || '');
+          const sClean = sTid.replace(/^bt_/, '').replace(/^q_/, '');
+          return cleanTargetIds.some(tId => sTid === tId || sClean === tId);
+        }
+        return true;
       });
     });
     if (matchInHws) return true;

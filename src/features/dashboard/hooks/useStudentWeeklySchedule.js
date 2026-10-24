@@ -463,16 +463,28 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
           // Find matching submission if solved
           let matchedSub = null;
           if (submissions && submissions.length > 0) {
-            const targetTid = String(item.testId || item.bookTestId || item.realTestId || item.id || '');
+            const targetTid = String(item.testId || item.bookTestId || item.realTestId || '');
             const cleanTid = targetTid.replace(/^bt_/, '').replace(/^q_/, '');
             matchedSub = submissions.find(s => {
               if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
               const sTid = String(s.testId || s.bookTestId || s.realTestId || '');
               const sClean = sTid.replace(/^bt_/, '').replace(/^q_/, '');
-              if (targetTid && (sTid === targetTid || sClean === cleanTid)) return true;
-              if (item.hwId && String(s.hwId || s.homeworkId) === String(item.hwId)) return true;
-              return false;
+              if (cleanTid && (sTid === targetTid || sClean === cleanTid)) return true;
+              return isSubmissionMatchingBookTest(s, item, bookTests, books);
             }) || null;
+
+            // Only fallback to hwId if item is a generic homework task without specific test
+            const isSpecificTestItem = Boolean(
+              item.testId || item.bookTestId || item.realTestId || item.testName ||
+              (item.title && /etkinlik|test|deneme|soru|kazanım|bumerang|kavratan/i.test(item.title))
+            );
+            if (!matchedSub && item.hwId && !isSpecificTestItem) {
+              matchedSub = submissions.find(s => {
+                if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+                if (s.testId || s.bookTestId || s.realTestId) return false;
+                return String(s.hwId || s.homeworkId) === String(item.hwId);
+              }) || null;
+            }
           }
 
           let testResult = null;

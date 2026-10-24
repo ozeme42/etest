@@ -1907,12 +1907,13 @@ export default function StudentDashboard() {
             scheduleSubsByTestId.get(clean).push(s);
           }
         });
-        if (s.hwId) {
+        const sHasSpecificTest = Boolean(s.testId || s.test_id || s.realTestId || s.bookTestId || (Array.isArray(s.bookTestIds) && s.bookTestIds.length > 0));
+        if (s.hwId && !sHasSpecificTest) {
           const hwStr = String(s.hwId);
           if (!scheduleSubsByTestId.has(hwStr)) scheduleSubsByTestId.set(hwStr, []);
           scheduleSubsByTestId.get(hwStr).push(s);
         }
-        if (s.homeworkId) {
+        if (s.homeworkId && !sHasSpecificTest) {
           const hwStr = String(s.homeworkId);
           if (!scheduleSubsByTestId.has(hwStr)) scheduleSubsByTestId.set(hwStr, []);
           scheduleSubsByTestId.get(hwStr).push(s);
@@ -2277,8 +2278,6 @@ export default function StudentDashboard() {
             matchingSubs = scheduleSubsByTestId.get(currentTestClean);
           } else if (currentTestId && scheduleSubsByTestId.has(currentTestId)) {
             matchingSubs = scheduleSubsByTestId.get(currentTestId);
-          } else if (item.hwId && scheduleSubsByTestId.has(String(item.hwId))) {
-            matchingSubs = scheduleSubsByTestId.get(String(item.hwId));
           } else {
             const itemComp = createCompositeTestKey(item.bookTitle, item.subject || item.subjectName, item.unitTopic || item.topicName || item.unit, item.testName || item.name || item.title);
             if (itemComp && scheduleSubsByTestId.has(itemComp)) {
@@ -2286,6 +2285,17 @@ export default function StudentDashboard() {
             } else {
               matchingSubs = validScheduleSubs.filter(s => isSubmissionMatchingBookTest(s, item, bookTests, books));
             }
+          }
+
+          // Strict fallback: ONLY for generic standalone homework tasks without a specific test/activity identity
+          const isSpecificTestItem = Boolean(
+            item.testId || item.bookTestId || item.realTestId || item.testName ||
+            (item.title && /etkinlik|test|deneme|soru|kazanım|bumerang|kavratan/i.test(item.title))
+          );
+          if (matchingSubs.length === 0 && item.hwId && !isSpecificTestItem && scheduleSubsByTestId.has(String(item.hwId))) {
+            const hwSubs = scheduleSubsByTestId.get(String(item.hwId)) || [];
+            // Never assign a specific sub-test submission to a generic task
+            matchingSubs = hwSubs.filter(s => !s.testId && !s.bookTestId && !s.realTestId);
           }
 
           const pastCount = matchingSubs.length;
