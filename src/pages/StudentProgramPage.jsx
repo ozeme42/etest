@@ -630,25 +630,20 @@ export default function StudentProgramPage() {
         {/* ── Tab Content ── */}
         {activeTab === 'haftalik' && (
           <div className="prog-anim-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* 1. 7-Günlük Bento Takvim Şeridi */}
-            <DashboardWeeklyCalendar
+            {/* 🎯 BİRLEŞTİRİLMİŞ MODERN HAFTALIK TAKVİM & GÜNLÜK GÖREV MERKEZİ */}
+            <DashboardTodayTasks
               isMobile={isMobile}
               isDark={isDark}
+              // Haftalık Takvim Props
               daysOfWeek={daysOfWeek}
               activeDayKey={activeDayKey}
               todayDayKey={todayDayKey}
               weekTasksCountMap={weekTasksCountMap}
               weekInfo={weekInfo}
               onSelectDay={setActiveDayKey}
-              onAddTask={() => setIsAddTaskModalOpen(true)}
               onPrint={() => handlePrintWeekly('standard')}
               showProgramButton={false}
-            />
-
-            {/* 2. Seçili Günün Büyük & Renkli Görev Panosu */}
-            <DashboardTodayTasks
-              isMobile={isMobile}
-              isDark={isDark}
+              // Görev Programı Props
               activeDayConfig={activeDayConfig}
               dayProgramInfo={dayProgramInfo}
               catchUpTasks={catchUpTasks}

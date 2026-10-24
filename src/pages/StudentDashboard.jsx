@@ -4041,23 +4041,19 @@ export default function StudentDashboard() {
         {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
         {activeDashboardTab === 'tasks' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-            {/* 1. Haftalık Takvim Şeridi */}
-            <DashboardWeeklyCalendar
+            {/* 🎯 BİRLEŞTİRİLMİŞ MODERN HAFTALIK TAKVİM & GÜNLÜK GÖREV MERKEZİ */}
+            <DashboardTodayTasks
               isMobile={isMobile}
               isDark={isDark}
+              // Haftalık Takvim Props
               daysOfWeek={DAYS_OF_WEEK}
               activeDayKey={activeDayKey}
               todayDayKey={todayDayKey}
               weekTasksCountMap={weekTasksCountMap}
               weekInfo={weekInfo}
               onSelectDay={setActiveDayKey}
-              onAddTask={handleOpenAddTask}
-            />
-
-            {/* 2. Seçili Günün Büyük & Renkli Görev Panosu */}
-            <DashboardTodayTasks
-              isMobile={isMobile}
-              isDark={isDark}
+              showProgramButton={true}
+              // Görev Programı Props
               activeDayConfig={activeDayConfig}
               dayProgramInfo={dayProgramInfo}
               catchUpTasks={catchUpTasks}

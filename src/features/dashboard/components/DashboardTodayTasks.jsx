@@ -1,4 +1,5 @@
 import React, { memo, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Check,
   PlayCircle,
@@ -13,7 +14,11 @@ import {
   Clock,
   Zap,
   Target,
-  Trophy
+  Trophy,
+  Calendar,
+  CalendarDays,
+  Printer,
+  ChevronRight
 } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
@@ -110,6 +115,16 @@ const resolveSubjectTheme = (subj) => {
 export default memo(function DashboardTodayTasks({
   isMobile = false,
   isDark = false,
+  // ─── BİRLEŞTİRİLMİŞ HAFTALIK TAKVİM PROPS ───
+  daysOfWeek = null,
+  activeDayKey = null,
+  todayDayKey = null,
+  weekTasksCountMap = null,
+  weekInfo = null,
+  onSelectDay = null,
+  onPrint = null,
+  showProgramButton = true,
+  // ─── GÖREV PROGRAMI PROPS ───
   activeDayConfig = {},
   dayProgramInfo = { items: [], isToday: true, totalCount: 0, completedCount: 0 },
   catchUpTasks = [],
@@ -122,6 +137,7 @@ export default memo(function DashboardTodayTasks({
   onNavigateRemedial,
   onNavigateBooks
 }) {
+  const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'pending', 'completed'
   const [selectedSubject, setSelectedSubject] = useState('all');
 
@@ -212,166 +228,396 @@ export default memo(function DashboardTodayTasks({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', width: '100%' }}>
       
       {/* ═══════════════════════════════════════════════════════════════
-          BÖLÜM: 🎯 BÜYÜK, RENKLİ & ŞIK GÜNLÜK PROGRAM ODAK MERKEZİ
+          BÖLÜM: 🎯 BİRLEŞTİRİLMİŞ MODERN HAFTALIK TAKVİM & GÜNLÜK GÖREV MERKEZİ
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        borderRadius: 22,
+        borderRadius: 24,
         overflow: 'hidden',
         border: '1.5px solid var(--color-border)',
         background: 'var(--color-surface)',
-        boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.5)' : '0 10px 30px rgba(99, 102, 241, 0.09)'
+        boxShadow: isDark ? '0 14px 38px rgba(0,0,0,0.5)' : '0 10px 32px rgba(99, 102, 241, 0.08)'
       }}>
         
-        {/* ── Renkli Hero Başlık ── */}
+        {/* ── Renkli Hero Üst Alan: Başlık, Hızlı Aksiyonlar ve 7 Günlük Takvim Şeridi ── */}
         <div style={{
           background: headerGradient,
-          padding: isMobile ? '1.1rem 1.15rem' : '1.35rem 1.8rem',
+          padding: isMobile ? '1.1rem 1rem 1.25rem' : '1.35rem 1.75rem 1.5rem',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
+          flexDirection: 'column',
+          gap: isMobile ? '0.9rem' : '1.15rem',
           color: '#ffffff'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* ÜST SATIR: Başlık & Aksiyon Butonları */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: isMobile ? 44 : 52,
+                height: isMobile ? 44 : 52,
+                borderRadius: 16,
+                background: 'rgba(255, 255, 255, 0.22)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isMobile ? '1.45rem' : '1.75rem',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                flexShrink: 0
+              }}>
+                {dayProgramInfo.isToday ? '🎯' : (activeDayConfig?.icon || '📅')}
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{
+                    margin: 0,
+                    fontSize: isMobile ? '1.18rem' : '1.42rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    fontFamily: "'Outfit', sans-serif",
+                    letterSpacing: '-0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                  }}>
+                    {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacaksın?' : `📅 ${dayProgramInfo.dayName} Görev Programı`}
+                  </h3>
+
+                  {dayProgramInfo.hasAllCompleted && totalTasks > 0 ? (
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 900,
+                      padding: '3px 12px',
+                      borderRadius: 99,
+                      background: '#10b981',
+                      color: '#ffffff',
+                      boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
+                    }}>
+                      ✓ GÜN TAMAMLANDI
+                    </span>
+                  ) : remainingTasks > 0 ? (
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 900,
+                      padding: '3px 12px',
+                      borderRadius: 99,
+                      background: 'rgba(255, 255, 255, 0.22)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#ffffff',
+                      border: '1px solid rgba(255, 255, 255, 0.35)'
+                    }}>
+                      {remainingTasks} Görev Kaldı
+                    </span>
+                  ) : null}
+                </div>
+
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.92)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {dayProgramInfo.fullDateLabel && <span>📌 {dayProgramInfo.fullDateLabel}</span>}
+                  <span>•</span>
+                  <span>{dayProgramInfo.isToday ? 'Bugünkü ders programın ve çözülecek testlerin' : 'Belirlenen ders görevleri'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Aksiyon Butonları (Bugün, Görev Ekle, Yazdır, Haftalık Program) */}
             <div style={{
-              width: isMobile ? 44 : 52,
-              height: isMobile ? 44 : 52,
-              borderRadius: 16,
-              background: 'rgba(255, 255, 255, 0.22)',
-              backdropFilter: 'blur(10px)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: isMobile ? '1.45rem' : '1.75rem',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.15)',
-              flexShrink: 0
+              gap: 8,
+              flexWrap: 'wrap',
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-end'
             }}>
-              {dayProgramInfo.isToday ? '🎯' : (activeDayConfig?.icon || '📅')}
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <h3 style={{
-                  margin: 0,
-                  fontSize: isMobile ? '1.18rem' : '1.42rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  fontFamily: "'Outfit', sans-serif",
-                  letterSpacing: '-0.02em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  {dayProgramInfo.isToday ? '🎯 Bugün Ne Yapacaksın?' : `📅 ${dayProgramInfo.dayName} Görev Programı`}
-                </h3>
-
-                {dayProgramInfo.hasAllCompleted && totalTasks > 0 ? (
-                  <span style={{
-                    fontSize: '0.74rem',
-                    fontWeight: 900,
-                    padding: '3px 12px',
-                    borderRadius: 99,
-                    background: '#10b981',
+              {/* Eğer başka gün seçildiyse: 'Bugün'e Hızlı Dönüş */}
+              {activeDayKey && todayDayKey && activeDayKey !== todayDayKey && onSelectDay && (
+                <button
+                  type="button"
+                  onClick={() => onSelectDay(todayDayKey)}
+                  style={{
+                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                     color: '#ffffff',
-                    boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
-                  }}>
-                    ✓ GÜN TAMAMLANDI
-                  </span>
-                ) : remainingTasks > 0 ? (
-                  <span style={{
-                    fontSize: '0.74rem',
+                    border: 'none',
+                    borderRadius: 12,
+                    padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 0.95rem',
+                    fontSize: isMobile ? '0.75rem' : '0.82rem',
                     fontWeight: 900,
-                    padding: '3px 12px',
-                    borderRadius: 99,
-                    background: 'rgba(255, 255, 255, 0.22)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    boxShadow: '0 3px 10px rgba(245, 158, 11, 0.35)',
+                    flex: isMobile ? '1 1 auto' : undefined,
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Zap size={14} fill="#ffffff" />
+                  <span>Bugün</span>
+                </button>
+              )}
+
+              {/* Görev Ekle Butonu */}
+              {onAddTask && (
+                <button
+                  type="button"
+                  onClick={onAddTask}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.24)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.5)',
+                    color: '#ffffff',
+                    borderRadius: 12,
+                    padding: isMobile ? '0.45rem 0.85rem' : '0.5rem 1.15rem',
+                    fontSize: isMobile ? '0.76rem' : '0.84rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                    transition: 'all 0.18s ease',
+                    flex: isMobile ? '1 1 auto' : undefined,
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Plus size={16} strokeWidth={3} />
+                  <span>Görev Ekle</span>
+                </button>
+              )}
+
+              {/* Haftalık Yazdır Butonu */}
+              {onPrint && (
+                <button
+                  type="button"
+                  onClick={onPrint}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.35)',
+                    color: '#ffffff',
+                    borderRadius: 12,
+                    padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 0.95rem',
+                    fontSize: isMobile ? '0.75rem' : '0.82rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
                     backdropFilter: 'blur(8px)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.35)'
-                  }}>
-                    {remainingTasks} Görev Kaldı
-                  </span>
-                ) : null}
-              </div>
+                    flex: isMobile ? '1 1 auto' : undefined,
+                    justifyContent: 'center'
+                  }}
+                  title="Haftalık Programı Yazdır / PDF İndir"
+                >
+                  <Printer size={14} />
+                  <span>{isMobile ? 'Yazdır' : 'Haftalık Yazdır'}</span>
+                </button>
+              )}
 
-              <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.92)', fontWeight: 700, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {dayProgramInfo.fullDateLabel && <span>📌 {dayProgramInfo.fullDateLabel}</span>}
-                <span>•</span>
-                <span>{dayProgramInfo.isToday ? 'Bugünkü ders programın ve çözülecek testlerin' : 'Belirlenen ders görevleri'}</span>
-              </div>
+              {/* Haftalık Tam Program Butonu */}
+              {showProgramButton && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/my-program')}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.16)',
+                    border: '1.5px solid rgba(255, 255, 255, 0.35)',
+                    color: '#ffffff',
+                    borderRadius: 12,
+                    padding: isMobile ? '0.45rem 0.75rem' : '0.5rem 0.95rem',
+                    fontSize: isMobile ? '0.75rem' : '0.82rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    backdropFilter: 'blur(8px)',
+                    flex: isMobile ? '1 1 auto' : undefined,
+                    justifyContent: 'center'
+                  }}
+                >
+                  <CalendarDays size={14} />
+                  <span>Haftalık Program</span>
+                  <ChevronRight size={13} />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Aksiyon Ekle Butonu */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {onAddTask && (
-              <button
-                type="button"
-                onClick={onAddTask}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.24)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.5)',
-                  color: '#ffffff',
-                  borderRadius: 14,
-                  padding: isMobile ? '0.5rem 0.95rem' : '0.6rem 1.25rem',
-                  fontSize: isMobile ? '0.78rem' : '0.86rem',
-                  fontWeight: 900,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
-                  transition: 'all 0.18s ease'
-                }}
-              >
-                <Plus size={16} strokeWidth={3} />
-                <span>Görev Ekle</span>
-              </button>
-            )}
-          </div>
+          {/* BİRLEŞTİRİLMİŞ 7 GÜNLÜK MODERN HAFTALIK TAKVİM ŞERİDİ */}
+          {Array.isArray(daysOfWeek) && daysOfWeek.length > 0 && onSelectDay && (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.16)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.22)',
+              borderRadius: 16,
+              padding: isMobile ? '0.5rem 0.45rem' : '0.65rem 0.75rem',
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(7, minmax(60px, 1fr))' : 'repeat(7, minmax(0, 1fr))',
+              gap: isMobile ? 6 : 8,
+              width: '100%',
+              boxSizing: 'border-box',
+              overflowX: isMobile ? 'auto' : 'visible',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none'
+            }}>
+              {daysOfWeek.map(day => {
+                const isSelected = activeDayKey === day.key;
+                const isCurrentToday = todayDayKey === day.key;
+                const taskCount = (weekTasksCountMap && weekTasksCountMap[day.key]) || 0;
+                const dayDate = weekInfo?.dayDateMap?.[day.key];
+                const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';
+                const monthName = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[1] : '';
+
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    onClick={() => onSelectDay(day.key)}
+                    style={{
+                      background: isSelected
+                        ? '#ffffff'
+                        : isCurrentToday
+                        ? 'rgba(255, 255, 255, 0.22)'
+                        : 'rgba(255, 255, 255, 0.08)',
+                      border: isSelected
+                        ? '2px solid #ffffff'
+                        : isCurrentToday
+                        ? '2px solid #fde68a'
+                        : '1px solid rgba(255, 255, 255, 0.16)',
+                      borderRadius: 13,
+                      padding: isMobile ? '0.55rem 0.25rem' : '0.65rem 0.5rem',
+                      color: isSelected ? '#312e81' : '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 3,
+                      boxShadow: isSelected
+                        ? '0 6px 18px rgba(0, 0, 0, 0.25)'
+                        : isCurrentToday
+                        ? '0 3px 10px rgba(0, 0, 0, 0.15)'
+                        : 'none',
+                      transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      transform: isSelected ? 'scale(1.03)' : 'none',
+                      minWidth: isMobile ? 60 : 0,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      position: 'relative'
+                    }}
+                  >
+                    {/* Gün İkonu */}
+                    <span style={{ fontSize: isMobile ? '1.1rem' : '1.3rem', lineHeight: 1 }}>
+                      {day.icon || '📅'}
+                    </span>
+
+                    {/* Gün İsmi */}
+                    <span style={{
+                      fontSize: isMobile ? '0.72rem' : '0.8rem',
+                      fontWeight: 900,
+                      lineHeight: 1.1,
+                      fontFamily: "'Outfit', sans-serif"
+                    }}>
+                      {day.short || day.name}
+                    </span>
+
+                    {/* Tarih (ör. 24 Eki) */}
+                    {dateNumber && (
+                      <span style={{
+                        fontSize: isMobile ? '0.64rem' : '0.7rem',
+                        fontWeight: 700,
+                        opacity: isSelected ? 0.85 : 0.85,
+                        lineHeight: 1
+                      }}>
+                        {dateNumber} {monthName}
+                      </span>
+                    )}
+
+                    {/* Görev Sayısı veya BUGÜN Rozeti */}
+                    <div style={{ marginTop: 2 }}>
+                      {isCurrentToday ? (
+                        <span style={{
+                          fontSize: '0.6rem',
+                          fontWeight: 900,
+                          padding: '1.5px 6px',
+                          borderRadius: 99,
+                          background: isSelected ? '#4f46e5' : '#f59e0b',
+                          color: '#ffffff',
+                          lineHeight: 1.2,
+                          display: 'inline-block',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                        }}>
+                          BUGÜN ⚡
+                        </span>
+                      ) : taskCount > 0 ? (
+                        <span style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          padding: '1.5px 6px',
+                          borderRadius: 99,
+                          background: isSelected ? 'rgba(79, 70, 229, 0.12)' : 'rgba(255, 255, 255, 0.2)',
+                          color: isSelected ? '#4338ca' : '#ffffff',
+                          lineHeight: 1.2,
+                          display: 'inline-block'
+                        }}>
+                          {taskCount} görev
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.68rem', opacity: 0.5 }}>-</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* ── Bento KPI İlerleme Şeridi ── */}
+        {/* ── Bento KPI İlerleme Şeridi (Büyük Modern Şık Görünüm) ── */}
         {totalTasks > 0 && (
           <div style={{
-            padding: isMobile ? '0.75rem 0.65rem' : '1.1rem 1.6rem',
+            padding: isMobile ? '0.85rem 0.85rem' : '1.1rem 1.6rem',
             background: isDark ? 'rgba(15, 23, 42, 0.65)' : '#f8fafc',
             borderBottom: '1.5px solid var(--color-border)',
-            display: isMobile ? 'grid' : 'flex',
-            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : undefined,
-            alignItems: 'stretch',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : (totalQuestions > 0 ? 'repeat(4, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))'),
             gap: isMobile ? 8 : 12,
-            flexWrap: isMobile ? undefined : 'wrap'
+            width: '100%',
+            boxSizing: 'border-box'
           }}>
             {/* 1. Görev Durumu */}
-            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 180px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
+            <div className="today-metric-pill" style={{ padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem' }}>
               <div style={{
-                width: isMobile ? 32 : 38,
-                height: isMobile ? 32 : 38,
-                borderRadius: 10,
+                width: isMobile ? 36 : 42,
+                height: isMobile ? 36 : 42,
+                borderRadius: 12,
                 background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '1rem' : '1.15rem',
-                flexShrink: 0
+                fontSize: isMobile ? '1.1rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 10px rgba(99, 102, 241, 0.3)'
               }}>
                 🎯
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Görevler
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  <span style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif" }}>
                     {completedTasks}/{totalTasks}
                   </span>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: completionPct === 100 ? '#10b981' : '#6366f1' }}>
                     %{completionPct}
                   </span>
                 </div>
-                <div style={{ height: 5, background: 'var(--color-border)', borderRadius: 99, marginTop: 3, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, marginTop: 4, overflow: 'hidden' }}>
                   <div style={{
                     width: `${completionPct}%`,
                     height: '100%',
@@ -384,65 +630,67 @@ export default memo(function DashboardTodayTasks({
             </div>
 
             {/* 2. Soru Hedefi */}
-            {totalQuestions > 0 && (
-              <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 150px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
+            {totalQuestions > 0 ? (
+              <div className="today-metric-pill" style={{ padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem' }}>
                 <div style={{
-                  width: isMobile ? 32 : 38,
-                  height: isMobile ? 32 : 38,
-                  borderRadius: 10,
+                  width: isMobile ? 36 : 42,
+                  height: isMobile ? 36 : 42,
+                  borderRadius: 12,
                   background: 'linear-gradient(135deg, #0284c7, #06b6d4)',
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: isMobile ? '1rem' : '1.15rem',
-                  flexShrink: 0
+                  fontSize: isMobile ? '1.1rem' : '1.3rem',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 10px rgba(2, 132, 199, 0.3)'
                 }}>
                   📝
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Hedef Soru
                   </div>
-                  <div style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {completedQuestions} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions}</span>
+                  <div style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {completedQuestions} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ {totalQuestions}</span>
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* 3. XP Kazancı */}
-            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 140px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
+            <div className="today-metric-pill" style={{ padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem' }}>
               <div style={{
-                width: isMobile ? 32 : 38,
-                height: isMobile ? 32 : 38,
-                borderRadius: 10,
+                width: isMobile ? 36 : 42,
+                height: isMobile ? 36 : 42,
+                borderRadius: 12,
                 background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '1rem' : '1.15rem',
-                flexShrink: 0
+                fontSize: isMobile ? '1.1rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'
               }}>
                 ⚡
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   XP Kazancı
                 </div>
-                <div style={{ fontSize: isMobile ? '0.98rem' : '1.12rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  +{earnedXp} <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp}</span>
+                <div style={{ fontSize: isMobile ? '1.05rem' : '1.25rem', fontWeight: 900, color: '#f59e0b', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  +{earnedXp} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>/ +{totalXp}</span>
                 </div>
               </div>
             </div>
 
             {/* 4. Durum */}
-            <div className="today-metric-pill" style={{ flex: isMobile ? undefined : '1 1 150px', padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.85rem' }}>
+            <div className="today-metric-pill" style={{ padding: isMobile ? '0.65rem 0.75rem' : '0.85rem 1rem' }}>
               <div style={{
-                width: isMobile ? 32 : 38,
-                height: isMobile ? 32 : 38,
-                borderRadius: 10,
+                width: isMobile ? 36 : 42,
+                height: isMobile ? 36 : 42,
+                borderRadius: 12,
                 background: safeDayInfo.hasAllCompleted
                   ? 'linear-gradient(135deg, #10b981, #059669)'
                   : 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
@@ -450,16 +698,19 @@ export default memo(function DashboardTodayTasks({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: isMobile ? '1rem' : '1.15rem',
-                flexShrink: 0
+                fontSize: isMobile ? '1.1rem' : '1.3rem',
+                flexShrink: 0,
+                boxShadow: safeDayInfo.hasAllCompleted
+                  ? '0 4px 10px rgba(16, 185, 129, 0.3)'
+                  : '0 4px 10px rgba(139, 92, 246, 0.3)'
               }}>
                 {dayProgramInfo.hasAllCompleted ? '🏆' : '🔥'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: isMobile ? '0.64rem' : '0.7rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: isMobile ? '0.65rem' : '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Durum
                 </div>
-                <div style={{ fontSize: isMobile ? '0.86rem' : '0.98rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: dayProgramInfo.hasAllCompleted ? '#10b981' : 'var(--color-text)', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {dayProgramInfo.hasAllCompleted ? 'Tümü Bitti 🎉' : `${remainingTasks} Hedef Kaldı`}
                 </div>
               </div>
