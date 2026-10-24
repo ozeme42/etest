@@ -482,12 +482,22 @@ export function useStudentWeeklySchedule(overrideStudentId = null, overrideStude
             const e = Number(matchedSub.emptyCount ?? matchedSub.empty_count ?? matchedSub.blankCount ?? matchedSub.blank_count ?? 0);
             const explicitQ = Number(matchedSub.totalQuestions ?? matchedSub.questionCount ?? item.questionCount ?? 0);
             const q = (c + w + e > 0) ? (c + w + e) : explicitQ;
+
+            // Accurate success percentage calculation:
             let scoreVal = 0;
-            if (matchedSub.score !== undefined && matchedSub.score !== null && !isNaN(Number(matchedSub.score))) {
-              scoreVal = Math.round(Number(matchedSub.score));
+            const explicitPct = matchedSub.scorePercentage ?? matchedSub.scorePct ?? matchedSub.accuracy ?? matchedSub.successRate;
+            if (explicitPct !== undefined && explicitPct !== null && !isNaN(Number(explicitPct))) {
+              scoreVal = Math.min(100, Math.max(0, Math.round(Number(explicitPct))));
             } else if (q > 0) {
-              scoreVal = Math.round((c / q) * 100);
+              scoreVal = Math.min(100, Math.max(0, Math.round((c / q) * 100)));
+            } else if (c > 0 && w === 0) {
+              scoreVal = 100;
+            } else if (c + w > 0) {
+              scoreVal = Math.min(100, Math.max(0, Math.round((c / (c + w)) * 100)));
+            } else if (matchedSub.score !== undefined && matchedSub.score !== null && !isNaN(Number(matchedSub.score))) {
+              scoreVal = Math.min(100, Math.max(0, Math.round(Number(matchedSub.score))));
             }
+
             const netVal = (matchedSub.net !== undefined && matchedSub.net !== null && !isNaN(Number(matchedSub.net)))
               ? Number(matchedSub.net)
               : Math.max(0, Math.round((c - (w / 3)) * 100) / 100);

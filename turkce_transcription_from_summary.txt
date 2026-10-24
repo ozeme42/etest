@@ -1,0 +1,203 @@
+anscription (`answer_keys/turkce/`)
+
+- **1. TEMA: Oyun Dünyası (`p_358.png`, `p_359.png`)**
+  - **Etkinlikler (1–39):**
+    - 1: 1. D, 2. B, 3. Ç, 4. C, 5. F, 6. E, 7. G, 8. A
+    - 2: 1. ahenk, 2. itimat, 3. nasihat, 4. hasret, 5. vazife, 6. kuvvet, 7. gereksinim, 8. kuşak, 9. merasim, 10. doktor
+    - 3: 1. al, 2. ak, 3. asır, 4. yanıt, 5. imtihan, 6. pis, 7. gıpta etmek, 8. acemi, 9. meşhur, 10. ek
+    - 4: 1. ilgi, 2. meydan, 3. takdir, 4. ev, 5. ses, 6. izleyici, 7. nefes, 8. hız, 9. kişi, 10. yarışma
+    - 5: 1. vatan, 2. sıhhat, 3. siyah, 3. sözcük, 4. yürek, 5. hatıra, 6. neden, 7. tutsak, 8. sene, 9. armağan, 10. şehir, 11. konuk
+    - 6: 1. C, 2. G, 3. E, 4. Ç, 5. F, 6. B, 7. H, 8. Ğ, 9. A, 10. D
+    - 7: 1. ileri, 2. eksi, 3. bayat, 4. tavan, 5. küçük, 6. sıcak, 7. kuzey, 8. hızlı, 9. var, 10. beri, 11. uzun, 12. yakın, 13. kapalı, 14. sağ
+    - 8: 1. yeni eşyalar, 2. hafif paketler, 3. tatlı biber, 4. çirkin insan, 5. kolay çıkış, 6. yüksek topraklar, 7. yumuşak iklim, 8. bol elbise, 9. yukarı kat, 10. temiz çamaşır
+    - 9: 3, 6, 5, 4, 2, 1
+    - 10: A. 2/1, B. 1/2, C. 2/1, D. 2/1, E. 1/2
+    - 11: 1. güç, 2. ağız, 3. kart, 4. saf, 5. koca
+    - 12: A. 1. dalga, 2. dalış, 3. damak, 4. deniz, 5. diyet, 6. duvar; B. 1. masum, 2. mavi, 3. metal, 4. mezra, 5. murat, 6. mutlu; C. 1. emektar, 2. etek, 3. fakir, 4. fes, 5. fesleğen, 6. gamsız; D. 1. ceket, 2. genç, 3. gül, 4. pırasa, 5. rıza, 6. zarar
+    - 13: 1. A, 2. I, 3. C, 4. Ç, 5. G, 6. E, 7. F, 8. D, 9. H, 10. B
+    - 14: A. Çamura yatmak, B. Aklı çıkmak, C. Burnu büyümek, Ç. Hapı yutmak, D. Koltuk çıkmak, E. Dört dönmek, F. Kulak kesilmek
+    - 15: 1. İçi içine sığmamak, 2. Aklı çıkmak, 3. Yüzünden düşen bin parça
+    - 16: 1. Gözden düşmek, 2. Burnunun direği sızlamak, 3. Har vurup harman savurmak
+    - 17: 1. D. ateş saçtı, 2. A. zil takıp oynadı, 3. E. etekleri tutuştu, 4. B. tabana kuvvet kaçtık.
+    - 18: 1. kulaklarına, 2. bakla, 3. dışarı, 4. ot, 5. tırnağından, 6. su, 7. kurşun, 8. önüne, 9. diremek, 10. kapamak
+    - 19: 1. G, 2. C, 3. D, 4. Ç, 5. F, 6. B, 7. A, 8. E, 9. I, 10. H
+    - 20: 1. güzel, 2. eğlenceli, 3. tuhaf, kasvetli, ürkütücü, 4. ilginç, 5. hayran hayran, 6. büyüleyici, 7. sevimli sevimli, 8. dikkat çekici, 9. şirince, 10. harika
+    - 21: 1. öznel, 2. nesnel, 3. öznel, 4. öznel, 5. nesnel, 6. nesnel, 7. öznel, 8. nesnel, 9. öznel, 10. nesnel, 11. nesnel, 12. nesnel
+    - 22: 1. X, 2. X, 3. ✓, 4. ✓, 5. ✓, 6. ✓, 7. X, 8. X, 9. ✓, 10. ✓
+    - 23: Gerçek unsurlar: 1, 2, 4, 5, 7; Hayal Ürünü Unsurlar: 3, 6, 8, 9, 10
+    - 24: 1. ilginç, 2. bilgisine, 3. yorulmayı, 4. içeriğe, 5. güçlü, 6. benzersen, 7. düşünmeden
+    - 25: A. 2-3-1, B. 5-3-1-4-2, C. 1-5-4-3-2, Ç. 2-1-3-5-4, D. 5-6-2-3-4-1, E. 6-1-3-5-2-4, F. 1-5-6-3-2-4, G. 2-4-5-3-6-7-8
+    - 26: 1. şehircilik/oyun parkı, 2. cesaret/karakter/sorumluluk, 3. doğa/sevgi/çocuk, 4. iş birliği/öğrenme
+    - 27: 1.A, 2.A, 3.C
+    - 28: 1.A, 2.A, 3.B, 4.B
+    - 29: 1.A, 2.C, 3.C
+    - 30: 1, 2, 5
+    - 31: 1. Y, 2. Y, 3. D, 4. D, 5. D
+    - 32: İsimler: park, top, Ankara, Türkiye, tarih, ev, ordu, güvenliğini, görevlerde, düşünce, insanı, canlılardan, icat, keşif, bahçeden, çiçek, çocuklar, dünyayı, kollarınızı
+    - 33: Fiiller: başlıyor, görüyor, kaldı, yanıtladı, oynuyor, saçıyordu, bindi, gördü, yedim
+    - 34: 1. kitap-isim/ seviyorum-fiil/ saat-isim/ okuyorum-fiil 2. vatan-isim/ millet-isim/ evidir-isim 3. milletimiz-isim/ omuz-isim/ savaştık-fiil/ kurtardık-fiil 4. Türkiye-isim/ parçalanamaz-fiil
+    - 35: 1. Bence, 2. muhtemelen, 3. sanki, 4. galiba, 5. Acaba, 6. anlaşılan, 7. Meğer, 8. Belki, 9. bakılırsa, 10. herhâlde
+    - 36: 1, 4, 7, 9
+    - 37: 1. B, 2. G, 3. D, 4. Ç, 5. F, 6. A, 7. E, 8. C
+    - 38: 1. F, 2. A, 3. B, 4. D, 5. C, 6. E
+    - 39: 2, 5, 6
+  - **Yazılıya Hazırlık (Soru 1–8):**
+    - 1: Öğrenci cevabı veya : Piknikte aniden dolu yağmaya başlayınca ne yapacağımızı şaşırdık.
+    - 2: Metnin Konusu: Çocuk oyunlarından bezirgânbaşı; Anahtar Kelimeleri: 1. Grup oyunu, 2. Bezirgânbaşı, 3. Kapıcı, 4. Takma ad, 5. Köprü, 6. Aç kapıyı, 7. Çekişmek, 8. Çizgi, 9. Kazanmak, 10. Kaybetmek
+    - 3: Toplumsal değerler içselleştirilmeli ve bu değerler sadece belirli durumlarda değil, her koşulda uygulanmalıdır.
+    - 4: 1. tabiat, 2. neden, 3. kabiliyetli, 4. hudut, 5. özlem, 6. davranış
+    - 5: 1. N, 2. Ö, 3. N, 4. Ö, 5. N
+    - 6: Fatma teyze, Çiçekli köyündeki
+    - 7: (,) (.) (,) (,) (.)
+    - 8: Öğrenci cevabı
+
+- **2. TEMA: Atatürk'ü Tanımak (`p_359.png`, `p_360.png`, `p_361.png`)**
+  - **Etkinlikler (1–37):**
+    - 1: 1. e, 2. a, 3. f, 4. b, 5. g, 6. d, 7. c
+    - 2: 1. doğa, 2. olay, 3. şair, 4. kalabalık, 5. resim, 6. müzik, 7. yaşam, 8. sorun, 9. çevre, 10. zula, 11. beceri, 12. zaman
+    - 3: 1. c, 2. ç, 3. a, 4. b
+    - 4: 1. a, 2. c, 3. b, 4. b, 5. b, 6. c
+    - 5: 1. i, 2. a, 3. b, 4. g, 5. ı, 6. h, 7. c, 8. d, 9. f, 10. e
+    - 6: 1. C, 2. B, 3. D, 4. G, 5. F, 6. Ç, 7. E, 8. A
+    - 7: 1. C, 2. D, 3. F, 4. E, 5. Ç, 6. A, 7. B
+    - 8: Eğitim: 3, 5, 15, 17, 18; Sinema: 1, 4, 7, 8, 9; Bitki: 10, 11, 12, 22, 24; Oyun araçları: 2, 6, 19, 20, 21; Kara taşıtlar: 13, 14, 16, 26, 30; Tatlı: 23, 25, 27, 28, 29
+    - 9: Öğrenci cevapları veya: 1. odak, 2. acıklı, 3. ileti, 4. araba yarışı, 5. başlangıç, 6. hava, 7. ayaklı lamba, 8. ayaklı bisiklet, 9. ani ışık, 10. dönence, 11. izlence, 12. büyük bakkal
+    - 10: 3. alternatif-seçenek, 4. adisyon-hesap, 5. check-in-tamamlama, 7. dekont-hesap belgesi, 10. dizayn-tasarım, 11. dubleks-iki katlı (ev)
+    - 11: 1. Dikensiz gül olmaz., 2. Ağaç yaşken eğilir., 3. Aklın yolu birdir., 4. Gelen gideni aratır., 5. Düşenin dostu olmaz., 6. Ağaç yaprağıyla gürler.
+    - 12: 1. düşman, 2. altın, 3. ayağını, 4. hesap, 5. neler, 6. sesi, 7. hoş, 8. sirke, 9. neresinden, 10. gemisi
+    - 13: 1. b, 2. e, 3. a, 4. c, 5. d
+    - 14: 1. C, 2. F, 3. G, 4. D, 5. Ç, 6. A, 7. E, 8. B
+    - 15: 1. B, 2. C, 3. D, 4. E, 5. Ç, 6. A
+    - 16: Atasözleri: 1, 2, 5, 7, 10, 11, 13, 15, 18, 19; Deyimler: 3, 4, 6, 8, 9, 12, 14, 16, 17, 20, 21, 22
+    - 17: 1. fakat, 2. hâlbuki, 3. çünkü, 4. lakin, 5. ama, 6. hatta, 7. özellikle, 8. böylelikle
+    - 18: 1. hatta, 2. buna rağmen, 3. böylelikle, 4. üstelik, 5. ama, 6. özellikle
+    - 19: 1, 3, 4, 7, 8, 10
+    - 20: 1. A, 2. E, 3. C, 4. D, 5. B
+    - 21: 1. B, 2. A, 3. C, 4. D, 5. E
+    - 22: 1. D, 2. B, 3. A, 4. C
+    - 23: 1. A / B / C, 2. B / C / A, 3. A / C / B
+    - 24: 1. Metin: Olay: Kral Edvard'ın İstanbul ziyaretinde Atatürk ile yaşadığı ilginç bir olay; Zaman: Belirsiz; Yer: Dolmabahçe Sarayı; Kişiler: Kral Edvard ve Atatürk. 2. Metin: Olay: Proje ödevi için araştırma yapan bir çocuğa annesi tarafından Nutuk kitabının önerilmesi; Zaman: Sonbahar; Yer: Ali'nin evi; Kişiler: Ali, Ali'nin öğretmeni ve Ali'nin annesi
+    - 25: A. 3, B. 1, C. 3
+    - 26: A. Giriş: 1,2, Gelişme: 3, Sonuç: 4,5; B. Serim: 1,2,3, Düğüm: 4,5,6, Çözüm: 7,8
+    - 27: 2, 4, 7, 8
+    - 28: 1, 3, 5
+    - 29: 2. Çıkış
+    - 30: uyuyan aslan - daldaki kuş - mavi kuş - yeşil çimen - kahverengi kayık - bir kayık - devrilmiş ağaç - yüksek dağlar - iki hayvan - birkaç hayvan
+    - 31: uzun - tüm - büyük - eski - ihtiyar - has - bir - bu - ufacık - evdeki - bu - küçük - şen
+    - 32: 1. ufacık, 2. eski, 3. kaç, 4. bir, 5. sıcak, 6. tam, 7. oradaki-bir, 8. bazı, 9. her-ilk, 10. birbiriyle yarışan
+    - 33: 1. Ufukta doğacak güneş, 2. Koridorda bekleyen öğrenciler, 3. Bahçede açan rengârenk çiçekler, 4. geçen yıl gezdiğimiz kasaba, 5. Geçen yıl gördüğümüz eski konak, 6. sararmış yapraklar, 7. Pencereden süzülen ince ışık, 8. dalları iyice kurumuş yaşlı ağaç.
+    - 34: 1, 3, 4, 8, 9
+    - 35: 3, 6, 7, 9, 11, 13, 14
+    - 36: 1. Bizim Kayalar köyüne gelmemizde Ahmet dayımın rolü çok büyüktür. 2. Ülkenin doğusuna gittiğimde hayatımda hiç görmediğim kadar Alman gördüm diyebilirim.
+    - 37: 1, 2, 4, 5, 6, 8, 10, 13, 17, 19, 21
+  - **Yazılıya Hazırlık (Soru 1–8):**
+    - 1: Cihan: dünya - Cümlem: Yurtta sulh, cihanda sulh. Cenk: savaş – Cümlem: Kale burçlarında cenge çağrı davulları vuruldu. Coşkun: Coşmuş olan; celalli – Cümlem: Hayır, sular ne kadar coşkun olsa ben giderim. Umman: okyanus – Cümlem: Bütün ömrü bir ummanda gezinerek geçmiş.
+    - 2: Yer: Karapınarlı köyü; Zaman: Gece yarısı; Şahıs kadrosu: İsmail ve köylüler; Olay: Dağdan kopan bir kayanın yolu kapatmasıyla İsmail'in köylüler yardımıyla kayayı parçalaması; Anlatıcı: 3. Kişi ağzıyla anlatım
+    - 3: Giriş: 1, Gelişme: 2,3,4, Sonuç: 5
+    - 4: +, -, +, -
+    - 5: 1. isim, 2. fiil, 3. fiil, 4. isim, 5. isim
+    - 6: ! / ? / . / ?
+    - 7: kısacası / fakat
+    - 8: Öğrenci cevabı
+
+- **3. TEMA: Duygularımı Tanıyorum (`p_361.png`, `p_362.png`, `p_363.png`)**
+  - **Etkinlikler (1–38):**
+    - 1: Öğrenci cevabı veya: B. Haber verdik (1. Onlara haber verdik. 2. Dün onlara haber verdik. 3. Gelmeleri için dün onlara haber verdik. 4. Düğüne gelmeleri için dün onlara haber verdik. 5. Köydeki düğüne gelmeleri için dün onlara haber verdik.) C. Yürüyoruz (1. Ablamla yürüyoruz. 2. Yolda ablamla yürüyoruz. 3. Tozlu yolda ablamla yürüyoruz. 4. Sıcak bir havada ve tozlu yolda ablamla yürüyoruz. 5. Sabahtan beri sıcak bir havada ve tozlu yolda ablamla yürüyoruz.)
+    - 2: 1. Yaşamımızdaki bütün ilişkilerde konuşmanın büyük payı vardır., 2. Günün güzel geçmesini istiyorsan kahvaltı yapmaya özen göstermelisin., 3. Dışarıda koşturan çocuklara uyarıda bulununca çocuklar evlerine gitti., 4. Hayatımda uçağa ilk kez bineceğim için çok heyecanlıyım., 5. Karşılaştığımız zorluklar karşısında sabırlı davranırsak sonunda feraha kavuşabiliriz.
+    - 3: 1. hastalık, 2. uyurken, 3. iyi bir haberde, 4. biri teşekkür ettiğinde, 5. yemekte, 6. yeni bir eşya alınınca, 7. sabah, 8. evlilik vb. durumlarda, 9. hapşırınca
+    - 4: 2, 3, 4, 6, 8, 10
+    - 5: 1. güçlükle, 2. zarar görmeden, 3. iyice, 4. her yeri, 5. haber, 6. maddi varlık, 7. eksiksiz, 8. biraz, 9. yaklaşık, 10. toplu olarak
+    - 6: 1. A, 2. B, 3. D, 4. E, 5. C, 6. E, 7. G, 8. B, 9. F, 10. H
+    - 7: 1. E, 2. A, 3. B, 4. Ç, 5. C, 6. D, 7. F, 8. G
+    - 8: Olay: Bir bilginin padişahın halkına hürmet etmesi gerektiğini söylemesi ve padişahın isteği üzerine ona üç öğüt vermesi; Şahıs kadrosu: Bilgin ve padişah; Zaman: Belirsiz; Anahtar kelimeler: Bilgin, padişah, hürmet etmek, öğüt vermek; Mekân: Belirsiz; Anlatıcı: 3. kişi
+    - 9: A. 1, 3; B. 1, 3; C. 1, 2; D. 1, 2; E. 1, 2
+    - 10: 1, 2, 5
+    - 11: 1, 3, 4, 6
+    - 12: 2, 3, 4
+    - 13: 1, 3, 5
+    - 14: 1. sevgi, 2. merak
+    - 15: A. III, B. II, C. I
+    - 16: Benzeyen / Kendisine Benzetilen: 1 Kız / Kelebek, 2 Biz / Yaban otu, 3 Çocuklar / Ateş böcekleri, 4 Kalp / Yarış atı, 5 Gün / Balık, 6 Gönül / Ceylan, 7 Dünya / Çiçek bahçesi, 8 Kirpik / Asker, 9 Su / Bal, 10 Gözyaşı / Yaz yağmuru
+    - 17: 1, 3, 6
+    - 18: 1. Hilal, 2. Vapur, 3. Ağaç, 4. Sokak, 5. Rüzgâr, 6. Gökyüzü
+    - 19: 1. B, 2. K, 3. B, 4. K, 5. B
+    - 20: Konuşturulan Varlıklar: Fare ve kurbağa
+    - 21: 2, 3, 5, 6
+    - 22: 1. İşaret etme, 2. Beğenme/ onaylama, 3. Anlaşma, 4. Tebrik, 5. Beğenmeme/ onaylamama
+    - 23: 1. Düşünüyorum, 2. Sus, 3. Şaşırdım, 4. Beğenmedim, 5. Güçlüyüm, 6. Başardım
+    - 24: 1. şaşkın, 2. üzgün, 3. muzip, 4. mutlu, 5. yorgun, 6. çok mutlu, 7. korkmuş, 8. mutlu, 9. umutsuz, 10. Kızgın
+    - 25: 1, 2
+    - 26: 1. Yaya geçidi, 2. Okul geçidi, 3. Bisiklet geçebilir, 4. Işıklı işaret cihazı, 5. Park yapılamaz, 6. Azami hız sınırı
+    - 27: 1. yaz/kumsal/top, 2. kitapçı/raf/macera/roman, 3. oyun/arkadaş, 4. insan/zaman/doğal, 5. arkadaş/söz/akşam/maç
+    - 28: Öğrenci cevabı
+    - 29: 1. C, 2. C, 3. Ö, 4. Ö, 5. C, 6. Ö, 7. Ö
+    - 30: Kahramanmaraş, Rasim Özdenören, İstanbul Üniversitesi, Türk, Batılı, Anadolu, Gül Yetiştiren Adam
+    - 31: 1. D, 2. D, 3. Y, 4. D, 5. Y, 6. Y
+    - 32: 1. öğrenci/resim/okul/pano, 2. çocuk, 3. çoban/sürü/köy, 4. yemek/sofra
+    - 33: 1. dostluk, 2. özlem, 3. görgülü/saygın, 4. sıkıntı, 5. heyecan, 6. sevgi, kafa, 7. barış, 8. mutluluk
+    - 34: 1. Ç, 2. Ç, 3. T, 4. Ç, 5. T
+    - 35: Tekil: sünger, park, avlu, topaç; Çoğul: inciler, köylüler, takılar, tepecikler; Topluluk: güruh, meclis, ordu, takım
+    - 36: 1. ı, 2. d, 3. f, 4. g, 5. h, 6. a, 7. i, 8. c, 9. e, 10. b
+    - 37: 1. Nokta, 2. Nokta, 3. Üç nokta, 4. Üç nokta, 5. Nokta, 6. Üç nokta, 7. Üç nokta
+    - 38: 1. ?, 2. ?, 3. ?, 4. ?, 5. ?
+  - **Yazılıya Hazırlık (Soru 1–9):**
+    - 1: Anlamı: Çok kısa sürede; Cümle: (Öğrenci cevabı)
+    - 2: İyi günler, hayırlı günler, hayırlı işler, kolay gelsin...
+    - 3: a. Benzetme, b. Kişileştirme
+    - 4: Çocukluğa özlem
+    - 5: Atatürk, 1924 yılında Trabzon'a ilk ziyaretini gerçekleştirdiğinde şimdiki adıyla Atatürk Köşkü'nde ağırlanmış ancak konaklamamıştır. İkinci kez 15 Kasım 1930'da Trabzon'u tekrar onurlandırdığında köşkte ağırlanmış ve çok memnun kalmıştır.
+    - 6: Ülkemde henüz görmediğim birçok yer var: Ürgüp, Palandöken, Harran...
+    - 7: ders: isim; oluşur: fiil
+    - 8: Yaşam, bize bütün kitapların öğrettiğinden daha çoğunu öğretir fakat yaşam, bize karşı direnir. İnsan, ancak engellerle karşılaşıp onları aşmaya çalıştıkça kendini tanıyabilir. (fakat, ancak, ama, oysaki)
+    - 9: Öğrenci cevabı
+
+- **4. TEMA: Geleneklerimiz (`p_363.png`, `p_364.png`)**
+  - **Etkinlikler (1–31):**
+    - 1: 1. Gerçek/Mecaz, 2. Gerçek/Mecaz, 3. Mecaz/ Gerçek, 4. Mecaz/ Gerçek, 5. Gerçek/Mecaz
+    - 2: 1. M, 2. G, 3. M, 4. G, 5. M, 6. M, 7. G, 8. G, 9. G, 10. M
+    - 3: 1. Arkadaşlarıyla koyu bir sohbete daldı. (mecaz) Bu elbisenin rengi çok koyu. (gerçek); 2. Evin anahtarını kaybettim. (gerçek) Başarının anahtarı çalışmaktır. (mecaz); 3. Defterleri çok renkliydi. (gerçek) Onun renkli kişiliği herkesi eğlendiriyor. (mecaz); 4. Süt ısınınca köpürdü. (gerçek) İşlerin yapılmadığını gören öğretmen, sinirden köpürünce korktuk. (mecaz)
+    - 4: 1, 2, 5
+    - 5: Dağ-gerçek/ yutmak-mecaz/ hüzün-gerçek/ öfke-gerçek/ katlanmak- mecaz/ gülüş-gerçek/ taşmak-mecaz
+    - 6: 1. f, 2. h, 3. a, 4. e, 5. b, 6. c, 7. i, 8. ç, 9. d, 10. g
+    - 7: 1, 4, 5, 7
+    - 8: 1. A-S, 2. S-A, 3. A-S, 4. S-A, 5. A-S, 6. S-A, 7. A-S, 8. A-S, 9. A-S, 10. S-A, 11. A-S, 12. A-S
+    - 9: 1. b, 2. a, 3. f, 4. e, 5. h, 6. g, 7. j, 8. ç, 9. c, 10. d
+    - 10: 1, 3, 5, 6
+    - 11: 1. N-S, 2. S-N, 3. N-S, 4. N-S, 5. S-N, 6. S-N, 7. N-S, 8. S-N, 9. N-S, 10. N-S, 11. S-N, 12. N-S
+    - 12: 1. ı, 2. f, 3. h, 4. d, 5. ç, 6. g, 7. b, 8. c, 9. a, 10. e
+    - 13: 1. S-K, 2. K-S, 3. K-S, 4. K-S, 5. S-K, 6. S-K, 7. K-S, 8. K-S, 9. K-S, 10. K-S
+    - 14: Amaç-sonuç: 1-2-6; Sebep-sonuç: 3-7; Koşul: 4-5
+    - 15: 1. A. Amaç-sonuç, B. Şart, C. Sebep-sonuç; 2. A. Amaç-sonuç, B. Şart, C. Sebep-sonuç; 3. A. Şart, B. Amaç-sonuç, C. Sebep-sonuç; 4. A. Sebep-sonuç, B. Amaç-sonuç, C. Şart; 5. A. Sebep-sonuç, B. Amaç-sonuç, C. Şart
+    - 16: 1. Görsellerde en çok paylaşma, sevgi, birliktelik dikkatimizi çekmiştir. 2. Görseller; aileden, bayramlardan, geleneklerden bahsetmektedir. 3. Başlık Bayramlarımız; Anahtar Sözcükler: Sevgi, paylaşmak, birliktelik, mutluluk, bayram. 4. Öğrenci cevabı
+    - 17: 1, 3, 4
+    - 18: 1, 4
+    - 19: A. VI, B. II, C. IV
+    - 20: 1. iftira ve suç, 2. sıra arkadaşım ve ben, 3. kitap okumak ve oyun oynamak, 4. anne ve babası, 5. ana dil ve diğer diller, 6. Türkiye ve Avrupa, 7. roman ve hikâye, 8. Cem ve sınıftaki diğerleri
+    - 21: 2, 4, 6, 7, 8, 9
+    - 22: 2, 3, 4
+    - 23: 1, 2, 5
+    - 24: Mavi kutu: Türkler, Sümeyra, Ay, Tunus, Zeytune Camii, Karagöz, Osmanlı; Sarı kutu: değer, tespih, kilim, turna, soda, vakit, yolculuk, gözde
+    - 25: Öğrenci Cevabı
+    - 26: 1, 3, 5
+    - 27: Bir İsmin Yerini Tutan Sözcükler: benim, burası, onun, herkes, onu, ondan, kendisi, oralarda, burada, nerede, kimse, bizim, hepimizin, onun, kimdir, buradadır, nerededir, onun
+    - 28: 1. B, 2. A, 3. F, 4. D, 5. C, 6. E
+    - 29: 1, 3, 7, 8, 9
+    - 30: 1, 3, 7, 8, 9
+    - 31: 1. Kısa çizgi, 2. Kısa çizgi, 3. Kısa çizgi, 4. Kısa çizgi, 5. Uzun çizgi, 6. Kısa çizgi
+  - **Yazılıya Hazırlık (Soru 1–7):**
+    - 1: a. Gerçek/ öğrenci cevabı, b. Mecaz/ öğrenci cevabı
+    - 2: a. amaç, b. koşul, c. neden, d. koşul
+    - 3: a. daha, b. pek
+    - 4: Bu metnin ana fikri insanlar arasındaki güven ve barışın ilişkilerin sürdürülebilirliği ve toplumun aydınlık bir geleceğe sahip olması için vazgeçilmez olduğu, bu değerlerin zedelenmesi durumunda ise dünya ve insanlar arasındaki ilişkilerin karanlığa gömüleceğidir.
+    - 5: a. ihtiyar, üç, b. ekşi, c. yırtık, bir, d. şuradaki
+    - 6: a. kısa çizgi, b. uzun çizgi, c. kısa çizgi, d. kısa çizgi
+    - 7: Öğrenci cevabı
+
+- **5. TEMA: İletişim ve Sosyal İlişkiler (`p_365.png`, `p_366.png`)**
+  - **Etkinlikler (1–21):**
+    - 1: A. Alice aşağıya düşer ve bir tavşanla karşılaşır... Önünde iki yol vardır, tavşana sorar: "Hangi yoldan gideyim?" Tavşan bugüne dek duyduğum en iyi cevaplardan birini verir: "Nereye gideceğini bilmiyorsan hangi yoldan gittiğinin hiçbir önemi yok." Tavşanın diğer yanında bir tavşan da ben olsaydım derdim ki: "Aslında nereye gideceğini bilmenden daha önemlisi, kim olduğunu bilmen. Kim olduğunu bilirsen gideceğin yer değiştiğinde ortalıkta d
+
+# Conversation Logs
+Start with the compact transcript; if a step has `truncated_fields`, read only that specific line in `transcript_full.jsonl`:
+- `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`
+- `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript_full.jsonl`

@@ -1,0 +1,3 @@
+Open-ended answers for "Etkinlikler" and "Yazılıya Hazırlık" sections require authentic extraction, as the current data contains only placeholder summaries. Confirmed multiple-choice answer extraction for Fen Bilimleri and Türkçe provides a clear foundation for focusing on the open-ended questions. The goal is to transcribe these authentic, open-ended answers from their source.
+
+

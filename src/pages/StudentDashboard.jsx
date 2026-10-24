@@ -2298,11 +2298,19 @@ export default function StudentDashboard() {
             const explicitQ = Number(latestSub.totalQuestions ?? latestSub.questionCount ?? item.questionCount ?? 0);
             const q = (c + w + e > 0) ? (c + w + e) : explicitQ;
 
+            // Accurate success percentage calculation:
             let scoreVal = 0;
-            if (latestSub.score !== undefined && latestSub.score !== null && !isNaN(Number(latestSub.score))) {
-              scoreVal = Math.round(Number(latestSub.score));
+            const explicitPct = latestSub.scorePercentage ?? latestSub.scorePct ?? latestSub.accuracy ?? latestSub.successRate;
+            if (explicitPct !== undefined && explicitPct !== null && !isNaN(Number(explicitPct))) {
+              scoreVal = Math.min(100, Math.max(0, Math.round(Number(explicitPct))));
             } else if (q > 0) {
-              scoreVal = Math.round((c / q) * 100);
+              scoreVal = Math.min(100, Math.max(0, Math.round((c / q) * 100)));
+            } else if (c > 0 && w === 0) {
+              scoreVal = 100;
+            } else if (c + w > 0) {
+              scoreVal = Math.min(100, Math.max(0, Math.round((c / (c + w)) * 100)));
+            } else if (latestSub.score !== undefined && latestSub.score !== null && !isNaN(Number(latestSub.score))) {
+              scoreVal = Math.min(100, Math.max(0, Math.round(Number(latestSub.score))));
             }
 
             const netVal = (latestSub.net !== undefined && latestSub.net !== null && !isNaN(Number(latestSub.net)))

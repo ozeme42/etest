@@ -1,0 +1,344 @@
+# Resuming from a compaction
+
+You are continuing work on the task described above, but you have lost access to the full conversation history, and need to resume work efficiently using the progress summary below:
+
+# User Requests
+The following were user requests from the truncated conversation in chronological order:
+1. [Akıllı Tahta Uygulaması](https://yayin.yargidersarkadasim.com/WebZKitap/?version=0&bookId=72747) burdakini indirmek mümkün mü
+2. evet
+3. [ZKitapX](https://www.hizliogretmen.com/zkitapx.php?code=R0JCNk1NQkw=) peki ya buradan indirmek mümkün mü 
+4. 5.sınıf haftalık deneme v25 kitabını indir
+5. [ZKitapX](https://www.gunayportal.com/zkitapx.php?code=OEFENFJISFk=) kitapları 5.ısnıf bumerang matematik türkçe ve fen bilimleri soru bankası da indir
+6. bu üçünü bizim sisteme aktaralım çoktan seçeneklilerin ve açık uçluların cevaplarıyla birlikte 
+7. açık uçluların hepsi yok çoktan seçmelileri eklemişsin hep mtematikte
+8. etkinlikler tek test ve 90 soru onu aynı kitaptaki gibi bölümlü nasıl yaparız mesel 10 15 soru sonrası oktan emeli testler var her birinin bölümü ayrı ona göre ayıramaz mıyız 
+9. diğer dersleri de yapalım böyle türkçe ve feni 
+
+<summary>
+### 1. Task Overview
+- **User Request:** "diğer dersleri de yapalım böyle türkçe ve feni" (Apply the sectional/interleaved breakdown with complete authentic open-ended activity integration to 5. Sınıf Bumerang Fen Bilimleri and Türkçe, matching the completed 5. Sınıf Bumerang Matematik structure).
+- **Core Success Criteria:**
+  1. Complete transcription and integration of all authentic open-ended answers (Hatırlayalım, Etkinlikler, Yazılıya Hazırlık) directly from printed textbook answer key images (`answer_keys/fen/` and `answer_keys/turkce/`). Zero dummy/placeholder answers.
+  2. Structure each unit/theme with interleaved open-ended activity tests and multiple-choice tests matching chronological textbook page order from the Table of Contents (`toc_pages/`).
+  3. Maintain exact start question numbers (`startQuestionNumber` property and dictionary integer keys) for every sliced activity test.
+  4. Update `build_and_upload_bumerang.py`, synchronize export JSONs (`bumerang_fen_import.json`, `bumerang_turkce_import.json`), upload to Supabase (`books` and `tests` tables), and verify via `verify_supabase.py`.
+
+---
+
+### 2. Progress
+- **Matematik:** 100% completed, verified, and uploaded in Supabase (117 tests, 1,154 questions, 48 OE tests). Pattern established in `bumerang_mat_answers.py` and `build_mat_book()`.
+- **Fen Bilimleri Answer Key Visual Transcription (100% COMPLETE & VERIFIED):**
+  All 7 units inspected via `view_file` on `answer_keys/fen/p_344.png` through `p_356.png`:
+  - **Ünite 1 (pp. 5–67):**
+    - 1. Bölüm (Güneş): Etk 1–15 (`p_344.png`)
+      - Etk 1: 1) çıplak gözle 2) yakın 3) Güneş 4) 150 milyon km 5) katmanlardan 6) dönme 7) küreye 8) fazladır
+      - Etk 2: 1) c 2) d 3) f 4) e 5) a 6) b
+      - Etk 3: D - Y - D - Y
+      - Etk 4: 1) D 2) Y 3) Y 4) Y 5) Y 6) D 7) Y 8) Y 9) Y 10) D
+      - Etk 5: Güneş'in Dünya'ya olan uzaklığı, Ay'ın Dünya'ya olan uzaklığından çok daha fazladır.
+      - Etk 6: Soldan Sağa: 5) Güneş 6) Yirmibeş 7) Azot 8) Güneş 9) Helyum; Yukarıdan Aşağıya: 1) Dönme 2) Galileo 3) Güneş lekesi 4) Hidrojen
+      - Etk 7: a) Çekirdek b) Taç küre c) Taç küre > Renk küre > Işık küre > Çekirdek d) Taç küre
+      - Etk 8: Her iki gök cismi de katmanlardan oluşur.
+      - Etk 9: a) Saat yönünün tersi yönünde b) Güneş lekesi c) Güneş'in kendi etrafında dönmesi
+      - Etk 10: Dünya'nın kendi ekseni etrafında dönmesi
+      - Etk 11: a) Futbol topu, portakal, pinpon topu b) Muz, Amerikan futbol topu - Güneş'in şekli küreseldir.
+      - Etk 12: Güneş'in yapısında zararlı ışınlar da bulunur.
+      - Etk 13: Ay'ın Dünya'ya Güneş'ten daha yakın olması
+      - Etk 14: Güneş, Dünya ve Ay'dan çok daha büyüktür.
+      - Etk 15: 1) D 2) D 3) Y 4) Y 5) Y
+    - 2. Bölüm (Ay): Etk 1–21 (`p_344.png`, `p_345.png`)
+      - Etk 1: 1) krater 2) yüksek 3) yansıtır 4) Ay 5) doğal uydusu 6) Neil Amstrong 7) atmosferi 8) gözlemlenmez
+      - Etk 2: sabit sıcaklık - oksijen
+      - Etk 3: 1) b 2) a 3) f 4) c 5) e 6) d
+      - Etk 4: Ay'ın atmosferinin yok denecek kadar az olması
+      - Etk 5: Gökçe - Umay - Kaan - Almira
+      - Etk 6: 1) Kendi etrafında dönmesi 2) Dünya'nın etrafında dolanması 3) Güneş'in etrafında dolanması
+      - Etk 7: Ay'ın kendi etrafındaki dönme süresi ile Dünya'nın etrafındaki dolanma süresinin eşit olması
+      - Etk 8: Ay'ın gece ve gündüz sürekli Güneş'ten gelen ışığı yansıtması
+      - Etk 9: 1) c 2) d 3) a 4) e 5) b
+      - Etk 10: 1) ara 2) 27 gün 8 saatte 3) Ay'ın evreleri 4) 29 gün 12 saat 5) dolanma 6) dolunay 7) 365 gün altı saat
+      - Etk 11: b - a - c - d
+      - Etk 12: b) C c) A d) 7 gün e) 14 gün
+      - Etk 13: 1) Dolunay 2) Son Dördün 3) İlk Dördün 4) Yeni Ay
+      - Etk 14: II - I - III
+      - Etk 15: 1) Y 2) Y 3) D 4) D 5) Y
+      - Etk 16: Dolunay
+      - Etk 17: a) Dolunay b) Son Dördün ve Yeni Ay
+      - Etk 18: 7 Ekim: Dolunay, 14 Ekim: Son Dördün, 21 Ekim: Yeni Ay, 28 Ekim: İlk Dördün
+      - Etk 19: a) Ay'ın kendi etrafında dönmesi-27 gün 8 saat b) Ay'ın Dünya'nın etrafında dolanması-27 gün 8 saat
+      - Etk 20: Ay'ın kendi etrafında dönme süresi ile Dünya'nın etrafındaki dolanma sürelerinin eşit olması
+      - Etk 21: İlk Dördün ve Dolunay veya Dolunay ve Son Dördün
+    - 3. Bölüm (Dünya ve Gökyüzündeki Komşularımız): Etk 1–12 (`p_345.png`, `p_346.png`)
+      - Etk 1: 1) saat yönünün tersi 2) dönme 3) Güneş 4) 27 gün 8 saat 5) Ay'ın evreleri 6) 1 ay 7) 29 gün 12 saat 8) büyük
+      - Etk 2: D - D - D - D - Y
+      - Etk 3: Soldan Sağa: 1) yedigün 6) hilal 7) dönme 8) sondördün 9) yeniay; Yukarıdan Aşağıya: 2) ilkdördün 3) üç 4) şişkinay 5) dolunay 10) Ay
+      - Etk 4: Güneş: Kendi etrafında dönme hareketi yapar; Dünya: Kendi etrafında dönme hareketi, Güneş'in etrafında dolanma hareketi yapar; Ay: Kendi etrafında dönme hareketi, Dünya ve Güneş'in etrafında dolanma hareketi yapar.
+      - Etk 5: a) Güneş'in kendi etrafında dönmesi b) Dünya'nın kendi etrafında dönmesi c) Dünya'nın Güneş etrafında dolanması d) Ay'ın kendi etrafında dönmesi e) Ay'ın Dünya etrafında dolanması
+      - Etk 6: Ay'ın Dünya'dan bakıldığın hep aynı yüzü görülür.
+      - Etk 7: P) Dünya'nın Güneş etrafında dolanması R) Dünya'nın kendi etrafında dönmesi S) Ay'ın kendi etrafında dönmesi veya Ay'ın Dünya etrafında dolanması T) Ay'ın kendi etrafında dönmesi veya Ay'ın Dünya etrafında dolanması
+      - Etk 8: 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 21, 22, 27
+      - Etk 9: a) 1- Güneş, 2- Dünya, 3- Ay b) Güneş: Kendi etrafında dönme hareketi yapar; Dünya: Kendi etrafında dönme, Güneş'in etrafında dolanma hareketi yapar; Ay: Kendi etrafında dönme, Dünya ve Güneş'in etrafında dolanma hareketi yapar.
+      - Etk 10: a) Portakal ve Karpuz b) Portakal : Dünya, Karpuz : Güneş, Erik : Ay
+      - Etk 11: Güneş: 5 - 8 - 10; Dünya: 1 - 8 - 9 - 11; Ay: 2 - 3 - 4 - 6 - 7 - 8 - 9 - 12
+      - Etk 12: Ay'ın Dünya'ya Güneş'ten daha yakın olması
+    - Yazılıya Hazırlık: Soru 1–8 (`p_346.png`)
+      - 1: a) 1) Renk küre 2) Işık Küre 3) Çekirdek 4) Taç küre b) Çekirdek - ışık küre - renk küre - taç küre
+      - 2: a) Güneş lekesi b) Güneş'in kendi etrafında dönmesi
+      - 3: Basketbol topu: Güneş, Bezelye: Dünya
+      - 4: a) 1) dolunay 2) son dördün b) dolunay c) 1 3) yeni ay 4) ilk dördün d) 2
+      - 5: a) Ay'da meteorolojik olayların gözlenmemesi b) Yuri Gagarin c) Ali Kuşçu
+      - 6: a) Ay'ın atmosferinin Dünya'ya göre çok ince olması b) Krater
+      - 7: a) Güneş'e bakan taraf aydınlık olacak şekilde çizilir b) Son dördün c) 2 ve 8
+      - 8: a) 4 > 2 = 3 > 1 b) 2 ve 3 c) Gece ve gündüz oluşur. Saat yönünün tersi yönünde döner.
+  - **Ünite 2 (pp. 71–119):**
+    - 1. Bölüm (Kuvvet ve Kuvvetin Ölçülmesi): Etk 1–10 (`p_346.png`, `p_347.png`)
+      - Etk 1: Balon/sünger esnek(+), Hamur araba eski haline döner(-), Dinamometre birim N(+), Kuvvetin etkileri(+), Çamaşır ipi(-) | Çanta taşırken kuvvet uygularız(+), Esnek cisimler geri döner(+), Kalın yay büyük kuvvet(+).
+      - Etk 2: L Dinamometresi 1 birim: 60/10= 6 N, Ayıcığın ağırlığı: 3 x 6 = 18 N, K dinamometresi 1 birim: 18/6 = 3 N, K dinamometresinin ölçebileceği en büyük kuvvet: 3 x 10 = 30 N
+      - Etk 3: A) 42/6=7 N B) 60/6=10 N C) 12/6=2 N D) 18/6=3 N
+      - Etk 4: 1 bölme: 24/3 = 8 N | K) 2 x 8 = 16 N L) 4 x 8 = 32 N M) 1 x 8 = 8 N
+      - Etk 5: Balon - Lastik
+      - Etk 6: 9 - 5 = 4 cm (8N kuvvet 4 cm uzatır). a) 14 - 5 = 9 cm uzatır, 9 x 2 = 18 N b) 16 x 2 = 32 N, 32/8 = 4 makas c) 9 + 4 = 13 cm
+      - Etk 7: a) 1 - 2 b) 1 - 3 - 4 c) 3 d) 2 e) 2 - 1 - 4 - 3
+      - Etk 8: 3 - 4 - 2 - 1
+      - Etk 9: a) 24 b) 8 c) Dinamometrenin esnekliği bozulur
+      - Etk 10: a) A: 75, B: 60, C: 30, D: 30 b) 2
+    - 2. Bölüm (Kütle ve Ağırlık İlişkisi): Etk 1–9 (`p_347.png`)
+      - Etk 1: M > K > N > L
+      - Etk 2: D - Y - Y - Y - Y - D - D
+      - Etk 3: Cisimler üzerine yer çekimi: Ağırlık(+), Kuvvet değildir: Kütle(+), Değişmeyen madde: Kütle(+), Birimi kg/g: Kütle(+), Dinamometre: Ağırlık(+), Eşit kollu terazi: Kütle(+), Kuvvettir: Ağırlık(+), Birimi N: Ağırlık(+)
+      - Etk 4: A) A = B = C = D = E B) E > D > A = C > B
+      - Etk 5: A) Başlangıç > Bitiş; merkeze uzaklaştıkça yer çekimi azaldığı için ağırlık azalır. B) Başlangıç = Bitiş; kütle değişmez.
+      - Etk 6: a) Eşit kollu terazi b) Dinamometre
+      - Etk 7: a) Ağırlık b) Kütle c) Kastamonu ölçümü Zonguldak ölçümünden küçüktür d) Her iki şehirde kütle ölçümleri eşittir.
+      - Etk 8: a) B: 30 N, C: 20 N, D: 40 N b) D - B - C
+      - Etk 9: A: 1, B: 2, C: 3
+    - 3. Bölüm (Sürtünme Kuvveti): Etk 1–8 (`p_348.png`)
+      - Etk 1: Kapı menteşesi: Azaltmak(+), Bot tabanı: Artırmak(+), Krampon dişli: Artırmak(+), Uçak burnu sivri: Azaltmak(+), Merdiven kaydırmaz: Artırmak(+), Yola kum: Artırmak(+), Halterci tozu: Artırmak(+), Market tekeri: Azaltmak(+)
+      - Etk 2: zıt - temas - arttıkça - hava direnci - Newton'dur - aşınmasına - sürtünme - hava direncine
+      - Etk 3: Zincir: +, Yağlama: -, Krampon: +, Bot: +, Sivri burun: -, Geniş paraşüt: +
+      - Etk 4: Artırmaya: kışın lastiğe zincir takılması vb. Azaltmaya: kapı menteşelerinin yağlanması vb.
+      - Etk 5: a) 4 - 3 - 2 - 1 b) 1 - 2 - 3 - 4
+      - Etk 6: Tekerlekler sürtünme kuvvetini azaltır.
+      - Etk 7: a) Hava direnci b) Su direnci c) Daha büyük bir paraşüt d) Su miktarı azaltılabilir
+      - Etk 8: K > M > L
+    - Yazılıya Hazırlık: Soru 1–4 (`p_348.png`)
+      - 1: a) 5 b) A - B - D
+      - 2: a) M b) K = L = M c) Yayların özdeş olmaması
+      - 3: K: 3, L: 1, M: 2
+      - 4: Alperen > İpek > Metehan
+  - **Ünite 3 (pp. 121–171):**
+    - Hatırlayalım: Etk 1 (Çiçek, kedi), Etk 2 (masa, kitap) (`p_348.png`)
+    - 1. Bölüm (Hücre ve Organelleri): Etk 1–8 (`p_349.png`)
+      - Etk 1: 1) Lizozom 2) Sentriyol 3) Ribozom 4) Koful 5) Mitokondri 6) Endoplazmik redikulum 7) Golgi cisimliği 8) Kloroplast
+      - Etk 2: Bitki: Köşelidir(+), Kloroplast(+), Koful büyük ve az(+), Hücre duvarı(+); Hayvan: Yuvarlaktır(+), Sentriyol(+), Koful küçük ve çok(+)
+      - Etk 3: 1) e 2) c 3) a 4) b 5) d
+      - Etk 4: Soldan Sağa: 2) Sentrozom 3) Doku 6) Kloroplast 7) Hücre zarı 9) Endoplazmik redikulum 11) Lizozom 12) Mitokondri 14) Ribozom 15) Lam; Yukarıdan Aşağıya: 1) Golgi cisimciği 4) Koful 5) Hücre 7) Hücre duvarı 8) Çekirdek 10) Mikroskop 13) Organ
+      - Etk 5: a) Bitki hücresine aittir b) Mitokondri, koful, kloroplast c) Hücre duvarı-hücre zarı-sitoplazma-çekirdek
+      - Etk 6: a) Hayvan hücresine aittir b) Mitokondri, Endoplazmik retikulum, ribozom c) Hücre zarı-sitoplazma-çekirdek
+      - Etk 7: a) I: Hayvan hücresi II: Bitki hücresi b) Ortak: mitokondri, ribozom, koful. Farklar: Hayvan yuvarlak, bitki köşeli; bitkide hücre duvarı ve kloroplast var, hayvanda yok.
+      - Etk 8: a) II, IV, III, I, V b) I: Dolaşım sistemi II: Akciğer hücresi III: Kalp IV: Kas dokusu V: İnsan
+    - 2. Bölüm (Destek ve Hareket Sistemi): Etk 1–9 (`p_349.png`, `p_350.png`)
+      - Etk 1: Parmak: Uzun, Bilek: Kısa, Baldır: Uzun, Kaval: Uzun, Uyluk: Uzun, Kalça: Yassı, Göğüs kafesi: Yassı, Omur: Kısa, Kafatası: Yassı, Kürek: Yassı
+      - Etk 2: 1) Eklem 2) Oynamaz 3) Yarı oynar 4) Uyluk 5) Kalsiyum 6) Yassı 7) Eklem sıvısı 8) Kıkırdak 9) Kemik 10) Kısa
+      - Etk 3: 1) Uzun kemik 2) Yassı kemik 3) Kıkırdak 4) Oynar eklem 5) Eklem 6) Oynamaz eklem
+      - Etk 4: Sol (üstten alta): Yassı, Uzun, Kısa, Uzun; Sağ (üstten alta): Yassı, Yassı, Uzun, Kısa
+      - Etk 5: Kan hücresi üretir: kemik; Esneklik sağlar: kıkırdak; Birbirine bağlar: eklem
+      - Etk 6: 1) çekiç-örs-üzengi 2) kıkırdak 3) çizgili kas 4) düz kas 5) oynamaz
+      - Etk 7: 1 ve 2
+      - Etk 8: 1: Çizgili, 2: Kalp, 3: Çizgili, 4: Çizgili, 5: Kalp, 6: Çizgili, 7: Düz, 8: Kalp, 9: Çizgili, 10: Düz, 11: Çizgili
+      - Etk 9: a) düz: 1-4-6-11-12-13 b) çizgili: 2-5-7-8-9-10 c) kalp: 3
+    - Yazılıya Hazırlık: Soru 1–5 (`p_350.png`)
+      - 1: K: oynamaz, L: yarı oynar, M: oynar
+      - 2: a) yarı oynar b) yassı
+      - 3: K: hayvan, L: bitki, M: hayvan
+      - 4: a) 3-5-8 b) 1-2-4-6-7 c) hepsi d) 3-5-8 e) 3-5-8
+      - 5: V - I - II - III - IV
+  - **Ünite 4 (pp. 173–219):**
+    - 1. Bölüm (Işığın Yayılması): Etk 1–7 (`p_350.png`, `p_351.png`)
+      - Etk 1: 1) doğrusal 2) ışık ışını 3) yapay 4) mum 5) yıldırım - doğal
+      - Etk 2: 1) her 2) etkilemez 3) ışınlar 4) etkilemez 5) doğrusal 6) ışık ışını 7) olmayan-gösterimdir
+      - Etk 3: Işık kaynağından her yöne dağılan doğrusal ışınlar çizilir.
+      - Etk 4: a) Ateş böceği - Güneş - Yıldırım b) Meşale - Ampul - Mum - El Feneri - Gaz Lambası
+      - Etk 5: a) 3 b) Işık doğrusal olarak yayılır.
+      - Etk 6: 1 - 6 - 7 - 8
+      - Etk 7: a) Işık doğrusal olarak yayılır b) Kıvrılmayan düz bir boru seçmelidir
+    - 2. Bölüm (Madde ve Işık): Etk 1–9 (`p_351.png`)
+      - Etk 1: 1) Duvardan hiç geçmez, Yağlı kağıttan bir kısmı geçer, Camdan tüm ışınlar geçer 2) Cam > yağlı kağıt > duvar
+      - Etk 2: a) Saydam b) Duvar - tahta - kitap - ayna vb
+      - Etk 3: 1) 1-3-8-11-12 2) 2-4-6-9-13 3) 5-7-10-14-15
+      - Etk 4: 1) Saydam 2) Opak 3) Yarı saydam
+      - Etk 5: 1) Saydam 2) Saydam 3) Saydam
+      - Etk 6: A: Saydam, B: Opak
+      - Etk 7: Alperen: 3, Metehan: 3, Almira: 3
+      - Etk 8: A: Opak, B: Opak
+      - Etk 9: Yarı saydam
+    - 3. Bölüm (Tam Gölgenin Oluşumu): Etk 1–14 (`p_351.png`)
+      - Etk 1: D - Y - D - D - D - D
+      - Etk 2: Soldan Sağa: 2) tamgölge 7) azalır 8) ışık 9) saydam 10) doğrusal; Yukarıdan Aşağıya: 1) yarısaydam 3) Güneşsaati 4) opak 5) gölgeoyunu 6) artar
+      - Etk 3: Işık kaynağı 1 yönünde: büyür, 2 yönünde: küçülür; Top 1 yönünde: büyür, 2 yönünde: küçülür
+      - Etk 4: Engeli ışığa yaklaştırmak - ışığı engele yaklaştırmak
+      - Etk 5: Diyagram (iğne deliği / çubuk gölgesi)
+      - Etk 6: a) azalır b) artar
+      - Etk 7: a) Gölge b) Opak cisimler ışığı geçirmediği için arkalarında gölgeleri oluşur
+      - Etk 8: b) Tahta
+      - Etk 9: b) Futbol topunu ekrana yaklaştırma - Tenis topunu ışık kaynağına yaklaştırma
+      - Etk 10: a) Opak ekran ışığı geçirmediği için topu görememiştir b) Tenis topunu ışık kaynağı ile ekran arasına yerleştirmelidir
+      - Etk 11: a) 1 yönünde b) 2 yönünde c) 2 yönünde d) 1 yönünde e) Demir bilye
+      - Etk 12: Opak cismi ışık kaynağına veya ışık kaynağını opak cisme yaklaştırmış olabilir
+      - Etk 13: a) Artar b) Artar c) Azalır d) Azalır
+      - Etk 14: 1-2-3-4
+    - Yazılıya Hazırlık: Soru 1–5 (`p_351.png`, `p_352.png`)
+      - 1: a) ışık ışınlarının gözlemlenebilmesi için b) doğrusal yayılır
+      - 2: a) 1 b) ışık doğrusal olarak yayılır
+      - 3: K: kitap-defter-ayna, L: cam-şeffaf poşet-hava, M: sis-tül perde-buzlu cam
+      - 4: I: Işığa yaklaştırmıştır II: Işıktan uzaklaştırmıştır
+      - 5: a) ayna-tuğla vb b) cam. Neden: ışık doğrusal yayılır ve A maddesi opaktır.
+  - **Ünite 5 (pp. 221–276):**
+    - Hatırlayalım: Etk 1 (1: Katı+, 2: Katı+, Sıvı+, 3: Sıvı+, Gaz+), Etk 2 (Katı: Kitap, Bardak, Kalem, Silgi, Çanta; Sıvı: Limonata, Su, Çay; Gaz: Hava) (`p_352.png`)
+    - 1. Bölüm (Maddenin Tanecikli Yapısı): Etk 1–11 (`p_352.png`, `p_353.png`)
+      - Etk 1: a) taneciklerden b) titreşim c) dönme d) dönme e) bağımsız f) gaz g) enerjisi h) şekli i) ötelemedir j) gaz
+      - Etk 2: Katı: Tanecikli(+), Boşluklu(+), Titreşim(+); Sıvı: Tanecikli(+), Boşluklu(+), Titreşim(+), Öteleme(+); Gaz: Tanecikli(+), Boşluklu(+), Sıkıştırılabilir(+), Titreşim(+), Öteleme(+)
+      - Etk 3: Sıkıştırılamaz: Bardak, Kolonya, Çay, Ayran; Sıkıştırılabilir: Su buharı, Çakmak gazı
+      - Etk 4: 1: Katı(+), 2: Katı(+), Sıvı(+), Gaz(+), 3: Sıvı(+), Gaz(+), 4: Gaz(+), 5: Gaz(+), 6: Sıvı(+), 7: Katı(+), Sıvı(+), Gaz(+)
+      - Etk 5: Su: Sıvı, Tahta: Katı, Kitap: Katı, LPG: Gaz, Oksijen: Gaz
+      - Etk 6: Katı: Tahta, Sünger, Plastik, Kitap, Silgi; Sıvı: Zeytinyağı, Süt, Su; Gaz: Oksijen, Helyum, Hava
+      - Etk 7: a) I: Gaz, II: Sıvı, III: Katı b) a) III b) I ve II c) III d) I
+      - Etk 8: a) Kum: Katı, Su: Sıvı, Hava: Gaz b) Hava > Su > Kum c) L ve M
+      - Etk 9: a) M b) L c) K ve M
+      - Etk 10: A: Helyum, B: Alüminyum tepsi, C: Kolonya
+      - Etk 11: a) K-L-M b) K c) K ve L
+    - 2. Bölüm (Isı ve Sıcaklık): Etk 1–8 (`p_353.png`)
+      - Etk 1: 1) termometre 2) kalorimetre 3) joule veya kalori 4) selsiyus 5) ısı
+      - Etk 2: Filiz: ısısı-sıcaklığı, Orhan: sıcaklık-ısı, Sinan: ısı-sıcaklık, Türkan: sıcaklık-ısı, Tanju: sıcaklık-ısı
+      - Etk 3: Isı: 1, 2, 3, 6, 8, 9, 10; Sıcaklık: 4, 5, 7
+      - Etk 4: Doğru: 3-4-5-8-9; Yanlış: 1-2-6-7-10
+      - Etk 5: 2. Çıkış
+      - Etk 6: a) 40+20=60, 60/2=30 b) 2 > 3 > 1 c) I. Kaptaki: Artar, II. Kaptaki: Azalır
+      - Etk 7: a) B b) A
+      - Etk 8: a) K: 60 °C, L: 20 °C b) K'dan L'ye c) 40 °C d) 10 dakika
+    - 3. Bölüm (Maddenin Hâl Değişimi): Etk 1–8 (`p_353.png`, `p_354.png`)
+      - Etk 1: a) Buharlaşma: c, Kırağılaşma: f, Erime: b, Yoğuşma: e, Donma: d, Süblimleşme: a; b) Erime: Isı alır, Buharlaşma: Isı alır, Erime: Isı alır, Kırağılaşma: Isı verir, Yoğuşma: Isı verir, Süblimleşme: Isı alır, Buharlaşma: Isı alır
+      - Etk 2: Yüzeyde: Buharlaşma(+); Dışarıdan ısı alır: Kaynama(+), Buharlaşma(+); Sıvıdan gaza en hızlı: Kaynama(+); Belli sıcaklıkta: Kaynama(+); Her yerinde: Kaynama(+); Gaz hale geçiş: Kaynama(+), Buharlaşma(+); Her sıcaklıkta: Buharlaşma(+); Sıcaklık değişmez: Kaynama(+)
+      - Etk 3: a) 1 - 4 - 5 - 6 b) 2 - 3 - 7
+      - Etk 4: 1) D 2) D 3) D 4) D 5) Y 6) D
+      - Etk 5: a) Erime b) 40 °C c) İki kere d) 60 °C
+      - Etk 6: a) Buharlaşma b) Kaynama c) II. Durum
+      - Etk 7: a) Erime b) Yoğuşma c) Buharlaşma
+      - Etk 8: Yoğuşma
+    - 4. Bölüm (Madde ve Isı): Etk 1–4 (`p_354.png`)
+      - Etk 1: İletken: Ütü tabanı, Tava pişirme alanı, Çaydanlık pişirme bölmesi, Izgara pişirme bölmesi, Petek borusu, Tost makinesi pişirme yeri; Yalıtkan: Ütü sapı, Tava sapı, Çaydanlık sapı, Izgara sapı, Petek vanası, Tost makinesi tutma yeri
+      - Etk 2: Yalıtkan: 1. Seramik, 2. Cam yünü, 3. Plastik, 6. Strafor köpük, 8. Bakalit, 10. Tahta, 11. Yün; İletken: 4. Alüminyum, 5. Çelik, 7. Demir, 9. Bakır
+      - Etk 3: 1) gazlarda 2) yavaştır 3) yalıtım 4) enerji 5) farklıdır 6) ısıyı ileten - ısıyı yalıtan 7) ısı yalıtımı 8) ısı iletkeni 9) hava boşluğu 10) bakalit 11) ısı yalıtkanı
+      - Etk 4: D - D - D - Y - D - D - Y - D
+    - Yazılıya Hazırlık: Soru 1–6 (`p_354.png`)
+      - 1: a) hava b) tanecikler arasında bulunan boşluk
+      - 2: a) K: gaz, L: sıvı, M: katı b) K: buhar, L: su, M: bardak
+      - 3: K: <-- 60 °C, L: Isı alışverişi olmaz, M: --> 70 °C, N: <-- 60 °C, P: <-- 55 °C
+      - 4: a) N - M - L b) Alüminyum - bakır vb.
+      - 5: a) 20 °C b) 2. dakika c) sudan paraya d) 45 °C
+      - 6: a) A - 4 / B - 1 / C - 6 b) B - 4
+  - **Ünite 6 (pp. 280–314):**
+    - Hatırlayalım: Etk 1 (3 ampul, 2 pil, 1 anahtar), Etk 2 (bağlantı kablosu kopuk olduğundan ampul ışık vermez) (`p_354.png`)
+    - 1. Bölüm (Devre Elemanlarının Sembollerle Gösterimi): Etk 1–7 (`p_355.png`)
+      - Etk 1: 1 ve 4
+      - Etk 2: 1) Y 2) Y 3) Y 4) D 5) D 6) D 7) D 8) Y 9) D 10) Y
+      - Etk 3: Devre şeması çizimleri
+      - Etk 4: a) I: Pil, II: Ampul, III: İletken kablo, IV: Anahtar; b) I: Enerji sağlar, II: Işık enerjisine çevirir, III: İletir, IV: Açıp kapatır
+      - Etk 5: İletken kablo kopuk olduğu için ampuller ışık vermemektedir. İletken bir kablo ile birleştirilmelidir.
+      - Etk 6: a) 1: Piller ters bağlı, 2: Kablo kopuk, 3: Anahtar açık, 4: Piller ters bağlı; b) 1: +,-,+,- bağlanmalı, 2: Kablo kopukluğu giderilmeli, 3: Anahtar kapatılmalı, 4: +,-,+,- bağlanmalı
+      - Etk 7: Devre şeması (1 ampul, 2 pil, 1 anahtar)
+    - 2. Bölüm (Basit Elektrik Devresinde Ampul Parlaklığını Etkileyen Değişkenler): Etk 1–4 (`p_355.png`)
+      - Etk 1: Pil sayısını artırmalıdır.
+      - Etk 2: Soldan Sağa: 3) ampul 5) bağımsızdeğişken 8) kablo; Yukarıdan Aşağıya: 1) bağımlıdeğişken 2) duy 4) devre 6) anahtar 7) pil
+      - Etk 3: 2 - 3 - 6
+      - Etk 4: a) Kontrol: ampul sayısı, Bağımsız: pil sayısı, Bağımlı: ampul parlaklığı; b) Kontrol: pil sayısı, Bağımsız: ampul sayısı, Bağımlı: ampul parlaklığı
+    - Yazılıya Hazırlık: Soru 1–6 (`p_355.png`)
+      - 1: Bilimsel iletişimi kolaylaştırmak
+      - 2: K) Ampul: 3, Pil: 2, Anahtar: 0; L) Ampul: 4, Pil: 4, Anahtar: 2; M) Ampul: 2, Pil: 3, Anahtar: 1
+      - 3: L. Pil sayısı fazladır
+      - 4: 1. Düzenek: Bağımlı: Ampul parlaklığı, Bağımsız: Ampul sayısı, Kontrol: Pil sayısı; 2. Düzenek: Bağımlı: Ampul parlaklığı, Bağımsız: Ampul sayısı, Kontrol: Pil sayısı
+      - 5: Şema çizimi
+      - 6: Pil: Enerji üretir, Anahtar: Açıp kapamaya yarar, Kablo: Elektriği iletir, Ampul: Işık enerjisine dönüştürür
+  - **Ünite 7 (pp. 316–341):**
+    - Hatırlayalım: Etk 1 (a: cam, defter, pil, metal kutu, pet şişe, kumaş; b: taş, yemek, muz, çikolata, süt, kalem ucu), Etk 2 (a: D, b: Y, c: D, d: Y, e: D, f: D) (`p_356.png`)
+    - 1. Bölüm (Evsel Atıklar ve Geri Dönüşüm): Etk 1–4 (`p_356.png`)
+      - Etk 1: 1) D 2) D 3) Y 4) Y 5) D 6) Y 7) D 8) D 9) D 10) D
+      - Etk 2: 1) geri kazanım 2) yeniden kullanma 3) geri dönüşüm 4) sınıflandırarak 5) içme suyu 6) tıbbi atıkların 7) ileri dönüşüm 8) katı atıklara 9) hammadde 10) dönüştürülemez
+      - Etk 3: a - c - d - e
+      - Etk 4: 1. Naylon poşet (Katı+, Var+), 2. İlaçlar (Katı+, Yok+), 3. Kırık bardak (Katı+, Var+), 4. Yağ (Sıvı+, Var+), 5. Meyve kabukları (Katı+, Yok+), 6. Plastik tabak (Katı+, Var+), 7. Besin atığı (Katı+, Yok+), 8. Pil (Katı+, Var+)
+    - Yazılıya Hazırlık: Soru 1–5 (`p_356.png`)
+      - 1: M modeli kullanılmalıdır. Çünkü K ve L modellerinde üretilen ürünler kullanıldıktan sonra atılırken, M modelinde geri dönüştürülmekte, tamir edilmekte veya yeniden kullanılmaktadır.
+      - 2: a) karton-yeterli geri dönüşüm tesisinin bulunmaması b) Toplama kampanyası yapılabilir
+      - 3: Plastik poşet-cam kağıt
+      - 4: 1 - 5 - 6 - 7 - 8 geri dönüştürülebilir
+      - 5: yeniden kullanma
+    - Unit 7 Test Keys: KT1 (C, D, C, D, C, D), BUM1 (B, B, C, C), BEC1 (C, B, D, C, D, A, D, C), BEC2 (C, A, D, A, C, B, C, D), BAĞ1 (D, B, B), BAĞ2 (B, C, A), BAĞ3 (D, D, D)
+
+- **Türkçe Status:**
+  - TOC page 3 inspected (`toc_pages/turkce_p3.png`).
+  - Answer keys located at `answer_keys/turkce/p_358.png` to `p_368.png`.
+  - MC tests already defined in `build_and_upload_bumerang.py`.
+  - Open-ended answers to be visually transcribed from `p_358.png` - `p_368.png`.
+
+---
+
+### 3. Key Findings & Architecture Decisions
+- **Fen Structure Interleaving:**
+  In Fen Bilimleri, activities in the textbook are separated and numbered per Bölüm (e.g. 1. Bölüm Etkinlik 1–15, 2. Bölüm Etkinlik 1–21).
+  The chronological order in each unit:
+  - Bölüm 1: Etkinlikler -> Kavratan Test 1 -> Bumerang Test 1
+  - Bölüm 2: Etkinlikler -> Kavratan Test 2 (..3) -> Bumerang Test 2 (..3)
+  - Bölüm 3 / Final: Etkinlikler -> Kavratan / Bumerang -> Beceri Temelli -> Bağlam Temelli -> Yazılıya Hazırlık.
+- **Türkçe Structure Interleaving:**
+  In Türkçe, activities run 1 to N continuously per Tema (e.g. Tema 1 has 39 activities).
+  Sections:
+  - Söz Varlığı: `slice_dict(ETKINLIKLER, 1, 12)` + Bilgi ve Kavrama Testleri + Bumerang Test 1
+  - Metinde Anlam: `slice_dict(ETKINLIKLER, 13, 25)` + Bilgi ve Kavrama Testleri + Bumerang Test 2
+  - Dil Yapıları: `slice_dict(ETKINLIKLER, 26, 35)` + Bilgi ve Kavrama Testleri + Bumerang Test 3
+  - Yazım Noktalama: `slice_dict(ETKINLIKLER, 36, 39)` + Bilgi ve Kavrama Testleri + Bumerang Test 4 + Zenginleştirme + Beceri + Bağlam + Yazılıya Hazırlık.
+- **Start Question Numbering Integrity:**
+  Every sliced open-ended test must include `startQuestionNumber` in `__meta` matching the start of the slice so the UI renders original textbook numbers.
+
+---
+
+### 4. Active Context
+- **Workspace:** `e:\Yeni klasör`
+- **Key Files:**
+  - `bumerang_mat_answers.py`: Matematik reference implementation.
+  - `build_and_upload_bumerang.py`: Main builder & uploader script.
+  - `verify_supabase.py`: Supabase verification query script.
+  - `answer_keys/fen/p_344.png` to `p_356.png`: All Fen answer keys (fully transcribed above!).
+  - `answer_keys/turkce/p_358.png` to `p_368.png`: Türkçe answer keys.
+- **Supabase Credentials & Book IDs:**
+  - URL: `https://bstcisckpnmwmcggmtfi.supabase.co`
+  - Key: `sb_publishable_7Cl0FqN78pFePi0J-rf1wA_maOE4sJ9`
+  - Fen Book ID: `tb_bumerang_fen_5` (`74625f62-756d-4572-a16e-675f66656e5f`)
+  - Türkçe Book ID: `tb_bumerang_turkce_5` (`74625f62-756d-4572-a16e-675f7475726b`)
+
+---
+
+### 5. Next Steps
+1. **Create `bumerang_fen_answers.py`:**
+   - Write out python dictionaries for all 7 units using the complete transcription above (`FEN_U1_BOLUM1_ETK`, `FEN_U1_BOLUM2_ETK`, `FEN_U1_BOLUM3_ETK`, `FEN_U1_YAZILI`, ..., `FEN_U7_BOLUM1_ETK`, `FEN_U7_YAZILI`).
+2. **Refactor `build_fen_book()` in `build_and_upload_bumerang.py`:**
+   - Change `units` to sequential `items` format (matching `build_mat_book()`), interleaving each Bölüm's OE Etkinlik test with its respective MC Kavratan/Bumerang tests, and placing Yazılıya Hazırlık at unit ends.
+3. **Inspect & Transcribe Türkçe (`bumerang_turkce_answers.py`):**
+   - View `answer_keys/turkce/p_358.png` through `p_368.png` via `view_file` (or invoke a subagent).
+   - Transcribe all 6 Temas' Etkinlikler and Yazılıya Hazırlık questions into `bumerang_turkce_answers.py`.
+   - Refactor `build_turkce_book()` with sectional `items` using `slice_dict`.
+4. **Execution & Supabase Sync:**
+   - Run `python build_and_upload_bumerang.py` to regenerate JSONs and upsert to Supabase.
+   - Run `python verify_supabase.py` to verify all 3 books (Matematik, Fen, Türkçe) have full authentic test counts, question counts, and zero placeholders.
+
+---
+
+### 6. Commitments & Constraints
+- Absolutely no dummy placeholders; transcribe verbatim authentic answers from printed answer keys.
+- Preserve sub-questions (e.g. a, b, c parts) in open-ended answers.
+- Preserve original start question numbers (`startQuestionNumber`) and integer keys for every activity test slice.
+</summary>
+
+# Conversation Logs
+Start with the compact transcript; if a step has `truncated_fields`, read only that specific line in `transcript_full.jsonl`:
+- `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`
+- `<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript_full.jsonl`

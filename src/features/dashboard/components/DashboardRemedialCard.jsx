@@ -528,16 +528,70 @@ export default function DashboardRemedialCard({
                     /test|deneme|sınav|soru/i.test(task.title || task.topic || task.testName)
                   );
 
-                  const testResult = task.testResult || (task.submission ? {
-                    score: task.submission.score !== undefined && !isNaN(Number(task.submission.score)) ? Math.round(Number(task.submission.score)) : (task.submission.totalQuestions ? Math.round(((task.submission.correctCount || 0) / task.submission.totalQuestions) * 100) : 0),
-                    correctCount: Number(task.submission.correctCount ?? task.submission.correct_count ?? 0),
-                    wrongCount: Number(task.submission.wrongCount ?? task.submission.wrong_count ?? 0),
-                    emptyCount: Number(task.submission.emptyCount ?? task.submission.blankCount ?? 0),
-                    totalQuestions: Number(task.submission.totalQuestions ?? task.submission.questionCount ?? 0),
-                    net: task.submission.net !== undefined ? Number(task.submission.net) : Math.max(0, Math.round(((Number(task.submission.correctCount ?? 0)) - (Number(task.submission.wrongCount ?? 0) / 3)) * 100) / 100)
-                  } : null);
+                  const testResult = task.testResult ? {
+                    ...task.testResult
+                  } : (task.submission ? (() => {
+                    const sub = task.submission;
+                    const c = Number(sub.correctCount ?? sub.correct_count ?? sub.correct ?? 0);
+                    const w = Number(sub.wrongCount ?? sub.wrong_count ?? sub.wrong ?? 0);
+                    const e = Number(sub.emptyCount ?? sub.empty_count ?? sub.blankCount ?? sub.blank_count ?? 0);
+                    const explicitQ = Number(sub.totalQuestions ?? sub.questionCount ?? task.questionCount ?? 0);
+                    const q = (c + w + e > 0) ? (c + w + e) : explicitQ;
 
-                  const successScore = testResult ? Number(testResult.score || 0) : null;
+                    let scoreVal = 0;
+                    const explicitPct = sub.scorePercentage ?? sub.scorePct ?? sub.accuracy ?? sub.successRate;
+                    if (explicitPct !== undefined && explicitPct !== null && !isNaN(Number(explicitPct))) {
+                      scoreVal = Math.min(100, Math.max(0, Math.round(Number(explicitPct))));
+                    } else if (q > 0) {
+                      scoreVal = Math.min(100, Math.max(0, Math.round((c / q) * 100)));
+                    } else if (c > 0 && w === 0) {
+                      scoreVal = 100;
+                    } else if (c + w > 0) {
+                      scoreVal = Math.min(100, Math.max(0, Math.round((c / (c + w)) * 100)));
+                    } else if (sub.score !== undefined && sub.score !== null && !isNaN(Number(sub.score))) {
+                      scoreVal = Math.min(100, Math.max(0, Math.round(Number(sub.score))));
+                    }
+
+                    return {
+                      score: scoreVal,
+                      correctCount: c,
+                      wrongCount: w,
+                      emptyCount: e,
+                      totalQuestions: q,
+                      net: sub.net !== undefined ? Number(sub.net) : Math.max(0, Math.round((c - (w / 3)) * 100) / 100)
+                    };
+                  })() : null);
+
+                  // Compute accurate success percentage with failsafe against raw net scores:
+                  const successScore = (() => {
+                    if (!testResult) return null;
+                    const c = Number(testResult.correctCount || 0);
+                    const w = Number(testResult.wrongCount || 0);
+                    const e = Number(testResult.emptyCount || 0);
+                    const q = Number(testResult.totalQuestions || (c + w + e > 0 ? c + w + e : 0));
+                    const explicitPct = testResult.scorePercentage ?? testResult.scorePct;
+                    if (explicitPct !== undefined && explicitPct !== null && !isNaN(Number(explicitPct))) {
+                      return Math.min(100, Math.max(0, Math.round(Number(explicitPct))));
+                    }
+                    if (testResult.score !== undefined && testResult.score !== null && !isNaN(Number(testResult.score))) {
+                      const rawSc = Number(testResult.score);
+                      if (q > 0) {
+                        const calculatedPct = Math.round((c / q) * 100);
+                        if (rawSc < calculatedPct && (rawSc === c || rawSc === Number(testResult.net))) {
+                          return calculatedPct;
+                        }
+                      }
+                      return Math.min(100, Math.max(0, Math.round(rawSc)));
+                    }
+                    if (q > 0) return Math.min(100, Math.max(0, Math.round((c / q) * 100)));
+                    if (c > 0 && w === 0) return 100;
+                    return 0;
+                  })();
+
+                  if (testResult && successScore !== null) {
+                    testResult.score = successScore;
+                  }
+
                   const statusTag = successScore !== null ? (
                     successScore >= 80 ? { icon: '🏆', label: 'Güçlü', color: '#10b981', bg: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7', border: 'rgba(16,185,129,0.35)' }
                     : successScore >= 60 ? { icon: '📈', label: 'Gelişiyor', color: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', border: 'rgba(245,158,11,0.35)' }
@@ -767,23 +821,6 @@ export default function DashboardRemedialCard({
                                     </span>
                                   )}
                                 </div>
-
-                                {testResult.net !== undefined && testResult.net !== null && (
-                                  <span style={{
-                                    fontSize: isMobile ? '0.7rem' : '0.76rem',
-                                    fontWeight: 900,
-                                    color: '#2563eb',
-                                    background: isDark ? 'rgba(37,99,235,0.18)' : '#eff6ff',
-                                    border: isDark ? '1px solid rgba(37,99,235,0.35)' : '1px solid #bfdbfe',
-                                    padding: '1px 7px',
-                                    borderRadius: 6,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 3
-                                  }}>
-                                    🎯 {testResult.net} Net
-                                  </span>
-                                )}
                               </div>
 
                               <div style={{

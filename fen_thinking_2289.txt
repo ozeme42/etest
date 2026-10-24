@@ -1,0 +1,3 @@
+Placeholder summaries for Fen and Türkçe require verification of the actual question counts within the PDF files. Inspection of answer keys for both subjects will be necessary. Analyzing the content of `answer_keys/fen` and `answer_keys/turkce` is the next step.
+
+

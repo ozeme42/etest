@@ -1,0 +1,18 @@
+Each thematic unit encompasses multiple-choice assessments and open-ended activities. Multiple-choice tests are categorized (Kavratan, Bilgi ve Kavrama, etc.) with associated answer keys. Open-ended components include "Yazılıya Hazırlık" tests and "Etkinlikler".
+
+
+Analyzing answer key pages to determine the structure of "Etkinlik" and "Yazılıya Hazırlık" sections. Developing a script to parse these open-ended sections and extract the relevant information. Considering the total number of tests and questions per book. Calculating the breakdown for the first unit to understand the data's complexity.
+
+
+Analyzing the structure of the units within the data. Identifying the different test types ("Kavratan", "Bumerang", etc.) and their question counts for each unit. Confirming the consistent format of "Yazılıya Hazırlık" and "Etkinlikler" as open-ended sections across all units. Developing a data model to represent this structure effectively, ensuring all test components are captured systematically.
+
+
+Unit 7 and Mathematics theme 1 and 2 structures are being analyzed for test types and question counts.  Initial focus on accurately parsing the nested data of each unit, identifying multiple-choice test (Kavratan, Bumerang, etc.) and open-ended section ("Yazılıya Hazırlık", "Etkinlikler") question counts. Constructing a complete data structure to effectively represent these components.
+
+
+Examining the complete data structure of each theme. Extracting the total question count for each test type within Themes 3-7. The initial data model is updated to accurately represent the varied structure, including both multiple-choice and open-ended components.
+
+
+The question counts for each test type within the "Türkçe" theme were extracted and collated. A preliminary data structure for this thematic unit has been established to reflect the hierarchical nature of the assessments. The data model is updated for each test type and their associated questions. Further analysis needed to capture the specifics of each theme.
+
+

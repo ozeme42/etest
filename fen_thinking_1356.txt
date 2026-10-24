@@ -1,0 +1,3 @@
+The image is exceptionally clear, high-resolution. Isolated single letters weren't grouped due to grid lines; however, visual inspection or cropping each table/OCR of grid cells is a viable approach. The text is readable: starting with the "Kavratan Test" table: 1: D, 2: B, 3: D, 4: B, 5: A, 6: B.
+
+

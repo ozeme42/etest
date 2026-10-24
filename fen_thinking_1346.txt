@@ -1,0 +1,12 @@
+The table of contents provides a clear structure across all three books. Currently analyzing the specific test types present within the first book, *FEN BİLİMLERİ*, and its initial unit.
+
+
+The structure reveals recurring test types within each unit: "Kavratan," "Bumerang," "Beceri Temelli," and "Bağlam Temelli," in addition to unit-specific activities and preparation ("Etkinlikler & Yazılıya Hazırlık"). These test types appear consistently across multiple units within the first book, suggesting a defined assessment strategy. Analyzing patterns in test distribution and titles across multiple books could reveal common pedagogical approaches.
+
+
+Now examining the second book, *7. Ünite: Sürdürülebilir Yaşam ve Geri Dönüşüm*, and the *MATEMATİK* section. The test type patterns from the first book (*FEN BİLİMLERİ*) appear to repeat within this section of the new book. The number of tests within each type varies by topic within *MATEMATİK*.
+
+
+Examining the third book, the *TÜRKÇE* section reveals a different test structure compared to *FEN BİLİMLERİ* and *MATEMATİK*. There's a broader range of test types within each theme, including "Bilgi ve Kavrama," "Zenginleştirme," and more specific tests like "Bumerang" and "Beceri." The structure indicates a potential focus on comprehensive assessment, targeting various language skills and knowledge domains within each theme. Analyzing the content of the answer keys will be crucial to understand the expected responses and assessment criteria.
+
+
