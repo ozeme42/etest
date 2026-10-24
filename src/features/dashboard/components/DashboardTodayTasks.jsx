@@ -475,12 +475,16 @@ export default memo(function DashboardTodayTasks({
                       gap: isMobile ? 3 : 6,
                       lineHeight: 1
                     }}>
-                      {/* Tarih Numarası */}
+                      {/* Tarih Numarası ve Simge */}
                       <span style={{
-                        fontSize: isMobile ? '0.88rem' : '1.05rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: isMobile ? 2 : 4,
+                        fontSize: isMobile ? '0.82rem' : '1rem',
                         fontWeight: 900,
                         fontFamily: "'Outfit', sans-serif"
                       }}>
+                        <Calendar size={isMobile ? 10 : 12} style={{ opacity: isSelected ? 0.95 : 0.6, flexShrink: 0 }} />
                         {dateNumber || '-'}
                       </span>
 
