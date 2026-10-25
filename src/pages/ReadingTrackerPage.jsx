@@ -4,7 +4,8 @@ import {
   Plus, CheckCircle2, Bookmark, Flame, Calendar, 
   Award, Star, Trash2, Edit3, Sparkles, 
   BarChart3, X, Play, CheckSquare, Square, AlertTriangle,
-  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List, RotateCcw, ArrowLeft
+  ArrowUp, ArrowDown, ArrowUpToLine, GripVertical, List, RotateCcw, ArrowLeft,
+  LayoutGrid
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useReading, READING_CATEGORIES, BOOK_COLORS } from '../context/ReadingContext';
@@ -12,6 +13,72 @@ import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import BulkAddBooksModal from '../components/reading/BulkAddBooksModal';
 import CreateReadingScheduleModal from '../components/reading/CreateReadingScheduleModal';
+
+/* ─── BÜYÜK DAİRESEL İLERLEME VE TAMAMLAMA ÇİZGİSİ ─── */
+function CircularProgressRing({ 
+  pct = 0, 
+  size = 144, 
+  stroke = 9, 
+  color = '#ec4899', 
+  trackColor = 'rgba(255,255,255,0.08)',
+  glow = true,
+  children 
+}) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const validPct = Math.min(100, Math.max(0, isNaN(pct) ? 0 : Number(pct)));
+  const offset = circ - (validPct / 100) * circ;
+
+  return (
+    <div style={{ position: 'relative', width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg 
+        width={size} 
+        height={size} 
+        style={{ 
+          transform: 'rotate(-90deg)', 
+          position: 'absolute', 
+          top: 0, 
+          left: 0,
+          filter: glow && validPct > 0 ? `drop-shadow(0 0 8px ${color}66)` : 'none'
+        }}
+      >
+        <circle 
+          cx={size / 2} 
+          cy={size / 2} 
+          r={r} 
+          fill="none" 
+          stroke={trackColor} 
+          strokeWidth={stroke} 
+        />
+        <circle 
+          cx={size / 2} 
+          cy={size / 2} 
+          r={r} 
+          fill="none" 
+          stroke={color} 
+          strokeWidth={stroke} 
+          strokeDasharray={circ} 
+          strokeDashoffset={offset} 
+          strokeLinecap="round" 
+          style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} 
+        />
+      </svg>
+      <div style={{ 
+        width: size - (stroke * 2) - 8, 
+        height: size - (stroke * 2) - 8, 
+        borderRadius: '50%', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function ReadingTrackerPage() {
   const navigate = useNavigate();
@@ -37,6 +104,7 @@ export default function ReadingTrackerPage() {
   } = useReading();
 
   const [activeTab, setActiveTab] = useState('reading'); // 'reading' | 'to_read' | 'completed'
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState(new Set());
   const [draggedBookId, setDraggedBookId] = useState(null);
@@ -887,12 +955,12 @@ export default function ReadingTrackerPage() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '0.85rem',
+                marginBottom: '1rem',
                 flexWrap: 'wrap',
-                gap: 8
+                gap: 10
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 900, fontSize: '1rem' }}>
                     📖 Şu An Okunan Kitaplar
                   </span>
                   <span style={{
@@ -907,28 +975,318 @@ export default function ReadingTrackerPage() {
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleOpenAdd('reading')}
-                  style={{
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '0.65rem',
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
-                    color: 'white',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    display: 'flex',
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  {/* Görünüm Değiştirici */}
+                  <div style={{
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 4
-                  }}
-                >
-                  <Plus size={14} /> Yeni Kitap Ekle
-                </button>
+                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                    padding: 3,
+                    borderRadius: '0.65rem',
+                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('grid')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 10px',
+                        borderRadius: '0.45rem',
+                        border: 'none',
+                        background: viewMode === 'grid' ? (isDark ? '#ec4899' : '#db2777') : 'transparent',
+                        color: viewMode === 'grid' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <LayoutGrid size={13} /> Dairesel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 10px',
+                        borderRadius: '0.45rem',
+                        border: 'none',
+                        background: viewMode === 'table' ? (isDark ? '#ec4899' : '#db2777') : 'transparent',
+                        color: viewMode === 'table' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <List size={13} /> Tablo
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAdd('reading')}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '0.65rem',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                      color: 'white',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Plus size={14} /> Yeni Kitap Ekle
+                  </button>
+                </div>
               </div>
 
-              {/* Okunanlar Tablosu */}
+              {/* Dairesel Kartlar Görünümü (BÜYÜK DAİRELER VE TAMAMLAMA ÇİZGİSİ) */}
+              {viewMode === 'grid' ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gap: isMobile ? '1rem' : '1.25rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {readingBooks.map((book) => {
+                    const colorObj = getColorObj(book.color);
+                    const progressPct = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
+                    const remainingPages = Math.max(0, book.totalPages - book.currentPage);
+                    const strokeColor = colorObj.bg || '#ec4899';
+
+                    return (
+                      <div
+                        key={book.id}
+                        style={{
+                          background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                          borderRadius: '1.5rem',
+                          padding: '1.4rem 1.1rem 1.2rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          position: 'relative',
+                          boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 4px 18px rgba(0,0,0,0.05)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                      >
+                        {/* Kategori Rozeti */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 14,
+                          right: 14,
+                          fontSize: '0.65rem',
+                          padding: '3px 8px',
+                          borderRadius: 99,
+                          background: colorObj.light,
+                          color: colorObj.bg,
+                          fontWeight: 800
+                        }}>
+                          {book.category || 'Roman'}
+                        </div>
+
+                        {/* Büyük Dairesel Kitap & Tamamlama Çizgisi */}
+                        <div style={{ marginTop: 6, marginBottom: 14 }}>
+                          <CircularProgressRing
+                            pct={progressPct}
+                            size={isMobile ? 130 : 148}
+                            stroke={9}
+                            color={strokeColor}
+                            trackColor={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                          >
+                            <div style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              background: isDark 
+                                ? `radial-gradient(circle, ${colorObj.light} 0%, rgba(15,23,42,0.7) 100%)`
+                                : `radial-gradient(circle, ${colorObj.light} 0%, #ffffff 100%)`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: `inset 0 0 20px ${colorObj.light}`
+                            }}>
+                              <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>📖</span>
+                              <span style={{
+                                fontSize: '1.4rem',
+                                fontWeight: 900,
+                                color: isDark ? '#ffffff' : '#0f172a',
+                                marginTop: 3,
+                                letterSpacing: '-0.02em',
+                                lineHeight: 1.1
+                              }}>
+                                %{progressPct}
+                              </span>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                color: strokeColor,
+                                marginTop: 2
+                              }}>
+                                {book.currentPage} / {book.totalPages} sf
+                              </span>
+                            </div>
+                          </CircularProgressRing>
+                        </div>
+
+                        {/* Kitap Başlığı & Yazar */}
+                        <div style={{ width: '100%', marginBottom: 10 }}>
+                          <h4 style={{
+                            fontSize: '0.98rem',
+                            fontWeight: 900,
+                            color: isDark ? '#f8fafc' : '#0f172a',
+                            margin: '0 0 4px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            minHeight: '2.5em',
+                            lineHeight: 1.25
+                          }}>
+                            {book.title}
+                          </h4>
+                          <div style={{ fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                            {book.author ? `✍️ ${book.author}` : '—'}
+                          </div>
+                        </div>
+
+                        {/* Kalan Sayfa Rozeti */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '4px 10px',
+                          borderRadius: 99,
+                          background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          marginBottom: 14,
+                          width: 'fit-content'
+                        }}>
+                          <span>Kalan:</span>
+                          <strong style={{ color: remainingPages === 0 ? '#10b981' : strokeColor }}>
+                            {remainingPages} sf.
+                          </strong>
+                          {book.startDate && (
+                            <span style={{ color: isDark ? '#64748b' : '#94a3b8' }}>• 🗓️ {book.startDate}</span>
+                          )}
+                        </div>
+
+                        {/* Aksiyon Butonları */}
+                        <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenProgress(book)}
+                              style={{
+                                padding: '0.55rem 0.6rem',
+                                borderRadius: '0.75rem',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #ec4899, #f43f5e)',
+                                color: 'white',
+                                fontWeight: 800,
+                                fontSize: '0.76rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
+                                boxShadow: '0 2px 8px rgba(236,72,153,0.3)'
+                              }}
+                            >
+                              <Bookmark size={13} />
+                              <span>Sayfa Gir</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenFinish(book)}
+                              style={{
+                                padding: '0.55rem 0.6rem',
+                                borderRadius: '0.75rem',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                color: 'white',
+                                fontWeight: 800,
+                                fontSize: '0.76rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
+                                boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
+                              }}
+                            >
+                              <CheckCircle2 size={13} />
+                              <span>Bitir</span>
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(book)}
+                              style={{
+                                background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 10px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Edit3 size={12} /> Düzenle
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
+                                  deleteBook(book.id);
+                                }
+                              }}
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 10px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Trash2 size={12} /> Sil
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Okunanlar Tablosu */
               <div style={{
                 background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
@@ -1138,6 +1496,7 @@ export default function ReadingTrackerPage() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -1561,6 +1920,55 @@ export default function ReadingTrackerPage() {
                         <CheckSquare size={14} /> Çoklu Seç / Sil
                       </button>
 
+                      {/* Görünüm Değiştirici */}
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                        padding: 3,
+                        borderRadius: '0.65rem',
+                        border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setViewMode('grid')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '4px 10px',
+                            borderRadius: '0.45rem',
+                            border: 'none',
+                            background: viewMode === 'grid' ? (isDark ? '#6366f1' : '#4f46e5') : 'transparent',
+                            color: viewMode === 'grid' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <LayoutGrid size={13} /> Dairesel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setViewMode('table')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '4px 10px',
+                            borderRadius: '0.45rem',
+                            border: 'none',
+                            background: viewMode === 'table' ? (isDark ? '#6366f1' : '#4f46e5') : 'transparent',
+                            color: viewMode === 'table' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <List size={13} /> Tablo
+                        </button>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setIsBulkModalOpen(true)}
@@ -1605,7 +2013,255 @@ export default function ReadingTrackerPage() {
                 </div>
               </div>
 
-              {/* ── DOĞRUDAN OKUMA SIRALAMA TABLOSU (KARTLAR KALDIRILDI) ── */}
+              {/* Dairesel Kartlar Görünümü (BÜYÜK DAİRELER VE TAMAMLAMA ÇİZGİSİ) */}
+              {viewMode === 'grid' ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gap: isMobile ? '1rem' : '1.25rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {toReadBooks.map((book, idx) => {
+                    const rankInfo = cumulativeRanges.get(book.id) || { rank: idx + 1, startPage: 1, endPage: book.totalPages || 0 };
+                    const colorObj = getColorObj(book.color);
+                    const isFirst = rankInfo.rank === 1;
+
+                    return (
+                      <div
+                        key={book.id}
+                        style={{
+                          background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                          border: isFirst 
+                            ? (isDark ? '1.5px solid rgba(245,158,11,0.5)' : '1.5px solid #fde047')
+                            : (isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                          borderRadius: '1.5rem',
+                          padding: '1.4rem 1.1rem 1.2rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          position: 'relative',
+                          boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 4px 18px rgba(0,0,0,0.05)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                      >
+                        {/* Sıra Rozeti */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 14,
+                          left: 14,
+                          fontSize: '0.72rem',
+                          padding: '3px 9px',
+                          borderRadius: 99,
+                          background: isFirst 
+                            ? 'linear-gradient(135deg, #f59e0b, #d97706)' 
+                            : (isDark ? 'rgba(99,102,241,0.2)' : '#e0e7ff'),
+                          color: isFirst ? '#ffffff' : (isDark ? '#a5b4fc' : '#4338ca'),
+                          fontWeight: 900
+                        }}>
+                          {isFirst ? '👑 #1 Sırada' : `#${rankInfo.rank}`}
+                        </div>
+
+                        {/* Kategori Rozeti */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 14,
+                          right: 14,
+                          fontSize: '0.65rem',
+                          padding: '3px 8px',
+                          borderRadius: 99,
+                          background: colorObj.light,
+                          color: colorObj.bg,
+                          fontWeight: 800
+                        }}>
+                          {book.category || 'Roman'}
+                        </div>
+
+                        {/* Büyük Dairesel Kitap & Tamamlama Çizgisi (0% - Başlamaya Hazır) */}
+                        <div style={{ marginTop: 12, marginBottom: 14 }}>
+                          <CircularProgressRing
+                            pct={0}
+                            size={isMobile ? 130 : 148}
+                            stroke={9}
+                            color={isFirst ? '#f59e0b' : colorObj.bg || '#6366f1'}
+                            trackColor={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                          >
+                            <div style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              background: isDark 
+                                ? (isFirst ? 'radial-gradient(circle, rgba(245,158,11,0.18) 0%, rgba(15,23,42,0.7) 100%)' : `radial-gradient(circle, ${colorObj.light} 0%, rgba(15,23,42,0.7) 100%)`)
+                                : (isFirst ? 'radial-gradient(circle, #fef3c7 0%, #ffffff 100%)' : `radial-gradient(circle, ${colorObj.light} 0%, #ffffff 100%)`),
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: isFirst ? 'inset 0 0 20px rgba(245,158,11,0.2)' : `inset 0 0 20px ${colorObj.light}`
+                            }}>
+                              <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>⏳</span>
+                              <span style={{
+                                fontSize: '1.25rem',
+                                fontWeight: 900,
+                                color: isDark ? '#ffffff' : '#0f172a',
+                                marginTop: 3,
+                                letterSpacing: '-0.02em',
+                                lineHeight: 1.1
+                              }}>
+                                {book.totalPages} sf.
+                              </span>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                color: isFirst ? '#f59e0b' : colorObj.bg,
+                                marginTop: 2
+                              }}>
+                                Hazır
+                              </span>
+                            </div>
+                          </CircularProgressRing>
+                        </div>
+
+                        {/* Kitap Başlığı & Yazar */}
+                        <div style={{ width: '100%', marginBottom: 10 }}>
+                          <h4 style={{
+                            fontSize: '0.98rem',
+                            fontWeight: 900,
+                            color: isDark ? '#f8fafc' : '#0f172a',
+                            margin: '0 0 4px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            minHeight: '2.5em',
+                            lineHeight: 1.25
+                          }}>
+                            {book.title}
+                          </h4>
+                          <div style={{ fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                            {book.author ? `✍️ ${book.author}` : '—'}
+                          </div>
+                        </div>
+
+                        {/* Plan Aralığı Rozeti */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '4px 10px',
+                          borderRadius: 99,
+                          background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          marginBottom: 14,
+                          width: 'fit-content'
+                        }}>
+                          <span>Plan:</span>
+                          <strong style={{ color: colorObj.bg }}>
+                            {rankInfo.startPage} - {rankInfo.endPage} sf.
+                          </strong>
+                        </div>
+
+                        {/* Aksiyon Butonları */}
+                        <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <button
+                            type="button"
+                            onClick={() => startReadingBook(book.id)}
+                            style={{
+                              width: '100%',
+                              padding: '0.6rem 0.8rem',
+                              borderRadius: '0.75rem',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                              color: 'white',
+                              fontWeight: 800,
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              boxShadow: '0 2px 10px rgba(99,102,241,0.3)'
+                            }}
+                          >
+                            <Play size={13} fill="white" />
+                            <span>Okumaya Başla</span>
+                          </button>
+
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => handlePromptOrderRank(book, rankInfo.rank)}
+                              title="Sıra Numarasını Değiştir"
+                              style={{
+                                background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: isDark ? '#cbd5e1' : '#475569',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              #{rankInfo.rank} Sıra Değiştir
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(book)}
+                              style={{
+                                background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Edit3 size={12} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`"${book.title}" kitabını silmek istiyor musunuz?`)) {
+                                  deleteBook(book.id);
+                                }
+                              }}
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 3
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Okuma Sıralama Tablosu */
               <div style={{
                 background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
@@ -1934,6 +2590,7 @@ export default function ReadingTrackerPage() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -1963,12 +2620,12 @@ export default function ReadingTrackerPage() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '0.85rem',
+                marginBottom: '1rem',
                 flexWrap: 'wrap',
-                gap: 8
+                gap: 10
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontWeight: 900, fontSize: '0.95rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 900, fontSize: '1rem' }}>
                     ✅ Tamamlanan Kitaplar
                   </span>
                   <span style={{
@@ -1982,9 +2639,325 @@ export default function ReadingTrackerPage() {
                     {completedBooks.length} Kitap
                   </span>
                 </div>
+
+                {/* Görünüm Değiştirici */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                  padding: 3,
+                  borderRadius: '0.65rem',
+                  border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '4px 10px',
+                      borderRadius: '0.45rem',
+                      border: 'none',
+                      background: viewMode === 'grid' ? (isDark ? '#10b981' : '#059669') : 'transparent',
+                      color: viewMode === 'grid' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                      fontWeight: 800,
+                      fontSize: '0.74rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <LayoutGrid size={13} /> Dairesel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '4px 10px',
+                      borderRadius: '0.45rem',
+                      border: 'none',
+                      background: viewMode === 'table' ? (isDark ? '#10b981' : '#059669') : 'transparent',
+                      color: viewMode === 'table' ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'),
+                      fontWeight: 800,
+                      fontSize: '0.74rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <List size={13} /> Tablo
+                  </button>
+                </div>
               </div>
 
-              {/* Bitenler Tablosu */}
+              {/* Dairesel Kartlar Görünümü (BÜYÜK DAİRELER VE %100 TAMAMLAMA ÇİZGİSİ) */}
+              {viewMode === 'grid' ? (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gap: isMobile ? '1rem' : '1.25rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  {completedBooks.map((book) => {
+                    const colorObj = getColorObj(book.color);
+
+                    return (
+                      <div
+                        key={book.id}
+                        style={{
+                          background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
+                          border: isDark ? '1px solid rgba(16,185,129,0.3)' : '1px solid #bbf7d0',
+                          borderRadius: '1.5rem',
+                          padding: '1.4rem 1.1rem 1.2rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          textAlign: 'center',
+                          position: 'relative',
+                          boxShadow: isDark ? '0 8px 30px rgba(0,0,0,0.35)' : '0 4px 18px rgba(16,185,129,0.08)',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                        }}
+                      >
+                        {/* Tamamlandı Rozeti */}
+                        <div style={{
+                          position: 'absolute',
+                          top: 14,
+                          right: 14,
+                          fontSize: '0.65rem',
+                          padding: '3px 8px',
+                          borderRadius: 99,
+                          background: isDark ? 'rgba(16,185,129,0.18)' : '#ecfdf5',
+                          color: '#10b981',
+                          fontWeight: 900
+                        }}>
+                          ✓ Bitti
+                        </div>
+
+                        {/* Büyük Dairesel Kitap & %100 Tamamlama Çizgisi */}
+                        <div style={{ marginTop: 6, marginBottom: 14 }}>
+                          <CircularProgressRing
+                            pct={100}
+                            size={isMobile ? 130 : 148}
+                            stroke={9}
+                            color="#10b981"
+                            trackColor={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}
+                          >
+                            <div style={{
+                              width: '100%',
+                              height: '100%',
+                              borderRadius: '50%',
+                              background: isDark 
+                                ? 'radial-gradient(circle, rgba(16,185,129,0.2) 0%, rgba(15,23,42,0.7) 100%)'
+                                : 'radial-gradient(circle, #ecfdf5 0%, #ffffff 100%)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: 'inset 0 0 20px rgba(16,185,129,0.25)'
+                            }}>
+                              <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>🏆</span>
+                              <span style={{
+                                fontSize: '1.4rem',
+                                fontWeight: 900,
+                                color: '#10b981',
+                                marginTop: 3,
+                                letterSpacing: '-0.02em',
+                                lineHeight: 1.1
+                              }}>
+                                %100
+                              </span>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                color: '#10b981',
+                                marginTop: 2
+                              }}>
+                                {book.totalPages} sf.
+                              </span>
+                            </div>
+                          </CircularProgressRing>
+                        </div>
+
+                        {/* Kitap Başlığı & Yazar */}
+                        <div style={{ width: '100%', marginBottom: 10 }}>
+                          <h4 style={{
+                            fontSize: '0.98rem',
+                            fontWeight: 900,
+                            color: isDark ? '#f8fafc' : '#0f172a',
+                            margin: '0 0 4px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            minHeight: '2.5em',
+                            lineHeight: 1.25
+                          }}>
+                            {book.title}
+                          </h4>
+                          <div style={{ fontSize: '0.75rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                            {book.author ? `✍️ ${book.author}` : '—'}
+                          </div>
+                        </div>
+
+                        {/* Yıldız Değerlendirmesi */}
+                        <div style={{ display: 'flex', gap: 3, marginBottom: 8 }}>
+                          {[1, 2, 3, 4, 5].map(star => (
+                            <Star
+                              key={star}
+                              size={14}
+                              fill={star <= (book.rating || 5) ? '#f59e0b' : 'transparent'}
+                              color={star <= (book.rating || 5) ? '#f59e0b' : '#94a3b8'}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Bitiş Tarihi Rozeti */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '4px 10px',
+                          borderRadius: 99,
+                          background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: isDark ? '#cbd5e1' : '#475569',
+                          marginBottom: 14,
+                          width: 'fit-content'
+                        }}>
+                          <span>🏁 Bitiş:</span>
+                          <strong>{book.finishDate || 'Tamamlandı'}</strong>
+                        </div>
+
+                        {/* Eğer öğrenci notu varsa */}
+                        {book.notes && (
+                          <div style={{
+                            width: '100%',
+                            fontSize: '0.72rem',
+                            fontStyle: 'italic',
+                            color: isDark ? '#a5b4fc' : '#4f46e5',
+                            background: isDark ? 'rgba(99,102,241,0.1)' : '#eef2ff',
+                            borderRadius: 8,
+                            padding: '6px 10px',
+                            marginBottom: 12,
+                            boxSizing: 'border-box',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical'
+                          }}>
+                            💬 "{book.notes}"
+                          </div>
+                        )}
+
+                        {/* Aksiyon Butonları */}
+                        <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`"${book.title}" kitabının bitti durumunu geri almak ve okunanlara geri taşımak istiyor musunuz?`)) {
+                                  uncompleteBook(book.id);
+                                }
+                              }}
+                              style={{
+                                padding: '0.55rem 0.5rem',
+                                borderRadius: '0.75rem',
+                                border: isDark ? '1px solid rgba(245,158,11,0.35)' : '1px solid #fde68a',
+                                background: isDark ? 'rgba(245,158,11,0.12)' : '#fef3c7',
+                                color: isDark ? '#fbbf24' : '#d97706',
+                                fontWeight: 800,
+                                fontSize: '0.74rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <RotateCcw size={12} />
+                              <span>Geri Al</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => startReadingBook(book.id)}
+                              style={{
+                                padding: '0.55rem 0.5rem',
+                                borderRadius: '0.75rem',
+                                border: isDark ? '1px solid rgba(99,102,241,0.35)' : '1px solid #c7d2fe',
+                                background: isDark ? 'rgba(99,102,241,0.12)' : '#eef2ff',
+                                color: isDark ? '#a5b4fc' : '#4f46e5',
+                                fontWeight: 800,
+                                fontSize: '0.74rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <RotateCcw size={12} />
+                              <span>Tekrar Oku</span>
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(book)}
+                              style={{
+                                background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 10px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Edit3 size={12} /> Düzenle
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`"${book.title}" kaydını silmek istiyor musunuz?`)) {
+                                  deleteBook(book.id);
+                                }
+                              }}
+                              style={{
+                                background: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '4px 10px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                color: '#ef4444',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}
+                            >
+                              <Trash2 size={12} /> Sil
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Bitenler Tablosu */
               <div style={{
                 background: isDark ? 'linear-gradient(145deg, #181824 0%, #10131f 100%)' : '#ffffff',
                 border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
@@ -2190,6 +3163,7 @@ export default function ReadingTrackerPage() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
