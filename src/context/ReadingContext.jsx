@@ -418,7 +418,8 @@ export function ReadingProvider({ children }) {
 
     const index = toReadList.findIndex(b => b.id === bookId);
     if (index < 0) return;
-    const targetIndex = index + direction;
+    const delta = direction === 'up' || direction === 'left' ? -1 : (direction === 'down' || direction === 'right' ? 1 : Number(direction) || 0);
+    const targetIndex = index + delta;
     if (targetIndex < 0 || targetIndex >= toReadList.length) return;
 
     const copyList = [...toReadList];
