@@ -216,26 +216,38 @@ export default function TrackedBookQuizRunner() {
 
     if (!cleanId) return { resolvedTest: null, resolvedBook: null, resolvedHw: null };
 
-    // 0. Match from submissions if cleanId is a submission ID (e.g. sub_study_... or sub_...)
-    if (!t && submissions && submissions.length > 0) {
-      const subMatch = submissions.find(s => String(s.id) === cleanId || String(s.supabaseId) === cleanId || String(s.submissionId) === cleanId || toUUID(s.id) === cleanId);
-      if (subMatch) {
-        const candidateIds = [subMatch.bookTestId, subMatch.realTestId, subMatch.testId, subMatch.metadata?.bookTestId, subMatch.metadata?.realTestId, subMatch.metadata?.testId].filter(Boolean);
-        for (const cId of candidateIds) {
-          t = (bookTests || []).find(test => String(test.id) === String(cId) || toUUID(test.id) === String(cId) || toUUID(test.id) === toUUID(cId));
-          if (t) break;
-        }
-        if (!t && subMatch.bookId) {
-          const bookMatch = (books || []).find(bk => String(bk.id) === String(subMatch.bookId) || toUUID(bk.id) === String(subMatch.bookId));
-          if (bookMatch) {
-            b = bookMatch;
-            const bTests = (bookTests || []).filter(test => String(test.bookId) === String(bookMatch.id) || toUUID(test.bookId) === String(bookMatch.id));
-            if (bTests.length > 0) {
-              const matchedName = bTests.find(bt => (subMatch.testTitle || subMatch.title || '').includes(bt.name) || bt.name.includes((subMatch.testTitle || subMatch.title || '')));
-              t = matchedName || bTests[0];
-            }
+    // 0. Match from passed location.state.submission or submissions list
+    const passedSub = location.state?.submission;
+    const subMatch = passedSub || (submissions && submissions.length > 0 ? submissions.find(s => String(s.id) === cleanId || String(s.supabaseId) === cleanId || String(s.submissionId) === cleanId || toUUID(s.id) === cleanId) : null);
+    if (!t && subMatch) {
+      const candidateIds = [subMatch.bookTestId, subMatch.realTestId, subMatch.testId, subMatch.metadata?.bookTestId, subMatch.metadata?.realTestId, subMatch.metadata?.testId].filter(Boolean);
+      for (const cId of candidateIds) {
+        t = (bookTests || []).find(test => String(test.id) === String(cId) || toUUID(test.id) === String(cId) || toUUID(test.id) === toUUID(cId));
+        if (t) break;
+      }
+      if (!t && subMatch.bookId) {
+        const bookMatch = (books || []).find(bk => String(bk.id) === String(subMatch.bookId) || toUUID(bk.id) === String(subMatch.bookId));
+        if (bookMatch) {
+          b = bookMatch;
+          const bTests = (bookTests || []).filter(test => String(test.bookId) === String(bookMatch.id) || toUUID(test.bookId) === String(bookMatch.id));
+          if (bTests.length > 0) {
+            const matchedName = bTests.find(bt => (subMatch.testTitle || subMatch.title || '').includes(bt.name) || bt.name.includes((subMatch.testTitle || subMatch.title || '')));
+            t = matchedName || bTests[0];
           }
         }
+      }
+      // Synthetic fallback test from submission so it never fails with 404 if submission data exists
+      if (!t && (subMatch.testTitle || subMatch.title || subMatch.answers)) {
+        t = {
+          id: cleanId,
+          name: subMatch.testTitle || subMatch.title || 'Kitap Testi',
+          title: subMatch.testTitle || subMatch.title || 'Kitap Testi',
+          questionCount: subMatch.totalQuestions || (subMatch.answers ? subMatch.answers.length : 10),
+          bookId: subMatch.bookId || b?.id,
+          sourceType: 'trackedBook',
+          isOpenEnded: Boolean(subMatch.isOpenEnded || subMatch.type === 'acik_uclu'),
+          answerKey: subMatch.answerKey || {}
+        };
       }
     }
 
@@ -444,9 +456,9 @@ export default function TrackedBookQuizRunner() {
       navigate(`/physical-exam/${targetId}?studentId=${studentId || ''}`, { replace: true });
       return;
     }
-    // If not a tracked book test but a normal homework/quiz, redirect to /review/ (if completed) or /quiz/:id
-    if (!resolvedTest && !booksLoading && !hwLoading && homeworks?.length > 0) {
-      const cleanHwMatch = homeworks.find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId || cleanId.includes(String(hw.id)));
+    // If not a tracked book test but a normal homework/quiz or completed submission, redirect safely
+    if (!resolvedTest && !booksLoading && !hwLoading) {
+      const cleanHwMatch = (homeworks || []).find(hw => String(hw.id) === cleanId || toUUID(hw.id) === cleanId || cleanId.includes(String(hw.id)));
       if (cleanHwMatch && !cleanHwMatch.isBookAssignment) {
         const existingSub = (submissions || []).find(s => {
           if (s.status === 'in_progress' || s.status === 'draft') return false;
@@ -458,9 +470,29 @@ export default function TrackedBookQuizRunner() {
 
         if (existingSub || isTeacherReviewing) {
           navigate(`/review/${existingSub ? existingSub.id : cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true, state: { from: returnUrl || '/remedials' } });
+          return;
         } else {
           navigate(`/quiz/${cleanHwMatch.id}?studentId=${studentId || ''}`, { replace: true });
+          return;
         }
+      }
+
+      // Check if there is an existing completed submission for this test/cleanId or passed via location state
+      const existingSub = location.state?.submission || (submissions || []).find(s => {
+        if (s.status === 'in_progress' || s.status === 'draft') return false;
+        const sId = String(s.studentId ?? s.userId ?? s.student_id ?? '');
+        if (studentId && sId !== String(studentId) && toUUID(sId) !== toUUID(studentId)) return false;
+        const candidateIds = [s.id, s.submissionId, s.supabaseId, s.testId, s.bookTestId, s.realTestId, s.hwId, s.homeworkId].filter(Boolean).map(String);
+        return candidateIds.includes(cleanId) || candidateIds.map(toUUID).includes(toUUID(cleanId));
+      });
+
+      if (existingSub) {
+        const subId = existingSub.supabaseId || existingSub.submissionId || existingSub.id || cleanId;
+        navigate(`/review/${subId}?studentId=${studentId || ''}`, {
+          replace: true,
+          state: { from: returnUrl || '/student', submission: existingSub }
+        });
+        return;
       }
     }
   }, [resolvedBook, resolvedHw, resolvedTest, booksLoading, hwLoading, homeworks, cleanId, studentId, submissions, isTeacherReviewing, returnUrl, navigate]);
