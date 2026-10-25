@@ -457,6 +457,27 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     return 1;
   }, [test, matchedBt, submission, metaAnswer, answers, resolvedMeta.testName]);
 
+  const isEntireTestOpenEnded = useMemo(() => {
+    if (viewMode === 'text') return true;
+    if (viewMode === 'optical') return false;
+    return Boolean(
+      test?.isOpenEnded === true ||
+      test?.is_open_ended === true ||
+      test?.questionType === 'acik_uclu' ||
+      test?.type === 'acik_uclu' ||
+      submission?.isOpenEnded === true ||
+      submission?.is_open_ended === true ||
+      submission?.questionType === 'acik_uclu' ||
+      submission?.type === 'acik_uclu' ||
+      (Array.isArray(answers) && answers.length > 0 && answers.some(a => 
+        a?.isOpenEnded === true || 
+        (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim())) ||
+        (a?.userAnswer && typeof a.userAnswer === 'string' && a.userAnswer.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswer.trim())) ||
+        (a?.studentAnswerText && typeof a.studentAnswerText === 'string' && a.studentAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.studentAnswerText.trim()))
+      ))
+    );
+  }, [test, submission, answers, viewMode]);
+
   const questionNumbers = useMemo(() => {
     const ansQNos = answers.map(a => Number(a?.questionNo)).filter(n => !isNaN(n) && n > 0);
     if (ansQNos.length === qCount && ansQNos.length > 0 && ansQNos[0] === startQuestionNumber) {
@@ -465,21 +486,9 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     return Array.from({ length: qCount }, (_, i) => startQuestionNumber + i);
   }, [answers, qCount, startQuestionNumber]);
 
-  const isAnyOE = useMemo(() => {
-    if (isEntireTestOpenEnded || viewMode === 'text') return true;
-    if (Array.isArray(answers) && answers.some(a => 
-      a?.isOpenEnded || 
-      (a?.userAnswerText && String(a.userAnswerText).trim().length > 1 && !/^[A-E]$/i.test(String(a.userAnswerText).trim())) ||
-      (a?.studentAnswerText && String(a.studentAnswerText).trim().length > 1 && !/^[A-E]$/i.test(String(a.studentAnswerText).trim()))
-    )) {
-      return true;
-    }
-    return false;
-  }, [isEntireTestOpenEnded, viewMode, answers]);
-
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(questionNumbers, isMobile, containerWidth, isAnyOE);
-  }, [questionNumbers, isMobile, containerWidth, isAnyOE]);
+    return getQuestionColumns(questionNumbers, isMobile, containerWidth, isEntireTestOpenEnded);
+  }, [questionNumbers, isMobile, containerWidth, isEntireTestOpenEnded]);
 
   const targetObj = test || {};
   const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
@@ -496,26 +505,6 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     );
     optionsList = isExplicitFive ? ['A', 'B', 'C', 'D', 'E'] : ['A', 'B', 'C', 'D'];
   }
-
-  const isEntireTestOpenEnded = useMemo(() => {
-    if (viewMode === 'text') return true;
-    if (viewMode === 'optical') return false;
-    return Boolean(
-      test?.isOpenEnded === true ||
-      test?.is_open_ended === true ||
-      test?.questionType === 'acik_uclu' ||
-      test?.type === 'acik_uclu' ||
-      submission?.isOpenEnded === true ||
-      submission?.is_open_ended === true ||
-      submission?.questionType === 'acik_uclu' ||
-      submission?.type === 'acik_uclu' ||
-      (Array.isArray(answers) && answers.length > 0 && answers.some(a => 
-        a?.isOpenEnded === true || 
-        (a?.userAnswerText && typeof a.userAnswerText === 'string' && a.userAnswerText.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswerText.trim())) ||
-        (a?.userAnswer && typeof a.userAnswer === 'string' && a.userAnswer.trim().length > 1 && !/^[A-Ea-e]$/.test(a.userAnswer.trim()))
-      ))
-    );
-  }, [test, submission, answers, viewMode]);
 
   // Mistake Statistics for this test
   const mistakeCounts = useMemo(() => {
