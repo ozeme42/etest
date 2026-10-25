@@ -145,10 +145,17 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     let bookTitle = resolvedBook?.title || submission?.bookTitle || metaAnswer?.bookTitle || test?.bookTitle || '';
     let subjectName = submission?.subjectName || submission?.subject || metaAnswer?.subject || test?.subjectName || test?.subject || '';
     let topicName = submission?.topicName || submission?.unitTopic || metaAnswer?.unitTopic || submission?.topic || test?.topicName || test?.unitTopic || test?.topic || '';
-    let testName = test?.name || test?.title || submission?.testName || metaAnswer?.testName || submission?.title || 'Test';
+    
+    // Test Name: Prioritize specific test title over whole-book assignment title
+    let testName = submission?.testTitle || submission?.testName || metaAnswer?.testName;
+    if (!testName || testName.includes('(Tüm Kitap') || testName === 'Test') {
+      testName = (test?.name && !test.name.includes('(Tüm Kitap') ? test.name : null) || 
+                 (test?.title && !test.title.includes('(Tüm Kitap') ? test.title : null) || 
+                 submission?.title || test?.name || test?.title || 'Test';
+    }
 
     if (matchedBt) {
-      if (!testName || testName === 'Test') testName = matchedBt.name;
+      if (!testName || testName === 'Test' || testName.includes('(Tüm Kitap')) testName = matchedBt.name;
       if (!subjectName && matchedBt.subjectId && resolvedBook?.subjects) {
         const foundSub = resolvedBook.subjects.find(s => String(s.id) === String(matchedBt.subjectId));
         if (foundSub) {
@@ -167,7 +174,12 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       if (foundSub) subjectName = foundSub.name;
     }
 
-    // Extract from composite testTitle or fullTitle if still missing (e.g. "Ünite Ünite Yeni Nesil Soru Bankası — Türkçe › 5. Ünite (Test-9)")
+    // Filter out timestamp / ID artifacts like "7431390000. Ünite" or raw numeric IDs
+    if (topicName && (/\d{3,}\.?\s*ünite/i.test(topicName) || /^\d{5,}$/.test(topicName.trim()))) {
+      topicName = '';
+    }
+
+    // Extract from composite testTitle or fullTitle if available (e.g. "Ünite Ünite Yeni Nesil Soru Bankası — Türkçe › 5. Ünite (Test-9)")
     const rawTitle = submission?.fullTitle || submission?.testTitle || test?.testTitle || submission?.title || test?.name || '';
     if (rawTitle && rawTitle.includes('—')) {
       const parts = rawTitle.split('—');
@@ -185,6 +197,21 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
           if (!topicName) topicName = topAndTest.trim();
         }
       }
+    } else if (rawTitle && rawTitle.includes('›')) {
+      const parts = rawTitle.split('›').map(p => p.trim());
+      if (parts.length >= 3) {
+        if (!subjectName) subjectName = parts[0];
+        if (!topicName && !/\d{3,}/.test(parts[1])) topicName = parts[1];
+        if (!testName || testName.includes('(Tüm Kitap')) testName = parts.slice(2).join(' › ');
+      } else if (parts.length === 2) {
+        if (!subjectName) subjectName = parts[0];
+        if (!testName || testName.includes('(Tüm Kitap')) testName = parts[1];
+      }
+    }
+
+    // If submission.title has a question range like "Etkinlik - 10 (Soru 82-90)", prioritize it
+    if (submission?.title && /(?:soru(?:lar)?\s*)?\d+\s*[-–]\s*\d+/i.test(submission.title) && (!testName || testName.includes('(Tüm Kitap'))) {
+      testName = submission.title;
     }
 
     return {
@@ -371,13 +398,43 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   }, [rawAnswers]);
 
   const qCount = useMemo(() => {
-    if (Array.isArray(questions) && questions.length > 0) return questions.length;
+    // 1. If evaluated answers exist in the submission, that is the exact number of evaluated questions
     if (answers.length > 0) return answers.length;
-    if (submission?.totalQuestions && Number(submission.totalQuestions) > 0) return Number(submission.totalQuestions);
-    if (test?.questionCount && Number(test.questionCount) > 0) return Number(test.questionCount);
-    if (test?.totalQuestions && Number(test.totalQuestions) > 0) return Number(test.totalQuestions);
-    return 20;
-  }, [questions, answers, test, submission]);
+
+    // 2. If submission has explicit totalQuestions (reasonable test size)
+    if (submission?.totalQuestions && Number(submission.totalQuestions) > 0 && Number(submission.totalQuestions) <= 120) {
+      return Number(submission.totalQuestions);
+    }
+
+    // 3. Scan title range (e.g. "Etkinlik - 10 (Soru 82-90)" -> 90 - 82 + 1 = 9)
+    const titlesToScan = [
+      resolvedMeta.testName,
+      test?.name,
+      test?.title,
+      submission?.testName,
+      submission?.title
+    ].filter(Boolean).join(' ');
+    const rangeMatch = titlesToScan.match(/(?:soru(?:lar)?\s*)?(\d+)\s*[-–]\s*(\d+)/i);
+    if (rangeMatch) {
+      const s = parseInt(rangeMatch[1], 10);
+      const e = parseInt(rangeMatch[2], 10);
+      if (!isNaN(s) && !isNaN(e) && e >= s && (e - s + 1) <= 100) {
+        return e - s + 1;
+      }
+    }
+
+    // 4. Questions array from props (only if single test size, not a whole 600-question book)
+    if (Array.isArray(questions) && questions.length > 0 && questions.length <= 100) {
+      return questions.length;
+    }
+    if (test?.questionCount && Number(test.questionCount) > 0 && Number(test.questionCount) <= 100) {
+      return Number(test.questionCount);
+    }
+    if (test?.totalQuestions && Number(test.totalQuestions) > 0 && Number(test.totalQuestions) <= 100) {
+      return Number(test.totalQuestions);
+    }
+    return 12;
+  }, [answers, submission, resolvedMeta.testName, test, questions]);
 
   const correctCount = submission?.correctCount ?? submission?.correct_count ?? answers.filter(a => a.isCorrect === true).length;
   const wrongCount = submission?.wrongCount ?? submission?.wrong_count ?? answers.filter(a => a.isCorrect === false && a.userAnswer !== null && a.userAnswer !== undefined && a.userAnswer !== '').length;
@@ -425,19 +482,13 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const [viewMode, setViewMode] = useState('auto'); // 'auto' | 'optical' | 'text'
 
   const startQuestionNumber = useMemo(() => {
-    if (test?.startQuestionNumber && Number(test.startQuestionNumber) > 0) return Number(test.startQuestionNumber);
-    if (test?.startQuestion && Number(test.startQuestion) > 0) return Number(test.startQuestion);
-    if (test?.start_question_number && Number(test.start_question_number) > 0) return Number(test.start_question_number);
-    if (matchedBt?.startQuestionNumber && Number(matchedBt.startQuestionNumber) > 0) return Number(matchedBt.startQuestionNumber);
-    if (matchedBt?.startQuestion && Number(matchedBt.startQuestion) > 0) return Number(matchedBt.startQuestion);
-    if (matchedBt?.start_question_number && Number(matchedBt.start_question_number) > 0) return Number(matchedBt.start_question_number);
-    if (submission?.startQuestionNumber && Number(submission.startQuestionNumber) > 0) return Number(submission.startQuestionNumber);
-    if (metaAnswer?.startQuestionNumber && Number(metaAnswer.startQuestionNumber) > 0) return Number(metaAnswer.startQuestionNumber);
-
-    if (answers.length > 0 && answers[0]?.questionNo && Number(answers[0].questionNo) > 1) {
-      return Number(answers[0].questionNo);
+    // 1. If answers have questionNo (e.g. 82), that is the exact lowest question number
+    const ansQNos = answers.map(a => Number(a?.questionNo || a?.questionIndex)).filter(n => !isNaN(n) && n > 0);
+    if (ansQNos.length > 0) {
+      return Math.min(...ansQNos);
     }
 
+    // 2. Scan title range (e.g. Soru 82-90)
     const titlesToScan = [
       resolvedMeta.testName,
       test?.name,
@@ -454,8 +505,18 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
         return startNum;
       }
     }
+
+    if (test?.startQuestionNumber && Number(test.startQuestionNumber) > 0) return Number(test.startQuestionNumber);
+    if (test?.startQuestion && Number(test.startQuestion) > 0) return Number(test.startQuestion);
+    if (test?.start_question_number && Number(test.start_question_number) > 0) return Number(test.start_question_number);
+    if (matchedBt?.startQuestionNumber && Number(matchedBt.startQuestionNumber) > 0) return Number(matchedBt.startQuestionNumber);
+    if (matchedBt?.startQuestion && Number(matchedBt.startQuestion) > 0) return Number(matchedBt.startQuestion);
+    if (matchedBt?.start_question_number && Number(matchedBt.start_question_number) > 0) return Number(matchedBt.start_question_number);
+    if (submission?.startQuestionNumber && Number(submission.startQuestionNumber) > 0) return Number(submission.startQuestionNumber);
+    if (metaAnswer?.startQuestionNumber && Number(metaAnswer.startQuestionNumber) > 0) return Number(metaAnswer.startQuestionNumber);
+
     return 1;
-  }, [test, matchedBt, submission, metaAnswer, answers, resolvedMeta.testName]);
+  }, [answers, resolvedMeta.testName, test, matchedBt, submission, metaAnswer]);
 
   const isEntireTestOpenEnded = useMemo(() => {
     if (viewMode === 'text') return true;
@@ -479,12 +540,34 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   }, [test, submission, answers, viewMode]);
 
   const questionNumbers = useMemo(() => {
-    const ansQNos = answers.map(a => Number(a?.questionNo)).filter(n => !isNaN(n) && n > 0);
-    if (ansQNos.length === qCount && ansQNos.length > 0 && ansQNos[0] === startQuestionNumber) {
-      return ansQNos;
+    // 1. If answers explicitly contain question numbers, use them directly!
+    const ansQNos = answers
+      .map(a => Number(a?.questionNo || a?.questionIndex))
+      .filter(n => !isNaN(n) && n > 0);
+    const uniqueAnsQNos = [...new Set(ansQNos)].sort((a, b) => a - b);
+    if (uniqueAnsQNos.length > 0) {
+      return uniqueAnsQNos;
     }
+
+    // 2. Scan title range (e.g. Soru 82-90 -> [82, 83, 84, 85, 86, 87, 88, 89, 90])
+    const titlesToScan = [
+      resolvedMeta.testName,
+      test?.name,
+      test?.title,
+      submission?.testName,
+      submission?.title
+    ].filter(Boolean).join(' ');
+    const rangeMatch = titlesToScan.match(/(?:soru(?:lar)?\s*)?(\d+)\s*[-–]\s*(\d+)/i);
+    if (rangeMatch) {
+      const s = parseInt(rangeMatch[1], 10);
+      const e = parseInt(rangeMatch[2], 10);
+      if (!isNaN(s) && !isNaN(e) && e >= s && (e - s + 1) <= 100) {
+        return Array.from({ length: e - s + 1 }, (_, i) => s + i);
+      }
+    }
+
     return Array.from({ length: qCount }, (_, i) => startQuestionNumber + i);
-  }, [answers, qCount, startQuestionNumber]);
+  }, [answers, qCount, resolvedMeta.testName, test, submission, startQuestionNumber]);
 
   const questionColumns = useMemo(() => {
     return getQuestionColumns(questionNumbers, isMobile, containerWidth, isEntireTestOpenEnded);

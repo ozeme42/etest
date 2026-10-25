@@ -552,10 +552,10 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
                         allIdAndTitleStrings.match(/top_\w+_(\d+)/i) ||
                         allIdAndTitleStrings.match(/(\d+)[\._\s]*[uüÜU]nite/i) ||
                         allIdAndTitleStrings.match(/(\d+)\.\s*Ünite/i);
-      if (unitMatch) {
+      if (unitMatch && parseInt(unitMatch[1], 10) <= 30 && unitMatch[1].length <= 2) {
         topicName = `${unitMatch[1]}. Ünite`;
       } else {
-        topicName = null; // NEVER default to fake '1. Ünite'!
+        topicName = null; // NEVER default to fake '1. Ünite' or huge timestamp numbers!
       }
     }
   }
