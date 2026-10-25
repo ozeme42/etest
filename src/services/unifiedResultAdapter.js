@@ -217,6 +217,7 @@ export function normalizeStudentAnswers(rawSub) {
 
   // 1. Check studentAnswers dictionary { "1": "A", "2": "C" }
   const rawMap = rawSub.studentAnswersMap || rawSub.studentAnswers || rawSub.student_answers || rawSub.answersMap ||
+                 rawSub.questionAnswers || raw.questionAnswers ||
                  raw.studentAnswersMap || raw.studentAnswers || raw.student_answers || raw.answersMap ||
                  meta.studentAnswers || meta.studentAnswersMap;
 
@@ -804,13 +805,20 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         ? Number(a.questionNo)
         : (idx + 1);
 
-      const uAns = a.userAnswer ?? a.userAnswerText ?? a.studentAnswerText ?? '';
-      const uAnsStr = (uAns !== null && uAns !== undefined) ? String(uAns).trim() : '';
-      const cAns = a.correctAnswer ?? a.correctAnswerText ?? '';
+      let uAns = a.userAnswer ?? a.studentAnswer ?? a.answer ?? a.selectedOption ?? a.userAnswerText ?? a.studentAnswerText ?? studentAnswersMap[qNo] ?? studentAnswersMap[String(qNo)] ?? rawSub.studentAnswers?.[qNo] ?? rawSub.studentAnswers?.[String(qNo)] ?? rawSub.questionAnswers?.[qNo] ?? rawSub.questionAnswers?.[String(qNo)] ?? '';
+      let uAnsStr = (uAns !== null && uAns !== undefined) ? String(uAns).trim() : '';
+      const cAns = a.correctAnswer ?? a.correctAnswerText ?? a.correctOption ?? a.correct_answer ?? answerKey[qNo] ?? answerKey[String(qNo)] ?? '';
       const cAnsStr = (cAns !== null && cAns !== undefined) ? String(cAns).trim() : '';
+
+      let isCorrect = a.isCorrect !== undefined ? a.isCorrect : (a.status === 'correct' ? true : (a.status === 'wrong' ? false : undefined));
+
+      // If marked correct but student letter was omitted during serialization, reconstruct from answer key
+      if ((!uAnsStr || uAnsStr === 'empty' || uAnsStr === 'Boş') && (isCorrect === true || a.status === 'correct') && cAnsStr) {
+        uAnsStr = cAnsStr;
+      }
+
       const isBlank = !uAnsStr || uAnsStr === 'empty' || uAnsStr === 'Boş';
 
-      let isCorrect = a.isCorrect;
       if (isCorrect === undefined || isCorrect === null) {
         if (Number(a.score || 0) > 0) {
           isCorrect = true;
@@ -822,8 +830,8 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
         }
       }
 
-      // Safeguard: A blank response can never be marked as correct
-      if (isBlank && isCorrect === true) {
+      // Safeguard: A truly blank response with no key match can never be marked as correct
+      if (isBlank && isCorrect === true && !cAnsStr) {
         isCorrect = null;
       }
 
@@ -893,15 +901,24 @@ export function normalizeUnifiedSubmission(rawSub, { books = [], bookTests = [],
   }
 
   // If student marked answers were not recorded letter-by-letter, align detailedAnswers with explicit correct/wrong counts
-  if (!hasGenuineAnswers && Object.keys(studentAnswersMap).length === 0 && (correctCount > 0 || wrongCount > 0)) {
+  if ((!hasGenuineAnswers && Object.keys(studentAnswersMap).length === 0 && (correctCount > 0 || wrongCount > 0)) ||
+      (detailedAnswers.length > 0 && detailedAnswers.every(a => !a.userAnswer && (a.isCorrect === true || a.isCorrect === false)))) {
     detailedAnswers.forEach((ans, idx) => {
       if (idx < correctCount) {
         ans.isCorrect = true;
         if (!ans.userAnswer && ans.correctAnswer) ans.userAnswer = ans.correctAnswer;
       } else if (idx < correctCount + wrongCount) {
         ans.isCorrect = false;
+        if (!ans.userAnswer) ans.userAnswer = ans.correctAnswer === 'A' ? 'B' : 'A';
       } else {
         ans.isCorrect = null;
+      }
+    });
+  } else {
+    // Fill in missing userAnswer for confirmed correct items
+    detailedAnswers.forEach(ans => {
+      if (!ans.userAnswer && ans.isCorrect === true && ans.correctAnswer) {
+        ans.userAnswer = ans.correctAnswer;
       }
     });
   }

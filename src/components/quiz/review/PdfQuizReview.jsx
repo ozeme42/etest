@@ -157,19 +157,19 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                               submission?.raw_data?.teacherScores?.[i] ??
                               submission?.raw_data?.teacherScores?.[String(i)] ??
                               a?.teacherScore ??
-                              a?.score;
+                              (a?.evaluatedByTeacher && a?.score !== undefined ? a?.score : undefined);
 
       if (isQOE) {
-        if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
-          scores[i] = 'empty';
-        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
-          scores[i] = Number(rawTeacherScore);
-        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
+        if (a?.isCorrect === true || a?.status === 'correct' || a?.evalStatus === 'correct') {
           scores[i] = 10;
         } else if (a?.evalStatus === 'half') {
           scores[i] = 5;
-        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
+        } else if (a?.isCorrect === false || a?.status === 'wrong' || a?.evalStatus === 'wrong') {
           scores[i] = 0;
+        } else if (rawTeacherScore === 'empty' || a?.evalStatus === 'empty') {
+          scores[i] = 'empty';
+        } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
+          scores[i] = Number(rawTeacherScore);
         } else if (isSubEvaluated || a?.evaluatedByTeacher) {
           scores[i] = hasText ? 0 : 'empty';
         } else if (!hasText) {
@@ -179,19 +179,18 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         }
       } else {
         // Multiple choice
+        const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
+        const uLetter = formatAnswerLetter(userAns);
+        const cLetter = formatAnswerLetter(resolvedCorrect);
         const hasAns = hasUserOption || (userAns !== undefined && userAns !== null && userAns !== '' && userAns !== 'empty');
-        if (rawTeacherScore === 'empty') {
-          scores[i] = 'empty';
+
+        if (a?.isCorrect === true || a?.status === 'correct' || a?.evalStatus === 'correct') {
+          scores[i] = 10;
+        } else if (a?.isCorrect === false || a?.status === 'wrong' || a?.evalStatus === 'wrong') {
+          scores[i] = 0;
         } else if (rawTeacherScore !== undefined && rawTeacherScore !== null && rawTeacherScore !== '' && !isNaN(Number(rawTeacherScore))) {
           scores[i] = Number(rawTeacherScore);
-        } else if (a?.isCorrect === true || a?.evalStatus === 'correct') {
-          scores[i] = 10;
-        } else if (a?.isCorrect === false || a?.evalStatus === 'wrong') {
-          scores[i] = 0;
         } else if (hasAns) {
-          const resolvedCorrect = resolveQuestionCorrectAnswer(i, qObj, a, test, questions);
-          const uLetter = formatAnswerLetter(userAns);
-          const cLetter = formatAnswerLetter(resolvedCorrect);
           const isRight = (uLetter && cLetter) ? (uLetter === cLetter) : checkIsAnswerCorrect(userAns, qObj, test, i);
           scores[i] = isRight === true ? 10 : (isRight === false ? 0 : 'empty');
         } else {
@@ -338,13 +337,17 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
     submission?.pdfPayload || submission?.raw_data?.pdfPayload;
 
   const isTrulyEvaluated = useMemo(() => {
-    if (submission.isEvaluatedByTeacher === true || submission.status === 'evaluated') {
+    if (submission.isEvaluatedByTeacher === true) {
       return true;
     }
-    // Check if any open ended question has been given a graded score by teacher
-    const hasAnyGradedScore = Object.values(questionScores).some(s => s !== 'pending' && s !== 'empty' && typeof s === 'number');
-    return hasAnyGradedScore;
-  }, [submission, questionScores]);
+    // Check if any open ended question has been given an explicit graded score by teacher
+    const hasExplicitTeacherScores = Boolean(
+      (submission.teacherScores && Object.keys(submission.teacherScores).length > 0) ||
+      (submission.raw_data?.teacherScores && Object.keys(submission.raw_data.teacherScores).length > 0) ||
+      (Array.isArray(answers) && answers.some(a => a?.evaluatedByTeacher || a?.teacherScore !== undefined))
+    );
+    return hasExplicitTeacherScores;
+  }, [submission, answers]);
 
   const totalMaxScore = qCount * 10;
   const totalEarnedScore = useMemo(() => {
@@ -753,25 +756,55 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 Number(a?.questionNoInSection) === qNo ||
                 Number(a?.number) === qNo ||
                 Number(a?.qNo) === qNo ||
+                Number(a?.questionIndex) === qNo ||
                 String(a?.questionId).includes(`_${qNo}`) ||
                 String(a?.id).includes(`_${qNo}`)
               )) : null) || (Array.isArray(answers) ? answers[idx] : (typeof answers === 'object' ? (answers[qNo] || answers[String(qNo)]) : {})) || {};
 
-              const userAns = ansObj.userAnswer;
+              const rawUserAns = (typeof ansObj === 'string' && /^[A-Ea-e0-4]$/.test(ansObj.trim()))
+                ? ansObj.trim()
+                : (
+                    ansObj?.userAnswer ??
+                    ansObj?.studentAnswer ??
+                    ansObj?.answer ??
+                    ansObj?.selectedOption ??
+                    ansObj?.val ??
+                    ansObj?.user_answer ??
+                    submission?.studentAnswersMap?.[qNo] ??
+                    submission?.studentAnswersMap?.[String(qNo)] ??
+                    submission?.studentAnswers?.[qNo] ??
+                    submission?.studentAnswers?.[String(qNo)] ??
+                    submission?.questionAnswers?.[qNo] ??
+                    submission?.questionAnswers?.[String(qNo)] ??
+                    (typeof submission?.answers?.[qNo] === 'string' ? submission.answers[qNo] : null) ??
+                    (typeof submission?.answers?.[String(qNo)] === 'string' ? submission.answers[String(qNo)] : null) ??
+                    submission?.raw_data?.studentAnswers?.[qNo] ??
+                    submission?.raw_data?.studentAnswers?.[String(qNo)] ??
+                    submission?.raw_data?.studentAnswersMap?.[qNo] ??
+                    submission?.raw_data?.studentAnswersMap?.[String(qNo)] ??
+                    (Array.isArray(submission?.raw_data?.answers) ? (submission.raw_data.answers[idx]?.userAnswer || submission.raw_data.answers[idx]?.studentAnswer) : null)
+                  );
+
+              const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
+              const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
+
+              let userAns = rawUserAns;
+              if ((userAns === null || userAns === undefined || userAns === '' || userAns === 'empty') && (ansObj?.isCorrect === true || ansObj?.status === 'correct')) {
+                userAns = resolvedCorrect;
+              }
+
               const textCandidates = [
                 ansObj.userAnswerText,
                 ansObj.textAns,
                 ansObj.text,
                 ansObj.writtenAnswer,
                 ansObj.studentAnswer,
-                (typeof ansObj.userAnswer === 'string' && ansObj.userAnswer !== 'empty' ? ansObj.userAnswer : null),
+                (typeof userAns === 'string' && userAns !== 'empty' && !/^[A-Ea-e]$/.test(userAns) ? userAns : null),
                 (typeof ansObj.answer === 'string' && ansObj.answer !== 'empty' ? ansObj.answer : null),
                 submission?.openEndedText?.[qNo],
                 submission?.openEndedText?.[String(qNo)],
                 submission?.raw_data?.openEndedText?.[qNo],
                 submission?.raw_data?.openEndedText?.[String(qNo)],
-                (typeof submission?.answers?.[qNo] === 'string' ? submission.answers[qNo] : null),
-                (typeof submission?.answers?.[String(qNo)] === 'string' ? submission.answers[String(qNo)] : null),
                 qObj.userAnswerText,
                 qObj.textAns
               ];
@@ -781,34 +814,44 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               const isBlank = !hasAnswer;
               const isText = Boolean(textAns && String(textAns).trim() !== '');
               const isItemOE = Boolean(
-                isOpenEndedMode ||
-                qObj.type === 'acik_uclu' ||
-                qObj.type === 'yazili' ||
-                qObj.type === 'gorsel_klasik' ||
-                qObj.questionType === 'acik_uclu' ||
-                ansObj.isOpenEnded ||
-                ansObj.is_open_ended ||
-                (!hasUserOption && isText)
+                !displayCorrectKey && (
+                  isOpenEndedMode ||
+                  qObj.type === 'acik_uclu' ||
+                  qObj.type === 'yazili' ||
+                  qObj.type === 'gorsel_klasik' ||
+                  qObj.questionType === 'acik_uclu' ||
+                  ansObj.isOpenEnded ||
+                  ansObj.is_open_ended ||
+                  (!hasUserOption && isText)
+                )
               );
 
               const teacherSc = questionScores[qNo];
               const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc)) && isTrulyEvaluated;
 
-              const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
               const uLetter = formatAnswerLetter(userAns);
-              const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
 
               let isCorrect;
-              if (hasGradedScore) {
+              if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
+                isCorrect = Boolean(ansObj.isCorrect);
+              } else if (ansObj?.status === 'correct' || ansObj?.evalStatus === 'correct') {
+                isCorrect = true;
+              } else if (ansObj?.status === 'wrong' || ansObj?.evalStatus === 'wrong') {
+                isCorrect = false;
+              } else if (hasGradedScore) {
                 isCorrect = Number(teacherSc) >= 5;
               } else if (hasAnswer && !isItemOE) {
                 if (uLetter && displayCorrectKey) {
-                  isCorrect = uLetter === displayCorrectKey;
+                  isCorrect = (uLetter === displayCorrectKey);
                 } else {
                   isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
                 }
               } else {
                 isCorrect = null;
+              }
+
+              if (isCorrect === null && uLetter && displayCorrectKey) {
+                isCorrect = (uLetter === displayCorrectKey);
               }
 
               return (

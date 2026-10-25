@@ -803,25 +803,55 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                 Number(a?.questionNoInSection) === qNo ||
                 Number(a?.number) === qNo ||
                 Number(a?.qNo) === qNo ||
+                Number(a?.questionIndex) === qNo ||
                 String(a?.questionId).includes(`_${qNo}`) ||
                 String(a?.id).includes(`_${qNo}`)
               )) : null) || (Array.isArray(answers) ? answers[idx] : (typeof answers === 'object' ? (answers[qNo] || answers[String(qNo)]) : {})) || {};
 
-              const userAns = ansObj.userAnswer;
+              const rawUserAns = (typeof ansObj === 'string' && /^[A-Ea-e0-4]$/.test(ansObj.trim()))
+                ? ansObj.trim()
+                : (
+                    ansObj?.userAnswer ??
+                    ansObj?.studentAnswer ??
+                    ansObj?.answer ??
+                    ansObj?.selectedOption ??
+                    ansObj?.val ??
+                    ansObj?.user_answer ??
+                    submission?.studentAnswersMap?.[qNo] ??
+                    submission?.studentAnswersMap?.[String(qNo)] ??
+                    submission?.studentAnswers?.[qNo] ??
+                    submission?.studentAnswers?.[String(qNo)] ??
+                    submission?.questionAnswers?.[qNo] ??
+                    submission?.questionAnswers?.[String(qNo)] ??
+                    (typeof submission?.answers?.[qNo] === 'string' ? submission.answers[qNo] : null) ??
+                    (typeof submission?.answers?.[String(qNo)] === 'string' ? submission.answers[String(qNo)] : null) ??
+                    submission?.raw_data?.studentAnswers?.[qNo] ??
+                    submission?.raw_data?.studentAnswers?.[String(qNo)] ??
+                    submission?.raw_data?.studentAnswersMap?.[qNo] ??
+                    submission?.raw_data?.studentAnswersMap?.[String(qNo)] ??
+                    (Array.isArray(submission?.raw_data?.answers) ? (submission.raw_data.answers[idx]?.userAnswer || submission.raw_data.answers[idx]?.studentAnswer) : null)
+                  );
+
+              const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
+              const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
+
+              let userAns = rawUserAns;
+              if ((userAns === null || userAns === undefined || userAns === '' || userAns === 'empty') && (ansObj?.isCorrect === true || ansObj?.status === 'correct')) {
+                userAns = resolvedCorrect;
+              }
+
               const textCandidates = [
                 ansObj.userAnswerText,
                 ansObj.textAns,
                 ansObj.text,
                 ansObj.writtenAnswer,
                 ansObj.studentAnswer,
-                (typeof ansObj.userAnswer === 'string' && ansObj.userAnswer !== 'empty' ? ansObj.userAnswer : null),
+                (typeof userAns === 'string' && userAns !== 'empty' && !/^[A-Ea-e]$/.test(userAns) ? userAns : null),
                 (typeof ansObj.answer === 'string' && ansObj.answer !== 'empty' ? ansObj.answer : null),
                 submission?.openEndedText?.[qNo],
                 submission?.openEndedText?.[String(qNo)],
                 submission?.raw_data?.openEndedText?.[qNo],
                 submission?.raw_data?.openEndedText?.[String(qNo)],
-                (typeof submission?.answers?.[qNo] === 'string' ? submission.answers[qNo] : null),
-                (typeof submission?.answers?.[String(qNo)] === 'string' ? submission.answers[String(qNo)] : null),
                 qObj.userAnswerText,
                 qObj.textAns
               ];
@@ -831,29 +861,33 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
               const isBlank = !hasAnswer || userAns === 'empty' || userAns === '' || userAns === null || userAns === undefined;
               const isText = Boolean(textAns && String(textAns).trim() !== '');
               const isItemOE = Boolean(
-                isOpenEndedMode ||
-                qObj.type === 'acik_uclu' ||
-                qObj.type === 'yazili' ||
-                qObj.type === 'gorsel_klasik' ||
-                qObj.questionType === 'acik_uclu' ||
-                ansObj.isOpenEnded ||
-                ansObj.is_open_ended ||
-                (!hasUserOption && isText)
+                !displayCorrectKey && (
+                  isOpenEndedMode ||
+                  qObj.type === 'acik_uclu' ||
+                  qObj.type === 'yazili' ||
+                  qObj.type === 'gorsel_klasik' ||
+                  qObj.questionType === 'acik_uclu' ||
+                  ansObj.isOpenEnded ||
+                  ansObj.is_open_ended ||
+                  (!hasUserOption && isText)
+                )
               );
 
               const teacherSc = questionScores[qNo];
               const hasGradedScore = teacherSc !== undefined && teacherSc !== null && teacherSc !== 'empty' && teacherSc !== 'pending' && !isNaN(Number(teacherSc)) && isTrulyEvaluated;
 
-              const resolvedCorrect = resolveQuestionCorrectAnswer(qNo, qObj, ansObj, test, questions);
               const uLetter = formatAnswerLetter(userAns);
-              const displayCorrectKey = formatAnswerLetter(resolvedCorrect);
 
               let isCorrect;
-              if (isItemOE) {
+              if (ansObj?.isCorrect !== undefined && ansObj?.isCorrect !== null) {
+                isCorrect = Boolean(ansObj.isCorrect);
+              } else if (ansObj?.status === 'correct' || ansObj?.evalStatus === 'correct') {
+                isCorrect = true;
+              } else if (ansObj?.status === 'wrong' || ansObj?.evalStatus === 'wrong') {
+                isCorrect = false;
+              } else if (isItemOE) {
                 if (hasGradedScore) {
                   isCorrect = Number(teacherSc) >= 5;
-                } else if (ansObj.isCorrect !== undefined) {
-                  isCorrect = ansObj.isCorrect;
                 } else {
                   isCorrect = null;
                 }
@@ -862,13 +896,15 @@ export default function HtmlQuizReview({ submission, test, questions = [], onClo
                   isCorrect = null;
                 } else if (uLetter && displayCorrectKey) {
                   isCorrect = (uLetter === displayCorrectKey);
-                } else if (ansObj.isCorrect !== undefined) {
-                  isCorrect = ansObj.isCorrect;
                 } else if (hasGradedScore) {
                   isCorrect = Number(teacherSc) >= 5;
                 } else {
                   isCorrect = checkIsAnswerCorrect(userAns, qObj, test, qNo);
                 }
+              }
+
+              if (isCorrect === null && uLetter && displayCorrectKey) {
+                isCorrect = (uLetter === displayCorrectKey);
               }
 
               return (
