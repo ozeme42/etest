@@ -334,7 +334,7 @@ export default function StudentStudyPlanView() {
       padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1.25rem 70px',
       boxSizing: 'border-box'
     }}>
-      <div style={{ maxWidth: '1180px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ maxWidth: selectedDersName ? '1180px' : '1560px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         
         {/* ── TOP ACTION & BREADCRUMB BAR ── */}
         <div style={{
@@ -630,12 +630,8 @@ export default function StudentStudyPlanView() {
               </div>
             </div>
 
-            {/* ── BÜYÜK DERS KARTLARI (DESKTOP ÇOKLU SÜTUN BENTO GRID) ── */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(330px, 1fr))',
-              gap: isMobile ? '0.85rem' : '1.25rem'
-            }}>
+            {/* ── BÜYÜK DERS KARTLARI (DESKTOP ÇOKLU SÜTUN BENTO GRID - 3 İLE 4 SÜTUN) ── */}
+            <div className="study-ders-grid">
               {dersGroups.map((group) => {
                 const isAllDone = group.progress === 100 && group.totalTopics > 0;
                 const isInProgress = group.progress > 0 && !isAllDone;
