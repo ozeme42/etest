@@ -41,6 +41,23 @@ export default function StudentStudyPlanView() {
 
   const [activeUnitFilter, setActiveUnitFilter] = useState('all');
   const [activeStatusFilter, setActiveStatusFilter] = useState('all'); // 'all' | 'pending' | 'completed'
+  const [expandedUnits, setExpandedUnits] = useState({});
+
+  const toggleUnit = (unitId) => {
+    setExpandedUnits(prev => ({
+      ...prev,
+      [unitId]: !prev[unitId]
+    }));
+  };
+
+  const handleToggleAllUnits = (shouldExpand) => {
+    if (!currentDers) return;
+    const nextMap = {};
+    (currentDers.units || []).forEach(u => {
+      nextMap[u.id] = shouldExpand;
+    });
+    setExpandedUnits(nextMap);
+  };
 
   // Effective student
   const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
@@ -1120,6 +1137,43 @@ export default function StudentStudyPlanView() {
                       </button>
                     );
                   })}
+
+                  {/* Tümünü Aç / Kapat Butonu */}
+                  {activeUnitFilter === 'all' && (currentDers.units || []).length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const anyExpanded = (currentDers.units || []).some(u => Boolean(expandedUnits[u.id]));
+                        handleToggleAllUnits(!anyExpanded);
+                      }}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 10,
+                        border: '1px solid var(--color-border)',
+                        background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                        color: 'var(--color-text)',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                      title="Tüm ünite kartlarını aç veya kapat"
+                    >
+                      {(currentDers.units || []).some(u => Boolean(expandedUnits[u.id])) ? (
+                        <>
+                          <ChevronUp size={13} />
+                          <span>Tümünü Kapat</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={13} />
+                          <span>Tümünü Aç</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Durum Filtresi */}
@@ -1173,47 +1227,78 @@ export default function StudentStudyPlanView() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {unitsToDisplay.map((unitGroup) => (
-                  <div key={unitGroup.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                    {/* Ünite Başlık Şeridi */}
-                    <div style={{
-                      padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1.15rem',
-                      borderRadius: 14,
-                      background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
-                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 8
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 900,
-                          padding: '2px 8px',
-                          borderRadius: 8,
-                          background: currentDers.theme.bg,
-                          color: currentDers.theme.color,
-                          border: `1px solid ${currentDers.theme.border}`
-                        }}>
-                          {unitGroup.unitIdx}. ÜNİTE
-                        </span>
-                        <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                          {unitGroup.name}
-                        </h3>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
-                        <span>{unitGroup.completedCount} / {unitGroup.totalCount} Tamamlandı (%{unitGroup.unitPct})</span>
-                        {unitGroup.dueDate && (
-                          <span style={{ color: '#0284c7' }}>📅 Hedef: {unitGroup.dueDate}</span>
-                        )}
-                      </div>
-                    </div>
+                {unitsToDisplay.map((unitGroup) => {
+                  const isUnitOpen = activeUnitFilter !== 'all' ? true : Boolean(expandedUnits[unitGroup.id]);
 
-                    {/* Çoklu Sütunlu Konu Kartları Grid'i (3-4 Sütun Masaüstü) */}
-                    <div className="study-topics-grid">
-                      {unitGroup.topics.map((topic) => {
+                  return (
+                    <div key={unitGroup.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {/* Ünite Başlık Şeridi (Tıklanabilir Akordiyon) */}
+                      <div
+                        onClick={() => toggleUnit(unitGroup.id)}
+                        className="hover:scale-[1.003] active:scale-[0.998]"
+                        style={{
+                          padding: isMobile ? '0.75rem 0.95rem' : '0.85rem 1.25rem',
+                          borderRadius: 16,
+                          background: isDark
+                            ? (isUnitOpen ? 'rgba(99, 102, 241, 0.12)' : 'rgba(255,255,255,0.04)')
+                            : (isUnitOpen ? '#f0f4ff' : '#f8fafc'),
+                          border: isDark
+                            ? (isUnitOpen ? `1.5px solid ${currentDers.theme.color}` : '1px solid rgba(255,255,255,0.08)')
+                            : (isUnitOpen ? `1.5px solid ${currentDers.theme.color}` : '1px solid #e2e8f0'),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: 10,
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          boxShadow: isUnitOpen ? `0 4px 16px ${currentDers.theme.bg}` : 'none',
+                          transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 900,
+                            padding: '3px 9px',
+                            borderRadius: 8,
+                            background: currentDers.theme.bg,
+                            color: currentDers.theme.color,
+                            border: `1px solid ${currentDers.theme.border}`
+                          }}>
+                            {unitGroup.unitIdx}. ÜNİTE
+                          </span>
+                          <h3 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                            {unitGroup.name}
+                          </h3>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                          <span>{unitGroup.completedCount} / {unitGroup.totalCount} Tamamlandı (%{unitGroup.unitPct})</span>
+                          {unitGroup.dueDate && (
+                            <span style={{ color: '#0284c7' }}>📅 Hedef: {unitGroup.dueDate}</span>
+                          )}
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                            border: '1px solid var(--color-border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: isUnitOpen ? currentDers.theme.color : 'var(--color-text-muted)',
+                            transition: 'transform 0.2s'
+                          }}>
+                            {isUnitOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Çoklu Sütunlu Konu Kartları Grid'i (Sadece Ünite Açıkken Görünür) */}
+                      {isUnitOpen && (
+                        <div className="study-topics-grid prog-anim-in">
+                          {unitGroup.topics.map((topic) => {
                         const testResult = getTopicResult(topic, currentDers.dersName);
                         const score = testResult?.score;
                         let isOverdue = false;
@@ -1534,8 +1619,10 @@ export default function StudentStudyPlanView() {
                         );
                       })}
                     </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+              );
+            })}
               </div>
             )}
           </div>
