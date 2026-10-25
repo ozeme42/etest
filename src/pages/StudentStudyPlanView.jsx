@@ -279,20 +279,71 @@ export default function StudentStudyPlanView() {
     return dersGroups.find(g => g.dersName === selectedDersName) || null;
   }, [dersGroups, selectedDersName]);
 
-  // Filtered topics inside the selected course
-  const filteredTopics = useMemo(() => {
+  // Filtered topics and units organized for multi-column grid display
+  const unitsToDisplay = useMemo(() => {
     if (!currentDers) return [];
-    let list = currentDers.topics || [];
-    if (activeUnitFilter !== 'all') {
-      list = list.filter(t => String(t.unitId) === String(activeUnitFilter));
-    }
-    if (activeStatusFilter === 'completed') {
-      list = list.filter(t => t.isCompleted);
-    } else if (activeStatusFilter === 'pending') {
-      list = list.filter(t => !t.isCompleted);
-    }
-    return list;
-  }, [currentDers, activeUnitFilter, activeStatusFilter]);
+    let globalStep = 0;
+    let foundFirstIncompleteInDers = false;
+
+    return (currentDers.units || []).map((u, uIdx) => {
+      let unitTopics = (u.topics || []).map((t) => {
+        globalStep += 1;
+        const isCompleted = completedTopics.has(t.id);
+        let isCurrent = false;
+        let isLocked = false;
+
+        if (!isCompleted) {
+          if (!foundFirstIncompleteInDers) {
+            isCurrent = true;
+            foundFirstIncompleteInDers = true;
+          } else {
+            isLocked = true;
+          }
+        }
+
+        return {
+          ...t,
+          unitId: u.id,
+          unitName: u.name,
+          unitIdx: uIdx + 1,
+          unitDueDate: u.dueDate,
+          unitResourceUrl: u.resourceUrl,
+          subjectName: currentDers.dersName,
+          stepIdx: globalStep,
+          isCompleted,
+          isCurrent,
+          isLocked
+        };
+      });
+
+      // Filter by unit filter
+      if (activeUnitFilter !== 'all' && String(u.id) !== String(activeUnitFilter)) {
+        return null;
+      }
+
+      // Filter by status
+      if (activeStatusFilter === 'completed') {
+        unitTopics = unitTopics.filter(t => t.isCompleted);
+      } else if (activeStatusFilter === 'pending') {
+        unitTopics = unitTopics.filter(t => !t.isCompleted);
+      }
+
+      const totalCount = u.topics?.length || 0;
+      const completedCount = (u.topics || []).filter(t => completedTopics.has(t.id)).length;
+      const unitPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+      return {
+        id: u.id,
+        name: u.name,
+        unitIdx: uIdx + 1,
+        dueDate: u.dueDate,
+        totalCount,
+        completedCount,
+        unitPct,
+        topics: unitTopics
+      };
+    }).filter(Boolean).filter(u => u.topics.length > 0);
+  }, [currentDers, completedTopics, activeUnitFilter, activeStatusFilter]);
 
   if (!plan) {
     return (
@@ -334,7 +385,7 @@ export default function StudentStudyPlanView() {
       padding: isMobile ? '0.75rem 0.65rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.25rem 1.25rem 70px',
       boxSizing: 'border-box'
     }}>
-      <div style={{ maxWidth: selectedDersName ? '1180px' : '1560px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ maxWidth: '1560px', width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         
         {/* ── TOP ACTION & BREADCRUMB BAR ── */}
         <div style={{
@@ -1104,481 +1155,389 @@ export default function StudentStudyPlanView() {
             </div>
 
             {/* ══════════════════════════════════════════════════════════
-                🔗 ZİNCİR BAĞLANTILI KONU KARTLARI (CHAIN LEARNING PATH)
+                🔗 ZİNCİR BAĞLANTILI KONU KARTLARI (3-4 SÜTUNLU MULTI-COLUMN GRID)
                 ══════════════════════════════════════════════════════════ */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
-              
-              {filteredTopics.length === 0 ? (
-                <div style={{
-                  padding: '3rem 1.5rem',
-                  textAlign: 'center',
-                  background: 'var(--color-surface, #ffffff)',
-                  borderRadius: 18,
-                  border: '1.5px dashed var(--color-border)'
-                }}>
-                  <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🔍</div>
-                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Seçilen filtrede konu bulunamadı</h4>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                    Filtreleri sıfırlayarak tüm müfredat zincirini görüntüleyebilirsiniz.
-                  </p>
-                </div>
-              ) : (
-                (() => {
-                  let foundFirstIncomplete = false;
-
-                  return filteredTopics.map((topic, tIdx) => {
-                    const isCompleted = topic.isCompleted;
-                    let isCurrent = false;
-                    let isLocked = false;
-
-                    if (!isCompleted) {
-                      if (!foundFirstIncomplete) {
-                        isCurrent = true;
-                        foundFirstIncomplete = true;
-                      } else {
-                        isLocked = true;
-                      }
-                    }
-
-                    const isLast = tIdx === filteredTopics.length - 1;
-                    const testResult = getTopicResult(topic, currentDers.dersName);
-                    const score = testResult?.score;
-
-                    let isOverdue = false;
-                    try {
-                      isOverdue = topic.dueDate && isPast(parseISO(topic.dueDate)) && !isCompleted;
-                    } catch {}
-
-                    return (
-                      <div
-                        key={topic.id || tIdx}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'stretch',
-                          gap: isMobile ? 12 : 18,
-                          position: 'relative'
-                        }}
-                      >
-                        {/* ── SOL SÜTUN: ZİNCİR ÇİZGİSİ VE DÜĞÜM (CHAIN TIMELINE NODE) ── */}
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          width: isMobile ? 36 : 46,
-                          flexShrink: 0,
-                          position: 'relative'
+            {unitsToDisplay.length === 0 ? (
+              <div style={{
+                padding: '3rem 1.5rem',
+                textAlign: 'center',
+                background: 'var(--color-surface, #ffffff)',
+                borderRadius: 18,
+                border: '1.5px dashed var(--color-border)'
+              }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🔍</div>
+                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Seçilen filtrede konu bulunamadı</h4>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  Filtreleri sıfırlayarak tüm müfredat zincirini görüntüleyebilirsiniz.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {unitsToDisplay.map((unitGroup) => (
+                  <div key={unitGroup.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                    {/* Ünite Başlık Şeridi */}
+                    <div style={{
+                      padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1.15rem',
+                      borderRadius: 14,
+                      background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 8
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 900,
+                          padding: '2px 8px',
+                          borderRadius: 8,
+                          background: currentDers.theme.bg,
+                          color: currentDers.theme.color,
+                          border: `1px solid ${currentDers.theme.border}`
                         }}>
-                          {/* Üst Bağlantı Zinciri */}
-                          <div style={{
-                            width: 3,
-                            height: 18,
-                            background: tIdx === 0
-                              ? 'transparent'
-                              : isCompleted
-                              ? '#10b981'
-                              : isCurrent
-                              ? 'linear-gradient(to bottom, #10b981, #6366f1)'
-                              : isDark ? 'rgba(255,255,255,0.15)' : '#cbd5e1',
-                            borderRadius: 2
-                          }} />
+                          {unitGroup.unitIdx}. ÜNİTE
+                        </span>
+                        <h3 style={{ margin: 0, fontSize: isMobile ? '0.92rem' : '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {unitGroup.name}
+                        </h3>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.74rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                        <span>{unitGroup.completedCount} / {unitGroup.totalCount} Tamamlandı (%{unitGroup.unitPct})</span>
+                        {unitGroup.dueDate && (
+                          <span style={{ color: '#0284c7' }}>📅 Hedef: {unitGroup.dueDate}</span>
+                        )}
+                      </div>
+                    </div>
 
-                          {/* Zincir Düğümü (Node Circle) */}
-                          <div style={{
-                            width: isMobile ? 34 : 42,
-                            height: isMobile ? 34 : 42,
-                            borderRadius: '50%',
-                            background: isCompleted
-                              ? 'linear-gradient(135deg, #10b981, #059669)'
-                              : isCurrent
-                              ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
-                              : isDark ? '#1e293b' : '#f1f5f9',
-                            border: isCompleted
-                              ? '3px solid #34d399'
-                              : isCurrent
-                              ? '3px solid #a5b4fc'
-                              : isDark ? '2px solid rgba(255,255,255,0.15)' : '2px solid #cbd5e1',
-                            color: isCompleted || isCurrent ? '#ffffff' : 'var(--color-text-muted)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 900,
-                            fontSize: isMobile ? '0.74rem' : '0.84rem',
-                            boxShadow: isCompleted
-                              ? '0 0 14px rgba(16, 185, 129, 0.45)'
-                              : isCurrent
-                              ? '0 0 18px rgba(99, 102, 241, 0.55)'
-                              : 'none',
-                            flexShrink: 0,
-                            zIndex: 2,
-                            transition: 'all 0.2s'
-                          }}>
-                            {isCompleted ? (
-                              <Check size={isMobile ? 16 : 20} strokeWidth={3} />
-                            ) : isCurrent ? (
-                              <Zap size={isMobile ? 15 : 18} fill="#ffffff" />
-                            ) : isLocked ? (
-                              <Lock size={isMobile ? 13 : 15} />
-                            ) : (
-                              tIdx + 1
-                            )}
-                          </div>
+                    {/* Çoklu Sütunlu Konu Kartları Grid'i (3-4 Sütun Masaüstü) */}
+                    <div className="study-topics-grid">
+                      {unitGroup.topics.map((topic) => {
+                        const testResult = getTopicResult(topic, currentDers.dersName);
+                        const score = testResult?.score;
+                        let isOverdue = false;
+                        try {
+                          isOverdue = topic.dueDate && isPast(parseISO(topic.dueDate)) && !topic.isCompleted;
+                        } catch {}
 
-                          {/* Alt Bağlantı Zinciri */}
-                          {!isLast && (
+                        return (
+                          <div
+                            key={topic.id || topic.stepIdx}
+                            className="game-card-elevated"
+                            style={{
+                              background: topic.isCompleted
+                                ? (isDark ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.03)')
+                                : topic.isCurrent
+                                ? (isDark ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.14), var(--color-surface))' : 'linear-gradient(145deg, rgba(99, 102, 241, 0.06), #ffffff)')
+                                : (isDark ? 'var(--color-surface, #1e293b)' : '#ffffff'),
+                              borderTop: `4px solid ${topic.isCompleted ? '#10b981' : topic.isCurrent ? '#6366f1' : currentDers.theme.color}`,
+                              borderLeft: `1.5px solid ${topic.isCompleted ? 'rgba(16,185,129,0.35)' : topic.isCurrent ? '#818cf8' : 'var(--color-border)'}`,
+                              borderRight: `1.5px solid ${topic.isCompleted ? 'rgba(16,185,129,0.35)' : topic.isCurrent ? '#818cf8' : 'var(--color-border)'}`,
+                              borderBottom: `1.5px solid ${topic.isCompleted ? 'rgba(16,185,129,0.35)' : topic.isCurrent ? '#818cf8' : 'var(--color-border)'}`,
+                              borderRadius: 18,
+                              padding: isMobile ? '0.75rem 0.85rem' : '0.95rem 1.15rem',
+                              opacity: topic.isLocked ? 0.68 : 1,
+                              boxShadow: topic.isCurrent
+                                ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 8px 24px rgba(99, 102, 241, 0.18)'
+                                : topic.isCompleted
+                                ? '0 2px 10px rgba(16,185,129,0.08)'
+                                : '0 2px 8px rgba(0,0,0,0.04)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              gap: '0.65rem',
+                              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                            }}
+                          >
+                            {/* 1. Satır: Zincir Düğümü + Adım No + Durum / Test Başarı Rozeti */}
                             <div style={{
-                              width: 3,
-                              flex: 1,
-                              minHeight: 30,
-                              background: isCompleted
-                                ? '#10b981'
-                                : isDark ? 'rgba(255,255,255,0.12)' : '#cbd5e1',
-                              borderRadius: 2
-                            }} />
-                          )}
-                        </div>
-
-                        {/* ── SAĞ SÜTUN: TEST KARTI STİLİNDE KONU KARTI (QUEST TEST CARD) ── */}
-                        <div
-                          className="game-card-elevated"
-                          style={{
-                            flex: 1,
-                            marginBottom: isMobile ? '0.85rem' : '1.15rem',
-                            background: isCompleted
-                              ? (isDark ? 'rgba(16, 185, 129, 0.05)' : 'rgba(16, 185, 129, 0.03)')
-                              : isCurrent
-                              ? (isDark ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.14), var(--color-surface))' : 'linear-gradient(145deg, rgba(99, 102, 241, 0.06), #ffffff)')
-                              : (isDark ? 'var(--color-surface, #1e293b)' : '#ffffff'),
-                            borderTop: `4px solid ${isCompleted ? '#10b981' : isCurrent ? '#6366f1' : currentDers.theme.color}`,
-                            borderLeft: `1.5px solid ${isCompleted ? 'rgba(16,185,129,0.35)' : isCurrent ? '#818cf8' : 'var(--color-border)'}`,
-                            borderRight: `1.5px solid ${isCompleted ? 'rgba(16,185,129,0.35)' : isCurrent ? '#818cf8' : 'var(--color-border)'}`,
-                            borderBottom: `1.5px solid ${isCompleted ? 'rgba(16,185,129,0.35)' : isCurrent ? '#818cf8' : 'var(--color-border)'}`,
-                            borderRadius: isMobile ? 14 : 18,
-                            padding: isMobile ? '0.75rem 0.85rem' : '1rem 1.25rem',
-                            opacity: isLocked ? 0.65 : 1,
-                            boxShadow: isCurrent
-                              ? '0 0 0 2px rgba(99, 102, 241, 0.35), 0 8px 24px rgba(99, 102, 241, 0.18)'
-                              : isCompleted
-                              ? '0 2px 10px rgba(16,185,129,0.08)'
-                              : '0 2px 8px rgba(0,0,0,0.04)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            gap: '0.65rem',
-                            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                          }}
-                        >
-                          {/* 1. Satır: Ders Rozeti, XP, Adım No ve Başarı Rozeti */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 8,
-                            flexWrap: 'wrap'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{
-                                background: currentDers.theme.bg,
-                                color: currentDers.theme.color,
-                                border: `1px solid ${currentDers.theme.border}`,
-                                borderRadius: 8,
-                                padding: '2px 8px',
-                                fontSize: '0.72rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}>
-                                <span>{currentDers.theme.icon}</span>
-                                <span>{currentDers.dersName}</span>
-                              </span>
-
-                              <span style={{
-                                background: 'rgba(245, 158, 11, 0.12)',
-                                color: '#d97706',
-                                border: '1px solid rgba(245, 158, 11, 0.3)',
-                                borderRadius: 8,
-                                padding: '2px 7px',
-                                fontSize: '0.7rem',
-                                fontWeight: 900
-                              }}>
-                                +25 XP
-                              </span>
-
-                              <span style={{
-                                background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-                                color: 'var(--color-text-muted)',
-                                borderRadius: 8,
-                                padding: '2px 7px',
-                                fontSize: '0.68rem',
-                                fontWeight: 800
-                              }}>
-                                ADIM {tIdx + 1}
-                              </span>
-                            </div>
-
-                            {/* Durum / Test Başarı Rozeti */}
-                            {testResult && score !== null && score !== undefined ? (
-                              <span style={{
-                                background: score >= 80 ? (isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7') : score >= 60 ? (isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7') : (isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2'),
-                                color: score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444',
-                                border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.35)' : score >= 60 ? 'rgba(245,158,11,0.35)' : 'rgba(239,68,68,0.35)'}`,
-                                borderRadius: 99,
-                                padding: '2px 8px',
-                                fontSize: '0.7rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4
-                              }}>
-                                <span>{score >= 80 ? '🏆' : score >= 60 ? '📈' : '⚠️'}</span>
-                                <span>%{score} • {score >= 80 ? 'Güçlü' : score >= 60 ? 'Gelişiyor' : 'Tekrar Etmeli'}</span>
-                              </span>
-                            ) : isCompleted ? (
-                              <span style={{
-                                background: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7',
-                                color: '#10b981',
-                                border: '1px solid rgba(16,185,129,0.35)',
-                                borderRadius: 99,
-                                padding: '2px 8px',
-                                fontSize: '0.7rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3
-                              }}>
-                                <Check size={12} strokeWidth={3} />
-                                Tamamlandı
-                              </span>
-                            ) : isCurrent ? (
-                              <span style={{
-                                background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                                color: '#ffffff',
-                                borderRadius: 99,
-                                padding: '2px 9px',
-                                fontSize: '0.68rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3,
-                                boxShadow: '0 2px 8px rgba(99,102,241,0.35)'
-                              }}>
-                                <Zap size={11} fill="#ffffff" />
-                                ŞİMDİKİ HEDEF
-                              </span>
-                            ) : isLocked ? (
-                              <span style={{
-                                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                color: 'var(--color-text-muted)',
-                                borderRadius: 99,
-                                padding: '2px 8px',
-                                fontSize: '0.68rem',
-                                fontWeight: 800,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3
-                              }}>
-                                <Lock size={11} />
-                                Kilitli
-                              </span>
-                            ) : null}
-                          </div>
-
-                          {/* 2. Satır: Konu Adı Başlığı */}
-                          <div>
-                            <h4 style={{
-                              margin: 0,
-                              fontSize: isMobile ? '0.98rem' : '1.12rem',
-                              fontWeight: 900,
-                              color: isCompleted ? 'var(--color-text-muted)' : 'var(--color-text)',
-                              fontFamily: "'Outfit', sans-serif",
-                              textDecoration: isCompleted ? 'line-through' : 'none',
-                              lineHeight: 1.3
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 6,
+                              flexWrap: 'wrap'
                             }}>
-                              {topic.name}
-                            </h4>
-                          </div>
-
-                          {/* 3. Satır: Detay Hapları (Ünite, Soru Sayısı, Doğru/Yanlış ve Tarih) */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: '0.45rem',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: 'var(--color-text-muted)'
-                          }}>
-                            {/* Ünite Adı */}
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <BookOpen size={12} />
-                              <span>{topic.unitName}</span>
-                            </span>
-
-                            <span style={{ opacity: 0.4 }}>•</span>
-
-                            {/* Soru Sayısı */}
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <Edit3 size={12} />
-                              <span>{testResult?.totalQuestions || 20} Soru</span>
-                            </span>
-
-                            {/* Doğru / Yanlış Bilgisi (Eğer Test Çözüldüyse) */}
-                            {testResult && (testResult.correctCount > 0 || testResult.wrongCount > 0) && (
-                              <>
-                                <span style={{ opacity: 0.4 }}>•</span>
-                                <span style={{ color: '#10b981', fontWeight: 800 }}>
-                                  ✅ {testResult.correctCount} Doğru
-                                </span>
-                                <span style={{ color: '#ef4444', fontWeight: 800 }}>
-                                  ❌ {testResult.wrongCount} Yanlış
-                                </span>
-                              </>
-                            )}
-
-                            {/* Son Teslim / Hedef Tarihi */}
-                            {(topic.dueDate || topic.unitDueDate) && (
-                              <>
-                                <span style={{ opacity: 0.4 }}>•</span>
-                                <span style={{
-                                  display: 'inline-flex',
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {/* Zincir Düğüm İkonu */}
+                                <div style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '50%',
+                                  background: topic.isCompleted
+                                    ? 'linear-gradient(135deg, #10b981, #059669)'
+                                    : topic.isCurrent
+                                    ? 'linear-gradient(135deg, #6366f1, #4f46e5)'
+                                    : isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                                  color: topic.isCompleted || topic.isCurrent ? '#ffffff' : 'var(--color-text-muted)',
+                                  display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  color: isOverdue ? '#ef4444' : 'var(--color-text-muted)',
-                                  fontWeight: isOverdue ? 900 : 700
+                                  justifyContent: 'center',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 900,
+                                  flexShrink: 0
                                 }}>
-                                  <Calendar size={12} />
-                                  <span>{isOverdue ? 'Gecikti:' : 'Hedef:'} {topic.dueDate || topic.unitDueDate}</span>
-                                </span>
-                              </>
-                            )}
-                          </div>
+                                  {topic.isCompleted ? (
+                                    <Check size={13} strokeWidth={3} />
+                                  ) : topic.isCurrent ? (
+                                    <Zap size={12} fill="#ffffff" />
+                                  ) : topic.isLocked ? (
+                                    <Lock size={11} />
+                                  ) : (
+                                    topic.stepIdx
+                                  )}
+                                </div>
 
-                          {/* 4. Satır: Eylem Butonları */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            gap: 8,
-                            flexWrap: 'wrap',
-                            paddingTop: '0.4rem',
-                            borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9'
-                          }}>
-                            {/* Çalışma Kaynağı Bağlantısı */}
-                            {(topic.resourceUrl || topic.unitResourceUrl) && (
-                              <a
-                                href={topic.resourceUrl || topic.unitResourceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                  padding: '0.38rem 0.75rem',
-                                  borderRadius: 10,
-                                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
-                                  border: '1px solid var(--color-border)',
+                                <span style={{
+                                  background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
                                   color: 'var(--color-text)',
-                                  fontSize: '0.74rem',
-                                  fontWeight: 800,
-                                  textDecoration: 'none',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4
-                                }}
-                              >
-                                <PlayCircle size={13} />
-                                <span>Kaynak ↗</span>
-                              </a>
-                            )}
+                                  borderRadius: 8,
+                                  padding: '1px 6px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 900
+                                }}>
+                                  ADIM {topic.stepIdx}
+                                </span>
 
-                            {/* Test Sonucu Gir / Düzenle Butonu */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setManualTestModalData({
-                                  isOpen: true,
-                                  data: {
-                                    studentId: studentId,
-                                    bookTitle: plan.title,
-                                    subject: currentDers.dersName,
-                                    unitTopic: `${topic.unitName} - ${topic.name}`,
-                                    testName: `${topic.name} Testi`,
-                                    totalQuestions: testResult?.totalQuestions || 20
-                                  },
-                                  topicId: topic.id
-                                });
-                              }}
-                              className="game-btn-3d"
-                              style={{
-                                padding: '0.4rem 0.85rem',
-                                borderRadius: 10,
-                                background: isCompleted
-                                  ? (isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc')
-                                  : 'rgba(16, 185, 129, 0.12)',
-                                border: isCompleted
-                                  ? '1px solid var(--color-border)'
-                                  : '1.5px solid rgba(16, 185, 129, 0.4)',
-                                color: isCompleted ? 'var(--color-text)' : '#10b981',
-                                fontSize: '0.76rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Edit3 size={13} />
-                              <span>{isCompleted ? 'D/Y Düzenle' : '⚡ Test Sonucu Gir'}</span>
-                            </button>
+                                <span style={{
+                                  background: 'rgba(245, 158, 11, 0.12)',
+                                  color: '#d97706',
+                                  borderRadius: 8,
+                                  padding: '1px 6px',
+                                  fontSize: '0.66rem',
+                                  fontWeight: 900
+                                }}>
+                                  +25 XP
+                                </span>
+                              </div>
 
-                            {/* Bitirdim / Geri Al Butonu */}
-                            {isCompleted ? (
-                              <button
-                                type="button"
-                                onClick={() => handleUnmarkCompleted(topic.id)}
-                                style={{
-                                  padding: '0.4rem 0.75rem',
-                                  borderRadius: 10,
-                                  background: 'transparent',
-                                  border: '1px solid var(--color-border)',
-                                  color: 'var(--color-text-muted)',
-                                  fontSize: '0.74rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4
-                                }}
-                                title="Tamamlanma durumunu geri al"
-                              >
-                                <RotateCcw size={12} />
-                                <span>Geri Al</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleMarkCompleted(topic.id)}
-                                className="game-btn-3d game-btn-emerald"
-                                style={{
-                                  padding: '0.42rem 0.95rem',
-                                  borderRadius: 10,
-                                  fontSize: '0.78rem',
+                              {/* Test Başarı Rozeti / Durum */}
+                              {testResult && score !== null && score !== undefined ? (
+                                <span style={{
+                                  background: score >= 80 ? (isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7') : score >= 60 ? (isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7') : (isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2'),
+                                  color: score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444',
+                                  border: `1px solid ${score >= 80 ? 'rgba(16,185,129,0.35)' : score >= 60 ? 'rgba(245,158,11,0.35)' : 'rgba(239,68,68,0.35)'}`,
+                                  borderRadius: 99,
+                                  padding: '1.5px 7px',
+                                  fontSize: '0.66rem',
                                   fontWeight: 900,
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 5,
+                                  gap: 3
+                                }}>
+                                  <span>{score >= 80 ? '🏆' : score >= 60 ? '📈' : '⚠️'}</span>
+                                  <span>%{score} • {score >= 80 ? 'Güçlü' : score >= 60 ? 'Gelişiyor' : 'Tekrar'}</span>
+                                </span>
+                              ) : topic.isCompleted ? (
+                                <span style={{
+                                  background: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7',
+                                  color: '#10b981',
+                                  border: '1px solid rgba(16,185,129,0.35)',
+                                  borderRadius: 99,
+                                  padding: '1.5px 7px',
+                                  fontSize: '0.66rem',
+                                  fontWeight: 900
+                                }}>
+                                  Tamamlandı
+                                </span>
+                              ) : topic.isCurrent ? (
+                                <span style={{
+                                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                  color: '#ffffff',
+                                  borderRadius: 99,
+                                  padding: '1.5px 8px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 900,
+                                  boxShadow: '0 2px 8px rgba(99,102,241,0.35)'
+                                }}>
+                                  ŞİMDİKİ HEDEF
+                                </span>
+                              ) : topic.isLocked ? (
+                                <span style={{
+                                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                  color: 'var(--color-text-muted)',
+                                  borderRadius: 99,
+                                  padding: '1.5px 7px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 800
+                                }}>
+                                  Kilitli
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {/* 2. Satır: Konu Adı Başlığı */}
+                            <div>
+                              <h4 style={{
+                                margin: 0,
+                                fontSize: isMobile ? '0.92rem' : '1rem',
+                                fontWeight: 900,
+                                color: topic.isCompleted ? 'var(--color-text-muted)' : 'var(--color-text)',
+                                fontFamily: "'Outfit', sans-serif",
+                                textDecoration: topic.isCompleted ? 'line-through' : 'none',
+                                lineHeight: 1.3
+                              }}>
+                                {topic.name}
+                              </h4>
+                            </div>
+
+                            {/* 3. Satır: Detay Hapları */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: '0.4rem',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: 'var(--color-text-muted)'
+                            }}>
+                              <span>📝 {testResult?.totalQuestions || 20} Soru</span>
+                              {testResult && (testResult.correctCount > 0 || testResult.wrongCount > 0) && (
+                                <>
+                                  <span style={{ opacity: 0.4 }}>•</span>
+                                  <span style={{ color: '#10b981', fontWeight: 800 }}>✅ {testResult.correctCount} D</span>
+                                  <span style={{ color: '#ef4444', fontWeight: 800 }}>❌ {testResult.wrongCount} Y</span>
+                                </>
+                              )}
+                              {(topic.dueDate || topic.unitDueDate) && (
+                                <>
+                                  <span style={{ opacity: 0.4 }}>•</span>
+                                  <span style={{ color: isOverdue ? '#ef4444' : 'var(--color-text-muted)', fontWeight: isOverdue ? 900 : 700 }}>
+                                    📅 {topic.dueDate || topic.unitDueDate}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* 4. Satır: Eylemler */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 6,
+                              flexWrap: 'wrap',
+                              paddingTop: '0.4rem',
+                              borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9'
+                            }}>
+                              {/* Sol: Test Sonucu Gir / Düzenle */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setManualTestModalData({
+                                    isOpen: true,
+                                    data: {
+                                      studentId: studentId,
+                                      bookTitle: plan.title,
+                                      subject: currentDers.dersName,
+                                      unitTopic: `${topic.unitName} - ${topic.name}`,
+                                      testName: `${topic.name} Testi`,
+                                      totalQuestions: testResult?.totalQuestions || 20
+                                    },
+                                    topicId: topic.id
+                                  });
+                                }}
+                                className="game-btn-3d"
+                                style={{
+                                  padding: '0.35rem 0.7rem',
+                                  borderRadius: 9,
+                                  background: topic.isCompleted
+                                    ? (isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc')
+                                    : 'rgba(16, 185, 129, 0.12)',
+                                  border: topic.isCompleted
+                                    ? '1px solid var(--color-border)'
+                                    : '1.5px solid rgba(16, 185, 129, 0.4)',
+                                  color: topic.isCompleted ? 'var(--color-text)' : '#10b981',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 900,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
                                   cursor: 'pointer'
                                 }}
                               >
-                                <CheckCircle2 size={14} />
-                                <span>Bitirdim</span>
+                                <Edit3 size={12} />
+                                <span>{topic.isCompleted ? 'D/Y Düzenle' : '⚡ Sonuç Gir'}</span>
                               </button>
-                            )}
+
+                              {/* Sağ: Kaynak & Bitir Butonları */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {(topic.resourceUrl || topic.unitResourceUrl) && (
+                                  <a
+                                    href={topic.resourceUrl || topic.unitResourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      padding: '0.35rem 0.65rem',
+                                      borderRadius: 9,
+                                      background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                                      border: '1px solid var(--color-border)',
+                                      color: 'var(--color-text)',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 800,
+                                      textDecoration: 'none',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3
+                                    }}
+                                    title="Çalışma Kaynağını Aç"
+                                  >
+                                    <PlayCircle size={12} />
+                                    <span>Kaynak</span>
+                                  </a>
+                                )}
+
+                                {topic.isCompleted ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUnmarkCompleted(topic.id)}
+                                    style={{
+                                      padding: '0.35rem 0.65rem',
+                                      borderRadius: 9,
+                                      background: 'transparent',
+                                      border: '1px solid var(--color-border)',
+                                      color: 'var(--color-text-muted)',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3
+                                    }}
+                                    title="Tamamlanma durumunu geri al"
+                                  >
+                                    <RotateCcw size={11} />
+                                    <span>Geri Al</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMarkCompleted(topic.id)}
+                                    className="game-btn-3d game-btn-emerald"
+                                    style={{
+                                      padding: '0.36rem 0.85rem',
+                                      borderRadius: 9,
+                                      fontSize: '0.74rem',
+                                      fontWeight: 900,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <CheckCircle2 size={13} />
+                                    <span>Bitirdim</span>
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()
-              )}
-            </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
