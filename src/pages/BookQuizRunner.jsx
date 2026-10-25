@@ -27,7 +27,6 @@ export default function BookQuizRunner() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [submissionComplete, setSubmissionComplete] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
-  useEffect(() => { setShowPdf(hasPdf); }, [hasPdf]);
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const isSubmittingRef = useRef(false);
@@ -319,7 +318,7 @@ export default function BookQuizRunner() {
           flex-direction: column !important;
         }
         .book-quiz-optic-area-desktop {
-          ${hasPdf ? 'width: 380px !important; border-left: 1px solid #e2e8f0 !important;' : 'flex: 1 !important; max-width: 900px !important; margin: 0 auto !important; border: none !important;'}
+          ${hasPdf && showPdf ? 'width: 380px !important; border-left: 1px solid #e2e8f0 !important;' : 'flex: 1 !important; max-width: 1480px !important; margin: 0 auto !important; border: none !important;'}
           height: 100% !important;
           overflow-y: auto !important;
           background: #f8fafc !important;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PdfViewerWithControls from '../../PdfViewerWithControls';
-import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Save, Clock, Award, Sparkles, FileText } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { idbGetPayload } from '../../../services/indexedDbService';
 import { checkIsAnswerCorrect, resolveQuestionCorrectAnswer, formatAnswerLetter } from '../../../utils/answerEvaluation';
@@ -56,6 +56,8 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
       navigate('/student-results', { replace: true });
     }
   };
+
+  const [showPdf, setShowPdf] = useState(false);
 
   const answers = submission.answers || submission.formattedAnswers || submission.raw_data?.answers || [];
 
@@ -709,6 +711,32 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
             </>
           )}
 
+          {pdfPayload && (
+            <button
+              type="button"
+              onClick={() => setShowPdf(prev => !prev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                background: showPdf ? '#2563eb' : '#ffffff',
+                border: `1.5px solid ${showPdf ? '#1d4ed8' : '#cbd5e1'}`,
+                color: showPdf ? '#ffffff' : '#0f172a',
+                borderRadius: '0.55rem',
+                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.95rem',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                cursor: 'pointer',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease'
+              }}
+              title={showPdf ? 'PDF dokümanını gizle' : 'PDF dokümanını aç'}
+            >
+              <FileText size={15} />
+              <span>{showPdf ? '📖 PDF’i Gizle' : '📖 PDF Dokümanını Aç'}</span>
+            </button>
+          )}
+
           {isTeacherMode && (
             <button
               type="button"
@@ -735,20 +763,15 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
         </div>
       </header>
 
-      <QuizPanelLayout
-        panelTitle="Cevap Analiz & Notlandırma"
-        panelSubtitle="Soru bazlı öğrenci yanıtları ve puanlama"
-        icon="📊"
-        defaultPosition="right"
-        defaultSize={450}
-        documentContent={
-          <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#f8fafc', color: '#0f172a' }}>
-            <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
-          </div>
-        }
-        answerContent={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingBottom: '2rem' }}>
-            {Array.from({ length: qCount }).map((_, idx) => {
+      {(() => {
+        const renderQuestionsAndNotes = (isSplit = false) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : `repeat(auto-fill, minmax(${isSplit ? '280px' : '320px'}, 1fr))`,
+              gap: isSplit ? '0.85rem' : '1rem'
+            }}>
+              {Array.from({ length: qCount }).map((_, idx) => {
               const qNo = idx + 1;
               const qObj = questions[idx] || (idx === 0 ? questions[0] : {}) || {};
               const ansObj = (Array.isArray(answers) ? answers.find(a => (
@@ -1229,6 +1252,7 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
                 </div>
               );
             })}
+            </div>
 
             {/* Overall Teacher Note Section */}
             {isTeacherMode ? (
@@ -1257,8 +1281,34 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
               )
             )}
           </div>
-        }
-      />
+        );
+
+        return showPdf ? (
+          <QuizPanelLayout
+            panelTitle="Cevap Analiz & Notlandırma"
+            panelSubtitle="Soru bazlı öğrenci yanıtları ve puanlama"
+            icon="📊"
+            defaultPosition="right"
+            defaultSize={540}
+            documentContent={
+              <div style={{ flex: 1, minWidth: 0, height: '100%', background: '#f8fafc', color: '#0f172a' }}>
+                <PdfViewerWithControls payload={pdfPayload} title={test.title} height="100%" />
+              </div>
+            }
+            answerContent={
+              <div style={{ paddingBottom: '2rem' }}>
+                {renderQuestionsAndNotes(true)}
+              </div>
+            }
+          />
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--color-bg, #f8fafc)', padding: isMobile ? '0.75rem' : '1.25rem 2rem 3rem 2rem' }}>
+            <div style={{ maxWidth: 1480, margin: '0 auto', width: '100%' }}>
+              {renderQuestionsAndNotes(false)}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
       {aiModalQuestionNo && (

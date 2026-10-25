@@ -245,6 +245,7 @@ export default memo(function OpticalBubblePanel({
                   </div>
 
                   {/* Question Rows of this Section */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.45rem' }}>
                   {Array.from({ length: secQCount }).map((_, qIdx) => {
                     const qNo = qIdx + 1;
                     const rawUserAns = secAnsMap[qNo] ?? secAnsMap[String(qNo)];
@@ -362,13 +363,14 @@ export default memo(function OpticalBubblePanel({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               );
             })}
           </div>
         ) : (
           /* ── 🌟 SINGLE SECTION OR REVIEW OPTICAL VIEW ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.5rem' }}>
             {Array.from({ length: totalCount }).map((_, idx) => {
               const { qNo, userAns, hasAns, correctAns, isCorrect } = resolveEvaluation(idx);
               const isCurrentQuestion = activeQuestionIndex === idx;

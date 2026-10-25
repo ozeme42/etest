@@ -55,6 +55,7 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
     } catch { return {}; }
   });
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
 
   const isOpenEndedMode = useMemo(() => {
     if (isMultipleChoice(test)) return false;
@@ -580,6 +581,32 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
             {!isMobile && (isDrawingOpen ? "Çizimi Kapat" : "Çizim Tahtası")}
           </button>
 
+          {pdfPayload && (
+            <button
+              type="button"
+              onClick={() => setShowPdf(prev => !prev)}
+              style={{
+                padding: isMobile ? '0.35rem 0.55rem' : '0.45rem 0.95rem',
+                borderRadius: '0.65rem',
+                background: showPdf ? '#2563eb' : 'var(--color-surface-hover)',
+                border: `1.5px solid ${showPdf ? '#1d4ed8' : 'var(--color-border-input)'}`,
+                color: showPdf ? '#ffffff' : 'var(--color-text)',
+                fontWeight: 800,
+                fontSize: isMobile ? '0.75rem' : '0.82rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.02)',
+                transition: 'all 0.15s ease'
+              }}
+              title={showPdf ? 'PDF Dokümanını Gizle' : 'PDF Dokümanını Aç'}
+            >
+              <FileText size={14} /> 
+              <span>{showPdf ? (isMobile ? 'PDF' : 'PDF’i Gizle') : (isMobile ? 'PDF' : 'PDF Dokümanını Aç')}</span>
+            </button>
+          )}
+
           <button
             onClick={handleSubmit}
             style={{
@@ -605,86 +632,76 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
         </div>
       </header>
 
-      <QuizPanelLayout
-        panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Kağıdı"}
-        panelSubtitle={`${qCount} Soru`}
-        icon={isOpenEndedMode ? "✍️" : "📋"}
-        defaultPosition="right"
-        defaultSize={340}
-        documentContent={
-          <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
-            <PdfViewerWithControls 
-              payload={pdfPayload} 
-              title={test.title} 
-              height="100%" 
-              isDrawingOpen={isDrawingOpen}
-              onToggleDrawing={() => setIsDrawingOpen(false)}
-            />
-          </div>
-        }
-        answerContent={
-          isOpenEndedMode ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', padding: '0.75rem' }}>
-              {Array.from({ length: qCount }).map((_, idx) => {
-                const qNo = idx + 1;
-                const textVal = openEndedText[qNo] || '';
-                const isAnswered = Boolean(textVal && String(textVal).trim() !== '');
+      {(() => {
+        const answerSheet = isOpenEndedMode ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : `repeat(auto-fill, minmax(${showPdf ? '280px' : '320px'}, 1fr))`,
+            gap: showPdf ? '0.65rem' : '1rem',
+            padding: showPdf ? '0.75rem' : 0,
+            width: '100%'
+          }}>
+            {Array.from({ length: qCount }).map((_, idx) => {
+              const qNo = idx + 1;
+              const textVal = openEndedText[qNo] || '';
+              const isAnswered = Boolean(textVal && String(textVal).trim() !== '');
 
-                return (
-                  <div key={qNo} style={{
-                    background: 'var(--color-surface)',
-                    padding: '0.85rem 1rem',
-                    borderRadius: '0.85rem',
-                    border: isAnswered ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
-                    boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.08)' : '0 1px 4px rgba(0,0,0,0.02)',
-                    transition: 'all 0.15s ease'
-                  }}>
-                    <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{
-                        padding: '0.2rem 0.55rem',
-                        borderRadius: '0.45rem',
-                        background: isAnswered ? '#4f46e5' : 'var(--color-surface-hover)',
-                        color: isAnswered ? '#ffffff' : 'var(--color-text)',
-                        fontSize: '0.76rem',
-                        letterSpacing: '0.02em'
-                      }}>
-                        SORU {qNo}
+              return (
+                <div key={qNo} style={{
+                  background: 'var(--color-surface)',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '0.85rem',
+                  border: isAnswered ? '1.5px solid #6366f1' : '1.5px solid var(--color-border)',
+                  boxShadow: isAnswered ? '0 3px 12px rgba(99,102,241,0.08)' : '0 1px 4px rgba(0,0,0,0.02)',
+                  transition: 'all 0.15s ease'
+                }}>
+                  <div style={{ fontWeight: 900, fontSize: '0.82rem', marginBottom: '0.55rem', color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: '0.45rem',
+                      background: isAnswered ? '#4f46e5' : 'var(--color-surface-hover)',
+                      color: isAnswered ? '#ffffff' : 'var(--color-text)',
+                      fontSize: '0.76rem',
+                      letterSpacing: '0.02em'
+                    }}>
+                      SORU {qNo}
+                    </span>
+                    {isAnswered ? (
+                      <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
+                        Yanıtlandı
                       </span>
-                      {isAnswered ? (
-                        <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#16a34a' }} />
-                          Yanıtlandı
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>○ Boş</span>
-                      )}
-                    </div>
-
-                    <textarea
-                      value={textVal}
-                      onChange={(e) => handleTextChange(qNo, e.target.value)}
-                      placeholder={`Soru ${qNo} için cevabınızı yazınız...`}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '0.65rem 0.8rem',
-                        borderRadius: '0.6rem',
-                        background: 'var(--color-surface-hover)',
-                        border: textVal ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input)',
-                        color: 'var(--color-text)',
-                        fontSize: '0.85rem',
-                        outline: 'none',
-                        fontFamily: 'inherit',
-                        lineHeight: 1.5,
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
-                    />
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>○ Boş</span>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
+
+                  <textarea
+                    value={textVal}
+                    onChange={(e) => handleTextChange(qNo, e.target.value)}
+                    placeholder={`Soru ${qNo} için cevabınızı yazınız...`}
+                    rows={3}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem 0.8rem',
+                      borderRadius: '0.6rem',
+                      background: 'var(--color-surface-hover)',
+                      border: textVal ? '1.5px solid #10b981' : '1.5px solid var(--color-border-input)',
+                      color: 'var(--color-text)',
+                      fontSize: '0.85rem',
+                      outline: 'none',
+                      fontFamily: 'inherit',
+                      lineHeight: 1.5,
+                      boxSizing: 'border-box',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ width: '100%' }}>
             <OpticalBubblePanel
               qCount={qCount}
               answers={answers}
@@ -693,9 +710,37 @@ export default function PdfQuizRunner({ test, questions = [], onSubmit, onAutoSa
               resolvedQuestions={questions}
               hideHeader={true}
             />
-          )
-        }
-      />
+          </div>
+        );
+
+        return showPdf ? (
+          <QuizPanelLayout
+            panelTitle={isOpenEndedMode ? "Açık Uçlu Cevap Paneli" : "Optik Cevap Kağıdı"}
+            panelSubtitle={`${qCount} Soru`}
+            icon={isOpenEndedMode ? "✍️" : "📋"}
+            defaultPosition="right"
+            defaultSize={380}
+            documentContent={
+              <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
+                <PdfViewerWithControls 
+                  payload={pdfPayload} 
+                  title={test.title} 
+                  height="100%" 
+                  isDrawingOpen={isDrawingOpen}
+                  onToggleDrawing={() => setIsDrawingOpen(false)}
+                />
+              </div>
+            }
+            answerContent={answerSheet}
+          />
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--color-bg)', padding: isMobile ? '0.75rem' : '1.25rem 2rem 3rem 2rem' }}>
+            <div style={{ maxWidth: 1480, margin: '0 auto', width: '100%' }}>
+              {answerSheet}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

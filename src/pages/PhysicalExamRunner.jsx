@@ -29,25 +29,36 @@ export function formatExamType(type) {
 
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false) {
   if (totalCount <= 0) return [[]];
-  // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
-  if (isSidePdf || isMobile || containerWidth < 760) {
+  if (isSidePdf || isMobile) {
     return [Array.from({ length: totalCount }, (_, i) => i + 1)];
   }
 
-  // Geniş panelde (PDF yokken veya gizliyken) soru sayısına göre 2 eşit/dengeli sütuna böl:
-  const perCol = Math.ceil(totalCount / 2);
-  const col1 = [];
-  const col2 = [];
-
-  for (let i = 1; i <= totalCount; i++) {
-    if (i <= perCol) {
-      col1.push(i);
-    } else {
-      col2.push(i);
-    }
+  // Determine dynamic column count on desktop based on container width:
+  let colCount = 1;
+  if (containerWidth >= 1350) {
+    colCount = 4;
+  } else if (containerWidth >= 1000) {
+    colCount = 3;
+  } else if (containerWidth >= 660) {
+    colCount = 2;
+  } else {
+    colCount = 1;
   }
 
-  return col2.length > 0 ? [col1, col2] : [col1];
+  colCount = Math.min(colCount, Math.max(1, totalCount));
+  if (colCount <= 1) {
+    return [Array.from({ length: totalCount }, (_, i) => i + 1)];
+  }
+
+  const perCol = Math.ceil(totalCount / colCount);
+  const cols = Array.from({ length: colCount }, () => []);
+
+  for (let i = 1; i <= totalCount; i++) {
+    const targetCol = Math.min(Math.floor((i - 1) / perCol), colCount - 1);
+    cols[targetCol].push(i);
+  }
+
+  return cols.filter(c => c.length > 0);
 }
 
 const MISTAKE_REASON_OPTIONS = [
@@ -287,7 +298,7 @@ export default function PhysicalExamRunner() {
   );
 
   // PDF modes: 'side' | 'top' | 'float' | 'hidden'
-  const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
+  const [pdfMode, setPdfMode] = useState('hidden');
   const [showOptikForm, setShowOptikForm] = useState(true);
   const [showMobileOpticModal, setShowMobileOpticModal] = useState(false);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
@@ -1791,7 +1802,7 @@ export default function PhysicalExamRunner() {
             }}
           >
             <div style={{ 
-              maxWidth: !isSidePdf ? 680 : undefined, 
+              maxWidth: !isSidePdf ? 1480 : undefined, 
               width: '100%', 
               margin: !isSidePdf ? '0 auto' : undefined, 
               padding: isMobile ? '0.45rem 0.55rem calc(env(safe-area-inset-bottom, 0px) + 3.5rem) 0.55rem' : isSidePdf ? '0.45rem 0.55rem' : '1.25rem', 

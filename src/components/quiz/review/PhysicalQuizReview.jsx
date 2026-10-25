@@ -26,17 +26,34 @@ function getQuestionColumns(questionNumbers, isMobile = false, containerWidth = 
     ? questionNumbers
     : (typeof questionNumbers === 'number' ? Array.from({ length: Math.max(0, questionNumbers) }, (_, i) => i + 1) : []);
   if (list.length === 0) return [[]];
-  // Mobil veya dar panelde (< 680px, örn. PDF yan yana açıkken) tek sütuna dön:
-  if (isMobile || containerWidth < 680) {
+  if (isMobile) {
     return [list];
   }
 
-  // Geniş panelde (>= 680px) soru sayısına göre 2 eşit/dengeli sütuna böl:
-  const perCol = Math.ceil(list.length / 2);
-  const col1 = list.slice(0, perCol);
-  const col2 = list.slice(perCol);
+  // Determine dynamic column count on desktop based on container width:
+  let colCount = 1;
+  if (containerWidth >= 1350) {
+    colCount = 4;
+  } else if (containerWidth >= 1000) {
+    colCount = 3;
+  } else if (containerWidth >= 660) {
+    colCount = 2;
+  } else {
+    colCount = 1;
+  }
 
-  return col2.length > 0 ? [col1, col2] : [col1];
+  colCount = Math.min(colCount, Math.max(1, list.length));
+  if (colCount <= 1) return [list];
+
+  const perCol = Math.ceil(list.length / colCount);
+  const cols = Array.from({ length: colCount }, () => []);
+
+  for (let i = 0; i < list.length; i++) {
+    const targetCol = Math.min(Math.floor(i / perCol), colCount - 1);
+    cols[targetCol].push(list[i]);
+  }
+
+  return cols.filter(c => c.length > 0);
 }
 
 const MISTAKE_REASON_OPTIONS = [
@@ -185,15 +202,13 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     (pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://') || pdfUrl.startsWith('/') || pdfUrl.startsWith('blob:') || pdfUrl.startsWith('data:'))
   );
 
-  const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
+  const [pdfMode, setPdfMode] = useState('hidden');
 
   useEffect(() => {
-    if (hasPdf && pdfMode === 'hidden') {
-      setPdfMode(isMobile ? 'top' : 'side');
-    } else if (!hasPdf && pdfMode !== 'hidden') {
+    if (!hasPdf && pdfMode !== 'hidden') {
       setPdfMode('hidden');
     }
-  }, [hasPdf, isMobile]);
+  }, [hasPdf]);
   const effectivePdfMode = !hasPdf ? 'hidden' : ((isMobile && pdfMode === 'side') ? 'top' : pdfMode);
   const [showOptikForm, setShowOptikForm] = useState(true);
   const [isDrawingOpen, setIsDrawingOpen] = useState(false);
@@ -669,6 +684,31 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               %{scorePct}
             </div>
 
+            {/* PDF Aç / Gizle Button */}
+            {hasPdf && (
+              <button
+                type="button"
+                onClick={() => setPdfMode(prev => prev === 'hidden' ? (isMobile ? 'top' : 'side') : 'hidden')}
+                style={{
+                  background: effectivePdfMode !== 'hidden' ? '#2563eb' : 'var(--color-surface)',
+                  border: `1.5px solid ${effectivePdfMode !== 'hidden' ? '#1d4ed8' : 'var(--color-border)'}`,
+                  color: effectivePdfMode !== 'hidden' ? '#ffffff' : 'var(--color-text)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '0.5rem',
+                  fontWeight: 800,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5
+                }}
+                title={effectivePdfMode !== 'hidden' ? 'PDF dokümanını gizle' : 'PDF dokümanını aç'}
+              >
+                <FileSpreadsheet size={13} />
+                <span>{effectivePdfMode !== 'hidden' ? '📖 PDF’i Gizle' : '📖 PDF’i Aç'}</span>
+              </button>
+            )}
+
             {/* Tekrar Çöz Button */}
             <button
               onClick={() => {
@@ -854,7 +894,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1080 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: effectivePdfMode === 'hidden' ? 1480 : undefined, width: '100%', margin: effectivePdfMode === 'hidden' ? '0 auto' : undefined, padding: isMobile ? '0.75rem 0.75rem 1.5rem 0.75rem' : '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', boxSizing: 'border-box' }}>
               
               {/* SCORECARD HERO BANNER */}
               <div style={{

@@ -27,26 +27,37 @@ import {
 function getQuestionColumns(totalCount, isMobile = false, containerWidth = 1000, isSidePdf = false, startQNo = 1) {
   if (totalCount <= 0) return [[]];
   const start = Number(startQNo) || 1;
-  // Masaüstünde PDF yan paneldeyken veya mobilde veya dar alanda TEK SÜTUN olarak göster:
-  if (isSidePdf || isMobile || containerWidth < 760) {
+  if (isSidePdf || isMobile) {
     return [Array.from({ length: totalCount }, (_, i) => start + i)];
   }
 
-  // Geniş panelde (PDF yokken veya gizliyken) soru sayısına göre 2 eşit/dengeli sütuna böl:
-  const perCol = Math.ceil(totalCount / 2);
-  const col1 = [];
-  const col2 = [];
+  // Determine dynamic column count on desktop based on container width:
+  let colCount = 1;
+  if (containerWidth >= 1350) {
+    colCount = 4;
+  } else if (containerWidth >= 1000) {
+    colCount = 3;
+  } else if (containerWidth >= 660) {
+    colCount = 2;
+  } else {
+    colCount = 1;
+  }
+
+  colCount = Math.min(colCount, Math.max(1, totalCount));
+  if (colCount <= 1) {
+    return [Array.from({ length: totalCount }, (_, i) => start + i)];
+  }
+
+  const perCol = Math.ceil(totalCount / colCount);
+  const cols = Array.from({ length: colCount }, () => []);
 
   for (let i = 0; i < totalCount; i++) {
     const qNo = start + i;
-    if (i < perCol) {
-      col1.push(qNo);
-    } else {
-      col2.push(qNo);
-    }
+    const targetCol = Math.min(Math.floor(i / perCol), colCount - 1);
+    cols[targetCol].push(qNo);
   }
 
-  return col2.length > 0 ? [col1, col2] : [col1];
+  return cols.filter(c => c.length > 0);
 }
 
 const MISTAKE_REASON_OPTIONS = [
@@ -477,7 +488,7 @@ export default function TrackedBookQuizRunner() {
   );
 
   // Layout and mode states
-  const [pdfMode, setPdfMode] = useState(() => hasPdf ? (isMobile ? 'top' : 'side') : 'hidden');
+  const [pdfMode, setPdfMode] = useState('hidden');
   const effectivePdfMode = !hasPdf ? 'hidden' : ((isMobile && pdfMode === 'side') ? 'top' : pdfMode);
   const [showOptikForm, setShowOptikForm] = useState(true);
 
@@ -2393,7 +2404,7 @@ export default function TrackedBookQuizRunner() {
               transition: 'all 0.15s ease'
             }}
           >
-            <div style={{ maxWidth: !isSidePdf ? (hasAnswerPool ? 1320 : 960) : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.65rem 0.65rem 6.5rem 0.65rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
+            <div style={{ maxWidth: !isSidePdf ? 1480 : undefined, width: '100%', margin: !isSidePdf ? '0 auto' : undefined, padding: isMobile ? '0.65rem 0.65rem 6.5rem 0.65rem' : isSidePdf ? '0.75rem 0.95rem' : '1.25rem', display: 'flex', flexDirection: 'column', gap: isSidePdf ? '0.75rem' : '1rem', boxSizing: 'border-box' }}>
               
               {/* 1. SCORECARD HERO AFTER SUBMISSION */}
               {isSubmitted && results && (
@@ -3641,7 +3652,7 @@ export default function TrackedBookQuizRunner() {
                         alignItems: 'start',
                         width: '100%'
                       }}>
-                      {questionColumns.map((col, colIdx) => (
+                      {effectiveColumns.map((col, colIdx) => (
                         <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
                           {col.map(qNo => {
                             const idx = qNo - (startQuestionNumber || 1);
