@@ -70,7 +70,7 @@ export default function StudyRoomPage() {
   const themeObj = useMemo(() => {
     return (Array.isArray(THEMES) && THEMES.find(t => t.id === activeTheme)) || THEMES?.[0] || {
       id: 'cyberpunk',
-      name: 'EduQuest Dark',
+      name: 'E-Test Dark',
       bg: '#090d16',
       cardBg: '#0f172a',
       innerBg: '#1e293b',

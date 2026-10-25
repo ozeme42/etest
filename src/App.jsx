@@ -276,7 +276,7 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
             <Rocket size={18} />
           </div>
           <div>
-            <span className="sidebar-brand-title" style={{ fontSize: '1.15rem' }}>EduQuest</span>
+            <span className="sidebar-brand-title" style={{ fontSize: '1.15rem' }}>E-Test</span>
             <span className="sidebar-brand-sub" style={{ fontSize: '0.58rem' }}>5. Sınıf Maarif Modeli</span>
           </div>
         </Link>
@@ -327,7 +327,7 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               <Rocket size={20} />
             </div>
             <div>
-              <span className="sidebar-brand-title">EduQuest</span>
+              <span className="sidebar-brand-title">E-Test</span>
               <span className="sidebar-brand-sub">
                 {currentUser?.role === 'student' ? '5. Sınıf Maarif Modeli' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
               </span>
