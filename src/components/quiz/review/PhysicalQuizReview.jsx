@@ -21,7 +21,7 @@ function getAnsIndex(val) {
   return null;
 }
 
-function getQuestionColumns(questionNumbers, isMobile = false, containerWidth = 1000) {
+function getQuestionColumns(questionNumbers, isMobile = false, containerWidth = 1000, isOpenEnded = false) {
   const list = Array.isArray(questionNumbers)
     ? questionNumbers
     : (typeof questionNumbers === 'number' ? Array.from({ length: Math.max(0, questionNumbers) }, (_, i) => i + 1) : []);
@@ -32,14 +32,23 @@ function getQuestionColumns(questionNumbers, isMobile = false, containerWidth = 
 
   // Determine dynamic column count on desktop based on container width:
   let colCount = 1;
-  if (containerWidth >= 1350) {
-    colCount = 4;
-  } else if (containerWidth >= 1000) {
-    colCount = 3;
-  } else if (containerWidth >= 660) {
-    colCount = 2;
+  if (isOpenEnded) {
+    // Open-ended questions contain written text; keep columns wide and readable
+    if (containerWidth >= 1200) {
+      colCount = 2;
+    } else {
+      colCount = 1;
+    }
   } else {
-    colCount = 1;
+    if (containerWidth >= 1350) {
+      colCount = 4;
+    } else if (containerWidth >= 1000) {
+      colCount = 3;
+    } else if (containerWidth >= 660) {
+      colCount = 2;
+    } else {
+      colCount = 1;
+    }
   }
 
   colCount = Math.min(colCount, Math.max(1, list.length));
@@ -456,9 +465,21 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     return Array.from({ length: qCount }, (_, i) => startQuestionNumber + i);
   }, [answers, qCount, startQuestionNumber]);
 
+  const isAnyOE = useMemo(() => {
+    if (isEntireTestOpenEnded || viewMode === 'text') return true;
+    if (Array.isArray(answers) && answers.some(a => 
+      a?.isOpenEnded || 
+      (a?.userAnswerText && String(a.userAnswerText).trim().length > 1 && !/^[A-E]$/i.test(String(a.userAnswerText).trim())) ||
+      (a?.studentAnswerText && String(a.studentAnswerText).trim().length > 1 && !/^[A-E]$/i.test(String(a.studentAnswerText).trim()))
+    )) {
+      return true;
+    }
+    return false;
+  }, [isEntireTestOpenEnded, viewMode, answers]);
+
   const questionColumns = useMemo(() => {
-    return getQuestionColumns(questionNumbers, isMobile, containerWidth);
-  }, [questionNumbers, isMobile, containerWidth]);
+    return getQuestionColumns(questionNumbers, isMobile, containerWidth, isAnyOE);
+  }, [questionNumbers, isMobile, containerWidth, isAnyOE]);
 
   const targetObj = test || {};
   const explicitOpt = Number(targetObj?.optionCount || targetObj?.optionsCount || targetObj?.book?.optionCount || test?.optionCount || test?.optionsCount || test?.book?.optionCount || (typeof book !== 'undefined' ? book?.optionCount : undefined));
@@ -1124,7 +1145,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                       width: '100%'
                     }}>
                       {questionColumns.map((colQuestions, colIdx) => (
-                        <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0 }}>
+                        <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: isCompact ? '0.55rem' : '0.75rem', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                           {colQuestions.map(qNo => {
                             const indexInList = questionNumbers.indexOf(qNo);
                             const qIdx = indexInList !== -1 ? indexInList : (qNo - startQuestionNumber);
@@ -1210,118 +1231,99 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                                   border: `1.5px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`,
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  gap: '0.35rem',
+                                  gap: '0.45rem',
                                   transition: 'all 0.15s ease',
                                   boxSizing: 'border-box',
-                                  width: '100%'
+                                  width: '100%',
+                                  minWidth: 0,
+                                  overflow: 'hidden'
                                 }}
                               >
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                              {/* Question Number Badge */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 48, flexShrink: 0 }}>
-                                <div style={{
-                                  width: 28,
-                                  height: 28,
-                                  borderRadius: 8,
-                                  background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
-                                  color: isCorrect === true ? '#15803d' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 900,
-                                  fontSize: '0.82rem',
-                                  border: `1px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`
-                                }}>
-                                  {qNo}
-                                </div>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)' }}>
-                                  {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : (correctKeyStr ? `(${correctKeyStr})` : '✕')) : '—'}
-                                </span>
-                                <AiUsageBadge testId={testId} questionNo={qNo} compact />
-                              </div>
-
-                              {/* Options or Text Answer Display */}
-                              {isItemOE ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                                  {/* Öğrenci Cevabı */}
-                                  <div style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    padding: isMobile ? '0.22rem 0.5rem' : '0.3rem 0.65rem',
-                                    borderRadius: '0.5rem',
-                                    background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
-                                    border: `1.5px solid ${isCorrect === true ? '#86efac' : isWrong ? '#fca5a5' : 'var(--color-border, #cbd5e1)'}`,
-                                    color: isCorrect === true ? '#15803d' : isWrong ? '#b91c1c' : 'var(--color-text-muted, #64748b)',
-                                    fontSize: isMobile ? '0.74rem' : '0.82rem',
-                                    fontWeight: 800
-                                  }}>
-                                    <span style={{ fontSize: '0.66rem', fontWeight: 900, opacity: 0.75 }}>Cevabınız:</span>
-                                    <span style={{ fontWeight: 900 }}>{userAnsStr || 'Boş'}</span>
+                                {/* Top Row: Question Number & Status / Multiple Choice Bubbles */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', width: '100%', minWidth: 0 }}>
+                                  {/* Question Number Badge */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flexShrink: 0 }}>
+                                    <div style={{
+                                      width: 28,
+                                      height: 28,
+                                      borderRadius: 8,
+                                      background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
+                                      color: isCorrect === true ? '#15803d' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 900,
+                                      fontSize: '0.82rem',
+                                      border: `1px solid ${isCorrect === true ? '#bbf7d0' : isWrong ? '#fecaca' : 'var(--color-border, #e2e8f0)'}`,
+                                      flexShrink: 0
+                                    }}>
+                                      {qNo}
+                                    </div>
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isCorrect === true ? '#16a34a' : isWrong ? '#dc2626' : 'var(--color-text-muted, #64748b)', flexShrink: 0 }}>
+                                      {isCorrect === true ? '✓' : isWrong ? (correctLetter ? `(${correctLetter})` : (!isItemOE && correctKeyStr && correctKeyStr.length <= 2 ? `(${correctKeyStr})` : '✕')) : '—'}
+                                    </span>
+                                    <AiUsageBadge testId={testId} questionNo={qNo} compact />
                                   </div>
 
-                                  {/* Doğru Cevap Anahtarı */}
-                                  {correctKeyStr && (
-                                    <div style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: 5,
-                                      padding: isMobile ? '0.22rem 0.5rem' : '0.3rem 0.65rem',
-                                      borderRadius: '0.5rem',
-                                      background: '#f0fdf4',
-                                      border: '1.5px dashed #16a34a',
-                                      color: '#15803d',
-                                      fontSize: isMobile ? '0.74rem' : '0.82rem',
-                                      fontWeight: 900
-                                    }}>
-                                      <span style={{ fontSize: '0.66rem', fontWeight: 900, opacity: 0.75 }}>Cevap Anahtarı:</span>
-                                      <span>{correctKeyStr}</span>
+                                  {/* Options or Status Pill */}
+                                  {isItemOE ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                      <span style={{
+                                        padding: '0.2rem 0.55rem',
+                                        borderRadius: '0.5rem',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 800,
+                                        background: isCorrect === true ? '#dcfce7' : isWrong ? '#fee2e2' : '#f1f5f9',
+                                        color: isCorrect === true ? '#15803d' : isWrong ? '#dc2626' : '#64748b',
+                                        border: `1px solid ${isCorrect === true ? '#86efac' : isWrong ? '#fca5a5' : '#cbd5e1'}`,
+                                        whiteSpace: 'nowrap'
+                                      }}>
+                                        {isCorrect === true ? '✓ Doğru' : isWrong ? '✕ Yanlış' : '— Boş'}
+                                      </span>
                                     </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div style={{ display: 'flex', gap: isMobile ? '0.25rem' : '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
-                                  {optionsList.map((opt, optIdx) => {
-                                    const isUserMarked = userAnsIndex === optIdx || userAnsLetter === opt;
-                                    const isAnswerKey = correctAnsIndex === optIdx;
+                                  ) : (
+                                    <div style={{ display: 'flex', gap: isMobile ? '0.25rem' : '0.35rem', flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                                      {optionsList.map((opt, optIdx) => {
+                                        const isUserMarked = userAnsIndex === optIdx || userAnsLetter === opt;
+                                        const isAnswerKey = correctAnsIndex === optIdx;
 
-                                    let bg = 'var(--color-surface, #ffffff)';
-                                    let color = 'var(--color-text-muted, #64748b)';
-                                    let border = '1.5px solid var(--color-border, #cbd5e1)';
-                                    let shadow = 'none';
+                                        let bg = 'var(--color-surface, #ffffff)';
+                                        let color = 'var(--color-text-muted, #64748b)';
+                                        let border = '1.5px solid var(--color-border, #cbd5e1)';
+                                        let shadow = 'none';
 
-                                    if (isUserMarked && isAnswerKey) {
-                                      bg = 'linear-gradient(135deg, #10b981, #059669)';
-                                      color = '#ffffff';
-                                      border = '2px solid #059669';
-                                      shadow = '0 2px 8px rgba(16,185,129,0.3)';
-                                    } else if (isUserMarked && !isAnswerKey) {
-                                      bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                                      color = '#ffffff';
-                                      border = '2px solid #dc2626';
-                                      shadow = '0 2px 8px rgba(239,68,68,0.3)';
-                                    } else if (!isUserMarked && isAnswerKey) {
-                                      bg = '#f0fdf4';
-                                      color = '#16a34a';
-                                      border = '2px dashed #16a34a';
-                                    }
+                                        if (isUserMarked && isAnswerKey) {
+                                          bg = 'linear-gradient(135deg, #10b981, #059669)';
+                                          color = '#ffffff';
+                                          border = '2px solid #059669';
+                                          shadow = '0 2px 8px rgba(16,185,129,0.3)';
+                                        } else if (isUserMarked && !isAnswerKey) {
+                                          bg = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                                          color = '#ffffff';
+                                          border = '2px solid #dc2626';
+                                          shadow = '0 2px 8px rgba(239,68,68,0.3)';
+                                        } else if (!isUserMarked && isAnswerKey) {
+                                          bg = '#f0fdf4';
+                                          color = '#16a34a';
+                                          border = '2px dashed #16a34a';
+                                        }
 
-                                    return (
-                                      <div
-                                        key={opt}
-                                        style={{
-                                          width: isMobile ? 30 : 34,
-                                          height: isMobile ? 30 : 34,
-                                          borderRadius: '50%',
-                                          background: bg,
-                                          color: color,
-                                          border: border,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontWeight: 900,
-                                          fontSize: isMobile ? '0.8rem' : '0.88rem',
-                                          boxShadow: shadow,
+                                        return (
+                                          <div
+                                            key={opt}
+                                            style={{
+                                              width: isMobile ? 30 : 34,
+                                              height: isMobile ? 30 : 34,
+                                              borderRadius: '50%',
+                                              background: bg,
+                                              color: color,
+                                              border: border,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontWeight: 900,
+                                              fontSize: isMobile ? '0.8rem' : '0.88rem',
+                                              boxShadow: shadow,
                                           userSelect: 'none'
                                         }}
                                       >
@@ -1333,12 +1335,105 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
                               )}
                             </div>
 
+                            {/* Open-Ended Stacked Text Cards (Safe from any horizontal overflow) */}
+                            {isItemOE && (
+                              <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.4rem',
+                                width: '100%',
+                                minWidth: 0,
+                                boxSizing: 'border-box'
+                              }}>
+                                {/* Öğrenci Yanıtı */}
+                                <div style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 2,
+                                  padding: '0.45rem 0.65rem',
+                                  borderRadius: '0.6rem',
+                                  background: isCorrect === true ? '#f0fdf4' : isWrong ? '#fef2f2' : 'var(--color-surface-hover, #f8fafc)',
+                                  border: `1.5px solid ${isCorrect === true ? '#86efac' : isWrong ? '#fca5a5' : 'var(--color-border, #cbd5e1)'}`,
+                                  width: '100%',
+                                  minWidth: 0,
+                                  boxSizing: 'border-box'
+                                }}>
+                                  <div style={{
+                                    fontSize: '0.66rem',
+                                    fontWeight: 900,
+                                    color: isCorrect === true ? '#15803d' : isWrong ? '#b91c1c' : '#64748b',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.02em',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4
+                                  }}>
+                                    <span>📝</span>
+                                    <span>Öğrenci Yanıtı:</span>
+                                  </div>
+                                  <div style={{
+                                    fontSize: '0.82rem',
+                                    fontWeight: 700,
+                                    color: isCorrect === true ? '#166534' : isWrong ? '#991b1b' : '#334155',
+                                    wordBreak: 'break-word',
+                                    overflowWrap: 'anywhere',
+                                    whiteSpace: 'pre-wrap',
+                                    lineHeight: 1.45
+                                  }}>
+                                    {userAnsStr || <span style={{ fontStyle: 'italic', opacity: 0.7, fontWeight: 500 }}>Yanıt verilmedi (Boş)</span>}
+                                  </div>
+                                </div>
+
+                                {/* Doğru Cevap / Anahtar */}
+                                {correctKeyStr && (
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 2,
+                                    padding: '0.45rem 0.65rem',
+                                    borderRadius: '0.6rem',
+                                    background: '#f0fdf4',
+                                    border: '1.5px dashed #16a34a',
+                                    width: '100%',
+                                    minWidth: 0,
+                                    boxSizing: 'border-box'
+                                  }}>
+                                    <div style={{
+                                      fontSize: '0.66rem',
+                                      fontWeight: 900,
+                                      color: '#15803d',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.02em',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 4
+                                    }}>
+                                      <span>🔑</span>
+                                      <span>Doğru Cevap Anahtarı:</span>
+                                    </div>
+                                    <div style={{
+                                      fontSize: '0.82rem',
+                                      fontWeight: 700,
+                                      color: '#15803d',
+                                      wordBreak: 'break-word',
+                                      overflowWrap: 'anywhere',
+                                      whiteSpace: 'pre-wrap',
+                                      lineHeight: 1.45
+                                    }}>
+                                      {correctKeyStr}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* ════════════════════════════════════════════
                                 MISTAKE DIAGNOSTIC SELECTOR (INTERACTIVE IN REVIEW)
                             ════════════════════════════════════════════ */}
                             {(isWrong || isBlank) && (
                               <div style={{
                                 width: '100%',
+                                minWidth: 0,
                                 marginTop: '0.35rem',
                                 paddingTop: '0.35rem',
                                 borderTop: isWrong ? '1px dashed #fecaca' : '1px dashed #e2e8f0',

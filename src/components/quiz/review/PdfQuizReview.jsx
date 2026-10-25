@@ -970,28 +970,65 @@ export default function PdfQuizReview({ submission, test, questions = [], onClos
 
                   {/* Öğrenci Yazılı Yanıtı */}
                   {isItemOE ? (
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>📝 ÖĞRENCİ YAZILI CEVABI:</div>
-                      {isText ? (
-                        <div style={{ fontSize: '0.88rem', background: '#ffffff', padding: '0.65rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', marginTop: '0.25rem', whiteSpace: 'pre-wrap', color: '#0f172a', fontWeight: 600 }}>
-                          {textAns}
+                    <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', minWidth: 0 }}>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 3,
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: '0.5rem',
+                        background: isCorrect === true ? '#f0fdf4' : isCorrect === false ? '#fef2f2' : '#ffffff',
+                        border: `1px solid ${isCorrect === true ? '#86efac' : isCorrect === false ? '#fca5a5' : '#cbd5e1'}`,
+                        width: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box'
+                      }}>
+                        <div style={{ fontSize: '0.68rem', color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>
+                          📝 ÖĞRENCİ YAZILI CEVABI:
                         </div>
-                      ) : (
-                        <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.25rem' }}>
-                          Öğrenci bu soruya yanıt yazmadı.
+                        {isText ? (
+                          <div style={{ fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere', color: '#0f172a', fontWeight: 600, lineHeight: 1.4 }}>
+                            {textAns}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            Öğrenci bu soruya yanıt yazmadı.
+                          </div>
+                        )}
+                      </div>
+
+                      {displayCorrectKey && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 3,
+                          padding: '0.5rem 0.65rem',
+                          borderRadius: '0.5rem',
+                          background: '#f0fdf4',
+                          border: '1px dashed #16a34a',
+                          width: '100%',
+                          minWidth: 0,
+                          boxSizing: 'border-box'
+                        }}>
+                          <div style={{ fontSize: '0.68rem', color: '#15803d', fontWeight: 800, textTransform: 'uppercase' }}>
+                            🔑 DOĞRU CEVAP ANAHTARI:
+                          </div>
+                          <div style={{ fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere', color: '#15803d', fontWeight: 700, lineHeight: 1.4 }}>
+                            {displayCorrectKey}
+                          </div>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                      <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.85rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      <div style={{ minWidth: 0, wordBreak: 'break-word' }}>
                         <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ÖĞRENCİ CEVABI: </span>
                         <span style={{ fontWeight: 900, color: isCorrect === true ? '#15803d' : isCorrect === false ? '#b91c1c' : '#64748b' }}>
                           {hasAnswer ? (uLetter || (typeof userAns === 'number' ? String.fromCharCode(65 + userAns) : userAns)) : 'Boş'}
                         </span>
                       </div>
                       {displayCorrectKey && (
-                        <div>
+                        <div style={{ minWidth: 0, wordBreak: 'break-word' }}>
                           <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>DOĞRU CEVAP: </span>
                           <span style={{ fontWeight: 900, color: '#15803d' }}>
                             {displayCorrectKey}
