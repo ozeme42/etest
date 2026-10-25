@@ -152,8 +152,7 @@ export default function DashboardRemedialCard({
         style={{
           padding: isMobile ? '1.1rem 0.95rem' : '1.5rem 1.8rem',
           border: hasTasks ? '2px solid rgba(245, 158, 11, 0.45)' : '2px solid var(--color-border)',
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
+          borderRadius: isMobile ? '0 0 16px 16px' : '0 0 20px 20px',
           borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
           marginTop: 0,
           position: 'relative'

@@ -3993,9 +3993,7 @@ export default function StudentDashboard() {
               gap: isMobile ? 0 : 8,
               boxSizing: 'border-box',
               padding: isMobile ? '4px' : '8px',
-              borderRadius: isMobile ? 18 : 22,
-              borderBottomLeftRadius: 0,
-              borderBottomRightRadius: 0,
+              borderRadius: isMobile ? '18px 18px 0 0' : '22px 22px 0 0',
               border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
               borderBottom: 'none',
               boxShadow: 'none'

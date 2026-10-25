@@ -310,9 +310,7 @@ export default memo(function DashboardTodayTasks({
           🎯 BİRLEŞTİRİLMİŞ MODERN ODAK MERKEZİ & HAFTALIK GÖREV TAKVİMİ
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        borderRadius: isMobile ? 20 : 24,
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
+        borderRadius: isMobile ? '0 0 20px 20px' : '0 0 24px 24px',
         overflow: 'hidden',
         border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
         borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',

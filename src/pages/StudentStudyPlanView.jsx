@@ -8,7 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
   ArrowLeft, Target, CheckCircle2, Lock, PlayCircle, ExternalLink,
-  Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronRight,
+  Calendar, Check, Compass, Sparkles, Edit3, ChevronDown, ChevronUp, ChevronRight,
   BookOpen, Layers, Play, Trophy, Flame, Zap, Award, RotateCcw, Link2,
   CheckCircle, Filter, BookMarked
 } from 'lucide-react';

@@ -51,9 +51,7 @@ const StudentGamificationCard = React.memo(function StudentGamificationCard({
           background: isDark
             ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95))'
             : 'linear-gradient(135deg, #ffffff, #f8fafc)',
-          borderRadius: 22,
-          borderTopLeftRadius: 0,
-          borderTopRightRadius: 0,
+          borderRadius: '0 0 22px 22px',
           borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
           marginTop: 0,
           padding: isMobile ? '1rem 0.95rem' : '1.35rem 1.6rem',
