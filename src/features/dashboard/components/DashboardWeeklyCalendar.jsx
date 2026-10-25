@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Calendar, CalendarDays, ChevronRight, Plus, Sparkles, Zap, Printer } from 'lucide-react';
+import { Calendar, CalendarDays, ChevronRight, ChevronLeft, RotateCcw, Plus, Sparkles, Zap, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default memo(function DashboardWeeklyCalendar({
@@ -10,6 +10,10 @@ export default memo(function DashboardWeeklyCalendar({
   todayDayKey = 'Pzt',
   weekTasksCountMap = {},
   weekInfo = { dayDateMap: {} },
+  weekOffset = 0,
+  onPrevWeek,
+  onNextWeek,
+  onCurrentWeek,
   onSelectDay,
   onAddTask,
   onPrint,
@@ -191,6 +195,105 @@ export default memo(function DashboardWeeklyCalendar({
         </div>
       </div>
 
+      {/* Hafta Gezinme Başlığı */}
+      {(onPrevWeek || onNextWeek || weekInfo?.weekRangeLabel) && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: isMobile ? '0.65rem' : '0.85rem',
+          padding: '0 2px'
+        }}>
+          <button
+            type="button"
+            onClick={onPrevWeek}
+            className="game-btn-3d"
+            style={{
+              background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
+              borderRadius: 10,
+              padding: isMobile ? '0.35rem 0.6rem' : '0.4rem 0.85rem',
+              fontSize: isMobile ? '0.72rem' : '0.78rem',
+              fontWeight: 800,
+              color: isDark ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title="Önceki Hafta"
+          >
+            <ChevronLeft size={14} />
+            <span>{isMobile ? 'Önceki' : 'Önceki Hafta'}</span>
+          </button>
+
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              fontSize: isMobile ? '0.78rem' : '0.88rem',
+              fontWeight: 900,
+              color: weekOffset === 0 ? 'var(--color-text)' : '#6366f1',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5
+            }}>
+              <Calendar size={14} />
+              <span>{weekInfo?.weekRangeLabel || 'Hafta'}</span>
+            </span>
+
+            {weekOffset !== 0 && (onCurrentWeek || onSelectDay) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onCurrentWeek) onCurrentWeek();
+                  else if (onSelectDay && todayDayKey) onSelectDay(todayDayKey);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '2px 8px',
+                  fontSize: '0.66rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)'
+                }}
+                title="Bu Haftaya Dön"
+              >
+                <RotateCcw size={10} />
+                <span>Bu Hafta</span>
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onNextWeek}
+            className="game-btn-3d"
+            style={{
+              background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
+              borderRadius: 10,
+              padding: isMobile ? '0.35rem 0.6rem' : '0.4rem 0.85rem',
+              fontSize: isMobile ? '0.72rem' : '0.78rem',
+              fontWeight: 800,
+              color: isDark ? '#ffffff' : '#334155',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title="Sonraki Hafta"
+          >
+            <span>{isMobile ? 'Sonraki' : 'Sonraki Hafta'}</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
+
       {/* ── 7 Günlük Modern Bento Şeridi ── */}
       <div
         style={{
@@ -207,7 +310,7 @@ export default memo(function DashboardWeeklyCalendar({
       >
         {daysOfWeek.map(day => {
           const isSelected = activeDayKey === day.key;
-          const isCurrentToday = todayDayKey === day.key;
+          const isCurrentToday = (weekOffset === 0) && (todayDayKey === day.key);
           const taskCount = weekTasksCountMap[day.key] || 0;
           const dayDate = weekInfo.dayDateMap?.[day.key];
           const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';

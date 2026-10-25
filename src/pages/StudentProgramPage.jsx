@@ -85,6 +85,10 @@ export default function StudentProgramPage() {
   const {
     daysOfWeek,
     weekInfo,
+    weekOffset,
+    handlePrevWeek,
+    handleNextWeek,
+    handleCurrentWeek,
     todayDayKey,
     activeDayKey,
     setActiveDayKey,
@@ -640,6 +644,10 @@ export default function StudentProgramPage() {
               todayDayKey={todayDayKey}
               weekTasksCountMap={weekTasksCountMap}
               weekInfo={weekInfo}
+              weekOffset={weekOffset}
+              onPrevWeek={handlePrevWeek}
+              onNextWeek={handleNextWeek}
+              onCurrentWeek={handleCurrentWeek}
               onSelectDay={setActiveDayKey}
               onPrint={() => handlePrintWeekly('standard')}
               showProgramButton={false}
@@ -725,7 +733,7 @@ export default function StudentProgramPage() {
       {/* ── Yazdırılabilir A4 Haftalık Program Belgesi (Sadece Yazdırmada Görünür) ── */}
       <PrintableWeeklyDocument
         studentName={studentDisplayName}
-        weekRange={weekRange}
+        weekRange={weekInfo?.weekRangeLabel || weekRange}
         fullProcessedWeekMap={fullProcessedWeekMap}
         weekInfo={weekInfo}
         catchUpTasks={catchUpTasks}

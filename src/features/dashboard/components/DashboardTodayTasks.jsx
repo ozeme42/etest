@@ -19,7 +19,8 @@ import {
   Calendar,
   CalendarDays,
   Printer,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
@@ -195,6 +196,10 @@ export default memo(function DashboardTodayTasks({
   todayDayKey = null,
   weekTasksCountMap = null,
   weekInfo = null,
+  weekOffset = 0,
+  onPrevWeek = null,
+  onNextWeek = null,
+  onCurrentWeek = null,
   onSelectDay = null,
   onPrint = null,
   showProgramButton = true,
@@ -388,10 +393,13 @@ export default memo(function DashboardTodayTasks({
 
           {/* Sağ: Kompakt Aksiyon Butonları */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {activeDayKey && todayDayKey && activeDayKey !== todayDayKey && onSelectDay && (
+            {(weekOffset !== 0 || (activeDayKey && todayDayKey && activeDayKey !== todayDayKey)) && (onCurrentWeek || onSelectDay) && (
               <button
                 type="button"
-                onClick={() => onSelectDay(todayDayKey)}
+                onClick={() => {
+                  if (onCurrentWeek) onCurrentWeek();
+                  else if (onSelectDay && todayDayKey) onSelectDay(todayDayKey);
+                }}
                 style={{
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   color: '#ffffff',
@@ -492,6 +500,107 @@ export default memo(function DashboardTodayTasks({
             background: isDark ? 'rgba(0, 0, 0, 0.15)' : 'rgba(248, 250, 252, 0.9)',
             borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7'
           }}>
+            {/* Hafta Gezinme Çubuğu */}
+            {(onPrevWeek || onNextWeek || weekInfo?.weekRangeLabel) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: isMobile ? '0.4rem' : '0.5rem',
+                padding: '0 2px'
+              }}>
+                <button
+                  type="button"
+                  onClick={onPrevWeek}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
+                    borderRadius: 9,
+                    padding: isMobile ? '0.24rem 0.45rem' : '0.28rem 0.75rem',
+                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    fontWeight: 800,
+                    color: isDark ? '#ffffff' : '#334155',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+                  }}
+                  title="Önceki Hafta"
+                >
+                  <ChevronLeft size={isMobile ? 12 : 14} />
+                  <span>{isMobile ? 'Önceki' : 'Önceki Hafta'}</span>
+                </button>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{
+                    fontSize: isMobile ? '0.74rem' : '0.82rem',
+                    fontWeight: 900,
+                    color: weekOffset === 0 ? 'var(--color-text)' : '#6366f1',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <Calendar size={isMobile ? 12 : 13} />
+                    <span>{weekInfo?.weekRangeLabel || 'Hafta'}</span>
+                  </span>
+
+                  {weekOffset !== 0 && (onCurrentWeek || onSelectDay) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onCurrentWeek) onCurrentWeek();
+                        else if (onSelectDay && todayDayKey) onSelectDay(todayDayKey);
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '1.5px 7px',
+                        fontSize: '0.62rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)'
+                      }}
+                      title="Bugünün Haftasına Dön"
+                    >
+                      <RotateCcw size={10} />
+                      <span>Bu Hafta</span>
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onNextWeek}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
+                    borderRadius: 9,
+                    padding: isMobile ? '0.24rem 0.45rem' : '0.28rem 0.75rem',
+                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    fontWeight: 800,
+                    color: isDark ? '#ffffff' : '#334155',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+                  }}
+                  title="Sonraki Hafta"
+                >
+                  <span>{isMobile ? 'Sonraki' : 'Sonraki Hafta'}</span>
+                  <ChevronRight size={isMobile ? 12 : 14} />
+                </button>
+              </div>
+            )}
+
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
@@ -502,7 +611,7 @@ export default memo(function DashboardTodayTasks({
               {daysOfWeek.map((day, dayIdx) => {
                 const dayCol = DAY_PALETTE[dayIdx % DAY_PALETTE.length];
                 const isSelected = activeDayKey === day.key;
-                const isCurrentToday = todayDayKey === day.key;
+                const isCurrentToday = (weekOffset === 0) && (todayDayKey === day.key);
                 const taskCount = (weekTasksCountMap && weekTasksCountMap[day.key]) || 0;
                 const dayDate = weekInfo?.dayDateMap?.[day.key];
                 const dateNumber = dayDate?.dateLabel ? dayDate.dateLabel.split(' ')[0] : '';

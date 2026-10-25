@@ -331,6 +331,21 @@ export default function StudentDashboard() {
   const currentDayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
   const todayDayKey = currentDayIndex === 0 ? 'Paz' : DAYS_OF_WEEK[currentDayIndex - 1].key;
   const [activeDayKey, setActiveDayKey] = useState(todayDayKey);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const handlePrevWeek = useCallback(() => {
+    setWeekOffset(prev => prev - 1);
+  }, []);
+
+  const handleNextWeek = useCallback(() => {
+    setWeekOffset(prev => prev + 1);
+  }, []);
+
+  const handleCurrentWeek = useCallback(() => {
+    setWeekOffset(0);
+    setActiveDayKey(todayDayKey);
+  }, [todayDayKey]);
+
   const [showAllDayTasks, setShowAllDayTasks] = useState(false);
   const [isGamificationModalOpen, setIsGamificationModalOpen] = useState(false);
   const [focusModeOnly, setFocusModeOnly] = useState(() => {
@@ -1480,9 +1495,10 @@ export default function StudentDashboard() {
   /* ─── Current Week Dates Mapping (Pzt -> Paz) ─── */
   const weekInfo = useMemo(() => {
     const now = new Date();
-    const currentDayIdx = now.getDay();
-    const mondayDiff = now.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
-    const mondayDate = new Date(now.getFullYear(), now.getMonth(), mondayDiff, 12, 0, 0);
+    const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (weekOffset * 7), 12, 0, 0);
+    const currentDayIdx = targetDate.getDay();
+    const mondayDiff = targetDate.getDate() - (currentDayIdx === 0 ? 6 : currentDayIdx - 1);
+    const mondayDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), mondayDiff, 12, 0, 0);
 
     const MONTHS_SHORT_TR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
@@ -1509,8 +1525,11 @@ export default function StudentDashboard() {
       };
     });
 
-    return { mondayDate, dayDateMap };
-  }, []);
+    const sundayDate = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate() + 6, 12, 0, 0);
+    const weekRangeLabel = `${mondayDate.getDate()} ${MONTHS_SHORT_TR[mondayDate.getMonth()]} - ${sundayDate.getDate()} ${MONTHS_SHORT_TR[sundayDate.getMonth()]} ${sundayDate.getFullYear()}`;
+
+    return { mondayDate, sundayDate, weekRangeLabel, dayDateMap };
+  }, [weekOffset]);
 
   // Pre-index books Map for O(1) book lookup across entire dashboard
   const booksByIdMap = useMemo(() => {
@@ -2387,7 +2406,7 @@ export default function StudentDashboard() {
           dateLabel: dayInfo?.dateLabel || '',
           fullDateLabel: dayInfo?.fullDateLabel || '',
           ymd: dayYMD,
-          isToday: dayMeta.key === todayDayKey,
+          isToday: (weekOffset === 0) && (dayMeta.key === todayDayKey),
           items: allItems,
           totalCount: allItems.length,
           completedCount: completedItems.length,
@@ -2400,19 +2419,19 @@ export default function StudentDashboard() {
       console.error('Error computing fullProcessedWeekMap:', err);
       return {};
     }
-  }, [coachingProfile, coachingProfiles, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey]);
+  }, [coachingProfile, coachingProfiles, homeworks, selectedStudent, curData, studentSubmissions, studentSolvedSet, books, bookTests, schedules, studyAssignments, studyPlans, weekInfo, todayDayKey, weekOffset]);
 
   const dayProgramInfo = useMemo(() => {
     return fullProcessedWeekMap[activeDayKey] || {
       dayKey: activeDayKey,
       dayName: 'Bugün',
-      isToday: activeDayKey === todayDayKey,
+      isToday: (weekOffset === 0) && (activeDayKey === todayDayKey),
       totalCount: 0,
       completedCount: 0,
       items: [],
       hasAllCompleted: false
     };
-  }, [fullProcessedWeekMap, activeDayKey, todayDayKey]);
+  }, [fullProcessedWeekMap, activeDayKey, todayDayKey, weekOffset]);
 
 
 
@@ -4108,6 +4127,10 @@ export default function StudentDashboard() {
               todayDayKey={todayDayKey}
               weekTasksCountMap={weekTasksCountMap}
               weekInfo={weekInfo}
+              weekOffset={weekOffset}
+              onPrevWeek={handlePrevWeek}
+              onNextWeek={handleNextWeek}
+              onCurrentWeek={handleCurrentWeek}
               onSelectDay={setActiveDayKey}
               showProgramButton={true}
               // Görev Programı Props
