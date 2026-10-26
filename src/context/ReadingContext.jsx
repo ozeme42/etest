@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { toUUID } from '../services/supabaseService';
+import { safeSetItem } from '../utils/storageUtils';
+import { idbSetPayload, idbGetPayload } from '../services/indexedDbService';
 
 const ReadingContext = createContext(null);
 
@@ -86,15 +88,13 @@ export function ReadingProvider({ children }) {
   logsRef.current = logs;
   const isInitialLoadedRef = useRef(false);
 
-  // Sync to localStorage whenever state changes (only AFTER initial load completed)
+  // Sync to localStorage and IndexedDB whenever state changes (only AFTER initial load completed)
   useEffect(() => {
     if (!studentId || studentId === 'guest') return;
     if (!isInitialLoadedRef.current) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ books, logs, updatedAt: new Date().toISOString() }));
-    } catch (err) {
-      console.warn('ReadingContext local save warning:', err);
-    }
+    const payload = { books, logs, updatedAt: new Date().toISOString() };
+    safeSetItem(storageKey, JSON.stringify(payload));
+    idbSetPayload(storageKey, payload);
   }, [books, logs, storageKey, studentId]);
 
   // Load from LocalStorage and Supabase on mount / user change
@@ -104,19 +104,33 @@ export function ReadingProvider({ children }) {
     let isMounted = true;
     isInitialLoadedRef.current = false;
 
-    // 1. Immediately hydrate from localStorage for this specific studentId
+    // 1. Immediately hydrate from localStorage / IndexedDB for this specific studentId
+    let hydrated = false;
     try {
       const cached = localStorage.getItem(storageKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed.books) && parsed.books.length > 0) {
           setBooks(parsed.books);
+          hydrated = true;
         }
         if (Array.isArray(parsed.logs)) {
           setLogs(parsed.logs);
         }
       }
     } catch {}
+
+    if (!hydrated) {
+      idbGetPayload(storageKey).then(idbData => {
+        if (!isMounted || !idbData) return;
+        if (Array.isArray(idbData.books) && idbData.books.length > 0 && booksRef.current.length === 0) {
+          setBooks(idbData.books);
+        }
+        if (Array.isArray(idbData.logs) && logsRef.current.length === 0) {
+          setLogs(idbData.logs);
+        }
+      }).catch(() => {});
+    }
 
     if (!isSupabaseConfigured()) {
       isInitialLoadedRef.current = true;
@@ -147,13 +161,13 @@ export function ReadingProvider({ children }) {
             if (cloudReading) {
               if (Array.isArray(cloudReading.books) && cloudReading.books.length > 0) {
                 setBooks(cloudReading.books);
-                try {
-                  localStorage.setItem(storageKey, JSON.stringify({
-                    books: cloudReading.books,
-                    logs: cloudReading.logs || [],
-                    updatedAt: cloudReading.updatedAt || new Date().toISOString()
-                  }));
-                } catch {}
+                const cloudPayload = {
+                  books: cloudReading.books,
+                  logs: cloudReading.logs || [],
+                  updatedAt: cloudReading.updatedAt || new Date().toISOString()
+                };
+                safeSetItem(storageKey, JSON.stringify(cloudPayload));
+                idbSetPayload(storageKey, cloudPayload);
               }
               if (Array.isArray(cloudReading.logs)) {
                 setLogs(cloudReading.logs);
@@ -192,12 +206,10 @@ export function ReadingProvider({ children }) {
 
     const updatedAt = new Date().toISOString();
 
-    // 1. Instantly write to localStorage
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ books: newBooks, logs: newLogs, updatedAt }));
-    } catch (err) {
-      console.warn('ReadingContext localStorage save warning:', err);
-    }
+    // 1. Instantly write to localStorage and IndexedDB safely
+    const payload = { books: newBooks, logs: newLogs, updatedAt };
+    safeSetItem(storageKey, JSON.stringify(payload));
+    idbSetPayload(storageKey, payload);
 
     if (!isSupabaseConfigured()) return;
 

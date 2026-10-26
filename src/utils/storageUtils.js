@@ -27,7 +27,15 @@ export function cleanupLocalStorage() {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && (k.startsWith('draft_quiz_') || k.startsWith('quiz_state_') || k.startsWith('temp_') || k.startsWith('cache_') || k.startsWith('dailyQuestDone_'))) {
+      if (k && (
+        k.startsWith('draft_quiz_') ||
+        k.startsWith('quiz_state_') ||
+        k.startsWith('draft_tracked_book_') ||
+        k.startsWith('ai_sol_') ||
+        k.startsWith('temp_') ||
+        k.startsWith('cache_') ||
+        k.startsWith('dailyQuestDone_')
+      )) {
         keysToRemove.push(k);
       }
     }

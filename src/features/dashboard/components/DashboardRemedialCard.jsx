@@ -518,6 +518,51 @@ export default function DashboardRemedialCard({
                   const catBadge = getCatchUpCategoryBadge(task);
                   const rawBook = (task.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
 
+                  const sBook = String(task.bookTitle || task.bookName || '');
+                  const sTestName = String(task.testName || task.name || '');
+                  const sTitle = String(task.title || '');
+                  const sTopic = String(task.topic || task.unitTopic || '');
+                  const sUnit = String(task.unit || task.unitName || '');
+
+                  let displayTitle = String(sTestName || sTitle || sTopic || 'Telafi Görevi')
+                    .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+                    .replace(/\s*\(Tüm Kitap\)/gi, '')
+                    .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+                    .replace(/\s*\(Görev\)/gi, '')
+                    .replace(/^🎯\s*/, '')
+                    .replace(/^\[\d+\.\s*Tekrar[^\]]*\]\s*/i, '')
+                    .trim();
+
+                  if (rawBook && displayTitle.toLowerCase().includes(rawBook.toLowerCase())) {
+                    const stripped = displayTitle.replace(new RegExp(rawBook.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '').replace(/^[\s\—\-\:\/]+/, '').trim();
+                    if (stripped && !/^(test|testi)$/i.test(stripped)) {
+                      displayTitle = stripped;
+                    }
+                  }
+
+                  if (!displayTitle || /^(ödev|görev|test|testi|sınav|kitap testi|telafi görevi)$/i.test(displayTitle.trim()) || (rawBook && displayTitle.toLowerCase() === rawBook.toLowerCase())) {
+                    if (sTestName && !/^(ödev|görev|test|testi|sınav|kitap testi)$/i.test(sTestName.trim()) && sTestName.toLowerCase() !== rawBook.toLowerCase()) {
+                      displayTitle = sTestName.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').trim();
+                    } else if (sTopic && !/^(ödev|görev|test|testi|sınav|kitap testi)$/i.test(sTopic.trim())) {
+                      displayTitle = `${sTopic} Testi`;
+                    } else if (sUnit) {
+                      displayTitle = `${sUnit} Testi`;
+                    } else if (task.isBookTask) {
+                      displayTitle = isReadingTask ? (sTitle || 'Kitap Okuma') : (sTestName || sTitle || (rawBook ? `${rawBook} Testi` : 'Kitap Testi'));
+                    } else if (cleanSubj) {
+                      displayTitle = isReadingTask ? (sTitle || 'Kitap Okuma') : `${cleanSubj} Testi`;
+                    } else {
+                      displayTitle = isReadingTask ? 'Kitap Okuma' : 'Konu Testi';
+                    }
+                  }
+
+                  let pageBadge = null;
+                  const pageMatch = displayTitle.match(/^(\d+(?:[\-\–]\d+)?\.\s*(?:Sayfa|s\.)|\s*s\.\s*\d+(?:[\-\–]\d+)?)\s*/i);
+                  if (pageMatch) {
+                    pageBadge = pageMatch[0].trim();
+                    displayTitle = displayTitle.substring(pageMatch[0].length).trim();
+                  }
+
                   const isTestTask = !isReadingTask && (
                     Boolean(task.testResult) ||
                     isQuizTask ||
