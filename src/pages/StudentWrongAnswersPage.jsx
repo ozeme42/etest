@@ -159,7 +159,8 @@ export default function StudentWrongAnswersPage() {
   const deletedBookIdsSet = useMemo(() => {
     try {
       const raw = localStorage.getItem('eTestDeletedBooks');
-      const arr = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : null;
+      const arr = Array.isArray(parsed) ? parsed : [];
       const set = new Set();
       arr.forEach(id => {
         if (!id) return;
@@ -186,7 +187,8 @@ export default function StudentWrongAnswersPage() {
   const deletedHwIdsSet = useMemo(() => {
     try {
       const raw = localStorage.getItem('eTestDeletedHomeworks');
-      const arr = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : null;
+      const arr = Array.isArray(parsed) ? parsed : [];
       const set = new Set();
       arr.forEach(id => {
         if (!id) return;
@@ -208,7 +210,8 @@ export default function StudentWrongAnswersPage() {
   const deletedSubmissionsSet = useMemo(() => {
     try {
       const raw = localStorage.getItem('eTestDeletedSubmissions');
-      const arr = raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : null;
+      const arr = Array.isArray(parsed) ? parsed : [];
       const set = new Set();
       arr.forEach(id => {
         if (!id) return;
@@ -415,8 +418,13 @@ export default function StudentWrongAnswersPage() {
       // Exclude if deleted
       const qIdStr = String(q.id || q.testId || '');
       if (deletedSubmissionsSet.has(qIdStr) || deletedHwIdsSet.has(qIdStr)) return;
-      const qBookId = String(q.bookId || (q.raw_data && q.raw_data.bookId) || '');
-      if (qBookId && (deletedBookIdsSet.has(qBookId) || !activeBookCheck.idSet.has(qBookId))) return;
+      const qBookId = String(q.bookId || (q.raw_data && q.raw_data.bookId) || '').trim();
+      if (qBookId) {
+        const qBookUuid = toUUID(qBookId);
+        const isDel = deletedBookIdsSet.has(qBookId) || (qBookUuid && deletedBookIdsSet.has(String(qBookUuid)));
+        const isAct = activeBookCheck?.idSet?.has(qBookId) || (qBookUuid && activeBookCheck?.idSet?.has(String(qBookUuid)));
+        if (isDel || !isAct) return;
+      }
 
       // Must be explicitly created as a remedial / sliced test
       const isExplicitRemedial = q.isRemedialTest === true || q.isRemedial === true || q.isTeacherRemedial === true || q.sourceType === 'pdfSlicer' || q.sourceType === 'pdfSlicerRemedial' || q.type === 'remedial' || q.type === 'remedialTest';
@@ -475,8 +483,13 @@ export default function StudentWrongAnswersPage() {
 
       const sIdStr = String(s.id || '');
       if (deletedSubmissionsSet.has(sIdStr)) return;
-      const sBookId = String(s.bookId || s.metadata?.bookId || '');
-      if (sBookId && (deletedBookIdsSet.has(sBookId) || !activeBookCheck.idSet.has(sBookId))) return;
+      const sBookId = String(s.bookId || s.metadata?.bookId || '').trim();
+      if (sBookId) {
+        const sBookUuid = toUUID(sBookId);
+        const isDel = deletedBookIdsSet.has(sBookId) || (sBookUuid && deletedBookIdsSet.has(String(sBookUuid)));
+        const isAct = activeBookCheck?.idSet?.has(sBookId) || (sBookUuid && activeBookCheck?.idSet?.has(String(sBookUuid)));
+        if (isDel || !isAct) return;
+      }
 
       const isRem = s.isRemedial === true || s.isRemedialTest === true || s.sourceType === 'pdfSlicerRemedial' || s.type === 'remedialTest' || String(s.testTitle || s.title || '').toLowerCase().includes('telafi');
       if (isRem) {
@@ -1196,15 +1209,25 @@ export default function StudentWrongAnswersPage() {
 
   // Grouped Submissions with robust Subject, Unit and Topic Resolution
   const testGroupedSubmissions = useMemo(() => {
-    const parsedSubs = allSubmissions.map(sub => {
+    const parsedSubs = (allSubmissions || []).filter(Boolean).map(sub => {
+      if (!sub) return null;
       const wrongQuestions = [];
       const blankQuestions = [];
       let correctCount = 0;
 
-      const rawAnswers = sub.answers || sub.studentAnswers || [];
+      let rawAnswers = [];
+      if (Array.isArray(sub.answers)) rawAnswers = sub.answers;
+      else if (Array.isArray(sub.studentAnswers)) rawAnswers = sub.studentAnswers;
+      else if (typeof sub.answers === 'string') {
+        try { rawAnswers = JSON.parse(sub.answers); } catch {}
+      } else if (typeof sub.studentAnswers === 'string') {
+        try { rawAnswers = JSON.parse(sub.studentAnswers); } catch {}
+      }
+      if (!Array.isArray(rawAnswers)) rawAnswers = [];
 
-      if (Array.isArray(rawAnswers) && rawAnswers.length > 0) {
+      if (rawAnswers.length > 0) {
         rawAnswers.forEach((ans, idx) => {
+          if (!ans) return;
           const qNum = ans.subIndex !== undefined ? ans.subIndex + 1 : (ans.questionNo || idx + 1);
           if (ans.isCorrect === true) {
             correctCount++;
@@ -1502,7 +1525,7 @@ export default function StudentWrongAnswersPage() {
       };
     });
 
-    return parsedSubs;
+    return parsedSubs.filter(Boolean);
   }, [allSubmissions, activeHomeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet, SUBJECT_CONFIG, activeBooks, deletedBookIdsSet]);
 
   // Split Submissions into Unreviewed vs Reviewed
@@ -1625,7 +1648,9 @@ export default function StudentWrongAnswersPage() {
         return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
       }
       if (sortBy === 'wrong_desc') {
-        return b.wrongQuestions.length - a.wrongQuestions.length;
+        const aW = a.wrongQuestions?.length || 0;
+        const bW = b.wrongQuestions?.length || 0;
+        return bW - aW;
       }
       if (sortBy === 'name_asc') {
         return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr', { numeric: true });
@@ -1642,18 +1667,30 @@ export default function StudentWrongAnswersPage() {
 
     const questionsList = [];
 
-    orderedSubs.forEach(sub => {
-      const rawAnswers = sub.answers || sub.studentAnswers || [];
+    (orderedSubs || []).forEach(sub => {
+      if (!sub) return;
+      let rawAnswers = [];
+      if (Array.isArray(sub.answers)) rawAnswers = sub.answers;
+      else if (Array.isArray(sub.studentAnswers)) rawAnswers = sub.studentAnswers;
+      else if (typeof sub.answers === 'string') {
+        try { rawAnswers = JSON.parse(sub.answers); } catch {}
+      } else if (typeof sub.studentAnswers === 'string') {
+        try { rawAnswers = JSON.parse(sub.studentAnswers); } catch {}
+      }
+      if (!Array.isArray(rawAnswers)) rawAnswers = [];
+
       const testName = sub.specificTestName || (sub.testTitle?.includes('—') ? sub.testTitle.split('—').slice(1).join('—').trim() : sub.testTitle) || 'Test';
 
       // 1. Wrong questions
       (sub.wrongQuestions || []).forEach(wq => {
-        const ans = rawAnswers.find((a, idx) => {
+        if (!wq) return;
+        const ans = Array.isArray(rawAnswers) ? (rawAnswers.find((a, idx) => {
+          if (!a) return false;
           const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
           return qNum === wq.qNum;
-        }) || {};
+        }) || {}) : {};
 
-        const bq = ans.questionId ? bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId))) : null;
+        const bq = ans.questionId && Array.isArray(bankQuestions) ? bankQuestions.find(q => q && (String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)))) : null;
         const imgUrl = ans.imageUrl || ans.image || ans.photoUrl || bq?.imageUrl || bq?.image || bq?.photoUrl || null;
         const qText = ans.questionText || ans.text || bq?.questionText || bq?.text || null;
 
@@ -1677,12 +1714,14 @@ export default function StudentWrongAnswersPage() {
 
       // 2. Blank questions
       (sub.blankQuestions || []).forEach(bq => {
-        const ans = rawAnswers.find((a, idx) => {
+        if (!bq) return;
+        const ans = Array.isArray(rawAnswers) ? (rawAnswers.find((a, idx) => {
+          if (!a) return false;
           const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
           return qNum === bq.qNum;
-        }) || {};
+        }) || {}) : {};
 
-        const bQuestion = ans.questionId ? bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId))) : null;
+        const bQuestion = ans.questionId && Array.isArray(bankQuestions) ? bankQuestions.find(q => q && (String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId)))) : null;
         const imgUrl = ans.imageUrl || ans.image || ans.photoUrl || bQuestion?.imageUrl || bQuestion?.image || bQuestion?.photoUrl || null;
         const qText = ans.questionText || ans.text || bQuestion?.questionText || bQuestion?.text || null;
 
@@ -1714,17 +1753,25 @@ export default function StudentWrongAnswersPage() {
       ['Kitap Adı', 'Ders', 'Ünite', 'Konu', 'Test Adı', 'Soru No', 'Öğrenci Cevabı', 'Doğru Cevap', 'Durum', 'Tarih']
     ];
 
-    const orderedSubs = sortItemsByBookOrder(subsToExport || filteredTestSubmissions, activeBooks, activeBookTests);
+    const targetList = Array.isArray(subsToExport) ? subsToExport : (Array.isArray(filteredTestSubmissions) ? filteredTestSubmissions : []);
+    const orderedSubs = sortItemsByBookOrder(targetList, activeBooks, activeBookTests);
 
-    orderedSubs.forEach(sub => {
-      const rawAnswers = sub.answers || sub.studentAnswers || [];
+    (orderedSubs || []).forEach(sub => {
+      if (!sub) return;
+      let rawAnswers = [];
+      if (Array.isArray(sub.answers)) rawAnswers = sub.answers;
+      else if (Array.isArray(sub.studentAnswers)) rawAnswers = sub.studentAnswers;
+      if (!Array.isArray(rawAnswers)) rawAnswers = [];
+
       const testName = sub.specificTestName || (sub.testTitle?.includes('—') ? sub.testTitle.split('—').slice(1).join('—').trim() : sub.testTitle) || 'Test';
 
       (sub.wrongQuestions || []).forEach(wq => {
-        const ans = rawAnswers.find((a, idx) => {
+        if (!wq) return;
+        const ans = Array.isArray(rawAnswers) ? (rawAnswers.find((a, idx) => {
+          if (!a) return false;
           const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
           return qNum === wq.qNum;
-        }) || {};
+        }) || {}) : {};
         rows.push([
           sub.bookTitle || bookTitleName || 'Kitap',
           sub.subject || '',
@@ -1740,10 +1787,12 @@ export default function StudentWrongAnswersPage() {
       });
 
       (sub.blankQuestions || []).forEach(bq => {
-        const ans = rawAnswers.find((a, idx) => {
+        if (!bq) return;
+        const ans = Array.isArray(rawAnswers) ? (rawAnswers.find((a, idx) => {
+          if (!a) return false;
           const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
           return qNum === bq.qNum;
-        }) || {};
+        }) || {}) : {};
         rows.push([
           sub.bookTitle || bookTitleName || 'Kitap',
           sub.subject || '',
@@ -1801,10 +1850,10 @@ export default function StudentWrongAnswersPage() {
   }, [filteredTestSubmissions, safeCurrentPage, pageSize]);
 
   // Global and Tab-Specific Counts
-  const totalWrongQuestionsCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [testGroupedSubmissions]);
-  const totalBlankQuestionsCount = useMemo(() => testGroupedSubmissions.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [testGroupedSubmissions]);
-  const currentWrongCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.wrongQuestions.length, 0), [currentTabBaseList]);
-  const currentBlankCount = useMemo(() => currentTabBaseList.reduce((acc, sub) => acc + sub.blankQuestions.length, 0), [currentTabBaseList]);
+  const totalWrongQuestionsCount = useMemo(() => (testGroupedSubmissions || []).reduce((acc, sub) => acc + (sub?.wrongQuestions?.length || 0), 0), [testGroupedSubmissions]);
+  const totalBlankQuestionsCount = useMemo(() => (testGroupedSubmissions || []).reduce((acc, sub) => acc + (sub?.blankQuestions?.length || 0), 0), [testGroupedSubmissions]);
+  const currentWrongCount = useMemo(() => (currentTabBaseList || []).reduce((acc, sub) => acc + (sub?.wrongQuestions?.length || 0), 0), [currentTabBaseList]);
+  const currentBlankCount = useMemo(() => (currentTabBaseList || []).reduce((acc, sub) => acc + (sub?.blankQuestions?.length || 0), 0), [currentTabBaseList]);
 
   // Spaced Repetition (Leitner) Flat Questions & Overview (SADECE Özel & Atanan Telafi Testleri)
   const allFlatWrongQuestions = useMemo(() => {
@@ -2099,15 +2148,16 @@ export default function StudentWrongAnswersPage() {
     if (!selectedStudent) return [];
     const map = new Map();
 
-    testGroupedSubmissions.forEach(sub => {
+    (testGroupedSubmissions || []).forEach(sub => {
+      if (!sub) return;
       map.set(sub.id, {
         id: sub.id,
         title: sub.testTitle || 'Sınav / Ödev',
         subject: sub.subject || 'Matematik',
         unit: sub.unit || '',
         topic: sub.topic || '',
-        wrongCount: sub.wrongQuestions.length,
-        blankCount: sub.blankQuestions.length,
+        wrongCount: sub.wrongQuestions?.length || 0,
+        blankCount: sub.blankQuestions?.length || 0,
         date: sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : ''
       });
     });
@@ -2419,14 +2469,14 @@ export default function StudentWrongAnswersPage() {
 
   const mistakeChartData = useMemo(() => {
     if (!overallMistakeStats?.reasonDefs) return [];
-    return Object.values(overallMistakeStats.reasonDefs).map(r => ({
-      name: r.key,
-      shortName: r.key.replace(/^[^\w\s\u00C0-\u017F]*\s*/, ''),
-      count: r.count,
-      percentage: overallMistakeStats.totalClassified > 0 ? Math.round((r.count / overallMistakeStats.totalClassified) * 100) : 0,
-      color: r.color,
-      bg: r.bg,
-      border: r.border
+    return Object.values(overallMistakeStats.reasonDefs).filter(Boolean).map(r => ({
+      name: r.key || '',
+      shortName: (r.key || '').replace(/^[^\w\s\u00C0-\u017F]*\s*/, ''),
+      count: Number(r.count) || 0,
+      percentage: overallMistakeStats.totalClassified > 0 ? Math.round(((r.count || 0) / overallMistakeStats.totalClassified) * 100) : 0,
+      color: r.color || '#3b82f6',
+      bg: r.bg || 'rgba(59,130,246,0.1)',
+      border: r.border || '#bfdbfe'
     }));
   }, [overallMistakeStats]);
 
@@ -2443,22 +2493,25 @@ export default function StudentWrongAnswersPage() {
 
   // Reusable Pagination Renderer
   const renderPagination = (current, total, totalCount, size, setSize, setPage, label = 'test') => {
-    if (totalCount === 0) return null;
-    const numSize = size === 'all' ? totalCount : Number(size);
-    const startIdx = size === 'all' ? 1 : (current - 1) * numSize + 1;
-    const endIdx = size === 'all' ? totalCount : Math.min(current * numSize, totalCount);
+    const safeTotalCount = Number(totalCount) || 0;
+    if (safeTotalCount <= 0) return null;
+    const safeTotal = Math.max(1, Number(total) || 1);
+    const safeCurrent = Math.min(Math.max(1, Number(current) || 1), safeTotal);
+    const numSize = size === 'all' ? safeTotalCount : (Number(size) || 10);
+    const startIdx = size === 'all' ? 1 : (safeCurrent - 1) * numSize + 1;
+    const endIdx = size === 'all' ? safeTotalCount : Math.min(safeCurrent * numSize, safeTotalCount);
 
     const getPageNumbers = () => {
-      if (total <= 7) {
-        return Array.from({ length: total }, (_, i) => i + 1);
+      if (safeTotal <= 7) {
+        return Array.from({ length: safeTotal }, (_, i) => i + 1);
       }
-      if (current <= 4) {
-        return [1, 2, 3, 4, 5, '...', total];
+      if (safeCurrent <= 4) {
+        return [1, 2, 3, 4, 5, '...', safeTotal];
       }
-      if (current >= total - 3) {
-        return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+      if (safeCurrent >= safeTotal - 3) {
+        return [1, '...', safeTotal - 4, safeTotal - 3, safeTotal - 2, safeTotal - 1, safeTotal];
       }
-      return [1, '...', current - 1, current, current + 1, '...', total];
+      return [1, '...', safeCurrent - 1, safeCurrent, safeCurrent + 1, '...', safeTotal];
     };
 
     const pages = getPageNumbers();
@@ -5055,7 +5108,10 @@ export default function StudentWrongAnswersPage() {
                   </thead>
                   <tbody>
                     {paginatedSubmissions.map((sub, idx) => {
-                      const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
+                      if (!sub) return null;
+                      const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'] || SUBJECT_CONFIG['Tümü'] || { bg: '#eff6ff', color: '#3b82f6', border: '#bfdbfe' };
+                      const wrongList = Array.isArray(sub.wrongQuestions) ? sub.wrongQuestions : [];
+                      const blankList = Array.isArray(sub.blankQuestions) ? sub.blankQuestions : [];
                       const isEven = idx % 2 === 0;
                       let rowBg = isEven ? 'var(--color-surface)' : 'var(--color-surface-hover)';
                       if (sub.isReviewed) {
@@ -5112,9 +5168,9 @@ export default function StudentWrongAnswersPage() {
                             {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            {sub.wrongQuestions.length > 0 ? (
+                            {wrongList.length > 0 ? (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {sub.wrongQuestions.map(q => (
+                                {wrongList.map(q => (
                                   <button
                                     key={q.qNum}
                                     onClick={(e) => handleOpenReview(sub.id, e)}
@@ -5130,9 +5186,9 @@ export default function StudentWrongAnswersPage() {
                             )}
                           </td>
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            {sub.blankQuestions.length > 0 ? (
+                            {blankList.length > 0 ? (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {sub.blankQuestions.map(q => (
+                                {blankList.map(q => (
                                   <button
                                     key={q.qNum}
                                     onClick={(e) => handleOpenReview(sub.id, e)}
@@ -5212,7 +5268,10 @@ export default function StudentWrongAnswersPage() {
                 gap: '0.85rem'
               }}>
                 {paginatedSubmissions.map(sub => {
-                  const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'];
+                  if (!sub) return null;
+                  const cfg = SUBJECT_CONFIG[sub.subject] || SUBJECT_CONFIG['Matematik'] || SUBJECT_CONFIG['Tümü'] || { bg: '#eff6ff', color: '#3b82f6', border: '#bfdbfe' };
+                  const wrongList = Array.isArray(sub.wrongQuestions) ? sub.wrongQuestions : [];
+                  const blankList = Array.isArray(sub.blankQuestions) ? sub.blankQuestions : [];
                   return (
                     <div
                       key={sub.id}
@@ -5271,9 +5330,9 @@ export default function StudentWrongAnswersPage() {
                           </div>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 800 }}>
-                          <span style={{ color: '#ef4444' }}>❌ {sub.wrongQuestions.length} Yanlış</span>
+                          <span style={{ color: '#ef4444' }}>❌ {wrongList.length} Yanlış</span>
                           <span style={{ color: 'var(--color-text-muted)' }}>•</span>
-                          <span style={{ color: 'var(--color-text-muted)' }}>⚪ {sub.blankQuestions.length} Boş</span>
+                          <span style={{ color: 'var(--color-text-muted)' }}>⚪ {blankList.length} Boş</span>
                         </div>
                       </div>
 

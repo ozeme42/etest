@@ -23,7 +23,8 @@ export function useTrackedBooks() {
 export const getDeletedBookIds = () => {
   try {
     const raw = localStorage.getItem('eTestDeletedBooks');
-    return new Set(raw ? JSON.parse(raw) : []);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return new Set(Array.isArray(parsed) ? parsed : []);
   } catch {
     return new Set();
   }
