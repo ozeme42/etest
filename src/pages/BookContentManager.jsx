@@ -917,8 +917,10 @@ export default function BookContentManager() {
         (tests || []).forEach(t => {
           const tTopId = String(t.topicId || t.topic_id || '');
           const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
-          const matches = (tTopId && (tTopId === tpId || tTopId === tpUuid || toUUID(tTopId) === tpUuid)) ||
-                          (tpNameNorm && tTopName === tpNameNorm);
+          const matches = (tTopId && (
+            tTopId === tpId ||
+            (tpUuid && (tTopId === tpUuid || toUUID(tTopId) === tpUuid))
+          )) || (tpNameNorm && tTopName === tpNameNorm);
           if (matches) {
             if (!byTopic.has(tpId)) byTopic.set(tpId, []);
             const arr = byTopic.get(tpId);
@@ -1042,8 +1044,10 @@ export default function BookContentManager() {
         const tTopId = String(t.topicId || t.topic_id || '');
         const tTopName = String(t.topicName || t.unitTopic || '').trim().toLowerCase();
         const tpName = String(topic.name || '').trim().toLowerCase();
-        return (tTopId && (tTopId === topId || tTopId === topIdUuid || toUUID(tTopId) === topIdUuid)) ||
-               (tpName && tTopName === tpName);
+        return (tTopId && (
+          tTopId === topId ||
+          (topIdUuid && (tTopId === topIdUuid || toUUID(tTopId) === topIdUuid))
+        )) || (tpName && tTopName === tpName);
       });
 
     return sortTestsNaturally(fallbackList || []);

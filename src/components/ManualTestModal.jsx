@@ -82,7 +82,7 @@ export default function ManualTestModal({
   // Selected book object
   const selectedBook = useMemo(() => {
     if (!selectedBookId || selectedBookId === '__custom__') return null;
-    return books.find(b => String(b.id) === String(selectedBookId) || toUUID(b.id) === toUUID(selectedBookId));
+    return books.find(b => String(b.id) === String(selectedBookId) || (toUUID(b.id) && toUUID(selectedBookId) && toUUID(b.id) === toUUID(selectedBookId)));
   }, [books, selectedBookId]);
 
   // Available subjects for the selected book
@@ -103,7 +103,7 @@ export default function ManualTestModal({
     if (!selectedBook) return [];
     const bookTList = (bookTests || []).filter(t => 
       String(t.bookId) === String(selectedBook.id) || 
-      toUUID(t.bookId) === toUUID(selectedBook.id)
+      (toUUID(t.bookId) && toUUID(selectedBook.id) && toUUID(t.bookId) === toUUID(selectedBook.id))
     );
 
     return bookTList.filter(t => {
@@ -122,15 +122,15 @@ export default function ManualTestModal({
   const currentTestObj = useMemo(() => {
     if (selectedTestId && selectedTestId !== '__custom__') {
       return (
-        availableTests.find(t => String(t.id) === String(selectedTestId) || toUUID(t.id) === toUUID(selectedTestId)) ||
-        (bookTests || []).find(t => String(t.id) === String(selectedTestId) || toUUID(t.id) === toUUID(selectedTestId)) ||
+        availableTests.find(t => String(t.id) === String(selectedTestId) || (toUUID(t.id) && toUUID(selectedTestId) && toUUID(t.id) === toUUID(selectedTestId))) ||
+        (bookTests || []).find(t => String(t.id) === String(selectedTestId) || (toUUID(t.id) && toUUID(selectedTestId) && toUUID(t.id) === toUUID(selectedTestId))) ||
         null
       );
     }
     if (initialData?.testId && initialData.testId !== '__custom__') {
       return (
-        availableTests.find(t => String(t.id) === String(initialData.testId) || toUUID(t.id) === toUUID(initialData.testId)) ||
-        (bookTests || []).find(t => String(t.id) === String(initialData.testId) || toUUID(t.id) === toUUID(initialData.testId)) ||
+        availableTests.find(t => String(t.id) === String(initialData.testId) || (toUUID(t.id) && toUUID(initialData.testId) && toUUID(t.id) === toUUID(initialData.testId))) ||
+        (bookTests || []).find(t => String(t.id) === String(initialData.testId) || (toUUID(t.id) && toUUID(initialData.testId) && toUUID(t.id) === toUUID(initialData.testId))) ||
         null
       );
     }
@@ -437,7 +437,7 @@ export default function ManualTestModal({
     setSelectedTestId('');
 
     if (bId !== '__custom__') {
-      const bObj = books.find(b => String(b.id) === String(bId) || toUUID(b.id) === toUUID(bId));
+      const bObj = books.find(b => String(b.id) === String(bId) || (toUUID(b.id) && toUUID(bId) && toUUID(b.id) === toUUID(bId)));
       if (bObj && bObj.subjects && bObj.subjects.length > 0) {
         const firstSub = bObj.subjects[0].name;
         setSelectedSubject(firstSub);

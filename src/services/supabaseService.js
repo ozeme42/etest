@@ -6,14 +6,33 @@ export function toUUID(id) {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(str)) return str;
 
-  let hex = '';
+  // If 16 chars or less, maintain legacy hex representation
+  if (str.length <= 16) {
+    let hex = '';
+    for (let i = 0; i < str.length; i++) {
+      const h = str.charCodeAt(i).toString(16);
+      hex += (h.length === 1 ? '0' + h : h);
+    }
+    while (hex.length < 32) {
+      hex += '0';
+    }
+    hex = hex.substring(0, 32);
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
+  }
+
+  // If > 16 chars: fold/mix every character into 16 bytes (32 hex characters)
+  // so that EVERY character contributes to the final UUID and prevents prefix collisions
+  const bytes = new Uint8Array(16);
   for (let i = 0; i < str.length; i++) {
-    hex += str.charCodeAt(i).toString(16);
+    const code = str.charCodeAt(i);
+    const targetIdx = i % 16;
+    bytes[targetIdx] = (bytes[targetIdx] * 31 + code + (i * 7)) & 0xff;
   }
-  while (hex.length < 32) {
-    hex += '0';
+  let hex = '';
+  for (let i = 0; i < 16; i++) {
+    const h = bytes[i].toString(16);
+    hex += (h.length === 1 ? '0' + h : h);
   }
-  hex = hex.substring(0, 32);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
 }
 
