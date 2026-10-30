@@ -20,6 +20,30 @@ export function useTrackedBooks() {
   return useContext(TrackedBookContext);
 }
 
+export const getDeletedBookIds = () => {
+  try {
+    const raw = localStorage.getItem('eTestDeletedBooks');
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+};
+
+export const markBookIdAsDeleted = (...ids) => {
+  try {
+    const current = getDeletedBookIds();
+    ids.flat().filter(Boolean).forEach(id => {
+      const s = String(id).trim();
+      current.add(s);
+      const u = toUUID(s);
+      if (u) current.add(String(u));
+      const clean = s.replace(/^b_/, '').replace(/^book_/, '');
+      if (clean && clean !== s) current.add(clean);
+    });
+    localStorage.setItem('eTestDeletedBooks', JSON.stringify(Array.from(current)));
+  } catch {}
+};
+
 export function TrackedBookProvider({ children }) {
   const deduplicateBooks = (list) => {
     if (!Array.isArray(list)) return [];
@@ -65,13 +89,17 @@ export function TrackedBookProvider({ children }) {
   };
 
   const [books, setBooks] = useState(() => {
+    const deletedIds = getDeletedBookIds();
     const saved = localStorage.getItem('eTestTrackedBooks');
-    return saved ? deduplicateBooks(JSON.parse(saved)) : [];
+    const parsed = saved ? deduplicateBooks(JSON.parse(saved)) : [];
+    return parsed.filter(b => b && !b.isDeleted && !b.deleted && !b.deleted_at && !deletedIds.has(String(b.id)) && !(toUUID(b.id) && deletedIds.has(String(toUUID(b.id)))));
   });
 
   const [bookTests, setBookTests] = useState(() => {
+    const deletedIds = getDeletedBookIds();
     const saved = localStorage.getItem('eTestTrackedBookTests');
-    return saved ? deduplicateTests(JSON.parse(saved)) : [];
+    const parsed = saved ? deduplicateTests(JSON.parse(saved)) : [];
+    return parsed.filter(t => t && !t.isDeleted && !t.deleted && !t.deleted_at && !deletedIds.has(String(t.bookId)) && !(toUUID(t.bookId) && deletedIds.has(String(toUUID(t.bookId)))));
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +121,7 @@ export function TrackedBookProvider({ children }) {
       if (res) {
         touchCache('tracked_books');
         if (res.books) {
+          const deletedIds = getDeletedBookIds();
           const cleanBooks = res.books.map(b => {
             const localMatch = (books || []).find(lb => 
               String(lb.id) === String(b.id) || (toUUID(lb.id) && toUUID(lb.id) === toUUID(b.id))
@@ -105,13 +134,15 @@ export function TrackedBookProvider({ children }) {
               publisher: pubVal,
               bookType: b.bookType || b.book_type || b.raw_data?.bookType || (b.isExam || b.isExamBook || b.isPhysicalExam ? 'exam' : 'standard')
             };
-          });
+          }).filter(b => b && !b.isDeleted && !b.deleted && !b.deleted_at && !deletedIds.has(String(b.id)) && !(toUUID(b.id) && deletedIds.has(String(toUUID(b.id)))));
           const deduped = deduplicateBooks(cleanBooks);
           setBooks(deduped);
           safeSetItem('eTestTrackedBooks', JSON.stringify(deduped));
         }
         if (res.bookTests) {
-          const dedupedTests = deduplicateTests(res.bookTests);
+          const deletedIds = getDeletedBookIds();
+          const filteredTests = (res.bookTests || []).filter(t => t && !t.isDeleted && !t.deleted && !t.deleted_at && !deletedIds.has(String(t.bookId)) && !(toUUID(t.bookId) && deletedIds.has(String(toUUID(t.bookId)))));
+          const dedupedTests = deduplicateTests(filteredTests);
           setBookTests(dedupedTests);
           safeSetItem('eTestTrackedBookTests', JSON.stringify(dedupedTests));
         }
@@ -240,6 +271,37 @@ export function TrackedBookProvider({ children }) {
     sessionStorage.removeItem('eTestLastTrackedBooksSync');
     const idStr = String(id);
     const idUuid = toUUID(idStr);
+
+    const targetBook = (books || []).find(b => String(b.id) === idStr || (idUuid && String(b.id) === idUuid) || (toUUID(b.id) && String(toUUID(b.id)) === idUuid));
+    if (targetBook?.title) {
+      markBookIdAsDeleted(idStr, idUuid, targetBook.title);
+    } else {
+      markBookIdAsDeleted(idStr, idUuid);
+    }
+
+    // Also mark any homework created for this book as deleted in localStorage
+    try {
+      const rawHw = localStorage.getItem('eTestHomeworks');
+      if (rawHw) {
+        const hws = JSON.parse(rawHw);
+        const relatedHwIds = hws.filter(h => {
+          if (!h) return false;
+          if (String(h.bookId) === idStr || (idUuid && String(h.bookId) === idUuid)) return true;
+          if (targetBook?.title && h.title && h.title.includes(targetBook.title)) return true;
+          return false;
+        }).map(h => String(h.id));
+        if (relatedHwIds.length > 0) {
+          const rawDelHw = localStorage.getItem('eTestDeletedHomeworks');
+          const delHwSet = new Set(rawDelHw ? JSON.parse(rawDelHw) : []);
+          relatedHwIds.forEach(hid => {
+            delHwSet.add(hid);
+            const u = toUUID(hid);
+            if (u) delHwSet.add(String(u));
+          });
+          localStorage.setItem('eTestDeletedHomeworks', JSON.stringify(Array.from(delHwSet)));
+        }
+      }
+    } catch {}
 
     setBooks(prev => {
       const next = prev.filter(b => !(String(b.id) === idStr || (idUuid && String(b.id) === idUuid) || (toUUID(b.id) && String(toUUID(b.id)) === idUuid)));

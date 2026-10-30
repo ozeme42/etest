@@ -6,7 +6,8 @@ import {
   MessageSquare, Sparkles, BookOpen, Layers, Trophy, HelpCircle, Eye,
   Table, List, ChevronRight, ChevronLeft, ChevronsLeft, ChevronsRight, Check, Clock, Plus, Upload,
   Image as ImageIcon, Trash2, ZoomIn, X, Camera, BookMarked,
-  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors, Play, Lock
+  RotateCcw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, Calendar, Zap, Scissors, Play, Lock,
+  Printer, FileSpreadsheet
 } from 'lucide-react';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useUser } from '../context/UserContext';
@@ -21,7 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { toUUID } from '../services/supabaseService';
 import { compressImageToWebP } from '../services/imageCompressionService';
 import { LEITNER_BOX_CONFIG, getLeitnerOverview } from '../services/spacedRepetitionService';
-import { resolveTestQuestions } from '../utils/testResolver';
+import { resolveTestQuestions, sortItemsByBookOrder } from '../utils/testResolver';
 import { scheduleRemedialTestInProgram, getRemedialLockStatus, isRemedialStageDone } from '../services/remedialSpacedRepetitionService';
 import LeitnerPracticeModal from '../components/quiz/runner/LeitnerPracticeModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
@@ -154,6 +155,184 @@ export default function StudentWrongAnswersPage() {
   } = useCoaching();
   const { addSchedule } = useSchedule();
 
+  // 1. Deleted Entities Tracking (Books, Homeworks, Submissions)
+  const deletedBookIdsSet = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('eTestDeletedBooks');
+      const arr = raw ? JSON.parse(raw) : [];
+      const set = new Set();
+      arr.forEach(id => {
+        if (!id) return;
+        const s = String(id).trim();
+        set.add(s);
+        set.add(s.toLowerCase());
+        const u = toUUID(s);
+        if (u) {
+          set.add(String(u));
+          set.add(String(u).toLowerCase());
+        }
+        const clean = s.replace(/^b_/, '').replace(/^book_/, '');
+        if (clean && clean !== s) {
+          set.add(clean);
+          set.add(clean.toLowerCase());
+        }
+      });
+      return set;
+    } catch {
+      return new Set();
+    }
+  }, []);
+
+  const deletedHwIdsSet = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('eTestDeletedHomeworks');
+      const arr = raw ? JSON.parse(raw) : [];
+      const set = new Set();
+      arr.forEach(id => {
+        if (!id) return;
+        const s = String(id).trim();
+        set.add(s);
+        set.add(s.toLowerCase());
+        const u = toUUID(s);
+        if (u) {
+          set.add(String(u));
+          set.add(String(u).toLowerCase());
+        }
+      });
+      return set;
+    } catch {
+      return new Set();
+    }
+  }, []);
+
+  const deletedSubmissionsSet = useMemo(() => {
+    try {
+      const raw = localStorage.getItem('eTestDeletedSubmissions');
+      const arr = raw ? JSON.parse(raw) : [];
+      const set = new Set();
+      arr.forEach(id => {
+        if (!id) return;
+        const s = String(id).trim();
+        set.add(s);
+        set.add(s.toLowerCase());
+        const u = toUUID(s);
+        if (u) {
+          set.add(String(u));
+          set.add(String(u).toLowerCase());
+        }
+      });
+      return set;
+    } catch {
+      return new Set();
+    }
+  }, []);
+
+  // 2. Active Books (Strictly filtering out deleted books)
+  const activeBooks = useMemo(() => {
+    return (books || []).filter(b => {
+      if (!b) return false;
+      if (b.isDeleted === true || b.deleted === true || b.deleted_at) return false;
+      const bId = String(b.id || '').trim();
+      const bUuid = toUUID(bId) ? String(toUUID(bId)) : '';
+      if (deletedBookIdsSet.has(bId) || (bUuid && deletedBookIdsSet.has(bUuid))) return false;
+      return true;
+    });
+  }, [books, deletedBookIdsSet]);
+
+  const activeBookCheck = useMemo(() => {
+    const idSet = new Set();
+    const titleSet = new Set();
+
+    activeBooks.forEach(b => {
+      if (!b) return;
+      const idStr = String(b.id || '').trim();
+      idSet.add(idStr);
+      idSet.add(idStr.toLowerCase());
+      const clean = idStr.replace(/^b_/, '').replace(/^book_/, '');
+      if (clean) {
+        idSet.add(clean);
+        idSet.add(clean.toLowerCase());
+      }
+      const u = toUUID(idStr);
+      if (u) {
+        idSet.add(String(u));
+        idSet.add(String(u).toLowerCase());
+      }
+      if (b.bookId) {
+        idSet.add(String(b.bookId));
+        idSet.add(String(b.bookId).toLowerCase());
+      }
+
+      const tClean = String(b.title || '')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .trim()
+        .toLowerCase();
+      if (tClean) titleSet.add(tClean);
+    });
+
+    return { idSet, titleSet };
+  }, [activeBooks]);
+
+  // 3. Active Book Tests (Only tests belonging to active books)
+  const activeBookTests = useMemo(() => {
+    return (bookTests || []).filter(t => {
+      if (!t) return false;
+      if (t.isDeleted === true || t.deleted === true || t.deleted_at) return false;
+      const tId = String(t.id || '').trim();
+      if (deletedSubmissionsSet.has(tId)) return false;
+
+      const bId = String(t.bookId || t.book_id || '').trim();
+      const bUuid = toUUID(bId) ? String(toUUID(bId)) : '';
+      if (deletedBookIdsSet.has(bId) || (bUuid && deletedBookIdsSet.has(bUuid))) return false;
+
+      // Must belong to an active book
+      if (bId && !activeBookCheck.idSet.has(bId) && (!bUuid || !activeBookCheck.idSet.has(bUuid))) {
+        return false;
+      }
+      return true;
+    });
+  }, [bookTests, deletedBookIdsSet, deletedSubmissionsSet, activeBookCheck]);
+
+  // 4. Active Homeworks (Excluding deleted homeworks AND assignments for deleted books)
+  const activeHomeworks = useMemo(() => {
+    return (homeworks || []).filter(h => {
+      if (!h) return false;
+      if (h.isDeleted === true || h.deleted === true || h.deleted_at) return false;
+      const hId = String(h.id || '').trim();
+      const hUuid = toUUID(hId) ? String(toUUID(hId)) : '';
+      if (deletedHwIdsSet.has(hId) || (hUuid && deletedHwIdsSet.has(hUuid))) return false;
+
+      // Check if it belongs to a deleted book or non-active book
+      const bId = String(h.bookId || h.book_id || (h.raw_data && h.raw_data.bookId) || '').trim();
+      const bUuid = toUUID(bId) ? String(toUUID(bId)) : '';
+      if (bId && (deletedBookIdsSet.has(bId) || (bUuid && deletedBookIdsSet.has(bUuid)))) {
+        return false;
+      }
+
+      const isBookHw = Boolean(h.isBookAssignment || h.bookId || /kitap|bumerang|fasikül|soru bankası|tüm kitap/i.test(h.title || ''));
+      if (isBookHw) {
+        if (bId) {
+          const isAct = activeBookCheck.idSet.has(bId) || (bUuid && activeBookCheck.idSet.has(bUuid));
+          if (!isAct) return false;
+        } else {
+          // If title has book reference, verify it matches an active book
+          const hClean = String(h.title || '')
+            .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+            .replace(/\s*\(Tüm Kitap\)/gi, '')
+            .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+            .trim()
+            .toLowerCase();
+          const matchesActiveBook = Array.from(activeBookCheck.titleSet).some(bt => bt.length >= 4 && (hClean.includes(bt) || bt.includes(hClean)));
+          if (!matchesActiveBook) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [homeworks, deletedHwIdsSet, deletedBookIdsSet, activeBookCheck]);
+
   const SUBJECT_CONFIG = useMemo(() => getSubjectConfig(isDark), [isDark]);
 
   const studentMembers = useMemo(() => (users || []).filter(u => u.role === 'student'), [users]);
@@ -223,15 +402,21 @@ export default function StudentWrongAnswersPage() {
   }, [selectedStudent, currentUser, curData?.grades]);
 
   const remedialTests = useMemo(() => {
-    const rawAll = [...(bankQuestions || []), ...(homeworks || [])];
+    const rawAll = [...(bankQuestions || []), ...(activeHomeworks || [])];
     const seenIds = new Set();
     const result = [];
 
-    // 1. Check in bankQuestions and homeworks
+    // 1. Check in bankQuestions and activeHomeworks
     rawAll.forEach(item => {
       if (!item) return;
       const raw = item.raw_data || {};
       const q = { ...raw, ...item };
+
+      // Exclude if deleted
+      const qIdStr = String(q.id || q.testId || '');
+      if (deletedSubmissionsSet.has(qIdStr) || deletedHwIdsSet.has(qIdStr)) return;
+      const qBookId = String(q.bookId || (q.raw_data && q.raw_data.bookId) || '');
+      if (qBookId && (deletedBookIdsSet.has(qBookId) || !activeBookCheck.idSet.has(qBookId))) return;
 
       // Must be explicitly created as a remedial / sliced test
       const isExplicitRemedial = q.isRemedialTest === true || q.isRemedial === true || q.isTeacherRemedial === true || q.sourceType === 'pdfSlicer' || q.sourceType === 'pdfSlicerRemedial' || q.type === 'remedial' || q.type === 'remedialTest';
@@ -272,7 +457,6 @@ export default function StudentWrongAnswersPage() {
         return;
       }
 
-      const qIdStr = String(q.id || q.testId || '');
       if (qIdStr && !seenIds.has(qIdStr)) {
         seenIds.add(qIdStr);
         if (toUUID(qIdStr)) seenIds.add(String(toUUID(qIdStr)));
@@ -288,6 +472,11 @@ export default function StudentWrongAnswersPage() {
       const sSid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
       const isMatchSt = allStudentIds.has(sSid) || (toUUID(sSid) && allStudentIds.has(toUUID(sSid)));
       if (!isMatchSt) return false;
+
+      const sIdStr = String(s.id || '');
+      if (deletedSubmissionsSet.has(sIdStr)) return;
+      const sBookId = String(s.bookId || s.metadata?.bookId || '');
+      if (sBookId && (deletedBookIdsSet.has(sBookId) || !activeBookCheck.idSet.has(sBookId))) return;
 
       const isRem = s.isRemedial === true || s.isRemedialTest === true || s.sourceType === 'pdfSlicerRemedial' || s.type === 'remedialTest' || String(s.testTitle || s.title || '').toLowerCase().includes('telafi');
       if (isRem) {
@@ -323,7 +512,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return result;
-  }, [bankQuestions, homeworks, submissions, allStudentIds, currentStudentId]);
+  }, [bankQuestions, activeHomeworks, submissions, allStudentIds, currentStudentId, deletedSubmissionsSet, deletedHwIdsSet, deletedBookIdsSet, activeBookCheck]);
 
   const handleAddTestToProgram = async (testItem, targetDayKey) => {
     const studentId = selectedStudent?.id || currentUser?.id;
@@ -647,8 +836,76 @@ export default function StudentWrongAnswersPage() {
   // Tracked Books & BookTests map with thorough Unit and Topic extraction from book hierarchy
   const allBookTestsMap = useMemo(() => {
     const map = new Map();
-    (books || []).forEach(b => {
-      const bTests = (bookTests || []).filter(bt => 
+
+    const registerTestInfo = (idVal, info) => {
+      if (!idVal) return;
+      const sId = String(idVal);
+      map.set(sId, info);
+      const clean = sId.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '');
+      if (clean && clean !== sId) map.set(clean, info);
+      const uuid = toUUID(sId);
+      if (uuid) {
+        map.set(String(uuid), info);
+        map.set(String(uuid).replace(/-/g, ''), info);
+      }
+    };
+
+    // 1. Traverse all books and their internal subjects / topics / tests
+    (activeBooks || []).forEach((b) => {
+      if (!b) return;
+      const bTitle = (b.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
+      const bSubj = b.subject || b.subjectName || '';
+
+      (b.subjects || []).forEach((s) => {
+        let subName = isSubjectName(s?.name) ? s.name : (bSubj || checkSubjectName(bTitle) || 'Matematik');
+
+        (s.tests || []).forEach((t, tIdx) => {
+          if (!t) return;
+          const tId = t.id || t.testId;
+          const tName = t.name || t.title || t.testName || `Test ${tIdx + 1}`;
+          const uName = isSubjectName(s?.name) ? '' : (s?.name || b.unit || b.unitName || '');
+
+          const info = {
+            testName: tName,
+            bookTitle: bTitle || 'Kitap',
+            subject: subName,
+            unit: uName,
+            topic: '',
+            bookId: b.id,
+            testId: tId,
+            orderIndex: Number(t.order ?? t.order_index ?? tIdx + 1)
+          };
+          registerTestInfo(tId, info);
+        });
+
+        (s.topics || []).forEach((tp) => {
+          const uName = isSubjectName(s?.name) ? (tp.name || '') : (s?.name || b.unit || b.unitName || '');
+          const topName = tp.name && tp.name !== uName ? tp.name : '';
+
+          (tp.tests || []).forEach((t, tIdx) => {
+            if (!t) return;
+            const tId = t.id || t.testId;
+            const tName = t.name || t.title || t.testName || `Test ${tIdx + 1}`;
+
+            const info = {
+              testName: tName,
+              bookTitle: bTitle || 'Kitap',
+              subject: subName,
+              unit: isSubjectName(uName) ? '' : uName,
+              topic: topName,
+              bookId: b.id,
+              testId: tId,
+              orderIndex: Number(t.order ?? t.order_index ?? tIdx + 1)
+            };
+            registerTestInfo(tId, info);
+          });
+        });
+      });
+    });
+
+    // 2. Traverse flat bookTests array
+    (activeBooks || []).forEach(b => {
+      const bTests = (activeBookTests || []).filter(bt => 
         String(bt.bookId) === String(b.id) || 
         (toUUID(bt.bookId) && String(toUUID(bt.bookId)) === String(toUUID(b.id)))
       );
@@ -709,8 +966,8 @@ export default function StudentWrongAnswersPage() {
         }
 
         const info = {
-          testName: bt.name || 'Test',
-          bookTitle: b.title || 'Kitap',
+          testName: bt.name || bt.title || bt.testName || 'Test',
+          bookTitle: (b.title || bt.bookTitle || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim(),
           subject: subName,
           unit: isSubjectName(unitName) ? '' : unitName,
           topic: (topicName && topicName !== unitName && !isSubjectName(topicName)) ? topicName : '',
@@ -719,13 +976,29 @@ export default function StudentWrongAnswersPage() {
           orderIndex: Number(bt.order ?? bt.order_index ?? idx + 1)
         };
 
-        map.set(String(bt.id), info);
-        const uuid = toUUID(bt.id);
-        if (uuid) map.set(String(uuid), info);
+        registerTestInfo(bt.id, info);
       });
     });
+
+    // 3. Any leftover bookTests not tied to books
+    (activeBookTests || []).forEach((bt, idx) => {
+      if (!bt?.id || map.has(String(bt.id))) return;
+      const bTitle = (bt.bookTitle || 'Kitap').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
+      const info = {
+        testName: bt.name || bt.title || bt.testName || 'Test',
+        bookTitle: bTitle,
+        subject: bt.subject || checkSubjectName(bTitle) || 'Matematik',
+        unit: bt.unit || bt.unitName || '',
+        topic: bt.topic || bt.topicName || '',
+        bookId: bt.bookId || null,
+        testId: bt.id,
+        orderIndex: Number(bt.order ?? bt.order_index ?? idx + 1)
+      };
+      registerTestInfo(bt.id, info);
+    });
+
     return map;
-  }, [books, bookTests]);
+  }, [activeBooks, activeBookTests]);
 
   // Submissions for activeStudent
   const allSubmissions = useMemo(() => {
@@ -746,26 +1019,95 @@ export default function StudentWrongAnswersPage() {
       const sid = s.studentId || s.student_id || s.userId || s.user_id || (s.raw_data && (s.raw_data.studentId || s.raw_data.student_id));
       if (!isMatchStudent(sid)) return false;
 
-      const subIdStr = String(s.id || '');
+      const subIdStr = String(s.id || '').trim();
       if (subIdStr.startsWith('draft_') || subIdStr.startsWith('64726166')) return false;
       if (s.status === 'in_progress' || s.status === 'draft') return false;
       if (s.isSubmitted === false) return false;
       if (s.raw_data && (s.raw_data.status === 'draft' || s.raw_data.status === 'in_progress')) return false;
+
+      // 1. Exclude if submission is explicitly deleted
+      if (deletedSubmissionsSet.has(subIdStr) || (toUUID(subIdStr) && deletedSubmissionsSet.has(String(toUUID(subIdStr))))) {
+        return false;
+      }
+      if (s.isDeleted || s.deleted || s.deleted_at) {
+        return false;
+      }
+
+      // 2. Exclude if homework is deleted
+      const hwIdStr = String(s.hwId || '').trim();
+      if (hwIdStr && (deletedHwIdsSet.has(hwIdStr) || (toUUID(hwIdStr) && deletedHwIdsSet.has(String(toUUID(hwIdStr)))))) {
+        return false;
+      }
 
       const c = s.correctCount ?? s.correct ?? 0;
       const w = s.wrongCount ?? s.wrong ?? 0;
       const e = s.emptyCount ?? s.blankCount ?? s.empty ?? 0;
       if (c === 0 && w === 0 && e === 0 && (!s.answers || s.answers.length === 0)) return false;
 
-      const bTestId = String(s.bookTestId || s.testId || '');
-      const matchedBookTest = allBookTestsMap.get(bTestId);
+      const candIds = [s.testId, s.bookTestId, s.realTestId, s.metadata?.realTestId, s.metadata?.bookTestId, s.metadata?.testId, s.id].filter(Boolean).map(String);
+      let matchedBookTest = null;
+      for (const cid of candIds) {
+        matchedBookTest = allBookTestsMap.get(cid) ||
+                          allBookTestsMap.get(cid.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '')) ||
+                          (toUUID(cid) ? allBookTestsMap.get(toUUID(cid)) : null);
+        if (matchedBookTest) break;
+      }
       const matchedCurTest = allCurTestsMap.get(String(s.testId));
-      const parentHw = (homeworks || []).find(h =>
+      const parentHw = (activeHomeworks || []).find(h =>
         String(h.id) === String(s.hwId) ||
         String(h.id) === String(s.testId) ||
         String(h.id) === String(s.id) ||
         (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(s.hwId || s.testId || s.id)))
       );
+
+      // 3. Exclude if submission belongs to a deleted book!
+      const candBookIds = [
+        s.bookId,
+        s.book_id,
+        matchedBookTest?.bookId,
+        s.metadata?.bookId,
+        parentHw?.bookId,
+        (s.raw_data && s.raw_data.bookId)
+      ].filter(Boolean).map(String);
+
+      const hasDeletedBookId = candBookIds.some(bid => {
+        const str = String(bid).trim();
+        const u = toUUID(str);
+        return deletedBookIdsSet.has(str) || (u && deletedBookIdsSet.has(String(u)));
+      });
+      if (hasDeletedBookId) {
+        return false;
+      }
+
+      // Check if it is a book test submission
+      const isBookSubmission = Boolean(
+        s.bookTestId ||
+        s.bookId ||
+        s.type === 'book' ||
+        s.type === 'tracked_book' ||
+        s.sourceType === 'tracked_book' ||
+        s.sourceType === 'book' ||
+        (s.testId && (String(s.testId).startsWith('tbt_') || String(s.testId).startsWith('bt_'))) ||
+        (parentHw && (parentHw.isBookAssignment || parentHw.bookId || String(parentHw.title || '').includes('(Tüm Kitap'))) ||
+        String(s.testTitle || s.title || '').includes('(Tüm Kitap')
+      );
+
+      if (isBookSubmission) {
+        // If it's a book submission, it MUST match an active book!
+        const matchesActiveBook =
+          (matchedBookTest && activeBookCheck.idSet.has(String(matchedBookTest.bookId))) ||
+          candBookIds.some(bid => activeBookCheck.idSet.has(bid)) ||
+          Array.from(activeBookCheck.titleSet).some(bt => {
+            if (bt.length < 4) return false;
+            const fullTitle = `${s.testTitle || ''} ${s.title || ''} ${parentHw?.title || ''}`.toLowerCase();
+            return fullTitle.includes(bt);
+          });
+
+        if (!matchesActiveBook) {
+          // The book this test belonged to is deleted or no longer active
+          return false;
+        }
+      }
 
       const isRemedial = Boolean(
         s.isRemedial === true ||
@@ -783,7 +1125,7 @@ export default function StudentWrongAnswersPage() {
         String(s.testTitle || s.title || '').toLowerCase().includes('kirpilmis')
       );
 
-      // If it's a remedial test or question bank test, ALWAYS keep it
+      // If it's a remedial test or question bank test, keep it
       if (isRemedial) {
         return true;
       }
@@ -793,7 +1135,7 @@ export default function StudentWrongAnswersPage() {
         return false;
       }
 
-      if (s.bookTestId && !matchedBookTest) {
+      if (s.bookTestId && !matchedBookTest && !parentHw && !s.hwId && !s.testTitle) {
         return false;
       }
 
@@ -801,7 +1143,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     const hwSubs = [];
-    (homeworks || []).forEach(hw => {
+    (activeHomeworks || []).forEach(hw => {
       if (!hw) return;
       (hw.submissions || []).forEach(sub => {
         const sid = sub.studentId || sub.student_id || sub.userId || sub.user_id;
@@ -809,6 +1151,12 @@ export default function StudentWrongAnswersPage() {
           const subIdStr = String(sub.id || '');
           if (subIdStr.startsWith('draft_') || sub.status === 'in_progress' || sub.status === 'draft') return;
           if (sub.isSubmitted === false) return;
+          if (deletedSubmissionsSet.has(subIdStr) || (toUUID(subIdStr) && deletedSubmissionsSet.has(String(toUUID(subIdStr))))) return;
+
+          const subBookIds = [sub.bookId, hw.bookId, (sub.raw_data && sub.raw_data.bookId), (hw.raw_data && hw.raw_data.bookId)].filter(Boolean).map(String);
+          if (subBookIds.some(bid => deletedBookIdsSet.has(bid) || (toUUID(bid) && deletedBookIdsSet.has(String(toUUID(bid)))))) {
+            return;
+          }
 
           const alreadyExists = baseSubs.some(s =>
             String(s.hwId || s.testId || s.id) === String(hw.id) ||
@@ -819,11 +1167,14 @@ export default function StudentWrongAnswersPage() {
             hwSubs.push({
               id: `hw_sub_${hw.id}_${studentIdStr}`,
               hwId: hw.id,
-              testId: hw.id,
-              testTitle: hw.title,
-              subject: hw.subject,
-              unit: hw.unit || hw.unitName || '',
-              topic: hw.topic || hw.topicName || '',
+              testId: sub.testId || sub.bookTestId || hw.id,
+              bookTestId: sub.bookTestId || null,
+              bookId: sub.bookId || hw.bookId || null,
+              testTitle: sub.testTitle || sub.testName || sub.title || hw.title,
+              testName: sub.testName || sub.testTitle || sub.title || '',
+              subject: hw.subject || sub.subject,
+              unit: sub.unit || hw.unit || hw.unitName || '',
+              topic: sub.topic || hw.topic || hw.topicName || '',
               studentId: studentIdStr,
               score: sub.score,
               submittedAt: sub.completedAt || sub.submittedAt || sub.createdAt || new Date().toISOString(),
@@ -841,7 +1192,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return [...baseSubs, ...hwSubs];
-  }, [submissions, homeworks, activeStudent, allBookTestsMap, allCurTestsMap]);
+  }, [submissions, activeHomeworks, activeStudent, allBookTestsMap, allCurTestsMap, deletedSubmissionsSet, deletedHwIdsSet, deletedBookIdsSet, activeBookCheck]);
 
   // Grouped Submissions with robust Subject, Unit and Topic Resolution
   const testGroupedSubmissions = useMemo(() => {
@@ -875,36 +1226,177 @@ export default function StudentWrongAnswersPage() {
         for (let j = 1; j <= eCount; j++) blankQuestions.push({ qNum: wCount + j });
       }
 
-      const matchedBookTest = allBookTestsMap.get(String(sub.testId)) || 
-                              allBookTestsMap.get(String(sub.bookTestId)) ||
-                              allBookTestsMap.get(String(sub.hwId)) ||
-                              (sub.metadata?.realTestId ? allBookTestsMap.get(String(sub.metadata.realTestId)) : null);
+      // Collect candidate IDs for lookup
+      const candIds = [
+        sub.testId,
+        sub.bookTestId,
+        sub.realTestId,
+        sub.metadata?.realTestId,
+        sub.metadata?.bookTestId,
+        sub.metadata?.testId,
+        sub.id
+      ].filter(Boolean).map(String);
 
-      const matchedHw = (homeworks || []).find(h =>
+      // Match Book Test
+      let matchedBookTest = null;
+      for (const cid of candIds) {
+        matchedBookTest = allBookTestsMap.get(cid) ||
+                          allBookTestsMap.get(cid.replace(/^tbt_/, '').replace(/^bt_/, '').replace(/^q_/, '')) ||
+                          (toUUID(cid) ? allBookTestsMap.get(toUUID(cid)) : null);
+        if (matchedBookTest) break;
+      }
+
+      // Match Homework
+      const matchedHw = (activeHomeworks || []).find(h =>
         String(h.id) === String(sub.hwId) ||
         String(h.id) === String(sub.testId) ||
         String(h.id) === String(sub.id) ||
         (toUUID(h.id) && String(toUUID(h.id)) === String(toUUID(sub.hwId || sub.testId || sub.id)))
       );
 
-      const matchedCurTest = allCurTestsMap.get(String(sub.testId)) || allCurTestsMap.get(String(sub.hwId));
+      // Match Curriculum Test
+      let matchedCurTest = null;
+      for (const cid of candIds) {
+        matchedCurTest = allCurTestsMap.get(cid);
+        if (matchedCurTest) break;
+      }
 
-      let resolvedTitle = sub.testTitle || sub.title;
-      const isGeneric = !resolvedTitle ||
-        resolvedTitle.trim().toLowerCase() === 'test sınavı' ||
-        resolvedTitle.trim().toLowerCase() === 'test sinavi' ||
-        resolvedTitle.trim().toLowerCase() === 'test';
+      // Match Book
+      const candBookIds = [
+        sub.bookId,
+        matchedBookTest?.bookId,
+        sub.metadata?.bookId,
+        matchedHw?.bookId
+      ].filter(Boolean).map(String);
 
-      if (matchedBookTest) {
-        const cleanBook = (matchedBookTest.bookTitle || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim();
-        resolvedTitle = cleanBook ? `${cleanBook} — ${matchedBookTest.testName}` : matchedBookTest.testName;
-      } else if (matchedHw?.title) {
-        resolvedTitle = matchedHw.title;
+      const isAnyBookDeleted = candBookIds.some(bid => {
+        const str = String(bid).trim();
+        const u = toUUID(str);
+        return deletedBookIdsSet.has(str) || (u && deletedBookIdsSet.has(String(u)));
+      });
+
+      let matchedBook = null;
+      if (!isAnyBookDeleted) {
+        matchedBook = (activeBooks || []).find(b => 
+          candBookIds.some(bid => String(b.id) === bid || (toUUID(b.id) && toUUID(b.id) === toUUID(bid)))
+        );
+
+        if (!matchedBook && (matchedHw?.title || sub.testTitle || sub.title)) {
+          const titleStr = `${matchedHw?.title || ''} ${sub.testTitle || ''} ${sub.title || ''}`.toLowerCase();
+          matchedBook = (activeBooks || []).find(b => {
+            const btClean = String(b.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim().toLowerCase();
+            return btClean.length >= 4 && titleStr.includes(btClean);
+          });
+        }
+      }
+
+      // If matchedBook is found but matchedBookTest is still null, look inside matchedBook's subjects/topics
+      if (!matchedBookTest && matchedBook) {
+        for (const s of (matchedBook.subjects || [])) {
+          const found = (s.tests || []).find(t => candIds.some(cid => String(t.id) === cid || String(t.id).replace(/^tbt_/, '').replace(/^bt_/, '') === cid.replace(/^tbt_/, '').replace(/^bt_/, '')));
+          if (found) {
+            matchedBookTest = {
+              id: found.id,
+              testId: found.id,
+              testName: found.name || found.title || 'Test',
+              bookTitle: matchedBook.title,
+              bookId: matchedBook.id,
+              subject: s.name || matchedBook.subject,
+              unit: s.name,
+              topic: '',
+              orderIndex: Number(found.order ?? 1)
+            };
+            break;
+          }
+          for (const tp of (s.topics || [])) {
+            const foundTp = (tp.tests || []).find(t => candIds.some(cid => String(t.id) === cid || String(t.id).replace(/^tbt_/, '').replace(/^bt_/, '') === cid.replace(/^tbt_/, '').replace(/^bt_/, '')));
+            if (foundTp) {
+              matchedBookTest = {
+                id: foundTp.id,
+                testId: foundTp.id,
+                testName: foundTp.name || foundTp.title || 'Test',
+                bookTitle: matchedBook.title,
+                bookId: matchedBook.id,
+                subject: s.name || matchedBook.subject,
+                unit: s.name,
+                topic: tp.name,
+                orderIndex: Number(foundTp.order ?? 1)
+              };
+              break;
+            }
+          }
+          if (matchedBookTest) break;
+        }
+      }
+
+      // Extract Clean Specific Test Name
+      let specificTestName = matchedBookTest?.testName || sub.testName || sub.metadata?.testName || sub.metadata?.name || '';
+      
+      // If specificTestName contains (Tüm Kitap Görevi) or (Tüm Kitap), clean it
+      if (specificTestName.includes('(Tüm Kitap Görevi)') || specificTestName.includes('(Tüm Kitap)')) {
+        specificTestName = '';
+      }
+
+      if (!specificTestName) {
+        const tTitle = sub.testTitle || sub.title || sub.metadata?.testTitle || '';
+        if (tTitle.includes('—')) {
+          const parts = tTitle.split('—').map(p => p.trim());
+          const lastPart = parts[parts.length - 1];
+          if (lastPart && !lastPart.includes('(Tüm Kitap')) {
+            specificTestName = lastPart;
+          }
+        } else if (!tTitle.includes('(Tüm Kitap Görevi)') && !tTitle.includes('(Tüm Kitap)')) {
+          specificTestName = tTitle;
+        }
+      }
+
+      // Check if specificTestName is generic
+      const isGeneric = !specificTestName ||
+        specificTestName.trim().toLowerCase() === 'test sınavı' ||
+        specificTestName.trim().toLowerCase() === 'test sinavi' ||
+        specificTestName.trim().toLowerCase() === 'test' ||
+        specificTestName.trim().toLowerCase() === 'ödev' ||
+        specificTestName.trim().toLowerCase() === 'odev';
+
+      // Fallback: extract test number from ID candidates
+      if (isGeneric || !specificTestName) {
+        for (const cid of candIds) {
+          const m = String(cid).match(/(Test[-\s]?\d+|Yeni Nesil[-\s]?\d+|Ü\.?\s?Değ\.?[-\s]?\d+|Ünite Değerlendirme[-\s]?\d+)/i);
+          if (m && !m[0].includes('Tüm Kitap')) {
+            specificTestName = m[0].replace(/Ünite Değerlendirme/i, 'Ü. Değ.');
+            break;
+          }
+          const numMatch = String(cid).match(/_(\d+)$/);
+          if (numMatch) {
+            specificTestName = `Test ${numMatch[1]}`;
+            break;
+          }
+        }
+      }
+
+      // Determine clean book title
+      const cleanBookTitle = (matchedBook?.title || matchedBookTest?.bookTitle || matchedHw?.title || '')
+        .replace(/\s*\(Tüm Kitap Görevi\)/gi, '')
+        .replace(/\s*\(Tüm Kitap\)/gi, '')
+        .replace(/\s*\(Kendi Eklediğim\)/gi, '')
+        .trim();
+
+      // Resolve final resolvedTitle
+      let resolvedTitle = '';
+      if (cleanBookTitle && specificTestName && !isGeneric) {
+        resolvedTitle = `${cleanBookTitle} — ${specificTestName}`;
+      } else if (specificTestName && !isGeneric) {
+        resolvedTitle = specificTestName;
       } else if (matchedCurTest?.title) {
         resolvedTitle = matchedCurTest.title;
-      } else if (isGeneric) {
-        if (matchedHw?.subject) resolvedTitle = `${matchedHw.subject} Ödevi`;
-        else resolvedTitle = 'Sınav Testi';
+      } else if (matchedHw?.title && !matchedHw.title.includes('(Tüm Kitap')) {
+        resolvedTitle = matchedHw.title;
+      } else if (cleanBookTitle) {
+        resolvedTitle = specificTestName ? `${cleanBookTitle} — ${specificTestName}` : `${cleanBookTitle} — Test`;
+      } else if (matchedHw?.subject) {
+        resolvedTitle = `${matchedHw.subject} Ödevi`;
+      } else {
+        resolvedTitle = 'Sınav Testi';
       }
 
       let subject = '';
@@ -996,6 +1488,9 @@ export default function StudentWrongAnswersPage() {
         subject,
         unit,
         topic,
+        bookId: matchedBook?.id || matchedBookTest?.bookId || sub.bookId || null,
+        bookTitle: cleanBookTitle,
+        specificTestName: specificTestName || resolvedTitle,
         orderIndex: matchedBookTest?.orderIndex ?? matchedCurTest?.orderIndex ?? (parseInt((resolvedTitle || '').replace(/\D/g, ''), 10) || 9999),
         submittedAt: dateStr,
         wrongQuestions,
@@ -1008,7 +1503,7 @@ export default function StudentWrongAnswersPage() {
     });
 
     return parsedSubs;
-  }, [allSubmissions, homeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet, SUBJECT_CONFIG]);
+  }, [allSubmissions, activeHomeworks, allCurTestsMap, allBookTestsMap, bankQuestions, reviewedSubSet, SUBJECT_CONFIG, activeBooks, deletedBookIdsSet]);
 
   // Split Submissions into Unreviewed vs Reviewed
   const unreviewedSubmissions = useMemo(() => {
@@ -1025,6 +1520,77 @@ export default function StudentWrongAnswersPage() {
     return unreviewedSubmissions;
   }, [reviewFilter, unreviewedSubmissions, reviewedSubmissions]);
 
+  // Available Books for filtering with exact stats (Strictly active & non-deleted books only)
+  const availableBooks = useMemo(() => {
+    const bMap = new Map();
+
+    testGroupedSubmissions.forEach(sub => {
+      const bTitle = (sub.bookTitle || '').trim();
+      const bId = sub.bookId || bTitle;
+      if (!bTitle && !sub.bookId) return;
+
+      // Absolute safety: ensure this book exists in activeBooks and is not deleted
+      const bIdStr = String(sub.bookId || '');
+      const bTitleLower = bTitle.toLowerCase();
+      const isActive = activeBooks.some(b => {
+        if (!b) return false;
+        if (b.isDeleted || b.deleted || b.deleted_at) return false;
+        const bid = String(b.id || '');
+        if (bIdStr && (bid === bIdStr || toUUID(bid) === toUUID(bIdStr) || bid.replace(/^b_/, '') === bIdStr.replace(/^b_/, ''))) return true;
+        const bt = String(b.title || '').replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').trim().toLowerCase();
+        return bt && (bt === bTitleLower || bTitleLower.includes(bt) || bt.includes(bTitleLower));
+      });
+
+      if (!isActive) return;
+
+      const key = String(bId);
+      if (!bMap.has(key)) {
+        bMap.set(key, {
+          id: key,
+          bookId: sub.bookId,
+          title: bTitle || 'Kitap',
+          totalTests: 0,
+          totalWrong: 0,
+          totalBlank: 0,
+          totalMistakes: 0
+        });
+      }
+
+      const item = bMap.get(key);
+      item.totalTests += 1;
+      const wCount = sub.wrongQuestions?.length || 0;
+      const bCount = sub.blankQuestions?.length || 0;
+      item.totalWrong += wCount;
+      item.totalBlank += bCount;
+      item.totalMistakes += (wCount + bCount);
+    });
+
+    return Array.from(bMap.values()).sort((a, b) => b.totalTests - a.totalTests);
+  }, [testGroupedSubmissions, activeBooks]);
+
+  // Selected Book filter & view mode & print modal state
+  const [selectedBookId, setSelectedBookId] = useState('all'); // 'all' | bookId / bookTitle
+  const [bookMistakesViewMode, setBookMistakesViewMode] = useState('tests'); // 'tests' | 'questions'
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
+  // Auto-reset selectedBookId to 'all' if selected book was deleted
+  useEffect(() => {
+    if (selectedBookId !== 'all') {
+      const exists = availableBooks.some(b => 
+        String(b.id) === String(selectedBookId) || 
+        String(b.title).toLowerCase() === String(selectedBookId).toLowerCase()
+      );
+      if (!exists) {
+        setSelectedBookId('all');
+      }
+    }
+  }, [availableBooks, selectedBookId]);
+
+  const selectedBook = useMemo(() => {
+    if (!selectedBookId || selectedBookId === 'all') return null;
+    return availableBooks.find(b => String(b.id) === String(selectedBookId) || String(b.title).toLowerCase() === String(selectedBookId).toLowerCase()) || null;
+  }, [availableBooks, selectedBookId]);
+
   // Filtered & Sorted Test Submissions for the active tab
   const filteredTestSubmissions = useMemo(() => {
     const list = currentTabBaseList.filter(sub => {
@@ -1033,21 +1599,28 @@ export default function StudentWrongAnswersPage() {
         (sub.testTitle || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (sub.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (sub.unit || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (sub.topic || '').toLowerCase().includes(searchQuery.toLowerCase());
+        (sub.topic || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (sub.bookTitle || '').toLowerCase().includes(searchQuery.toLowerCase());
 
       const subjectMatch = !selectedSubject || selectedSubject === 'Tümü' || sub.subject === selectedSubject;
       const wrongMatch = !wrongOnlyFilter || sub.wrongQuestions.length > 0;
 
-      return textMatch && subjectMatch && wrongMatch;
+      const bookMatch =
+        !selectedBookId ||
+        selectedBookId === 'all' ||
+        String(sub.bookId) === String(selectedBookId) ||
+        String(sub.bookTitle).toLowerCase() === String(selectedBookId).toLowerCase() ||
+        (sub.testTitle && sub.testTitle.toLowerCase().includes(String(selectedBookId).toLowerCase()));
+
+      return textMatch && subjectMatch && wrongMatch && bookMatch;
     });
 
+    // When sorting by book order, use sortItemsByBookOrder for true sequential book order
+    if (sortBy === 'book_order') {
+      return sortItemsByBookOrder(list, activeBooks, activeBookTests);
+    }
+
     return [...list].sort((a, b) => {
-      if (sortBy === 'book_order') {
-        const orderA = a.orderIndex ?? (parseInt((a.testTitle || '').replace(/\D/g, ''), 10) || 9999);
-        const orderB = b.orderIndex ?? (parseInt((b.testTitle || '').replace(/\D/g, ''), 10) || 9999);
-        if (orderA !== orderB) return orderA - orderB;
-        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr', { numeric: true });
-      }
       if (sortBy === 'date_asc') {
         return new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0);
       }
@@ -1055,11 +1628,149 @@ export default function StudentWrongAnswersPage() {
         return b.wrongQuestions.length - a.wrongQuestions.length;
       }
       if (sortBy === 'name_asc') {
-        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr');
+        return (a.testTitle || '').localeCompare(b.testTitle || '', 'tr', { numeric: true });
       }
       return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
     });
-  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter, sortBy]);
+  }, [currentTabBaseList, selectedSubject, searchQuery, wrongOnlyFilter, sortBy, selectedBookId, activeBooks, activeBookTests]);
+
+  // Sequential question-by-question list of all wrong and blank questions for the selected book / filtered tests
+  const bookSequentialMistakes = useMemo(() => {
+    const orderedSubs = sortBy === 'book_order' 
+      ? filteredTestSubmissions 
+      : sortItemsByBookOrder(filteredTestSubmissions, activeBooks, activeBookTests);
+
+    const questionsList = [];
+
+    orderedSubs.forEach(sub => {
+      const rawAnswers = sub.answers || sub.studentAnswers || [];
+      const testName = sub.specificTestName || (sub.testTitle?.includes('—') ? sub.testTitle.split('—').slice(1).join('—').trim() : sub.testTitle) || 'Test';
+
+      // 1. Wrong questions
+      (sub.wrongQuestions || []).forEach(wq => {
+        const ans = rawAnswers.find((a, idx) => {
+          const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
+          return qNum === wq.qNum;
+        }) || {};
+
+        const bq = ans.questionId ? bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId))) : null;
+        const imgUrl = ans.imageUrl || ans.image || ans.photoUrl || bq?.imageUrl || bq?.image || bq?.photoUrl || null;
+        const qText = ans.questionText || ans.text || bq?.questionText || bq?.text || null;
+
+        questionsList.push({
+          subId: sub.id,
+          testId: sub.testId,
+          testName,
+          bookTitle: sub.bookTitle,
+          subject: sub.subject,
+          unit: sub.unit,
+          topic: sub.topic,
+          qNum: wq.qNum,
+          userAnswer: ans.userAnswer || 'Yanlış',
+          correctAnswer: ans.correctAnswer || ans.key || bq?.correctAnswer || bq?.answer || '',
+          isWrong: true,
+          imageUrl: imgUrl,
+          questionText: qText,
+          submittedAt: sub.submittedAt
+        });
+      });
+
+      // 2. Blank questions
+      (sub.blankQuestions || []).forEach(bq => {
+        const ans = rawAnswers.find((a, idx) => {
+          const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
+          return qNum === bq.qNum;
+        }) || {};
+
+        const bQuestion = ans.questionId ? bankQuestions.find(q => String(q.id) === String(ans.questionId) || (toUUID(q.id) && String(toUUID(q.id)) === String(ans.questionId))) : null;
+        const imgUrl = ans.imageUrl || ans.image || ans.photoUrl || bQuestion?.imageUrl || bQuestion?.image || bQuestion?.photoUrl || null;
+        const qText = ans.questionText || ans.text || bQuestion?.questionText || bQuestion?.text || null;
+
+        questionsList.push({
+          subId: sub.id,
+          testId: sub.testId,
+          testName,
+          bookTitle: sub.bookTitle,
+          subject: sub.subject,
+          unit: sub.unit,
+          topic: sub.topic,
+          qNum: bq.qNum,
+          userAnswer: 'Boş Bırakıldı',
+          correctAnswer: ans.correctAnswer || ans.key || bQuestion?.correctAnswer || bQuestion?.answer || '',
+          isWrong: false,
+          imageUrl: imgUrl,
+          questionText: qText,
+          submittedAt: sub.submittedAt
+        });
+      });
+    });
+
+    return questionsList;
+  }, [filteredTestSubmissions, activeBooks, activeBookTests, bankQuestions, sortBy]);
+
+  // CSV Export Function with UTF-8 BOM (\uFEFF) and semicolon (;) for Excel
+  const handleExportCSV = (bookTitleName, subsToExport) => {
+    const rows = [
+      ['Kitap Adı', 'Ders', 'Ünite', 'Konu', 'Test Adı', 'Soru No', 'Öğrenci Cevabı', 'Doğru Cevap', 'Durum', 'Tarih']
+    ];
+
+    const orderedSubs = sortItemsByBookOrder(subsToExport || filteredTestSubmissions, activeBooks, activeBookTests);
+
+    orderedSubs.forEach(sub => {
+      const rawAnswers = sub.answers || sub.studentAnswers || [];
+      const testName = sub.specificTestName || (sub.testTitle?.includes('—') ? sub.testTitle.split('—').slice(1).join('—').trim() : sub.testTitle) || 'Test';
+
+      (sub.wrongQuestions || []).forEach(wq => {
+        const ans = rawAnswers.find((a, idx) => {
+          const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
+          return qNum === wq.qNum;
+        }) || {};
+        rows.push([
+          sub.bookTitle || bookTitleName || 'Kitap',
+          sub.subject || '',
+          sub.unit || '',
+          sub.topic || '',
+          testName,
+          `Soru ${wq.qNum}`,
+          ans.userAnswer || 'Yanlış',
+          ans.correctAnswer || ans.key || '',
+          'Yanlış',
+          sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : ''
+        ]);
+      });
+
+      (sub.blankQuestions || []).forEach(bq => {
+        const ans = rawAnswers.find((a, idx) => {
+          const qNum = a.subIndex !== undefined ? a.subIndex + 1 : (a.questionNo || idx + 1);
+          return qNum === bq.qNum;
+        }) || {};
+        rows.push([
+          sub.bookTitle || bookTitleName || 'Kitap',
+          sub.subject || '',
+          sub.unit || '',
+          sub.topic || '',
+          testName,
+          `Soru ${bq.qNum}`,
+          'Boş',
+          ans.correctAnswer || ans.key || '',
+          'Boş',
+          sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : ''
+        ]);
+      });
+    });
+
+    const csvContent = '\uFEFF' + rows.map(r => r.map(c => `"${String(c || '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const cleanName = (bookTitleName || 'Kitap_Yanlislari').replace(/[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ_]/g, '_');
+    link.setAttribute('download', `${cleanName}_Sıralı_Yanlışlar.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Pagination for Test Submissions
   const [currentPage, setCurrentPage] = useState(1);
@@ -1072,7 +1783,7 @@ export default function StudentWrongAnswersPage() {
   // Reset page when filters or tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedSubject, wrongOnlyFilter, sortBy, activeMainTab, reviewFilter, pageSize]);
+  }, [searchQuery, selectedSubject, wrongOnlyFilter, sortBy, activeMainTab, reviewFilter, pageSize, selectedBookId]);
 
   useEffect(() => {
     setNotebookPage(1);
@@ -1401,7 +2112,7 @@ export default function StudentWrongAnswersPage() {
       });
     });
 
-    homeworks.filter(hw => hw.studentId === selectedStudent.id || (hw.targetIds && hw.targetIds.includes(selectedStudent.id)))
+    activeHomeworks.filter(hw => hw.studentId === selectedStudent.id || (hw.targetIds && hw.targetIds.includes(selectedStudent.id)))
       .forEach(hw => {
         if (!map.has(hw.id)) {
           map.set(hw.id, {
@@ -1418,7 +2129,7 @@ export default function StudentWrongAnswersPage() {
       });
 
     return Array.from(map.values());
-  }, [testGroupedSubmissions, homeworks, selectedStudent]);
+  }, [testGroupedSubmissions, activeHomeworks, selectedStudent]);
 
   const handleOpenAddModal = (defaultSub = null) => {
     let initialHwId = defaultSub?.id || '';
@@ -1624,8 +2335,8 @@ export default function StudentWrongAnswersPage() {
       });
     });
 
-    // 2.5. Scan homeworks in HomeworkContext
-    (homeworks || []).forEach(hw => {
+    // 2.5. Scan activeHomeworks in HomeworkContext
+    (activeHomeworks || []).forEach(hw => {
       (hw.submissions || []).forEach(hs => {
         const isMatch = String(hs.studentId) === studentIdStr || (studentUuidStr && String(hs.studentId) === studentUuidStr);
         if (!isMatch) return;
@@ -1704,7 +2415,7 @@ export default function StudentWrongAnswersPage() {
       sortedReasons,
       questionsList
     };
-  }, [allSubmissions, studentErrors, currentWrongCount, currentBlankCount, selectedStudent, currentUser, isDark]);
+  }, [allSubmissions, activeHomeworks, studentErrors, currentWrongCount, currentBlankCount, selectedStudent, currentUser, isDark]);
 
   const mistakeChartData = useMemo(() => {
     if (!overallMistakeStats?.reasonDefs) return [];
@@ -2753,7 +3464,7 @@ export default function StudentWrongAnswersPage() {
                       const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
                       const isCreatedByThisStudent = Boolean(creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId)))));
 
-                      const matchedHw = (homeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
+                      const matchedHw = (activeHomeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
                       const hwCreatorId = matchedHw ? String(matchedHw.createdBy || matchedHw.created_by || '') : '';
                       const isHwCreatedByStudent = Boolean(hwCreatorId && (allStudentIds.has(hwCreatorId) || (toUUID(hwCreatorId) && allStudentIds.has(toUUID(hwCreatorId)))));
 
@@ -3230,7 +3941,7 @@ export default function StudentWrongAnswersPage() {
                   const creatorId = String(combinedTest.createdBy || combinedTest.created_by || combinedTest.authorId || combinedTest.author || '');
                   const isCreatedByThisStudent = Boolean(creatorId && (allStudentIds.has(creatorId) || (toUUID(creatorId) && allStudentIds.has(toUUID(creatorId)))));
 
-                  const matchedHw = (homeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
+                  const matchedHw = (activeHomeworks || []).find(h => String(h.id) === String(test.id) || String(h.id) === String(test.hwId));
                   const hwCreatorId = matchedHw ? String(matchedHw.createdBy || matchedHw.created_by || '') : '';
                   const isHwCreatedByStudent = Boolean(hwCreatorId && (allStudentIds.has(hwCreatorId) || (toUUID(hwCreatorId) && allStudentIds.has(toUUID(hwCreatorId)))));
 
@@ -3739,6 +4450,263 @@ export default function StudentWrongAnswersPage() {
               </div>
             </div>
 
+            {/* KİTAP SEÇİMİ VE SIRALI KİTAP YANLIŞLARI PANELİ */}
+            {availableBooks.length > 0 && (
+              <div style={{
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: '16px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1rem',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                  marginBottom: selectedBook ? '0.75rem' : '0'
+                }}>
+                  {/* Kitap Seçici Dropdown */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 1 280px' }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <BookOpen size={18} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Kitap / Kaynak Filtresi
+                      </div>
+                      <select
+                        value={selectedBookId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedBookId(val);
+                          if (val !== 'all') {
+                            setSortBy('book_order');
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          borderRadius: 8,
+                          border: '1.5px solid var(--color-border-input)',
+                          background: 'var(--color-surface-hover)',
+                          color: 'var(--color-text)',
+                          fontSize: '0.85rem',
+                          fontWeight: 800,
+                          outline: 'none',
+                          cursor: 'pointer',
+                          marginTop: 2
+                        }}
+                      >
+                        <option value="all">📚 Tüm Kitaplar & Sınavlar ({currentTabBaseList.length} Test)</option>
+                        {availableBooks.map(b => (
+                          <option key={b.id} value={b.id}>
+                            📖 {b.title} ({b.totalTests} Test • {b.totalWrong} Yanlış • {b.totalBlank} Boş)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Hızlı Kitap Çipleri */}
+                  <div className="wa-scroll-x" style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', flex: '2 1 300px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBookId('all')}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 8,
+                        border: selectedBookId === 'all' ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                        background: selectedBookId === 'all' ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface-hover)',
+                        color: selectedBookId === 'all' ? '#6366f1' : 'var(--color-text-muted)',
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Tümü ({currentTabBaseList.length})
+                    </button>
+                    {availableBooks.map(b => {
+                      const isSel = selectedBookId === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedBookId(b.id);
+                            setSortBy('book_order');
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: 8,
+                            border: isSel ? '1.5px solid #6366f1' : '1px solid var(--color-border)',
+                            background: isSel ? (isDark ? 'rgba(99,102,241,0.2)' : '#eef2ff') : 'var(--color-surface-hover)',
+                            color: isSel ? '#6366f1' : 'var(--color-text)',
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <span>{b.title}</span>
+                          <span style={{
+                            background: isSel ? '#6366f1' : 'var(--color-surface)',
+                            color: isSel ? '#ffffff' : '#ef4444',
+                            fontSize: '0.66rem',
+                            fontWeight: 900,
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: 99
+                          }}>
+                            {b.totalWrong} Y
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Seçili Kitap Bilgi & İndirme & Görünüm Çubuğu */}
+                {selectedBook && (
+                  <div style={{
+                    marginTop: '0.75rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem'
+                  }}>
+                    {/* Kitap İstatistikleri */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                        📖 {selectedBook.title}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', fontWeight: 800 }}>
+                        <span style={{ background: isDark ? 'rgba(99,102,241,0.18)' : '#eef2ff', color: '#6366f1', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
+                          {selectedBook.totalTests} Test Çözüldü
+                        </span>
+                        <span style={{ background: isDark ? 'rgba(239,68,68,0.18)' : '#fef2f2', color: '#ef4444', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
+                          ❌ {selectedBook.totalWrong} Yanlış
+                        </span>
+                        <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-muted)', padding: '0.15rem 0.5rem', borderRadius: 6 }}>
+                          ⚪ {selectedBook.totalBlank} Boş
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Aksiyon Butonları (Yazdır / PDF İndir & Excel İndir & Görünüm Değiştir) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowPrintModal(true)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: 8,
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          color: '#ffffff',
+                          fontWeight: 900,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 6px rgba(99,102,241,0.25)'
+                        }}
+                        title="Tüm yanlış ve boş soruları A4 çalışma fasikülü olarak yazdır veya PDF olarak indir"
+                      >
+                        <Printer size={14} />
+                        <span>Fasikülü Yazdır / PDF</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleExportCSV(selectedBook.title, filteredTestSubmissions)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          padding: '0.45rem 0.85rem',
+                          borderRadius: 8,
+                          border: '1.5px solid #10b981',
+                          background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4',
+                          color: '#10b981',
+                          fontWeight: 900,
+                          fontSize: '0.78rem',
+                          cursor: 'pointer'
+                        }}
+                        title="Tüm soruları Excel uyumlu CSV olarak indir"
+                      >
+                        <FileSpreadsheet size={14} />
+                        <span>Excel İndir</span>
+                      </button>
+
+                      {/* Görünüm Modu: Test Sıralı vs Soru Soru Sıralı */}
+                      <div style={{ display: 'inline-flex', background: 'var(--color-surface-hover)', padding: 2, borderRadius: 8, border: '1px solid var(--color-border)' }}>
+                        <button
+                          type="button"
+                          onClick={() => setBookMistakesViewMode('tests')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '0.35rem 0.6rem',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: bookMistakesViewMode === 'tests' ? (isDark ? 'rgba(99,102,241,0.25)' : '#eff6ff') : 'transparent',
+                            color: bookMistakesViewMode === 'tests' ? '#6366f1' : 'var(--color-text-muted)',
+                            fontWeight: 800,
+                            fontSize: '0.72rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Table size={12} />
+                          <span>Test Sıralı</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookMistakesViewMode('questions')}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '0.35rem 0.6rem',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: bookMistakesViewMode === 'questions' ? (isDark ? 'rgba(99,102,241,0.25)' : '#eff6ff') : 'transparent',
+                            color: bookMistakesViewMode === 'questions' ? '#6366f1' : 'var(--color-text-muted)',
+                            fontWeight: 800,
+                            fontSize: '0.72rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <List size={12} />
+                          <span>Soru Soru Yanlışlar ({selectedBook.totalWrong + selectedBook.totalBlank})</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* DERS FİLTRELEME BUTONLARI (KAYDIRILABİLİR PİLLER) */}
             <div className="wa-scroll-x" style={{
               display: 'flex',
@@ -3920,8 +4888,123 @@ export default function StudentWrongAnswersPage() {
               </div>
             </div>
 
-            {/* TABLO GÖRÜNÜMÜ */}
-            {viewMode === 'table' ? (
+            {/* GÖRÜNÜM: SORU SORU SIRALI YANLIŞLAR VEYA TEST TABLOSU/KARTLARI */}
+            {bookMistakesViewMode === 'questions' && selectedBook ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {bookSequentialMistakes.map((item, idx) => (
+                  <div
+                    key={`${item.subId}_${item.qNum}_${idx}`}
+                    style={{
+                      background: 'var(--color-surface)',
+                      borderRadius: 14,
+                      border: '1.5px solid var(--color-border)',
+                      padding: '1rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ background: '#6366f1', color: '#fff', fontSize: '0.74rem', fontWeight: 900, padding: '0.2rem 0.6rem', borderRadius: 8 }}>
+                          {item.testName} — Soru {item.qNum}
+                        </span>
+                        {item.unit && (
+                          <span style={{ background: isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff', color: isDark ? '#93c5fd' : '#1e40af', fontSize: '0.72rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: 6 }}>
+                            📖 {item.unit}
+                          </span>
+                        )}
+                        {item.topic && (
+                          <span style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text)', fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: 6 }}>
+                            📌 {item.topic}
+                          </span>
+                        )}
+                        <span style={{
+                          background: item.isWrong ? (isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2') : (isDark ? 'rgba(245,158,11,0.2)' : '#fffbeb'),
+                          color: item.isWrong ? '#ef4444' : '#f59e0b',
+                          fontSize: '0.72rem',
+                          fontWeight: 900,
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: 6
+                        }}>
+                          {item.isWrong ? '❌ Yanlış' : '⚪ Boş'}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenReview(item.subId, e)}
+                        style={{
+                          background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: 8,
+                          fontSize: '0.75rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4
+                        }}
+                      >
+                        <span>Sınavı Aç</span>
+                        <ExternalLink size={13} />
+                      </button>
+                    </div>
+
+                    {/* Question content: image or text */}
+                    {item.imageUrl && (
+                      <div style={{ marginBottom: 12, textAlign: 'center', background: '#00000005', borderRadius: 10, padding: 8 }}>
+                        <img
+                          src={item.imageUrl}
+                          alt={`Soru ${item.qNum}`}
+                          style={{ maxWidth: '100%', maxHeight: 350, objectFit: 'contain', borderRadius: 8 }}
+                        />
+                      </div>
+                    )}
+                    {item.questionText && (
+                      <div style={{ fontSize: '0.86rem', color: 'var(--color-text)', lineHeight: 1.5, marginBottom: 10, fontWeight: 600 }}>
+                        {item.questionText}
+                      </div>
+                    )}
+
+                    {/* Answers row */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 10,
+                      background: 'var(--color-surface-hover)',
+                      fontSize: '0.8rem',
+                      fontWeight: 800
+                    }}>
+                      <div>
+                        Öğrenci Cevabı:{' '}
+                        <span style={{ color: item.isWrong ? '#ef4444' : 'var(--color-text-muted)', fontWeight: 900 }}>
+                          {item.userAnswer || (item.isWrong ? 'Yanlış' : 'Boş')}
+                        </span>
+                      </div>
+                      {item.correctAnswer && (
+                        <div>
+                          Doğru Cevap:{' '}
+                          <span style={{ color: '#10b981', fontWeight: 900 }}>
+                            {item.correctAnswer}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {bookSequentialMistakes.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-muted)' }}>
+                    Bu kitaba ait yanlış veya boş soru bulunamadı. Tebrikler! 🎉
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* TABLO GÖRÜNÜMÜ */}
+                {viewMode === 'table' ? (
               <div style={{
                 background: 'var(--color-surface)',
                 borderRadius: '16px',
@@ -3989,8 +5072,21 @@ export default function StudentWrongAnswersPage() {
                           }}
                         >
                           <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ fontWeight: 800, color: 'var(--color-text)', fontSize: '0.9rem', marginBottom: 2 }}>
-                              {sub.testTitle || 'Test Sınavı'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {sub.testTitle && sub.testTitle.includes('—') ? (
+                                <>
+                                  <span style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                                    {sub.testTitle.split('—')[0].trim()}
+                                  </span>
+                                  <span style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.9rem' }}>
+                                    {sub.testTitle.split('—').slice(1).join('—').trim()}
+                                  </span>
+                                </>
+                              ) : (
+                                <span style={{ fontWeight: 900, color: 'var(--color-text)', fontSize: '0.9rem' }}>
+                                  {sub.testTitle || 'Test Sınavı'}
+                                </span>
+                              )}
                             </div>
                             {(sub.unit || sub.topic) && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: 4 }}>
@@ -4144,9 +5240,22 @@ export default function StudentWrongAnswersPage() {
                             {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('tr-TR') : 'Bugün'}
                           </span>
                         </div>
-                        <h4 style={{ margin: '0 0 6px', fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)', lineHeight: 1.3 }}>
-                          {sub.testTitle || 'Test Sınavı'}
-                        </h4>
+                        <div style={{ margin: '0 0 6px' }}>
+                          {sub.testTitle && sub.testTitle.includes('—') ? (
+                            <>
+                              <div style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: 2 }}>
+                                {sub.testTitle.split('—')[0].trim()}
+                              </div>
+                              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)', lineHeight: 1.3 }}>
+                                {sub.testTitle.split('—').slice(1).join('—').trim()}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)', lineHeight: 1.3 }}>
+                              {sub.testTitle || 'Test Sınavı'}
+                            </div>
+                          )}
+                        </div>
                         {(sub.unit || sub.topic) && (
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
                             {sub.unit && (
@@ -4221,6 +5330,8 @@ export default function StudentWrongAnswersPage() {
 
             {/* Sayfalama (Pagination) */}
             {renderPagination(safeCurrentPage, totalSubmissionsPages, totalSubmissionsCount, pageSize, setPageSize, setCurrentPage, 'test')}
+              </>
+            )}
           </div>
         )}
 
@@ -5932,6 +7043,347 @@ export default function StudentWrongAnswersPage() {
           </div>
         </div>
       )}
+
+      {/* ─── KİTAP SIRALI YANLIŞLARI YAZDIRMA / PDF ÇALIŞMA FASİKÜLÜ MODALI ─── */}
+      {showPrintModal && (
+        <div
+          className="print-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setShowPrintModal(false)}
+        >
+          <div
+            style={{
+              background: 'var(--color-surface)',
+              borderRadius: 20,
+              maxWidth: 900,
+              width: '100%',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              overflow: 'hidden',
+              border: '1.5px solid var(--color-border)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Kontrol Çubuğu (Ekranda görünür, yazdırmada gizlenir) */}
+            <div
+              className="no-print"
+              style={{
+                padding: '1rem 1.25rem',
+                borderBottom: '1.5px solid var(--color-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'var(--color-surface-hover)',
+                flexWrap: 'wrap',
+                gap: 10
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Printer size={18} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: '0.96rem', color: 'var(--color-text)' }}>
+                    📖 Kitap Yanlışları Çalışma Fasikülü
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)' }}>
+                    {activeStudent?.name} • {selectedBook?.title || 'Seçili Kitap'} ({bookSequentialMistakes.length} Soru)
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => handleExportCSV(selectedBook?.title, filteredTestSubmissions)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '0.5rem 0.9rem',
+                    borderRadius: 10,
+                    border: '1.5px solid #10b981',
+                    background: isDark ? 'rgba(16,185,129,0.15)' : '#f0fdf4',
+                    color: '#10b981',
+                    fontWeight: 900,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <FileSpreadsheet size={15} />
+                  <span>Excel İndir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '0.5rem 1.1rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.35)'
+                  }}
+                >
+                  <Printer size={15} />
+                  <span>Yazdır / PDF Olarak Kaydet</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPrintModal(false)}
+                  style={{
+                    padding: '0.45rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Yazdırılabilir Doküman Alanı */}
+            <div
+              id="print-mistakes-booklet"
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '2rem',
+                background: '#ffffff',
+                color: '#0f172a'
+              }}
+            >
+              {/* Doküman Başlığı */}
+              <div style={{
+                borderBottom: '2.5px solid #0f172a',
+                paddingBottom: '1rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start'
+              }}>
+                <div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
+                    E-TEST PLATFORMU
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#4f46e5', marginTop: 2 }}>
+                    KİŞİYE ÖZEL HATA VE PEKİŞTİRME FASİKÜLÜ
+                  </div>
+                  <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: 4 }}>
+                    Kitap: <strong>{selectedBook?.title || 'Kitap'}</strong>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', fontSize: '0.82rem', color: '#475569' }}>
+                  <div>Öğrenci: <strong style={{ color: '#0f172a' }}>{activeStudent?.name || 'Öğrenci'}</strong></div>
+                  <div>Tarih: <strong>{new Date().toLocaleDateString('tr-TR')}</strong></div>
+                  <div style={{ marginTop: 4 }}>
+                    <span style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 800, padding: '2px 8px', borderRadius: 4, fontSize: '0.76rem' }}>
+                      Toplam {bookSequentialMistakes.length} Soru
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: '0.65rem 1rem',
+                fontSize: '0.8rem',
+                color: '#475569',
+                marginBottom: '1.5rem',
+                fontStyle: 'italic'
+              }}>
+                💡 Bu fasikül, öğrencinin kitap üzerindeki eksik ve yanlışlarını analiz etmek ve tekrar çözerek tam öğrenme sağlamak amacıyla hazırlanmıştır.
+              </div>
+
+              {/* Soru Listesi */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {bookSequentialMistakes.map((item, qIdx) => (
+                  <div
+                    key={`print_${item.subId}_${item.qNum}_${qIdx}`}
+                    className="print-question-box"
+                    style={{
+                      border: '1.5px solid #cbd5e1',
+                      borderRadius: 12,
+                      padding: '1rem',
+                      pageBreakInside: 'avoid',
+                      breakInside: 'avoid',
+                      background: '#ffffff'
+                    }}
+                  >
+                    {/* Soru Üst Başlığı */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderBottom: '1px solid #e2e8f0',
+                      paddingBottom: '0.5rem',
+                      marginBottom: '0.75rem',
+                      flexWrap: 'wrap',
+                      gap: 6
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          background: '#4f46e5',
+                          color: '#ffffff',
+                          fontWeight: 900,
+                          fontSize: '0.76rem',
+                          padding: '0.15rem 0.55rem',
+                          borderRadius: 6
+                        }}>
+                          #{qIdx + 1}
+                        </span>
+                        <span style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e293b' }}>
+                          {item.testName} • Soru {item.qNum}
+                        </span>
+                        {item.unit && (
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                            ({item.unit}{item.topic ? ` › ${item.topic}` : ''})
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          color: item.isWrong ? '#dc2626' : '#d97706',
+                          background: item.isWrong ? '#fef2f2' : '#fffbeb',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: 4,
+                          border: item.isWrong ? '1px solid #fecaca' : '1px solid #fde68a'
+                        }}>
+                          {item.isWrong ? `Öğrenci: ${item.userAnswer || 'Yanlış'}` : 'Öğrenci: Boş'}
+                        </span>
+                        {item.correctAnswer && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            color: '#16a34a',
+                            background: '#f0fdf4',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: 4,
+                            border: '1px solid #bbf7d0'
+                          }}>
+                            Doğru: {item.correctAnswer}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Soru Görseli veya Metni */}
+                    {item.imageUrl ? (
+                      <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+                        <img
+                          src={item.imageUrl}
+                          alt={`Soru ${item.qNum}`}
+                          style={{ maxWidth: '100%', maxHeight: 400, objectFit: 'contain' }}
+                        />
+                      </div>
+                    ) : item.questionText ? (
+                      <div style={{ fontSize: '0.86rem', color: '#1e293b', lineHeight: 1.5, marginBottom: '0.75rem', fontWeight: 600 }}>
+                        {item.questionText}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                        [Fiziki Kitap Sorusu: {item.testName} - Soru {item.qNum}]
+                      </div>
+                    )}
+
+                    {/* Çözüm ve Çalışma Alanı */}
+                    <div style={{
+                      border: '1.5px dashed #94a3b8',
+                      borderRadius: 8,
+                      height: 95,
+                      padding: '0.5rem 0.75rem',
+                      color: '#94a3b8',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span>✏️ Öğrenci Çözüm & Not Alanı:</span>
+                      <div style={{ borderBottom: '1px dashed #cbd5e1', width: '100%' }}></div>
+                    </div>
+                  </div>
+                ))}
+
+                {bookSequentialMistakes.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#64748b' }}>
+                    Bu kitaba ait yanlış veya boş soru bulunamadı.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Yazdırma (Print) CSS Kuralları */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #print-mistakes-booklet, #print-mistakes-booklet * {
+            visibility: visible !important;
+          }
+          #print-mistakes-booklet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 12mm !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+          }
+          .no-print, .print-modal-overlay > div > div.no-print {
+            display: none !important;
+          }
+          .print-question-box {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 24px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
