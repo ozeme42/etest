@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOKTALAMAYA UYGUN OKUMA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #f8fafc;
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --c-yellow-bg: #fefce8;
+      --c-yellow-border: #ca8a04;
+      --c-blue-bg: #f0f9ff;
+      --c-blue-border: #0284c7;
+      --c-pink-bg: #fdf2f8;
+      --c-pink-border: #db2777;
+      --c-green-bg: #f0fdf4;
+      --c-green-border: #16a34a;
+      --c-indigo-bg: #e0e7ff;
+      --c-indigo-border: #4f46e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--page-bg);
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      color: var(--text-main);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .notebook-sheet {
+      width: 100%;
+      max-width: 960px;
+      background: var(--paper-bg);
+      border: 3px solid #1e293b;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+      padding: 30px 28px;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .grade-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border: 2px solid #4f46e5;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 #4f46e5;
+    }
+    .title-center { text-align: center; flex: 1; }
+    .main-title {
+      font-family: 'Caveat', cursive;
+      font-size: 40px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+    .sub-title {
+      display: inline-block;
+      margin-top: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 20px;
+      padding: 2px 18px;
+      border-radius: 20px;
+      border: 1.5px solid #6366f1;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 8px 14px;
+      max-width: 230px;
+      text-align: right;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #475569;
+    }
+    .tip-box strong { color: #4f46e5; display: block; font-size: 16px; }
+
+    .section-title {
+      font-family: 'Caveat', cursive;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-bar {
+      background: #fdf4ff;
+      border: 2px solid #d946ef;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 1.5px solid #f0abfc;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .concept-box {
+      background: var(--c-yellow-bg);
+      border: 2px solid var(--c-yellow-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .concept-box .section-title { color: #854d0e; }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .concept-card {
+      background: #ffffff;
+      border: 1.5px solid #fde047;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .concept-card strong {
+      font-size: 17px;
+      color: #854d0e;
+      display: block;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed #fef08a;
+      padding-bottom: 2px;
+    }
+    .concept-card p {
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .col-card {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-blue {
+      background: var(--c-blue-bg);
+      border: 2px solid var(--c-blue-border);
+    }
+    .col-blue .section-title { color: #0369a1; }
+    .col-pink {
+      background: var(--c-pink-bg);
+      border: 2px solid var(--c-pink-border);
+    }
+    .col-pink .section-title { color: #be185d; }
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .golden-box {
+      background: var(--c-green-bg);
+      border: 2px solid var(--c-green-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .golden-box .section-title { color: #15803d; }
+    .golden-content {
+      font-size: 16px;
+      line-height: 1.45;
+      color: #14532d;
+    }
+
+    .footer {
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+      .header { flex-direction: column; text-align: center; }
+      .tip-box { text-align: center; }
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .toolbar { display: none; }
+      .notebook-sheet { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">📥 PDF Olarak Kaydet / Yazdır</button>
+  </div>
+  <div class="notebook-sheet">
+    <div class="header">
+      <div class="grade-badge">5. Sınıf Türkçe • Konu 4</div>
+      <div class="title-center">
+        <h1 class="main-title">NOKTALAMAYA UYGUN OKUMA</h1>
+        <div class="sub-title">4. Konu: Sesli ve Sessiz Okuma Teknikleri, Vurgu ve Tonlama</div>
+      </div>
+      <div class="tip-box">
+        <strong>🎯 Akıcı Okuma</strong>Metni anlamak, işaretlerin ritmine kulak vermekten geçer!
+      </div>
+    </div>
+
+    <div class="diagram-bar">
+      <h2 class="section-title" style="color: #0d9488;">🎙️ Sesli ve Sessiz Okuma Sanatı</h2>
+      <div class="diagram-grid">
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <path d="M25 40 L45 40 L65 25 L65 75 L45 60 L25 60 Z" fill="#99f6e4" stroke="#0d9488" stroke-width="3"/>
+            <path d="M75 40 C80 47 80 53 75 60" stroke="#0d9488" stroke-width="3" fill="none"/>
+            <path d="M82 32 C92 45 92 55 82 68" stroke="#0d9488" stroke-width="3" fill="none"/>
+          </svg>
+          <div style="font-weight:bold; color:#0f766e;">Sesli Okuma</div>
+          <div style="font-size:12px; color:#475569;">Vurgu, tonlama, dinleyiciye duyurma</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="35" fill="#fef9c3" stroke="#ca8a04" stroke-width="3"/>
+            <path d="M35 55 Q50 65 65 55" stroke="#a16207" stroke-width="3" fill="none"/>
+            <circle cx="40" cy="42" r="4" fill="#a16207"/>
+            <circle cx="60" cy="42" r="4" fill="#a16207"/>
+            <line x1="30" y1="75" x2="70" y2="75" stroke="#ca8a04" stroke-width="3"/>
+          </svg>
+          <div style="font-weight:bold; color:#a16207;">Sessiz Okuma</div>
+          <div style="font-size:12px; color:#475569;">Gözle takip, en yüksek hız ve anlama</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <path d="M30 70 L30 30 L50 20 L70 30 L70 70 Z" fill="#fce7f3" stroke="#be185d" stroke-width="3"/>
+            <line x1="50" y1="20" x2="50" y2="70" stroke="#be185d" stroke-width="2"/>
+          </svg>
+          <div style="font-weight:bold; color:#9d174d;">Noktalama Durakları</div>
+          <div style="font-size:12px; color:#475569;">Virgülde yarım, noktada tam durak</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <h2 class="section-title">🔑 6 Temel Kavram (Kavramlar Kutusu)</h2>
+      <div class="concept-grid">
+        <div class="concept-card">
+      <strong>1. Akıcı Okuma</strong>
+      <p>Kelimeleri hecelemeden, doğru telaffuz ederek ve anlamı kavramayı aksatmadan akıcı okumak.</p>
+    </div>
+    <div class="concept-card">
+      <strong>2. Vurgu</strong>
+      <p>Cümlede veya sözcükte önem verilen bir heceyi ya da kelimeyi daha baskılı söylemek.</p>
+    </div>
+    <div class="concept-card">
+      <strong>3. Tonlama</strong>
+      <p>Cümlenin duygusuna (öfke, sevinç, hüzün, şüphe) göre ses perdesini alçaltıp yükseltmek.</p>
+    </div>
+    <div class="concept-card">
+      <strong>4. Duraklama (Nefes Alma)</strong>
+      <p>Noktalama işaretlerinin gösterdiği yerlerde doğru sürelerle nefes alıp cümleyi bölmeden okuma.</p>
+    </div>
+    <div class="concept-card">
+      <strong>5. Dudak Kıpırdatmadan Okuma</strong>
+      <p>Sessiz okumada hızı düşüren dudak ve parmak takibini bırakıp yalnızca göz sıçramalarıyla okuma.</p>
+    </div>
+    <div class="concept-card">
+      <strong>6. Beden Dili & Göz Teması</strong>
+      <p>Topluluk önünde sesli okurken dinleyicilerle temas kurup metne canlılık katmak.</p>
+    </div>
+      </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="col-card col-blue">
+        <h2 class="section-title">🔊 Sesli Okuma Kuralları</h2>
+      <ul class="feature-list">
+        <li>🗣️ <strong>İşitilebilir Ses Tonu:</strong> Sesinizin ne çok kısık ne de bağırır derecede yüksek olmaması gerekir.</li>
+        <li>🎭 <strong>Diyalogları Canlandırma:</strong> Karakter konuşmalarında ses tonunu karaktere göre hafifçe değiştirmek anlamı pekiştirir.</li>
+        <li>🛑 <strong>İşaretlerin Hakkını Ver:</strong> Virgül görünce yarım saniye, nokta görünce bir saniye duraklayın.</li>
+        <li>📖 <strong>Metni Önceden Gözden Geçirme:</strong> Sesli okumadan önce metne hızlıca bir göz atmak takılmaları önler.</li>
+      </ul>
+      </div>
+      <div class="col-card col-pink">
+        <h2 class="section-title">🤫 Sessiz Okuma ve Anlama Hızı</h2>
+      <ul class="feature-list">
+        <li>👀 <strong>Gözle Okuma:</strong> Kelimeleri iç sesle tek tek fısıldamak yerine bloklar halinde gözle algılayın.</li>
+        <li>⚡ <strong>Hız Karşılaştırması:</strong> Sessiz okuma, sesli okumaya göre ortalama 2 kat daha hızlıdır.</li>
+        <li>🧠 <strong>Odaklanma:</strong> Dikkati dağıtacak ortamlardan uzaklaşarak metnin ana fikrine ve yardımcı fikirlerine kilitlenin.</li>
+        <li>📌 <strong>Geriye Dönüşleri Azaltma:</strong> Sürekli bir önceki satıra dönmek okuma hızını ve anlama bütünlüğünü bozar.</li>
+      </ul>
+      </div>
+    </div>
+
+    <div class="golden-box">
+      <h2 class="section-title">⚠️ Sınavlarda En Çok Yapılan Hatalar & Tuzaklar</h2>
+      <div class="golden-content">
+        1. <strong>Noktalama İşaretlerini Yok Sayarak Hızlı Okumak:</strong> Cümle bitmeden diğerine ulanarak okunduğunda cümlenin anlamı tamamen değişebilir (Örn: "Oku da adam ol baban gibi eşek olma" virgülsüz bambaşka anlam taşır!).<br>
+        2. <strong>Soruları Sessiz Okurken Fısıldamak:</strong> Sınavda dudak kıpırdatmak ve fısıldamak beyni çabuk yorar ve soru çözme süresini uzatır. Yalnızca göz takibi yapın.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>📚 eTest Akıllı Soru & Özet Bankası • 5. Sınıf Türkçe</span>
+      <span>🎯 Konu 4: Akıcı ve Doğru Okuma Tamamlandı</span>
+    </div>
+  </div>
+</body>
+</html>

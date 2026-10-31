@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gençlik Yıllarında Peygamberimiz - Ders Özeti İnfografiği</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Patrick+Hand&family=Neucha&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #16181d;
+      --chalk-white: #f1f5f9;
+      --neon-yellow: #fde047;
+      --neon-cyan: #38bdf8;
+      --neon-pink: #f472b6;
+      --neon-green: #4ade80;
+      --neon-orange: #fb923c;
+      --neon-purple: #c084fc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0d0f12;
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0),
+        radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 0);
+      background-size: 24px 24px, 48px 48px;
+      color: var(--chalk-white);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Print / Export Bar */
+    .toolbar {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      background: #272a30;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 17px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background: #38bdf8;
+      color: #000;
+      border-color: #38bdf8;
+    }
+
+    /* Main Blackboard Canvas */
+    .chalkboard {
+      width: 100%;
+      max-width: 900px;
+      background: #15181c;
+      border: 10px solid #2a2016;
+      outline: 4px solid #1a130b;
+      box-shadow: 
+        0 10px 40px rgba(0,0,0,0.8),
+        inset 0 0 100px rgba(0,0,0,0.6);
+      border-radius: 8px;
+      padding: 32px 28px;
+      position: relative;
+    }
+
+    /* Chalkboard Dusty Texture Overlay */
+    .chalkboard::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.03) 0%, transparent 40%),
+                  radial-gradient(circle at 80% 70%, rgba(255,255,255,0.02) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* Header Section */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px dashed rgba(255,255,255,0.25);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+
+    .badge-grade {
+      background: var(--neon-yellow);
+      color: #111;
+      font-size: 26px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+      transform: rotate(-3deg);
+      display: inline-block;
+      box-shadow: 2px 3px 0 rgba(0,0,0,0.5);
+    }
+
+    .title-area {
+      text-align: center;
+      flex-grow: 1;
+      padding: 0 16px;
+    }
+
+    .title-banner {
+      font-family: 'Caveat', cursive;
+      font-size: 38px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255,255,255,0.4);
+      border: 2px solid var(--neon-cyan);
+      display: inline-block;
+      padding: 4px 24px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .subtitle-banner {
+      margin-top: 8px;
+      background: var(--neon-pink);
+      color: #111;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 3px 18px;
+      border-radius: 20px;
+      display: inline-block;
+      transform: rotate(1deg);
+    }
+
+    .quote-box {
+      text-align: right;
+      font-size: 16px;
+      color: #cbd5e1;
+      line-height: 1.3;
+      max-width: 170px;
+    }
+    .quote-box span {
+      color: var(--neon-yellow);
+      display: block;
+      font-size: 18px;
+    }
+
+    /* Boxes & Hand-drawn Borders */
+    .box {
+      border: 2.5px solid;
+      border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      position: relative;
+    }
+
+    .box-yellow { border-color: var(--neon-yellow); box-shadow: inset 0 0 12px rgba(253, 224, 71, 0.06); }
+    .box-pink { border-color: var(--neon-pink); box-shadow: inset 0 0 12px rgba(244, 114, 182, 0.06); }
+    .box-green { border-color: var(--neon-green); box-shadow: inset 0 0 12px rgba(74, 222, 128, 0.06); }
+    .box-cyan { border-color: var(--neon-cyan); box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.06); }
+    .box-orange { border-color: var(--neon-orange); box-shadow: inset 0 0 12px rgba(251, 146, 60, 0.06); }
+
+    .box-title {
+      font-family: 'Caveat', cursive;
+      font-size: 26px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .box-yellow .box-title { color: var(--neon-yellow); }
+    .box-pink .box-title { color: var(--neon-pink); }
+    .box-green .box-title { color: var(--neon-green); }
+    .box-cyan .box-title { color: var(--neon-cyan); }
+    .box-orange .box-title { color: var(--neon-orange); }
+
+    .tag-exam {
+      background: #e11d48;
+      color: #fff;
+      font-size: 15px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-family: 'Patrick Hand', cursive;
+      margin-left: 8px;
+      text-transform: none;
+    }
+
+    /* Grid Layout for Concepts */
+    .concepts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px 16px;
+    }
+
+    .concept-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+
+    .concept-badge {
+      font-weight: bold;
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-size: 17px;
+      white-space: nowrap;
+      border: 1.5px solid;
+    }
+
+    .badge-c-yellow { color: var(--neon-yellow); border-color: var(--neon-yellow); }
+    .badge-c-cyan { color: var(--neon-cyan); border-color: var(--neon-cyan); }
+    .badge-c-pink { color: var(--neon-pink); border-color: var(--neon-pink); }
+    .badge-c-green { color: var(--neon-green); border-color: var(--neon-green); }
+    .badge-c-orange { color: var(--neon-orange); border-color: var(--neon-orange); }
+    .badge-c-purple { color: var(--neon-purple); border-color: var(--neon-purple); }
+
+    .highlight {
+      color: var(--neon-yellow);
+      font-weight: bold;
+      text-decoration: underline wavy var(--neon-yellow) 1px;
+    }
+
+    /* Two Columns Section */
+    .columns-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .columns-2 { grid-template-columns: 1fr; }
+      .header { flex-direction: column; gap: 12px; text-align: center; }
+      .quote-box { text-align: center; }
+    }
+
+    .list-item {
+      font-size: 18px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .list-item:last-child { margin-bottom: 0; }
+
+    .bullet-num {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      border-radius: 50%;
+      background: var(--neon-cyan);
+      color: #000;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      margin-top: 2px;
+    }
+    .bullet-num-pink { background: var(--neon-pink); color: #fff; }
+
+    /* Timeline Section */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      padding-top: 18px;
+      margin-top: 10px;
+      overflow-x: auto;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 28px;
+      left: 10px;
+      right: 10px;
+      height: 3px;
+      background: repeating-linear-gradient(90deg, var(--neon-orange), var(--neon-orange) 8px, transparent 8px, transparent 14px);
+      z-index: 1;
+    }
+    .timeline-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      width: 90px;
+      min-width: 80px;
+    }
+    .t-year {
+      background: var(--neon-orange);
+      color: #111;
+      font-weight: bold;
+      font-size: 15px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .t-dot {
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border: 3px solid #15181c;
+      border-radius: 50%;
+      margin-bottom: 6px;
+      box-shadow: 0 0 6px var(--neon-orange);
+    }
+    .t-desc {
+      font-size: 14px;
+      line-height: 1.2;
+      color: #f1f5f9;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px dashed rgba(255,255,255,0.2);
+      padding-top: 14px;
+      margin-top: 16px;
+      font-size: 16px;
+      color: #94a3b8;
+    }
+    .footer strong { color: var(--neon-yellow); }
+
+    /* Print settings */
+    @media print {
+      body { background: #000; padding: 0; }
+      .toolbar { display: none; }
+      .chalkboard { border: none; box-shadow: none; outline: none; width: 100%; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">🖨️ Yazdır / PDF Olarak Kaydet</button>
+  </div>
+
+  <div class="chalkboard" id="summaryCard">
+    <!-- Header -->
+    <header class="header">
+      <div class="badge-grade">★ 6. Sınıf</div>
+      <div class="title-area">
+        <div class="title-banner">1. ÜNİTE: GENÇLİK YILLARINDA PEYGAMBERİMİZ</div>
+        <br>
+        <div class="subtitle-banner">✨ Ahlaki Özellikleri, Vahyin Gelişi & Önemli Olaylar</div>
+      </div>
+      <div class="quote-box">
+        <span>🌙 "Sen elbette yüce</span>
+        bir ahlak üzeresin."<br>
+        <em>(Kalem Suresi, 4)</em>
+      </div>
+    </header>
+
+    <!-- Box 1: Kavramlar Kutusu -->
+    <section class="box box-yellow">
+      <div class="box-title">
+        ⭐ KAVRAMLAR KUTUSU <span class="tag-exam">Sınavda Kesin Çıkar! 🎯</span>
+      </div>
+      <div class="concepts-grid">
+        <div class="concept-item">
+          <span class="concept-badge badge-c-yellow">Emin</span>
+          <span>Kendisine güvenilen, sözünde duran kimse. Peygamberimize <strong class="highlight">Muhammedü'l-Emin</strong> denmiştir.</span>
+        </div>
+        <div class="concept-item">
+          <span class="concept-badge badge-c-green">Hilfülfudul</span>
+          <span>Haksızlığa uğrayanların hakkını korumak için kurulan <strong class="highlight">Erdemliler Birliği</strong>.</span>
+        </div>
+        <div class="concept-item">
+          <span class="concept-badge badge-c-cyan">Tefekkür</span>
+          <span>Yaratılış ve evren üzerine derinlemesine düşünme, kafa yorma (Hira Mağarası).</span>
+        </div>
+        <div class="concept-item">
+          <span class="concept-badge badge-c-pink">Tahire</span>
+          <span>"Tertemiz kadın" anlamına gelen, iffeti ve güzel ahlakı sebebiyle <strong class="highlight">Hz. Hatice</strong>'ye verilen lakap.</span>
+        </div>
+        <div class="concept-item">
+          <span class="concept-badge badge-c-purple">Ebülkasım</span>
+          <span>İlk oğlu Kasım'dan dolayı Peygamberimize verilen <strong class="highlight">"Kasım'ın Babası"</strong> künyesi.</span>
+        </div>
+        <div class="concept-item">
+          <span class="concept-badge badge-c-orange">Cahiliye</span>
+          <span>İslam öncesi putperestlik, kan davası, faiz ve kız çocuklarına zulmün yaşandığı karanlık dönem.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two Column Area -->
+    <div class="columns-2">
+      <!-- Box 2: Gençlik Yılları ve Ahlaki Tutum -->
+      <section class="box box-pink" style="margin-bottom: 0;">
+        <div class="box-title">
+          🌸 PEYGAMBERİMİZİN ÖRNEK AHLAKI
+        </div>
+        <div class="list-item">
+          <div class="bullet-num bullet-num-pink">1</div>
+          <div><strong>Sözünde Durma (Vefa):</strong> Gençken borç aldığı kişiyi sözleştiği yerde <span class="highlight">3 gün boyunca sabırla</span> beklemiştir.</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num bullet-num-pink">2</div>
+          <div><strong>Kâbe Hakemliği:</strong> Hacerülesved krizini hırkasını serip tüm kabile reislerine taşıtarak <span class="highlight">büyük bir savaşı önlemiştir</span>.</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num bullet-num-pink">3</div>
+          <div><strong>Ticarette Dürüstlük:</strong> Hz. Hatice'nin kervanını yönetmiş, Meysere onun dürüstlüğünü ve adaletini övgüyle anlatmıştır.</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num bullet-num-pink">4</div>
+          <div><strong>Aileye ve Çocuklara Değer:</strong> Kız çocuklarının dışlandığı çağda kızlarını baş tacı etmiş, torunlarına ve çocuklarına adil davranmayı emretmiştir.</div>
+        </div>
+      </section>
+
+      <!-- Box 3: Vahyin Başlangıcı & İlkler -->
+      <section class="box box-cyan" style="margin-bottom: 0;">
+        <div class="box-title">
+          📖 VAHYİN GELİŞİ & İLK DÖNEM
+        </div>
+        <div class="list-item">
+          <div class="bullet-num">1</div>
+          <div><strong>İlk Vahiy (610):</strong> Hira Mağarası'nda Kadir Gecesi Cebrail (as) geldi: <span class="highlight">"Yaratan Rabbinin adıyla oku!"</span> (Alak Suresi).</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num">2</div>
+          <div><strong>Teselli & Müjde:</strong> Hz. Hatice onu amcaoğlu <span class="highlight">Varaka bin Nevfel</span>'e götürdü; Varaka ona peygamberliği müjdeledi.</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num">3</div>
+          <div><strong>İlk Müslümanlar:</strong> Hz. Hatice (ilk eş), Hz. Ali (çocuk), Zeyd bin Harise (azatlı köle), Hz. Ebu Bekir (en yakın dost).</div>
+        </div>
+        <div class="list-item">
+          <div class="bullet-num">4</div>
+          <div><strong>Darülerkâm:</strong> Erkam'ın evi, müşriklerden gizli ilk eğitim ve İslam'a davet merkezi olarak seçilmiştir.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Box 4: Kronolojik Tarih Şeridi -->
+    <section class="box box-orange">
+      <div class="box-title">
+        ⏳ RİSALET VE GENÇLİK DÖNEMİ KRONOLOJİSİ (Önemli Tarihler)
+      </div>
+      <div class="timeline">
+        <div class="timeline-node">
+          <div class="t-year">610</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>İlk Vahiy</strong><br>Hira Mağarası (Alak 1-5)</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">615</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Habeşistan</strong><br>İlk Hicret (Kral Necaşi)</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">616-619</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Boykot</strong><br>3 Yıl Ekonomik Abluka</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">620</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Hüzün Yılı</strong><br>Ebu Talib & Hz. Hatice vefatı</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">621-622</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Akabe</strong><br>I & II. Akabe Biatları</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">622</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Hicret</strong><br>Mekke'den Medine'ye göç</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">628</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Hudeybiye</strong><br>Barış Antlaşması</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">630</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Fetih</strong><br>Mekke'nin Fethi (Genel Af)</div>
+        </div>
+        <div class="timeline-node">
+          <div class="t-year">632</div>
+          <div class="t-dot"></div>
+          <div class="t-desc"><strong>Veda</strong><br>Veda Hutbesi & Vefatı</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer Bar -->
+    <footer class="footer">
+      <div>📱 <strong>Ders Notu İnfografiği</strong> | MEB Müfredatına Tam Uyumlu</div>
+      <div>🌱 <em>"Size iki emanet bırakıyorum: Kur'an ve Sünnet."</em></div>
+    </footer>
+  </div>
+
+</body>
+</html>

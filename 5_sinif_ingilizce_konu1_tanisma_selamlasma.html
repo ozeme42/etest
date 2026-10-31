@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GREETING & MEETING PEOPLE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #f8fafc;
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --c-yellow-bg: #fefce8;
+      --c-yellow-border: #ca8a04;
+      --c-blue-bg: #f0f9ff;
+      --c-blue-border: #0284c7;
+      --c-pink-bg: #fdf2f8;
+      --c-pink-border: #db2777;
+      --c-green-bg: #f0fdf4;
+      --c-green-border: #16a34a;
+      --c-violet-bg: #ede9fe;
+      --c-violet-border: #7c3aed;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--page-bg);
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      color: var(--text-main);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .notebook-sheet {
+      width: 100%;
+      max-width: 960px;
+      background: var(--paper-bg);
+      border: 3px solid #1e293b;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+      padding: 30px 28px;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .grade-badge {
+      background: #ede9fe;
+      color: #5b21b6;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border: 2px solid #7c3aed;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 #7c3aed;
+    }
+    .title-center { text-align: center; flex: 1; }
+    .main-title {
+      font-family: 'Caveat', cursive;
+      font-size: 40px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+    .sub-title {
+      display: inline-block;
+      margin-top: 6px;
+      background: #ede9fe;
+      color: #6d28d9;
+      font-size: 20px;
+      padding: 2px 18px;
+      border-radius: 20px;
+      border: 1.5px solid #8b5cf6;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 8px 14px;
+      max-width: 230px;
+      text-align: right;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #475569;
+    }
+    .tip-box strong { color: #7c3aed; display: block; font-size: 16px; }
+
+    .section-title {
+      font-family: 'Caveat', cursive;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-bar {
+      background: #faf5ff;
+      border: 2px solid #c084fc;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 1.5px solid #d8b4fe;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .concept-box {
+      background: var(--c-yellow-bg);
+      border: 2px solid var(--c-yellow-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .concept-box .section-title { color: #854d0e; }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .concept-card {
+      background: #ffffff;
+      border: 1.5px solid #fde047;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .concept-card strong {
+      font-size: 17px;
+      color: #854d0e;
+      display: block;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed #fef08a;
+      padding-bottom: 2px;
+    }
+    .concept-card p {
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .col-card {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-blue {
+      background: var(--c-blue-bg);
+      border: 2px solid var(--c-blue-border);
+    }
+    .col-blue .section-title { color: #0369a1; }
+    .col-pink {
+      background: var(--c-pink-bg);
+      border: 2px solid var(--c-pink-border);
+    }
+    .col-pink .section-title { color: #be185d; }
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .golden-box {
+      background: var(--c-green-bg);
+      border: 2px solid var(--c-green-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .golden-box .section-title { color: #15803d; }
+    .golden-content {
+      font-size: 16px;
+      line-height: 1.45;
+      color: #14532d;
+    }
+
+    .footer {
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+      .header { flex-direction: column; text-align: center; }
+      .tip-box { text-align: center; }
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .toolbar { display: none; }
+      .notebook-sheet { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">📥 PDF Olarak Kaydet / Yazdır</button>
+  </div>
+  <div class="notebook-sheet">
+    <div class="header">
+      <div class="grade-badge">5th Grade English • Topic 1</div>
+      <div class="title-center">
+        <h1 class="main-title">GREETING & MEETING PEOPLE</h1>
+        <div class="sub-title">1. Konu: Tanışma, Selamlaşma, Kendini ve Başkalarını Tanıtma</div>
+      </div>
+      <div class="tip-box">
+        <strong>🎯 Conversation Hero</strong>Introduce yourself, make international friends and ask about hobbies & subjects!
+      </div>
+    </div>
+
+    <div class="diagram-bar">
+      <h2 class="section-title" style="color: #581c87;">💬 4 Steps of Meeting Someone New</h2>
+      <div class="diagram-grid">
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="40" r="20" fill="#fef08a" stroke="#ca8a04" stroke-width="2.5"/>
+            <path d="M25 85 C25 65 75 65 75 85" fill="#fde047" stroke="#ca8a04" stroke-width="2.5"/>
+          </svg>
+          <div style="font-weight:bold; color:#a16207;">1. Greet (Selamla)</div>
+          <div style="font-size:12px; color:#475569;">"Hello! / Hi there!"</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <rect x="20" y="30" width="60" height="45" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2.5"/>
+            <text x="50" y="58" font-family="Caveat" font-size="22" fill="#1d4ed8" text-anchor="middle">NAME</text>
+          </svg>
+          <div style="font-weight:bold; color:#1d4ed8;">2. Introduce (Tanıt)</div>
+          <div style="font-size:12px; color:#475569;">"My name is..." / "I am..."</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="35" fill="#fce7f3" stroke="#db2777" stroke-width="2.5"/>
+            <path d="M35 50 Q50 65 65 50" stroke="#be185d" stroke-width="3" fill="none"/>
+            <circle cx="40" cy="40" r="4" fill="#be185d"/>
+            <circle cx="60" cy="40" r="4" fill="#be185d"/>
+          </svg>
+          <div style="font-weight:bold; color:#be185d;">3. Be Glad (Memnun Ol)</div>
+          <div style="font-size:12px; color:#475569;">"Nice to meet you!"</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <path d="M30 65 C20 40 50 15 70 35 C85 50 70 80 50 80 L30 80 Z" fill="#dcfce7" stroke="#16a34a" stroke-width="2.5"/>
+            <text x="50" y="55" font-family="Patrick Hand" font-size="14" fill="#15803d" text-anchor="middle">INFO</text>
+          </svg>
+          <div style="font-weight:bold; color:#15803d;">4. Share (Paylaş)</div>
+          <div style="font-size:12px; color:#475569;">Age, Country, School</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <h2 class="section-title">🔑 6 Temel Kavram (Kavramlar Kutusu)</h2>
+      <div class="concept-grid">
+        <div class="concept-card">
+      <strong>1. Introduce Yourself</strong>
+      <p><em>"Hello, my name is Efe. I am 10 years old and I am from Türkiye."</em> (Kendini tanıtma).</p>
+    </div>
+    <div class="concept-card">
+      <strong>2. Introduce Others</strong>
+      <p><em>"This is my friend, Maria. She is from Spain. She is 11."</em> (Arkadaşını tanıtma: 'This is...').</p>
+    </div>
+    <div class="concept-card">
+      <strong>3. Country (Ülke)</strong>
+      <p>Devlet adıdır. Daima büyük harfle yazılır: Türkiye, England, Germany, France, Japan, Italy.</p>
+    </div>
+    <div class="concept-card">
+      <strong>4. Nationality (Uyruk)</strong>
+      <p>Kişinin vatandaşı olduğu ırk/millet: Turkish, English, German, French, Japanese, Italian.</p>
+    </div>
+    <div class="concept-card">
+      <strong>5. School Subjects</strong>
+      <p>Okul dersleri: Maths, Science, Social Studies, English, Music, Art, PE (Beden Eğitimi), Drama.</p>
+    </div>
+    <div class="concept-card">
+      <strong>6. Expressing Likes & Dislikes</strong>
+      <p><em>"I like English and Art, but I dislike Maths."</em> / <em>"My favourite subject is Music."</em></p>
+    </div>
+      </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="col-card col-blue">
+        <h2 class="section-title">📝 Sample Dialogue (Örnek Diyalog)</h2>
+      <ul class="feature-list">
+        <li>👦 <strong>Tom:</strong> Hello! My name is Tom. What is your name?</li>
+        <li>👧 <strong>Zeynep:</strong> Hi Tom! I'm Zeynep. Nice to meet you.</li>
+        <li>👦 <strong>Tom:</strong> Nice to meet you, too! Where are you from, Zeynep?</li>
+        <li>👧 <strong>Zeynep:</strong> I am from Türkiye. I am Turkish. How about you?</li>
+        <li>👦 <strong>Tom:</strong> I am from the UK. I speak English and a little Spanish.</li>
+        <li>👧 <strong>Zeynep:</strong> Great! What is your favourite class at school?</li>
+        <li>👦 <strong>Tom:</strong> I love Science and PE, but I don't like History.</li>
+      </ul>
+      </div>
+      <div class="col-card col-pink">
+        <h2 class="section-title">🔍 Essential Question Patterns</h2>
+      <ul class="feature-list">
+        <li>❓ <strong>Ad:</strong> "What is your name?" → "My name is..."</li>
+        <li>❓ <strong>Yaş:</strong> "How old are you?" → "I am 10 years old."</li>
+        <li>❓ <strong>Memleket:</strong> "Where are you from?" → "I am from..."</li>
+        <li>❓ <strong>Milliyet:</strong> "What nationality are you?" → "I am..."</li>
+        <li>❓ <strong>Dil:</strong> "Which languages do you speak?" → "I speak..."</li>
+        <li>❓ <strong>Ders Sevgisi:</strong> "Do you like Maths?" → "Yes, I do. / No, I don't."</li>
+      </ul>
+      </div>
+    </div>
+
+    <div class="golden-box">
+      <h2 class="section-title">⚠️ Common Exam Traps & Pitfalls (Sınav Tuzakları)</h2>
+      <div class="golden-content">
+        1. <strong>"This is" Kullanımı:</strong> Yanımızdaki birini başkasına tanıtırken "He is my friend" yerine ilk tanışmada <strong>"This is my friend Mark"</strong> kalıbı kullanılır.<br>
+        2. <strong>"Speak" ile "Language":</strong> <em>"How many languages do you speak?"</em> sorusuna rakamla ve dil adıyla yanıt verilir. <em>"I speak two languages: Turkish and English."</em><br>
+        3. <strong>"Nice to meet you" Karşılığı:</strong> Karşı taraf "Nice to meet you" dediğinde cevap <strong>"Nice to meet you, too"</strong> (Ben de memnun oldum) olur.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>📚 eTest Akıllı Soru & Özet Bankası • 5. Sınıf İngilizce</span>
+      <span>🎯 Topic 1: Greetings & Introductions Completed</span>
+    </div>
+  </div>
+</body>
+</html>

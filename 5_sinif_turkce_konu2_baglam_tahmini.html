@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAĞLAMDAN ANLAM TAHMİNİ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #f8fafc;
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --c-yellow-bg: #fefce8;
+      --c-yellow-border: #ca8a04;
+      --c-blue-bg: #f0f9ff;
+      --c-blue-border: #0284c7;
+      --c-pink-bg: #fdf2f8;
+      --c-pink-border: #db2777;
+      --c-green-bg: #f0fdf4;
+      --c-green-border: #16a34a;
+      --c-indigo-bg: #e0e7ff;
+      --c-indigo-border: #4f46e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--page-bg);
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      color: var(--text-main);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .notebook-sheet {
+      width: 100%;
+      max-width: 960px;
+      background: var(--paper-bg);
+      border: 3px solid #1e293b;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+      padding: 30px 28px;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .grade-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border: 2px solid #4f46e5;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 #4f46e5;
+    }
+    .title-center { text-align: center; flex: 1; }
+    .main-title {
+      font-family: 'Caveat', cursive;
+      font-size: 40px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+    .sub-title {
+      display: inline-block;
+      margin-top: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 20px;
+      padding: 2px 18px;
+      border-radius: 20px;
+      border: 1.5px solid #6366f1;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 8px 14px;
+      max-width: 230px;
+      text-align: right;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #475569;
+    }
+    .tip-box strong { color: #4f46e5; display: block; font-size: 16px; }
+
+    .section-title {
+      font-family: 'Caveat', cursive;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-bar {
+      background: #fdf4ff;
+      border: 2px solid #d946ef;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 1.5px solid #f0abfc;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .concept-box {
+      background: var(--c-yellow-bg);
+      border: 2px solid var(--c-yellow-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .concept-box .section-title { color: #854d0e; }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .concept-card {
+      background: #ffffff;
+      border: 1.5px solid #fde047;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .concept-card strong {
+      font-size: 17px;
+      color: #854d0e;
+      display: block;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed #fef08a;
+      padding-bottom: 2px;
+    }
+    .concept-card p {
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .col-card {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-blue {
+      background: var(--c-blue-bg);
+      border: 2px solid var(--c-blue-border);
+    }
+    .col-blue .section-title { color: #0369a1; }
+    .col-pink {
+      background: var(--c-pink-bg);
+      border: 2px solid var(--c-pink-border);
+    }
+    .col-pink .section-title { color: #be185d; }
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .golden-box {
+      background: var(--c-green-bg);
+      border: 2px solid var(--c-green-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .golden-box .section-title { color: #15803d; }
+    .golden-content {
+      font-size: 16px;
+      line-height: 1.45;
+      color: #14532d;
+    }
+
+    .footer {
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+      .header { flex-direction: column; text-align: center; }
+      .tip-box { text-align: center; }
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .toolbar { display: none; }
+      .notebook-sheet { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">📥 PDF Olarak Kaydet / Yazdır</button>
+  </div>
+  <div class="notebook-sheet">
+    <div class="header">
+      <div class="grade-badge">5. Sınıf Türkçe • Konu 2</div>
+      <div class="title-center">
+        <h1 class="main-title">BAĞLAMDAN ANLAM TAHMİNİ</h1>
+        <div class="sub-title">2. Konu: Cümle ve Metin İçi İpuçlarını Kullanarak Çıkarım Yapma</div>
+      </div>
+      <div class="tip-box">
+        <strong>🎯 İpucu Avcısı</strong>Metnin bütünü sana bilinmeyen kelimenin şifresini fısıldar!
+      </div>
+    </div>
+
+    <div class="diagram-bar">
+      <h2 class="section-title" style="color: #0369a1;">🔎 Anlam Tahmin Adımları (Dedektif Yolu)</h2>
+      <div class="diagram-grid">
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="45" cy="45" r="30" fill="none" stroke="#0284c7" stroke-width="4"/>
+            <line x1="68" y1="68" x2="90" y2="90" stroke="#0284c7" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <div style="font-weight:bold; color:#0369a1;">1. Cümleyi Tara</div>
+          <div style="font-size:12px; color:#475569;">Kelimenin önceki ve sonraki sözcüklerini incele</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <path d="M20 50 L40 75 L85 25" fill="none" stroke="#16a34a" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <div style="font-weight:bold; color:#16a34a;">2. Yerine Kelime Koy</div>
+          <div style="font-size:12px; color:#475569;">Tahmin ettiğin kelimeyi yerine koyup oku</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <rect x="20" y="20" width="60" height="60" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
+            <text x="50" y="58" font-family="Caveat" font-size="28" fill="#d97706" text-anchor="middle">TDK</text>
+          </svg>
+          <div style="font-weight:bold; color:#b45309;">3. Sözlükten Doğrula</div>
+          <div style="font-size:12px; color:#475569;">Sözlük anlamıyla örtüşüp örtüşmediğini denetle</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <h2 class="section-title">🔑 6 Temel Kavram (Kavramlar Kutusu)</h2>
+      <div class="concept-grid">
+        <div class="concept-card">
+      <strong>1. Bağlam (Metin Çevresi)</strong>
+      <p>Bir sözcüğün anlamını belirleyen, onun içinde yer aldığı cümlenin ve paragrafın tümüdür.</p>
+    </div>
+    <div class="concept-card">
+      <strong>2. İpucu Cümleleri</strong>
+      <p>Yazarın bazen bilinmeyen kelimeyi hemen ardından tanımlaması ("yani...", "başka bir deyişle...").</p>
+    </div>
+    <div class="concept-card">
+      <strong>3. Karşıtlıktan Çıkarım</strong>
+      <p>Metindeki "oysa, fakat, tersine" gibi ifadelerle zıt anlamlı ipucundan kelimeyi çözmek.</p>
+    </div>
+    <div class="concept-card">
+      <strong>4. Örneklemeden Çıkarım</strong>
+      <p>"Örneğin, mesela, gibi" sözcükleriyle verilen örneklerden bilinmeyen kavramın cinsini bulmak.</p>
+    </div>
+    <div class="concept-card">
+      <strong>5. Eş Anlamlılık İpucu</strong>
+      <p>Aynı metin içerisinde cümlenin devamında o kelimenin bilinen eş anlamlısının kullanılması.</p>
+    </div>
+    <div class="concept-card">
+      <strong>6. TDK Güncel Sözlük</strong>
+      <p>Tahmin edilen anlamın doğrulanması için başvurulan en yetkin ve güvenilir kaynak.</p>
+    </div>
+      </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="col-card col-blue">
+        <h2 class="section-title">💡 Bağlamdan Anlam Çıkarma Taktikleri</h2>
+      <ul class="feature-list">
+        <li>📌 <strong>Cümlenin Akışını İzle:</strong> "Yıllardır görmediği dostunu görünce yüzünde <em>tebessüm</em> belirdi." → (Gülümseme anlamında).</li>
+        <li>📌 <strong>Duygu Tonuna Bak:</strong> Metin neşeli mi, hüzünlü mü, korku dolu mu? Kelimenin duygu değerini tahmin et.</li>
+        <li>📌 <strong>Eksik Parçayı Bul:</strong> Bilmediğin kelimeyi cımbızla çekip yerine 'X' koy ve cümlenin mantığını tamamlayacak kelimeyi düşün.</li>
+        <li>📌 <strong>Kök ve Ekten Yararlanma:</strong> Kelimenin kökündeki tanıdık sesler sana anlam hakkında ön fikir verir.</li>
+      </ul>
+      </div>
+      <div class="col-card col-pink">
+        <h2 class="section-title">📝 Örnek Çözümleme Tablosu</h2>
+      <ul class="feature-list">
+        <li>🌿 <em>Cümle:</em> "Kuraklıktan dolayı tarladaki tüm ekinler <strong>solmuş</strong>, toprak çatlamıştı."</li>
+        <li>🔍 <em>İpuçları:</em> 'Kuraklık', 'ekinler', 'toprak çatlaması'.</li>
+        <li>💡 <em>Tahmin:</em> Canlılığını yitirmek, kurumak.</li>
+        <li>📖 <em>Sözlük Kontrolü:</em> TDK: "Rengi atmak, canlılığını ve tazeliğini yitirmek." → (Tahmin Doğru!)</li>
+        <li>🎯 <em>Kazanım:</em> Sözlüğe bakmadan önce beynini dedektif gibi çalıştırmak kelime hazineni 2 kat hızla büyütür.</li>
+      </ul>
+      </div>
+    </div>
+
+    <div class="golden-box">
+      <h2 class="section-title">⚠️ Sınavlarda En Çok Yapılan Hatalar & Tuzaklar</h2>
+      <div class="golden-content">
+        1. <strong>İlk Bildiğin Anlamı Yapıştırmak:</strong> Bir kelimenin onlarca anlamı olabilir. Hemen ilk aklına gelen anlamı yazma; mutlaka cümlenin içindeki göreviyle kıyasla.<br>
+        2. <strong>Yalnızca O Kelimeye Odaklanmak:</strong> Paragraf sorularında sadece kelimenin bulunduğu satırı okuyup üst ve alt cümleleri atlamak en sık yapılan hatadır.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>📚 eTest Akıllı Soru & Özet Bankası • 5. Sınıf Türkçe</span>
+      <span>🎯 Konu 2: Bağlamdan Anlam Tahmini Tamamlandı</span>
+    </div>
+  </div>
+</body>
+</html>

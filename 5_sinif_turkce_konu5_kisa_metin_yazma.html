@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KISA METİNLER YAZMA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #f8fafc;
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --c-yellow-bg: #fefce8;
+      --c-yellow-border: #ca8a04;
+      --c-blue-bg: #f0f9ff;
+      --c-blue-border: #0284c7;
+      --c-pink-bg: #fdf2f8;
+      --c-pink-border: #db2777;
+      --c-green-bg: #f0fdf4;
+      --c-green-border: #16a34a;
+      --c-indigo-bg: #e0e7ff;
+      --c-indigo-border: #4f46e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--page-bg);
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      color: var(--text-main);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .notebook-sheet {
+      width: 100%;
+      max-width: 960px;
+      background: var(--paper-bg);
+      border: 3px solid #1e293b;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+      padding: 30px 28px;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .grade-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border: 2px solid #4f46e5;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 #4f46e5;
+    }
+    .title-center { text-align: center; flex: 1; }
+    .main-title {
+      font-family: 'Caveat', cursive;
+      font-size: 40px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+    .sub-title {
+      display: inline-block;
+      margin-top: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 20px;
+      padding: 2px 18px;
+      border-radius: 20px;
+      border: 1.5px solid #6366f1;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 8px 14px;
+      max-width: 230px;
+      text-align: right;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #475569;
+    }
+    .tip-box strong { color: #4f46e5; display: block; font-size: 16px; }
+
+    .section-title {
+      font-family: 'Caveat', cursive;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-bar {
+      background: #fdf4ff;
+      border: 2px solid #d946ef;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 1.5px solid #f0abfc;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .concept-box {
+      background: var(--c-yellow-bg);
+      border: 2px solid var(--c-yellow-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .concept-box .section-title { color: #854d0e; }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .concept-card {
+      background: #ffffff;
+      border: 1.5px solid #fde047;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .concept-card strong {
+      font-size: 17px;
+      color: #854d0e;
+      display: block;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed #fef08a;
+      padding-bottom: 2px;
+    }
+    .concept-card p {
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .col-card {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-blue {
+      background: var(--c-blue-bg);
+      border: 2px solid var(--c-blue-border);
+    }
+    .col-blue .section-title { color: #0369a1; }
+    .col-pink {
+      background: var(--c-pink-bg);
+      border: 2px solid var(--c-pink-border);
+    }
+    .col-pink .section-title { color: #be185d; }
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .golden-box {
+      background: var(--c-green-bg);
+      border: 2px solid var(--c-green-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .golden-box .section-title { color: #15803d; }
+    .golden-content {
+      font-size: 16px;
+      line-height: 1.45;
+      color: #14532d;
+    }
+
+    .footer {
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+      .header { flex-direction: column; text-align: center; }
+      .tip-box { text-align: center; }
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .toolbar { display: none; }
+      .notebook-sheet { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">📥 PDF Olarak Kaydet / Yazdır</button>
+  </div>
+  <div class="notebook-sheet">
+    <div class="header">
+      <div class="grade-badge">5. Sınıf Türkçe • Konu 5</div>
+      <div class="title-center">
+        <h1 class="main-title">KISA METİNLER YAZMA</h1>
+        <div class="sub-title">5. Konu: Olay Yazıları, Hikâye Unsurları ve Kompozisyon Planı</div>
+      </div>
+      <div class="tip-box">
+        <strong>🎯 Küçük Yazar</strong>İyi bir yazı; sağlam bir plan, renkli kahramanlar ve etkileyici bir sonla doğar!
+      </div>
+    </div>
+
+    <div class="diagram-bar">
+      <h2 class="section-title" style="color: #ea580c;">🏗️ Bir Hikâyenin 3 Katlı Binası (Metin Planı)</h2>
+      <div class="diagram-grid">
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <rect x="25" y="30" width="50" height="40" rx="6" fill="#fed7aa" stroke="#ea580c" stroke-width="3"/>
+            <path d="M35 50 L65 50 M35 60 L55 60" stroke="#c2410c" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <div style="font-weight:bold; color:#c2410c;">1. GİRİŞ (Serim)</div>
+          <div style="font-size:12px; color:#475569;">Kişiler, yer ve zaman tanıtılır; olay başlatılır</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <polygon points="50,15 90,80 10,80" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+            <path d="M50 35 L50 60 M50 70 L50 72" stroke="#a16207" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <div style="font-weight:bold; color:#a16207;">2. GELİŞME (Düğüm)</div>
+          <div style="font-size:12px; color:#475569;">Merak doruğa çıkar, çatışma ve olaylar büyür</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="35" fill="#bbf7d0" stroke="#16a34a" stroke-width="3"/>
+            <path d="M35 50 L45 62 L68 38" fill="none" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <div style="font-weight:bold; color:#15803d;">3. SONUÇ (Çözüm)</div>
+          <div style="font-size:12px; color:#475569;">Düğüm çözülür, ders ve ana fikir verilir</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <h2 class="section-title">🔑 6 Temel Kavram (Kavramlar Kutusu)</h2>
+      <div class="concept-grid">
+        <div class="concept-card">
+      <strong>1. Olay (Vaka)</strong>
+      <p>Hikâyede kahramanların başından geçen, merak ve ilgi uyandıran yaşantı ya da durumdur.</p>
+    </div>
+    <div class="concept-card">
+      <strong>2. Kahramanlar (Kişiler)</strong>
+      <p>Olayı yaşayan ya da olaya tanıklık eden insan, hayvan veya kişileştirilmiş varlıklar.</p>
+    </div>
+    <div class="concept-card">
+      <strong>3. Mekân (Yer)</strong>
+      <p>Olayın geçtiği çevre, mekân ya da coğrafi alan (Örn: okul bahçesi, orman, köy evi).</p>
+    </div>
+    <div class="concept-card">
+      <strong>4. Zaman</strong>
+      <p>Olayın yaşandığı dönem, mevsim, ay, gün ya da saattir (Örn: yağmurlu bir sonbahar sabahı).</p>
+    </div>
+    <div class="concept-card">
+      <strong>5. Başlık</strong>
+      <p>Metnin içeriğiyle tam uyumlu, merak uyandırıcı, kısa ve çarpıcı adlandırma.</p>
+    </div>
+    <div class="concept-card">
+      <strong>6. Paragraf Düzeni</strong>
+      <p>Her ana düşünce için satır başına geçilerek bırakılan girinti ve görsel sayfa düzeni.</p>
+    </div>
+      </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="col-card col-blue">
+        <h2 class="section-title">📝 Başarılı Bir Metin Yazma Aşamaları</h2>
+      <ul class="feature-list">
+        <li>💡 <strong>1. Hazırlık ve Konu Seçimi:</strong> Ne yazacağınıza karar verin ve ana fikrinizi (ana mesajınızı) belirleyin.</li>
+        <li>📋 <strong>2. Taslak Oluşturma:</strong> Kahramanlarınızı, olayın geçeceği yeri ve zamanı not edin.</li>
+        <li>✍️ <strong>3. Giriş-Gelişme-Sonuç Yazımı:</strong>
+          <br>• Giriş: "Güneşli bir nisan sabahıydı..."
+          <br>• Gelişme: "Birdenbire top ağaçların ardına kaçtı ve..."
+          <br>• Sonuç: "O günden sonra iki arkadaş yardımlaşmanın önemini anladılar."
+        </li>
+        <li>🔍 <strong>4. Düzenleme ve Denetleme:</strong> İmla ve noktalama hatalarını kontrol edip düzeltin.</li>
+      </ul>
+      </div>
+      <div class="col-card col-pink">
+        <h2 class="section-title">🎨 Anlatımı Zenginleştirme Yolları</h2>
+      <ul class="feature-list">
+        <li>🗣️ <strong>Diyaloglara Yer Verme:</strong> Karakterleri konuşturmak metni daha canlı ve hareketli kılar ("- Buraya gel! diye bağırdı.").</li>
+        <li>🎨 <strong>Betimleme (Gözde Canlandırma):</strong> Eşyaların ve ortamın renklerini, kokularını ve şekillerini tasvir edin.</li>
+        <li>🔗 <strong>Geçiş İfadeleri:</strong> "İlk olarak, daha sonra, aniden, ne var ki, son olarak" gibi bağlayıcı sözcükler kullanın.</li>
+        <li>✨ <strong>Uygun Başlık Koyma:</strong> Başlığı en son, yazının ruhunu yansıtacak biçimde belirleyin.</li>
+      </ul>
+      </div>
+    </div>
+
+    <div class="golden-box">
+      <h2 class="section-title">⚠️ Sınavlarda En Çok Yapılan Hatalar & Tuzaklar</h2>
+      <div class="golden-content">
+        1. <strong>Başlıksız Bırakmak:</strong> Yazılı sınavlarda öğrencilerin en çok unuttuğu şey başlıktır. Başlık metnin kapısıdır, unutmayın!<br>
+        2. <strong>Paragraf Başı (Girinti) Yapmamak:</strong> Metni blok halinde hiç boşluksuz yazmak puan kırılmasına yol açar. Her bölüme girinti ile başlayın.<br>
+        3. <strong>Olayı Sonuçlandırmadan Kesmek:</strong> Gelişme bölümünü çok uzatıp sürenin bitmesiyle aniden yazıyı yarım bırakmaktan kaçının.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>📚 eTest Akıllı Soru & Özet Bankası • 5. Sınıf Türkçe</span>
+      <span>🎯 Konu 5: Metin Yazma Becerileri Tamamlandı</span>
+    </div>
+  </div>
+</body>
+</html>

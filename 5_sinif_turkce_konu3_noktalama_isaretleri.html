@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BÜYÜK HARFLER VE NOKTALAMA İŞARETLERİ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #f8fafc;
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --c-yellow-bg: #fefce8;
+      --c-yellow-border: #ca8a04;
+      --c-blue-bg: #f0f9ff;
+      --c-blue-border: #0284c7;
+      --c-pink-bg: #fdf2f8;
+      --c-pink-border: #db2777;
+      --c-green-bg: #f0fdf4;
+      --c-green-border: #16a34a;
+      --c-indigo-bg: #e0e7ff;
+      --c-indigo-border: #4f46e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--page-bg);
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 22px 22px;
+      color: var(--text-main);
+      font-family: 'Patrick Hand', cursive, sans-serif;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+    }
+    .btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 2px solid #cbd5e1;
+      padding: 8px 20px;
+      border-radius: 10px;
+      font-family: 'Patrick Hand', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+    .notebook-sheet {
+      width: 100%;
+      max-width: 960px;
+      background: var(--paper-bg);
+      border: 3px solid #1e293b;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.07);
+      padding: 30px 28px;
+      position: relative;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    .grade-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 6px 16px;
+      border: 2px solid #4f46e5;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 2px 3px 0 #4f46e5;
+    }
+    .title-center { text-align: center; flex: 1; }
+    .main-title {
+      font-family: 'Caveat', cursive;
+      font-size: 40px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.1;
+      letter-spacing: 0.5px;
+    }
+    .sub-title {
+      display: inline-block;
+      margin-top: 6px;
+      background: #e0e7ff;
+      color: #4338ca;
+      font-size: 20px;
+      padding: 2px 18px;
+      border-radius: 20px;
+      border: 1.5px solid #6366f1;
+    }
+    .tip-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 8px 14px;
+      max-width: 230px;
+      text-align: right;
+      font-size: 15px;
+      line-height: 1.3;
+      color: #475569;
+    }
+    .tip-box strong { color: #4f46e5; display: block; font-size: 16px; }
+
+    .section-title {
+      font-family: 'Caveat', cursive;
+      font-size: 27px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-bar {
+      background: #fdf4ff;
+      border: 2px solid #d946ef;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 22px;
+    }
+    .diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 10px;
+    }
+    .diagram-card {
+      background: #ffffff;
+      border: 1.5px solid #f0abfc;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .concept-box {
+      background: var(--c-yellow-bg);
+      border: 2px solid var(--c-yellow-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .concept-box .section-title { color: #854d0e; }
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .concept-card {
+      background: #ffffff;
+      border: 1.5px solid #fde047;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .concept-card strong {
+      font-size: 17px;
+      color: #854d0e;
+      display: block;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed #fef08a;
+      padding-bottom: 2px;
+    }
+    .concept-card p {
+      font-size: 15px;
+      line-height: 1.25;
+      color: #334155;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .col-card {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    .col-blue {
+      background: var(--c-blue-bg);
+      border: 2px solid var(--c-blue-border);
+    }
+    .col-blue .section-title { color: #0369a1; }
+    .col-pink {
+      background: var(--c-pink-bg);
+      border: 2px solid var(--c-pink-border);
+    }
+    .col-pink .section-title { color: #be185d; }
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: #1e293b;
+    }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .golden-box {
+      background: var(--c-green-bg);
+      border: 2px solid var(--c-green-border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+    }
+    .golden-box .section-title { color: #15803d; }
+    .golden-content {
+      font-size: 16px;
+      line-height: 1.45;
+      color: #14532d;
+    }
+
+    .footer {
+      border-top: 2px dashed #cbd5e1;
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .concept-grid { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+      .header { flex-direction: column; text-align: center; }
+      .tip-box { text-align: center; }
+    }
+    @media print {
+      body { background: none; padding: 0; }
+      .toolbar { display: none; }
+      .notebook-sheet { border: none; box-shadow: none; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">📥 PDF Olarak Kaydet / Yazdır</button>
+  </div>
+  <div class="notebook-sheet">
+    <div class="header">
+      <div class="grade-badge">5. Sınıf Türkçe • Konu 3</div>
+      <div class="title-center">
+        <h1 class="main-title">BÜYÜK HARFLER VE NOKTALAMA İŞARETLERİ</h1>
+        <div class="sub-title">3. Konu: Yazım Kuralları ve Doğru Noktalama Rehberi</div>
+      </div>
+      <div class="tip-box">
+        <strong>🎯 İmla Ustası</strong>Noktalama işaretleri cümlenin trafik işaretleridir; dur, yavaşla, dikkat et!
+      </div>
+    </div>
+
+    <div class="diagram-bar">
+      <h2 class="section-title" style="color: #c026d3;">🚦 Noktalama Trafik Levhaları</h2>
+      <div class="diagram-grid">
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="30" fill="#ef4444"/>
+            <text x="50" y="65" font-family="Caveat" font-size="50" fill="#ffffff" text-anchor="middle" font-weight="bold">.</text>
+          </svg>
+          <div style="font-weight:bold; color:#b91c1c;">Nokta (.) = TAM DUR</div>
+          <div style="font-size:12px; color:#475569;">Cümle tamamlandı, yeni cümle büyük harfle başlar</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="30" fill="#f59e0b"/>
+            <text x="50" y="65" font-family="Caveat" font-size="45" fill="#ffffff" text-anchor="middle" font-weight="bold">,</text>
+          </svg>
+          <div style="font-weight:bold; color:#d97706;">Virgül (,) = NEFES AL</div>
+          <div style="font-size:12px; color:#475569;">Eş görevli kelimeler veya sıralı cümleler</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="30" fill="#3b82f6"/>
+            <text x="50" y="68" font-family="Caveat" font-size="45" fill="#ffffff" text-anchor="middle" font-weight="bold">?</text>
+          </svg>
+          <div style="font-weight:bold; color:#1d4ed8;">Soru İşareti (?) = YANIT İSTE</div>
+          <div style="font-size:12px; color:#475569;">Cevap bekleyen soru cümleleri sonuna</div>
+        </div>
+        <div class="diagram-card">
+          <svg width="60" height="60" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="30" fill="#10b981"/>
+            <text x="50" y="68" font-family="Caveat" font-size="45" fill="#ffffff" text-anchor="middle" font-weight="bold">!</text>
+          </svg>
+          <div style="font-weight:bold; color:#047857;">Ünlem (!) = COŞKU & UYARI</div>
+          <div style="font-size:12px; color:#475569;">Korku, sevinç, şaşkınlık ve hitap</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept-box">
+      <h2 class="section-title">🔑 6 Temel Kavram (Kavramlar Kutusu)</h2>
+      <div class="concept-grid">
+        <div class="concept-card">
+      <strong>1. Cümle Başı</strong>
+      <p>Her cümle daima büyük harfle başlar. Tırnak içine alınan alıntı cümleler de büyük harfle başlar.</p>
+    </div>
+    <div class="concept-card">
+      <strong>2. Özel İsimler</strong>
+      <p>Kişi ad-soyadları, hayvanlara takılan adlar, millet, dil, din ve devlet adları büyük harfle yazılır.</p>
+    </div>
+    <div class="concept-card">
+      <strong>3. Yer ve Coğrafi Adlar</strong>
+      <p>Kıta, ülke, il, ilçe, cadde, sokak adları büyük başlar (Örn: <em>Atatürk Caddesi, Van Gölü</em>).</p>
+    </div>
+    <div class="concept-card">
+      <strong>4. Nokta (.)</strong>
+      <p>Tamamlanmış cümlenin sonuna, bazı kısaltmaların sonuna ve sayılardan sonra sıra bildirmek için (-inci) konur.</p>
+    </div>
+    <div class="concept-card">
+      <strong>5. Virgül (,)</strong>
+      <p>Birbiri ardınca sıralanan eş görevli kelime ve kelime gruplarının arasına konur.</p>
+    </div>
+    <div class="concept-card">
+      <strong>6. Kesme İşareti (')</strong>
+      <p>Özel isimlere getirilen çekim eklerini ayırmak için kullanılır (Örn: <em>Türkiye'miz, Ali'nin</em>).</p>
+    </div>
+      </div>
+    </div>
+
+    <div class="two-cols">
+      <div class="col-card col-blue">
+        <h2 class="section-title">🔤 Büyük Harflerin Yazıldığı Yerler</h2>
+      <ul class="feature-list">
+        <li>🏛️ <strong>Kurum ve Kuruluş Adları:</strong> "Türkiye Büyük Millet Meclisi", "Millî Eğitim Bakanlığı".</li>
+        <li>📅 <strong>Belirli Tarihler:</strong> Belirli bir günü veya ayı belirten tarih adları büyük başlar: "29 Ekim 1923", "15 Temmuz Cuma". Ancak "Okullar eylül ayında açılır" küçük yazılır!</li>
+        <li>📖 <strong>Kitap ve Eser Adları:</strong> "Nutuk", "Küçük Prens", "Çalıkuşu".</li>
+        <li>🪐 <strong>Gezegen ve Yıldız Adları:</strong> Astronomik anlamda kullanıldığında büyük: "Dünya, Güneş'in etrafında döner." Günlük kullanımda küçük: "Odam güneş almıyor."</li>
+      </ul>
+      </div>
+      <div class="col-card col-pink">
+        <h2 class="section-title">✒️ Temel Noktalama İşaretleri Rehberi</h2>
+      <ul class="feature-list">
+        <li>📌 <strong>İki Nokta (:):</strong> Kendisinden sonra açıklama yapılacak veya örnek verilecek cümlenin sonuna konur.</li>
+        <li>📌 <strong>Üç Nokta (...):</strong> Herhangi bir sebeple bitmemiş, tamamlanmamış cümlelerin sonuna konur.</li>
+        <li>📌 <strong>Kısa Çizgi (-):</strong> Satıra sığmayan kelimeleri bölerken hece ayrımında kullanılır.</li>
+        <li>📌 <strong>Tırnak İşareti (" "):</strong> Başka bir kimseden veya yazıdan olduğu gibi aktarılan sözlerin başına ve sonuna konur.</li>
+        <li>📌 <strong>Soru Eki 'mi':</strong> Her zaman kendisinden önceki kelimeden ayrı yazılır: "Geldin mi?", "Bakar mısın?"</li>
+      </ul>
+      </div>
+    </div>
+
+    <div class="golden-box">
+      <h2 class="section-title">⚠️ Sınavlarda En Çok Yapılan Hatalar & Tuzaklar</h2>
+      <div class="golden-content">
+        1. <strong>Kurum ve Kuruluş Adlarına Kesme İşareti Konmaz!</strong> En çok sorulan tuzak: "Türkiye Büyük Millet Meclisi'ne" DEĞİL, "Türkiye Büyük Millet Meclisine" şeklinde kesmesiz yazılır!<br>
+        2. <strong>Özel Ada Gelen Yapım Ekleri Kesilmez:</strong> "Türkçe'nin" DEĞİL, "Türkçenin"; "Ankaralı'lar" DEĞİL, "Ankaralılar" şeklinde yazılır. Yapım eki geldikten sonraki çekim ekleri de kesilmez.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>📚 eTest Akıllı Soru & Özet Bankası • 5. Sınıf Türkçe</span>
+      <span>🎯 Konu 3: İmla ve Noktalama Kuralları Tamamlandı</span>
+    </div>
+  </div>
+</body>
+</html>
