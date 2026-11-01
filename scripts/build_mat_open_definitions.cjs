@@ -1,0 +1,726 @@
+const fs = require('fs');
+
+const parsedQuestions = JSON.parse(fs.readFileSync('scripts/parsed_all_mat_questions.json', 'utf8'));
+
+// Helper to get question text
+function getQText(fasNo, type, num, fallback) {
+  const item = parsedQuestions[fasNo] && parsedQuestions[fasNo][type] && parsedQuestions[fasNo][type][num];
+  if (item && item.text && item.text.trim().length > 5) {
+    return item.text.trim();
+  }
+  return fallback;
+}
+
+// Complete definitions for all 38 open-ended tests
+const openEndedTests = [
+  // =========================================================================
+  // FASİKÜL 1: GEOMETRİK ŞEKİLLER (top_mat_cilt3_fas_1)
+  // =========================================================================
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 1: Temel Geometrik Şekiller (Şimdi Uygula 01-05)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'a. [AB], b. CD, c. [EF] (Sembolle Gösterim)' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'a. [AB], b. [CD], c. [EF], d. [KL], e. MN, f. [PR] (Geometrik Şekil Çizimi)' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'a. Örnek: [AB] = 6 cm; b. [EF] = 10 cm; c. [AB] = 4 cm; d. [KL] = 8 cm' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'a. DEF, FED veya E açısı; b. KLM, MLK veya L açısı; c. PRS, SRP veya R açısı' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'a. [OA ve [OB birleşimi: AOB, BOA veya O açısı; b. KLM açısını oluşturan ışınlar: [LK ve [LM' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 2: Çember İnşa Etme & Yarıçap (Şimdi Uygula 06-13)',
+    items: [
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'a. Merkez: A, r: 3 cm, R: 6 cm; b. Merkez: B, r: 4 cm, R: 8 cm; c. Merkez: C, r: 5 cm, R: 10 cm; d. Merkez: O, r: 7 cm, R: 14 cm; e. Merkez: P, r: 6 cm, R: 12 cm; f. Merkez: S, r: 9 cm, R: 18 cm' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'a. r: 3 cm, R: 6 cm; b. r: 6 cm, R: 12 cm; c. r: 9 cm, R: 18 cm; d. r: 11 cm, R: 22 cm' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'Çemberin iç bölgesinde yer alan noktalar: B, C, D, G ve E' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'a. |AB| = 8 cm; b. |KL| = 15 cm; Toplam / Çevre: 22 cm' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: '|CD| doğru parçasının uzunluğu = 22 cm' },
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'Karenin bir kenarı = 2 x 6 = 12 cm; Karenin çevre uzunluğu = 4 x 12 = 48 cm' },
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'Üç çemberin çapları toplamı üzerinden |KL| = 36 cm' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: '|DF| = 12 cm (Eş çemberlerin yarıçap ilişkisi)' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 3: Dikme, Paralellik & Doğru Parçaları (Şimdi Uygula 14-20)',
+    items: [
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'a, b, c, d noktalarından d doğrusuna dikme çizimleri tamamlanır.' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'd doğrusuna dik bir doğru parçası elde etmek için: E ile F noktaları birleştirilmelidir.' },
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: '[AB] // [EF] (Paralel doğru parçaları)' },
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: '|OE| = |OG| (Eşit uzunluktaki doğru parçaları)' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: '[EF] ile [GH] paralel ve eşit uzunluktadır.' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'K ve S noktaları birleştirildiğinde oluşan doğru parçası paraleldir.' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: '[CD] ile [HG] doğru parçaları paraleldir.' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 4: Açı Ölçme, Açı Türleri & Eş Açılar (Şimdi Uygula 21-29)',
+    items: [
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'a. mAOB = 25°, mBOC = 30°, mAOC = 55°; b. mKOL = 55°, mLOM = 50°, mKOM = 105°; c. mPOR = 65°, mROS = 60°, mPOS = 125°' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'a. mAOB = 40°, mBOC = 140°, mAOC = 180°; b. mKOL = 95°, mLOM = 45°, mKOM = 140°; c. Açı türleri sınıflandırması' },
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: 'a. mAOB = 40°, mBOC = 30°, mAOC = 70°; b. mKOL = 50°, mKOM = 80°, mLOM = 30°, mMON = 50°' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'Açıölçer ile verilen açıların derece cinsinden ölçümü ve çizimleri' },
+      { num: 25, type: 'uygula', title: 'Şimdi Uygula 25', ans: 'a. Geniş açı, b. Dik açı, c. Dar açı' },
+      { num: 26, type: 'uygula', title: 'Şimdi Uygula 26', ans: 'BOA: Geniş açı, COA: Dik açı, DOA: Dar açı, EOA: Doğru açı' },
+      { num: 27, type: 'uygula', title: 'Şimdi Uygula 27', ans: 'Dar açı sayısı = 3 adet' },
+      { num: 28, type: 'uygula', title: 'Şimdi Uygula 28', ans: 'a. 60°, b. Sağa 61°, c. Sola 150°' },
+      { num: 29, type: 'uygula', title: 'Şimdi Uygula 29', ans: 'a. Akrep ile yelkovanın dik açı oluşturduğu saatler: 3 veya 9; b. Doğru açı oluşturduğu açı: 180°' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 5: Eş Açılar & Düzlemde Doğru Durumları (Şimdi Uygula 30-38)',
+    items: [
+      { num: 30, type: 'uygula', title: 'Şimdi Uygula 30', ans: 'a. mAOB = mBOC; b. mKOL = mMON; c. mAOB = mDOC, mAOD = mBOC' },
+      { num: 31, type: 'uygula', title: 'Şimdi Uygula 31', ans: 'Eş açılar: mAOB = mMN, mKL = mEF, mCOD = mPOS' },
+      { num: 32, type: 'uygula', title: 'Şimdi Uygula 32', ans: 'a. B noktası, b. A noktası, c. A noktası' },
+      { num: 33, type: 'uygula', title: 'Şimdi Uygula 33', ans: 'Eş açı çiftleri: BOC ile COD, COA ile FOG, EOC ile BOA' },
+      { num: 34, type: 'uygula', title: 'Şimdi Uygula 34', ans: 'a. 18°, b. 36°, c. 72°' },
+      { num: 35, type: 'uygula', title: 'Şimdi Uygula 35', ans: 'a. c // d, b // d; b. b ve c kesişir; c. a ⊥ d, a ⊥ c, a ⊥ b' },
+      { num: 36, type: 'uygula', title: 'Şimdi Uygula 36', ans: 'a, b, c paralel doğru çizimleri' },
+      { num: 37, type: 'uygula', title: 'Şimdi Uygula 37', ans: 'Kesişen, paralel ve çakışık doğruların özellikleri' },
+      { num: 38, type: 'uygula', title: 'Şimdi Uygula 38', ans: 'Doğrular arası mesafe ve yol uzunluğu = 110 m' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 6: Komşu, Tümler & Bütünler Açılar (Şimdi Uygula 39-52)',
+    items: [
+      { num: 39, type: 'uygula', title: 'Şimdi Uygula 39', ans: 'a. mAOC = 150°, mCOB = 30°; b. mAOC = 120°, mAOD = 60°; c. mAOF = 100°, mBOD = 60°, mCOE = 20°' },
+      { num: 40, type: 'uygula', title: 'Şimdi Uygula 40', ans: 'a. 50°, b. 110°, c. 30°' },
+      { num: 41, type: 'uygula', title: 'Şimdi Uygula 41', ans: 'a. AOB ile BOC komşu açılardır; b. MOL ile KOL komşu açılardır; c. DOE ile EOF komşu açılardır' },
+      { num: 42, type: 'uygula', title: 'Şimdi Uygula 42', ans: 'Komşu açı grupları: AOB, COD, COE' },
+      { num: 43, type: 'uygula', title: 'Şimdi Uygula 43', ans: 'Tümler açılar (toplamı 90°): a. 45°, b. 15°, c. 10°, d. 52°, e. 28°, f. 84°, g. 18°, h. 31°' },
+      { num: 44, type: 'uygula', title: 'Şimdi Uygula 44', ans: '90° - 60° = 30°' },
+      { num: 45, type: 'uygula', title: 'Şimdi Uygula 45', ans: 'a. 50°, b. 25°, c. 32°' },
+      { num: 46, type: 'uygula', title: 'Şimdi Uygula 46', ans: 'Tümler açının ölçüsü = 60°' },
+      { num: 47, type: 'uygula', title: 'Şimdi Uygula 47', ans: 'Bilinmeyen açı = 18°' },
+      { num: 48, type: 'uygula', title: 'Şimdi Uygula 48', ans: 'Bütünler açılar (toplamı 180°): a. 120°, b. 80°, c. 40°, d. 160°, e. 132°, f. 65°, g. 70°, h. 165°' },
+      { num: 49, type: 'uygula', title: 'Şimdi Uygula 49', ans: 'a. 120°, b. 55°, c. 143°' },
+      { num: 50, type: 'uygula', title: 'Şimdi Uygula 50', ans: 'a. 20°, b. 160°' },
+      { num: 51, type: 'uygula', title: 'Şimdi Uygula 51', ans: 'a. 135°, b. 50°, c. 85°' },
+      { num: 52, type: 'uygula', title: 'Şimdi Uygula 52', ans: 'Bütünler açı toplamı = 180°' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 7: Çokgenler & Üçgen Çeşitleri (Şimdi Uygula 53-70)',
+    items: [
+      { num: 53, type: 'uygula', title: 'Şimdi Uygula 53', ans: 'a. ✔, b. ✘, c. ✘, d. ✔ (Çokgen olanlar)' },
+      { num: 54, type: 'uygula', title: 'Şimdi Uygula 54', ans: 'a. Köşe: 3, Kenar: 3, İç açı: 3; b. Köşe: 4, Kenar: 4, İç açı: 4; c. Köşe: 5, Kenar: 5, İç açı: 5; d. Köşe: 6, Kenar: 6, İç açı: 6' },
+      { num: 55, type: 'uygula', title: 'Şimdi Uygula 55', ans: 'Üçgen ve Dörtgen temel özellikleri' },
+      { num: 56, type: 'uygula', title: 'Şimdi Uygula 56', ans: 'a. mA = 60°, mC = 60°; b. |LM| + |MN| = 16 cm; c. mE + mF = 240°' },
+      { num: 57, type: 'uygula', title: 'Şimdi Uygula 57', ans: 'Eşkenar üçgenin çevre uzunluğu = 48 cm' },
+      { num: 58, type: 'uygula', title: 'Şimdi Uygula 58', ans: 'İkizkenar üçgen kenar hesabı = 24 cm' },
+      { num: 59, type: 'uygula', title: 'Şimdi Uygula 59', ans: 'a. 36 cm, b. 54 cm' },
+      { num: 60, type: 'uygula', title: 'Şimdi Uygula 60', ans: 'Açılarına göre üçgenler: a. Dik açılı üçgen, b. Dar açılı üçgen, c. Geniş açılı üçgen, d. Dar açılı üçgen, e. Dik açılı üçgen, f. Geniş açılı üçgen' },
+      { num: 61, type: 'uygula', title: 'Şimdi Uygula 61', ans: 'Kenarlarına göre üçgenler: a. İkizkenar üçgen, b. Eşkenar üçgen, c. Çeşitkenar üçgen, d. İkizkenar üçgen' },
+      { num: 62, type: 'uygula', title: 'Şimdi Uygula 62', ans: 'DAB üçgeni, AEB üçgeni, ABF üçgeni, ABE üçgeni, BAD üçgeni' },
+      { num: 63, type: 'uygula', title: 'Şimdi Uygula 63', ans: 'a. mA = 45°, mC = 45°; b. mE = 50°, mF = 65°; c. mM = 70°, |KL| = 7 cm; d. mR = 75°, mS = 75°' },
+      { num: 64, type: 'uygula', title: 'Şimdi Uygula 64', ans: 'Bilinmeyen açı = 70°' },
+      { num: 65, type: 'uygula', title: 'Şimdi Uygula 65', ans: 'Bilinmeyen açı = 80°' },
+      { num: 66, type: 'uygula', title: 'Şimdi Uygula 66', ans: 'Bilinmeyen açı = 28°' },
+      { num: 67, type: 'uygula', title: 'Şimdi Uygula 67', ans: 'Üçgen çevresi = 22 cm' },
+      { num: 68, type: 'uygula', title: 'Şimdi Uygula 68', ans: 'Eşleşen doğru parçaları: F-G, E-H, D-I' },
+      { num: 69, type: 'uygula', title: 'Şimdi Uygula 69', ans: 'Üçgen oluşturulabilecek durum sayısı = 5 adet' },
+      { num: 70, type: 'uygula', title: 'Şimdi Uygula 70', ans: 'a. İkizkenar üçgen, b. Çeşitkenar üçgen, c. Eşkenar üçgen, d. İkizkenar üçgen, e. Eşkenar üçgen, f. Çeşitkenar üçgen' }
+    ]
+  },
+  {
+    fasNo: 1,
+    topicId: 'top_mat_cilt3_fas_1',
+    name: '1. Fasikül - Açık Uçlu Etkinlik 8: Doğru Yorumla & Yaşama Uyarla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-05', ans: '01: 1.D | 02: 1.C | 03: 1.D | 04: 1.C | 05: 1.C' },
+      { num: 6, type: 'yorumla', title: 'Doğru Yorumla 06-10', ans: '06: 1.D | 07: 1.B | 08: 1.A | 09: 1.A | 10: 1.A' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01 (Soru 1-2)', ans: '1. a. Üçgen, Dörtgen, Altıgen; b. Köşegen; c. 45 cm; d. İki üçgen, iki dörtgen; e. 90°; f. 60° | 2. a. Doğru parçası; b. İpler paraleldir; c. 40°; d. 40°' },
+      { num: 2, type: 'yasama', title: 'Yaşama Uyarla 01 (Soru 3-4)', ans: '3. a. a = 90°, b = 60°, c = 45°; b. Çınar: 160 cm, Nil: 240 cm, Zehra: 480 cm | 4. a. Eşkenar üçgen; b. Çeşitkenar üçgen; c. 120 cm; d. 185 cm' }
+    ]
+  },
+
+  // =========================================================================
+  // FASİKÜL 2: SAYILAR VE İŞLEMLER (top_mat_cilt3_fas_2)
+  // =========================================================================
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 1: Doğal Sayıları Okuma, Yazma & Basamaklar (Şimdi Uygula 01-15)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'a. Yüzler, b. Yüz binler, c. Birler, d. Milyonlar, e. Milyarlar, f. Yüz milyonlar' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'Basamak değerleri: a. 2000, b. 600, c. 7 000 000, d. 400 000, e. 40 000 000, f. 8 000 000 000' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'Bölükler: a. Milyonlar bölüğü, b. Birler bölüğü, c. Milyonlar bölüğü, d. Binler bölüğü, e. Binler bölüğü, f. Milyarlar bölüğü' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'Okunuşlar: a. İki yüz dört bin yüz kırk sekiz; b. Dört milyon üç yüz bin sekiz yüz yirmi beş; c. Dört milyon dört yüz otuz dokuz; d. Yetmiş iki milyon yüz kırk dokuz bin beş yüz altmış; e. Üç yüz doksan iki milyon beş bin yedi; f. Kırk iki milyar yüz yirmi dokuz milyon yedi yüz bin üç yüz kırk bir' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'Rakamla yazılış: a. 910 687; b. 2 300 522; c. 30 004 955; d. 119 023 500; e. 4 017 105 205; f. 605 000 156 980' },
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'a. Sayı: 47 495 218; b. Sayı: 105 492 677; c. Sayı: 32 117 005 702; d. Sayı: 445 068 371 400' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'a. 325 062, b. 4 075 093, c. 20 300 604, d. 300 700 426' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'a. 6, b. 673, c. Birler bölüğü, d. 0, e. 70 000 000, f. 0, g. 90 000, h. 4' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'Çözümleme: a. 200 000 + 40 000 + 7000 + 90 + 3; b. 5 000 000 + 300 000 + 2000 + 600 + 60; c. 20 000 000 + 9 000 000 + 300 000 + 10 000 + 8000 + 2; d. 100 000 000 + 40 000 000 + 400 000 + 20 000 + 9000 + 300' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: 'Çözümlenmiş sayı: a. 760 429, b. 4 079 052, c. 20 608 040, d. 8 097 065, e. 30 905 067, f. 40 308 750' },
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'En büyük sayı: 6 209 584' },
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'Rakamları farklı 11 basamaklı sayı: 94 356 210 845' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: 'Yazılabilecek en büyük 8 basamaklı sayı: 98 764 321' },
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'Sıralama sembolleri: a. <, b. >, c. >, d. <, e. >, f. <' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'Yazılabilecek rakamlar: a. 0, 1, 2, 3, 4; b. 4, 5, 6, 7, 8, 9; c. 7, 8, 9; d. 0, 1, 2, 3; e. 0, 1, 2, 3, 4, 5, 6; f. 9' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 2: Karşılaştırma, Yuvarlama & Zaman Ölçüleri (Şimdi Uygula 16-32)',
+    items: [
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: 'Rakamlar: 6, 7, 8, 9' },
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: 'a. 10 234 567; b. 76 543 210; c. 76 543 201' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: 'Sayı: 836' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'Sayı: 12' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: 'Sayı: 9 810 432' },
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'a. HİPER: 101 220 621; ÜÇGEN: 2 648 617; YAPAY: 28 120 128; ZEKA: 296 141 | b. Sıralama: ZEKA < ÜÇGEN < YAPAY < HİPER | c. C | d. D' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'Onlar, Yüzler, Binler yuvarlama: a. 1440 / 1400 / 1000; b. 8480 / 8500 / 8000; c. 24400 / 24400 / 24000; d. 6300 / 6300 / 6000; e. 28430 / 28400 / 28000; f. 1990 / 2000 / 2000' },
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: 'Tahmini yuvarlama = 35 000' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'a. Onlar, b. Yüzler, c. Binler, d. Yüzler, e. Binler, f. Onlar' },
+      { num: 25, type: 'uygula', title: 'Şimdi Uygula 25', ans: 'Fark: 10' },
+      { num: 26, type: 'uygula', title: 'Şimdi Uygula 26', ans: 'Toplama işlemleri: a. 4617, b. 7578, c. 11 684, d. 13 663, e. 2826, f. 4183' },
+      { num: 27, type: 'uygula', title: 'Şimdi Uygula 27', ans: 'Çıkarma işlemleri: a. 3070, b. 3711, c. 3843, d. 2850, e. 3090, f. 4364' },
+      { num: 28, type: 'uygula', title: 'Şimdi Uygula 28', ans: 'İşlemler: a. 7101, b. 3618, c. 7060, d. 5187, e. 4401, f. 8822' },
+      { num: 29, type: 'uygula', title: 'Şimdi Uygula 29', ans: 'Verilmeyen rakamlar: a. ♦ = 7, ■ = 4; b. ♦ = 3, ■ = 5, ▲ = 9; c. ♦ = 5, ■ = 6; d. ♦ = 9, ■ = 3, ▲ = 3' },
+      { num: 30, type: 'uygula', title: 'Şimdi Uygula 30', ans: 'Zaman dönüşümleri: a. 120, b. 6, c. 2, d. 600, e. 96, f. 7, g. 180, h. 4, ı. 2' },
+      { num: 31, type: 'uygula', title: 'Şimdi Uygula 31', ans: 'a. 140, b. 41, c. 31, d. 62, e. 505, f. 60, g. 1 gün 20 sa, h. 2 gün 15 sa, i. 2 sa 6 dk' },
+      { num: 32, type: 'uygula', title: 'Şimdi Uygula 32', ans: 'a. 13 sa 36 dk 55 sn; b. 5 sa 13 dk 07 sn; c. 11 yıl 4 ay 20 gün; d. 1 yıl 4 ay 14 gün' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 3: Zihinden Toplama ve Çıkarma Stratejileri (Şimdi Uygula 33-43)',
+    items: [
+      { num: 33, type: 'uygula', title: 'Şimdi Uygula 33', ans: 'Onluk ve birlikleri ayırma: a. 30 + 30 = 60, 5 + 3 = 8 -> 68; b. 50 + 60 = 110, 2 + 4 = 6 -> 116; c. 70 + 50 = 120, 2 + 7 = 9 -> 129' },
+      { num: 34, type: 'uygula', title: 'Şimdi Uygula 34', ans: 'Üzerine onar sayarak ekleme: a. 45 + 10 = 55, 55 + 10 = 65, 65 + 10 = 75, 75 + 3 = 78; b. 101 + 2 = 103; c. 95 + 3 = 98' },
+      { num: 35, type: 'uygula', title: 'Şimdi Uygula 35', ans: 'Kolay toplanan sayılardan başlama: a. 22 + 50 = 72; b. 23 + 40 = 63; c. 32 + 70 = 102' },
+      { num: 36, type: 'uygula', title: 'Şimdi Uygula 36', ans: 'Sayıları parçalayarak ekleme: a. 60 + 18 = 78; b. 50 + 15 = 65; c. 41 + 30 = 71' },
+      { num: 37, type: 'uygula', title: 'Şimdi Uygula 37', ans: 'Zihinden çıkarma (onluk ve birlikleri ayırma): a. 70 - 40 = 30, 5 - 1 = 4 -> 34; b. 60 - 30 = 30, 8 - 5 = 3 -> 33; c. 80 - 20 = 60, 6 - 5 = 1 -> 61' },
+      { num: 38, type: 'uygula', title: 'Şimdi Uygula 38', ans: 'Onar onar eksiltme: a. 78 - 40 = 38, 38 - 4 = 34; b. 64 - 20 = 44, 44 - 7 = 37; c. 81 - 30 = 51, 51 - 5 = 46' },
+      { num: 39, type: 'uygula', title: 'Şimdi Uygula 39', ans: 'Zihinden yuvarlayarak tahmin: a. 30 + 30 = 60; b. 180 - 30 = 150; c. 100 + 300 = 400; d. 500 - 300 = 200; e. 2000 + 2000 = 4000; f. 5000 + 3000 = 8000' },
+      { num: 40, type: 'uygula', title: 'Şimdi Uygula 40', ans: 'a. 5340 km; b. 5340 km; c. 5300 km' },
+      { num: 41, type: 'uygula', title: 'Şimdi Uygula 41', ans: 'Tahmini maliyet = 56 600 TL' },
+      { num: 42, type: 'uygula', title: 'Şimdi Uygula 42', ans: 'Yazılabilecek rakamlar: 0, 1, 2, 3 ve 4' },
+      { num: 43, type: 'uygula', title: 'Şimdi Uygula 43', ans: 'Tahmini bütçe = 6000 TL' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 4: Çarpma İşlemi & Tahmin (Şimdi Uygula 44-53)',
+    items: [
+      { num: 44, type: 'uygula', title: 'Şimdi Uygula 44', ans: 'Çarpma işlemleri: a. 180, b. 528, c. 1400, d. 3050, e. 8670, f. 19 642' },
+      { num: 45, type: 'uygula', title: 'Şimdi Uygula 45', ans: 'Sonuç: 384' },
+      { num: 46, type: 'uygula', title: 'Şimdi Uygula 46', ans: 'Toplam hacim = 4500 litre' },
+      { num: 47, type: 'uygula', title: 'Şimdi Uygula 47', ans: 'Toplam ücret = 2605 TL' },
+      { num: 48, type: 'uygula', title: 'Şimdi Uygula 48', ans: 'Mesafe = 1430 km' },
+      { num: 49, type: 'uygula', title: 'Şimdi Uygula 49', ans: 'Kumaş uzunluğu = 990 cm' },
+      { num: 50, type: 'uygula', title: 'Şimdi Uygula 50', ans: 'Yol uzunluğu = 1820 m' },
+      { num: 51, type: 'uygula', title: 'Şimdi Uygula 51', ans: 'Ağırlık = 870 kg' },
+      { num: 52, type: 'uygula', title: 'Şimdi Uygula 52', ans: 'Kâr / Gelir = 810 TL' },
+      { num: 53, type: 'uygula', title: 'Şimdi Uygula 53', ans: 'Kalan para = 220 TL' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 5: Bölme İşlemi, Kalanı Yorumlama & Tahmin (Şimdi Uygula 54-67)',
+    items: [
+      { num: 54, type: 'uygula', title: 'Şimdi Uygula 54', ans: 'Bölme işlemleri (Bölüm ve Kalan): a. 152 : 5 -> Bölüm: 30, Kalan: 2; b. 478 : 4 -> Bölüm: 119, Kalan: 2; c. 387 : 9 -> Bölüm: 43, Kalan: 0; d. 732 : 12 -> Bölüm: 61, Kalan: 0; e. 1214 : 30 -> Bölüm: 40, Kalan: 14; f. 2745 : 45 -> Bölüm: 61, Kalan: 0' },
+      { num: 55, type: 'uygula', title: 'Şimdi Uygula 55', ans: 'Bölümler: a. 17, b. 28, c. 33' },
+      { num: 56, type: 'uygula', title: 'Şimdi Uygula 56', ans: 'Süre / Adet: 16' },
+      { num: 57, type: 'uygula', title: 'Şimdi Uygula 57', ans: 'Zaman: 30 gün' },
+      { num: 58, type: 'uygula', title: 'Şimdi Uygula 58', ans: 'Ölçü: 90 mm' },
+      { num: 59, type: 'uygula', title: 'Şimdi Uygula 59', ans: 'Sonuç: 32' },
+      { num: 60, type: 'uygula', title: 'Şimdi Uygula 60', ans: 'Sonuç: 91' },
+      { num: 61, type: 'uygula', title: 'Şimdi Uygula 61', ans: 'Koli / Kutu sayısı: 6 adet' },
+      { num: 62, type: 'uygula', title: 'Şimdi Uygula 62', ans: 'Verilmeyen rakamlar: a. ♦ = 4, ■ = 4; b. ♦ = 3, ■ = 4; c. ♦ = 2, ■ = 5, ▲ = 6; d. ♦ = 2, ■ = 4, ▲ = 8; e. ♦ = 5, ■ = 3, ▲ = 2; f. ♦ = 3, ■ = 3, ▲ = 8' },
+      { num: 63, type: 'uygula', title: 'Şimdi Uygula 63', ans: 'Gereken araç sayısı: 11 adet (Kalan yolcu için 1 araç daha gerekir)' },
+      { num: 64, type: 'uygula', title: 'Şimdi Uygula 64', ans: 'Paylaşım: 13' },
+      { num: 65, type: 'uygula', title: 'Şimdi Uygula 65', ans: 'Kutu sayısı: 36 kutu' },
+      { num: 66, type: 'uygula', title: 'Şimdi Uygula 66', ans: 'Kesir olarak kalan payı = 3 3/5 litre' },
+      { num: 67, type: 'uygula', title: 'Şimdi Uygula 67', ans: 'Zihinden 10, 100, 1000 ile çarpma: a. 240, b. 4200, c. 14100, d. 84000, e. 600, f. 8000, g. 7500, h. 20000, i. 2400' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 6: Zihinden Çarpma ve Bölme Stratejileri (Şimdi Uygula 68-83)',
+    items: [
+      { num: 68, type: 'uygula', title: 'Şimdi Uygula 68', ans: '5 ile pratik çarpma (10 ile çarpıp 2\'ye bölme): a. 240 : 2 = 120; b. 180 : 2 = 90; c. 340 : 2 = 170; d. 420 : 2 = 210; e. 160 : 2 = 80; f. 720 : 2 = 360' },
+      { num: 69, type: 'uygula', title: 'Şimdi Uygula 69', ans: '4 ve 8 ile pratik çarpma (İkişer kez 2 ile çarpma): a. 28 x 2 = 56; b. 44 x 2 = 88; c. 90 x 2 = 180; d. 50 x 2 = 100; e. 64 x 2 = 128 -> 256; f. 110 x 2 = 220 -> 440' },
+      { num: 70, type: 'uygula', title: 'Şimdi Uygula 70', ans: '9 ve 11 ile pratik çarpma: a. 120 - 12 = 108; b. 210 - 21 = 189; c. 350 - 35 = 315; d. 140 + 14 = 154; e. 240 + 24 = 264; f. 420 + 42 = 462' },
+      { num: 71, type: 'uygula', title: 'Şimdi Uygula 71', ans: 'Çarpanları ayırarak pratik çarpma: a. 280 + 28 = 308; b. 1600 : 4 = 400; c. 420 + 84 = 504; d. 4800 : 4 = 1200; e. 2200 : 4 = 550; f. 3200 : 4 = 800; g. 300 + 15 = 315; h. 240 + 48 = 288; ı. 550 + 110 = 660' },
+      { num: 72, type: 'uygula', title: 'Şimdi Uygula 72', ans: 'Zihinden 10, 100, 1000 ile bölme: a. 25, b. 27, c. 42, d. 12, e. 9, f. 70, g. 30, h. 400, i. 40' },
+      { num: 73, type: 'uygula', title: 'Şimdi Uygula 73', ans: '5 ile pratik bölme (2 ile çarpıp 10\'a bölme): a. 140 : 10 = 14; b. 240 : 10 = 24; c. 300 : 10 = 30; d. 130 : 10 = 13; e. 210 : 10 = 21; f. 250 : 10 = 25' },
+      { num: 74, type: 'uygula', title: 'Şimdi Uygula 74', ans: '4 ve 8 ile pratik bölme: a. 24 : 2 = 12; b. 48 : 2 = 24; c. 50 : 2 = 25; d. 44 : 2 = 22 -> 11; e. 56 : 2 = 28 -> 14; f. 84 : 2 = 42 -> 21' },
+      { num: 75, type: 'uygula', title: 'Şimdi Uygula 75', ans: '25 ile pratik bölme (4 ile çarpıp 100\'e bölme): a. 300 : 100 = 3; b. 900 : 100 = 9; c. 1200 : 100 = 12; d. 1800 : 100 = 18; e. 2000 : 100 = 20; f. 3000 : 100 = 30' },
+      { num: 76, type: 'uygula', title: 'Şimdi Uygula 76', ans: 'Yuvarlama ile çarpma tahmini: a. 600, b. 800, c. 4000, d. 5000, e. 24000, f. 40000' },
+      { num: 77, type: 'uygula', title: 'Şimdi Uygula 77', ans: 'Bölme tahmini: a. 8, b. 10, c. 10, d. 20, e. 10, f. 4' },
+      { num: 78, type: 'uygula', title: 'Şimdi Uygula 78', ans: 'Tahmini masraf = 32 000 TL' },
+      { num: 79, type: 'uygula', title: 'Şimdi Uygula 79', ans: 'Tahmini üretim = 2000 TL' },
+      { num: 80, type: 'uygula', title: 'Şimdi Uygula 80', ans: 'Tahmini sayı = 210' },
+      { num: 81, type: 'uygula', title: 'Şimdi Uygula 81', ans: 'Sonuç: 312' },
+      { num: 82, type: 'uygula', title: 'Şimdi Uygula 82', ans: 'Fiyat: 132 TL' },
+      { num: 83, type: 'uygula', title: 'Şimdi Uygula 83', ans: 'Süre: 23 saat' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 7: Dört İşlem Gerçek Yaşam Problemleri (Şimdi Uygula 84-107)',
+    items: [
+      { num: 84, type: 'uygula', title: 'Şimdi Uygula 84', ans: 'Ahmet = 360 TL, Erdem = 120 TL' },
+      { num: 85, type: 'uygula', title: 'Şimdi Uygula 85', ans: 'Sena = 36 adet, Musa = 9 adet' },
+      { num: 86, type: 'uygula', title: 'Şimdi Uygula 86', ans: 'Sonuç: 7' },
+      { num: 87, type: 'uygula', title: 'Şimdi Uygula 87', ans: 'Sonuç: 41' },
+      { num: 88, type: 'uygula', title: 'Şimdi Uygula 88', ans: 'Sonuç: 32' },
+      { num: 89, type: 'uygula', title: 'Şimdi Uygula 89', ans: 'Sonuç: 20' },
+      { num: 90, type: 'uygula', title: 'Şimdi Uygula 90', ans: 'Sonuç: 97' },
+      { num: 91, type: 'uygula', title: 'Şimdi Uygula 91', ans: 'Sonuç: 11' },
+      { num: 92, type: 'uygula', title: 'Şimdi Uygula 92', ans: 'Sonuç: 37' },
+      { num: 93, type: 'uygula', title: 'Şimdi Uygula 93', ans: 'Sonuç: 12' },
+      { num: 94, type: 'uygula', title: 'Şimdi Uygula 94', ans: 'Sonuç: 19' },
+      { num: 95, type: 'uygula', title: 'Şimdi Uygula 95', ans: 'Para: 120 TL' },
+      { num: 96, type: 'uygula', title: 'Şimdi Uygula 96', ans: 'Miktar: 23 adet' },
+      { num: 97, type: 'uygula', title: 'Şimdi Uygula 97', ans: 'Miktar: 23' },
+      { num: 98, type: 'uygula', title: 'Şimdi Uygula 98', ans: 'Adet: 25 adet' },
+      { num: 99, type: 'uygula', title: 'Şimdi Uygula 99', ans: 'Seçenek: D' },
+      { num: 100, type: 'uygula', title: 'Şimdi Uygula 100', ans: 'Miktar: 2000 TL' },
+      { num: 101, type: 'uygula', title: 'Şimdi Uygula 101', ans: 'Boy: 162 cm' },
+      { num: 102, type: 'uygula', title: 'Şimdi Uygula 102', ans: 'Ücret: 1200 TL' },
+      { num: 103, type: 'uygula', title: 'Şimdi Uygula 103', ans: 'Sayı: 14' },
+      { num: 104, type: 'uygula', title: 'Şimdi Uygula 104', ans: 'Sonuç: 46' },
+      { num: 105, type: 'uygula', title: 'Şimdi Uygula 105', ans: 'Sonuç: 155' },
+      { num: 106, type: 'uygula', title: 'Şimdi Uygula 106', ans: 'Mesafe: 30 cm' },
+      { num: 107, type: 'uygula', title: 'Şimdi Uygula 107', ans: 'Toplam: 3000 TL' }
+    ]
+  },
+  {
+    fasNo: 2,
+    topicId: 'top_mat_cilt3_fas_2',
+    name: '2. Fasikül - Açık Uçlu Etkinlik 8: Doğru Yorumla, Yaşama Uyarla & Birbirine Bağla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-09', ans: '01: C | 02: D | 03: B | 04: A | 05: B | 06: C | 07: B | 08: D | 09: C' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01', ans: '1. a. İki milyon yüz yirmi üç bin yedi yüz doksan altı; b. On dokuz milyon üç yüz beş bin dört yüz altmış dört; c. 2x1000 + 6x100 + 8x10 + 2x1; d. 1100 m; e. 1130 m > 1100 m | 2. 8 yıl 8 ay 2 gün | 3. 150 | 4. 4 saat | 5. a. 11 Temmuz Cuma 23.00; b. 7 saat' },
+      { num: 1, type: 'bagla', title: 'Birbirine Bağla 01', ans: 'a. 9, b. 21, c. 150, d. 25, e. 20, f. 364' },
+      { num: 2, type: 'bagla', title: 'Birbirine Bağla 02', ans: 'a. 2200, b. 44, c. 2400, d. 60, e. 34 x 2 = 68, f. 68 : 2 = 34, g. 52 x 2 = 104, h. 120 : 2 = 60 -> 30, ı. 60, i. 28, k. 105, l. 19, m. 450, n. 36, o. 30000, ö. 30' }
+    ]
+  },
+
+  // =========================================================================
+  // FASİKÜL 3: GEOMETRİK NİCELİKLER (top_mat_cilt3_fas_3)
+  // =========================================================================
+  {
+    fasNo: 3,
+    topicId: 'top_mat_cilt3_fas_3',
+    name: '3. Fasikül - Açık Uçlu Etkinlik 1: Dikdörtgenin Çevre Uzunluğu (Şimdi Uygula 01-16)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'Çevre hesapları: a. 2 x (5 + 3) = 16 cm; b. 2 x (8 + 4) = 24 cm; c. 2 x (10 + 6) = 32 cm; d. 2 x (12 + 7) = 38 cm' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'Karenin çevresi: a. 4 x 4 = 16 cm; b. 4 x 7 = 28 cm; c. 4 x 9 = 36 cm; d. 4 x 15 = 60 cm' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'Kareli zeminde çevre: a. 18 birim; b. 22 birim; c. 26 birim' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'Verilmeyen kenar: a. 30 - 2x8 = 14 -> 7 cm; b. 48 - 2x15 = 18 -> 9 cm; c. 60 - 2x20 = 20 -> 10 cm' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'Bileşik şeklin çevre uzunluğu = 42 cm' },
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'Çerçeve çevre uzunluğu = 64 cm' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'Bahçe etrafına 3 sıra tel: 3 x 84 = 252 m' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'Eş karelerden oluşan şeklin çevresi = 56 cm' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'Kesilen parçadan sonra çevre değişimi: Çevre 4 cm artar (Yeni çevre: 36 cm)' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: 'Çevre uzunluğu = 48 cm' },
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'Oluşan yeni şeklin çevresi = 50 cm' },
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'A ve B şekillerinin çevre farkı = 6 birim' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: 'Çevre uzunluğu = 72 cm' },
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'Koşu pistinde 5 tur: 5 x 120 = 600 m' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'Katlama sonucu oluşan şeklin çevresi = 34 cm' },
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: 'Özdeş kartların birleşimi ile oluşan şeklin çevresi = 68 cm' }
+    ]
+  },
+  {
+    fasNo: 3,
+    topicId: 'top_mat_cilt3_fas_3',
+    name: '3. Fasikül - Açık Uçlu Etkinlik 2: Dikdörtgenin Alanı (Şimdi Uygula 17-33)',
+    items: [
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: 'Birimkare alanı: a. 20 br²; b. 18 br²; c. 35 br²' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: 'Dikdörtgen alan hesabı: a. 4 x 7 = 28 cm²; b. 6 x 9 = 54 cm²; c. 8 x 12 = 96 cm²; d. 10 x 15 = 150 cm²' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'Kare alan hesabı: a. 5 x 5 = 25 cm²; b. 8 x 8 = 64 cm²; c. 11 x 11 = 121 cm²; d. 14 x 14 = 196 cm²' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: 'Alanı verilen dikdörtgenin diğer kenarı: a. 48 : 6 = 8 cm; b. 72 : 8 = 9 cm; c. 120 : 10 = 12 cm' },
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'Alanı verilen karenin bir kenarı: a. a² = 36 -> 6 cm; b. a² = 81 -> 9 cm; c. a² = 100 -> 10 cm' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'Bileşik şeklin alanı = 24 + 16 = 40 cm²' },
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: 'Boyalı bölgenin alanı = Büyük Alan - Küçük Alan = 96 - 24 = 72 cm²' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'Odanın taban alanı = 4 x 5 = 20 m²; Parke masrafı = 20 x 150 = 3000 TL' },
+      { num: 25, type: 'uygula', title: 'Şimdi Uygula 25', ans: 'Fayans sayısı = (240 x 300) : (20 x 20) = 180 adet' },
+      { num: 26, type: 'uygula', title: 'Şimdi Uygula 26', ans: 'Kareli zeminde tahmin edilen alan = 26 br²' },
+      { num: 27, type: 'uygula', title: 'Şimdi Uygula 27', ans: 'Kenarları iki katına çıkarılan dikdörtgenin alanı 4 katına çıkar (4 x 30 = 120 cm²)' },
+      { num: 28, type: 'uygula', title: 'Şimdi Uygula 28', ans: 'Tarla alanı = 45 x 60 = 2700 m²' },
+      { num: 29, type: 'uygula', title: 'Şimdi Uygula 29', ans: 'Masa örtüsünün sarkan kısımları hariç alanı = 180 x 90 = 16 200 cm²' },
+      { num: 30, type: 'uygula', title: 'Şimdi Uygula 30', ans: 'Bölünmüş bölgelerin alanları toplamı = 65 cm²' },
+      { num: 31, type: 'uygula', title: 'Şimdi Uygula 31', ans: 'Kalan kâğıdın alanı = 80 - 16 = 64 cm²' },
+      { num: 32, type: 'uygula', title: 'Şimdi Uygula 32', ans: 'Özdeş 6 dikdörtgenin toplam alanı = 6 x 15 = 90 cm²' },
+      { num: 33, type: 'uygula', title: 'Şimdi Uygula 33', ans: 'Fotoğraf çerçevesinde görünen resim alanı = 200 cm²' }
+    ]
+  },
+  {
+    fasNo: 3,
+    topicId: 'top_mat_cilt3_fas_3',
+    name: '3. Fasikül - Açık Uçlu Etkinlik 3: Alan - Çevre İlişkisi & Problemler (Şimdi Uygula 34-44)',
+    items: [
+      { num: 34, type: 'uygula', title: 'Şimdi Uygula 34', ans: 'a. Çevresi 20 cm olan dikdörtgenin kenar kombinasyonları: (1,9)->9 cm², (2,8)->16 cm², (3,7)->21 cm², (4,6)->24 cm², (5,5)->25 cm²; b. En büyük alan = 25 cm² (kare durumu)' },
+      { num: 35, type: 'uygula', title: 'Şimdi Uygula 35', ans: 'Alanı 24 cm² olan dikdörtgenlerin çevreleri: (1,24)->50 cm, (2,12)->28 cm, (3,8)->22 cm, (4,6)->20 cm; En küçük çevre = 20 cm' },
+      { num: 36, type: 'uygula', title: 'Şimdi Uygula 36', ans: 'Alanı eşit olan şekillerden kenarları birbirine en yakın olanın çevresi en küçüktür.' },
+      { num: 37, type: 'uygula', title: 'Şimdi Uygula 37', ans: 'Çevre ve alan karşılaştırması: Çevre = 28 cm, Alan = 48 cm²' },
+      { num: 38, type: 'uygula', title: 'Şimdi Uygula 38', ans: 'Kare şeklinde katlama: Çevre = 32 cm, Alan = 64 cm²' },
+      { num: 39, type: 'uygula', title: 'Şimdi Uygula 39', ans: '1. a. Çevre: 20 cm, b. Çevre: 22 cm, c. Çevre: 28 cm' },
+      { num: 40, type: 'uygula', title: 'Şimdi Uygula 40', ans: 'Bina taban alanı ve bahçe çevre hesabı: Alan = 360 m², Çevre = 86 m' },
+      { num: 41, type: 'uygula', title: 'Şimdi Uygula 41', ans: 'Kare fayans döşeme maliyeti = 4500 TL' },
+      { num: 42, type: 'uygula', title: 'Şimdi Uygula 42', ans: 'Yüzme havuzu etrafındaki yürüyüş yolunun alanı = 84 m²' },
+      { num: 43, type: 'uygula', title: 'Şimdi Uygula 43', ans: 'Duvardaki panolar arası boş alan = 3,5 m²' },
+      { num: 44, type: 'uygula', title: 'Şimdi Uygula 44', ans: 'Oluşturulan geometrik yapının toplam çevresi = 76 cm' }
+    ]
+  },
+  {
+    fasNo: 3,
+    topicId: 'top_mat_cilt3_fas_3',
+    name: '3. Fasikül - Açık Uçlu Etkinlik 4: Doğru Yorumla, Yaşama Uyarla & Birbirine Bağla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-07', ans: '01: 1.B | 02: 1.C | 03: 1.B | 04: 1.B | 05: 1.A | 06: 1.B | 07: 1.C' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01: TV Vitrin & Çerçeve Uygulaması', ans: '1. Kumandaların ön yüz çevresi = 26 cm | 2. Katlama mesafesi (?) = 11 cm | 3. TV vitrin alan ve çevre ilişkisi: Çevre = 280 cm, Vitrin Alanı = 7200 cm² | 4. Duvar saati çerçeve maliyet analizi' },
+      { num: 1, type: 'bagla', title: 'Birbirine Bağla 01', ans: 'Dikdörtgen çevre ve alan formülleri kavram haritası: Çevre = 2x(a+b), Alan = axb; Karenin Çevresi = 4xa, Alanı = axa eşleştirmeleri eksiksiz tamamlanır.' }
+    ]
+  },
+
+  // =========================================================================
+  // FASİKÜL 4: KESİRLER (top_mat_cilt3_fas_4)
+  // =========================================================================
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 1: Birim Kesirler & Sayı Doğrusu (Şimdi Uygula 01-10)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'Birim kesirler: 1/2, 1/4, 1/6, 1/8, 1/10 (Payı 1 olan kesirler)' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'Modelleme: Verilen şekillerin birim kesir karşılıkları (1/3, 1/5, 1/8, 1/12)' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'Sayı doğrusunda birim kesirleri gösterme: 0 ile 1 arası payda kadar eş parçaya bölünür, ilk nokta işaretlenir.' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'Birim kesirlerde sıralama (Paydası küçük olan daha büyüktür): 1/3 > 1/5 > 1/7 > 1/9' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'Pastanın en büyük dilimi: Paydası en küçük olan dilimdir (1/4 > 1/6 > 1/8)' },
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'Sayı doğrusunda A ve B birim kesirleri: A = 1/5, B = 1/8' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'Birim kesir adedi: 5/7 kesrinde 5 adet 1/7 birim kesri vardır.' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'Karşılaştırma sembolleri (<, >): 1/6 > 1/10, 1/15 < 1/12, 1/4 > 1/7' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'a. 1, 6; b. 1, 10; c. 1, 3; d. 1, 2' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: 'a. 6, b. 9, c. 12, d. 21' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 2: Kesir Türleri & Dönüşümler (Şimdi Uygula 11-22)',
+    items: [
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'Basit kesirler (Payı paydasından küçük): 2/5, 3/7, 8/9' },
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'Bileşik kesirler (Payı paydasına eşit veya büyük): 7/4, 9/9, 12/5' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: 'Tam sayılı kesirler: 1 2/3, 2 4/5, 3 1/2' },
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'Bileşik kesri tam sayılı kesre dönüştürme: a. 11/4 = 2 3/4; b. 17/5 = 3 2/5; c. 25/6 = 4 1/6; d. 38/7 = 5 3/7' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'Tam sayılı kesri bileşik kesre dönüştürme: a. 2 1/3 = 7/3; b. 3 2/5 = 17/5; c. 4 3/4 = 19/4; d. 5 1/6 = 31/6' },
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: 'Sayı doğrusunda bileşik ve tam sayılı kesirler: 2 1/3 kesri 2 ile 3 arasında 3 eş parçadan ilkidir.' },
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: 'Doğal sayı ile kesir karşılaştırma: 3 < 17/5 < 4' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: 'Verilmeyen terimler: a. A = 5, b. B = 3, c. C = 4' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'En küçük bileşik kesir ve en büyük basit kesir özellikleri' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: 'Eşitliklerde bilinmeyen kutular: a. 7, b. 15, c. 23' },
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'Sıralama: 1 1/2 < 1 3/4 < 2 1/4' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'Modellenen kesirlerin tam sayılı ve bileşik yazılışı' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 3: Denk Kesirler, Genişletme & Sadeleştirme (Şimdi Uygula 23-30)',
+    items: [
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: 'Genişletme (Pay ve paydayı aynı sayı ile çarpma): a. 2/3 (x3) = 6/9; b. 3/5 (x4) = 12/20; c. 5/8 (x2) = 10/16' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'Sadeleştirme (Pay ve paydayı aynı sayıya bölme): a. 8/12 (:4) = 2/3; b. 15/25 (:5) = 3/5; c. 24/36 (:12) = 2/3' },
+      { num: 25, type: 'uygula', title: 'Şimdi Uygula 25', ans: 'En sade hâl: a. 18/24 = 3/4; b. 30/45 = 2/3; c. 40/60 = 2/3' },
+      { num: 26, type: 'uygula', title: 'Şimdi Uygula 26', ans: 'Bilinmeyenleri bulma: a. 2/5 = x/20 -> x = 8; b. 3/4 = 18/y -> y = 24; c. a/7 = 15/35 -> a = 3' },
+      { num: 27, type: 'uygula', title: 'Şimdi Uygula 27', ans: 'Denk kesir çiftleri: 2/3 ile 8/12, 4/5 ile 16/20, 1/2 ile 9/18' },
+      { num: 28, type: 'uygula', title: 'Şimdi Uygula 28', ans: 'Modelleme ile denk kesir gösterme (Aynı alanı tarama)' },
+      { num: 29, type: 'uygula', title: 'Şimdi Uygula 29', ans: 'Sayı doğrusunda denk kesirlerin aynı noktaya karşılık gelmesi' },
+      { num: 30, type: 'uygula', title: 'Şimdi Uygula 30', ans: 'Problemde denk kesir kullanımı: 12/16 = 3/4 bardak un' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 4: Kesirlerin Ondalık Gösterimi (Şimdi Uygula 31-44)',
+    items: [
+      { num: 31, type: 'uygula', title: 'Şimdi Uygula 31', ans: 'Paydası 10, 100, 1000 olan kesirlerin ondalık yazılışı: a. 3/10 = 0,3; b. 7/100 = 0,07; c. 25/100 = 0,25; d. 125/1000 = 0,125' },
+      { num: 32, type: 'uygula', title: 'Şimdi Uygula 32', ans: 'Ondalık gösterimlerin okunuşu: a. 1,6: Bir tam onda altı; b. 0,45: Sıfır tam yüzde kırk beş; c. 2,08: İki tam yüzde sekiz; d. 5,125: Beş tam binde yüz yirmi beş' },
+      { num: 33, type: 'uygula', title: 'Şimdi Uygula 33', ans: 'Genişleterek ondalık yapma: a. 1/2 (x5) = 5/10 = 0,5; b. 3/4 (x25) = 75/100 = 0,75; c. 2/5 (x2) = 4/10 = 0,4; d. 7/20 (x5) = 35/100 = 0,35; e. 1/8 (x125) = 125/1000 = 0,125' },
+      { num: 34, type: 'uygula', title: 'Şimdi Uygula 34', ans: 'Basamak isimleri: Tam kısım (Birler, Onlar), Kesir kısmı (Onda birler, Yüzde birler, Binde birler)' },
+      { num: 35, type: 'uygula', title: 'Şimdi Uygula 35', ans: 'Basamak değerleri: 2,73 sayısında 2->2, 7->0,7, 3->0,03' },
+      { num: 36, type: 'uygula', title: 'Şimdi Uygula 36', ans: 'Çözümleme: 5,42 = 5 + 0,4 + 0,02' },
+      { num: 37, type: 'uygula', title: 'Şimdi Uygula 37', ans: 'I. 0,04, II. 2,5, III. 0,27, IV. 2,025' },
+      { num: 38, type: 'uygula', title: 'Şimdi Uygula 38', ans: 'Ondalık gösterimleri sıralama: 0,8 > 0,75 > 0,09' },
+      { num: 39, type: 'uygula', title: 'Şimdi Uygula 39', ans: 'Sayı doğrusunda ondalık gösterim: 1,4 sayısı 1 ile 2 arasında 4. bölmededir.' },
+      { num: 40, type: 'uygula', title: 'Şimdi Uygula 40', ans: 'Lira ve kuruş ilişkisi: 2 TL 75 kr = 2,75 TL' },
+      { num: 41, type: 'uygula', title: 'Şimdi Uygula 41', ans: 'Ondalık gösterimlerde toplama: 2,5 + 1,75 = 4,25' },
+      { num: 42, type: 'uygula', title: 'Şimdi Uygula 42', ans: 'Ondalık gösterimlerde çıkarma: 5,00 - 2,35 = 2,65' },
+      { num: 43, type: 'uygula', title: 'Şimdi Uygula 43', ans: 'Alışveriş para üstü hesabı: 50 - 32,80 = 17,20 TL' },
+      { num: 44, type: 'uygula', title: 'Şimdi Uygula 44', ans: 'Boy uzunlukları farkı: 1,62 - 1,48 = 0,14 m' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 5: Yüzdeler & Gösterim Dönüşümleri (Şimdi Uygula 45-53)',
+    items: [
+      { num: 45, type: 'uygula', title: 'Şimdi Uygula 45', ans: '% sembolü ile gösterme: a. 25/100 = %25; b. 60/100 = %60; c. 8/100 = %8; d. 100/100 = %100' },
+      { num: 46, type: 'uygula', title: 'Şimdi Uygula 46', ans: 'Paydası 100 olmayan kesirleri yüzdeye dönüştürme: a. 2/5 (x20) = %40; b. 3/4 (x25) = %75; c. 7/20 (x5) = %35; d. 9/10 (x10) = %90' },
+      { num: 47, type: 'uygula', title: 'Şimdi Uygula 47', ans: 'Yüzdeyi kesre ve en sade hâline dönüştürme: %20 = 20/100 = 1/5; %50 = 1/2; %75 = 3/4' },
+      { num: 48, type: 'uygula', title: 'Şimdi Uygula 48', ans: 'Ondalık gösterimden yüzdeye: 0,35 = %35; 0,08 = %8; 0,6 = %60; 1,25 = %125' },
+      { num: 49, type: 'uygula', title: 'Şimdi Uygula 49', ans: '100\'lük tabloda modelleme (Boyalı kare sayısı / 100)' },
+      { num: 50, type: 'uygula', title: 'Şimdi Uygula 50', ans: 'Karşılaştırma: %45 ile 0,4 karşılaştırması -> %45 > %40 (0,4)' },
+      { num: 51, type: 'uygula', title: 'Şimdi Uygula 51', ans: 'Küçükten büyüğe sıralama: 0,3 < %35 < 2/5 (%40) < 0,5' },
+      { num: 52, type: 'uygula', title: 'Şimdi Uygula 52', ans: 'İndirim oranı hesabı: 200 TL\'lik üründe 40 TL indirim -> %20 indirim' },
+      { num: 53, type: 'uygula', title: 'Şimdi Uygula 53', ans: 'Sınıf mevcudunda yüzdelik dağılım: 25 öğrenciden 15\'i kız ise %60 kız öğrencidir.' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 6: Kesirlerle Toplama ve Çıkarma İşlemleri (Şimdi Uygula 54-63)',
+    items: [
+      { num: 54, type: 'uygula', title: 'Şimdi Uygula 54', ans: 'Paydaları eşit kesirlerde toplama: a. 2/7 + 3/7 = 5/7; b. 4/9 + 3/9 = 7/9; c. 1/5 + 2/5 = 3/5' },
+      { num: 55, type: 'uygula', title: 'Şimdi Uygula 55', ans: 'Paydaları eşit kesirlerde çıkarma: a. 5/8 - 2/8 = 3/8; b. 7/10 - 3/10 = 4/10 = 2/5; c. 8/12 - 5/12 = 3/12 = 1/4' },
+      { num: 56, type: 'uygula', title: 'Şimdi Uygula 56', ans: 'Paydaları eşitleyerek toplama: a. 1/2 + 1/4 = 2/4 + 1/4 = 3/4; b. 2/3 + 1/6 = 4/6 + 1/6 = 5/6; c. 3/5 + 3/10 = 9/10' },
+      { num: 57, type: 'uygula', title: 'Şimdi Uygula 57', ans: 'Paydaları eşitleyerek çıkarma: a. 3/4 - 1/2 = 3/4 - 2/4 = 1/4; b. 5/6 - 1/3 = 5/6 - 2/6 = 3/6 = 1/2; c. 7/10 - 2/5 = 3/10' },
+      { num: 58, type: 'uygula', title: 'Şimdi Uygula 58', ans: 'Tam sayılı kesirlerde toplama: 1 1/3 + 2 1/3 = 3 2/3; 2 1/4 + 1 1/2 = 3 3/4' },
+      { num: 59, type: 'uygula', title: 'Şimdi Uygula 59', ans: 'Tam sayılı kesirlerde çıkarma: 3 4/5 - 1 2/5 = 2 2/5; 4 1/2 - 2 1/4 = 2 1/4' },
+      { num: 60, type: 'uygula', title: 'Şimdi Uygula 60', ans: 'Doğal sayı ile kesir toplama ve çıkarma: a. 2 + 3/4 = 2 3/4 = 11/4; b. 1 - 2/5 = 5/5 - 2/5 = 3/5; c. 3 - 1 1/4 = 1 3/4' },
+      { num: 61, type: 'uygula', title: 'Şimdi Uygula 61', ans: 'Bileşik kesre çevirerek çıkarma işlemleri' },
+      { num: 62, type: 'uygula', title: 'Şimdi Uygula 62', ans: 'Modelleme ile toplama ve çıkarma işlemlerini gösterme' },
+      { num: 63, type: 'uygula', title: 'Şimdi Uygula 63', ans: 'A ve B noktaları arası kesir mesafesi hesabı' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 7: Kesir, Ondalık ve Yüzde Problemleri (Şimdi Uygula 64-74)',
+    items: [
+      { num: 64, type: 'uygula', title: 'Şimdi Uygula 64', ans: 'Bir çokluğun kesir kadarını bulma: 60 cevizin 2/3\'ü = (60 : 3) x 2 = 40 ceviz' },
+      { num: 65, type: 'uygula', title: 'Şimdi Uygula 65', ans: 'Kesir kadarı verilen çokluğun tamamını bulma: 3/5\'i 24 olan sayının tamamı = (24 : 3) x 5 = 40' },
+      { num: 66, type: 'uygula', title: 'Şimdi Uygula 66', ans: 'Kitap okuma problemi: 120 sayfanın önce 1/4\'ü (30), sonra 2/5\'i (48) okundu. Kalan sayfa = 120 - 78 = 42 sayfa' },
+      { num: 67, type: 'uygula', title: 'Şimdi Uygula 67', ans: 'Para harcama problemi: 200 TL paranın 1/2\'si harcandı, kalanın 1/4\'ü ile defter alındı. Kalan para = 75 TL' },
+      { num: 68, type: 'uygula', title: 'Şimdi Uygula 68', ans: 'Kumaş kesim problemi: 12 metre kumaşın 3 1/4 metresi kullanıldı. Kalan kumaş = 8 3/4 m' },
+      { num: 69, type: 'uygula', title: 'Şimdi Uygula 69', ans: 'Su deposu problemi: 500 litrelik deponun %40\'ı dolu ise içinde 200 litre su vardır.' },
+      { num: 70, type: 'uygula', title: 'Şimdi Uygula 70', ans: 'Öğrenci dağılımı: Zeren, II, III ve IV' },
+      { num: 71, type: 'uygula', title: 'Şimdi Uygula 71', ans: 'Paylaşım oranları: Ömer 2, Melih 2, Erdem 1 dilim' },
+      { num: 72, type: 'uygula', title: 'Şimdi Uygula 72', ans: 'A -> Caner, B -> Emin, C -> Salih' },
+      { num: 73, type: 'uygula', title: 'Şimdi Uygula 73', ans: 'Tansel 1, Aysel 1, Cansel 2 pay' },
+      { num: 74, type: 'uygula', title: 'Şimdi Uygula 74', ans: 'Toplam ağırlık ve oran hesabı' }
+    ]
+  },
+  {
+    fasNo: 4,
+    topicId: 'top_mat_cilt3_fas_4',
+    name: '4. Fasikül - Açık Uçlu Etkinlik 8: Doğru Yorumla, Yaşama Uyarla & Birbirine Bağla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-10', ans: '01: 1.C | 02: 1.B | 03: 1.D | 04: 1.A | 05: 1.C | 06: 1.B | 07: 1.D | 08: 1.B | 09: 1.C | 10: 1.A' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01: Tarif & Alışveriş Hesabı', ans: '1. Pasta tarifi kesir oranları: Un 3/4 su bardağı, Şeker 1/2 su bardağı, Süt 1 1/4 su bardağı | 2. Market fişi ondalık toplam: 42,75 + 18,50 + 9,25 = 70,50 TL | 3. İndirimli ürün hesabı: %25 indirimle 120 TL\'lik ayakkabı 90 TL' },
+      { num: 1, type: 'bagla', title: 'Birbirine Bağla 01-04 (Kesir - Ondalık - Yüzde Tablosu)', ans: '1. e, 2. b, 3. g, 4. a, 5. c, 6. d | Dönüşüm Tablosu: Kesir: 2/5 -> Ondalık: 0,4 -> Yüzde: %40; Kesir: 3/4 -> Ondalık: 0,75 -> Yüzde: %75; Kesir: 1/8 -> Ondalık: 0,125 -> Yüzde: %12,5' }
+    ]
+  },
+
+  // =========================================================================
+  // FASİKÜL 5: İSTATİSTİKSEL ARAŞTIRMA SÜRECİ (top_mat_cilt3_fas_5)
+  // =========================================================================
+  {
+    fasNo: 5,
+    topicId: 'top_mat_cilt3_fas_5',
+    name: '5. Fasikül - Açık Uçlu Etkinlik 1: Araştırma Sorusu, Sıklık & Çetele Tablosu (Şimdi Uygula 01-11)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'Araştırma sorusu olanlar (Belirli bir gruba yönelik ve birden çok veri gerektiren): e. ✔, g. ✔, h. ✔; Olmayanlar: a. ✘, b. ✘, c. ✘, d. ✘, f. ✘, ı. ✘' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'Öğrenci cevabı: 5. sınıf öğrencilerinin en sevdikleri kitap türleri nelerdir?' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'a. Beklenmez, b. Verilerin zaman içinde değişebilirliği' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'Ayakkabı numarası çetele tablosu: 37 (///), 38 (////), 41 (////), 42 (//// //), 43 (///)' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'a. En sevilen spor dalı: Futbol, b. Basketbol seven sayısı: 5, c. Toplam öğrenci sayısı: 22' },
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'Yaş dağılımı tablosu: 9 yaş, 10 yaş, 11 yaş, 12 yaş sıklık ve çetele dağılımları' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'Ev-okul mesafesi dağılımı: 4 km, 5 km, 6 km, 7 km' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'Toplam harcama / gelir: 240 TL' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'Grafik: Daire Türlerinin Sayıca Dağılımı (1+1: 20 daire, 2+1: 16 daire, 3+1: 12 daire, 4+1: 4 daire)' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: 'Sıklık Tablosu (Futbol: 4, Tenis: 5, Basketbol: 2, Yüzme: 9) ve Sütun Grafiği' },
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'Çalışanların İçecek Tercihi Çetele Tablosu (Soda, Kahve, Çay, Süt)' }
+    ]
+  },
+  {
+    fasNo: 5,
+    topicId: 'top_mat_cilt3_fas_5',
+    name: '5. Fasikül - Açık Uçlu Etkinlik 2: Sütun Grafiği Çizimi & Yorumlama (Şimdi Uygula 12-20)',
+    items: [
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'a. En çok tercih edilen: Vanilyalı, b. Kakaolu dondurma: 8 adet, c. Toplam satış: 132 adet, d. Toplam gelir: 480 TL' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: 'Kitap sayısı = 15 adet' },
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'Toplam puan / veri = 196' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'En çok ziyaret edilen iller: Çanakkale ve Mardin' },
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: 'Meyve tüketim sıralaması: Portakal > Muz > Elma' },
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: 'Grafikten okunan değer = 12' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: 'Araba rengi dağılımı: Beyaz, Siyah, Gri sıklık ve sütun grafiği çizimi' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'a. En çok oynanan oyun: Saklambaç, b. En az oynanan: İstop, c. Toplam katılan öğrenci: 25' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: 'İfadelerin doğruluğu: a. D, b. Y, c. Y, d. Y' }
+    ]
+  },
+  {
+    fasNo: 5,
+    topicId: 'top_mat_cilt3_fas_5',
+    name: '5. Fasikül - Açık Uçlu Etkinlik 3: Tablo ve Grafiklerin Yanlış Yorumlanması (Şimdi Uygula 21-24)',
+    items: [
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'a. 25 kr ve 10 kr, b. 50 kr, c. 25 kr ve 10 kr, d. %25, e. 6 adet' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'a. Hasan, b. Can, c. Erkan, d. Hasan ve Tuba, e. Sude, Hasan, Can, Erkan, Tuba' },
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: 'Yanlış yorumlama nedeni: Daire dilimleri açılarıyla orantılı bölünmemiş, dilimler eşit aralıklı olmalıdır.' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'a. 116, 110\'un iki katı gibi çizilerek yanıltıcı gösterim yapılmış; b. Daireler özdeş değil ve alan oranları bozuk; c. Düşey eksen 0 yerine 20 ile başlatılmış ve aralıklar eşit ölçeklenmemiş.' }
+    ]
+  },
+  {
+    fasNo: 5,
+    topicId: 'top_mat_cilt3_fas_5',
+    name: '5. Fasikül - Açık Uçlu Etkinlik 4: Doğru Yorumla, Yaşama Uyarla & Birbirine Bağla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-04', ans: '01: 1.B | 02: 1.C | 03: 1.D | 04: 1.A' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01: Okul Temsilciliği Seçim Analizi', ans: '1. Adayların aldıkları oy sayıları sıklık tablosu: Ali: 120, Ayşe: 180, Mehmet: 90 | 2. Sütun grafiğinde eksen ölçeklendirmesi ve sütun genişliklerinin eşitliği | 3. Seçim sonucuna göre Ayşe oyların %46\'sını alarak temsilci seçilmiştir.' },
+      { num: 1, type: 'bagla', title: 'Birbirine Bağla 01 & 02', ans: 'Veri toplama, çetele tablosu, sıklık tablosu ve sütun grafiği oluşturma adımları kavram eşleştirmeleri tamamlanır; yanıltıcı grafik unsurları (ölçeksiz eksen, 0\'dan başlamayan grafik) tespit edilir.' }
+    ]
+  },
+
+  // =========================================================================
+  // FASİKÜL 6: İŞLEMLERLE CEBİRSEL DÜŞÜNME (top_mat_cilt3_fas_6)
+  // =========================================================================
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 1: Eşitliğin Korunumu & Denge Durumu (Şimdi Uygula 01-11)',
+    items: [
+      { num: 1, type: 'uygula', title: 'Şimdi Uygula 01', ans: 'Eşit kollu terazi dengede ise her iki kefedeki kütleler eşittir.' },
+      { num: 2, type: 'uygula', title: 'Şimdi Uygula 02', ans: 'Bilinmeyen kütle: a. 15 kg - 6 kg = 9 kg; b. 24 kg - 10 kg = 14 kg; c. 35 kg - 18 kg = 17 kg' },
+      { num: 3, type: 'uygula', title: 'Şimdi Uygula 03', ans: 'Eşitliğin her iki tarafına aynı sayı eklendiğinde denge bozulmaz (a + c = b + c)' },
+      { num: 4, type: 'uygula', title: 'Şimdi Uygula 04', ans: 'Denge durumundaki cisim: 2 adet üçgen = 12 kg ise 1 üçgen = 6 kg' },
+      { num: 5, type: 'uygula', title: 'Şimdi Uygula 05', ans: 'Kefelerden eşit kütle çıkarıldığında eşitlik korunur.' },
+      { num: 6, type: 'uygula', title: 'Şimdi Uygula 06', ans: 'Dengeyi sağlamak için sol kefeye 4 kg eklenmeli veya sağ kefeden 4 kg çıkarılmalıdır.' },
+      { num: 7, type: 'uygula', title: 'Şimdi Uygula 07', ans: 'Bilinmeyen sembolün değeri = 18' },
+      { num: 8, type: 'uygula', title: 'Şimdi Uygula 08', ans: 'Eşitlik ifadeleri: a. 12 + 8 = 15 + 5; b. 20 - 4 = 8 x 2; c. 30 : 5 = 12 - 6' },
+      { num: 9, type: 'uygula', title: 'Şimdi Uygula 09', ans: 'Kare yerine gelmesi gereken sayı = 7' },
+      { num: 10, type: 'uygula', title: 'Şimdi Uygula 10', ans: 'Üçgen yerine gelmesi gereken sayı = 14' },
+      { num: 11, type: 'uygula', title: 'Şimdi Uygula 11', ans: 'Denge terazisinde bilinmeyen cisim kütlesi = 25 kg' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 2: İşlem Özellikleri & Dağılma Özelliği (Şimdi Uygula 12-25)',
+    items: [
+      { num: 12, type: 'uygula', title: 'Şimdi Uygula 12', ans: 'Toplama ve çarpmada değişme özelliği: 24 + 16 = 16 + 24; 8 x 15 = 15 x 8' },
+      { num: 13, type: 'uygula', title: 'Şimdi Uygula 13', ans: 'Birleşme özelliği: (12 + 18) + 25 = 12 + (18 + 25) = 55; (4 x 5) x 6 = 4 x (5 x 6) = 120' },
+      { num: 14, type: 'uygula', title: 'Şimdi Uygula 14', ans: 'Birimküplerle modelleme: 3 x 4 x 2 = 24 birimküp' },
+      { num: 15, type: 'uygula', title: 'Şimdi Uygula 15', ans: 'Çarpmanın toplama üzerine dağılma özelliği: a x (b + c) = a x b + a x c' },
+      { num: 16, type: 'uygula', title: 'Şimdi Uygula 16', ans: 'Pano renklendirme alanı: 8 x (5 + 3) = 8 x 5 + 8 x 3 = 40 + 24 = 64' },
+      { num: 17, type: 'uygula', title: 'Şimdi Uygula 17', ans: 'Çarpmanın çıkarma üzerine dağılma özelliği: a x (b - c) = a x b - a x c' },
+      { num: 18, type: 'uygula', title: 'Şimdi Uygula 18', ans: 'Ortak çarpan parantezine alma: 14 x 7 + 14 x 3 = 14 x (7 + 3) = 14 x 10 = 140' },
+      { num: 19, type: 'uygula', title: 'Şimdi Uygula 19', ans: 'a. 3 x (3 + 2) = 3 x 3 + 3 x 2 = 15; b. 4 x (2 + 2) = 16; c. 3 x (5 + 2) = 3 x 5 + 3 x 2 = 21' },
+      { num: 20, type: 'uygula', title: 'Şimdi Uygula 20', ans: 'Dolap kapak alanı hesapları dağılma özelliği ile: Ezgi, Selma ve Aylin toplam alanı' },
+      { num: 21, type: 'uygula', title: 'Şimdi Uygula 21', ans: 'Çikolata alışverişi: 5 x (15 + 12) = 5 x 27 = 135 TL' },
+      { num: 22, type: 'uygula', title: 'Şimdi Uygula 22', ans: 'Zihinden çarpmada dağılma: 18 x 9 = 18 x (10 - 1) = 180 - 18 = 162' },
+      { num: 23, type: 'uygula', title: 'Şimdi Uygula 23', ans: '24 x 102 = 24 x (100 + 2) = 2400 + 48 = 2448' },
+      { num: 24, type: 'uygula', title: 'Şimdi Uygula 24', ans: 'Ortak çarpan tespiti: 35 x 12 - 35 x 2 = 35 x 10 = 350' },
+      { num: 25, type: 'uygula', title: 'Şimdi Uygula 25', ans: 'Bilinmeyen kutu değeri = 12' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 3: Bir Doğal Sayının Karesi ve Küpü (Şimdi Uygula 26-34)',
+    items: [
+      { num: 26, type: 'uygula', title: 'Şimdi Uygula 26', ans: 'Karesel gösterim (a² = a x a): 1²=1, 2²=4, 3²=9, 4²=16, 5²=25, 6²=36, 7²=49, 8²=64, 9²=81, 10²=100' },
+      { num: 27, type: 'uygula', title: 'Şimdi Uygula 27', ans: 'Küp gösterimi (a³ = a x a x a): 1³=1, 2³=8, 3³=27, 4³=64, 5³=125, 6³=216' },
+      { num: 28, type: 'uygula', title: 'Şimdi Uygula 28', ans: 'Kartlardaki üslü ifade: 5 adet 5 = 5⁵ veya 5² x 5³ bağıntıları' },
+      { num: 29, type: 'uygula', title: 'Şimdi Uygula 29', ans: 'Üslü ifadeleri karşılaştırma: 2³ (8) < 3² (9); 4² (16) > 2⁴ (16 değil, 2⁴=16); 5² (25) < 3³ (27)' },
+      { num: 30, type: 'uygula', title: 'Şimdi Uygula 30', ans: 'İşlemler: a. 3² + 4² = 9 + 16 = 25; b. 2³ + 5² = 8 + 25 = 33; c. 10² - 6² = 100 - 36 = 64' },
+      { num: 31, type: 'uygula', title: 'Şimdi Uygula 31', ans: 'Birimküplerle küp oluşturma: 3 x 3 x 3 = 27 birimküp' },
+      { num: 32, type: 'uygula', title: 'Şimdi Uygula 32', ans: 'Satranç tahtasındaki kare sayısı: 8² = 64 kare' },
+      { num: 33, type: 'uygula', title: 'Şimdi Uygula 33', ans: 'Bakteri çoğalması problemi: 2³ = 8, 2⁴ = 16 bakteri' },
+      { num: 34, type: 'uygula', title: 'Şimdi Uygula 34', ans: 'Karesi 49 olan sayı 7, küpü 64 olan sayı 4\'tür. Toplamı = 7 + 4 = 11' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 4: İşlem Önceliği & Parantez (Şimdi Uygula 35-43)',
+    items: [
+      { num: 35, type: 'uygula', title: 'Şimdi Uygula 35', ans: 'Parantez yerleştirme: a. (6 + 2) x 4 = 32; b. 20 : (5 - 3) = 10; c. 16 + 4 x (2 + 7) = 52; d. (32 - 18) : 2 + 7 = 14; e. (12 + 8) : 4 = 5 (veya [12+8]:2=5 düzeni); f. 30 - (11 - 4) x 3 = 9' },
+      { num: 36, type: 'uygula', title: 'Şimdi Uygula 36', ans: 'İşlem sembolleri yerleştirme: a. -, x; b. -, x; c. +, :' },
+      { num: 37, type: 'uygula', title: 'Şimdi Uygula 37', ans: 'Şeyma Hanım para hesabı: 800 - (350 + 200) = 250 TL' },
+      { num: 38, type: 'uygula', title: 'Şimdi Uygula 38', ans: 'İşlem önceliği adımları: 1. Parantez içi, 2. Üslü ifade, 3. Çarpma/Bölme, 4. Toplama/Çıkarma' },
+      { num: 39, type: 'uygula', title: 'Şimdi Uygula 39', ans: 'a. 12 + 4 x 3 = 12 + 12 = 24; b. 36 : 6 - 2 = 6 - 2 = 4; c. 5 x 2² - 8 = 5 x 4 - 8 = 20 - 8 = 12' },
+      { num: 40, type: 'uygula', title: 'Şimdi Uygula 40', ans: '24 : (3 + 5) x 2 = 24 : 8 x 2 = 3 x 2 = 6' },
+      { num: 41, type: 'uygula', title: 'Şimdi Uygula 41', ans: 'Verilmeyen işlem sembolü = x (çarpma)' },
+      { num: 42, type: 'uygula', title: 'Şimdi Uygula 42', ans: 'Hatalı çözümü düzeltme: Önce çarpma işlemi yapılmalıydı (İşlem sonucu: 34)' },
+      { num: 43, type: 'uygula', title: 'Şimdi Uygula 43', ans: 'Problem ifadesini matematiksel cümleye dönüştürme: (4 x 15) + (3 x 20) = 120 TL' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 5: Sayı ve Şekil Örüntüleri (Şimdi Uygula 44-51)',
+    items: [
+      { num: 44, type: 'uygula', title: 'Şimdi Uygula 44', ans: 'Kuralı belirleme: Adım sayısı ile artış miktarı çarpılır (+ / - sabit sayı); 1. adım: 4, 2. adım: 7, 3. adım: 10 -> Kural: 3n + 1' },
+      { num: 45, type: 'uygula', title: 'Şimdi Uygula 45', ans: 'Örüntünün 7. adımı: 3 x 7 + 1 = 22 kibrit çöpü' },
+      { num: 46, type: 'uygula', title: 'Şimdi Uygula 46', ans: 'Artış miktarı = 5; 10. adım = 5 x 10 - 2 = 48' },
+      { num: 47, type: 'uygula', title: 'Şimdi Uygula 47', ans: 'Eymen telefon şarj örüntüsü: %23 başlangıç, her 5 dakikada %4 artış; 30 dakika sonra: 23 + (6 x 4) = %47' },
+      { num: 48, type: 'uygula', title: 'Şimdi Uygula 48', ans: 'Verilmeyen terimleri bulma: a. 14, 19; b. 28, 35; c. 42, 50' },
+      { num: 49, type: 'uygula', title: 'Şimdi Uygula 49', ans: 'Örüntü kuralı: 4n - 1' },
+      { num: 50, type: 'uygula', title: 'Şimdi Uygula 50', ans: 'Kumbaraya para atma örüntüsü: 1. gün 10 TL, sonraki her gün 5 TL -> 20. gün sonunda biriken para = 105 TL' },
+      { num: 51, type: 'uygula', title: 'Şimdi Uygula 51', ans: 'Şekil örüntüsünde üçgen ve daire sayıları ilişkisi' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 6: Algoritma, Sözde Kod & Akış Şeması (Şimdi Uygula 52-63)',
+    items: [
+      { num: 52, type: 'uygula', title: 'Şimdi Uygula 52', ans: 'İki çift doğal sayının toplamı algoritması: 1. Başla, 2. Birinci sayıyı (A) gir, 3. İkinci sayıyı (B) gir, 4. Toplam = A + B, 5. Toplamı yaz, 6. Bitir' },
+      { num: 53, type: 'uygula', title: 'Şimdi Uygula 53', ans: 'a. 3. Satılan kahve sayısını gir; 5. Satılan kahve sayısını 60 ile çarp; 7. Sonucunu yaz | b. 9200 TL gelir elde edilir.' },
+      { num: 54, type: 'uygula', title: 'Şimdi Uygula 54', ans: 'Akış şeması sembolleri ve görevleri: Elips (Başla/Bitir), Paralelkenar (Veri Girişi), Dikdörtgen (İşlem/Hesaplama), Eşkenar Dörtgen (Karar/Koşul)' },
+      { num: 55, type: 'uygula', title: 'Şimdi Uygula 55', ans: 'Sözde kod adımları: Sayı > 50 ise "Geçti", değilse "Kaldı" yaz' },
+      { num: 56, type: 'uygula', title: 'Şimdi Uygula 56', ans: 'Döngü ve karar adımı içeren akış şeması çözümlemesi' },
+      { num: 57, type: 'uygula', title: 'Şimdi Uygula 57', ans: 'Girilen sayı tek ise 3 ile çarp, çift ise 2\'ye böl algoritma sonucu = 24' },
+      { num: 58, type: 'uygula', title: 'Şimdi Uygula 58', ans: 'Akış şemasında adım adım değişken takibi tablosu (İzleme cetveli)' },
+      { num: 59, type: 'uygula', title: 'Şimdi Uygula 59', ans: 'Hatalı algoritma adımını bulma ve düzeltme' },
+      { num: 60, type: 'uygula', title: 'Şimdi Uygula 60', ans: 'Günlük hayat algoritması: Çay demleme veya fidan dikme adımları sıralaması' },
+      { num: 61, type: 'uygula', title: 'Şimdi Uygula 61', ans: 'Olasılık kavramı: İmkânsız olay (%0 / 0), Kesin olay (%100 / 1), Olasılık değer aralığı: 0 ile 1 arasındadır.' },
+      { num: 62, type: 'uygula', title: 'Şimdi Uygula 62', ans: 'Olasılık spektrumu üzerinde olayların yerleşimi: Güneşin doğudan doğması (Kesin), Havaya atılan paranın dik gelmesi (Düşük ihtimal)' },
+      { num: 63, type: 'uygula', title: 'Şimdi Uygula 63', ans: '5A, 5B ve 5C sınıflarından rastgele seçilen öğrencinin kız olma olasılığı karşılaştırması' }
+    ]
+  },
+  {
+    fasNo: 6,
+    topicId: 'top_mat_cilt3_fas_6',
+    name: '6. Fasikül - Açık Uçlu Etkinlik 7: Doğru Yorumla, Yaşama Uyarla & Birbirine Bağla',
+    items: [
+      { num: 1, type: 'yorumla', title: 'Doğru Yorumla 01-09', ans: '01: 1.C | 02: 1.D | 03: 1.A | 04: 1.B | 05: 1.D | 06: 1.A | 07: 1.C | 08: 1.B | 09: 1.D' },
+      { num: 1, type: 'yasama', title: 'Yaşama Uyarla 01: Algoritma & Kodlama Uygulamaları', ans: '1. Robot süpürge navigasyon algoritması adımları | 2. ATM para çekme işlemi karar blokları ve şifre kontrol akış şeması | 3. Gerçek yaşamda işlem önceliği ve alışveriş sepeti hesaplamaları' },
+      { num: 1, type: 'bagla', title: 'Birbirine Bağla 01 & 06', ans: 'Eşitliğin korunumu, işlem özellikleri, işlem önceliği, örüntü kuralı ve algoritma kavram haritası bağlantıları eksiksiz tamamlanır.' }
+    ]
+  }
+];
+
+console.log('Total Open-Ended Tests Defined:', openEndedTests.length);
+
+let totalQuestions = 0;
+openEndedTests.forEach((t, i) => {
+  totalQuestions += t.items.length;
+  console.log(`Test ${i + 1} (${t.topicId}): ${t.name} -> ${t.items.length} questions`);
+});
+console.log('Total open-ended questions across all tests:', totalQuestions);
+
+fs.writeFileSync('scripts/mat_open_tests_structured.json', JSON.stringify(openEndedTests, null, 2), 'utf8');
+console.log('Saved scripts/mat_open_tests_structured.json');
