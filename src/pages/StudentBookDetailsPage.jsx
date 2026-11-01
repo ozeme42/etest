@@ -421,17 +421,24 @@ export default function StudentBookDetailsPage() {
 
     // Pre-filter submissions strictly for this book
     const bookSubs = (allStudentSubs || []).filter(s => {
-      const sBId = String(s.bookId || s.metadata?.bookId || '');
+      const meta = (s.answers && Array.isArray(s.answers)) ? s.answers.find(a => a?.type === 'metadata') : (s.metadata || {});
+      const sBId = String(s.bookId || s.book_id || meta?.bookId || '');
       const sBUuid = toUUID(sBId);
       if (sBId && sBId !== bId && (!sBUuid || sBUuid !== bUuid)) {
         return false;
       }
-      const sBTitle = normClean(s.bookTitle || s.metadata?.bookTitle || '');
+      const sBTitle = normClean(s.bookTitle || meta?.bookTitle || '');
       const normBookTitle = normClean(bTitle);
       if (sBTitle && normBookTitle && sBTitle.length >= 3 && normBookTitle.length >= 3) {
         if (!normBookTitle.includes(sBTitle) && !sBTitle.includes(normBookTitle)) {
           return false;
         }
+      }
+      // If submission explicitly belongs to a different subject, exclude it
+      const sSubj = normClean(s.subject || s.subjectName || meta?.subjectName || meta?.subject || '');
+      const isMatBook = normBookTitle.includes('matematik') || normBookTitle.includes('mat');
+      if (isMatBook && sSubj && sSubj.length >= 3 && !sSubj.includes('mat')) {
+        return false;
       }
       return true;
     });
@@ -525,29 +532,37 @@ export default function StudentBookDetailsPage() {
       // Order helper to preserve canonical book / JSON sequence
       const getTestOrderRank = (test, canonicalList = []) => {
         if (!test) return 999999;
-        if (typeof test.orderIndex === 'number') return test.orderIndex;
-        if (typeof test.order === 'number') return test.order;
         if (Array.isArray(canonicalList) && canonicalList.length > 0) {
           const tId = String(test.id || '');
-          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '');
+          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
           const tUuid = toUUID(tId);
           const tName = String(test.name || '').trim().toLowerCase();
           const foundIdx = canonicalList.findIndex(ct => {
             if (!ct) return false;
             const ctId = String(ct.id || '');
-            if (ctId === tId || (tClean && ctId === tClean) || (tUuid && ctId === tUuid)) return true;
+            const ctClean = ctId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+            if (ctId === tId || (tClean && (ctClean === tClean || ctId === tClean)) || (tUuid && ctId === tUuid)) return true;
             return Boolean(tName && String(ct.name || '').trim().toLowerCase() === tName);
           });
           if (foundIdx !== -1) return foundIdx;
         }
+        if (typeof test.orderIndex === 'number') return test.orderIndex;
+        if (typeof test.order === 'number') return test.order;
         return 999999;
       };
 
       const subjCanonicalTests = subject.tests || [];
       const subjTests = (allSubjectTests || [])
         .sort((a, b) => {
-          const rankA = getTestOrderRank(a, subjCanonicalTests);
-          const rankB = getTestOrderRank(b, subjCanonicalTests);
+          const topA = (subject.topics || []).find(tp => String(tp.id) === String(a.topicId || a.topic_id));
+          const topB = (subject.topics || []).find(tp => String(tp.id) === String(b.topicId || b.topic_id));
+          const topOrderA = topA?.order ?? 999;
+          const topOrderB = topB?.order ?? 999;
+          if (topOrderA !== topOrderB) return topOrderA - topOrderB;
+
+          const canonicalList = (topA?.tests && topA.tests.length > 0) ? topA.tests : subjCanonicalTests;
+          const rankA = getTestOrderRank(a, canonicalList);
+          const rankB = getTestOrderRank(b, canonicalList);
           if (rankA !== rankB) return rankA - rankB;
           return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
         });
@@ -698,7 +713,11 @@ export default function StudentBookDetailsPage() {
             const rankB = getTestOrderRank(b, topicCanonicalTests);
             if (rankA !== rankB) return rankA - rankB;
             return (a.name || '').localeCompare(b.name || '', 'tr', { numeric: true, sensitivity: 'base' });
-          });
+          })
+          .map((t, tIdx) => ({
+            ...t,
+            index: tIdx + 1
+          }));
         return {
           ...topic,
           tests: topicTests,

@@ -1466,8 +1466,8 @@ export function computeStudentAnalyticsData({
  */
 export function createCompositeTestKey(bookTitle, subjectName, unitName, testName) {
   const norm = (str) => String(str || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9ğüşıöç]/g, '')
+    .toLocaleLowerCase('tr')
+    .replace(/[^a-z0-9şğüçöı]/g, '')
     .trim();
 
   const b = norm(bookTitle);
@@ -1475,18 +1475,26 @@ export function createCompositeTestKey(bookTitle, subjectName, unitName, testNam
   const uMatch = String(unitName || '').match(/(\d+)/);
   const u = uMatch ? uMatch[1] : norm(unitName);
   
-  const t = String(testName || '').toLowerCase();
-  const numMatch = t.match(/\d+/g);
-  const num = numMatch ? numMatch[numMatch.length - 1] : '';
+  const t = String(testName || '').toLocaleLowerCase('tr');
   let cat = 'test';
+  let num = '';
+
   if (t.includes('ünite değerlendirme') || t.includes('ü. değ') || t.includes('ü.değ') || t.includes('ü değ') || t.includes('udeg') || t.includes('ünite deg')) {
     cat = 'udeg';
+  } else if (t.includes('kavramları kavra') || t.includes('kavramlari kavra') || t.includes('kavramı kavra')) {
+    cat = 'kavramlarikavra';
+  } else if (t.includes('öğrendiğini kanıtla') || t.includes('ogrendigini kanitla')) {
+    cat = 'ogrendiginikanitla';
+  } else if (t.includes('becerini sergile') || t.includes('becerisergile')) {
+    cat = 'becerinisergile';
   } else if (t.includes('kavratan')) {
     cat = 'kavratan';
   } else if (t.includes('bumerang')) {
     cat = 'bumerang';
   } else if (t.includes('beceri temelli') || t.includes('beceritemelli')) {
     cat = 'beceritemelli';
+  } else if (t.includes('açık uçlu') || t.includes('acik uclu')) {
+    cat = 'acikuclu';
   } else if (t.includes('etkinlik')) {
     cat = 'etkinlik';
   } else if (t.includes('yazılı') || t.includes('yazili')) {
@@ -1499,6 +1507,38 @@ export function createCompositeTestKey(bookTitle, subjectName, unitName, testNam
     cat = 'paragraf';
   } else if (t.includes('problem')) {
     cat = 'problem';
+  }
+
+  const catRegexMap = [
+    { cat: 'kavramlarikavra', re: /kavramlar[ıi]\s*kavra\s*0*(\d+)/i },
+    { cat: 'ogrendiginikanitla', re: /öğrendiğin[ıi]\s*kan[ıi]tla\s*0*(\d+)/i },
+    { cat: 'becerinisergile', re: /becerin[ıi]\s*sergile\s*0*(\d+)/i },
+    { cat: 'acikuclu', re: /(?:açık\s*uçlu\s*etkinlik|açık\s*uçlu)\s*0*(\d+)/i },
+    { cat: 'etkinlik', re: /etkinlik\s*0*(\d+)/i },
+    { cat: 'kavratan', re: /kavratan\s*(?:test)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'bumerang', re: /bumerang\s*(?:test)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'beceritemelli', re: /beceri\s*temelli\s*(?:test)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'yazili', re: /yazıl[ıi]\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'baglam', re: /bağlam\s*(?:temelli)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'yeninesil', re: /yeni\s*nesil\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'udeg', re: /(?:ü\.?\s*değ\.?|ünite\s*değerlendirme)\s*0*(\d+)/i },
+    { cat: 'paragraf', re: /paragraf\s*(?:test)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'problem', re: /problem\s*(?:test|sayfası)?\s*[-_]?\s*0*(\d+)/i },
+    { cat: 'test', re: /test\s*[-_]?\s*0*(\d+)/i }
+  ];
+
+  for (const item of catRegexMap) {
+    const m = t.match(item.re);
+    if (m && m[1]) {
+      num = String(Number(m[1]));
+      if (item.cat !== 'test') cat = item.cat;
+      break;
+    }
+  }
+
+  if (!num) {
+    const numMatch = t.match(/\d+/g);
+    num = numMatch ? String(Number(numMatch[numMatch.length - 1])) : '';
   }
 
   if (!b && !s) return '';
@@ -1565,14 +1605,14 @@ function getCachedBtLookupMap(bookTests) {
     const btId = String(bt.id || '');
     if (btId) {
       map.set(btId, bt);
-      const btClean = btId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-      if (btClean && btClean !== btId) map.set(btClean, bt);
+      const clean = btId.replace(/^q_/, '').replace(/^bt_/, '').replace(/^tbt_/, '');
+      if (clean && clean !== btId) map.set(clean, bt);
       const u = toUUID(btId);
       if (u) map.set(u, bt);
     }
   }
-  _btLookupCache = map;
   _btLookupSource = bookTests;
+  _btLookupCache = map;
   return map;
 }
 
@@ -1753,6 +1793,30 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
     return false; // Different unit/theme numbers (e.g. 1. Tema vs 2. Tema) can NEVER match!
   }
 
+  // STRICT CATEGORY ISOLATION (prevent Kavramları Kavra from matching Öğrendiğini Kanıtla or Açık Uçlu)
+  const getCategoryOf = (str) => {
+    const strLower = String(str || '').toLocaleLowerCase('tr');
+    if (strLower.includes('kavramları kavra') || strLower.includes('kavramlari kavra') || strLower.includes('kavramı kavra')) return 'kavramlarikavra';
+    if (strLower.includes('öğrendiğini kanıtla') || strLower.includes('ogrendigini kanitla')) return 'ogrendiginikanitla';
+    if (strLower.includes('becerini sergile') || strLower.includes('becerisergile')) return 'becerinisergile';
+    if (strLower.includes('açık uçlu') || strLower.includes('acik uclu')) return 'acikuclu';
+    if (strLower.includes('etkinlik')) return 'etkinlik';
+    if (strLower.includes('kavratan')) return 'kavratan';
+    if (strLower.includes('bumerang')) return 'bumerang';
+    if (strLower.includes('beceri temelli')) return 'beceritemelli';
+    if (strLower.includes('yazılı') || strLower.includes('yazili')) return 'yazili';
+    if (strLower.includes('bağlam') || strLower.includes('baglam')) return 'baglam';
+    if (strLower.includes('yeni nesil') || strLower.includes('yeninesil')) return 'yeninesil';
+    return null;
+  };
+
+  const tCatCheck = getCategoryOf(targetTest?.name || targetTest?.title || '');
+  const sCatCheck = getCategoryOf(s.title || s.testTitle || s.test_title || s.testName || '');
+  if (tCatCheck && sCatCheck && tCatCheck !== sCatCheck) {
+    return false; // Two different explicit categories can NEVER cross-match!
+  }
+
+
   // ⚡ FAST PATH: Direct ID Matching
   const isDirectIdMatch = specIds.some(spId => {
     if (!spId || spId === 'undefined' || spId === 'null') return false;
@@ -1809,6 +1873,12 @@ export function isSubmissionMatchingBookTest(s, targetTestOrId, bookTests = [], 
   if (!tName || tName.length < 2) return false;
 
   const rawSTitle = String(s.title || s.testTitle || s.test_title || s.metadata?.testTitle || s.testName || '').trim();
+  // If clean title matches exact clean target test name, match immediately (preserving unit safety)
+  if (cleanHelper(rawSTitle) === cleanHelper(tName)) {
+    if (tUnitNum && sUnitNum && tUnitNum !== sUnitNum) return false;
+    return true;
+  }
+
   let subStr = rawSTitle;
   if (subStr.includes('—')) subStr = subStr.split('—').slice(1).join('—').trim();
   if (subStr.includes('›') || subStr.includes('>')) subStr = subStr.split(/[›>]/).slice(1).join('›').trim();
