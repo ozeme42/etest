@@ -36,6 +36,21 @@ export function toUUID(id) {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
 }
 
+export function legacyHexUUID(id) {
+  if (!id) return '00000000-0000-4000-8000-000000000000';
+  const str = String(id);
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(str)) return str;
+  let hex = '';
+  for (let i = 0; i < Math.min(str.length, 16); i++) {
+    const h = str.charCodeAt(i).toString(16);
+    hex += (h.length === 1 ? '0' + h : h);
+  }
+  while (hex.length < 32) hex += '0';
+  hex = hex.substring(0, 32);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`.toLowerCase();
+}
+
 export function isValidUUID(str) {
   if (!str || typeof str !== 'string') return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
@@ -52,6 +67,10 @@ export function ensureUUIDs(ids = []) {
       const generated = toUUID(str);
       if (generated && isValidUUID(generated)) {
         result.add(generated.toLowerCase());
+      }
+      const legacyGen = legacyHexUUID(str);
+      if (legacyGen && isValidUUID(legacyGen)) {
+        result.add(legacyGen.toLowerCase());
       }
     }
   });

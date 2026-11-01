@@ -9,7 +9,7 @@ import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey, isExamBook } from '../utils/testResolver';
 import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
-import { toUUID } from '../services/supabaseService';
+import { toUUID, legacyHexUUID } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 import ManualTestModal from '../components/ManualTestModal';
@@ -328,9 +328,10 @@ export default function StudentBookDetailsPage() {
     });
 
     if (isEntireBookAssigned || isSelfAdded) {
+      const bLegUuid = legacyHexUUID(bookId);
       (bookTests || []).forEach(bt => {
         const btBId = String(bt.bookId || bt.book_id || '');
-        if (btBId === String(bookId) || (toUUID(btBId) && toUUID(btBId) === toUUID(bookId))) {
+        if (btBId === String(bookId) || (toUUID(btBId) && toUUID(btBId) === toUUID(bookId)) || (bLegUuid && btBId === bLegUuid)) {
           ids.add(String(bt.id));
           const cl = String(bt.id).replace(/^bt_/, '').replace(/^q_/, '');
           ids.add(cl);
@@ -380,9 +381,11 @@ export default function StudentBookDetailsPage() {
   const subjectProgress = useMemo(() => {
     if (!book) return [];
 
-    const rawSubjects = (book.subjects && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []);
+    const rawSubjects = ((book.subjects && book.subjects.length > 0) ? book.subjects : (book.raw_data?.subjects || []))
+      .filter(s => s && s.id !== '__book_meta__' && !s.__meta && (s.name || (s.topics && s.topics.length > 0)));
     const bId = String(book.id || '');
     const bUuid = String(toUUID(book.id) || '');
+    const bLegacyUuid = String(legacyHexUUID(book.id) || '');
     const bTitle = String(book.title || '').toLowerCase().trim();
     const studentIdStr = String(studentId || '');
     const studentUuidStr = String(toUUID(studentId) || '');
@@ -414,7 +417,10 @@ export default function StudentBookDetailsPage() {
 
     const testsInBook = (bookTests || []).filter(bt => {
       const btBId = String(bt.bookId || bt.book_id || '');
-      return btBId === bId || (bUuid && btBId === bUuid) || (toUUID(btBId) && toUUID(btBId) === bUuid);
+      return btBId === bId ||
+             (bUuid && btBId === bUuid) ||
+             (bLegacyUuid && btBId === bLegacyUuid) ||
+             (toUUID(btBId) && toUUID(btBId) === bUuid);
     });
 
     const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
