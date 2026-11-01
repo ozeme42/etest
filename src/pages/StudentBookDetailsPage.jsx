@@ -158,6 +158,7 @@ export default function StudentBookDetailsPage() {
           subject: subjectName || test.subjectName || (book?.subjects && book.subjects[0]?.name) || 'Genel',
           unitTopic: topicName || test.topicName || '',
           totalQuestions: test.questionCount || 20,
+          startQuestionNumber: test.startQuestionNumber || test.start_question_number || test.answerKey?.__meta?.startQuestionNumber || 1,
           correctCount: bestSub?.correctCount || 0,
           wrongCount: bestSub?.wrongCount || 0,
           emptyCount: bestSub?.blankCount ?? bestSub?.emptyCount ?? Math.max(0, (test.questionCount || 20) - ((bestSub?.correctCount || 0) + (bestSub?.wrongCount || 0))),

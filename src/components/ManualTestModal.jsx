@@ -184,6 +184,28 @@ export default function ManualTestModal({
     return false;
   }, [initialData, currentTestObj, selectedBook]);
 
+  // Detected start question number
+  const startQuestionNumber = useMemo(() => {
+    if (initialData?.startQuestionNumber && Number(initialData.startQuestionNumber) > 0) return Number(initialData.startQuestionNumber);
+    if (currentTestObj?.startQuestionNumber && Number(currentTestObj.startQuestionNumber) > 0) return Number(currentTestObj.startQuestionNumber);
+    if (currentTestObj?.start_question_number && Number(currentTestObj.start_question_number) > 0) return Number(currentTestObj.start_question_number);
+    if (testAnswerKey?.__meta?.startQuestionNumber && Number(testAnswerKey.__meta.startQuestionNumber) > 0) return Number(testAnswerKey.__meta.startQuestionNumber);
+    if (testAnswerKey && typeof testAnswerKey === 'object' && !Array.isArray(testAnswerKey)) {
+      const numericKeys = Object.keys(testAnswerKey).filter(k => k !== '__meta' && !isNaN(Number(k))).map(Number).sort((a,b)=>a-b);
+      if (numericKeys.length > 0 && numericKeys[0] > 1) return numericKeys[0];
+    }
+    const titleToScan = currentTestObj?.name || currentTestObj?.title || customTestName || initialData?.testName || '';
+    if (!/sayfa|sh\./i.test(titleToScan)) {
+      const m = titleToScan.match(/\((?:[^)]*?\s+)?0*(\d+)\s*[-–]\s*0*(\d+)\)/i) ||
+                titleToScan.match(/(?:soru(?:lar)?|uygula|etkinlik)\s*0*(\d+)\s*[-–]\s*0*(\d+)/i);
+      if (m) {
+        const sNum = parseInt(m[1], 10);
+        if (!isNaN(sNum) && sNum > 0) return sNum;
+      }
+    }
+    return 1;
+  }, [initialData, currentTestObj, testAnswerKey, customTestName]);
+
   // Check if there is a defined answer key
   const hasDefinedAnswerKey = useMemo(() => {
     if (!testAnswerKey) return false;
@@ -198,8 +220,11 @@ export default function ManualTestModal({
   // Retrieve correct answer key for a specific question number
   const getCorrectKeyForQ = (qNo) => {
     if (!testAnswerKey) return '';
+    const startQ = Number(startQuestionNumber) || 1;
+    const offsetIdx = qNo - startQ;
+
     if (Array.isArray(testAnswerKey)) {
-      return String(testAnswerKey[qNo - 1] ?? testAnswerKey[qNo] ?? '').trim();
+      return String(testAnswerKey[offsetIdx] ?? testAnswerKey[qNo - 1] ?? testAnswerKey[qNo] ?? '').trim();
     }
     if (typeof testAnswerKey === 'object') {
       if (testAnswerKey[qNo] !== undefined && testAnswerKey[qNo] !== null && testAnswerKey[qNo] !== '') {
@@ -207,6 +232,13 @@ export default function ManualTestModal({
       }
       if (testAnswerKey[String(qNo)] !== undefined && testAnswerKey[String(qNo)] !== null && testAnswerKey[String(qNo)] !== '') {
         return String(testAnswerKey[String(qNo)]).trim();
+      }
+      const oneBasedIdx = offsetIdx + 1;
+      if (testAnswerKey[oneBasedIdx] !== undefined && testAnswerKey[oneBasedIdx] !== null && testAnswerKey[oneBasedIdx] !== '') {
+        return String(testAnswerKey[oneBasedIdx]).trim();
+      }
+      if (testAnswerKey[String(oneBasedIdx)] !== undefined && testAnswerKey[String(oneBasedIdx)] !== null && testAnswerKey[String(oneBasedIdx)] !== '') {
+        return String(testAnswerKey[String(oneBasedIdx)]).trim();
       }
       if (testAnswerKey[qNo - 1] !== undefined && testAnswerKey[qNo - 1] !== null && testAnswerKey[qNo - 1] !== '') {
         return String(testAnswerKey[qNo - 1]).trim();
@@ -217,6 +249,7 @@ export default function ManualTestModal({
     }
     if (typeof testAnswerKey === 'string') {
       const clean = testAnswerKey.replace(/[^A-Ea-e]/g, '');
+      if (clean.length > offsetIdx && offsetIdx >= 0) return clean[offsetIdx];
       if (clean.length >= qNo) return clean[qNo - 1];
     }
     return '';
@@ -298,10 +331,12 @@ export default function ManualTestModal({
     let cor = 0;
     let wrg = 0;
     let emp = 0;
+    const startQ = Number(startQuestionNumber) || 1;
 
-    for (let i = 1; i <= totQ; i++) {
-      const rawUserAns = answersMap[i] ?? answersMap[String(i)] ?? '';
-      const rawCorrectKey = getCorrectKeyForQ(i);
+    for (let i = 0; i < totQ; i++) {
+      const qNum = startQ + i;
+      const rawUserAns = answersMap[qNum] ?? answersMap[String(qNum)] ?? answersMap[i + 1] ?? answersMap[String(i + 1)] ?? '';
+      const rawCorrectKey = getCorrectKeyForQ(qNum);
 
       if (rawUserAns === '' || rawUserAns === null || rawUserAns === undefined) {
         emp++;
@@ -380,6 +415,7 @@ export default function ManualTestModal({
       setQuestionAnswers(existingAnswers);
       setBulkInput('');
       setShowBulkInput(false);
+      setActiveOpenEndedQ(Number(startQuestionNumber) || 1);
 
       if (hasDefinedAnswerKey || (initialData?.answerKey && Object.keys(initialData.answerKey).length > 0)) {
         setEntryMode('by_question');
@@ -588,17 +624,20 @@ export default function ManualTestModal({
       const answersList = [];
       const isAutoEvaluated = Boolean(hasDefinedAnswerKey && entryMode === 'by_question');
 
+      const startQ = Number(startQuestionNumber) || 1;
+
       if (isAutoEvaluated) {
-        for (let i = 1; i <= totQ; i++) {
-          const uAns = questionAnswers[i] ?? questionAnswers[String(i)] ?? '';
-          const cKey = getCorrectKeyForQ(i);
+        for (let i = 0; i < totQ; i++) {
+          const qNum = startQ + i;
+          const uAns = questionAnswers[qNum] ?? questionAnswers[String(qNum)] ?? questionAnswers[i + 1] ?? questionAnswers[String(i + 1)] ?? '';
+          const cKey = getCorrectKeyForQ(qNum);
           const isCor = Boolean(uAns !== '' && cKey !== '' && compareOpenEndedAnswers(uAns, cKey) === true);
           const isWrg = Boolean(uAns !== '' && cKey !== '' && !isCor);
-          const reason = mistakeReasons[i] || null;
+          const reason = mistakeReasons[qNum] || mistakeReasons[i + 1] || null;
 
           answersList.push({
-            questionIndex: i,
-            questionNo: i,
+            questionIndex: qNum,
+            questionNo: qNum,
             userAnswer: uAns,
             correctAnswer: cKey,
             isCorrect: isCor,
@@ -608,7 +647,7 @@ export default function ManualTestModal({
           });
         }
       } else {
-        let qNum = 1;
+        let qNum = startQ;
         for (let i = 0; i < correctCount; i++) {
           answersList.push({
             questionIndex: qNum,
@@ -622,7 +661,7 @@ export default function ManualTestModal({
           qNum++;
         }
         for (let i = 0; i < wrongCount; i++) {
-          const reason = mistakeReasons[i + 1] || null;
+          const reason = mistakeReasons[qNum] || mistakeReasons[i + 1] || null;
           answersList.push({
             questionIndex: qNum,
             questionNo: qNum,
@@ -675,6 +714,7 @@ export default function ManualTestModal({
         testName: finalTestName,
         testTitle: finalTestName,
         compositeKey: finalCompKey,
+        startQuestionNumber: startQ,
         isAutoEvaluated: isAutoEvaluated,
         approvalStatus: approvalStatus,
         isApproved: isApproved
@@ -687,6 +727,7 @@ export default function ManualTestModal({
         testId: testId ? String(testId) : submissionId,
         bookTestId: testId ? String(testId) : null,
         realTestId: testId ? String(testId) : null,
+        startQuestionNumber: startQ,
         title: finalTestName,
         testTitle: finalTestName,
         bookTitle: finalBookTitle,
@@ -1311,7 +1352,7 @@ export default function ManualTestModal({
                         Sorular:
                       </span>
                       {Array.from({ length: totalQuestions }, (_, idx) => {
-                        const qNum = idx + 1;
+                        const qNum = (Number(startQuestionNumber) || 1) + idx;
                         const v = questionAnswers[qNum] ?? questionAnswers[String(qNum)] ?? '';
                         const cKey = getCorrectKeyForQ(qNum);
                         const match = v !== '' && cKey ? compareOpenEndedAnswers(v, cKey) : null;
@@ -1383,7 +1424,7 @@ export default function ManualTestModal({
                       background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#f8fafc'
                     }}>
                       {Array.from({ length: totalQuestions }, (_, idx) => {
-                        const qNo = idx + 1;
+                        const qNo = (Number(startQuestionNumber) || 1) + idx;
                         const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
                         const correctKey = getCorrectKeyForQ(qNo);
                         const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;
@@ -1694,7 +1735,7 @@ export default function ManualTestModal({
                     background: isDark ? 'rgba(15, 23, 42, 0.4)' : '#ffffff'
                   }}>
                     {Array.from({ length: totalQuestions }, (_, idx) => {
-                      const qNo = idx + 1;
+                      const qNo = (Number(startQuestionNumber) || 1) + idx;
                       const val = questionAnswers[qNo] ?? questionAnswers[String(qNo)] ?? '';
                       const correctKey = getCorrectKeyForQ(qNo);
                       const hasKey = correctKey !== '' && correctKey !== null && correctKey !== undefined;

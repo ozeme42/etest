@@ -685,6 +685,20 @@ export default function TrackedBookQuizRunner() {
     }
   }
 
+  if (startQuestionNumber === 1) {
+    const titleToScan = String(resolvedTest?.name || resolvedTest?.title || '').trim();
+    if (!/sayfa|sh\./i.test(titleToScan)) {
+      const rm = titleToScan.match(/\((?:[^)]*?\s+)?0*(\d+)\s*[-–]\s*0*(\d+)\)/i) ||
+                 titleToScan.match(/(?:soru(?:lar)?|uygula|etkinlik)\s*0*(\d+)\s*[-–]\s*0*(\d+)/i);
+      if (rm) {
+        const sNum = parseInt(rm[1], 10);
+        if (!isNaN(sNum) && sNum > 1) {
+          startQuestionNumber = sNum;
+        }
+      }
+    }
+  }
+
   const isExplicitMC = Boolean(
     resolvedTest?.isOpenEnded === false ||
     resolvedTest?.is_open_ended === false ||

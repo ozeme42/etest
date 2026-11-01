@@ -482,30 +482,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   const [viewMode, setViewMode] = useState('auto'); // 'auto' | 'optical' | 'text'
 
   const startQuestionNumber = useMemo(() => {
-    // 1. If answers have questionNo (e.g. 82), that is the exact lowest question number
-    const ansQNos = answers.map(a => Number(a?.questionNo || a?.questionIndex)).filter(n => !isNaN(n) && n > 0);
-    if (ansQNos.length > 0) {
-      return Math.min(...ansQNos);
-    }
-
-    // 2. Scan title range (e.g. Soru 82-90)
-    const titlesToScan = [
-      resolvedMeta.testName,
-      test?.name,
-      test?.title,
-      submission?.testName,
-      submission?.title,
-      metaAnswer?.testName
-    ].filter(Boolean).join(' ');
-
-    const match = titlesToScan.match(/(?:soru(?:lar)?\s*)?(\d+)\s*[-–]\s*(\d+)/i);
-    if (match) {
-      const startNum = parseInt(match[1], 10);
-      if (!isNaN(startNum) && startNum > 0) {
-        return startNum;
-      }
-    }
-
+    // 1. Direct explicit start question property
     if (test?.startQuestionNumber && Number(test.startQuestionNumber) > 0) return Number(test.startQuestionNumber);
     if (test?.startQuestion && Number(test.startQuestion) > 0) return Number(test.startQuestion);
     if (test?.start_question_number && Number(test.start_question_number) > 0) return Number(test.start_question_number);
@@ -515,8 +492,54 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
     if (submission?.startQuestionNumber && Number(submission.startQuestionNumber) > 0) return Number(submission.startQuestionNumber);
     if (metaAnswer?.startQuestionNumber && Number(metaAnswer.startQuestionNumber) > 0) return Number(metaAnswer.startQuestionNumber);
 
+    const rawAk = submission?.answerKey || test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey;
+    if (rawAk?.__meta?.startQuestionNumber && Number(rawAk.__meta.startQuestionNumber) > 0) {
+      return Number(rawAk.__meta.startQuestionNumber);
+    }
+    if (test?.answerKey?.__meta?.startQuestionNumber && Number(test.answerKey.__meta.startQuestionNumber) > 0) {
+      return Number(test.answerKey.__meta.startQuestionNumber);
+    }
+    if (test?.answer_key?.__meta?.startQuestionNumber && Number(test.answer_key.__meta.startQuestionNumber) > 0) {
+      return Number(test.answer_key.__meta.startQuestionNumber);
+    }
+
+    // 2. Scan title range (e.g. Soru 82-90, Şimdi Uygula 06-13), strictly avoiding page ranges (sayfa/sh.)
+    const titlesToScan = [
+      resolvedMeta.testName,
+      test?.name,
+      test?.title,
+      submission?.testName,
+      submission?.title,
+      metaAnswer?.testName
+    ].filter(Boolean).join(' ');
+
+    if (!/sayfa|sh\./i.test(titlesToScan)) {
+      const match = titlesToScan.match(/\((?:[^)]*?\s+)?0*(\d+)\s*[-–]\s*0*(\d+)\)/i) ||
+                    titlesToScan.match(/(?:soru(?:lar)?|uygula|etkinlik)\s*0*(\d+)\s*[-–]\s*0*(\d+)/i);
+      if (match) {
+        const startNum = parseInt(match[1], 10);
+        if (!isNaN(startNum) && startNum > 0) {
+          return startNum;
+        }
+      }
+    }
+
+    // 3. Numeric keys in answer_key if it has higher question numbers
+    if (rawAk && typeof rawAk === 'object' && !Array.isArray(rawAk)) {
+      const numKeys = Object.keys(rawAk).filter(k => k !== '__meta' && !isNaN(Number(k))).map(Number).sort((a,b)=>a-b);
+      if (numKeys.length > 0 && numKeys[0] > 1) {
+        return numKeys[0];
+      }
+    }
+
+    // 4. If answers have questionNo (e.g. 82), that is the lowest question number
+    const ansQNos = answers.map(a => Number(a?.questionNo || a?.questionIndex)).filter(n => !isNaN(n) && n > 0);
+    if (ansQNos.length > 0 && Math.min(...ansQNos) > 1) {
+      return Math.min(...ansQNos);
+    }
+
     return 1;
-  }, [answers, resolvedMeta.testName, test, matchedBt, submission, metaAnswer]);
+  }, [answers, resolvedMeta.testName, test, matchedBt, submission, metaAnswer, resolvedBook]);
 
   const isEntireTestOpenEnded = useMemo(() => {
     if (viewMode === 'text') return true;
@@ -540,7 +563,13 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
   }, [test, submission, answers, viewMode]);
 
   const questionNumbers = useMemo(() => {
-    // 1. If answers explicitly contain question numbers, use them directly!
+    // 1. If startQuestionNumber > 1, generate sequential numbers starting at startQuestionNumber
+    if (startQuestionNumber > 1) {
+      const count = qCount || (answers.length > 0 ? answers.length : 1);
+      return Array.from({ length: count }, (_, i) => startQuestionNumber + i);
+    }
+
+    // 2. If answers explicitly contain question numbers, use them directly
     const ansQNos = answers
       .map(a => Number(a?.questionNo || a?.questionIndex))
       .filter(n => !isNaN(n) && n > 0);
@@ -549,7 +578,7 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       return uniqueAnsQNos;
     }
 
-    // 2. Scan title range (e.g. Soru 82-90 -> [82, 83, 84, 85, 86, 87, 88, 89, 90])
+    // 3. Scan title range (e.g. Soru 82-90 -> [82, 83, 84, 85, 86, 87, 88, 89, 90])
     const titlesToScan = [
       resolvedMeta.testName,
       test?.name,
@@ -557,16 +586,19 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       submission?.testName,
       submission?.title
     ].filter(Boolean).join(' ');
-    const rangeMatch = titlesToScan.match(/(?:soru(?:lar)?\s*)?(\d+)\s*[-–]\s*(\d+)/i);
-    if (rangeMatch) {
-      const s = parseInt(rangeMatch[1], 10);
-      const e = parseInt(rangeMatch[2], 10);
-      if (!isNaN(s) && !isNaN(e) && e >= s && (e - s + 1) <= 100) {
-        return Array.from({ length: e - s + 1 }, (_, i) => s + i);
+    if (!/sayfa|sh\./i.test(titlesToScan)) {
+      const rangeMatch = titlesToScan.match(/\((?:[^)]*?\s+)?0*(\d+)\s*[-–]\s*0*(\d+)\)/i) ||
+                         titlesToScan.match(/(?:soru(?:lar)?|uygula|etkinlik)\s*0*(\d+)\s*[-–]\s*0*(\d+)/i);
+      if (rangeMatch) {
+        const s = parseInt(rangeMatch[1], 10);
+        const e = parseInt(rangeMatch[2], 10);
+        if (!isNaN(s) && !isNaN(e) && e >= s && (e - s + 1) <= 100) {
+          return Array.from({ length: e - s + 1 }, (_, i) => s + i);
+        }
       }
     }
 
-    return Array.from({ length: qCount }, (_, i) => startQuestionNumber + i);
+    return Array.from({ length: qCount || 1 }, (_, i) => 1 + i);
   }, [answers, qCount, resolvedMeta.testName, test, submission, startQuestionNumber]);
 
   const questionColumns = useMemo(() => {
@@ -1594,10 +1626,10 @@ export default function PhysicalQuizReview({ submission, test, questions = [], o
       {/* ── AI QUESTION SOLVER & SCREEN SNIPPER MODAL ── */}
       {aiModalQuestionNo && (() => {
         const targetQNo = aiModalQuestionNo;
-        const targetQIdx = targetQNo - 1;
+        const targetQIdx = targetQNo - (startQuestionNumber || 1);
         const targetQObj = questions[targetQIdx] || {};
         const targetAnsObj = answers.find(a => (a.questionNo === targetQNo || String(a.questionNo) === String(targetQNo) || a.questionId === targetQObj.id)) || answers[targetQIdx] || {};
-        const rawUserAns = targetAnsObj.userAnswer ?? submission?.studentAnswersMap?.[targetQNo] ?? submission?.studentAnswers?.[targetQNo] ?? null;
+        const rawUserAns = targetAnsObj.userAnswer ?? targetAnsObj.userAnswerText ?? submission?.studentAnswersMap?.[targetQNo] ?? submission?.studentAnswers?.[targetQNo] ?? null;
         const userAnsLetter = (rawUserAns !== null && rawUserAns !== undefined && rawUserAns !== '') ? (typeof rawUserAns === 'string' ? rawUserAns.toUpperCase() : String.fromCharCode(65 + rawUserAns)) : '';
         const rawAk = submission?.answerKey || test?.answer_key || test?.answerKey || resolvedBook?.answer_key || resolvedBook?.answerKey || {};
         const rawKeyVal = targetAnsObj.correctAnswer ?? targetAnsObj.correctAnswerLetter ?? targetQObj.correctAnswer ?? targetQObj.correctAnswerLetter ?? (Array.isArray(rawAk) ? rawAk[targetQIdx] : (rawAk[targetQNo] || rawAk[String(targetQNo)] || rawAk[targetQIdx]));
