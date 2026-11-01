@@ -1,0 +1,1805 @@
+[
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 01",
+    "raw": "1.C 2.D 3.B 4.D 5.B 6.A 7.C 8.B 9.C 10.C 11.A 12.B",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "B",
+      "6": "A",
+      "7": "C",
+      "8": "B",
+      "9": "C",
+      "10": "C",
+      "11": "A",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 02",
+    "raw": "1.D 2.C 3.C 4.B 5.C 6.D 7.D 8.C 9.A 10.D 11.C 12.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "C",
+      "4": "B",
+      "5": "C",
+      "6": "D",
+      "7": "D",
+      "8": "C",
+      "9": "A",
+      "10": "D",
+      "11": "C",
+      "12": "A"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 03",
+    "raw": "1.C 2.A 3.B 4.D 5.C 6.C 7.D 8.A 9.C 10.C 11.D 12.C",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "B",
+      "4": "D",
+      "5": "C",
+      "6": "C",
+      "7": "D",
+      "8": "A",
+      "9": "C",
+      "10": "C",
+      "11": "D",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 04",
+    "raw": "1.D 2.B 3.C 4.B 5.C 6.B 7.A 8.B 9.C 10.C 11.C 12.B",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "C",
+      "4": "B",
+      "5": "C",
+      "6": "B",
+      "7": "A",
+      "8": "B",
+      "9": "C",
+      "10": "C",
+      "11": "C",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 05",
+    "raw": "1.D 2.C 3.B 4.A 5.C 6.B 7.A 8.D 9.D 10.C 11.C 12.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "A",
+      "5": "C",
+      "6": "B",
+      "7": "A",
+      "8": "D",
+      "9": "D",
+      "10": "C",
+      "11": "C",
+      "12": "A"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 06",
+    "raw": "1.C 2.C 3.A 4.B 5.D 6.D 7.C 8.C 9.B 10.C 11.A 12.C",
+    "answerKey": {
+      "1": "C",
+      "2": "C",
+      "3": "A",
+      "4": "B",
+      "5": "D",
+      "6": "D",
+      "7": "C",
+      "8": "C",
+      "9": "B",
+      "10": "C",
+      "11": "A",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Kavramları Kavra 07",
+    "raw": "1.A 2.B 3.D 4.C 5.A 6.D 7.B 8.C 9.B 10.A 11.B",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "D",
+      "4": "C",
+      "5": "A",
+      "6": "D",
+      "7": "B",
+      "8": "C",
+      "9": "B",
+      "10": "A",
+      "11": "B"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.D 2.B 3.D 4.B 5.D 6.C 7.C 8.D 9.B 10.A 11.A 12.D",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "D",
+      "4": "B",
+      "5": "D",
+      "6": "C",
+      "7": "C",
+      "8": "D",
+      "9": "B",
+      "10": "A",
+      "11": "A",
+      "12": "D"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.D 2.C 3.D 4.D 5.C 6.A 7.B 8.A 9.D 10.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "D",
+      "4": "D",
+      "5": "C",
+      "6": "A",
+      "7": "B",
+      "8": "A",
+      "9": "D",
+      "10": "A"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 03",
+    "raw": "1.D 2.C 3.C 4.B 5.A 6.A 7.C 8.D 9.B 10.C 11.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "C",
+      "4": "B",
+      "5": "A",
+      "6": "A",
+      "7": "C",
+      "8": "D",
+      "9": "B",
+      "10": "C",
+      "11": "A"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 04",
+    "raw": "1.D 2.A 3.A 4.A 5.B 6.A 7.B 8.D 9.C",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "A",
+      "4": "A",
+      "5": "B",
+      "6": "A",
+      "7": "B",
+      "8": "D",
+      "9": "C"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 05",
+    "raw": "1.D 2.A 3.C 4.D 5.A 6.B 7.D 8.B 9.B 10.D",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "C",
+      "4": "D",
+      "5": "A",
+      "6": "B",
+      "7": "D",
+      "8": "B",
+      "9": "B",
+      "10": "D"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 06",
+    "raw": "1.C 2.A 3.A 4.C 5.B 6.C 7.D 8.A 9.C 10.A",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "A",
+      "4": "C",
+      "5": "B",
+      "6": "C",
+      "7": "D",
+      "8": "A",
+      "9": "C",
+      "10": "A"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Öğrendiğini Kanıtla 07",
+    "raw": "1.D 2.D 3.A 4.A 5.C 6.B 7.A 8.D 9.C 10.C",
+    "answerKey": {
+      "1": "D",
+      "2": "D",
+      "3": "A",
+      "4": "A",
+      "5": "C",
+      "6": "B",
+      "7": "A",
+      "8": "D",
+      "9": "C",
+      "10": "C"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Becerini Sergile 01",
+    "raw": "1.B 2.A 3.A 4.C",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "A",
+      "4": "C"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Becerini Sergile 02",
+    "raw": "1.D 2.B 3.A 4.D",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "A",
+      "4": "D"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Becerini Sergile 03",
+    "raw": "1.C 2.A 3.A 4.B",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "A",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 1,
+    "topicId": "top_mat_cilt3_fas_1",
+    "name": "1. Fasikül - Becerini Sergile 04",
+    "raw": "1.A 2.C 3.B 4.C 5.D 6.B",
+    "answerKey": {
+      "1": "A",
+      "2": "C",
+      "3": "B",
+      "4": "C",
+      "5": "D",
+      "6": "B"
+    },
+    "questionCount": 6
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 01",
+    "raw": "1.C 2.C 3.D 4.B 5.A 6.D 7.B 8.C 9.A 10.B 11.C 12.D 13.D",
+    "answerKey": {
+      "1": "C",
+      "2": "C",
+      "3": "D",
+      "4": "B",
+      "5": "A",
+      "6": "D",
+      "7": "B",
+      "8": "C",
+      "9": "A",
+      "10": "B",
+      "11": "C",
+      "12": "D",
+      "13": "D"
+    },
+    "questionCount": 13
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 02",
+    "raw": "1.D 2.A 3.A 4.D 5.B 6.B 7.C 8.C 9.D 10.A 11.C 12.D 13.B",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "A",
+      "4": "D",
+      "5": "B",
+      "6": "B",
+      "7": "C",
+      "8": "C",
+      "9": "D",
+      "10": "A",
+      "11": "C",
+      "12": "D",
+      "13": "B"
+    },
+    "questionCount": 13
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 03",
+    "raw": "1.D 2.C 3.B 4.B 5.A 6.D 7.C 8.A 9.C 10.B 11.C 12.B 13.D 14.D",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "B",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "A",
+      "9": "C",
+      "10": "B",
+      "11": "C",
+      "12": "B",
+      "13": "D",
+      "14": "D"
+    },
+    "questionCount": 14
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 04",
+    "raw": "1.C 2.D 3.A 4.B 5.C 6.D 7.A 8.C 9.B 10.D 11.C 12.B",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "A",
+      "4": "B",
+      "5": "C",
+      "6": "D",
+      "7": "A",
+      "8": "C",
+      "9": "B",
+      "10": "D",
+      "11": "C",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 05",
+    "raw": "1.B 2.D 3.B 4.A 5.C 6.A 7.B 8.C 9.B 10.D 11.A 12.C",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "B",
+      "4": "A",
+      "5": "C",
+      "6": "A",
+      "7": "B",
+      "8": "C",
+      "9": "B",
+      "10": "D",
+      "11": "A",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 06",
+    "raw": "1.A 2.D 3.C 4.C 5.D 6.A 7.A 8.C 9.D 10.D 11.D 12.A 13.B",
+    "answerKey": {
+      "1": "A",
+      "2": "D",
+      "3": "C",
+      "4": "C",
+      "5": "D",
+      "6": "A",
+      "7": "A",
+      "8": "C",
+      "9": "D",
+      "10": "D",
+      "11": "D",
+      "12": "A",
+      "13": "B"
+    },
+    "questionCount": 13
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Kavramları Kavra 07",
+    "raw": "1.D 2.B 3.A 4.C 5.B 6.A 7.C 8.B 9.C 10.D 11.C 12.B",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "A",
+      "4": "C",
+      "5": "B",
+      "6": "A",
+      "7": "C",
+      "8": "B",
+      "9": "C",
+      "10": "D",
+      "11": "C",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.D 2.C 3.A 4.C 5.C 6.B 7.D 8.C 9.D 10.D 11.B",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "A",
+      "4": "C",
+      "5": "C",
+      "6": "B",
+      "7": "D",
+      "8": "C",
+      "9": "D",
+      "10": "D",
+      "11": "B"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.D 2.C 3.A 4.C 5.C 6.C 7.D 8.B 9.A 10.C 11.D",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "A",
+      "4": "C",
+      "5": "C",
+      "6": "C",
+      "7": "D",
+      "8": "B",
+      "9": "A",
+      "10": "C",
+      "11": "D"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 03",
+    "raw": "1.B 2.A 3.C 4.B 5.A 6.C 7.B 8.B 9.D 10.A 11.B 12.C",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "C",
+      "4": "B",
+      "5": "A",
+      "6": "C",
+      "7": "B",
+      "8": "B",
+      "9": "D",
+      "10": "A",
+      "11": "B",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 04",
+    "raw": "1.B 2.C 3.C 4.D 5.A 6.C 7.A 8.D 9.B 10.C",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "C",
+      "4": "D",
+      "5": "A",
+      "6": "C",
+      "7": "A",
+      "8": "D",
+      "9": "B",
+      "10": "C"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 05",
+    "raw": "1.C 2.D 3.C 4.A 5.C 6.D 7.B 8.B 9.C",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "C",
+      "4": "A",
+      "5": "C",
+      "6": "D",
+      "7": "B",
+      "8": "B",
+      "9": "C"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 06",
+    "raw": "1.A 2.A 3.D 4.B 5.C 6.B 7.A 8.C 9.C 10.C 11.D",
+    "answerKey": {
+      "1": "A",
+      "2": "A",
+      "3": "D",
+      "4": "B",
+      "5": "C",
+      "6": "B",
+      "7": "A",
+      "8": "C",
+      "9": "C",
+      "10": "C",
+      "11": "D"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 07",
+    "raw": "1.B 2.D 3.C 4.D 5.A 6.D 7.D 8.B 9.A",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "D",
+      "5": "A",
+      "6": "D",
+      "7": "D",
+      "8": "B",
+      "9": "A"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 08",
+    "raw": "1.A 2.C 3.A 4.D 5.C 6.D 7.C 8.D 9.C 10.B",
+    "answerKey": {
+      "1": "A",
+      "2": "C",
+      "3": "A",
+      "4": "D",
+      "5": "C",
+      "6": "D",
+      "7": "C",
+      "8": "D",
+      "9": "C",
+      "10": "B"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 09",
+    "raw": "1.B 2.A 3.C 4.A 5.C 6.D 7.B 8.C 9.C 10.D",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "C",
+      "4": "A",
+      "5": "C",
+      "6": "D",
+      "7": "B",
+      "8": "C",
+      "9": "C",
+      "10": "D"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Öğrendiğini Kanıtla 10",
+    "raw": "1.B 2.D 3.C 4.A 5.B 6.D 7.A 8.B 9.D",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "A",
+      "5": "B",
+      "6": "D",
+      "7": "A",
+      "8": "B",
+      "9": "D"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Becerini Sergile 01",
+    "raw": "1.D 2.D 3.A 4.B",
+    "answerKey": {
+      "1": "D",
+      "2": "D",
+      "3": "A",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Becerini Sergile 02",
+    "raw": "1.C 2.B 3.D 4.B",
+    "answerKey": {
+      "1": "C",
+      "2": "B",
+      "3": "D",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Becerini Sergile 03",
+    "raw": "1.A 2.B 3.A 4.B",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "A",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 2,
+    "topicId": "top_mat_cilt3_fas_2",
+    "name": "2. Fasikül - Becerini Sergile 04",
+    "raw": "1.A 2.B 3.C 4.C 5.B 6.C",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "C",
+      "4": "C",
+      "5": "B",
+      "6": "C"
+    },
+    "questionCount": 6
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Kavramları Kavra 01",
+    "raw": "1.D 2.C 3.A 4.D 5.B 6.B 7.B 8.C 9.D 10.C 11.C",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "A",
+      "4": "D",
+      "5": "B",
+      "6": "B",
+      "7": "B",
+      "8": "C",
+      "9": "D",
+      "10": "C",
+      "11": "C"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Kavramları Kavra 02",
+    "raw": "1.D 2.B 3.D 4.D 5.B 6.D 7.D 8.B 9.A 10.B 11.D 12.A",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "D",
+      "4": "D",
+      "5": "B",
+      "6": "D",
+      "7": "D",
+      "8": "B",
+      "9": "A",
+      "10": "B",
+      "11": "D",
+      "12": "A"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Kavramları Kavra 03",
+    "raw": "1.B 2.C 3.A 4.D 5.C 6.B 7.D 8.D 9.A 10.B 11.B 12.D",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "A",
+      "4": "D",
+      "5": "C",
+      "6": "B",
+      "7": "D",
+      "8": "D",
+      "9": "A",
+      "10": "B",
+      "11": "B",
+      "12": "D"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.C 2.A 3.B 4.D 5.A 6.A 7.C 8.B",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "B",
+      "4": "D",
+      "5": "A",
+      "6": "A",
+      "7": "C",
+      "8": "B"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.B 2.D 3.A 4.C 5.A 6.B 7.D 8.C",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "A",
+      "4": "C",
+      "5": "A",
+      "6": "B",
+      "7": "D",
+      "8": "C"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Öğrendiğini Kanıtla 03",
+    "raw": "1.A 2.B 3.D 4.C 5.B 6.A 7.C 8.B 9.C",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "D",
+      "4": "C",
+      "5": "B",
+      "6": "A",
+      "7": "C",
+      "8": "B",
+      "9": "C"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Öğrendiğini Kanıtla 04",
+    "raw": "1.B 2.D 3.D 4.A 5.C 6.D 7.A 8.C 9.B",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "D",
+      "4": "A",
+      "5": "C",
+      "6": "D",
+      "7": "A",
+      "8": "C",
+      "9": "B"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Öğrendiğini Kanıtla 05",
+    "raw": "1.B 2.C 3.A 4.D 5.C 6.A 7.C 8.A 9.C",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "A",
+      "4": "D",
+      "5": "C",
+      "6": "A",
+      "7": "C",
+      "8": "A",
+      "9": "C"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Becerini Sergile 01",
+    "raw": "1.A 2.B 3.C 4.B",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "C",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Becerini Sergile 02",
+    "raw": "1.D 2.C 3.B 4.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Becerini Sergile 03",
+    "raw": "1.C 2.C 3.C 4.A",
+    "answerKey": {
+      "1": "C",
+      "2": "C",
+      "3": "C",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 3,
+    "topicId": "top_mat_cilt3_fas_3",
+    "name": "3. Fasikül - Becerini Sergile 04",
+    "raw": "1.C 2.D 3.A 4.B",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "A",
+      "4": "B"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 01",
+    "raw": "1.B 2.A 3.B 4.B 5.D 6.C 7.A 8.C 9.B 10.A 11.A 12.D 13.A 14.C 15.A",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "B",
+      "4": "B",
+      "5": "D",
+      "6": "C",
+      "7": "A",
+      "8": "C",
+      "9": "B",
+      "10": "A",
+      "11": "A",
+      "12": "D",
+      "13": "A",
+      "14": "C",
+      "15": "A"
+    },
+    "questionCount": 15
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 02",
+    "raw": "1.B 2.D 3.B 4.D 5.A 6.D 7.C 8.B 9.D 10.B 11.A 12.D 13.D 14.B 15.D 16.C",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "B",
+      "9": "D",
+      "10": "B",
+      "11": "A",
+      "12": "D",
+      "13": "D",
+      "14": "B",
+      "15": "D",
+      "16": "C"
+    },
+    "questionCount": 16
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 03",
+    "raw": "1.D 2.C 3.C 4.A 5.C 6.A 7.A 8.B 9.B 10.D 11.A 12.C 13.A 14.B",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "C",
+      "4": "A",
+      "5": "C",
+      "6": "A",
+      "7": "A",
+      "8": "B",
+      "9": "B",
+      "10": "D",
+      "11": "A",
+      "12": "C",
+      "13": "A",
+      "14": "B"
+    },
+    "questionCount": 14
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 04",
+    "raw": "1.C 2.C 3.B 4.D 5.A 6.A 7.C 8.B 9.B 10.A 11.A 12.D 13.B 14.A 15.B",
+    "answerKey": {
+      "1": "C",
+      "2": "C",
+      "3": "B",
+      "4": "D",
+      "5": "A",
+      "6": "A",
+      "7": "C",
+      "8": "B",
+      "9": "B",
+      "10": "A",
+      "11": "A",
+      "12": "D",
+      "13": "B",
+      "14": "A",
+      "15": "B"
+    },
+    "questionCount": 15
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 05",
+    "raw": "1.B 2.C 3.D 4.C 5.D 6.A 7.D 8.C 9.A 10.B 11.C 12.C 13.B 14.A 15.C",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "D",
+      "4": "C",
+      "5": "D",
+      "6": "A",
+      "7": "D",
+      "8": "C",
+      "9": "A",
+      "10": "B",
+      "11": "C",
+      "12": "C",
+      "13": "B",
+      "14": "A",
+      "15": "C"
+    },
+    "questionCount": 15
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 06",
+    "raw": "1.D 2.C 3.B 4.A 5.D 6.D 7.C 8.B 9.D 10.C 11.A 12.C 13.C 14.A 15.B 16.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "A",
+      "5": "D",
+      "6": "D",
+      "7": "C",
+      "8": "B",
+      "9": "D",
+      "10": "C",
+      "11": "A",
+      "12": "C",
+      "13": "C",
+      "14": "A",
+      "15": "B",
+      "16": "A"
+    },
+    "questionCount": 16
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Kavramları Kavra 07",
+    "raw": "1.B 2.D 3.C 4.D 5.B 6.D 7.A 8.B 9.D 10.D 11.B 12.B 13.C 14.C 15.C 16.B",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "D",
+      "5": "B",
+      "6": "D",
+      "7": "A",
+      "8": "B",
+      "9": "D",
+      "10": "D",
+      "11": "B",
+      "12": "B",
+      "13": "C",
+      "14": "C",
+      "15": "C",
+      "16": "B"
+    },
+    "questionCount": 16
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.D 2.A 3.C 4.C 5.D 6.C 7.B 8.C 9.B 10.A 11.D",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "C",
+      "4": "C",
+      "5": "D",
+      "6": "C",
+      "7": "B",
+      "8": "C",
+      "9": "B",
+      "10": "A",
+      "11": "D"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.D 2.A 3.D 4.B 5.A 6.D 7.C 8.D 9.B 10.A 11.B",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "D",
+      "4": "B",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "D",
+      "9": "B",
+      "10": "A",
+      "11": "B"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 03",
+    "raw": "1.A 2.D 3.A 4.B 5.A 6.D 7.C 8.B 9.A 10.B",
+    "answerKey": {
+      "1": "A",
+      "2": "D",
+      "3": "A",
+      "4": "B",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "B",
+      "9": "A",
+      "10": "B"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 04",
+    "raw": "1.D 2.B 3.B 4.C 5.A 6.C 7.C 8.D 9.D 10.B 11.D 12.C",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "B",
+      "4": "C",
+      "5": "A",
+      "6": "C",
+      "7": "C",
+      "8": "D",
+      "9": "D",
+      "10": "B",
+      "11": "D",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 05",
+    "raw": "1.B 2.C 3.B 4.A 5.B 6.C 7.D 8.C",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "B",
+      "4": "A",
+      "5": "B",
+      "6": "C",
+      "7": "D",
+      "8": "C"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Öğrendiğini Kanıtla 06",
+    "raw": "1.B 2.A 3.D 4.A 5.C 6.C 7.C 8.B 9.B 10.C 11.D",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "D",
+      "4": "A",
+      "5": "C",
+      "6": "C",
+      "7": "C",
+      "8": "B",
+      "9": "B",
+      "10": "C",
+      "11": "D"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 01",
+    "raw": "1.D 2.C 3.D 4.C",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "D",
+      "4": "C"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 02",
+    "raw": "1.A 2.C 3.B 4.A",
+    "answerKey": {
+      "1": "A",
+      "2": "C",
+      "3": "B",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 03",
+    "raw": "1.A 2.A 3.B 4.A",
+    "answerKey": {
+      "1": "A",
+      "2": "A",
+      "3": "B",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 04",
+    "raw": "1.D 2.C 3.B 4.A",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 05",
+    "raw": "1.C 2.D 3.D 4.A",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "D",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 4,
+    "topicId": "top_mat_cilt3_fas_4",
+    "name": "4. Fasikül - Becerini Sergile 06",
+    "raw": "1.C 2.D 3.D 4.D",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "D",
+      "4": "D"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Kavramları Kavra 01",
+    "raw": "1.D 2.C 3.B 4.D 5.A 6.D 7.C 8.D 9.B 10.C 11.B 12.C",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "D",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "D",
+      "9": "B",
+      "10": "C",
+      "11": "B",
+      "12": "C"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Kavramları Kavra 02",
+    "raw": "1.B 2.D 3.C 4.A 5.C 6.D 7.D 8.A 9.B 10.C 11.B 12.A",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "A",
+      "5": "C",
+      "6": "D",
+      "7": "D",
+      "8": "A",
+      "9": "B",
+      "10": "C",
+      "11": "B",
+      "12": "A"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.C 2.C 3.D 4.D 5.D 6.C 7.C 8.A 9.D",
+    "answerKey": {
+      "1": "C",
+      "2": "C",
+      "3": "D",
+      "4": "D",
+      "5": "D",
+      "6": "C",
+      "7": "C",
+      "8": "A",
+      "9": "D"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.C 2.A 3.B 4.D 5.D 6.C 7.A 8.B 9.C",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "B",
+      "4": "D",
+      "5": "D",
+      "6": "C",
+      "7": "A",
+      "8": "B",
+      "9": "C"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Becerini Sergile 01",
+    "raw": "1.D 2.A 3.C 4.D",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "C",
+      "4": "D"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Becerini Sergile 02",
+    "raw": "1.C 2.A 3.C 4.A",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "C",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Becerini Sergile 03",
+    "raw": "1.B 2.B 3.A 4.C",
+    "answerKey": {
+      "1": "B",
+      "2": "B",
+      "3": "A",
+      "4": "C"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 5,
+    "topicId": "top_mat_cilt3_fas_5",
+    "name": "5. Fasikül - Becerini Sergile 04",
+    "raw": "1.D 2.A 3.D",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "D"
+    },
+    "questionCount": 3
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 01",
+    "raw": "1.D 2.A 3.C 4.D 5.A 6.B 7.B 8.C 9.C 10.D 11.B 12.A",
+    "answerKey": {
+      "1": "D",
+      "2": "A",
+      "3": "C",
+      "4": "D",
+      "5": "A",
+      "6": "B",
+      "7": "B",
+      "8": "C",
+      "9": "C",
+      "10": "D",
+      "11": "B",
+      "12": "A"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 02",
+    "raw": "1.A 2.B 3.C 4.D 5.B 6.A 7.D 8.C 9.A 10.B 11.B 12.B",
+    "answerKey": {
+      "1": "A",
+      "2": "B",
+      "3": "C",
+      "4": "D",
+      "5": "B",
+      "6": "A",
+      "7": "D",
+      "8": "C",
+      "9": "A",
+      "10": "B",
+      "11": "B",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 03",
+    "raw": "1.A 2.D 3.B 4.D 5.C 6.A 7.C 8.C 9.D 10.A 11.C 12.B",
+    "answerKey": {
+      "1": "A",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "C",
+      "6": "A",
+      "7": "C",
+      "8": "C",
+      "9": "D",
+      "10": "A",
+      "11": "C",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 04",
+    "raw": "1.C 2.B 3.D 4.A 5.B 6.D 7.B 8.D 9.C 10.C 11.D 12.B",
+    "answerKey": {
+      "1": "C",
+      "2": "B",
+      "3": "D",
+      "4": "A",
+      "5": "B",
+      "6": "D",
+      "7": "B",
+      "8": "D",
+      "9": "C",
+      "10": "C",
+      "11": "D",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 05",
+    "raw": "1.C 2.B 3.C 4.B 5.A 6.D 7.C 8.B 9.D 10.D 11.A 12.B",
+    "answerKey": {
+      "1": "C",
+      "2": "B",
+      "3": "C",
+      "4": "B",
+      "5": "A",
+      "6": "D",
+      "7": "C",
+      "8": "B",
+      "9": "D",
+      "10": "D",
+      "11": "A",
+      "12": "B"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 06",
+    "raw": "1.D 2.C 3.B 4.D 5.D 6.D 7.A 8.C 9.A 10.B 11.B 12.D",
+    "answerKey": {
+      "1": "D",
+      "2": "C",
+      "3": "B",
+      "4": "D",
+      "5": "D",
+      "6": "D",
+      "7": "A",
+      "8": "C",
+      "9": "A",
+      "10": "B",
+      "11": "B",
+      "12": "D"
+    },
+    "questionCount": 12
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Kavramları Kavra 07",
+    "raw": "1.A 2.D 3.A 4.D 5.C 6.D 7.B 8.D 9.C 10.D 11.C 12.D 13.A 14.B",
+    "answerKey": {
+      "1": "A",
+      "2": "D",
+      "3": "A",
+      "4": "D",
+      "5": "C",
+      "6": "D",
+      "7": "B",
+      "8": "D",
+      "9": "C",
+      "10": "D",
+      "11": "C",
+      "12": "D",
+      "13": "A",
+      "14": "B"
+    },
+    "questionCount": 14
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 01",
+    "raw": "1.B 2.C 3.A 4.B 5.D 6.A 7.C 8.A 9.D 10.D",
+    "answerKey": {
+      "1": "B",
+      "2": "C",
+      "3": "A",
+      "4": "B",
+      "5": "D",
+      "6": "A",
+      "7": "C",
+      "8": "A",
+      "9": "D",
+      "10": "D"
+    },
+    "questionCount": 10
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 02",
+    "raw": "1.C 2.A 3.C 4.D 5.C 6.D 7.D 8.B",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "C",
+      "4": "D",
+      "5": "C",
+      "6": "D",
+      "7": "D",
+      "8": "B"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 03",
+    "raw": "1.C 2.D 3.B 4.D 5.C 6.B 7.A 8.D",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "B",
+      "4": "D",
+      "5": "C",
+      "6": "B",
+      "7": "A",
+      "8": "D"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 04",
+    "raw": "1.C 2.A 3.B 4.A 5.D 6.C 7.C 8.C",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "B",
+      "4": "A",
+      "5": "D",
+      "6": "C",
+      "7": "C",
+      "8": "C"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 05",
+    "raw": "1.C 2.A 3.A 4.C 5.B 6.C 7.D 8.A 9.B",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "A",
+      "4": "C",
+      "5": "B",
+      "6": "C",
+      "7": "D",
+      "8": "A",
+      "9": "B"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 06",
+    "raw": "1.B 2.A 3.B 4.C 5.B 6.D 7.C 8.A 9.B 10.C 11.B",
+    "answerKey": {
+      "1": "B",
+      "2": "A",
+      "3": "B",
+      "4": "C",
+      "5": "B",
+      "6": "D",
+      "7": "C",
+      "8": "A",
+      "9": "B",
+      "10": "C",
+      "11": "B"
+    },
+    "questionCount": 11
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 07",
+    "raw": "1.B 2.D 3.C 4.B 5.D 6.D 7.C 8.B 9.D",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "B",
+      "5": "D",
+      "6": "D",
+      "7": "C",
+      "8": "B",
+      "9": "D"
+    },
+    "questionCount": 9
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 08",
+    "raw": "1.C 2.A 3.D 4.C 5.B 6.B 7.A 8.D",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "D",
+      "4": "C",
+      "5": "B",
+      "6": "B",
+      "7": "A",
+      "8": "D"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Öğrendiğini Kanıtla 09",
+    "raw": "1.C 2.A 3.A 4.C 5.D 6.C 7.D 8.D",
+    "answerKey": {
+      "1": "C",
+      "2": "A",
+      "3": "A",
+      "4": "C",
+      "5": "D",
+      "6": "C",
+      "7": "D",
+      "8": "D"
+    },
+    "questionCount": 8
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Becerini Sergile 01",
+    "raw": "1.C 2.B 3.D 4.A",
+    "answerKey": {
+      "1": "C",
+      "2": "B",
+      "3": "D",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Becerini Sergile 02",
+    "raw": "1.B 2.D 3.C 4.A",
+    "answerKey": {
+      "1": "B",
+      "2": "D",
+      "3": "C",
+      "4": "A"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Becerini Sergile 03",
+    "raw": "1.C 2.B 3.A 4.D",
+    "answerKey": {
+      "1": "C",
+      "2": "B",
+      "3": "A",
+      "4": "D"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Becerini Sergile 04",
+    "raw": "1.C 2.D 3.C 4.D",
+    "answerKey": {
+      "1": "C",
+      "2": "D",
+      "3": "C",
+      "4": "D"
+    },
+    "questionCount": 4
+  },
+  {
+    "fasNo": 6,
+    "topicId": "top_mat_cilt3_fas_6",
+    "name": "6. Fasikül - Becerini Sergile 05",
+    "raw": "1.D 2.B 3.B 4.C",
+    "answerKey": {
+      "1": "D",
+      "2": "B",
+      "3": "B",
+      "4": "C"
+    },
+    "questionCount": 4
+  }
+]
