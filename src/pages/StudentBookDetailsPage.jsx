@@ -7,7 +7,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey, isExamBook } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors, Zap, Sparkles, Clock, Flame, Trophy } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors, Zap, Sparkles, Clock, Flame, Trophy, MoreHorizontal } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID, legacyHexUUID } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
@@ -52,6 +52,20 @@ export default function StudentBookDetailsPage() {
     }
   });
   const [focusTestFilter, setFocusTestFilter] = useState('pending'); // 'pending' | 'completed' | 'all'
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+  const actionMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setIsActionMenuOpen(false);
+      }
+    };
+    if (isActionMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isActionMenuOpen]);
 
   const handleToggleFocusMode = () => {
     setIsFocusMode(prev => {
@@ -1880,150 +1894,277 @@ export default function StudentBookDetailsPage() {
         </div>
       )}
 
-      {/* 🧭 TOP NAVIGATION BAR WITH LARGE BUTTONS & ODAK MODU TOGGLE */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.85rem' }}>
-        <button
-          onClick={() => navigate(isFromTeacher ? `/books/${book?.id}` : (book?.bookType === 'exam' ? '/student/exams' : '/student/books'))}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'var(--color-surface)',
-            border: '1.5px solid var(--color-border-input)',
-            borderRadius: '0.85rem',
-            padding: '0.65rem 1.25rem',
-            fontWeight: 800,
-            fontSize: '0.92rem',
-            color: 'var(--color-text)',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            minHeight: 44,
-            transition: 'all 0.15s ease'
-          }}
-        >
-          <ArrowLeft size={18} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* 🎯 ODAK MODU BUTONU (BÜYÜK & ŞIK) */}
-          <button
-            type="button"
-            onClick={handleToggleFocusMode}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: isFocusMode
-                ? 'linear-gradient(135deg, #10b981, #059669)'
-                : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
-              border: isFocusMode ? 'none' : (isDark ? '1.5px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1'),
-              borderRadius: '0.85rem',
-              padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.35rem',
-              minHeight: 44,
-              color: isFocusMode ? '#ffffff' : 'var(--color-text)',
-              fontWeight: 900,
-              fontSize: isMobile ? '0.84rem' : '0.94rem',
-              cursor: 'pointer',
-              boxShadow: isFocusMode ? '0 4px 18px rgba(16,185,129,0.45)' : '0 2px 8px rgba(0,0,0,0.04)',
-              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            title={isFocusMode ? 'Normal görünüme dönmek için dokunun' : 'Dikkat dağıtıcıları gizleyip sadece sıradaki teste odaklan'}
-          >
-            <Target size={18} color={isFocusMode ? '#ffffff' : '#10b981'} />
-            <span>{isFocusMode ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Modu'}</span>
-          </button>
-
-          <button
-            onClick={() => handleOpenManualTest(null)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              border: 'none',
-              borderRadius: '0.85rem',
-              padding: '0.65rem 1.35rem',
-              fontWeight: 900,
-              fontSize: '0.92rem',
-              color: 'white',
-              cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
-              minHeight: 44
-            }}
-          >
-            <Plus size={18} /> Manuel Test Sonucu Ekle
-          </button>
-
-          {bookData.isSelfAdded && (
-            <button
-              onClick={() => setIsBulkSettingsModalOpen(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-                border: 'none',
-                borderRadius: '0.85rem',
-                padding: '0.65rem 1.35rem',
-                fontWeight: 900,
-                fontSize: '0.92rem',
-                color: 'white',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
-                minHeight: 44
-              }}
-            >
-              <Settings size={18} /> Cevap Anahtarı Gir
-            </button>
-          )}
-        </div>
-      </div>
-
       {isFromTeacher && (
-        <div className="sbdp-anim" style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.9rem 1.25rem', borderRadius: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)', border: '1.5px solid #3b82f6' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+        <div className="sbdp-anim" style={{ background: 'rgba(37,99,235,0.12)', color: '#60a5fa', padding: '0.75rem 1.15rem', borderRadius: '1rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', border: '1.5px solid #3b82f6' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: 'white', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
               {(targetStudent?.name || 'Ö').charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text)' }}>
-                👤 {targetStudent?.name || 'Öğrenci'} <span style={{ fontSize: '0.75rem', fontWeight: 700, background: 'rgba(37,99,235,0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: 99 }}>Öğrenci Kitap İlerleme Görünümü</span>
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                Öğrencinin gördüğü birebir kitap ekranı • Çözülen testler, başarı oranları ve optik formlar
+              <div style={{ fontSize: '0.92rem', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-text)' }}>
+                👤 {targetStudent?.name || 'Öğrenci'} <span style={{ fontSize: '0.72rem', fontWeight: 700, background: 'rgba(37,99,235,0.2)', color: '#60a5fa', padding: '2px 8px', borderRadius: 99 }}>Öğretmen Görünümü</span>
               </div>
             </div>
           </div>
           <button
             onClick={() => navigate(`/books/${book?.id}`)}
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.45rem 1rem', borderRadius: '0.6rem', fontSize: '0.82rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-input)', color: 'var(--color-text)', padding: '0.4rem 0.85rem', borderRadius: '0.6rem', fontSize: '0.8rem', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
           >
-            <ArrowLeft size={15} /> Kitap Yönetimine Dön
+            <ArrowLeft size={14} /> Kitap Yönetimine Dön
           </button>
-        </div>
-      )}
-
-      {overallPct < 100 && bookData.remainingDays !== null && (
-        <div className="sbdp-anim" style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '1.25rem', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.85rem', boxShadow: '0 4px 16px -2px rgba(0,0,0,0.03)' }}>
-          <div style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Target size={20} />
-          </div>
-          <div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#166534', marginBottom: 2 }}>Akıllı Tempo Önerisi</div>
-            <div style={{ fontSize: '0.82rem', color: '#15803d', fontWeight: 600 }}>
-              {bookData.remainingDays === 0
-                ? 'Süren doldu! Testleri bir an önce tamamlamalısın.'
-                : `Hedefe ${bookData.remainingDays} gün kaldı. Haftada ortalama ${Math.max(1, Math.ceil(((overallTotal - overallCompleted) / bookData.remainingDays) * 7))} test çözmelisin.`}
-            </div>
-          </div>
         </div>
       )}
 
       {/* 🌟 MODERN HERO BANNER WITH BOLD TYPOGRAPHY & FULL-COLOR THEME */}
       <div className="sbdp-anim" style={{ borderRadius: '1.75rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.45)' : '0 8px 30px rgba(0,0,0,0.08)', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
-        <div className="sbdp-hero-box" style={{ background: bookTheme.gradientHero, padding: isMobile ? '1.25rem 1.15rem' : '2.25rem 2.75rem 1.75rem', position: 'relative', overflow: 'hidden' }}>
+        <div className="sbdp-hero-box" style={{ background: bookTheme.gradientHero, padding: isMobile ? '1.15rem 1rem' : '1.75rem 2.25rem 1.75rem', position: 'relative', overflow: 'visible' }}>
           <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: -60, right: 120, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+
+          {/* 🧭 Minimalist Top Utility Bar inside Hero: Back Button & Quick Actions */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', position: 'relative', zIndex: 30, gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Minimalist Back Button */}
+            <button
+              type="button"
+              onClick={() => navigate(isFromTeacher ? `/books/${book?.id}` : (book?.bookType === 'exam' ? '/student/exams' : '/student/books'))}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 7,
+                background: 'rgba(0,0,0,0.24)',
+                backdropFilter: 'blur(10px)',
+                border: '1.5px solid rgba(255,255,255,0.3)',
+                color: '#ffffff',
+                padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
+                borderRadius: '0.85rem',
+                fontSize: isMobile ? '0.84rem' : '0.92rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                transition: 'all 0.15s ease'
+              }}
+              title="Kitaplarıma Dön"
+            >
+              <ArrowLeft size={17} />
+              <span>{isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}</span>
+            </button>
+
+            {/* Right: Odak Modu Switch & ⋯ İşlemler Menu */}
+            <div ref={actionMenuRef} style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+              {/* Odak Modu Switch Button */}
+              <button
+                type="button"
+                onClick={handleToggleFocusMode}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  background: isFocusMode ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.24)',
+                  backdropFilter: 'blur(10px)',
+                  border: isFocusMode ? '1.5px solid #34d399' : '1.5px solid rgba(255,255,255,0.3)',
+                  color: '#ffffff',
+                  padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
+                  borderRadius: '0.85rem',
+                  fontSize: isMobile ? '0.84rem' : '0.92rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: isFocusMode ? '0 0 20px rgba(16,185,129,0.5)' : '0 4px 14px rgba(0,0,0,0.15)',
+                  transition: 'all 0.15s ease'
+                }}
+                title={isFocusMode ? 'Odak Modundan Çık' : 'Odak Moduna Geç'}
+              >
+                <Target size={17} color={isFocusMode ? '#ffffff' : '#34d399'} />
+                <span>{isFocusMode ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Modu'}</span>
+              </button>
+
+              {/* ⋯ Hızlı İşlemler Dropdown Button */}
+              <button
+                type="button"
+                onClick={() => setIsActionMenuOpen(prev => !prev)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: isMobile ? 38 : 42,
+                  height: isMobile ? 38 : 42,
+                  background: isActionMenuOpen ? '#ffffff' : 'rgba(0,0,0,0.24)',
+                  backdropFilter: 'blur(10px)',
+                  border: isActionMenuOpen ? '1.5px solid #ffffff' : '1.5px solid rgba(255,255,255,0.3)',
+                  color: isActionMenuOpen ? '#0f172a' : '#ffffff',
+                  borderRadius: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Hızlı İşlemler & Seçenekler"
+              >
+                <MoreHorizontal size={20} />
+              </button>
+
+              {/* Popover / Dropdown Menu */}
+              {isActionMenuOpen && (
+                <div
+                  className="sbdp-anim"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    background: isDark ? '#1e293b' : '#ffffff',
+                    border: isDark ? '1.5px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0',
+                    borderRadius: '1.15rem',
+                    padding: '0.65rem',
+                    minWidth: 290,
+                    boxShadow: '0 16px 40px rgba(0,0,0,0.35)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4
+                  }}
+                >
+                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 6px' }}>
+                    ⚡ Hızlı İşlemler
+                  </div>
+
+                  {/* Manuel Test Sonucu Ekle */}
+                  <button
+                    type="button"
+                    onClick={() => { handleOpenManualTest(null); setIsActionMenuOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '0.7rem 0.85rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--color-text)',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+                      <Plus size={18} />
+                    </div>
+                    <span>Manuel Test Sonucu Ekle</span>
+                  </button>
+
+                  {/* Yanlışlardan Test Kırp */}
+                  <button
+                    type="button"
+                    onClick={() => { navigate(`/pdf-slicer?bookId=${book.id}&mode=mistakes`); setIsActionMenuOpen(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '0.7rem 0.85rem',
+                      borderRadius: '0.75rem',
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--color-text)',
+                      fontWeight: 800,
+                      fontSize: '0.88rem',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
+                      <Scissors size={18} />
+                    </div>
+                    <span>Yanlışlardan Test Kırp</span>
+                  </button>
+
+                  {/* Cevap Anahtarlarını Düzenle (öğretmen veya kendi eklediği kitap) */}
+                  {bookData.isSelfAdded && (
+                    <button
+                      type="button"
+                      onClick={() => { setIsBulkSettingsModalOpen(true); setIsActionMenuOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '0.7rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                        <Settings size={18} />
+                      </div>
+                      <span>Cevap Anahtarı Gir</span>
+                    </button>
+                  )}
+
+                  {/* PDF Görüntüle */}
+                  {book.pdfUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowBookPdf(p => !p); setIsActionMenuOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '0.7rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                        <FileText size={18} />
+                      </div>
+                      <span>{showBookPdf ? 'PDF Görüntüleyiciyi Kapat' : 'Kitap PDF’ini Aç'}</span>
+                    </button>
+                  )}
+
+                  {/* Akıllı Tempo Özeti Dropdown Alt Kutusu */}
+                  {overallPct < 100 && bookData.remainingDays !== null && (
+                    <div style={{
+                      marginTop: 6,
+                      padding: '0.85rem',
+                      borderRadius: '0.85rem',
+                      background: isDark ? 'rgba(16,185,129,0.12)' : '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      color: '#166534'
+                    }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 900, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Target size={15} color="#166534" /> Akıllı Tempo Planı
+                      </div>
+                      <div style={{ fontSize: '0.8rem', lineHeight: 1.45, fontWeight: 700 }}>
+                        {bookData.remainingDays === 0
+                          ? 'Süreniz doldu! Testleri bir an önce tamamlamalısınız.'
+                          : `Hedefe ${bookData.remainingDays} gün kaldı. Haftada ortalama ${Math.max(1, Math.ceil(((overallTotal - overallCompleted) / bookData.remainingDays) * 7))} test çözmelisin.`}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', position: 'relative' }}>
             {/* Book Icon Cover Box */}
@@ -2048,41 +2189,10 @@ export default function StudentBookDetailsPage() {
               {/* Huge Book Title */}
               <h1 className="sbdp-hero-title" style={{ fontSize: isMobile ? '1.45rem' : '2.15rem', fontWeight: 900, color: 'white', margin: '0 0 0.85rem', lineHeight: 1.25, textShadow: '0 2px 14px rgba(0,0,0,0.25)', letterSpacing: '-0.02em' }}>
                 {book.title}
-                {book.pdfUrl && (
-                  <button
-                    onClick={() => setShowBookPdf(p => !p)}
-                    style={{ marginLeft: 12, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.35rem 0.95rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900, border: '1.5px solid rgba(255,255,255,0.6)', background: showBookPdf ? 'white' : 'rgba(255,255,255,0.2)', color: showBookPdf ? '#4f46e5' : 'white', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.15)' }}
-                  >
-                    <FileText size={15} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/pdf-slicer?bookId=${book.id}&mode=mistakes`)}
-                  style={{
-                    marginLeft: 8,
-                    verticalAlign: 'middle',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '0.35rem 0.95rem',
-                    borderRadius: '0.65rem',
-                    fontSize: '0.82rem',
-                    fontWeight: 900,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
-                  }}
-                  title="Bu kitabın PDF'sinden yanlış soruları kırparak telafi testi oluşturun"
-                >
-                  <Scissors size={15} /> Yanlışlardan Test Kırp
-                </button>
               </h1>
 
-              {/* Progress Bar with Big Percentage */}
-              <div style={{ maxWidth: 540 }}>
+              {/* Progress Bar with Big Percentage & Compact Smart Tempo Badges */}
+              <div style={{ maxWidth: 580 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)' }}>Genel Kitap İlerlemesi</span>
                   <span style={{ fontSize: '1.15rem', fontWeight: 900, color: overallPct === 100 ? '#4ade80' : 'white', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>%{overallPct}</span>
@@ -2090,36 +2200,44 @@ export default function StudentBookDetailsPage() {
                 <div style={{ background: 'rgba(255,255,255,0.22)', height: 12, borderRadius: 99, overflow: 'hidden', padding: 2 }}>
                   <div style={{ width: `${overallPct}%`, height: '100%', background: overallPct === 100 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #fef08a, #ffffff)', borderRadius: 99, transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 16px rgba(255,255,255,0.6)' }} />
                 </div>
-              </div>
-            </div>
 
-            {/* Quick Odak Modu Switcher inside Hero */}
-            <div style={{ alignSelf: isMobile ? 'stretch' : 'center', marginTop: isMobile ? '0.5rem' : 0 }}>
-              <button
-                type="button"
-                onClick={handleToggleFocusMode}
-                style={{
-                  width: isMobile ? '100%' : 'auto',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  background: isFocusMode ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.22)',
-                  border: isFocusMode ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.45)',
-                  backdropFilter: 'blur(10px)',
-                  color: '#ffffff',
-                  padding: isMobile ? '0.75rem 1.25rem' : '0.85rem 1.6rem',
-                  borderRadius: '1rem',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.92rem' : '1.05rem',
-                  cursor: 'pointer',
-                  boxShadow: isFocusMode ? '0 0 24px rgba(16,185,129,0.65)' : '0 4px 16px rgba(0,0,0,0.18)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              >
-                <Target size={22} color={isFocusMode ? '#ffffff' : '#34d399'} />
-                <span>{isFocusMode ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Moduna Geç'}</span>
-              </button>
+                {/* 🎯 Kompakt Akıllı Tempo Rozetleri (Yukarıdaki hantal kutunun yerine) */}
+                {bookData.remainingDays !== null && overallPct < 100 && (
+                  <div style={{
+                    fontSize: '0.82rem',
+                    color: 'rgba(255,255,255,0.95)',
+                    marginTop: 10,
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flexWrap: 'wrap'
+                  }}>
+                    <span style={{
+                      background: 'rgba(0,0,0,0.24)',
+                      padding: '3px 10px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.28)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5
+                    }}>
+                      <Clock size={13} /> Hedefe {bookData.remainingDays} gün kaldı
+                    </span>
+                    <span style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      padding: '3px 10px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(255,255,255,0.28)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5
+                    }}>
+                      <Flame size={13} /> Haftada ort. {Math.max(1, Math.ceil(((overallTotal - overallCompleted) / bookData.remainingDays) * 7))} test
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
