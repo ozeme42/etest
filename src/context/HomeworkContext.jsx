@@ -90,12 +90,7 @@ export function HomeworkProvider({ children }) {
       return null;
     }
 
-    const hasIncompleteBookHomeworks = (homeworks || []).some(h =>
-      (h.isBookAssignment || h.bookId || /kitap|seti/i.test(h.title || '')) &&
-      (!h.testDueDates || Object.keys(h.testDueDates).length === 0)
-    );
-
-    if (!force && !hasIncompleteBookHomeworks && isCacheValid('homeworks', 15) && (homeworks || []).length > 0) {
+    if (!force && isCacheValid('homeworks', 15) && (homeworks || []).length > 0) {
       setIsLoading(false);
       return homeworks;
     }

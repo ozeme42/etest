@@ -762,8 +762,9 @@ export default function StudentBooksPage() {
   }, [assignedBooks, searchQuery, statusFilter, subjectFilter, sortBy]);
 
   // Bar Chart Data (Books)
-  const chartData = useMemo(() =>
-    assignedBooks.map(b => {
+  const chartData = useMemo(() => {
+    if (activeTab !== 'grafikler') return [];
+    return assignedBooks.map(b => {
       const d = b.totalCorrect || 0;
       const y = b.totalWrong || 0;
       const bl = b.totalBlank || 0;
@@ -783,11 +784,66 @@ export default function StudentBooksPage() {
         solvedTests: b.totalSolvedTests || 0,
         totalAssignedTests: b.totalAssignedTests || 0
       };
-    }), [assignedBooks]);
+    });
+  }, [assignedBooks, activeTab]);
 
   // Subject Chart Data (Subjects)
   const subjectChartData = useMemo(() => {
+    if (activeTab !== 'grafikler') return [];
     const subMap = {};
+
+    // Pre-index studentSubmissions by test id for O(1) matching instead of O(N*M)
+    const subsByTestId = new Map();
+    (studentSubmissions || []).forEach(s => {
+      const matchFields = [
+        String(s.testId || ''),
+        String(s.realTestId || ''),
+        String(s.bookTestId || ''),
+        String(s.metadata?.realTestId || ''),
+        String(s.metadata?.bookTestId || ''),
+        String(s.metadata?.realId || '')
+      ];
+      if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
+        matchFields.push(...s.bookTestIds.map(String));
+      }
+      matchFields.filter(Boolean).forEach(f => {
+        if (!subsByTestId.has(f)) subsByTestId.set(f, []);
+        subsByTestId.get(f).push(s);
+        const cl = f.replace(/^bt_/, '').replace(/^q_/, '');
+        if (cl !== f) {
+          if (!subsByTestId.has(cl)) subsByTestId.set(cl, []);
+          subsByTestId.get(cl).push(s);
+        }
+        const u = toUUID(f);
+        if (u) {
+          if (!subsByTestId.has(u)) subsByTestId.set(u, []);
+          subsByTestId.get(u).push(s);
+        }
+      });
+    });
+
+    // Pre-index homework submissions as well
+    (homeworks || []).forEach(hw => {
+      (hw.submissions || []).forEach(s => {
+        const sid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+        const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
+        if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return;
+        const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
+        if (!subTId) return;
+        if (!subsByTestId.has(subTId)) subsByTestId.set(subTId, []);
+        subsByTestId.get(subTId).push(s);
+        const cl = subTId.replace(/^bt_/, '').replace(/^q_/, '');
+        if (cl !== subTId) {
+          if (!subsByTestId.has(cl)) subsByTestId.set(cl, []);
+          subsByTestId.get(cl).push(s);
+        }
+        const u = toUUID(subTId);
+        if (u) {
+          if (!subsByTestId.has(u)) subsByTestId.set(u, []);
+          subsByTestId.get(u).push(s);
+        }
+      });
+    });
 
     assignedBooks.forEach(b => {
       if (b.subjects && Array.isArray(b.subjects)) {
@@ -840,53 +896,11 @@ export default function StudentBooksPage() {
 
         subMap[subjectName].totalAssignedTests++;
 
-        const solvedSubs = studentSubmissions.filter(s => {
-          const matchFields = [
-            String(s.testId || ''),
-            String(s.realTestId || ''),
-            String(s.bookTestId || ''),
-            String(s.metadata?.realTestId || ''),
-            String(s.metadata?.bookTestId || ''),
-            String(s.metadata?.realId || '')
-          ];
-          if (s.bookTestIds && Array.isArray(s.bookTestIds)) {
-            matchFields.push(...s.bookTestIds.map(String));
-          }
+        const solvedSubs = subsByTestId.get(tIdStr) || subsByTestId.get(tCleanId) || (tUuidStr ? subsByTestId.get(tUuidStr) : null) || [];
 
-          return matchFields.some(f => f && (
-            f === tIdStr ||
-            f === tCleanId ||
-            f.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId ||
-            (tUuidStr && f === tUuidStr) ||
-            toUUID(f) === tIdStr ||
-            (tUuidStr && toUUID(f) === tUuidStr)
-          ));
-        });
-
-        let hwSub = null;
-        for (const hw of homeworks) {
-          if (!hw.submissions || !Array.isArray(hw.submissions)) continue;
-          const match = hw.submissions.find(s => {
-            const sid = String(s.studentId || s.student_id || s.userId || s.user_id || '');
-            const isMatchStudent = allStudentIds.has(sid) || (toUUID(sid) && allStudentIds.has(toUUID(sid)));
-            if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-            const subTId = String(s.testId || s.bookTestId || s.realTestId || '');
-            return subTId === tIdStr || subTId === tCleanId || subTId.replace(/^bt_/, '').replace(/^q_/, '') === tCleanId || (tUuidStr && subTId === tUuidStr);
-          });
-          if (match) {
-            hwSub = match;
-            break;
-          }
-        }
-
-        if (solvedSubs.length > 0 || !!hwSub) {
+        if (solvedSubs.length > 0) {
           subMap[subjectName].totalSolvedTests++;
-          let bestSub = null;
-          if (solvedSubs.length > 0) {
-            bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
-          } else if (hwSub) {
-            bestSub = hwSub;
-          }
+          const bestSub = solvedSubs.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), solvedSubs[0]);
 
           if (bestSub) {
             subMap[subjectName].Doğru += Number(bestSub.correctCount ?? bestSub.correct_count ?? bestSub.correct ?? 0);
@@ -908,7 +922,7 @@ export default function StudentBooksPage() {
         progress
       };
     }).sort((a, b) => b.totalQ - a.totalQ);
-  }, [assignedBooks, bookTests, studentSubmissions, homeworks, allStudentIds]);
+  }, [assignedBooks, bookTests, studentSubmissions, homeworks, allStudentIds, activeTab]);
 
   const activeChartData = bookChartViewMode === 'books' ? chartData : subjectChartData;
 
@@ -921,6 +935,18 @@ export default function StudentBooksPage() {
       '🧠 Konu Eksiği': { key: '🧠 Konu Eksiği', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', count: 0 },
       '⏱️ Zaman Yetmedi': { key: '⏱️ Zaman Yetmedi', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8', count: 0 }
     };
+
+    if (activeTab !== 'analiz') {
+      return {
+        reasonDefs,
+        totalWrongAndBlank: 0,
+        totalClassified: 0,
+        unclassifiedCount: 0,
+        topReason: null,
+        recommendation: '',
+        questionsList: []
+      };
+    }
 
     let totalWrongAndBlank = (overallStats.totalY || 0) + (overallStats.totalB || 0);
     const questionsList = [];

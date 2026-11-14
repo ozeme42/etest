@@ -553,6 +553,28 @@ export default function StudentBookDetailsPage() {
       });
     });
 
+    // Pre-calculate test due dates for this book once in O(Homeworks) instead of O(Tests * Homeworks)
+    const bookHws = (homeworks || []).filter(hw => {
+      if (!hw.isBookAssignment && hw.sourceType !== 'trackedBook') return false;
+      const hwBId = String(hw.bookId || hw.book_id || '');
+      const isBook = hwBId === bId || (bUuid && hwBId === bUuid) || (toUUID(hwBId) && toUUID(hwBId) === bUuid);
+      return isBook && isHomeworkForStudent(hw, targetStudent, curData?.grades);
+    });
+
+    const testDueDatesMap = new Map();
+    bookHws.forEach(hw => {
+      const dates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
+      Object.entries(dates).forEach(([k, v]) => {
+        if (v) {
+          testDueDatesMap.set(String(k), v);
+          const cl = String(k).replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+          testDueDatesMap.set(cl, v);
+          const u = toUUID(cl);
+          if (u) testDueDatesMap.set(u, v);
+        }
+      });
+    });
+
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
 
@@ -582,33 +604,48 @@ export default function StudentBookDetailsPage() {
         allSubjectTests = gathered;
       }
 
-      // Order helper to preserve canonical book / JSON sequence
+      const subjCanonicalTests = subject.tests || [];
+      const topicMap = new Map();
+      (subject.topics || []).forEach(tp => topicMap.set(String(tp.id), tp));
+
+      // Build fast O(1) canonical rank lookup map
+      const canonicalRankMap = new Map();
+      subjCanonicalTests.forEach((ct, idx) => {
+        if (!ct) return;
+        if (ct.id) canonicalRankMap.set(String(ct.id), idx);
+        const cl = String(ct.id || '').replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        if (cl) canonicalRankMap.set(cl, idx);
+        if (ct.name) canonicalRankMap.set(String(ct.name).trim().toLowerCase(), idx);
+      });
+
+      // Order helper to preserve canonical book / JSON sequence in O(1)
       const getTestOrderRank = (test, canonicalList = []) => {
         if (!test) return 999999;
-        if (Array.isArray(canonicalList) && canonicalList.length > 0) {
-          const tId = String(test.id || '');
-          const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-          const tUuid = toUUID(tId);
-          const tName = String(test.name || '').trim().toLowerCase();
+        const tId = String(test.id || '');
+        const tClean = tId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        const tName = String(test.name || '').trim().toLowerCase();
+
+        if (Array.isArray(canonicalList) && canonicalList.length > 0 && canonicalList !== subjCanonicalTests) {
           const foundIdx = canonicalList.findIndex(ct => {
             if (!ct) return false;
             const ctId = String(ct.id || '');
-            const ctClean = ctId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
-            if (ctId === tId || (tClean && (ctClean === tClean || ctId === tClean)) || (tUuid && ctId === tUuid)) return true;
-            return Boolean(tName && String(ct.name || '').trim().toLowerCase() === tName);
+            return ctId === tId || ctId === tClean || (tName && String(ct.name || '').trim().toLowerCase() === tName);
           });
           if (foundIdx !== -1) return foundIdx;
         }
+
+        if (canonicalRankMap.has(tId)) return canonicalRankMap.get(tId);
+        if (canonicalRankMap.has(tClean)) return canonicalRankMap.get(tClean);
+        if (canonicalRankMap.has(tName)) return canonicalRankMap.get(tName);
         if (typeof test.orderIndex === 'number') return test.orderIndex;
         if (typeof test.order === 'number') return test.order;
         return 999999;
       };
 
-      const subjCanonicalTests = subject.tests || [];
       const subjTests = (allSubjectTests || [])
         .sort((a, b) => {
-          const topA = (subject.topics || []).find(tp => String(tp.id) === String(a.topicId || a.topic_id));
-          const topB = (subject.topics || []).find(tp => String(tp.id) === String(b.topicId || b.topic_id));
+          const topA = topicMap.get(String(a.topicId || a.topic_id));
+          const topB = topicMap.get(String(b.topicId || b.topic_id));
           const topOrderA = topA?.order ?? 999;
           const topOrderB = topB?.order ?? 999;
           if (topOrderA !== topOrderB) return topOrderA - topOrderB;
@@ -709,24 +746,7 @@ export default function StudentBookDetailsPage() {
           }
         }
 
-        let testDueDate = null;
-        const matchingHw = (homeworks || []).find(hw => {
-          if (!hw.isBookAssignment && hw.sourceType !== 'trackedBook') return false;
-          if (!isHomeworkForStudent(hw, targetStudent, curData?.grades)) return false;
-          const hwBId = String(hw.bookId || hw.book_id || '');
-          const isBook = hwBId === bId || (toUUID(hwBId) && toUUID(hwBId) === toUUID(bId));
-          if (!isBook) return false;
-          const dates = hw.testDueDates || hw.scheduleDates || hw.test_due_dates || hw.raw_data?.testDueDates || hw.raw_data?.scheduleDates || {};
-          const tClean = String(t.id).replace(/^bt_/, '').replace(/^q_/, '');
-          const tUuid = toUUID(tClean);
-          return dates[t.id] || dates[tClean] || dates[`bt_${tClean}`] || (tUuid && dates[tUuid]);
-        });
-        if (matchingHw) {
-          const dates = matchingHw.testDueDates || matchingHw.scheduleDates || matchingHw.test_due_dates || matchingHw.raw_data?.testDueDates || matchingHw.raw_data?.scheduleDates || {};
-          const tClean = String(t.id).replace(/^bt_/, '').replace(/^q_/, '');
-          const tUuid = toUUID(tClean);
-          testDueDate = dates[t.id] || dates[tClean] || dates[`bt_${tClean}`] || (tUuid && dates[tUuid]) || null;
-        }
+        const testDueDate = testDueDatesMap.get(tIdStr) || testDueDatesMap.get(tCleanId) || (tUuidStr ? testDueDatesMap.get(tUuidStr) : null) || null;
 
         const isAssignedHomework = Boolean(
           bookData.isSelfAdded ||

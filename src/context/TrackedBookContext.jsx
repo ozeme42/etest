@@ -185,28 +185,32 @@ export function TrackedBookProvider({ children }) {
   }, [books]);
 
   useEffect(() => {
-    const sanitizedTests = bookTests.map(test => {
-      const copy = { ...test };
-      delete copy.submissions;
-      if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
-        copy.contentPayload = '[STORED_IN_INDEXEDDB]';
-      }
-      if (typeof copy.pdfPayload === 'string' && copy.pdfPayload.length > 500 && !copy.pdfPayload.startsWith('http')) {
-        copy.pdfPayload = '[STORED_IN_INDEXEDDB]';
-      }
-      if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
-        copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
-      }
-      return copy;
-    });
+    const timer = setTimeout(() => {
+      const sanitizedTests = bookTests.map(test => {
+        const copy = { ...test };
+        delete copy.submissions;
+        if (typeof copy.contentPayload === 'string' && copy.contentPayload.length > 500 && !copy.contentPayload.startsWith('http')) {
+          copy.contentPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        if (typeof copy.pdfPayload === 'string' && copy.pdfPayload.length > 500 && !copy.pdfPayload.startsWith('http')) {
+          copy.pdfPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        if (typeof copy.htmlPayload === 'string' && copy.htmlPayload.length > 500 && !copy.htmlPayload.startsWith('http')) {
+          copy.htmlPayload = '[STORED_IN_INDEXEDDB]';
+        }
+        return copy;
+      });
 
-    const success = safeSetItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
-    if (!success) {
-      const minimalTests = bookTests.map(t => ({
-        id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, questionType: t.questionType, optionCount: t.optionCount
-      }));
-      safeSetItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
-    }
+      const success = safeSetItem('eTestTrackedBookTests', JSON.stringify(sanitizedTests));
+      if (!success) {
+        const minimalTests = bookTests.map(t => ({
+          id: t.id, bookId: t.bookId, name: t.name, subjectId: t.subjectId, questionCount: t.questionCount, answerKey: t.answerKey, isOpenEnded: t.isOpenEnded, questionType: t.questionType, optionCount: t.optionCount
+        }));
+        safeSetItem('eTestTrackedBookTests', JSON.stringify(minimalTests));
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [bookTests]);
 
   const addTrackedBook = async (bookData) => {
