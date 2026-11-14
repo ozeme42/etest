@@ -19,7 +19,8 @@ import {
   BookOpen, Map as MapIcon, ArrowRight, BarChart2, Star, Plus, X, Target,
   CheckCircle2, Activity, Layers, Trophy, TrendingUp, Zap, Clock,
   ChevronRight, BookMarked, Search, Filter, RotateCcw, Award, Edit3, ClipboardList, User,
-  ArrowLeft, Play, Sparkles, Flame, ShieldCheck, Check, Gamepad2, LayoutGrid, PlayCircle
+  ArrowLeft, Play, Sparkles, Flame, ShieldCheck, Check, Gamepad2, LayoutGrid, PlayCircle,
+  SlidersHorizontal, ChevronDown, ChevronUp
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -244,6 +245,22 @@ export default function StudentBooksPage() {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'in_progress' | 'completed' | 'urgent'
   const [sortBy, setSortBy] = useState('progress'); // 'progress' | 'success' | 'title'
   const [subjectFilter, setSubjectFilter] = useState('all');
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== 'all') count++;
+    if (subjectFilter !== 'all') count++;
+    if (sortBy !== 'progress') count++;
+    return count;
+  }, [statusFilter, subjectFilter, sortBy]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('all');
+    setSubjectFilter('all');
+    setSortBy('progress');
+  };
   const [gameModeView, setGameModeView] = useState('quest'); // 'quest' | 'list'
   const [selectedFocusBookId, setSelectedFocusBookId] = useState(null);
   const [focusModeOnly, setFocusModeOnly] = useState(() => {
@@ -2038,153 +2055,36 @@ export default function StudentBooksPage() {
 
 
 
-            {/* ── UNIFIED SEARCH & FILTER BAR ── */}
+            {/* ── SLEEK ACTION TOOLBAR & COLLAPSIBLE FILTERS ── */}
             {assignedBooks.length > 0 && (
-              <div
-                className="game-card-elevated"
-                style={{
-                  background: 'var(--color-surface, #ffffff)',
-                  border: '1.5px solid var(--color-border, #e2e8f0)',
-                  borderRadius: 18,
-                  padding: isMobile ? '0.85rem 0.75rem' : '1rem 1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  boxShadow: isDark ? '0 6px 18px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.04)'
-                }}
-              >
-                {/* 1. Row: Status Filter Chips & Book Count */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '0.65rem'
-                }}>
-                  <div style={{
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {/* 1. Single-Line Sleek Action Toolbar */}
+                <div
+                  style={{
+                    background: 'var(--color-surface, #ffffff)',
+                    border: '1.5px solid var(--color-border, #e2e8f0)',
+                    borderRadius: 14,
+                    padding: isMobile ? '0.5rem 0.75rem' : '0.55rem 0.95rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    overflowX: 'auto',
-                    paddingBottom: 2,
-                    scrollbarWidth: 'none'
-                  }}>
-                    {[
-                      { id: 'all', label: `Tümü (${overallStats.totalBooks})`, icon: '📚' },
-                      { id: 'in_progress', label: `Devam Edenler (${overallStats.inProgressBooks})`, icon: '⚡' },
-                      { id: 'completed', label: `Tamamlananlar (${overallStats.completedBooks})`, icon: '🏆' },
-                      ...(overallStats.urgentBooks > 0 ? [{ id: 'urgent', label: `Hedef Yaklaşan (${overallStats.urgentBooks})`, icon: '🔥' }] : [])
-                    ].map(chip => {
-                      const isSelected = statusFilter === chip.id;
-                      return (
-                        <button
-                          key={chip.id}
-                          onClick={() => setStatusFilter(chip.id)}
-                          className="filter-chip-pill"
-                          style={{
-                            background: isSelected
-                              ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                              : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
-                            color: isSelected ? '#ffffff' : 'var(--color-text-secondary)',
-                            border: isSelected ? '1px solid #818cf8' : '1px solid var(--color-border)',
-                            borderRadius: 10,
-                            padding: isMobile ? '0.38rem 0.65rem' : '0.45rem 0.85rem',
-                            fontWeight: 800,
-                            fontSize: isMobile ? '0.72rem' : '0.78rem',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            whiteSpace: 'nowrap',
-                            boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none'
-                          }}
-                        >
-                          <span>{chip.icon}</span>
-                          <span>{chip.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', marginLeft: isMobile ? 'auto' : 0 }}>
-                    {displayedBooks.length} kitap listeleniyor
-                  </span>
-                </div>
-
-                {/* 2. Row: Subject Category Chips (if any) */}
-                {availableSubjects.length > 0 && (
+                    justifyContent: 'space-between',
+                    gap: '0.65rem',
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
+                    boxShadow: isDark ? '0 4px 14px rgba(0,0,0,0.2)' : '0 2px 8px rgba(0,0,0,0.03)'
+                  }}
+                >
+                  {/* Left: Compact Search Box */}
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    overflowX: 'auto',
-                    paddingBottom: 2,
-                    scrollbarWidth: 'none'
+                    position: 'relative',
+                    flex: isMobile ? '1 1 100%' : '1 1 280px',
+                    minWidth: isMobile ? '100%' : 220,
+                    maxWidth: isMobile ? '100%' : 380
                   }}>
-                    <button
-                      onClick={() => setSubjectFilter('all')}
-                      className="filter-chip-pill"
-                      style={{
-                        background: subjectFilter === 'all'
-                          ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-                          : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
-                        color: subjectFilter === 'all' ? '#ffffff' : 'var(--color-text)',
-                        border: subjectFilter === 'all' ? '1px solid #38bdf8' : '1px solid var(--color-border)',
-                        borderRadius: 10,
-                        padding: '0.36rem 0.75rem',
-                        fontWeight: 800,
-                        fontSize: '0.74rem',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        boxShadow: subjectFilter === 'all' ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
-                      }}
-                    >
-                      🎯 Tüm Dersler
-                    </button>
-                    {availableSubjects.map(subj => {
-                      const isSel = subjectFilter.toLowerCase() === subj.toLowerCase();
-                      return (
-                        <button
-                          key={subj}
-                          onClick={() => setSubjectFilter(isSel ? 'all' : subj)}
-                          className="filter-chip-pill"
-                          style={{
-                            background: isSel
-                              ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-                              : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
-                            color: isSel ? '#ffffff' : 'var(--color-text)',
-                            border: isSel ? '1px solid #38bdf8' : '1px solid var(--color-border)',
-                            borderRadius: 10,
-                            padding: '0.36rem 0.75rem',
-                            fontWeight: 800,
-                            fontSize: '0.74rem',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
-                          }}
-                        >
-                          {subj}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* 3. Row: Search & Sort Tools */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '0.65rem'
-                }}>
-                  {/* Search Input */}
-                  <div style={{ position: 'relative', flex: isMobile ? '1 1 100%' : '1 1 260px' }}>
                     <Search
-                      size={15}
+                      size={14}
                       style={{
                         position: 'absolute',
-                        left: 12,
+                        left: 11,
                         top: '50%',
                         transform: 'translateY(-50%)',
                         color: 'var(--color-text-muted)'
@@ -2196,61 +2096,368 @@ export default function StudentBooksPage() {
                       placeholder="Kitap veya yayınevi ara..."
                       style={{
                         width: '100%',
-                        paddingLeft: 34,
-                        paddingRight: 12,
-                        paddingTop: isMobile ? 8 : 9,
-                        paddingBottom: isMobile ? 8 : 9,
-                        borderRadius: 12,
-                        border: '1.5px solid var(--color-border-input)',
-                        fontSize: isMobile ? '0.8rem' : '0.86rem',
+                        paddingLeft: 32,
+                        paddingRight: searchQuery ? 30 : 12,
+                        paddingTop: 7,
+                        paddingBottom: 7,
+                        borderRadius: 10,
+                        border: '1px solid var(--color-border-input, #cbd5e1)',
+                        fontSize: '0.8rem',
                         fontWeight: 700,
-                        background: 'var(--color-surface)',
+                        background: isDark ? 'rgba(255,255,255,0.04)' : '#f8fafc',
                         outline: 'none',
                         color: 'var(--color-text)',
                         boxSizing: 'border-box'
                       }}
                     />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          position: 'absolute',
+                          right: 8,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--color-text-muted)',
+                          padding: 2,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                        title="Aramayı temizle"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
                   </div>
 
-                  {/* Sort Pills */}
+                  {/* Right Side: Active Badges, Filter Toggle, Book Count */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
-                    background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
-                    padding: 3,
-                    borderRadius: 11,
-                    border: '1px solid var(--color-border)',
-                    flex: isMobile ? '1 1 auto' : 'none'
+                    gap: 6,
+                    flexWrap: 'wrap',
+                    justifyContent: isMobile ? 'space-between' : 'flex-end',
+                    width: isMobile ? '100%' : 'auto'
                   }}>
-                    {[
-                      { key: 'progress', label: '📊 İlerleme' },
-                      { key: 'success', label: '🏆 Başarı' },
-                      { key: 'title', label: '🔤 A-Z' },
-                    ].map(s => (
-                      <button
-                        key={s.key}
-                        onClick={() => setSortBy(s.key)}
+                    {/* Active Filter Quick Badges */}
+                    {statusFilter !== 'all' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(99, 102, 241, 0.12)',
+                        color: '#6366f1',
+                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                        borderRadius: 8,
+                        padding: '2px 7px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800
+                      }}>
+                        {statusFilter === 'in_progress' ? '⚡ Devam Edenler' : statusFilter === 'completed' ? '🏆 Tamamlananlar' : '🔥 Hedef Yaklaşan'}
+                        <X size={11} style={{ cursor: 'pointer' }} onClick={() => setStatusFilter('all')} />
+                      </span>
+                    )}
+
+                    {subjectFilter !== 'all' && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: 'rgba(2, 132, 199, 0.12)',
+                        color: '#0284c7',
+                        border: '1px solid rgba(2, 132, 199, 0.3)',
+                        borderRadius: 8,
+                        padding: '2px 7px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800
+                      }}>
+                        🎯 {subjectFilter}
+                        <X size={11} style={{ cursor: 'pointer' }} onClick={() => setSubjectFilter('all')} />
+                      </span>
+                    )}
+
+                    {/* Filter Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => setIsFilterPanelOpen(prev => !prev)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '0.42rem 0.75rem',
+                        borderRadius: 10,
+                        border: isFilterPanelOpen
+                          ? '1.5px solid #6366f1'
+                          : (activeFilterCount > 0 ? '1.5px solid #818cf8' : '1px solid var(--color-border)'),
+                        background: isFilterPanelOpen
+                          ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                          : (activeFilterCount > 0 ? 'rgba(99, 102, 241, 0.1)' : 'var(--color-surface-hover, #f1f5f9)'),
+                        color: isFilterPanelOpen ? '#ffffff' : (activeFilterCount > 0 ? '#6366f1' : 'var(--color-text)'),
+                        fontWeight: 800,
+                        fontSize: '0.76rem',
+                        cursor: 'pointer',
+                        boxShadow: isFilterPanelOpen ? '0 2px 8px rgba(99, 102, 241, 0.3)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <SlidersHorizontal size={13} />
+                      <span>Filtreler & Sıralama</span>
+                      {activeFilterCount > 0 && (
+                        <span style={{
+                          background: isFilterPanelOpen ? '#ffffff' : '#6366f1',
+                          color: isFilterPanelOpen ? '#4f46e5' : '#ffffff',
+                          borderRadius: 99,
+                          padding: '0 5px',
+                          fontSize: '0.64rem',
+                          fontWeight: 900
+                        }}>
+                          {activeFilterCount}
+                        </span>
+                      )}
+                      <ChevronDown
+                        size={13}
                         style={{
-                          flex: isMobile ? 1 : 'none',
-                          padding: isMobile ? '0.35rem 0.55rem' : '0.4rem 0.85rem',
-                          borderRadius: 8,
-                          border: 'none',
-                          fontWeight: 800,
-                          fontSize: isMobile ? '0.7rem' : '0.76rem',
-                          cursor: 'pointer',
-                          background: sortBy === s.key ? '#6366f1' : 'transparent',
-                          color: sortBy === s.key ? '#ffffff' : 'var(--color-text-muted)',
-                          boxShadow: sortBy === s.key ? '0 2px 6px rgba(99, 102, 241, 0.3)' : 'none',
-                          whiteSpace: 'nowrap',
-                          transition: 'all 0.15s ease'
+                          transform: isFilterPanelOpen ? 'rotate(180deg)' : 'none',
+                          transition: 'transform 0.2s ease'
                         }}
+                      />
+                    </button>
+
+                    {/* Reset Button (only if filters active) */}
+                    {(activeFilterCount > 0 || searchQuery) && (
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '0.42rem 0.6rem',
+                          borderRadius: 10,
+                          border: '1px solid var(--color-border)',
+                          background: 'transparent',
+                          color: 'var(--color-text-muted)',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                        title="Tüm filtreleri temizle"
                       >
-                        {s.label}
+                        <RotateCcw size={11} />
+                        <span>Sıfırla</span>
                       </button>
-                    ))}
+                    )}
+
+                    {/* Count */}
+                    <span style={{
+                      fontSize: '0.74rem',
+                      fontWeight: 800,
+                      color: 'var(--color-text-muted)',
+                      paddingLeft: 4,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {displayedBooks.length} kitap
+                    </span>
                   </div>
                 </div>
+
+                {/* 2. Expandable Filter & Sort Drawer */}
+                {isFilterPanelOpen && (
+                  <div
+                    style={{
+                      background: 'var(--color-surface, #ffffff)',
+                      border: '1.5px solid var(--color-border, #e2e8f0)',
+                      borderRadius: 14,
+                      padding: isMobile ? '0.85rem' : '1rem 1.15rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.85rem',
+                      boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.06)',
+                      animation: 'fadeIn 0.2s ease'
+                    }}
+                  >
+                    {/* Status Filter Row */}
+                    <div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: 6 }}>
+                        📌 Kitap Durumu
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {[
+                          { id: 'all', label: `Tümü (${overallStats.totalBooks})`, icon: '📚' },
+                          { id: 'in_progress', label: `Devam Edenler (${overallStats.inProgressBooks})`, icon: '⚡' },
+                          { id: 'completed', label: `Tamamlananlar (${overallStats.completedBooks})`, icon: '🏆' },
+                          ...(overallStats.urgentBooks > 0 ? [{ id: 'urgent', label: `Hedef Yaklaşan (${overallStats.urgentBooks})`, icon: '🔥' }] : [])
+                        ].map(chip => {
+                          const isSel = statusFilter === chip.id;
+                          return (
+                            <button
+                              key={chip.id}
+                              type="button"
+                              onClick={() => setStatusFilter(chip.id)}
+                              style={{
+                                background: isSel
+                                  ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                                  : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
+                                color: isSel ? '#ffffff' : 'var(--color-text)',
+                                border: isSel ? '1px solid #818cf8' : '1px solid var(--color-border)',
+                                borderRadius: 9,
+                                padding: '0.35rem 0.75rem',
+                                fontWeight: 800,
+                                fontSize: '0.74rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                boxShadow: isSel ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <span>{chip.icon}</span>
+                              <span>{chip.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Subject Filter Row */}
+                    {availableSubjects.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--color-text-muted)', marginBottom: 6 }}>
+                          🎯 Ders Filtresi
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => setSubjectFilter('all')}
+                            style={{
+                              background: subjectFilter === 'all'
+                                ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                                : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
+                              color: subjectFilter === 'all' ? '#ffffff' : 'var(--color-text)',
+                              border: subjectFilter === 'all' ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                              borderRadius: 9,
+                              padding: '0.35rem 0.75rem',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              boxShadow: subjectFilter === 'all' ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                            }}
+                          >
+                            🎯 Tüm Dersler
+                          </button>
+                          {availableSubjects.map(subj => {
+                            const isSel = subjectFilter.toLowerCase() === subj.toLowerCase();
+                            return (
+                              <button
+                                key={subj}
+                                type="button"
+                                onClick={() => setSubjectFilter(isSel ? 'all' : subj)}
+                                style={{
+                                  background: isSel
+                                    ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                                    : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
+                                  color: isSel ? '#ffffff' : 'var(--color-text)',
+                                  border: isSel ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                                  borderRadius: 9,
+                                  padding: '0.35rem 0.75rem',
+                                  fontWeight: 800,
+                                  fontSize: '0.74rem',
+                                  cursor: 'pointer',
+                                  boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                                }}
+                              >
+                                {subj}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sort Options & Close Footer */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                      paddingTop: 6,
+                      borderTop: '1px solid var(--color-border)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 900, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginRight: 2 }}>
+                          🔤 Sırala:
+                        </span>
+                        {[
+                          { key: 'progress', label: '📊 İlerleme' },
+                          { key: 'success', label: '🏆 Başarı' },
+                          { key: 'title', label: '🔤 A-Z' },
+                        ].map(s => (
+                          <button
+                            key={s.key}
+                            type="button"
+                            onClick={() => setSortBy(s.key)}
+                            style={{
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: 8,
+                              border: sortBy === s.key ? '1px solid #818cf8' : '1px solid var(--color-border)',
+                              fontWeight: 800,
+                              fontSize: '0.72rem',
+                              cursor: 'pointer',
+                              background: sortBy === s.key ? '#6366f1' : (isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'),
+                              color: sortBy === s.key ? '#ffffff' : 'var(--color-text-muted)',
+                              boxShadow: sortBy === s.key ? '0 2px 6px rgba(99, 102, 241, 0.3)' : 'none'
+                            }}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                        {(activeFilterCount > 0 || searchQuery) && (
+                          <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            style={{
+                              padding: '0.3rem 0.7rem',
+                              borderRadius: 8,
+                              border: '1px solid var(--color-border)',
+                              background: 'transparent',
+                              color: 'var(--color-text-muted)',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Temizle
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setIsFilterPanelOpen(false)}
+                          style={{
+                            padding: '0.3rem 0.75rem',
+                            borderRadius: 8,
+                            border: 'none',
+                            background: 'var(--color-surface-hover, #e2e8f0)',
+                            color: 'var(--color-text)',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Tamam
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
