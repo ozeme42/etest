@@ -359,13 +359,21 @@ export default function StudentBooksPage() {
 
   // 2. Student Submissions
   const studentSubmissions = useMemo(() => {
-    const list = submissions.filter(s => {
-      if (!s || isDeletedItem(s)) return false;
+    const seenSubKeys = new Set();
+    const list = [];
+
+    (submissions || []).forEach(s => {
+      if (!s || isDeletedItem(s)) return;
       const sId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
       const isMatchStudent = allStudentIds.has(sId) || (toUUID(sId) && allStudentIds.has(toUUID(sId)));
-      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return false;
-      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
-      return true;
+      if (!isMatchStudent || s.status === 'in_progress' || s.status === 'draft') return;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return;
+
+      list.push(s);
+      if (s.id) seenSubKeys.add(String(s.id));
+      if (s.test_id) seenSubKeys.add(`test_${s.test_id}`);
+      if (s.testId) seenSubKeys.add(`test_${s.testId}`);
+      if (s.bookTestId) seenSubKeys.add(`test_${s.bookTestId}`);
     });
 
     (homeworks || []).forEach(hw => {
@@ -375,8 +383,18 @@ export default function StudentBooksPage() {
         const sId = String(sub.studentId || sub.student_id || sub.userId || sub.user_id || '');
         const isMatchStudent = allStudentIds.has(sId) || (toUUID(sId) && allStudentIds.has(toUUID(sId)));
         if (isMatchStudent && sub.status !== 'in_progress' && sub.status !== 'draft') {
-          if (!list.some(x => (x.id && x.id === sub.id) || (x.test_id && (x.test_id === sub.testId || x.test_id === sub.bookTestId)))) {
+          const subId = sub.id ? String(sub.id) : null;
+          const subTId = sub.testId ? `test_${sub.testId}` : (sub.test_id ? `test_${sub.test_id}` : null);
+          const subBtId = sub.bookTestId ? `test_${sub.bookTestId}` : null;
+
+          const isAlreadyAdded = (subId && seenSubKeys.has(subId)) ||
+                                 (subTId && seenSubKeys.has(subTId)) ||
+                                 (subBtId && seenSubKeys.has(subBtId));
+          if (!isAlreadyAdded) {
             list.push(sub);
+            if (subId) seenSubKeys.add(subId);
+            if (subTId) seenSubKeys.add(subTId);
+            if (subBtId) seenSubKeys.add(subBtId);
           }
         }
       });
@@ -487,7 +505,13 @@ export default function StudentBooksPage() {
         if (!id) return;
         const strId = String(id);
         const cleanId = strId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        const u = toUUID(strId);
         
+        // Direct ID lookup (unconditional O(1) match)
+        if (!solvedSubsMap.has(strId)) solvedSubsMap.set(strId, s);
+        if (cleanId && !solvedSubsMap.has(cleanId)) solvedSubsMap.set(cleanId, s);
+        if (u && !solvedSubsMap.has(u)) solvedSubsMap.set(u, s);
+
         // Book & Topic scoped indexing
         if (sBId) {
           if (sTopicId) {
@@ -507,9 +531,16 @@ export default function StudentBooksPage() {
           if (cleanId && cleanId !== strId) {
             solvedSubsMap.set(`${sBId}:::${cleanId}`, s);
           }
-          const u = toUUID(strId);
           if (u) {
             solvedSubsMap.set(`${sBId}:::${u}`, s);
+          }
+
+          const sBUuid = toUUID(sBId);
+          if (sBUuid && sBUuid !== sBId) {
+            solvedSubsMap.set(`${sBUuid}:::${strId}`, s);
+            if (cleanId && cleanId !== strId) {
+              solvedSubsMap.set(`${sBUuid}:::${cleanId}`, s);
+            }
           }
         }
       });
@@ -553,20 +584,40 @@ export default function StudentBooksPage() {
       const testsInBook = Array.from(deduplicatedMap.values());
       const totalBookTests = testsInBook.length > 0 ? testsInBook.length : (b.total_tests || b.totalTests || 1);
 
+      // Build quick lookup sets for tests and subjects in this book
+      const bookTestIdsSet = new Set();
+      testsInBook.forEach(t => {
+        const idStr = String(t.id);
+        const clean = idStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        bookTestIdsSet.add(idStr);
+        bookTestIdsSet.add(clean);
+        const u = toUUID(idStr);
+        if (u) bookTestIdsSet.add(u);
+      });
+      const bookSubjectNamesSet = new Set(subjects.map(s => normClean(s.name)).filter(Boolean));
+
       // Pre-filter submissions for this book for massive speedup
       const bookSubs = (studentSubmissions || []).filter(s => {
         const sBId = String(s.bookId || s.metadata?.bookId || '');
-        if (!sBId) return true;
-        return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
-      });
-      const unmatchedSubs = new Set(bookSubs);
+        if (sBId) {
+          return sBId === bId || (bUuid && toUUID(sBId) === bUuid);
+        }
+        // Submissions without explicit bookId
+        const sTestId = String(s.testId || s.test_id || s.bookTestId || s.realTestId || s.metadata?.testId || '');
+        const sClean = sTestId.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
+        if (sTestId && (bookTestIdsSet.has(sTestId) || bookTestIdsSet.has(sClean))) return true;
 
-      let totalCorrect = 0;
-      let totalWrong = 0;
-      let totalBlank = 0;
-      let totalSolvedTests = 0;
-      let nextIncompleteTest = null;
-      const incompleteTests = [];
+        const sBookTitle = normClean(s.bookTitle || s.metadata?.bookTitle || '');
+        if (sBookTitle && normClean(b.title).includes(sBookTitle)) return true;
+
+        const sSubj = normClean(s.subject || s.subjectName || s.metadata?.subject || s.metadata?.subjectName || s.lesson || '');
+        if (sSubj && bookSubjectNamesSet.has(sSubj)) return true;
+
+        return false;
+      });
+
+      const matchedSubByTestId = new Map();
+      const unmatchedSubs = new Set(bookSubs);
 
       const subjectsMap = new Map();
       const topicsMap = new Map();
@@ -577,7 +628,8 @@ export default function StudentBooksPage() {
         });
       });
 
-      testsInBook.forEach(t => {
+      // Contextualize tests & try O(1) candidate lookup
+      const contextualTestsInBook = testsInBook.map(t => {
         const tSubjId = String(t.subject_id || t.subjectId || '');
         const tTopId = String(t.topic_id || t.topicId || '');
         const parentSubj = tSubjId ? subjectsMap.get(tSubjId) : null;
@@ -596,7 +648,6 @@ export default function StudentBooksPage() {
         const tIdStr = String(t.id);
         const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '').replace(/^tbt_/, '');
         const tUuid = toUUID(tIdStr);
-        const tCleanUuid = toUUID(tCleanId);
         const tCompKey = createCompositeTestKey(b.title, contextualTest.subject, contextualTest.unit, t.name || t.title);
 
         const bTopicId = String(tTopId || parentTopic?.id || '').trim();
@@ -609,6 +660,8 @@ export default function StudentBooksPage() {
                              (tUuid ? solvedSubsMap.get(`${bId}:::${tUuid}`) : null) ||
                              (bUuid ? solvedSubsMap.get(`${bUuid}:::${tIdStr}`) : null) ||
                              (bUuid ? solvedSubsMap.get(`${bUuid}:::${tCleanId}`) : null) ||
+                             solvedSubsMap.get(tIdStr) ||
+                             solvedSubsMap.get(tCleanId) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tIdStr}`)) ||
                              (bTopicId && solvedSubsMap.get(`${bId}:::top_${bTopicId}:::${tCleanId}`)) ||
                              (bTopicName && solvedSubsMap.get(`${bId}:::top_${bTopicName}:::${tIdStr}`)) ||
@@ -616,17 +669,34 @@ export default function StudentBooksPage() {
                              (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tIdStr}`)) ||
                              (bTopicNum && solvedSubsMap.get(`${bId}:::u${bTopicNum}:::${tCleanId}`));
 
-        let bestSub = null;
         if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
-          bestSub = candidateSub;
+          matchedSubByTestId.set(t.id, candidateSub);
           unmatchedSubs.delete(candidateSub);
-        } else if (unmatchedSubs.size > 0) {
-          const matching = Array.from(unmatchedSubs).filter(sub => isSubmissionMatchingBookTest(sub, contextualTest, testsInBook, books));
-          if (matching.length > 0) {
-            bestSub = matching.reduce((prev, curr) => ((curr.score || 0) > (prev.score || 0) ? curr : prev), matching[0]);
-            matching.forEach(m => unmatchedSubs.delete(m));
+        }
+
+        return contextualTest;
+      });
+
+      // Quick fallback ONLY for the few remaining unmatched submissions (runs at most once per unmatched sub, not per test!)
+      if (unmatchedSubs.size > 0) {
+        for (const sub of Array.from(unmatchedSubs)) {
+          const matchedTest = contextualTestsInBook.find(t => !matchedSubByTestId.has(t.id) && isSubmissionMatchingBookTest(sub, t, testsInBook, books));
+          if (matchedTest) {
+            matchedSubByTestId.set(matchedTest.id, sub);
+            unmatchedSubs.delete(sub);
           }
         }
+      }
+
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalBlank = 0;
+      let totalSolvedTests = 0;
+      let nextIncompleteTest = null;
+      const incompleteTests = [];
+
+      contextualTestsInBook.forEach(contextualTest => {
+        const bestSub = matchedSubByTestId.get(contextualTest.id) || null;
 
         if (bestSub) {
           totalSolvedTests++;
@@ -1079,7 +1149,7 @@ export default function StudentBooksPage() {
       sortedReasons,
       questionsList
     };
-  }, [submissions, overallStats.totalY, overallStats.totalB, homeworks, allStudentIds]);
+  }, [activeTab, submissions, overallStats.totalY, overallStats.totalB, homeworks, allStudentIds]);
 
   if (!currentUser) return null;
 

@@ -181,7 +181,45 @@ export function TrackedBookProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    safeSetItem('eTestTrackedBooks', JSON.stringify(books));
+    const timer = setTimeout(() => {
+      const sanitizedBooks = (books || []).map(book => {
+        if (!book) return book;
+        const copy = { ...book };
+        if (Array.isArray(copy.subjects)) {
+          copy.subjects = copy.subjects.map(subj => {
+            if (!subj) return subj;
+            const subjCopy = { ...subj };
+            if (Array.isArray(subjCopy.topics)) {
+              subjCopy.topics = subjCopy.topics.map(top => {
+                if (!top) return top;
+                const topCopy = { ...top };
+                if (Array.isArray(topCopy.tests)) {
+                  topCopy.tests = topCopy.tests.map(t => {
+                    if (!t) return t;
+                    const { questionsList, questions_list, contentPayload, pdfPayload, htmlPayload, ...restTest } = t;
+                    return restTest;
+                  });
+                }
+                if (Array.isArray(topCopy.activities)) {
+                  topCopy.activities = topCopy.activities.map(act => {
+                    if (!act) return act;
+                    const { questionsList, questions_list, contentPayload, pdfPayload, htmlPayload, ...restAct } = act;
+                    return restAct;
+                  });
+                }
+                return topCopy;
+              });
+            }
+            return subjCopy;
+          });
+        }
+        return copy;
+      });
+
+      safeSetItem('eTestTrackedBooks', JSON.stringify(sanitizedBooks));
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, [books]);
 
   useEffect(() => {
