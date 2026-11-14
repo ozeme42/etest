@@ -749,6 +749,10 @@ export default function StudentBookDetailsPage() {
           }
         }
 
+        const tIdStr = String(contextualTest.id);
+        const tCleanId = tIdStr.replace(/^bt_/, '').replace(/^q_/, '');
+        const tUuidStr = String(toUUID(contextualTest.id) || '');
+
         const testDueDate = testDueDatesMap.get(tIdStr) || testDueDatesMap.get(tCleanId) || (tUuidStr ? testDueDatesMap.get(tUuidStr) : null) || null;
 
         const isAssignedHomework = Boolean(
@@ -763,7 +767,7 @@ export default function StudentBookDetailsPage() {
         const isLocked = !isTeacherViewing && currentUser?.role === 'student' && !isAssignedHomework;
 
         return {
-          ...t,
+          ...contextualTest,
           index: index + 1,
           isCompleted,
           isPendingApproval: false,
