@@ -1002,161 +1002,82 @@ export default function StudentBooksPage() {
         .filter-chip-pill:hover {
           transform: translateY(-1px);
         }
+        .sbp-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          width: 100%;
+        }
+        .sbp-stat-item {
+          border-right: 1px solid rgba(255, 255, 255, 0.18);
+          padding: 1rem 0.75rem;
+          text-align: center;
+          box-sizing: border-box;
+          transition: background 0.2s ease;
+        }
+        .sbp-stat-item:last-child {
+          border-right: none;
+        }
+        @media (max-width: 640px) {
+          .sbp-stats-grid {
+            grid-template-columns: repeat(6, 1fr);
+          }
+          .sbp-stat-kitap {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.75rem 0.35rem;
+          }
+          .sbp-stat-test {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.75rem 0.35rem;
+          }
+          .sbp-stat-dogru {
+            grid-column: span 2;
+            grid-row: 1;
+            border-right: none;
+            padding: 0.75rem 0.35rem;
+          }
+          .sbp-stat-yanlis {
+            grid-column: span 3;
+            grid-row: 2;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.75rem 0.5rem;
+          }
+          .sbp-stat-basari {
+            grid-column: span 3;
+            grid-row: 2;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-right: none;
+            padding: 0.75rem 0.5rem;
+          }
+        }
       `}</style>
 
       <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
 
-        {/* ── TOP ACTION BAR (Öğrenci Paneli & Çalışma Odası & Manuel Giriş) ── */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.65rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => navigate('/student')}
-              className="game-btn-3d"
-              style={{
-                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
-                border: isDark ? '1px solid rgba(255,255,255,0.15)' : '1.5px solid #e2e8f0',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 800,
-                fontSize: isMobile ? '0.78rem' : '0.84rem',
-                color: isDark ? '#ffffff' : '#334155',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-              }}
-            >
-              <ArrowLeft size={16} />
-              <span>Öğrenci Paneli</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/study-room')}
-              className="game-btn-3d"
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                border: 'none',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 900,
-                fontSize: isMobile ? '0.78rem' : '0.84rem',
-                color: '#ffffff',
-                boxShadow: '0 3px 10px rgba(245,158,11,0.35)'
-              }}
-            >
-              <Play size={13} fill="#ffffff" />
-              <span>Çalışma Odası</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/my-program')}
-              className="game-btn-3d"
-              style={{
-                background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
-                border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 800,
-                fontSize: isMobile ? '0.78rem' : '0.84rem',
-                color: isDark ? '#ffffff' : '#334155',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-              }}
-            >
-              <Activity size={16} color="#6366f1" />
-              <span>Haftalık Program</span>
-            </button>
-
-            {/* Odak Modu Toggle Button */}
-            <button
-              onClick={handleToggleFocusMode}
-              className="game-btn-3d"
-              style={{
-                background: focusModeOnly
-                  ? 'linear-gradient(135deg, #10b981, #059669)'
-                  : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
-                border: focusModeOnly ? 'none' : (isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1'),
-                borderRadius: '0.75rem',
-                padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontWeight: 900,
-                fontSize: isMobile ? '0.78rem' : '0.84rem',
-                color: focusModeOnly ? '#ffffff' : (isDark ? '#ffffff' : '#334155'),
-                boxShadow: focusModeOnly ? '0 3px 12px rgba(16, 185, 129, 0.45)' : '0 2px 8px rgba(0,0,0,0.04)'
-              }}
-              title="Sadece seçili kitaba odaklanmak için tıkla"
-            >
-              <Target size={15} color={focusModeOnly ? '#ffffff' : '#10b981'} />
-              <span>{focusModeOnly ? '🎯 Odak Modu Açık' : '🎯 Odak Modu'}</span>
-            </button>
-
-            {/* Quest vs List Mode Switcher */}
-            {!focusModeOnly && (
-              <button
-                onClick={() => setGameModeView(prev => prev === 'quest' ? 'list' : 'quest')}
-                className="game-btn-3d"
-                style={{
-                  background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
-                  border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1',
-                  borderRadius: '0.75rem',
-                  padding: isMobile ? '0.42rem 0.75rem' : '0.5rem 1rem',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontWeight: 800,
-                  fontSize: isMobile ? '0.78rem' : '0.84rem',
-                  color: isDark ? '#ffffff' : '#334155',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                }}
-                title={gameModeView === 'quest' ? 'Liste Görünümüne Geç' : 'Oyun Kartları Görünümüne Geç'}
-              >
-                {gameModeView === 'quest' ? (
-                  <>
-                    <LayoutGrid size={15} color="#8b5cf6" />
-                    <span>📋 Liste</span>
-                  </>
-                ) : (
-                  <>
-                    <Gamepad2 size={15} color="#8b5cf6" />
-                    <span>🎮 Oyun Kartları</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          {/* Teacher/Admin Student Selector */}
-          {currentUser?.role !== 'student' && studentMembers.length > 0 && (
+        {/* ── TEACHER / ADMIN STUDENT SELECTOR (IF APPLICABLE) ── */}
+        {currentUser?.role !== 'student' && studentMembers.length > 0 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            marginBottom: '0.2rem'
+          }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 8,
               background: 'var(--color-surface)',
               border: '1.5px solid var(--color-border)',
               borderRadius: 12,
-              padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.8rem',
+              padding: isMobile ? '0.35rem 0.65rem' : '0.4rem 0.85rem',
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
             }}>
               <User size={15} style={{ color: '#6366f1', flexShrink: 0 }} />
-              <label style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Öğrenci:</label>
+              <label style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>Öğrenci Seçimi:</label>
               <select
                 value={activeStudent?.id || ''}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
@@ -1165,7 +1086,7 @@ export default function StudentBooksPage() {
                   border: 'none',
                   color: 'var(--color-text)',
                   fontWeight: 800,
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   cursor: 'pointer',
                   outline: 'none'
                 }}
@@ -1177,8 +1098,8 @@ export default function StudentBooksPage() {
                 ))}
               </select>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {focusModeOnly ? (
           <div className="books-anim-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -1222,7 +1143,29 @@ export default function StudentBooksPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/student')}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 10,
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                >
+                  <ArrowLeft size={14} />
+                  <span>Öğrenci Paneli</span>
+                </button>
+
                 <button
                   onClick={() => setIsManualTestModalOpen(true)}
                   className="game-btn-3d"
@@ -1672,333 +1615,342 @@ export default function StudentBooksPage() {
           </div>
         ) : (
           <>
-            {/* ── GAMIFIED HERO BENTO CARD ── */}
-        <div
-          className="game-card-elevated"
-          style={{
-            background: 'var(--color-surface, #ffffff)',
-            border: '1.5px solid var(--color-border, #e2e8f0)',
-            borderRadius: 22,
-            padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-            boxShadow: isDark ? '0 10px 30px rgba(0, 0, 0, 0.4)' : '0 8px 24px rgba(99, 102, 241, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.1rem'
-          }}
-        >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            {/* Title & Avatar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-              <div style={{
-                width: isMobile ? 44 : 52,
-                height: isMobile ? 44 : 52,
-                borderRadius: 16,
-                background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                color: '#ffffff',
-                boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
-                flexShrink: 0
-              }}>
-                📚
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: isMobile ? '1.15rem' : '1.45rem',
-                    fontWeight: 900,
-                    color: 'var(--color-text)',
-                    fontFamily: "'Outfit', sans-serif",
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.2
-                  }}>
-                    Soru Bankaları & Takip Kitapları Haritası 🗺️
-                  </h1>
-                  <span style={{
-                    fontSize: '0.68rem',
-                    fontWeight: 900,
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    background: 'linear-gradient(135deg, #0891b2, #06b6d4)',
-                    color: '#ffffff',
-                    boxShadow: '0 2px 8px rgba(6, 182, 212, 0.3)'
-                  }}>
-                    ODAKLI MOD
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 3 }}>
-                  Merhaba <strong>{studentDisplayName.split(' ')[0]}</strong> 👋 • Kitap testlerini adım adım bitir ve seviye atla!
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Action 3D Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setIsManualTestModalOpen(true)}
-                className="game-btn-3d game-btn-primary"
+            {/* 🌟 MODERN HERO BANNER WITH BOLD TYPOGRAPHY & INTEGRATED STATS BAR 🌟 */}
+            <div
+              className="sbdp-anim"
+              style={{
+                borderRadius: '1.75rem',
+                overflow: 'hidden',
+                boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.45)' : '0 8px 30px rgba(0,0,0,0.08)',
+                border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0'
+              }}
+            >
+              <div
+                className="sbdp-hero-box"
                 style={{
-                  borderRadius: 14,
-                  padding: isMobile ? '0.48rem 0.85rem' : '0.55rem 1.15rem',
-                  fontSize: isMobile ? '0.78rem' : '0.84rem',
-                  fontWeight: 900,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-                title="Manuel Optik / Test Sonucu Girişi Yap"
-              >
-                <Edit3 size={16} strokeWidth={2.6} />
-                <span>Manuel Test Gir</span>
-              </button>
-
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="game-btn-3d game-btn-emerald"
-                style={{
-                  borderRadius: 14,
-                  padding: isMobile ? '0.48rem 0.85rem' : '0.55rem 1.15rem',
-                  fontSize: isMobile ? '0.78rem' : '0.84rem',
-                  fontWeight: 900,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+                  padding: isMobile ? '1.15rem 1rem' : '1.75rem 2.25rem',
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
               >
-                <Plus size={16} strokeWidth={2.8} />
-                <span>Kendi Kitabını Ekle</span>
-              </button>
-            </div>
-          </div>
+                {/* Glowing ambient circles */}
+                <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(99, 102, 241, 0.18)', filter: 'blur(30px)', pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', bottom: -70, left: '20%', width: 240, height: 240, borderRadius: '50%', background: 'rgba(14, 165, 233, 0.14)', filter: 'blur(40px)', pointerEvents: 'none' }} />
 
-          {/* Gamified Bento KPI Pills */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, minmax(0, 1fr))',
-            gap: isMobile ? '0.55rem' : '0.85rem'
-          }}>
-            {/* 1. Toplam Kitap */}
-            <div style={{
-              background: isDark ? 'rgba(59, 130, 246, 0.1)' : '#eff6ff',
-              border: isDark ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid #bfdbfe',
-              borderRadius: 14,
-              padding: isMobile ? '0.6rem 0.55rem' : '0.8rem 1rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                fontWeight: 900,
-                color: isDark ? '#93c5fd' : '#2563eb',
-                lineHeight: 1
-              }}>
-                {overallStats.totalBooks}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.66rem' : '0.74rem',
-                color: 'var(--color-text)',
-                fontWeight: 800,
-                marginTop: 3,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                Toplam Kitap
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                color: 'var(--color-text-muted)',
-                fontWeight: 600,
-                marginTop: 2
-              }}>
-                {overallStats.completedBooks} Tamamlandı
-              </div>
-            </div>
-
-            {/* 2. Genel Başarı */}
-            <div style={{
-              background: isDark ? 'rgba(16, 185, 129, 0.1)' : '#ecfdf5',
-              border: isDark ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid #bbf7d0',
-              borderRadius: 14,
-              padding: isMobile ? '0.6rem 0.55rem' : '0.8rem 1rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                fontWeight: 900,
-                color: isDark ? '#34d399' : '#059669',
-                lineHeight: 1
-              }}>
-                %{overallStats.successRate}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.66rem' : '0.74rem',
-                color: 'var(--color-text)',
-                fontWeight: 800,
-                marginTop: 3,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                Genel Başarı
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                color: 'var(--color-text-muted)',
-                fontWeight: 600,
-                marginTop: 2
-              }}>
-                {overallStats.totalD} Doğru / {overallStats.totalQ} Soru
-              </div>
-            </div>
-
-            {/* 3. Test İlerlemesi */}
-            <div style={{
-              background: isDark ? 'rgba(139, 92, 246, 0.1)' : '#f5f3ff',
-              border: isDark ? '1px solid rgba(139, 92, 246, 0.25)' : '1px solid #ddd6fe',
-              borderRadius: 14,
-              padding: isMobile ? '0.6rem 0.55rem' : '0.8rem 1rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                fontWeight: 900,
-                color: isDark ? '#c4b5fd' : '#7c3aed',
-                lineHeight: 1
-              }}>
-                %{overallStats.progressRate}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.66rem' : '0.74rem',
-                color: 'var(--color-text)',
-                fontWeight: 800,
-                marginTop: 3,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                Test İlerlemesi
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                color: 'var(--color-text-muted)',
-                fontWeight: 600,
-                marginTop: 2
-              }}>
-                {overallStats.totalSolved} / {overallStats.totalAssigned} Test
-              </div>
-            </div>
-
-            {/* 4. Kitap XP ve Seviye */}
-            <div style={{
-              background: isDark ? 'rgba(245, 158, 11, 0.1)' : '#fffbeb',
-              border: isDark ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid #fde68a',
-              borderRadius: 14,
-              padding: isMobile ? '0.6rem 0.55rem' : '0.8rem 1rem',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                fontWeight: 900,
-                color: isDark ? '#fbbf24' : '#d97706',
-                lineHeight: 1
-              }}>
-                +{overallStats.totalXp} XP
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.66rem' : '0.74rem',
-                color: 'var(--color-text)',
-                fontWeight: 800,
-                marginTop: 3,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                Kazanılan Kitap XP
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                color: 'var(--color-text-muted)',
-                fontWeight: 600,
-                marginTop: 2
-              }}>
-                🏆 {overallStats.completedBooks} Kupa Tamamlandı
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── SEGMENTED NAVIGATION TABS ── */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: isMobile ? 6 : 8,
-          background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-          padding: '0.4rem',
-          borderRadius: 16,
-          border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1.5px solid #e2e8f0',
-          boxShadow: isDark ? '0 4px 12px rgba(0, 0, 0, 0.25)' : '0 2px 8px rgba(0, 0, 0, 0.04)'
-        }}>
-          {[
-            { id: 'kitaplar', label: isMobile ? 'Kitaplarım' : '📚 Kitaplarım & Görev Haritası', icon: BookOpen },
-            { id: 'grafikler', label: isMobile ? 'Grafikler' : '📊 İlerleme & Başarı Grafikleri', icon: BarChart2 },
-            { id: 'analiz', label: isMobile ? 'Hata Teşhisi' : '🧠 Hata & Yanlış Sebepleri', icon: Zap }
-          ].map(tab => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className="tab-btn-pill"
-                style={{
-                  flex: 1,
+                {/* 🧭 Minimalist Top Utility Bar inside Hero: Back Button, Tab Switcher & Quick Actions */}
+                <div style={{
                   display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: isMobile ? '0.55rem 0.6rem' : '0.65rem 1rem',
-                  borderRadius: 12,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.78rem' : '0.86rem',
-                  fontFamily: "'Outfit', sans-serif",
-                  background: isActive
-                    ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-                    : 'transparent',
-                  color: isActive ? '#ffffff' : (isDark ? 'rgba(255, 255, 255, 0.7)' : '#64748b'),
-                  boxShadow: isActive ? '0 4px 14px rgba(37, 99, 235, 0.35)' : 'none'
-                }}
-              >
-                <Icon size={isMobile ? 14 : 16} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+                  marginBottom: '1.35rem',
+                  position: 'relative',
+                  zIndex: 30,
+                  gap: '0.75rem',
+                  flexWrap: 'wrap'
+                }}>
+                  {/* Back Button */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/student')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      background: 'rgba(0,0,0,0.26)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1.5px solid rgba(255,255,255,0.24)',
+                      color: '#ffffff',
+                      padding: isMobile ? '0.45rem 0.85rem' : '0.55rem 1.15rem',
+                      borderRadius: '0.85rem',
+                      fontSize: isMobile ? '0.82rem' : '0.9rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Öğrenci Paneline Dön"
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Öğrenci Paneli</span>
+                  </button>
+
+                  {/* Glassmorphic Segmented Tabs */}
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: isMobile ? 'center' : 'flex-start',
+                    width: isMobile ? '100%' : 'auto',
+                    background: 'rgba(0,0,0,0.28)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1.5px solid rgba(255,255,255,0.22)',
+                    borderRadius: '0.85rem',
+                    padding: 3,
+                    gap: 3,
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+                    order: isMobile ? 3 : 'unset'
+                  }}>
+                    {[
+                      { id: 'kitaplar', label: `📚 Kitaplarım (${overallStats.totalBooks})` },
+                      { id: 'grafikler', label: '📊 Başarı Grafikleri' },
+                      { id: 'analiz', label: '🧠 Hata Analizi' }
+                    ].map(tab => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          style={{
+                            flex: isMobile ? 1 : 'initial',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            padding: isMobile ? '0.45rem 0.65rem' : '0.48rem 1.1rem',
+                            borderRadius: '0.65rem',
+                            border: 'none',
+                            background: isActive ? '#ffffff' : 'transparent',
+                            color: isActive ? '#0f172a' : '#ffffff',
+                            fontWeight: 900,
+                            fontSize: isMobile ? '0.78rem' : '0.86rem',
+                            cursor: 'pointer',
+                            boxShadow: isActive ? '0 2px 10px rgba(0,0,0,0.2)' : 'none',
+                            transition: 'all 0.15s ease',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action Buttons: Odak Modu, Manuel Test Gir, Kitap Ekle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={handleToggleFocusMode}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: focusModeOnly ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(0,0,0,0.26)',
+                        backdropFilter: 'blur(10px)',
+                        border: focusModeOnly ? '1.5px solid #34d399' : '1.5px solid rgba(255,255,255,0.24)',
+                        color: '#ffffff',
+                        padding: isMobile ? '0.45rem 0.8rem' : '0.52rem 1.05rem',
+                        borderRadius: '0.85rem',
+                        fontSize: isMobile ? '0.8rem' : '0.88rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        boxShadow: focusModeOnly ? '0 0 18px rgba(16,185,129,0.5)' : '0 4px 14px rgba(0,0,0,0.15)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Sadece testlere odaklanmak için tıkla"
+                    >
+                      <Target size={15} color={focusModeOnly ? '#ffffff' : '#34d399'} />
+                      <span>{focusModeOnly ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Modu'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsManualTestModalOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: 'rgba(255,255,255,0.12)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1.5px solid rgba(255,255,255,0.24)',
+                        color: '#ffffff',
+                        padding: isMobile ? '0.45rem 0.8rem' : '0.52rem 1.05rem',
+                        borderRadius: '0.85rem',
+                        fontSize: isMobile ? '0.8rem' : '0.88rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Manuel test sonucu / optik formu gir"
+                    >
+                      <Edit3 size={15} />
+                      <span>Manuel Test Gir</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsAddModalOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        border: 'none',
+                        color: '#ffffff',
+                        padding: isMobile ? '0.45rem 0.85rem' : '0.52rem 1.1rem',
+                        borderRadius: '0.85rem',
+                        fontSize: isMobile ? '0.8rem' : '0.88rem',
+                        fontWeight: 900,
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title="Kendi soru bankanı ekle"
+                    >
+                      <Plus size={16} strokeWidth={2.8} />
+                      <span>Kitap Ekle</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hero Main Content: Book Icon + Title + Overall Progress */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '1rem' : '1.5rem', flexWrap: 'wrap', position: 'relative' }}>
+                  <div style={{
+                    width: isMobile ? 64 : 88,
+                    height: isMobile ? 74 : 100,
+                    background: 'rgba(255,255,255,0.15)',
+                    backdropFilter: 'blur(12px)',
+                    borderRadius: '1.2rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    flexShrink: 0,
+                    border: '2px solid rgba(255,255,255,0.28)',
+                    boxShadow: '0 10px 28px rgba(0,0,0,0.25)'
+                  }}>
+                    <BookOpen size={isMobile ? 32 : 46} />
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 260 }}>
+                    {/* Badges / Greeting */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 900,
+                        color: 'rgba(255,255,255,0.92)',
+                        background: 'rgba(255,255,255,0.15)',
+                        padding: '2px 9px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(255,255,255,0.22)'
+                      }}>
+                        👤 {studentDisplayName}
+                      </span>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 900,
+                        background: 'rgba(59, 130, 246, 0.3)',
+                        color: '#93c5fd',
+                        padding: '2px 9px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(96, 165, 250, 0.35)'
+                      }}>
+                        📚 Soru Bankaları & Takip Kitapları
+                      </span>
+                    </div>
+
+                    <h1 style={{
+                      fontSize: isMobile ? '1.35rem' : '1.85rem',
+                      fontWeight: 900,
+                      color: '#ffffff',
+                      margin: '0 0 0.75rem',
+                      lineHeight: 1.25,
+                      letterSpacing: '-0.02em',
+                      fontFamily: "'Outfit', sans-serif"
+                    }}>
+                      Soru Bankaları & Takip Kitaplarım
+                    </h1>
+
+                    {/* Progress Bar with Big Percentage */}
+                    <div style={{ maxWidth: 580 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'rgba(255,255,255,0.9)' }}>
+                          Genel İlerleme
+                        </span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: 900, color: overallStats.progressRate === 100 ? '#4ade80' : '#ffffff' }}>
+                          %{overallStats.progressRate}
+                        </span>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.2)', height: 10, borderRadius: 99, overflow: 'hidden', padding: 2 }}>
+                        <div style={{
+                          width: `${overallStats.progressRate}%`,
+                          height: '100%',
+                          background: overallStats.progressRate === 100
+                            ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+                            : 'linear-gradient(90deg, #38bdf8, #818cf8)',
+                          borderRadius: 99,
+                          transition: 'width 0.6s ease'
+                        }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 📊 Translucent 5-Metric Stats Bar on Hero */}
+                <div
+                  className="sbp-stats-grid"
+                  style={{
+                    marginTop: isMobile ? '1.15rem' : '1.5rem',
+                    background: 'rgba(0, 0, 0, 0.24)',
+                    backdropFilter: 'blur(12px)',
+                    borderRadius: '1.15rem',
+                    border: '1.5px solid rgba(255, 255, 255, 0.22)',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div className="sbp-stat-item sbp-stat-kitap" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '1.35rem', marginBottom: 2 }}>📚</div>
+                    <div className="sbp-stat-val" style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight: 900, color: '#93c5fd' }}>
+                      {overallStats.totalBooks}
+                    </div>
+                    <div className="sbp-stat-lbl" style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)' }}>
+                      Toplam Kitap
+                    </div>
+                  </div>
+
+                  <div className="sbp-stat-item sbp-stat-test" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '1.35rem', marginBottom: 2 }}>📋</div>
+                    <div className="sbp-stat-val" style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight: 900, color: '#c4b5fd' }}>
+                      {overallStats.totalSolved}/{overallStats.totalAssigned}
+                    </div>
+                    <div className="sbp-stat-lbl" style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)' }}>
+                      Çözülen Test
+                    </div>
+                  </div>
+
+                  <div className="sbp-stat-item sbp-stat-dogru" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '1.35rem', marginBottom: 2 }}>✅</div>
+                    <div className="sbp-stat-val" style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight: 900, color: '#4ade80' }}>
+                      {overallStats.totalD}
+                    </div>
+                    <div className="sbp-stat-lbl" style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)' }}>
+                      Doğru
+                    </div>
+                  </div>
+
+                  <div className="sbp-stat-item sbp-stat-yanlis" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '1.35rem', marginBottom: 2 }}>❌</div>
+                    <div className="sbp-stat-val" style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight: 900, color: '#f87171' }}>
+                      {overallStats.totalY}
+                    </div>
+                    <div className="sbp-stat-lbl" style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)' }}>
+                      Yanlış
+                    </div>
+                  </div>
+
+                  <div className="sbp-stat-item sbp-stat-basari" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: '1.35rem', marginBottom: 2 }}>🎯</div>
+                    <div className="sbp-stat-val" style={{ fontSize: isMobile ? '1.25rem' : '1.65rem', fontWeight: 900, color: '#fde047' }}>
+                      %{overallStats.successRate}
+                    </div>
+                    <div className="sbp-stat-lbl" style={{ fontSize: isMobile ? '0.72rem' : '0.8rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)' }}>
+                      Başarı Oranı
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
         {/* ═══════════════════════════════════════════════════════════════
             TAB 1: KİTAPLARIM & GÖREV HARİTASI (FOCUSED BOOKS HUB)
@@ -2006,314 +1958,9 @@ export default function StudentBooksPage() {
         {activeTab === 'kitaplar' && (
           <div className="books-anim-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
 
-            {/* ── HERO BOOK QUEST CARD (Günün / Dönemin Aktif Kitap Görevi) ── */}
-            {heroBook && (
-              <div
-                className="game-card-elevated"
-                style={{
-                  background: isDark
-                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))'
-                    : 'linear-gradient(135deg, #ffffff, #f8fafc)',
-                  border: '2px solid rgba(99, 102, 241, 0.35)',
-                  borderRadius: 22,
-                  padding: isMobile ? '1.1rem 1rem' : '1.35rem 1.6rem',
-                  boxShadow: '0 8px 28px rgba(99, 102, 241, 0.12)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem'
-                }}
-              >
-                {/* Glowing accent top line */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 4,
-                  background: 'linear-gradient(90deg, #6366f1, #06b6d4, #10b981)'
-                }} />
 
-                {/* Top Row: Quest Badge + Level Rank */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                      background: 'linear-gradient(135deg, #ef4444, #f97316)',
-                      color: '#ffffff',
-                      padding: '3px 10px',
-                      borderRadius: 99,
-                      fontSize: '0.68rem',
-                      fontWeight: 900,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.35)'
-                    }}>
-                      <Flame size={12} fill="#ffffff" /> GÜNÜN AKTİF KİTAP GÖREVİ
-                    </span>
 
-                    {(() => {
-                      const rank = getBookRank(heroBook.progressPct);
-                      return (
-                        <span style={{
-                          background: rank.badgeBg,
-                          color: rank.color,
-                          border: `1px solid ${rank.borderColor}`,
-                          padding: '3px 9px',
-                          borderRadius: 99,
-                          fontSize: '0.7rem',
-                          fontWeight: 900,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4
-                        }}>
-                          {rank.label} • Seviye {rank.level}
-                        </span>
-                      );
-                    })()}
-                  </div>
-
-                  {heroBook.remainingDays !== undefined && heroBook.progressPct < 100 && (
-                    <span style={{
-                      background: heroBook.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                      color: heroBook.remainingDays <= 3 ? '#ef4444' : '#f59e0b',
-                      border: `1px solid ${heroBook.remainingDays <= 3 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                      padding: '2px 8px',
-                      borderRadius: 8,
-                      fontSize: '0.68rem',
-                      fontWeight: 900,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}>
-                      <Clock size={12} /> {heroBook.remainingDays} Gün Kaldı
-                    </span>
-                  )}
-                </div>
-
-                {/* Middle content: Spine & Details & Progress */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: isMobile ? 'flex-start' : 'center',
-                  justifyContent: 'space-between',
-                  flexDirection: isMobile ? 'column' : 'row',
-                  gap: '1rem'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                    {/* 3D Spine */}
-                    <div style={{
-                      width: isMobile ? 54 : 64,
-                      height: isMobile ? 74 : 88,
-                      borderRadius: 14,
-                      background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 8px 24px rgba(79, 70, 229, 0.35)',
-                      flexShrink: 0
-                    }}>
-                      <BookMarked size={isMobile ? 26 : 32} color="#ffffff" />
-                    </div>
-
-                    <div style={{ minWidth: 0 }}>
-                      <h2 style={{
-                        margin: '0 0 4px',
-                        fontSize: isMobile ? '1.05rem' : '1.25rem',
-                        fontWeight: 900,
-                        color: 'var(--color-text)',
-                        fontFamily: "'Outfit', sans-serif"
-                      }}>
-                        {heroBook.title}
-                      </h2>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                        {heroBook.publisher || 'Kaynak Kitap'} • {heroBook.totalSolvedTests} / {heroBook.totalAssignedTests} test çözüldü
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
-                        {(heroBook.subjects || []).slice(0, 3).map((s, i) => (
-                          <span
-                            key={i}
-                            style={{
-                              background: 'var(--color-surface-hover)',
-                              color: 'var(--color-text)',
-                              border: '1px solid var(--color-border)',
-                              borderRadius: 6,
-                              padding: '2px 7px',
-                              fontSize: '0.66rem',
-                              fontWeight: 800
-                            }}
-                          >
-                            {s?.name || s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Progress & Circular Stats */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    width: isMobile ? '100%' : 'auto',
-                    justifyContent: isMobile ? 'space-between' : 'flex-end',
-                    borderTop: isMobile ? '1px solid var(--color-border)' : 'none',
-                    paddingTop: isMobile ? '0.75rem' : 0
-                  }}>
-                    <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
-                      <div style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                        Tamamlanma Oranı
-                      </div>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#6366f1' }}>
-                        %{heroBook.progressPct || 0}
-                      </div>
-                      <div style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 800 }}>
-                        %{heroBook.successRate} Başarı
-                      </div>
-                    </div>
-
-                    <div style={{ position: 'relative', width: 54, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CircularProgress pct={heroBook.progressPct || 0} size={54} stroke={5} color="#6366f1" />
-                      <div style={{ position: 'absolute', fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text)' }}>
-                        %{heroBook.progressPct || 0}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Hero Actions Row: Big Quick Start & Book Map */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  flexWrap: 'wrap',
-                  paddingTop: '0.5rem',
-                  borderTop: '1px solid var(--color-border)'
-                }}>
-                  {heroBook.nextIncompleteTest ? (
-                    <button
-                      onClick={() => navigate(`/book-quiz/${heroBook.nextIncompleteTest.id}?studentId=${studentId}`)}
-                      className="game-btn-3d game-btn-primary"
-                      style={{
-                        flex: isMobile ? '1 1 100%' : '1 1 260px',
-                        padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.35rem',
-                        borderRadius: 14,
-                        fontWeight: 900,
-                        fontSize: isMobile ? '0.84rem' : '0.92rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 4px 16px rgba(99, 102, 241, 0.4)'
-                      }}
-                    >
-                      <Play size={16} fill="#ffffff" />
-                      <span>⚡ Sıradaki Testi Çöz: {heroBook.nextIncompleteTest.name}</span>
-                    </button>
-                  ) : (
-                    <div style={{
-                      flex: 1,
-                      padding: '0.6rem 1rem',
-                      borderRadius: 12,
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      color: '#10b981',
-                      fontWeight: 900,
-                      fontSize: '0.82rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6
-                    }}>
-                      <CheckCircle2 size={16} />
-                      <span>Bu kitaptaki tüm testler çözüldü! Harika iş çıkardın!</span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => navigate(`/student/books/${heroBook.id}`)}
-                    className="game-btn-3d"
-                    style={{
-                      padding: isMobile ? '0.65rem 1rem' : '0.75rem 1.25rem',
-                      borderRadius: 14,
-                      fontWeight: 800,
-                      fontSize: isMobile ? '0.82rem' : '0.88rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      background: isDark ? 'rgba(255,255,255,0.06)' : 'var(--color-surface)',
-                      border: '1.5px solid var(--color-border)',
-                      color: 'var(--color-text)',
-                      flex: isMobile ? '1 1 100%' : 'none'
-                    }}
-                  >
-                    <MapIcon size={16} color="#06b6d4" />
-                    <span>Kitap Haritası & Tüm Testler</span>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── SUBJECT CATEGORY FILTER CHIPS ── */}
-            {availableSubjects.length > 0 && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                overflowX: 'auto',
-                paddingBottom: 2,
-                scrollbarWidth: 'none'
-              }}>
-                <button
-                  onClick={() => setSubjectFilter('all')}
-                  className="filter-chip-pill"
-                  style={{
-                    background: subjectFilter === 'all'
-                      ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-                      : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
-                    color: subjectFilter === 'all' ? '#ffffff' : 'var(--color-text)',
-                    border: subjectFilter === 'all' ? '1px solid #38bdf8' : '1px solid var(--color-border)',
-                    borderRadius: 12,
-                    padding: '0.4rem 0.85rem',
-                    fontWeight: 800,
-                    fontSize: '0.76rem',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    boxShadow: subjectFilter === 'all' ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
-                  }}
-                >
-                  🎯 Tüm Dersler
-                </button>
-                {availableSubjects.map(subj => {
-                  const isSel = subjectFilter.toLowerCase() === subj.toLowerCase();
-                  return (
-                    <button
-                      key={subj}
-                      onClick={() => setSubjectFilter(isSel ? 'all' : subj)}
-                      className="filter-chip-pill"
-                      style={{
-                        background: isSel
-                          ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-                          : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
-                        color: isSel ? '#ffffff' : 'var(--color-text)',
-                        border: isSel ? '1px solid #38bdf8' : '1px solid var(--color-border)',
-                        borderRadius: 12,
-                        padding: '0.4rem 0.85rem',
-                        fontWeight: 800,
-                        fontSize: '0.76rem',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
-                      }}
-                    >
-                      {subj}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Quick Status Filters + Search + Sort Bar */}
+            {/* ── UNIFIED SEARCH & FILTER BAR ── */}
             {assignedBooks.length > 0 && (
               <div
                 className="game-card-elevated"
@@ -2328,53 +1975,124 @@ export default function StudentBooksPage() {
                   boxShadow: isDark ? '0 6px 18px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.04)'
                 }}
               >
-                {/* 1. Row: Status Filter Chips */}
+                {/* 1. Row: Status Filter Chips & Book Count */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6,
-                  overflowX: 'auto',
-                  paddingBottom: 2,
-                  scrollbarWidth: 'none'
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.65rem'
                 }}>
-                  {[
-                    { id: 'all', label: `Tümü (${overallStats.totalBooks})`, icon: '📚' },
-                    { id: 'in_progress', label: `Devam Edenler (${overallStats.inProgressBooks})`, icon: '⚡' },
-                    { id: 'completed', label: `Tamamlananlar (${overallStats.completedBooks})`, icon: '🏆' },
-                    ...(overallStats.urgentBooks > 0 ? [{ id: 'urgent', label: `Hedef Yaklaşan (${overallStats.urgentBooks})`, icon: '🔥' }] : [])
-                  ].map(chip => {
-                    const isSelected = statusFilter === chip.id;
-                    return (
-                      <button
-                        key={chip.id}
-                        onClick={() => setStatusFilter(chip.id)}
-                        className="filter-chip-pill"
-                        style={{
-                          background: isSelected
-                            ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                            : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
-                          color: isSelected ? '#ffffff' : 'var(--color-text-secondary)',
-                          border: isSelected ? '1px solid #818cf8' : '1px solid var(--color-border)',
-                          borderRadius: 10,
-                          padding: isMobile ? '0.38rem 0.65rem' : '0.45rem 0.85rem',
-                          fontWeight: 800,
-                          fontSize: isMobile ? '0.72rem' : '0.78rem',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          whiteSpace: 'nowrap',
-                          boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none'
-                        }}
-                      >
-                        <span>{chip.icon}</span>
-                        <span>{chip.label}</span>
-                      </button>
-                    );
-                  })}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    overflowX: 'auto',
+                    paddingBottom: 2,
+                    scrollbarWidth: 'none'
+                  }}>
+                    {[
+                      { id: 'all', label: `Tümü (${overallStats.totalBooks})`, icon: '📚' },
+                      { id: 'in_progress', label: `Devam Edenler (${overallStats.inProgressBooks})`, icon: '⚡' },
+                      { id: 'completed', label: `Tamamlananlar (${overallStats.completedBooks})`, icon: '🏆' },
+                      ...(overallStats.urgentBooks > 0 ? [{ id: 'urgent', label: `Hedef Yaklaşan (${overallStats.urgentBooks})`, icon: '🔥' }] : [])
+                    ].map(chip => {
+                      const isSelected = statusFilter === chip.id;
+                      return (
+                        <button
+                          key={chip.id}
+                          onClick={() => setStatusFilter(chip.id)}
+                          className="filter-chip-pill"
+                          style={{
+                            background: isSelected
+                              ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                              : (isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9'),
+                            color: isSelected ? '#ffffff' : 'var(--color-text-secondary)',
+                            border: isSelected ? '1px solid #818cf8' : '1px solid var(--color-border)',
+                            borderRadius: 10,
+                            padding: isMobile ? '0.38rem 0.65rem' : '0.45rem 0.85rem',
+                            fontWeight: 800,
+                            fontSize: isMobile ? '0.72rem' : '0.78rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            whiteSpace: 'nowrap',
+                            boxShadow: isSelected ? '0 2px 8px rgba(99, 102, 241, 0.35)' : 'none'
+                          }}
+                        >
+                          <span>{chip.icon}</span>
+                          <span>{chip.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', marginLeft: isMobile ? 'auto' : 0 }}>
+                    {displayedBooks.length} kitap listeleniyor
+                  </span>
                 </div>
 
-                {/* 2. Row: Search & Sort Tools */}
+                {/* 2. Row: Subject Category Chips (if any) */}
+                {availableSubjects.length > 0 && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    overflowX: 'auto',
+                    paddingBottom: 2,
+                    scrollbarWidth: 'none'
+                  }}>
+                    <button
+                      onClick={() => setSubjectFilter('all')}
+                      className="filter-chip-pill"
+                      style={{
+                        background: subjectFilter === 'all'
+                          ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                          : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
+                        color: subjectFilter === 'all' ? '#ffffff' : 'var(--color-text)',
+                        border: subjectFilter === 'all' ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                        borderRadius: 10,
+                        padding: '0.36rem 0.75rem',
+                        fontWeight: 800,
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        boxShadow: subjectFilter === 'all' ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                      }}
+                    >
+                      🎯 Tüm Dersler
+                    </button>
+                    {availableSubjects.map(subj => {
+                      const isSel = subjectFilter.toLowerCase() === subj.toLowerCase();
+                      return (
+                        <button
+                          key={subj}
+                          onClick={() => setSubjectFilter(isSel ? 'all' : subj)}
+                          className="filter-chip-pill"
+                          style={{
+                            background: isSel
+                              ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                              : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'var(--color-surface)'),
+                            color: isSel ? '#ffffff' : 'var(--color-text)',
+                            border: isSel ? '1px solid #38bdf8' : '1px solid var(--color-border)',
+                            borderRadius: 10,
+                            padding: '0.36rem 0.75rem',
+                            fontWeight: 800,
+                            fontSize: '0.74rem',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            boxShadow: isSel ? '0 2px 8px rgba(37,99,235,0.35)' : 'none'
+                          }}
+                        >
+                          {subj}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 3. Row: Search & Sort Tools */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2454,10 +2172,6 @@ export default function StudentBooksPage() {
                       </button>
                     ))}
                   </div>
-
-                  <span style={{ fontSize: isMobile ? '0.72rem' : '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', marginLeft: isMobile ? 'auto' : 0 }}>
-                    {displayedBooks.length} kitap listeleniyor
-                  </span>
                 </div>
               </div>
             )}
@@ -2559,8 +2273,12 @@ export default function StudentBooksPage() {
                   Filtreleri Temizle
                 </button>
               </div>
-            ) : gameModeView === 'list' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: isMobile ? '0.95rem' : '1.25rem'
+              }}>
                 {displayedBooks.map((book, bookIdx) => {
                   const pal = palette(bookIdx);
                   const isCompleted = book.progressPct >= 100;
@@ -2574,192 +2292,53 @@ export default function StudentBooksPage() {
                       className="game-card-elevated"
                       style={{
                         background: 'var(--color-surface)',
-                        border: isCompleted ? '1.5px solid #10b981' : '1px solid var(--color-border)',
-                        borderRadius: 16,
-                        padding: isMobile ? '0.85rem' : '1rem 1.35rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '0.85rem',
-                        cursor: 'pointer',
-                        boxShadow: isCompleted ? '0 4px 16px rgba(16, 185, 129, 0.12)' : '0 2px 8px rgba(0,0,0,0.03)'
-                      }}
-                    >
-                      {/* Left: Book Cover + Title + Subjects */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: '1 1 240px' }}>
-                        <div style={{
-                          width: 44,
-                          height: 58,
-                          borderRadius: 10,
-                          background: `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ffffff',
-                          boxShadow: `0 4px 12px ${pal.shadow}`,
-                          flexShrink: 0
-                        }}>
-                          <BookMarked size={22} />
-                        </div>
-
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <h4 style={{ margin: 0, fontWeight: 900, fontSize: isMobile ? '0.88rem' : '0.98rem', color: 'var(--color-text)' }}>
-                              {book.title}
-                            </h4>
-                            <span style={{
-                              background: rank.badgeBg,
-                              color: rank.color,
-                              border: `1px solid ${rank.borderColor}`,
-                              padding: '1px 6px',
-                              borderRadius: 99,
-                              fontSize: '0.62rem',
-                              fontWeight: 900
-                            }}>
-                              {rank.label}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
-                            {book.publisher || 'Kaynak'} • {book.totalSolvedTests} / {book.totalAssignedTests} Test
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Middle: Progress Bar */}
-                      <div style={{ flex: '1 1 140px', minWidth: 120 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', fontWeight: 800, marginBottom: 4, color: 'var(--color-text-muted)' }}>
-                          <span>İlerleme</span>
-                          <span style={{ color: isCompleted ? '#10b981' : pal.to }}>%{pct}</span>
-                        </div>
-                        <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`, borderRadius: 99 }} />
-                        </div>
-                      </div>
-
-                      {/* Right: Actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
-                        {book.nextIncompleteTest && !isCompleted ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
-                            }}
-                            className="game-btn-3d game-btn-primary"
-                            style={{
-                              padding: '0.45rem 0.85rem',
-                              borderRadius: 10,
-                              fontWeight: 900,
-                              fontSize: '0.76rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5
-                            }}
-                            title={`${book.nextIncompleteTest.name} testini hemen çöz`}
-                          >
-                            <Play size={12} fill="#ffffff" />
-                            <span>⚡ {book.nextIncompleteTest.name}</span>
-                          </button>
-                        ) : null}
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/student/books/${book.id}`);
-                          }}
-                          className="game-btn-3d"
-                          style={{
-                            padding: '0.45rem 0.85rem',
-                            borderRadius: 10,
-                            background: 'var(--color-surface-hover)',
-                            border: '1px solid var(--color-border)',
-                            fontWeight: 800,
-                            fontSize: '0.76rem',
-                            color: 'var(--color-text)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <MapIcon size={13} color="#06b6d4" />
-                          <span>Harita</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))',
-                gap: isMobile ? '0.95rem' : '1.25rem'
-              }}>
-                {displayedBooks.map((book, bookIdx) => {
-                  const pal = palette(bookIdx);
-                  const isCompleted = book.progressPct >= 100;
-                  const pct = book.progressPct || 0;
-                  const rank = getBookRank(pct);
-                  const urgentDue = book.remainingDays !== undefined && book.remainingDays <= 3 && !isCompleted;
-
-                  return (
-                    <div
-                      key={book.id || bookIdx}
-                      onClick={() => navigate(`/student/books/${book.id}`)}
-                      className="book-quest-card game-card-elevated"
-                      style={{
-                        background: 'var(--color-surface)',
-                        borderRadius: 22,
-                        border: isCompleted
-                          ? '2px solid #10b981'
-                          : urgentDue
-                          ? '2px solid #ef4444'
-                          : '1.5px solid var(--color-border)',
+                        borderRadius: 20,
+                        border: isCompleted ? '2px solid #10b981' : '1.5px solid var(--color-border)',
                         padding: isMobile ? '1.1rem 1rem' : '1.35rem',
                         cursor: 'pointer',
                         position: 'relative',
                         overflow: 'hidden',
-                        boxShadow: isCompleted
-                          ? '0 6px 24px rgba(16, 185, 129, 0.16)'
-                          : urgentDue
-                          ? '0 6px 24px rgba(239, 68, 68, 0.16)'
-                          : '0 4px 18px rgba(0,0,0,0.04)',
+                        boxShadow: isCompleted ? '0 6px 20px rgba(16, 185, 129, 0.12)' : '0 4px 16px rgba(0,0,0,0.04)',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'space-between'
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      {/* Top Gradient Banner Stripe */}
+                      {/* Top Accent Stripe */}
                       <div style={{
-                        height: 5,
-                        background: isCompleted ? 'linear-gradient(90deg, #10b981, #059669)' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
                         position: 'absolute',
                         top: 0,
                         left: 0,
-                        right: 0
+                        right: 0,
+                        height: 4,
+                        background: isCompleted ? 'linear-gradient(90deg, #10b981, #059669)' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`
                       }} />
 
-                      {/* Header row: Book Cover + Details + Badges */}
+                      {/* Book Info Section */}
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
                           {/* 3D Book Spine Cover */}
                           <div style={{
-                            width: isMobile ? 50 : 62,
-                            height: isMobile ? 68 : 84,
+                            width: isMobile ? 48 : 56,
+                            height: isMobile ? 64 : 76,
                             borderRadius: 12,
-                            background: `linear-gradient(145deg, ${pal.from}, ${pal.to})`,
+                            background: `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: `0 8px 20px ${pal.shadow}`,
+                            color: '#ffffff',
+                            boxShadow: `0 6px 16px ${pal.shadow}`,
                             flexShrink: 0,
                             position: 'relative'
                           }}>
-                            <BookMarked size={isMobile ? 24 : 30} color="#ffffff" />
+                            <BookMarked size={isMobile ? 22 : 26} />
                             {isCompleted && (
                               <div style={{
                                 position: 'absolute',
-                                bottom: -6,
+                                bottom: -5,
+                                right: -5,
                                 background: '#10b981',
                                 color: '#ffffff',
                                 borderRadius: 99,
@@ -2768,200 +2347,147 @@ export default function StudentBooksPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                boxShadow: '0 2px 6px rgba(16,185,129,0.5)',
-                                fontSize: '0.65rem'
+                                fontSize: '0.65rem',
+                                fontWeight: 900,
+                                boxShadow: '0 2px 6px rgba(16,185,129,0.5)'
                               }}>
                                 ✓
                               </div>
                             )}
                           </div>
 
-                          {/* Top Badges: Rank + Urgency/XP */}
+                          {/* Badges */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                            <span style={{
-                              background: rank.badgeBg,
-                              color: rank.color,
-                              border: `1px solid ${rank.borderColor}`,
-                              padding: '2px 8px',
-                              borderRadius: 99,
-                              fontSize: '0.65rem',
-                              fontWeight: 900,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3
-                            }}>
-                              {rank.label}
-                            </span>
-
                             {isCompleted ? (
                               <span style={{
                                 background: 'linear-gradient(135deg, #10b981, #059669)',
                                 color: '#ffffff',
-                                padding: '3px 9px',
+                                padding: '3px 8px',
                                 borderRadius: 99,
-                                fontSize: '0.65rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 2px 8px rgba(16,185,129,0.35)'
-                              }}>
-                                <Star size={11} fill="#ffffff" /> TAMAMLANDI
-                              </span>
-                            ) : urgentDue ? (
-                              <span style={{
-                                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                color: '#ffffff',
-                                padding: '3px 9px',
-                                borderRadius: 99,
-                                fontSize: '0.65rem',
-                                fontWeight: 900,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                boxShadow: '0 2px 8px rgba(239,68,68,0.35)'
-                              }}>
-                                ⚡ {book.remainingDays} GÜN KALDI
-                              </span>
-                            ) : book.remainingDays !== undefined ? (
-                              <span style={{
-                                background: isDark ? 'rgba(245, 158, 11, 0.18)' : '#fffbeb',
-                                color: '#f59e0b',
-                                border: isDark ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid #fde68a',
-                                padding: '2px 8px',
-                                borderRadius: 8,
-                                fontSize: '0.65rem',
+                                fontSize: '0.68rem',
                                 fontWeight: 900,
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4
                               }}>
-                                <Clock size={11} /> {book.remainingDays} gün
+                                <Star size={11} fill="#ffffff" /> TAMAMLANDI
+                              </span>
+                            ) : book.remainingDays !== undefined && book.remainingDays <= 3 ? (
+                              <span style={{
+                                background: '#ef4444',
+                                color: '#ffffff',
+                                padding: '3px 8px',
+                                borderRadius: 99,
+                                fontSize: '0.68rem',
+                                fontWeight: 900
+                              }}>
+                                ⚡ {book.remainingDays} gün kaldı
                               </span>
                             ) : (
-                              <span className="game-badge-xp" style={{ fontSize: '0.64rem', padding: '2px 7px' }}>
-                                +{isCompleted ? '100' : '50'} XP
+                              <span style={{
+                                background: rank.badgeBg,
+                                color: rank.color,
+                                border: `1px solid ${rank.borderColor}`,
+                                padding: '2px 8px',
+                                borderRadius: 99,
+                                fontSize: '0.68rem',
+                                fontWeight: 900
+                              }}>
+                                {rank.label}
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Title and Publisher */}
-                        <div style={{ marginBottom: 12 }}>
-                          <h3 style={{
-                            margin: '0 0 3px',
-                            fontSize: isMobile ? '0.98rem' : '1.12rem',
-                            fontWeight: 900,
-                            color: 'var(--color-text)',
-                            lineHeight: 1.3,
-                            fontFamily: "'Outfit', sans-serif"
-                          }}>
-                            {book.title}
-                          </h3>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-                            {book.publisher || 'Kaynak Kitap'}
-                          </div>
+                        {/* Title & Publisher */}
+                        <h3 style={{
+                          margin: '0 0 4px',
+                          fontSize: isMobile ? '1rem' : '1.12rem',
+                          fontWeight: 900,
+                          color: 'var(--color-text)',
+                          lineHeight: 1.3,
+                          fontFamily: "'Outfit', sans-serif"
+                        }}>
+                          {book.title}
+                        </h3>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: 8 }}>
+                          {book.publisher || 'Kaynak Kitap'} • {book.totalSolvedTests} / {book.totalAssignedTests} Test Çözüldü
+                        </div>
 
-                          {/* Subject tags */}
-                          <div style={{ display: 'flex', gap: 5, marginTop: 7, flexWrap: 'wrap' }}>
-                            {(book.subjects || []).slice(0, 3).map((s, i) => (
-                              <span
-                                key={i}
-                                style={{
-                                  background: 'var(--color-surface-hover)',
-                                  color: 'var(--color-text)',
-                                  border: '1px solid var(--color-border)',
-                                  borderRadius: 6,
-                                  padding: '2px 7px',
-                                  fontSize: '0.66rem',
-                                  fontWeight: 800
-                                }}
-                              >
-                                {s?.name || s}
-                              </span>
-                            ))}
-                            {(book.subjects || []).length > 3 && (
-                              <span style={{
-                                background: 'var(--color-surface)',
-                                color: 'var(--color-text-muted)',
+                        {/* Subject tags */}
+                        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+                          {(book.subjects || []).slice(0, 3).map((s, i) => (
+                            <span
+                              key={i}
+                              style={{
+                                background: 'var(--color-surface-hover)',
+                                color: 'var(--color-text)',
                                 border: '1px solid var(--color-border)',
                                 borderRadius: 6,
                                 padding: '2px 7px',
-                                fontSize: '0.66rem',
+                                fontSize: '0.68rem',
                                 fontWeight: 800
-                              }}>
-                                +{(book.subjects || []).length - 3}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Progress Section */}
-                        <div style={{
-                          background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--color-surface-hover)',
-                          borderRadius: 16,
-                          padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1rem',
-                          marginBottom: 12,
-                          border: '1px solid var(--color-border)'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <div>
-                              <div style={{ fontSize: '0.66rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                Test İlerlemesi
-                              </div>
-                              <div style={{ fontSize: '0.86rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 2 }}>
-                                {book.totalSolvedTests} <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>/ {book.totalAssignedTests} test</span>
-                              </div>
-                            </div>
-
-                            <div style={{ position: 'relative', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <CircularProgress pct={pct} size={44} stroke={4} color={isCompleted ? '#10b981' : pal.to} />
-                              <div style={{ position: 'absolute', fontSize: '0.66rem', fontWeight: 900, color: isCompleted ? '#10b981' : 'var(--color-text)' }}>
-                                %{pct}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Linear Gradient Progress bar */}
-                          <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
-                            <div
-                              style={{
-                                width: `${pct}%`,
-                                height: '100%',
-                                background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
-                                borderRadius: 99,
-                                transition: 'width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)'
                               }}
-                            />
+                            >
+                              {s?.name || s}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Clean Progress Bar */}
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: '0.74rem', fontWeight: 800 }}>
+                            <span style={{ color: 'var(--color-text-muted)' }}>İlerleme</span>
+                            <span style={{ color: isCompleted ? '#10b981' : pal.to, fontWeight: 900 }}>%{pct}</span>
+                          </div>
+                          <div style={{ height: 7, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{
+                              width: `${pct}%`,
+                              height: '100%',
+                              background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
+                              borderRadius: 99,
+                              transition: 'width 0.6s ease'
+                            }} />
                           </div>
                         </div>
 
-                        {/* 4 Mini Bento Stats */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, marginBottom: 14 }}>
-                          {[
-                            { label: 'Doğru', value: book.totalCorrect, color: '#10b981', bg: isDark ? 'rgba(16, 185, 129, 0.14)' : '#f0fdf4', border: isDark ? 'rgba(16, 185, 129, 0.3)' : '#bbf7d0' },
-                            { label: 'Yanlış', value: book.totalWrong, color: '#ef4444', bg: isDark ? 'rgba(239, 68, 68, 0.14)' : '#fef2f2', border: isDark ? 'rgba(239, 68, 68, 0.3)' : '#fecaca' },
-                            { label: 'Boş', value: book.totalBlank, color: 'var(--color-text-muted)', bg: isDark ? 'rgba(148, 163, 184, 0.12)' : '#f8fafc', border: isDark ? 'rgba(148, 163, 184, 0.25)' : '#e2e8f0' },
-                            { label: 'Başarı', value: `%${book.successRate}`, color: '#2563eb', bg: isDark ? 'rgba(37, 99, 235, 0.14)' : '#eff6ff', border: isDark ? 'rgba(37, 99, 235, 0.3)' : '#bfdbfe' },
-                          ].map((s, i) => (
-                            <div key={i} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, padding: '0.4rem 0.2rem', textAlign: 'center' }}>
-                              <div style={{ fontSize: '0.58rem', color: s.color, fontWeight: 900, textTransform: 'uppercase' }}>{s.label}</div>
-                              <div style={{ fontSize: '0.86rem', fontWeight: 900, color: s.color, marginTop: 1 }}>{s.value}</div>
-                            </div>
-                          ))}
+                        {/* 3 Clean Stats: Doğru, Yanlış, Başarı */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 6,
+                          background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--color-surface-hover)',
+                          padding: '0.55rem',
+                          borderRadius: 12,
+                          border: '1px solid var(--color-border)',
+                          textAlign: 'center'
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>✅ Doğru</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
+                          </div>
+                          <div style={{ borderLeft: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>❌ Yanlış</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>🎯 Başarı</div>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#2563eb', marginTop: 1 }}>%{book.successRate}</div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Dual 3D Action Buttons */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto' }}>
+                      {/* Single Prominent CTA Button */}
+                      <div style={{ marginTop: 'auto' }}>
                         {isCompleted ? (
                           <button
+                            type="button"
                             onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
                             className="game-btn-3d"
                             style={{
                               width: '100%',
-                              padding: isMobile ? '0.62rem' : '0.72rem',
-                              background: 'var(--color-surface-hover, #f1f5f9)',
+                              padding: isMobile ? '0.6rem' : '0.7rem',
+                              background: 'var(--color-surface-hover)',
                               color: 'var(--color-text)',
                               border: '1.5px solid var(--color-border)',
                               borderRadius: 12,
@@ -2973,61 +2499,58 @@ export default function StudentBooksPage() {
                               gap: 6
                             }}
                           >
-                            <span>🏆 Haritayı İncele</span>
+                            <span>🏆 Kitabı İncele</span>
                             <ArrowRight size={15} />
                           </button>
+                        ) : book.nextIncompleteTest ? (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
+                              navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
+                            }}
+                            className="game-btn-3d game-btn-primary"
+                            style={{
+                              width: '100%',
+                              padding: isMobile ? '0.6rem' : '0.7rem',
+                              borderRadius: 12,
+                              fontWeight: 900,
+                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6
+                            }}
+                            title={`${book.nextIncompleteTest.name} testini hemen çöz`}
+                          >
+                            <Play size={14} fill="#ffffff" />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              ⚡ Sıradaki: {book.nextIncompleteTest.name}
+                            </span>
+                          </button>
                         ) : (
-                          <>
-                            {book.nextIncompleteTest ? (
-                              <button
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
-                                }}
-                                className="game-btn-3d game-btn-primary"
-                                style={{
-                                  flex: 1,
-                                  padding: isMobile ? '0.62rem 0.65rem' : '0.72rem 0.85rem',
-                                  borderRadius: 12,
-                                  fontWeight: 900,
-                                  fontSize: isMobile ? '0.76rem' : '0.84rem',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: 6
-                                }}
-                                title={`${book.nextIncompleteTest.name} testini hemen çöz`}
-                              >
-                                <Play size={13} fill="#ffffff" />
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  ⚡ {book.nextIncompleteTest.name}
-                                </span>
-                              </button>
-                            ) : null}
-
-                            <button
-                              onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                              className="game-btn-3d"
-                              style={{
-                                padding: isMobile ? '0.62rem 0.75rem' : '0.72rem 1rem',
-                                background: 'var(--color-surface-hover, #f1f5f9)',
-                                color: 'var(--color-text)',
-                                border: '1.5px solid var(--color-border)',
-                                borderRadius: 12,
-                                fontWeight: 900,
-                                fontSize: isMobile ? '0.76rem' : '0.84rem',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 5,
-                                flexShrink: 0
-                              }}
-                              title="Kitap Haritası ve Tüm Üniteleri Görüntüle"
-                            >
-                              <MapIcon size={14} color="#06b6d4" />
-                              <span>Harita</span>
-                            </button>
-                          </>
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
+                            className="game-btn-3d"
+                            style={{
+                              width: '100%',
+                              padding: isMobile ? '0.6rem' : '0.7rem',
+                              background: 'var(--color-surface-hover)',
+                              color: 'var(--color-text)',
+                              border: '1.5px solid var(--color-border)',
+                              borderRadius: 12,
+                              fontWeight: 900,
+                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <MapIcon size={14} color="#06b6d4" />
+                            <span>Kitap Haritası</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -3062,14 +2585,39 @@ export default function StudentBooksPage() {
               paddingBottom: '0.85rem',
               borderBottom: '1px solid var(--color-border)'
             }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <BarChart2 size={20} color="#6366f1" />
-                  <span>Soru & Başarı Analizi</span>
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                  Kitap ve ders bazında doğru, yanlış, boş ve başarı yüzdelerini incele
-                </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kitaplar')}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 10,
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                  title="Kitaplarıma Dön"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Kitaplarıma Dön</span>
+                </button>
+
+                <div>
+                  <h3 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <BarChart2 size={20} color="#6366f1" />
+                    <span>Soru & Başarı Analizi</span>
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    Kitap ve ders bazında doğru, yanlış, boş ve başarı yüzdelerini incele
+                  </p>
+                </div>
               </div>
 
               {/* View & Metric Controls */}
@@ -3292,7 +2840,30 @@ export default function StudentBooksPage() {
           }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingBottom: '0.85rem', borderBottom: '1px solid var(--color-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('kitaplar')}
+                  className="game-btn-3d"
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 10,
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                  title="Kitaplarıma Dön"
+                >
+                  <ArrowLeft size={14} />
+                  <span>Kitaplarıma Dön</span>
+                </button>
+
                 <div style={{
                   width: isMobile ? 34 : 40,
                   height: isMobile ? 34 : 40,
