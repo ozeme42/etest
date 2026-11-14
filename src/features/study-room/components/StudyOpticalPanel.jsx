@@ -63,7 +63,7 @@ export default function StudyOpticalPanel({
       if (meta && Array.isArray(meta.options)) meta.options.forEach(addPoolItem);
     }
 
-    // 2. Cevap anahtarındaki tüm değerler
+    // 2. Cevap anahtarındaki tüm değerler (tam cevap metnini bölmeden ekle)
     const processVal = (val) => {
       if (val === undefined || val === null) return;
       if (typeof val === 'object' && !Array.isArray(val)) {
@@ -71,18 +71,13 @@ export default function StudyOpticalPanel({
         if (val.answer) addPoolItem(val.answer);
         return;
       }
+      if (Array.isArray(val)) {
+        val.forEach(item => processVal(item));
+        return;
+      }
       const s = String(val).trim();
       if (!s) return;
-      if (s.length <= 50) {
-        addPoolItem(s);
-      } else {
-        const parts = s
-          .split(/[,;\n•|]+/)
-          .map(p => p.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
-          .filter(p => p.length >= 1 && p.length <= 45);
-        if (parts.length > 0) parts.forEach(addPoolItem);
-        else addPoolItem(s);
-      }
+      addPoolItem(s);
     };
 
     if (Array.isArray(sourceKey)) {

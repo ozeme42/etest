@@ -1316,21 +1316,21 @@ export default function TrackedBookQuizRunner() {
       if (meta && Array.isArray(meta.options)) meta.options.forEach(addPoolItem);
     }
 
-    // 2. Process each answer key entry
+    // 2. Process each answer key entry (tam cevap metnini bölmeden, eksiltmeden ekle)
     const processVal = (val) => {
       if (val === undefined || val === null) return;
+      if (typeof val === 'object' && !Array.isArray(val)) {
+        if (val.text) addPoolItem(val.text);
+        if (val.answer) addPoolItem(val.answer);
+        return;
+      }
+      if (Array.isArray(val)) {
+        val.forEach(item => processVal(item));
+        return;
+      }
       const s = String(val).trim();
       if (!s) return;
-      if (s.length <= 45) {
-        addPoolItem(s);
-      } else {
-        const parts = s
-          .split(/[,;\n•|]+/)
-          .map(p => p.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
-          .filter(p => p.length >= 2 && p.length <= 40);
-        if (parts.length > 0) parts.forEach(addPoolItem);
-        else addPoolItem(s);
-      }
+      addPoolItem(s);
     };
 
     if (Array.isArray(answerKey)) {
@@ -4535,7 +4535,7 @@ export default function TrackedBookQuizRunner() {
                                     <span style={{
                                       textDecoration: isAssigned && !isAssignedToActive ? 'line-through' : 'none',
                                       wordBreak: 'break-word',
-                                      maxWidth: 220,
+                                      maxWidth: 320,
                                       textAlign: 'left'
                                     }}>
                                       {item.text}
@@ -5243,7 +5243,7 @@ export default function TrackedBookQuizRunner() {
                     <span style={{
                       textDecoration: isAssigned && !isAssignedToThis ? 'line-through' : 'none',
                       wordBreak: 'break-word',
-                      maxWidth: 240,
+                      maxWidth: 320,
                       textAlign: 'left'
                     }}>
                       {item.text}

@@ -273,35 +273,23 @@ export default function ManualTestModal({
       }
     }
 
-    // 2. Question's own correct answer (or sub-items)
+    // 2. Question's own correct answer (tam cevap metnini bölmeden ekle)
     const currentKey = getCorrectKeyForQ(qNo);
     if (currentKey && typeof currentKey === 'string') {
       const trimmed = currentKey.trim();
-      if (trimmed.length > 0 && trimmed.length <= 45) {
+      if (trimmed.length > 0) {
         pool.add(trimmed);
-      } else if (trimmed.length > 45) {
-        const sub = trimmed
-          .split(/[,;\n•|]+/)
-          .map(s => s.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
-          .filter(s => s.length >= 2 && s.length <= 40);
-        sub.forEach(s => pool.add(s));
       }
     }
 
-    // 3. Other questions' answers in the same test
+    // 3. Other questions' answers in the same test (tam cevap metnini bölmeden ekle)
     if (testAnswerKey && typeof testAnswerKey === 'object') {
       Object.entries(testAnswerKey).forEach(([k, v]) => {
         if (k === '__meta' || k === 'meta') return;
         if (typeof v === 'string') {
           const tr = v.trim();
-          if (tr.length > 0 && tr.length <= 40) {
+          if (tr.length > 0) {
             pool.add(tr);
-          } else if (tr.length > 40) {
-            const sub = tr
-              .split(/[,;\n•|]+/)
-              .map(s => s.replace(/^[a-z0-9][.)\-:]\s*/i, '').trim())
-              .filter(s => s.length >= 2 && s.length <= 40);
-            sub.forEach(s => pool.add(s));
           }
         }
       });

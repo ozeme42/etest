@@ -238,8 +238,9 @@ export function compareOpenEndedAnswers(userAns, correctKey) {
   const normK = normalizeTurkishText(rawK);
   if (normU && normK && normU === normK) return true;
 
-  // 2. Multiple accepted answers in answerKey separated by '/', ';', '|', 'veya', 'ya da', or ',' (when not decimal 3,5)
-  if (rawK.includes('/') || rawK.includes(';') || rawK.includes('|') || rawK.includes(' veya ') || rawK.includes(' ya da ') || (rawK.includes(',') && !/^\d+,\d+$/.test(rawK))) {
+  // 2. Multiple accepted answers in answerKey separated by '/', ';', '|', 'veya', 'ya da', or ',' (when not decimal 3,5 and not a multi-part list like a. ..., b. ...)
+  const isMultiPartList = /(?:^|\s|[;,])[a-z0-9][.)\-:]\s+/i.test(rawK) && (rawK.match(/[a-z0-9][.)\-:]\s+/gi) || []).length >= 2;
+  if (!isMultiPartList && (rawK.includes('/') || rawK.includes(';') || rawK.includes('|') || rawK.includes(' veya ') || rawK.includes(' ya da ') || (rawK.includes(',') && !/^\d+,\d+$/.test(rawK)))) {
     const splitOptions = rawK.split(/\s*(?:\/|;|\||\bveya\b|\bya da\b|,(?!\d))\s*/i);
     if (splitOptions.length > 1) {
       for (const opt of splitOptions) {
