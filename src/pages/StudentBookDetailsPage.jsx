@@ -7,10 +7,11 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey, isExamBook } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors, Zap, Sparkles, Clock, Flame, Trophy } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID, legacyHexUUID } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
+import { useTheme } from '../context/ThemeContext';
 import PdfViewerPanel from '../components/PdfViewerPanel';
 import ManualTestModal from '../components/ManualTestModal';
 import PdfQuestionSlicerModal from '../components/question-bank/PdfQuestionSlicerModal';
@@ -19,6 +20,7 @@ export default function StudentBookDetailsPage() {
   const { bookId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { theme, isDark } = useTheme();
   const { currentUser } = useAuth();
   const { users = [] } = useUser();
   const { homeworks = [], isLoading: hwLoading, updateHomework, clearHomeworkSubmissionsForStudent } = useHomework();
@@ -42,6 +44,24 @@ export default function StudentBookDetailsPage() {
   const [activeBookTab, setActiveBookTab] = useState('tests'); // 'tests' | 'analytics' | 'all'
   const [testSearchQuery, setTestSearchQuery] = useState('');
   const [testStatusFilter, setTestStatusFilter] = useState('all'); // 'all' | 'pending' | 'completed'
+  const [isFocusMode, setIsFocusMode] = useState(() => {
+    try {
+      return localStorage.getItem(`sbdp_focus_mode_${bookId}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [focusTestFilter, setFocusTestFilter] = useState('pending'); // 'pending' | 'completed' | 'all'
+
+  const handleToggleFocusMode = () => {
+    setIsFocusMode(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem(`sbdp_focus_mode_${bookId}`, String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const queryStudentId = searchParams.get('studentId');
   const isFromTeacher = searchParams.get('fromTeacher') === 'true' || (currentUser?.role !== 'student' && Boolean(queryStudentId));
@@ -777,6 +797,147 @@ export default function StudentBookDetailsPage() {
     }
     return null;
   }, [subjectProgress]);
+
+  // Kitap ve ders bazlı modern renk ve tema paleti (Sosyal, Fen, Matematik vb. için özel tam renkli arka plan & buton stilleri)
+  const bookTheme = useMemo(() => {
+    const title = String(book?.title || '').toLowerCase();
+    const subjName = String(book?.subjects?.[0]?.name || '').toLowerCase();
+    const str = `${title} ${subjName}`;
+
+    if (str.includes('sosyal') || str.includes('inkılap') || str.includes('tarih') || str.includes('coğrafya')) {
+      return {
+        type: 'sosyal',
+        badge: '🌍 Sosyal Bilgiler',
+        gradientHero: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #7c2d12 70%, #c2410c 100%)',
+        accent: '#ea580c',
+        accentLight: isDark ? 'rgba(234, 88, 12, 0.18)' : '#fff7ed',
+        accentBorder: isDark ? 'rgba(234, 88, 12, 0.35)' : '#fdba74',
+        bgGlow1: 'rgba(234, 88, 12, 0.18)',
+        bgGlow2: 'rgba(245, 158, 11, 0.16)',
+        bgGlow3: 'rgba(99, 102, 241, 0.14)',
+        btnGradient: 'linear-gradient(135deg, #ea580c, #c2410c)',
+        btnShadow: '0 6px 20px rgba(234, 88, 12, 0.38)',
+        nextCardBg: isDark
+          ? 'linear-gradient(135deg, rgba(234, 88, 12, 0.18) 0%, rgba(245, 158, 11, 0.12) 100%)'
+          : 'linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%)',
+        nextCardBorder: isDark ? 'rgba(234, 88, 12, 0.45)' : '#fed7aa',
+        tagColor: '#ea580c'
+      };
+    } else if (str.includes('fen') || str.includes('fizik') || str.includes('kimya') || str.includes('biyoloji')) {
+      return {
+        type: 'fen',
+        badge: '🔬 Fen Bilimleri',
+        gradientHero: 'linear-gradient(135deg, #064e3b 0%, #065f46 35%, #0f766e 70%, #0284c7 100%)',
+        accent: '#059669',
+        accentLight: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5',
+        accentBorder: isDark ? 'rgba(16, 185, 129, 0.35)' : '#a7f3d0',
+        bgGlow1: 'rgba(16, 185, 129, 0.18)',
+        bgGlow2: 'rgba(6, 182, 212, 0.16)',
+        bgGlow3: 'rgba(16, 185, 129, 0.12)',
+        btnGradient: 'linear-gradient(135deg, #10b981, #059669)',
+        btnShadow: '0 6px 20px rgba(16, 185, 129, 0.38)',
+        nextCardBg: isDark
+          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(6, 182, 212, 0.12) 100%)'
+          : 'linear-gradient(135deg, #ecfdf5 0%, #cffafe 100%)',
+        nextCardBorder: isDark ? 'rgba(16, 185, 129, 0.45)' : '#a7f3d0',
+        tagColor: '#059669'
+      };
+    } else if (str.includes('matematik') || str.includes('geometri')) {
+      return {
+        type: 'matematik',
+        badge: '📐 Matematik',
+        gradientHero: 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 35%, #6b21a8 70%, #9d174d 100%)',
+        accent: '#6366f1',
+        accentLight: isDark ? 'rgba(99, 102, 241, 0.18)' : '#eef2ff',
+        accentBorder: isDark ? 'rgba(99, 102, 241, 0.35)' : '#c7d2fe',
+        bgGlow1: 'rgba(99, 102, 241, 0.18)',
+        bgGlow2: 'rgba(168, 85, 247, 0.16)',
+        bgGlow3: 'rgba(236, 72, 153, 0.12)',
+        btnGradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+        btnShadow: '0 6px 20px rgba(99, 102, 241, 0.38)',
+        nextCardBg: isDark
+          ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.18) 0%, rgba(168, 85, 247, 0.12) 100%)'
+          : 'linear-gradient(135deg, #eef2ff 0%, #f3e8ff 100%)',
+        nextCardBorder: isDark ? 'rgba(99, 102, 241, 0.45)' : '#c7d2fe',
+        tagColor: '#6366f1'
+      };
+    } else if (str.includes('türkçe') || str.includes('edebiyat') || str.includes('paragraf')) {
+      return {
+        type: 'turkce',
+        badge: '📖 Türkçe',
+        gradientHero: 'linear-gradient(135deg, #881337 0%, #9f1239 35%, #be123c 70%, #e11d48 100%)',
+        accent: '#e11d48',
+        accentLight: isDark ? 'rgba(225, 29, 72, 0.18)' : '#fff1f2',
+        accentBorder: isDark ? 'rgba(225, 29, 72, 0.35)' : '#fecdd3',
+        bgGlow1: 'rgba(225, 29, 72, 0.18)',
+        bgGlow2: 'rgba(244, 63, 94, 0.16)',
+        bgGlow3: 'rgba(251, 113, 133, 0.12)',
+        btnGradient: 'linear-gradient(135deg, #e11d48, #be123c)',
+        btnShadow: '0 6px 20px rgba(225, 29, 72, 0.38)',
+        nextCardBg: isDark
+          ? 'linear-gradient(135deg, rgba(225, 29, 72, 0.18) 0%, rgba(244, 63, 94, 0.12) 100%)'
+          : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+        nextCardBorder: isDark ? 'rgba(225, 29, 72, 0.45)' : '#fecdd3',
+        tagColor: '#e11d48'
+      };
+    }
+    return {
+      type: 'genel',
+      badge: '📚 Kitap',
+      gradientHero: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a8a 100%)',
+      accent: '#3b82f6',
+      accentLight: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff',
+      accentBorder: isDark ? 'rgba(59, 130, 246, 0.35)' : '#bfdbfe',
+      bgGlow1: 'rgba(59, 130, 246, 0.18)',
+      bgGlow2: 'rgba(99, 102, 241, 0.16)',
+      bgGlow3: 'rgba(168, 85, 247, 0.12)',
+      btnGradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+      btnShadow: '0 6px 20px rgba(59, 130, 246, 0.38)',
+      nextCardBg: isDark
+        ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(99, 102, 241, 0.12) 100%)'
+        : 'linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%)',
+      nextCardBorder: isDark ? 'rgba(59, 130, 246, 0.45)' : '#bfdbfe',
+      tagColor: '#3b82f6'
+    };
+  }, [book, isDark]);
+
+  // Odak modunda tüm testleri sade ve kronolojik sırayla listelemek için düz dizi
+  const allFocusedTests = useMemo(() => {
+    const list = [];
+    (subjectProgress || []).forEach(subj => {
+      if (subj.directTests && subj.directTests.length > 0) {
+        subj.directTests.forEach(t => {
+          list.push({ ...t, subjectName: subj.name, topicName: null, subjectId: subj.id });
+        });
+      }
+      if (subj.topics && subj.topics.length > 0) {
+        subj.topics.forEach(tp => {
+          (tp.tests || []).forEach(t => {
+            list.push({ ...t, subjectName: subj.name, topicName: tp.name, subjectId: subj.id, topicId: tp.id });
+          });
+        });
+      }
+      if ((!subj.topics || subj.topics.length === 0) && (!subj.directTests || subj.directTests.length === 0) && subj.tests) {
+        subj.tests.forEach(t => {
+          list.push({ ...t, subjectName: subj.name, topicName: null, subjectId: subj.id });
+        });
+      }
+    });
+    return list;
+  }, [subjectProgress]);
+
+  const pendingFocusCount = useMemo(() => allFocusedTests.filter(t => !t.isCompleted && !t.isLocked).length, [allFocusedTests]);
+  const completedFocusCount = useMemo(() => allFocusedTests.filter(t => t.isCompleted).length, [allFocusedTests]);
+
+  const filteredFocusedTests = useMemo(() => {
+    if (focusTestFilter === 'pending') {
+      return allFocusedTests.filter(t => !t.isCompleted && !t.isLocked);
+    }
+    if (focusTestFilter === 'completed') {
+      return allFocusedTests.filter(t => t.isCompleted);
+    }
+    return allFocusedTests;
+  }, [allFocusedTests, focusTestFilter]);
 
   const filteredSubjectProgress = useMemo(() => {
     if (!testSearchQuery.trim() && testStatusFilter === 'all') {
@@ -1579,16 +1740,34 @@ export default function StudentBookDetailsPage() {
   }
 
   return (
-    <div className="sbdp-page-container" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 85% 25%, rgba(244, 63, 94, 0.05) 0%, transparent 45%), var(--color-bg)', padding: isMobile ? '0.65rem 0.75rem 4rem' : '1.5rem 1.5rem', maxWidth: '1600px', width: '100%', margin: '0 auto', fontFamily: "'Inter', system-ui, sans-serif", color: 'var(--color-text)', boxSizing: 'border-box' }}>
+    <div
+      className="sbdp-page-container"
+      style={{
+        minHeight: '100vh',
+        background: isDark
+          ? `radial-gradient(circle at 12% 10%, ${bookTheme.bgGlow1} 0%, transparent 45%), radial-gradient(circle at 88% 18%, ${bookTheme.bgGlow2} 0%, transparent 50%), radial-gradient(circle at 50% 85%, ${bookTheme.bgGlow3} 0%, transparent 55%), #090d16`
+          : `radial-gradient(circle at 12% 10%, ${bookTheme.bgGlow1} 0%, transparent 45%), radial-gradient(circle at 88% 18%, ${bookTheme.bgGlow2} 0%, transparent 50%), radial-gradient(circle at 50% 85%, ${bookTheme.bgGlow3} 0%, transparent 55%), #f8fafc`,
+        padding: isMobile ? '0.85rem 0.85rem 5rem' : '1.75rem 2rem',
+        maxWidth: '1600px',
+        width: '100%',
+        margin: '0 auto',
+        fontFamily: "'Outfit', 'Inter', system-ui, -apple-system, sans-serif",
+        color: 'var(--color-text)',
+        boxSizing: 'border-box'
+      }}
+    >
       <style>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-        .sbdp-anim { animation: fadeSlideUp 0.3s ease both; }
-        .sbdp-subject-card { transition: box-shadow 0.2s, transform 0.2s; }
-        .sbdp-subject-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.06) !important; transform: translateY(-2px); }
-        .sbdp-test-row { transition: background 0.15s, box-shadow 0.15s; }
-        .sbdp-test-row:hover { background: var(--color-surface-hover) !important; }
-        .sbdp-btn-solve { transition: box-shadow 0.15s, transform 0.15s; }
-        .sbdp-btn-solve:hover { box-shadow: 0 4px 14px rgba(99,102,241,0.3) !important; transform: translateY(-1px); }
+        .sbdp-anim { animation: fadeSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .sbdp-subject-card { transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sbdp-subject-card:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.08) !important; transform: translateY(-2px); }
+        .sbdp-test-row { transition: all 0.18s ease; }
+        .sbdp-test-row:hover { background: var(--color-surface-hover) !important; transform: translateY(-1px); }
+        .sbdp-btn-solve { transition: box-shadow 0.18s ease, transform 0.18s ease; }
+        .sbdp-btn-solve:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.35) !important; transform: translateY(-2px); }
+        .sbdp-btn-solve:active { transform: translateY(0); }
+        .sbdp-focus-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sbdp-focus-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.08) !important; }
 
         .sbdp-stats-grid {
           display: grid;
@@ -1597,9 +1776,10 @@ export default function StudentBookDetailsPage() {
         }
         .sbdp-stat-item {
           border-right: 1px solid var(--color-border);
-          padding: 1.1rem 0.75rem;
+          padding: 1.25rem 0.85rem;
           text-align: center;
           box-sizing: border-box;
+          transition: background 0.2s ease;
         }
         .sbdp-stat-item:last-child {
           border-right: none;
@@ -1612,33 +1792,33 @@ export default function StudentBookDetailsPage() {
             grid-column: span 2;
             grid-row: 1;
             border-right: 1px solid var(--color-border);
-            padding: 0.85rem 0.4rem;
+            padding: 1rem 0.5rem;
           }
           .sbdp-stat-yanlis {
             grid-column: span 2;
             grid-row: 1;
             border-right: 1px solid var(--color-border);
-            padding: 0.85rem 0.4rem;
+            padding: 1rem 0.5rem;
           }
           .sbdp-stat-bos {
             grid-column: span 2;
             grid-row: 1;
             border-right: none;
-            padding: 0.85rem 0.4rem;
+            padding: 1rem 0.5rem;
           }
           .sbdp-stat-test {
             grid-column: span 3;
             grid-row: 2;
             border-top: 1px solid var(--color-border);
             border-right: 1px solid var(--color-border);
-            padding: 0.85rem 0.5rem;
+            padding: 1rem 0.6rem;
           }
           .sbdp-stat-basari {
             grid-column: span 3;
             grid-row: 2;
             border-top: 1px solid var(--color-border);
             border-right: none;
-            padding: 0.85rem 0.5rem;
+            padding: 1rem 0.6rem;
           }
         }
 
@@ -1684,42 +1864,116 @@ export default function StudentBookDetailsPage() {
           right: 24,
           background: '#0f172a',
           color: '#ffffff',
-          padding: '0.65rem 1.15rem',
-          borderRadius: 12,
-          fontSize: '0.82rem',
-          fontWeight: 800,
+          padding: '0.75rem 1.35rem',
+          borderRadius: 14,
+          fontSize: '0.88rem',
+          fontWeight: 900,
           zIndex: 99999,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          gap: 10,
           animation: 'fadeSlideUp 0.25s ease'
         }}>
-          <CheckCircle2 size={16} color="#10b981" />
+          <CheckCircle2 size={18} color="#10b981" />
           <span>{feedbackToast}</span>
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+      {/* 🧭 TOP NAVIGATION BAR WITH LARGE BUTTONS & ODAK MODU TOGGLE */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.85rem' }}>
         <button
           onClick={() => navigate(isFromTeacher ? `/books/${book?.id}` : (book?.bookType === 'exam' ? '/student/exams' : '/student/books'))}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--color-surface)', border: '1.5px solid var(--color-border-input)', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 800, fontSize: '0.85rem', color: 'var(--color-text)', cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--color-surface)',
+            border: '1.5px solid var(--color-border-input)',
+            borderRadius: '0.85rem',
+            padding: '0.65rem 1.25rem',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            color: 'var(--color-text)',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            minHeight: 44,
+            transition: 'all 0.15s ease'
+          }}
         >
-          <ArrowLeft size={16} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
+          <ArrowLeft size={18} /> {isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* 🎯 ODAK MODU BUTONU (BÜYÜK & ŞIK) */}
+          <button
+            type="button"
+            onClick={handleToggleFocusMode}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: isFocusMode
+                ? 'linear-gradient(135deg, #10b981, #059669)'
+                : (isDark ? 'rgba(255,255,255,0.08)' : '#ffffff'),
+              border: isFocusMode ? 'none' : (isDark ? '1.5px solid rgba(255,255,255,0.18)' : '1.5px solid #cbd5e1'),
+              borderRadius: '0.85rem',
+              padding: isMobile ? '0.55rem 0.95rem' : '0.65rem 1.35rem',
+              minHeight: 44,
+              color: isFocusMode ? '#ffffff' : 'var(--color-text)',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.84rem' : '0.94rem',
+              cursor: 'pointer',
+              boxShadow: isFocusMode ? '0 4px 18px rgba(16,185,129,0.45)' : '0 2px 8px rgba(0,0,0,0.04)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+            title={isFocusMode ? 'Normal görünüme dönmek için dokunun' : 'Dikkat dağıtıcıları gizleyip sadece sıradaki teste odaklan'}
+          >
+            <Target size={18} color={isFocusMode ? '#ffffff' : '#10b981'} />
+            <span>{isFocusMode ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Modu'}</span>
+          </button>
+
           <button
             onClick={() => handleOpenManualTest(null)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(16,185,129,0.3)' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              border: 'none',
+              borderRadius: '0.85rem',
+              padding: '0.65rem 1.35rem',
+              fontWeight: 900,
+              fontSize: '0.92rem',
+              color: 'white',
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              minHeight: 44
+            }}
           >
-            <Plus size={16} /> Manuel Test Sonucu Ekle
+            <Plus size={18} /> Manuel Test Sonucu Ekle
           </button>
+
           {bookData.isSelfAdded && (
             <button
               onClick={() => setIsBulkSettingsModalOpen(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #3b82f6, #6366f1)', border: 'none', borderRadius: '0.75rem', padding: '0.5rem 1.1rem', fontWeight: 900, fontSize: '0.85rem', color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(99,102,241,0.3)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                border: 'none',
+                borderRadius: '0.85rem',
+                padding: '0.65rem 1.35rem',
+                fontWeight: 900,
+                fontSize: '0.92rem',
+                color: 'white',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(99,102,241,0.3)',
+                minHeight: 44
+              }}
             >
-              <Settings size={16} /> Cevap Anahtarı Gir
+              <Settings size={18} /> Cevap Anahtarı Gir
             </button>
           )}
         </div>
@@ -1765,33 +2019,41 @@ export default function StudentBookDetailsPage() {
         </div>
       )}
 
-      <div className="sbdp-anim" style={{ borderRadius: '1.5rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.04)', border: '1.5px solid #e2e8f0' }}>
-        <div className="sbdp-hero-box" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a8a 100%)', padding: isMobile ? '1.1rem 1.1rem 1rem' : '2rem 2.5rem 1.5rem', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: -50, right: 80, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+      {/* 🌟 MODERN HERO BANNER WITH BOLD TYPOGRAPHY & FULL-COLOR THEME */}
+      <div className="sbdp-anim" style={{ borderRadius: '1.75rem', overflow: 'hidden', marginBottom: '1.75rem', boxShadow: isDark ? '0 12px 36px rgba(0,0,0,0.45)' : '0 8px 30px rgba(0,0,0,0.08)', border: isDark ? '1.5px solid rgba(255,255,255,0.1)' : '1.5px solid #e2e8f0' }}>
+        <div className="sbdp-hero-box" style={{ background: bookTheme.gradientHero, padding: isMobile ? '1.25rem 1.15rem' : '2.25rem 2.75rem 1.75rem', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: -60, right: 120, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', flexWrap: 'wrap', position: 'relative' }}>
-            <div className="sbdp-hero-cover" style={{ width: isMobile ? 54 : 90, height: isMobile ? 70 : 120, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.25)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
-              <BookOpen size={44} />
+            {/* Book Icon Cover Box */}
+            <div className="sbdp-hero-cover" style={{ width: isMobile ? 64 : 100, height: isMobile ? 80 : 130, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', borderRadius: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, border: '2px solid rgba(255,255,255,0.35)', boxShadow: '0 10px 28px rgba(0,0,0,0.22)' }}>
+              <BookOpen size={isMobile ? 32 : 52} />
             </div>
 
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              {/* Badges Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: 8 }}>
                   {book.publisher}
                 </span>
-                <span style={{ fontSize: '0.65rem', fontWeight: 900, background: 'rgba(255,255,255,0.2)', color: 'white', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.3)' }}>
-                  {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (Ortaokul A-D)' : '🎯 5 Seçenekli Optik (Lise A-E)'}
+                <span style={{ fontSize: '0.78rem', fontWeight: 900, background: 'rgba(255,255,255,0.22)', color: 'white', padding: '3px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)' }}>
+                  {bookTheme.badge}
+                </span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 900, background: 'rgba(255,255,255,0.18)', color: 'white', padding: '3px 10px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.25)' }}>
+                  {book.optionCount === 4 ? '🎯 4 Seçenekli Optik (A-D)' : '🎯 5 Seçenekli Optik (A-E)'}
                 </span>
               </div>
-              <h1 className="sbdp-hero-title" style={{ fontSize: isMobile ? '1.15rem' : '1.75rem', fontWeight: 900, color: 'white', margin: '0 0 0.75rem', lineHeight: 1.25, textShadow: '0 2px 12px rgba(0,0,0,0.15)' }}>
+
+              {/* Huge Book Title */}
+              <h1 className="sbdp-hero-title" style={{ fontSize: isMobile ? '1.45rem' : '2.15rem', fontWeight: 900, color: 'white', margin: '0 0 0.85rem', lineHeight: 1.25, textShadow: '0 2px 14px rgba(0,0,0,0.25)', letterSpacing: '-0.02em' }}>
                 {book.title}
                 {book.pdfUrl && (
                   <button
                     onClick={() => setShowBookPdf(p => !p)}
-                    style={{ marginLeft: 10, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '0.25rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 800, border: '1.5px solid rgba(255,255,255,0.5)', background: showBookPdf ? 'white' : 'rgba(255,255,255,0.15)', color: showBookPdf ? '#4f46e5' : 'white', cursor: 'pointer' }}
+                    style={{ marginLeft: 12, verticalAlign: 'middle', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.35rem 0.95rem', borderRadius: '0.65rem', fontSize: '0.82rem', fontWeight: 900, border: '1.5px solid rgba(255,255,255,0.6)', background: showBookPdf ? 'white' : 'rgba(255,255,255,0.2)', color: showBookPdf ? '#4f46e5' : 'white', cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.15)' }}
                   >
-                    <FileText size={12} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
+                    <FileText size={15} /> {showBookPdf ? 'PDF Kapat' : 'PDF Görüntüle'}
                   </button>
                 )}
                 <button
@@ -1802,61 +2064,92 @@ export default function StudentBookDetailsPage() {
                     verticalAlign: 'middle',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
-                    padding: '0.3rem 0.85rem',
-                    borderRadius: '0.55rem',
-                    fontSize: '0.72rem',
+                    gap: 6,
+                    padding: '0.35rem 0.95rem',
+                    borderRadius: '0.65rem',
+                    fontSize: '0.82rem',
                     fontWeight: 900,
                     border: 'none',
                     background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                     color: 'white',
                     cursor: 'pointer',
-                    boxShadow: '0 3px 10px rgba(99,102,241,0.35)'
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.4)'
                   }}
                   title="Bu kitabın PDF'sinden yanlış soruları kırparak telafi testi oluşturun"
                 >
-                  <Scissors size={13} /> Yanlışlardan Test Kırp
+                  <Scissors size={15} /> Yanlışlardan Test Kırp
                 </button>
               </h1>
 
-              <div style={{ maxWidth: 500 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>Genel İlerleme</span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 900, color: overallPct === 100 ? '#4ade80' : 'white' }}>%{overallPct}</span>
+              {/* Progress Bar with Big Percentage */}
+              <div style={{ maxWidth: 540 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)' }}>Genel Kitap İlerlemesi</span>
+                  <span style={{ fontSize: '1.15rem', fontWeight: 900, color: overallPct === 100 ? '#4ade80' : 'white', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>%{overallPct}</span>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.2)', height: 8, borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ width: `${overallPct}%`, height: '100%', background: overallPct === 100 ? 'linear-gradient(90deg,#4ade80,#22c55e)' : 'linear-gradient(90deg,#e0e7ff,white)', borderRadius: 99, transition: 'width 0.6s ease', boxShadow: '0 0 12px rgba(255,255,255,0.4)' }} />
+                <div style={{ background: 'rgba(255,255,255,0.22)', height: 12, borderRadius: 99, overflow: 'hidden', padding: 2 }}>
+                  <div style={{ width: `${overallPct}%`, height: '100%', background: overallPct === 100 ? 'linear-gradient(90deg, #4ade80, #22c55e)' : 'linear-gradient(90deg, #fef08a, #ffffff)', borderRadius: 99, transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 16px rgba(255,255,255,0.6)' }} />
                 </div>
               </div>
+            </div>
+
+            {/* Quick Odak Modu Switcher inside Hero */}
+            <div style={{ alignSelf: isMobile ? 'stretch' : 'center', marginTop: isMobile ? '0.5rem' : 0 }}>
+              <button
+                type="button"
+                onClick={handleToggleFocusMode}
+                style={{
+                  width: isMobile ? '100%' : 'auto',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  background: isFocusMode ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.22)',
+                  border: isFocusMode ? '2px solid #34d399' : '1.5px solid rgba(255,255,255,0.45)',
+                  backdropFilter: 'blur(10px)',
+                  color: '#ffffff',
+                  padding: isMobile ? '0.75rem 1.25rem' : '0.85rem 1.6rem',
+                  borderRadius: '1rem',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.92rem' : '1.05rem',
+                  cursor: 'pointer',
+                  boxShadow: isFocusMode ? '0 0 24px rgba(16,185,129,0.65)' : '0 4px 16px rgba(0,0,0,0.18)',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              >
+                <Target size={22} color={isFocusMode ? '#ffffff' : '#34d399'} />
+                <span>{isFocusMode ? '🎯 Odak Modu: AÇIK' : '🎯 Odak Moduna Geç'}</span>
+              </button>
             </div>
           </div>
         </div>
 
+        {/* 📊 BOLD HIGH-CONTRAST STATS GRID */}
         <div className="sbdp-stats-grid" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
-          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: 'rgba(16,185,129,0.08)' }}>
-            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>✅</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#16a34a' }}>{overallCorrect}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase' }}>Doğru</div>
+          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)' }}>
+            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>✅</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#16a34a', letterSpacing: '-0.02em' }}>{overallCorrect}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: 'rgba(239,68,68,0.08)' }}>
-            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>❌</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#dc2626' }}>{overallWrong}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase' }}>Yanlış</div>
+          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }}>
+            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>❌</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#dc2626', letterSpacing: '-0.02em' }}>{overallWrong}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: 'var(--color-surface-hover)' }}>
-            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>⬜</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: 'var(--color-text-muted)' }}>{overallBlank}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Boş</div>
+          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: isDark ? 'rgba(148,163,184,0.1)' : 'var(--color-surface-hover)' }}>
+            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>⬜</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '-0.02em' }}>{overallBlank}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: 'rgba(37,99,235,0.08)' }}>
-            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>📋</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#2563eb' }}>{overallCompleted}/{overallTotal}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase' }}>Test</div>
+          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: isDark ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)' }}>
+            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>📋</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '-0.02em' }}>{overallCompleted}/{overallTotal}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
           </div>
-          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: 'rgba(124,58,237,0.08)' }}>
-            <div style={{ fontSize: '1.15rem', marginBottom: 2 }}>🎯</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.05rem' : '1.35rem', fontWeight: 900, color: '#7c3aed' }}>%{overallSuccessRate}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.62rem' : '0.72rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase' }}>Başarı</div>
+          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)' }}>
+            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>🎯</div>
+            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#7c3aed', letterSpacing: '-0.02em' }}>%{overallSuccessRate}</div>
+            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
           </div>
         </div>
       </div>
@@ -2603,115 +2896,721 @@ export default function StudentBookDetailsPage() {
 
       {/* 📖 TESTLER & KONULAR BÖLÜMÜ */}
       {(activeBookTab === 'tests' || activeBookTab === 'all') && (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
+        {/* 🎯 ODAK MODU AKTİFSE: SADE, BÜYÜK YAZILI, BÜYÜK BUTONLU HEDEF AKIŞI */}
+        {isFocusMode ? (
+          <div className="sbdp-anim" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* ODAK MODU BİLGİ BANNERI */}
+            <div
+              style={{
+                background: isDark
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.12))'
+                  : 'linear-gradient(135deg, #ecfdf5, #eff6ff)',
+                border: '2px solid rgba(16, 185, 129, 0.45)',
+                borderRadius: 20,
+                padding: isMobile ? '1rem 1.15rem' : '1.25rem 1.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                boxShadow: '0 6px 24px rgba(16, 185, 129, 0.16)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 16,
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
+                  flexShrink: 0
+                }}>
+                  <Target size={26} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: isMobile ? '1.05rem' : '1.25rem', color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>🎯 Sade Odak Modu Etkin</span>
+                    <span style={{ fontSize: '0.72rem', background: '#10b981', color: '#ffffff', padding: '3px 10px', borderRadius: 99, fontWeight: 900, letterSpacing: '0.04em' }}>AKTİF</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 4 }}>
+                    Dikkat dağıtıcı tüm detaylar gizlendi. Sadece sıradaki testine odaklan ve hedefini tamamla!
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleFocusMode}
+                style={{
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 12,
+                  padding: '0.65rem 1.35rem',
+                  fontSize: '0.88rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  boxShadow: '0 3px 12px rgba(239, 68, 68, 0.35)',
+                  minHeight: 44
+                }}
+              >
+                Odak Modundan Çık
+              </button>
+            </div>
+
+            {/* 🌟 BÜYÜK ODAK SPOTLIGHT KARTI */}
+            {nextIncompleteTest ? (
+              <div
+                className="sbdp-anim sbdp-focus-card"
+                style={{
+                  background: bookTheme.nextCardBg,
+                  border: `2px solid ${bookTheme.nextCardBorder}`,
+                  borderRadius: 24,
+                  padding: isMobile ? '1.4rem 1.15rem' : '2.25rem 2.5rem',
+                  boxShadow: isDark
+                    ? `0 14px 40px rgba(0,0,0,0.45), 0 0 35px ${bookTheme.accent}25`
+                    : `0 14px 40px ${bookTheme.accent}18, 0 4px 18px rgba(0,0,0,0.05)`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: -40,
+                  right: -40,
+                  width: 160,
+                  height: 160,
+                  borderRadius: '50%',
+                  background: `${bookTheme.accent}15`,
+                  pointerEvents: 'none'
+                }} />
+
+                {/* Top Badge & Breadcrumb */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{
+                      background: bookTheme.btnGradient,
+                      color: '#ffffff',
+                      padding: '5px 14px',
+                      borderRadius: 99,
+                      fontSize: '0.82rem',
+                      fontWeight: 900,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: bookTheme.btnShadow
+                    }}>
+                      <Sparkles size={15} /> ŞİMDİ SIRADAKİ HEDEFİN
+                    </span>
+                    <span style={{
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      color: 'var(--color-text-muted)'
+                    }}>
+                      📚 {nextIncompleteTest.subject?.name} {nextIncompleteTest.topic ? `• 🎯 ${nextIncompleteTest.topic.name}` : ''}
+                    </span>
+                  </div>
+
+                  <span style={{
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#ffffff',
+                    border: '1.5px solid var(--color-border)',
+                    padding: '4px 12px',
+                    borderRadius: 99,
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    color: 'var(--color-text-muted)'
+                  }}>
+                    Hedef Kalan: {pendingFocusCount} Test
+                  </span>
+                </div>
+
+                {/* Big Test Title and Meta */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                  <div style={{ flex: 1, minWidth: 260 }}>
+                    <h2 style={{
+                      fontSize: isMobile ? '1.45rem' : '2.15rem',
+                      fontWeight: 900,
+                      color: 'var(--color-text)',
+                      margin: '0 0 0.65rem',
+                      lineHeight: 1.25,
+                      letterSpacing: '-0.02em'
+                    }}>
+                      {nextIncompleteTest.test.name}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        color: 'var(--color-text)',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        padding: '4px 12px',
+                        borderRadius: 10
+                      }}>
+                        📝 {nextIncompleteTest.test.questionCount || 20} Soru
+                      </span>
+                      <span style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 800,
+                        color: 'var(--color-text)',
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        padding: '4px 12px',
+                        borderRadius: 10
+                      }}>
+                        ⏱️ ~{Math.round((nextIncompleteTest.test.questionCount || 20) * 1.5)} Dakika
+                      </span>
+                      <span style={{
+                        fontSize: '0.88rem',
+                        fontWeight: 900,
+                        color: '#059669',
+                        background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5',
+                        border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                        padding: '4px 12px',
+                        borderRadius: 10
+                      }}>
+                        ⚡ +25 XP Başarı Puanı
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* BÜYÜK BUTONLAR */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleOpenManualTest(nextIncompleteTest.test, nextIncompleteTest.subject?.name, nextIncompleteTest.topic?.name);
+                      }}
+                      style={{
+                        minHeight: 52,
+                        padding: isMobile ? '0.75rem 1.25rem' : '0.85rem 1.6rem',
+                        borderRadius: 14,
+                        background: 'var(--color-surface)',
+                        border: '2px solid #86efac',
+                        color: '#166534',
+                        fontWeight: 900,
+                        fontSize: '0.96rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 4px 14px rgba(16,185,129,0.18)',
+                        transition: 'all 0.15s ease'
+                      }}
+                      className="hover:scale-102"
+                    >
+                      <Edit3 size={18} />
+                      <span>⚡ D/Y Sonucu Gir</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/book-quiz/${nextIncompleteTest.test.id}?studentId=${studentId}`)}
+                      style={{
+                        minHeight: 52,
+                        padding: isMobile ? '0.85rem 1.8rem' : '0.95rem 2.4rem',
+                        borderRadius: 14,
+                        background: bookTheme.btnGradient,
+                        border: 'none',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: isMobile ? '1.05rem' : '1.15rem',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        boxShadow: bookTheme.btnShadow,
+                        transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)'
+                      }}
+                      className="hover:scale-105 active:scale-95"
+                    >
+                      <PlayCircle size={24} />
+                      <span>ŞİMDİ TESTİ ÇÖZ</span>
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="sbdp-anim"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+                  border: '2px solid rgba(16, 185, 129, 0.4)',
+                  borderRadius: 24,
+                  padding: '2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  boxShadow: '0 8px 28px rgba(16, 185, 129, 0.15)'
+                }}
+              >
+                <div style={{ fontSize: '2.5rem' }}>🏆</div>
+                <div>
+                  <h3 style={{ margin: '0 0 6px', fontSize: '1.35rem', fontWeight: 900, color: '#059669' }}>
+                    Tebrikler! Bu kitaptaki tüm testleri tamamladın! 🎉
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                    Aşağıdaki listeden çözdüğün testlerin sonuçlarını tekrar inceleyebilir veya hatalarını gözden geçirebilirsin.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* 📋 ODAK MODU TEST FİLTRE VE LİSTE AKIŞI */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 10,
+              marginTop: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                  📖 Test Sırası
+                </span>
+                <span style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 900,
+                  background: `${bookTheme.accent}18`,
+                  color: bookTheme.accent,
+                  border: `1px solid ${bookTheme.accentBorder}`,
+                  padding: '3px 10px',
+                  borderRadius: 99
+                }}>
+                  {completedFocusCount}/{allFocusedTests.length} Tamamlandı
+                </span>
+              </div>
+
+              {/* Segmented Filter Pills */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                borderRadius: 14,
+                padding: 4,
+                gap: 4
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setFocusTestFilter('pending')}
+                  style={{
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: focusTestFilter === 'pending' ? bookTheme.btnGradient : 'transparent',
+                    color: focusTestFilter === 'pending' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ⏳ Sırada Bekleyenler ({pendingFocusCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFocusTestFilter('completed')}
+                  style={{
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: focusTestFilter === 'completed' ? 'linear-gradient(135deg, #10b981, #059669)' : 'transparent',
+                    color: focusTestFilter === 'completed' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  ✅ Tamamlananlar ({completedFocusCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFocusTestFilter('all')}
+                  style={{
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: focusTestFilter === 'all' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
+                    color: focusTestFilter === 'all' ? '#ffffff' : 'var(--color-text-muted)',
+                    fontSize: '0.85rem',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Tümü ({allFocusedTests.length})
+                </button>
+              </div>
+            </div>
+
+            {/* BÜYÜK ODAK MODU TEST KARTLARI LİSTESİ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {filteredFocusedTests.map((test, fIdx) => {
+                const isNext = nextIncompleteTest && String(nextIncompleteTest.test.id) === String(test.id);
+                return (
+                  <div
+                    key={test.id || fIdx}
+                    className="sbdp-anim sbdp-focus-card"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                      background: 'var(--color-surface)',
+                      border: isNext
+                        ? `2.5px solid ${bookTheme.accent}`
+                        : test.isCompleted
+                        ? '1.5px solid #86efac'
+                        : '1.5px solid var(--color-border)',
+                      borderRadius: 20,
+                      padding: isMobile ? '1.1rem 1.15rem' : '1.35rem 1.75rem',
+                      boxShadow: isNext
+                        ? `0 8px 24px ${bookTheme.accent}25`
+                        : '0 3px 10px rgba(0,0,0,0.03)',
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 240, flex: 1 }}>
+                      {/* Big Circular Index/Status Indicator */}
+                      <div style={{
+                        width: 46,
+                        height: 46,
+                        borderRadius: '50%',
+                        background: test.isCompleted
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : isNext
+                          ? bookTheme.btnGradient
+                          : test.isLocked
+                          ? 'var(--color-surface-hover)'
+                          : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                        color: test.isLocked ? 'var(--color-text-muted)' : '#ffffff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 900,
+                        fontSize: '1.05rem',
+                        flexShrink: 0,
+                        boxShadow: test.isCompleted ? '0 4px 12px rgba(16,185,129,0.35)' : isNext ? bookTheme.btnShadow : 'none'
+                      }}>
+                        {test.isCompleted ? <CheckCircle2 size={24} /> : (isNext ? '⚡' : (fIdx + 1))}
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                            📚 {test.subjectName} {test.topicName ? `• 🎯 ${test.topicName}` : ''}
+                          </span>
+                          {isNext && (
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 900,
+                              background: bookTheme.btnGradient,
+                              color: '#ffffff',
+                              padding: '3px 9px',
+                              borderRadius: 99,
+                              letterSpacing: '0.04em'
+                            }}>
+                              ✨ SIRADAKİ TEST
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                          {test.name}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>
+                            📝 {test.questionCount || 20} Soru
+                          </span>
+                          {test.isCompleted && test.bestScore !== null && (
+                            <span style={{
+                              fontSize: '0.82rem',
+                              fontWeight: 900,
+                              color: '#166534',
+                              background: '#f0fdf4',
+                              border: '1px solid #bbf7d0',
+                              padding: '3px 10px',
+                              borderRadius: 99,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5
+                            }}>
+                              <Award size={14} /> %{test.bestScore} Başarı
+                              {test.bestSub && ` (${test.bestSub.correctCount || 0}D ${test.bestSub.wrongCount || 0}Y ${test.bestSub.blankCount || 0}B)`}
+                            </span>
+                          )}
+                          {test.testDueDate && (
+                            <span style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              color: '#2563eb',
+                              background: 'rgba(37,99,235,0.1)',
+                              padding: '2px 8px',
+                              borderRadius: 6
+                            }}>
+                              📅 Hedef: {new Date(test.testDueDate).toLocaleDateString('tr-TR')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Side: BÜYÜK BUTONLAR */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                      {test.isCompleted ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleReviewTest(test)}
+                            style={{
+                              minHeight: 48,
+                              padding: '0.7rem 1.4rem',
+                              fontSize: '0.94rem',
+                              fontWeight: 900,
+                              borderRadius: '0.85rem',
+                              border: '1.5px solid #86efac',
+                              color: '#166534',
+                              background: '#f0fdf4',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <Eye size={17} /> Sonucu İncele
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenManualTest(test, test.subjectName, test.topicName)}
+                            style={{
+                              minHeight: 48,
+                              padding: '0.7rem 1.25rem',
+                              fontSize: '0.9rem',
+                              fontWeight: 800,
+                              borderRadius: '0.85rem',
+                              border: '1px solid var(--color-border)',
+                              color: 'var(--color-text)',
+                              background: 'var(--color-surface)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <Edit3 size={16} /> D/Y Düzenle
+                          </button>
+                        </>
+                      ) : test.isLocked ? (
+                        <span style={{ fontSize: '0.92rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Lock size={18} /> Kilitli
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenManualTest(test, test.subjectName, test.topicName)}
+                            style={{
+                              minHeight: 50,
+                              padding: '0.75rem 1.35rem',
+                              fontSize: '0.94rem',
+                              fontWeight: 800,
+                              borderRadius: '0.85rem',
+                              border: '1.5px solid #86efac',
+                              color: '#166534',
+                              background: 'var(--color-surface)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <Edit3 size={17} /> ⚡ D/Y Gir
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
+                            style={{
+                              minHeight: 50,
+                              padding: '0.75rem 1.75rem',
+                              fontSize: '1rem',
+                              fontWeight: 900,
+                              borderRadius: '0.85rem',
+                              border: 'none',
+                              color: '#ffffff',
+                              background: isNext ? bookTheme.btnGradient : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              boxShadow: isNext ? bookTheme.btnShadow : '0 4px 14px rgba(79, 70, 229, 0.35)'
+                            }}
+                          >
+                            <PlayCircle size={20} />
+                            <span>Şimdi Çöz</span>
+                            <ChevronRight size={18} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+        /* 📂 NORMAL DETAYLI GÖRÜNÜM (KONULAR, ÜNİTELER & TESTLER) */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* ⚡ NEXT INCOMPLETE TEST ACTION HERO CARD */}
         {nextIncompleteTest ? (
           <div
             className="sbdp-anim"
             style={{
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.06) 100%)',
-              border: '1.5px solid rgba(99, 102, 241, 0.3)',
-              borderRadius: 18,
-              padding: isMobile ? '1rem' : '1.15rem 1.6rem',
+              background: bookTheme.nextCardBg,
+              border: `2px solid ${bookTheme.nextCardBorder}`,
+              borderRadius: 20,
+              padding: isMobile ? '1.15rem' : '1.35rem 1.85rem',
               marginBottom: '0.5rem',
               display: 'flex',
               alignItems: isMobile ? 'stretch' : 'center',
               justifyContent: 'space-between',
               flexDirection: isMobile ? 'column' : 'row',
-              gap: 12,
-              boxShadow: '0 4px 18px rgba(99, 102, 241, 0.06)'
+              gap: 14,
+              boxShadow: isDark
+                ? `0 6px 24px rgba(0,0,0,0.4), 0 0 20px ${bookTheme.accent}15`
+                : `0 6px 24px ${bookTheme.accent}15`
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: bookTheme.btnGradient,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
-                fontSize: '1.2rem',
-                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)',
+                fontSize: '1.35rem',
+                boxShadow: bookTheme.btnShadow,
                 flexShrink: 0
               }}>
                 ⚡
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                   <span style={{
-                    fontSize: '0.68rem',
+                    fontSize: '0.74rem',
                     fontWeight: 900,
-                    color: '#4f46e5',
-                    background: 'rgba(99, 102, 241, 0.12)',
-                    padding: '2px 8px',
+                    color: '#ffffff',
+                    background: bookTheme.btnGradient,
+                    padding: '2px 9px',
                     borderRadius: 99,
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    boxShadow: bookTheme.btnShadow
                   }}>
                     Sıradaki Testin
                   </span>
-                  <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>
                     📚 {nextIncompleteTest.subject?.name}
                     {nextIncompleteTest.topic ? ` • 🎯 ${nextIncompleteTest.topic.name}` : ''}
                   </span>
                 </div>
-                <div style={{ fontSize: isMobile ? '0.98rem' : '1.1rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                <div style={{ fontSize: isMobile ? '1.1rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)' }}>
                   {nextIncompleteTest.test.name}
-                  <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginLeft: 8 }}>
+                  <span style={{ fontSize: '0.84rem', color: 'var(--color-text-muted)', fontWeight: 700, marginLeft: 10 }}>
                     ({nextIncompleteTest.test.questionCount || 20} Soru)
                   </span>
                 </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate(`/book-quiz/${nextIncompleteTest.test.id}?studentId=${studentId}`)}
-              style={{
-                minHeight: 44,
-                padding: '0.65rem 1.4rem',
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
-                border: 'none',
-                color: '#ffffff',
-                fontWeight: 900,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)'
-              }}
-            >
-              <PlayCircle size={18} />
-              <span>Hemen Çöz</span>
-              <ChevronRight size={16} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  handleOpenManualTest(nextIncompleteTest.test, nextIncompleteTest.subject?.name, nextIncompleteTest.topic?.name);
+                }}
+                style={{
+                  minHeight: 48,
+                  padding: '0.7rem 1.25rem',
+                  borderRadius: 12,
+                  background: 'var(--color-surface)',
+                  border: '1.5px solid #86efac',
+                  color: '#166534',
+                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Edit3 size={16} />
+                <span>⚡ D/Y Gir</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate(`/book-quiz/${nextIncompleteTest.test.id}?studentId=${studentId}`)}
+                style={{
+                  minHeight: 48,
+                  padding: '0.75rem 1.6rem',
+                  borderRadius: 12,
+                  background: bookTheme.btnGradient,
+                  border: 'none',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: bookTheme.btnShadow
+                }}
+              >
+                <PlayCircle size={20} />
+                <span>Hemen Çöz</span>
+                <ChevronRight size={18} />
+              </button>
+            </div>
           </div>
         ) : (
           overallTotal > 0 && overallCompleted >= overallTotal && (
             <div
               className="sbdp-anim"
               style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)',
-                border: '1.5px solid rgba(16, 185, 129, 0.3)',
-                borderRadius: 18,
-                padding: '1rem 1.4rem',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+                border: '2px solid rgba(16, 185, 129, 0.4)',
+                borderRadius: 20,
+                padding: '1.25rem 1.6rem',
                 marginBottom: '0.5rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12
+                gap: 14
               }}
             >
-              <div style={{ fontSize: '1.8rem' }}>🏆</div>
+              <div style={{ fontSize: '2rem' }}>🏆</div>
               <div>
-                <div style={{ fontWeight: 900, color: '#059669', fontSize: '0.95rem' }}>
+                <div style={{ fontWeight: 900, color: '#059669', fontSize: '1.05rem' }}>
                   Tebrikler! Bu kitaptaki tüm testleri başarıyla tamamladın! 🎉
                 </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
+                <div style={{ fontSize: '0.84rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2 }}>
                   İstersen çözdüğün testleri tekrar gözden geçirebilir veya yanlış yaptığın soruların hata analizlerini inceleyebilirsin.
                 </div>
               </div>
@@ -2852,13 +3751,13 @@ export default function StudentBookDetailsPage() {
             <div key={subj.id} className="sbdp-subject-card" style={{ borderRadius: '1.3rem', overflow: 'hidden', border: `1.5px solid ${isOpen ? 'var(--color-border-input)' : 'var(--color-border)'}`, boxShadow: isOpen ? '0 8px 24px rgba(0,0,0,0.06)' : '0 2px 8px rgba(0,0,0,0.02)', background: 'var(--color-surface)' }}>
               <div
                 onClick={() => toggleSubject(subj.id)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', userSelect: 'none', background: isOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.25s', flexWrap: 'wrap', gap: '0.75rem', borderBottom: isOpen ? '1px solid var(--color-border)' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '1rem 1.15rem' : '1.15rem 1.5rem', cursor: 'pointer', userSelect: 'none', background: isOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', transition: 'background 0.25s', flexWrap: 'wrap', gap: '0.75rem', borderBottom: isOpen ? '1px solid var(--color-border)' : 'none' }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '0.6rem', background: sc.light, color: sc.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1px solid ${sc.light}` }}>
-                    <Layers size={18} />
+                  <div style={{ width: 42, height: 42, borderRadius: '0.75rem', background: sc.light, color: sc.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${sc.light}` }}>
+                    <Layers size={21} />
                   </div>
-                  <span style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--color-text)' }}>{subj.name}</span>
+                  <span style={{ fontSize: isMobile ? '1.12rem' : '1.3rem', fontWeight: 900, color: 'var(--color-text)' }}>{subj.name}</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -2890,22 +3789,22 @@ export default function StudentBookDetailsPage() {
                         else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                         return (
-                          <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
-                              {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
+                          <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1.5px solid ${stateBorder}`, borderLeft: `5px solid ${stateAccent}`, borderRadius: '0.95rem', padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.35rem', flexWrap: 'wrap', gap: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.95rem', flexShrink: 0 }}>
+                              {test.isCompleted ? <CheckCircle2 size={18} /> : (test.isPendingApproval ? '⏳' : test.index)}
                             </div>
 
-                            <div style={{ flex: 1, minWidth: 140 }}>
-                              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
+                            <div style={{ flex: 1, minWidth: 160 }}>
+                              <div style={{ fontSize: isMobile ? '1.02rem' : '1.15rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                                 {test.name}
                               </div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                 <span>{test.questionCount || 20} Soru</span>
                                 {test.isPendingApproval && !test.isCompleted ? (
                                   <span style={{
-                                    fontSize: '0.68rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: 900,
-                                    padding: '2px 7px',
+                                    padding: '3px 8px',
                                     borderRadius: '6px',
                                     background: 'rgba(124, 58, 237, 0.12)',
                                     color: '#a855f7',
@@ -2915,9 +3814,9 @@ export default function StudentBookDetailsPage() {
                                   </span>
                                 ) : test.testDueDate ? (
                                   <span style={{
-                                    fontSize: '0.7rem',
+                                    fontSize: '0.75rem',
                                     fontWeight: 800,
-                                    padding: '2px 7px',
+                                    padding: '3px 8px',
                                     borderRadius: '6px',
                                     background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
                                     color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
@@ -2927,9 +3826,9 @@ export default function StudentBookDetailsPage() {
                                   </span>
                                 ) : (
                                   <span style={{
-                                    fontSize: '0.68rem',
+                                    fontSize: '0.72rem',
                                     fontWeight: 700,
-                                    padding: '2px 6px',
+                                    padding: '3px 8px',
                                     borderRadius: '6px',
                                     background: 'var(--color-surface-hover)',
                                     color: 'var(--color-text-muted)',
@@ -2943,11 +3842,11 @@ export default function StudentBookDetailsPage() {
 
                             {test.isCompleted && test.bestScore !== null && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4, border: '1px solid #bbf7d0' }}>
-                                  <Award size={12} /> %{test.bestScore}
+                                <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '4px 12px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 5, border: '1px solid #bbf7d0' }}>
+                                  <Award size={14} /> %{test.bestScore}
                                 </span>
                                 {test.bestSub && (
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#f8fafc', padding: '3px 9px', borderRadius: '99px', border: '1px solid #e2e8f0', display: 'inline-flex', gap: 6 }}>
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 800, background: '#f8fafc', padding: '4px 10px', borderRadius: '99px', border: '1px solid #e2e8f0', display: 'inline-flex', gap: 6 }}>
                                     <span style={{ color: '#16a34a' }}>{test.bestSub.correctCount || 0}D</span>
                                     <span style={{ color: '#dc2626' }}>{test.bestSub.wrongCount || 0}Y</span>
                                     <span style={{ color: '#64748b' }}>{test.bestSub.blankCount || 0}B</span>
@@ -2958,80 +3857,80 @@ export default function StudentBookDetailsPage() {
 
                             <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                               {test.isCompleted ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                   <button
                                     className="sbdp-btn-solve"
-                                    style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    style={{ minHeight: 44, padding: '0.6rem 1.25rem', fontSize: '0.9rem', fontWeight: 900, borderRadius: '0.75rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                     onClick={() => handleReviewTest(test)}
                                   >
-                                    <Eye size={13} /> Sonucu İncele
+                                    <Eye size={15} /> Sonucu İncele
                                   </button>
                                   <button
-                                    style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    style={{ minHeight: 44, padding: '0.6rem 1.05rem', fontSize: '0.86rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                     title="Doğru/Yanlış Sonucunu Düzenle"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleOpenManualTest(test, subj.name, null);
                                     }}
                                   >
-                                    <Edit3 size={12} /> D/Y Düzenle
+                                    <Edit3 size={14} /> D/Y Düzenle
                                   </button>
                                   {isTeacherViewing && (
                                     <>
                                       <button
-                                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                        style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                         title="Testi Düzenle"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleOpenEditTest(test);
                                         }}
                                       >
-                                        <Edit size={12} /> Düzenle
+                                        <Edit size={14} /> Düzenle
                                       </button>
                                       <button
-                                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                        style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                         title="Bu testi sıfırla"
                                         onClick={(e) => handleResetTestResult(test, e)}
                                       >
-                                        <RotateCcw size={12} /> Sıfırla
+                                        <RotateCcw size={14} /> Sıfırla
                                       </button>
                                     </>
                                   )}
                                 </div>
                               ) : test.isLocked ? (
-                                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <Lock size={14} /> Kilitli
+                                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <Lock size={16} /> Kilitli
                                 </span>
                               ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                   <button
-                                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    style={{ minHeight: 46, padding: '0.65rem 1.15rem', fontSize: '0.9rem', fontWeight: 800, borderRadius: '0.75rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                     title="Doğru/Yanlış/Boş Sayılarını Gir"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleOpenManualTest(test, subj.name, null);
                                     }}
                                   >
-                                    <Edit3 size={13} /> ⚡ D/Y Gir
+                                    <Edit3 size={15} /> ⚡ D/Y Gir
                                   </button>
                                   {isTeacherViewing && (
                                     <button
-                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      style={{ minHeight: 46, padding: '0.65rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                       title="Testi Düzenle"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleOpenEditTest(test);
                                       }}
                                     >
-                                      <Edit size={12} /> Düzenle
+                                      <Edit size={14} /> Düzenle
                                     </button>
                                   )}
                                   <button
                                     className="sbdp-btn-solve"
-                                    style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                    style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}
                                     onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                   >
-                                    <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                    <PlayCircle size={17} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                   </button>
                                 </div>
                               )}
@@ -3048,15 +3947,17 @@ export default function StudentBookDetailsPage() {
                       const isTopicOpen = !!openTopics[topic.id] || Boolean(testSearchQuery.trim());
 
                       return (
-                        <div key={topic.id} style={{ borderRadius: '0.85rem', border: '1px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)' }}>
+                        <div key={topic.id} style={{ borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
                           <div
                             onClick={() => toggleTopic(topic.id)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', cursor: 'pointer', background: isTopicOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', borderBottom: isTopicOpen ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.5rem' }}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem', cursor: 'pointer', background: isTopicOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', borderBottom: isTopicOpen ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.6rem' }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                              <FileText size={16} color={sc.accent} />
-                              <span style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--color-text)' }}>{topic.name}</span>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '2px 8px', borderRadius: 99, border: '1px solid var(--color-border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <FileText size={18} color={sc.accent} />
+                              </div>
+                              <span style={{ fontSize: isMobile ? '1.02rem' : '1.14rem', fontWeight: 900, color: 'var(--color-text)' }}>{topic.name}</span>
+                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '3px 10px', borderRadius: 99, border: '1px solid var(--color-border)' }}>
                                 {topic.completedCount}/{topic.totalCount} Test
                               </span>
                             </div>
@@ -3074,22 +3975,22 @@ export default function StudentBookDetailsPage() {
                                 else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                                 return (
-                                  <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
-                                      {test.isCompleted ? <CheckCircle2 size={16} /> : (test.isPendingApproval ? '⏳' : test.index)}
+                                  <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1.5px solid ${stateBorder}`, borderLeft: `5px solid ${stateAccent}`, borderRadius: '0.95rem', padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.35rem', flexWrap: 'wrap', gap: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isPendingApproval ? 'linear-gradient(135deg,#7c3aed,#9333ea)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.95rem', flexShrink: 0 }}>
+                                      {test.isCompleted ? <CheckCircle2 size={18} /> : (test.isPendingApproval ? '⏳' : test.index)}
                                     </div>
 
-                                    <div style={{ flex: 1, minWidth: 140 }}>
-                                      <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
+                                    <div style={{ flex: 1, minWidth: 160 }}>
+                                      <div style={{ fontSize: isMobile ? '1.02rem' : '1.15rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                                         {test.name}
                                       </div>
-                                      <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                         <span>{test.questionCount || 20} Soru</span>
                                         {test.isPendingApproval && !test.isCompleted ? (
                                           <span style={{
-                                            fontSize: '0.68rem',
+                                            fontSize: '0.72rem',
                                             fontWeight: 900,
-                                            padding: '2px 7px',
+                                            padding: '3px 8px',
                                             borderRadius: '6px',
                                             background: 'rgba(124, 58, 237, 0.12)',
                                             color: '#a855f7',
@@ -3099,9 +4000,9 @@ export default function StudentBookDetailsPage() {
                                           </span>
                                         ) : test.testDueDate ? (
                                           <span style={{
-                                            fontSize: '0.7rem',
+                                            fontSize: '0.75rem',
                                             fontWeight: 800,
-                                            padding: '2px 7px',
+                                            padding: '3px 8px',
                                             borderRadius: '6px',
                                             background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
                                             color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
@@ -3111,9 +4012,9 @@ export default function StudentBookDetailsPage() {
                                           </span>
                                         ) : (
                                           <span style={{
-                                            fontSize: '0.68rem',
+                                            fontSize: '0.72rem',
                                             fontWeight: 700,
-                                            padding: '2px 6px',
+                                            padding: '3px 8px',
                                             borderRadius: '6px',
                                             background: 'var(--color-surface-hover)',
                                             color: 'var(--color-text-muted)',
@@ -3127,11 +4028,11 @@ export default function StudentBookDetailsPage() {
 
                                     {test.isCompleted && test.bestScore !== null && (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4, border: '1px solid #bbf7d0' }}>
-                                          <Award size={12} /> %{test.bestScore}
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '4px 12px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 5, border: '1px solid #bbf7d0' }}>
+                                          <Award size={14} /> %{test.bestScore}
                                         </span>
                                         {test.bestSub && (
-                                          <span style={{ fontSize: '0.72rem', fontWeight: 800, background: '#f8fafc', padding: '3px 9px', borderRadius: '99px', border: '1px solid #e2e8f0', display: 'inline-flex', gap: 6 }}>
+                                          <span style={{ fontSize: '0.78rem', fontWeight: 800, background: '#f8fafc', padding: '4px 10px', borderRadius: '99px', border: '1px solid #e2e8f0', display: 'inline-flex', gap: 6 }}>
                                             <span style={{ color: '#16a34a' }}>{test.bestSub.correctCount || 0}D</span>
                                             <span style={{ color: '#dc2626' }}>{test.bestSub.wrongCount || 0}Y</span>
                                             <span style={{ color: '#64748b' }}>{test.bestSub.blankCount || 0}B</span>
@@ -3142,80 +4043,80 @@ export default function StudentBookDetailsPage() {
 
                                     <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                                       {test.isCompleted ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                           <button
                                             className="sbdp-btn-solve"
-                                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            style={{ minHeight: 44, padding: '0.6rem 1.25rem', fontSize: '0.9rem', fontWeight: 900, borderRadius: '0.75rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                             onClick={() => handleReviewTest(test)}
                                           >
-                                            <Eye size={13} /> Sonucu İncele
+                                            <Eye size={15} /> Sonucu İncele
                                           </button>
                                           <button
-                                            style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            style={{ minHeight: 44, padding: '0.6rem 1.05rem', fontSize: '0.86rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                             title="Doğru/Yanlış Sonucunu Düzenle"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleOpenManualTest(test, subj.name, topic.name);
                                             }}
                                           >
-                                            <Edit3 size={12} /> D/Y Düzenle
+                                            <Edit3 size={14} /> D/Y Düzenle
                                           </button>
                                           {isTeacherViewing && (
                                             <>
                                               <button
-                                                style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                                style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                                 title="Testi Düzenle"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   handleOpenEditTest(test);
                                                 }}
                                               >
-                                                <Edit size={12} /> Düzenle
+                                                <Edit size={14} /> Düzenle
                                               </button>
                                               <button
-                                                style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                                style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                                 title="Bu testi sıfırla"
-                                        onClick={(e) => handleResetTestResult(test, e)}
-                                      >
-                                        <RotateCcw size={12} /> Sıfırla
+                                                onClick={(e) => handleResetTestResult(test, e)}
+                                              >
+                                                <RotateCcw size={14} /> Sıfırla
                                               </button>
                                             </>
                                           )}
                                         </div>
                                       ) : test.isLocked ? (
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                          <Lock size={14} /> Kilitli
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                          <Lock size={16} /> Kilitli
                                         </span>
                                       ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                           <button
-                                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                            style={{ minHeight: 46, padding: '0.65rem 1.15rem', fontSize: '0.9rem', fontWeight: 800, borderRadius: '0.75rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                             title="Doğru/Yanlış/Boş Sayılarını Gir"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleOpenManualTest(test, subj.name, topic.name);
                                             }}
                                           >
-                                            <Edit3 size={13} /> ⚡ D/Y Gir
+                                            <Edit3 size={15} /> ⚡ D/Y Gir
                                           </button>
                                           {isTeacherViewing && (
                                             <button
-                                              style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                              style={{ minHeight: 46, padding: '0.65rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                               title="Testi Düzenle"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleOpenEditTest(test);
                                               }}
                                             >
-                                              <Edit size={12} /> Düzenle
+                                              <Edit size={14} /> Düzenle
                                             </button>
                                           )}
                                           <button
                                             className="sbdp-btn-solve"
-                                            style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                            style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}
                                             onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                           >
-                                            <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                            <PlayCircle size={17} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                           </button>
                                         </div>
                                       )}
@@ -3235,22 +4136,22 @@ export default function StudentBookDetailsPage() {
                       else if (!test.isLocked) { stateBg = 'var(--color-surface)'; stateBorder = 'var(--color-border)'; stateAccent = sc.accent; }
 
                       return (
-                        <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1px solid ${stateBorder}`, borderLeft: `4px solid ${stateAccent}`, borderRadius: '0.8rem', padding: '0.8rem 1rem', flexWrap: 'wrap', gap: '0.75rem', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.85rem', flexShrink: 0 }}>
-                            {test.isCompleted ? <CheckCircle2 size={16} /> : test.index}
+                        <div key={test.id} className="sbdp-test-row" style={{ display: 'flex', alignItems: 'center', background: stateBg, border: `1.5px solid ${stateBorder}`, borderLeft: `5px solid ${stateAccent}`, borderRadius: '0.95rem', padding: isMobile ? '0.9rem 1rem' : '1.1rem 1.35rem', flexWrap: 'wrap', gap: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                          <div style={{ width: 38, height: 38, borderRadius: '50%', background: test.isCompleted ? 'linear-gradient(135deg,#10b981,#059669)' : test.isLocked ? 'var(--color-surface-hover)' : `linear-gradient(135deg,${sc.from},${sc.to})`, color: test.isLocked ? 'var(--color-text-muted)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '0.95rem', flexShrink: 0 }}>
+                            {test.isCompleted ? <CheckCircle2 size={18} /> : test.index}
                           </div>
 
-                          <div style={{ flex: 1, minWidth: 140 }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
+                          <div style={{ flex: 1, minWidth: 160 }}>
+                            <div style={{ fontSize: isMobile ? '1.02rem' : '1.15rem', fontWeight: 800, color: test.isLocked ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
                               {test.name}
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                               <span>{test.questionCount || 20} Soru</span>
                               {test.testDueDate && (
                                 <span style={{
-                                  fontSize: '0.7rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: 800,
-                                  padding: '2px 7px',
+                                  padding: '3px 8px',
                                   borderRadius: '6px',
                                   background: test.isCompleted ? '#f0fdf4' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#fef2f2' : 'rgba(37,99,235,0.12)'),
                                   color: test.isCompleted ? '#166534' : (new Date(test.testDueDate) < new Date().setHours(0,0,0,0) ? '#dc2626' : '#60a5fa'),
@@ -3264,11 +4165,11 @@ export default function StudentBookDetailsPage() {
 
                           {test.isCompleted && test.bestScore !== null && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '3px 10px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 4, border: '1px solid #bbf7d0' }}>
-                                <Award size={12} /> %{test.bestScore}
+                              <span style={{ fontSize: '0.82rem', fontWeight: 900, color: '#166534', background: '#f0fdf4', padding: '4px 12px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: 5, border: '1px solid #bbf7d0' }}>
+                                <Award size={14} /> %{test.bestScore}
                               </span>
                               {test.bestSub && (
-                                <span style={{ fontSize: '0.72rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '3px 9px', borderRadius: '99px', border: '1px solid var(--color-border)', display: 'inline-flex', gap: 6 }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 800, background: 'var(--color-surface-hover)', padding: '4px 10px', borderRadius: '99px', border: '1px solid var(--color-border)', display: 'inline-flex', gap: 6 }}>
                                   <span style={{ color: '#16a34a' }}>{test.bestSub.correctCount || 0}D</span>
                                   <span style={{ color: '#dc2626' }}>{test.bestSub.wrongCount || 0}Y</span>
                                   <span style={{ color: 'var(--color-text-muted)' }}>{test.bestSub.blankCount || 0}B</span>
@@ -3279,80 +4180,80 @@ export default function StudentBookDetailsPage() {
 
                           <div className="sbdp-test-actions-mobile" style={{ flexShrink: 0 }}>
                             {test.isCompleted ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                 <button
                                   className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  style={{ minHeight: 44, padding: '0.6rem 1.25rem', fontSize: '0.9rem', fontWeight: 900, borderRadius: '0.75rem', border: '1.5px solid #bbf7d0', color: '#166534', background: '#f0fdf4', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                   onClick={() => handleReviewTest(test)}
                                 >
-                                  <Eye size={13} /> Sonucu İncele
+                                  <Eye size={15} /> Sonucu İncele
                                 </button>
                                 <button
-                                  style={{ padding: '0.4rem 0.65rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  style={{ minHeight: 44, padding: '0.6rem 1.05rem', fontSize: '0.86rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                   title="Doğru/Yanlış Sonucunu Düzenle"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleOpenManualTest(test, null, null);
                                   }}
                                 >
-                                  <Edit3 size={12} /> D/Y Düzenle
+                                  <Edit3 size={14} /> D/Y Düzenle
                                 </button>
                                 {isTeacherViewing && (
                                   <>
                                     <button
-                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                       title="Testi Düzenle"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleOpenEditTest(test);
                                       }}
                                     >
-                                      <Edit size={12} /> Düzenle
+                                      <Edit size={14} /> Düzenle
                                     </button>
                                     <button
-                                      style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                      style={{ minHeight: 44, padding: '0.6rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #fecaca', color: '#dc2626', background: '#fef2f2', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                       title="Bu testi sıfırla"
                                         onClick={(e) => handleResetTestResult(test, e)}
                                       >
-                                        <RotateCcw size={12} /> Sıfırla
+                                        <RotateCcw size={14} /> Sıfırla
                                     </button>
                                   </>
                                 )}
                               </div>
                             ) : test.isLocked ? (
-                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <Lock size={14} /> Kilitli
+                              <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <Lock size={16} /> Kilitli
                               </span>
                             ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                 <button
-                                  style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', fontWeight: 800, borderRadius: '0.6rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  style={{ minHeight: 46, padding: '0.65rem 1.15rem', fontSize: '0.9rem', fontWeight: 800, borderRadius: '0.75rem', border: '1.5px solid #86efac', color: '#166534', background: 'var(--color-surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
                                   title="Doğru/Yanlış/Boş Sayılarını Gir"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleOpenManualTest(test, null, null);
                                   }}
                                 >
-                                  <Edit3 size={13} /> ⚡ D/Y Gir
+                                  <Edit3 size={15} /> ⚡ D/Y Gir
                                 </button>
                                 {isTeacherViewing && (
                                   <button
-                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 800, borderRadius: '0.6rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    style={{ minHeight: 46, padding: '0.65rem 0.9rem', fontSize: '0.84rem', fontWeight: 800, borderRadius: '0.75rem', border: '1px solid #bfdbfe', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                                     title="Testi Düzenle"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleOpenEditTest(test);
                                     }}
                                   >
-                                    <Edit size={12} /> Düzenle
+                                    <Edit size={14} /> Düzenle
                                   </button>
                                 )}
                                 <button
                                   className="sbdp-btn-solve"
-                                  style={{ padding: '0.4rem 1.1rem', fontSize: '0.82rem', fontWeight: 900, borderRadius: '0.6rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: `0 4px 12px ${sc.accent}44` }}
+                                  style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}
                                   onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                                 >
-                                  <PlayCircle size={14} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
+                                  <PlayCircle size={17} /> {isFromTeacher ? 'Teste Git' : 'Şimdi Çöz'}
                                 </button>
                               </div>
                             )}
@@ -3401,6 +4302,8 @@ export default function StudentBookDetailsPage() {
             {hwLoading || booksLoading ? 'Atanmış görevler yükleniyor…' : 'Bu kitaba ait atanmış görev bulunamadı.'}
           </div>
         )}
+        </div>
+      )}
       </div>
       )}
 
