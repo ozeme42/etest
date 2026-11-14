@@ -223,11 +223,17 @@ export default function StudentBookDetailsPage() {
   }, [queryStudentId, users, currentUser]);
 
   const toggleSubject = (subjId) => {
-    setOpenSubjects(prev => ({ ...prev, [subjId]: !prev[subjId] }));
+    setOpenSubjects(prev => {
+      const isCurrentlyOpen = prev[subjId] !== false;
+      return { ...prev, [subjId]: !isCurrentlyOpen };
+    });
   };
 
   const toggleTopic = (topicId) => {
-    setOpenTopics(prev => ({ ...prev, [topicId]: !prev[topicId] }));
+    setOpenTopics(prev => {
+      const isCurrentlyOpen = prev[topicId] !== false;
+      return { ...prev, [topicId]: !isCurrentlyOpen };
+    });
   };
 
   const expandAllSubjects = () => {
@@ -242,8 +248,14 @@ export default function StudentBookDetailsPage() {
   };
 
   const collapseAllSubjects = () => {
-    setOpenSubjects({});
-    setOpenTopics({});
+    const allS = {};
+    const allT = {};
+    subjectProgress.forEach(s => {
+      allS[s.id] = false;
+      (s.topics || []).forEach(t => { allT[t.id] = false; });
+    });
+    setOpenSubjects(allS);
+    setOpenTopics(allT);
   };
 
   const studentId = targetStudent?.id || currentUser?.id;
@@ -1789,8 +1801,8 @@ export default function StudentBookDetailsPage() {
           width: 100%;
         }
         .sbdp-stat-item {
-          border-right: 1px solid var(--color-border);
-          padding: 1.25rem 0.85rem;
+          border-right: 1px solid rgba(255, 255, 255, 0.18);
+          padding: 1.15rem 0.85rem;
           text-align: center;
           box-sizing: border-box;
           transition: background 0.2s ease;
@@ -1805,34 +1817,34 @@ export default function StudentBookDetailsPage() {
           .sbdp-stat-dogru {
             grid-column: span 2;
             grid-row: 1;
-            border-right: 1px solid var(--color-border);
-            padding: 1rem 0.5rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.85rem 0.4rem;
           }
           .sbdp-stat-yanlis {
             grid-column: span 2;
             grid-row: 1;
-            border-right: 1px solid var(--color-border);
-            padding: 1rem 0.5rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.85rem 0.4rem;
           }
           .sbdp-stat-bos {
             grid-column: span 2;
             grid-row: 1;
             border-right: none;
-            padding: 1rem 0.5rem;
+            padding: 0.85rem 0.4rem;
           }
           .sbdp-stat-test {
             grid-column: span 3;
             grid-row: 2;
-            border-top: 1px solid var(--color-border);
-            border-right: 1px solid var(--color-border);
-            padding: 1rem 0.6rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-right: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.85rem 0.5rem;
           }
           .sbdp-stat-basari {
             grid-column: span 3;
             grid-row: 2;
-            border-top: 1px solid var(--color-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
             border-right: none;
-            padding: 1rem 0.6rem;
+            padding: 0.85rem 0.5rem;
           }
         }
 
@@ -2240,34 +2252,44 @@ export default function StudentBookDetailsPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 📊 BOLD HIGH-CONTRAST STATS GRID */}
-        <div className="sbdp-stats-grid" style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)' }}>
-          <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)' }}>
-            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>✅</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#16a34a', letterSpacing: '-0.02em' }}>{overallCorrect}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
-          </div>
-          <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)' }}>
-            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>❌</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#dc2626', letterSpacing: '-0.02em' }}>{overallWrong}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
-          </div>
-          <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: isDark ? 'rgba(148,163,184,0.1)' : 'var(--color-surface-hover)' }}>
-            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>⬜</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: 'var(--color-text-muted)', letterSpacing: '-0.02em' }}>{overallBlank}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
-          </div>
-          <div className="sbdp-stat-item sbdp-stat-test" style={{ background: isDark ? 'rgba(37,99,235,0.12)' : 'rgba(37,99,235,0.08)' }}>
-            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>📋</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#2563eb', letterSpacing: '-0.02em' }}>{overallCompleted}/{overallTotal}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
-          </div>
-          <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)' }}>
-            <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>🎯</div>
-            <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#7c3aed', letterSpacing: '-0.02em' }}>%{overallSuccessRate}</div>
-            <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
+          {/* 📊 BOLD STATS GRID DIRECTLY ON THE HERO CARD BACKGROUND */}
+          <div
+            className="sbdp-stats-grid"
+            style={{
+              marginTop: isMobile ? '1.25rem' : '1.75rem',
+              background: 'rgba(0, 0, 0, 0.22)',
+              backdropFilter: 'blur(12px)',
+              borderRadius: '1.25rem',
+              border: '1.5px solid rgba(255, 255, 255, 0.24)',
+              overflow: 'hidden'
+            }}
+          >
+            <div className="sbdp-stat-item sbdp-stat-dogru" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>✅</div>
+              <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{overallCorrect}</div>
+              <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doğru</div>
+            </div>
+            <div className="sbdp-stat-item sbdp-stat-yanlis" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>❌</div>
+              <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#f87171', letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{overallWrong}</div>
+              <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Yanlış</div>
+            </div>
+            <div className="sbdp-stat-item sbdp-stat-bos" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>⬜</div>
+              <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: 'rgba(255,255,255,0.88)', letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{overallBlank}</div>
+              <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Boş</div>
+            </div>
+            <div className="sbdp-stat-item sbdp-stat-test" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>📋</div>
+              <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#93c5fd', letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{overallCompleted}/{overallTotal}</div>
+              <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Test</div>
+            </div>
+            <div className="sbdp-stat-item sbdp-stat-basari" style={{ background: 'rgba(255,255,255,0.06)', borderRight: 'none' }}>
+              <div style={{ fontSize: '1.45rem', marginBottom: 2 }}>🎯</div>
+              <div className="sbdp-stat-val" style={{ fontSize: isMobile ? '1.35rem' : '1.85rem', fontWeight: 900, color: '#fef08a', letterSpacing: '-0.02em', textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>%{overallSuccessRate}</div>
+              <div className="sbdp-stat-lbl" style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 900, color: 'rgba(255,255,255,0.92)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Başarı</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3853,7 +3875,7 @@ export default function StudentBookDetailsPage() {
         )}
 
         {filteredSubjectProgress.map((subj, subjIdx) => {
-          const isOpen = !!openSubjects[subj.id] || Boolean(testSearchQuery.trim());
+          const isOpen = openSubjects[subj.id] !== false || Boolean(testSearchQuery.trim());
           const subjectColors = [
             { from: '#4f46e5', to: '#7c3aed', light: '#eff6ff', accent: '#4f46e5' },
             { from: '#0891b2', to: '#0e7490', light: '#ecfeff', accent: '#0891b2' },
@@ -4062,7 +4084,7 @@ export default function StudentBookDetailsPage() {
                   {/* Topics / Units List */}
                   {subj.topics && subj.topics.length > 0 ? (
                     subj.topics.map(topic => {
-                      const isTopicOpen = !!openTopics[topic.id] || Boolean(testSearchQuery.trim());
+                      const isTopicOpen = openTopics[topic.id] !== false || Boolean(testSearchQuery.trim());
 
                       return (
                         <div key={topic.id} style={{ borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
