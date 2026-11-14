@@ -7,7 +7,7 @@ import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useEvaluation } from '../context/EvaluationContext';
 import { useCurriculum } from '../context/CurriculumContext';
 import { isHomeworkForStudent, isSubmissionMatchingBookTest, createCompositeTestKey, getSubmissionCompositeKey, isExamBook } from '../utils/testResolver';
-import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors, Zap, Sparkles, Clock, Flame, Trophy, MoreHorizontal } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Check, Lock, PlayCircle, Layers, Award, Target, Settings, X, Save, BarChart2, FileText, ChevronDown, ChevronRight, ChevronUp, RotateCcw, RefreshCw, Eye, Edit, Edit3, ClipboardList, Plus, Scissors, Zap, Sparkles, Clock, Flame, Trophy, MoreHorizontal } from 'lucide-react';
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { toUUID, legacyHexUUID } from '../services/supabaseService';
 import { isDeletedItem, purgeTestCache } from '../services/unifiedResultAdapter';
@@ -1794,6 +1794,10 @@ export default function StudentBookDetailsPage() {
         .sbdp-btn-solve:active { transform: translateY(0); }
         .sbdp-focus-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .sbdp-focus-card:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,0.08) !important; }
+        .sbdp-story-rail::-webkit-scrollbar { display: none; height: 0; width: 0; }
+        .sbdp-story-node { transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .sbdp-story-node:hover { transform: translateY(-3px); }
+        .sbdp-story-node:active { transform: translateY(0); }
 
         .sbdp-stats-grid {
           display: grid;
@@ -4163,30 +4167,437 @@ export default function StudentBookDetailsPage() {
 
                   {/* Topics / Units List */}
                   {subj.topics && subj.topics.length > 0 ? (
-                    subj.topics.map(topic => {
-                      const isTopicOpen = Boolean(openTopics[topic.id]) || Boolean(testSearchQuery.trim());
-
-                      return (
-                        <div key={topic.id} style={{ borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-                          <div
-                            onClick={() => toggleTopic(topic.id)}
-                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem', cursor: 'pointer', background: isTopicOpen ? 'var(--color-surface-hover)' : 'var(--color-surface)', borderBottom: isTopicOpen ? '1px solid var(--color-border)' : 'none', flexWrap: 'wrap', gap: '0.6rem' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <FileText size={18} color={sc.accent} />
-                              </div>
-                              <span style={{ fontSize: isMobile ? '1.02rem' : '1.14rem', fontWeight: 900, color: 'var(--color-text)' }}>{topic.name}</span>
-                              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text-muted)', background: 'var(--color-surface-hover)', padding: '3px 10px', borderRadius: 99, border: '1px solid var(--color-border)' }}>
-                                {topic.completedCount}/{topic.totalCount} Test
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
-                              {isTopicOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </div>
+                    <>
+                      {/* 🌟 1. INSTAGRAM STORY / GAME STEPS CIRCULAR RAIL */}
+                      <div style={{
+                        background: isDark ? 'rgba(30, 41, 59, 0.7)' : 'var(--color-surface)',
+                        border: '1.5px solid var(--color-border)',
+                        borderRadius: '1.25rem',
+                        padding: isMobile ? '0.9rem 0.65rem' : '1.15rem 1.15rem',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+                        marginBottom: '0.5rem'
+                      }}>
+                        {/* Rail Header */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '0.85rem',
+                          padding: '0 0.25rem',
+                          flexWrap: 'wrap',
+                          gap: 8
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <span style={{ fontSize: '1.15rem' }}>🎮</span>
+                            <span style={{ fontSize: '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
+                              Ünite & Konu Haritası (Oyun Adımları)
+                            </span>
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              background: 'rgba(99,102,241,0.1)',
+                              color: '#6366f1',
+                              padding: '2px 8px',
+                              borderRadius: 99
+                            }}>
+                              {subj.topics.length} Adım
+                            </span>
                           </div>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                            {isMobile ? 'Kaydır & Dokun ➔' : 'İncelemek istediğin adıma tıkla'}
+                          </span>
+                        </div>
 
-                          {isTopicOpen && (
+                        {/* Horizontal Story Steps Rail */}
+                        <div
+                          className="sbdp-story-rail"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 0,
+                            overflowX: 'auto',
+                            padding: '0.5rem 0.25rem 0.85rem',
+                            WebkitOverflowScrolling: 'touch',
+                            scrollbarWidth: 'none',
+                            msOverflowStyle: 'none'
+                          }}
+                        >
+                          {subj.topics.map((topic, tpIdx) => {
+                            const isTopicOpen = Boolean(openTopics[topic.id]) || Boolean(testSearchQuery.trim());
+                            const topicTotal = topic.totalCount || (topic.tests ? topic.tests.length : 0);
+                            const topicCompleted = topic.completedCount || 0;
+                            const topicPct = topicTotal > 0 ? Math.round((topicCompleted / topicTotal) * 100) : 0;
+                            const isTopicFullyDone = topicTotal > 0 && topicCompleted === topicTotal;
+
+                            // SVG ring calculations
+                            const ringRadius = 33;
+                            const ringCircumference = 207.35; // 2 * PI * 33
+                            const strokeDashoffset = ringCircumference - (ringCircumference * Math.min(100, Math.max(0, topicPct))) / 100;
+
+                            const matchNum = topic.name.match(/(\d+)/);
+                            const stepNum = matchNum ? matchNum[1] : (tpIdx + 1);
+
+                            let shortName = topic.name.replace(/^\d+\.\s*(Fasikül|Ünite)?\s*:?\s*/i, '').trim();
+                            if (!shortName) shortName = topic.name;
+                            if (shortName.length > 22) shortName = shortName.slice(0, 20) + '…';
+
+                            const isLast = tpIdx === subj.topics.length - 1;
+                            const isConnectorActive = topicPct === 100;
+
+                            return (
+                              <React.Fragment key={topic.id}>
+                                {/* Circular Story Step Node */}
+                                <div
+                                  className="sbdp-story-node"
+                                  onClick={() => toggleTopic(topic.id)}
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                    width: isMobile ? 86 : 98,
+                                    textAlign: 'center',
+                                    transition: 'all 0.2s ease',
+                                    userSelect: 'none'
+                                  }}
+                                  title={`${topic.name} (${topicCompleted}/${topicTotal} Çözüldü - %${topicPct})`}
+                                >
+                                  {/* Circular Avatar with SVG Progress Ring */}
+                                  <div
+                                    style={{
+                                      position: 'relative',
+                                      width: 76,
+                                      height: 76,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'transform 0.2s ease',
+                                      transform: isTopicOpen ? 'scale(1.08)' : 'scale(1)'
+                                    }}
+                                  >
+                                    <svg
+                                      width="76"
+                                      height="76"
+                                      viewBox="0 0 76 76"
+                                      style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        transform: 'rotate(-90deg)',
+                                        transformOrigin: '38px 38px'
+                                      }}
+                                    >
+                                      <defs>
+                                        <linearGradient id={`storyGrad_${subj.id}_${tpIdx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                          <stop offset="0%" stopColor="#f43f5e" />
+                                          <stop offset="50%" stopColor="#8b5cf6" />
+                                          <stop offset="100%" stopColor="#3b82f6" />
+                                        </linearGradient>
+                                        <linearGradient id={`storyGradDone_${subj.id}_${tpIdx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                          <stop offset="0%" stopColor="#10b981" />
+                                          <stop offset="100%" stopColor="#059669" />
+                                        </linearGradient>
+                                      </defs>
+
+                                      {/* Background Track Circle */}
+                                      <circle
+                                        cx="38"
+                                        cy="38"
+                                        r={ringRadius}
+                                        fill="none"
+                                        stroke={isDark ? 'rgba(255,255,255,0.12)' : '#e2e8f0'}
+                                        strokeWidth="3.5"
+                                      />
+
+                                      {/* Foreground Animated Progress Circle (Instagram Ring) */}
+                                      <circle
+                                        cx="38"
+                                        cy="38"
+                                        r={ringRadius}
+                                        fill="none"
+                                        stroke={
+                                          isTopicFullyDone
+                                            ? `url(#storyGradDone_${subj.id}_${tpIdx})`
+                                            : topicPct > 0
+                                              ? `url(#storyGrad_${subj.id}_${tpIdx})`
+                                              : isTopicOpen
+                                                ? sc.accent
+                                                : 'transparent'
+                                        }
+                                        strokeWidth="3.5"
+                                        strokeDasharray={ringCircumference}
+                                        strokeDashoffset={isTopicOpen && topicPct === 0 ? 0 : strokeDashoffset}
+                                        strokeLinecap="round"
+                                        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                                      />
+                                    </svg>
+
+                                    {/* Inner Circle / Level Badge */}
+                                    <div
+                                      style={{
+                                        width: 58,
+                                        height: 58,
+                                        borderRadius: '50%',
+                                        background: isTopicOpen
+                                          ? `linear-gradient(135deg, ${sc.from}, ${sc.to})`
+                                          : isTopicFullyDone
+                                            ? 'linear-gradient(135deg, #ecfdf5, #d1fae5)'
+                                            : isDark
+                                              ? 'rgba(255,255,255,0.06)'
+                                              : sc.light,
+                                        color: isTopicOpen
+                                          ? '#ffffff'
+                                          : isTopicFullyDone
+                                            ? '#059669'
+                                            : sc.accent,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: isTopicOpen
+                                          ? `0 4px 18px ${sc.accent}77`
+                                          : '0 2px 8px rgba(0,0,0,0.04)',
+                                        border: isTopicOpen
+                                          ? '2.5px solid #ffffff'
+                                          : '1.5px solid rgba(0,0,0,0.04)',
+                                        transition: 'all 0.2s ease',
+                                        zIndex: 2
+                                      }}
+                                    >
+                                      <span style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: isTopicOpen ? 0.92 : 0.82, lineHeight: 1 }}>
+                                        {topic.name.toLowerCase().includes('fasikül') ? 'FAS.' : (topic.name.toLowerCase().includes('ünite') ? 'ÜNİTE' : 'ADIM')}
+                                      </span>
+                                      <span style={{ fontSize: '1.2rem', fontWeight: 900, lineHeight: 1.15, marginTop: 1 }}>
+                                        {stepNum}
+                                      </span>
+                                    </div>
+
+                                    {/* Status Mini-Badge on Ring Corner */}
+                                    {isTopicFullyDone ? (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          bottom: 1,
+                                          right: 1,
+                                          width: 22,
+                                          height: 22,
+                                          borderRadius: '50%',
+                                          background: '#10b981',
+                                          border: '2.5px solid var(--color-surface)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: '#ffffff',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 900,
+                                          boxShadow: '0 2px 6px rgba(16,185,129,0.5)',
+                                          zIndex: 3
+                                        }}
+                                      >
+                                        ✓
+                                      </div>
+                                    ) : isTopicOpen ? (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          bottom: 1,
+                                          right: 1,
+                                          width: 22,
+                                          height: 22,
+                                          borderRadius: '50%',
+                                          background: sc.accent,
+                                          border: '2.5px solid var(--color-surface)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: '#ffffff',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 900,
+                                          boxShadow: `0 2px 6px ${sc.accent}66`,
+                                          zIndex: 3
+                                        }}
+                                      >
+                                        <ChevronDown size={14} />
+                                      </div>
+                                    ) : null}
+                                  </div>
+
+                                  {/* Step Label / Name & Progress */}
+                                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                                    <span
+                                      style={{
+                                        fontSize: '0.76rem',
+                                        fontWeight: isTopicOpen ? 900 : 800,
+                                        color: isTopicOpen ? sc.accent : 'var(--color-text)',
+                                        maxWidth: isMobile ? 82 : 94,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        lineHeight: 1.2
+                                      }}
+                                      title={topic.name}
+                                    >
+                                      {shortName}
+                                    </span>
+
+                                    {/* Progress Mini Pill */}
+                                    <span
+                                      style={{
+                                        fontSize: '0.67rem',
+                                        fontWeight: 900,
+                                        padding: '2px 8px',
+                                        borderRadius: 99,
+                                        background: isTopicFullyDone
+                                          ? '#ecfdf5'
+                                          : topicPct > 0
+                                            ? 'rgba(99,102,241,0.1)'
+                                            : 'var(--color-surface-hover)',
+                                        color: isTopicFullyDone
+                                          ? '#059669'
+                                          : topicPct > 0
+                                            ? '#6366f1'
+                                            : 'var(--color-text-muted)',
+                                        border: `1px solid ${isTopicFullyDone ? '#bbf7d0' : topicPct > 0 ? 'rgba(99,102,241,0.25)' : 'var(--color-border)'}`
+                                      }}
+                                    >
+                                      {topicCompleted}/{topicTotal} Test
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Connecting Game Bridge Line between circles */}
+                                {!isLast && (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: isMobile ? 22 : 34,
+                                      height: 76,
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        width: '100%',
+                                        height: 3.5,
+                                        borderRadius: 99,
+                                        background: isConnectorActive
+                                          ? 'linear-gradient(90deg, #10b981, #34d399)'
+                                          : isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                                        boxShadow: isConnectorActive ? '0 0 8px rgba(16,185,129,0.45)' : 'none',
+                                        transition: 'all 0.3s ease'
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 🌟 EMPTY STATE HINT (WHEN NO TOPIC IS CURRENTLY EXPANDED) */}
+                      {subj.topics.every(t => !openTopics[t.id]) && !testSearchQuery.trim() && (
+                        <div
+                          className="sbdp-anim"
+                          style={{
+                            textAlign: 'center',
+                            padding: isMobile ? '1.5rem 1rem' : '2rem 1.5rem',
+                            background: 'var(--color-surface)',
+                            borderRadius: '1.25rem',
+                            border: '1.5px dashed var(--color-border)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                          }}
+                        >
+                          <div style={{ fontSize: '2rem' }}>🎯</div>
+                          <div style={{ fontWeight: 900, fontSize: isMobile ? '0.95rem' : '1.05rem', color: 'var(--color-text)' }}>
+                            Maceraya Başlamak İçin Bir Adım Seç!
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', maxWidth: 440, lineHeight: 1.5 }}>
+                            Yukarıdaki dairesel adımlardan birine dokunarak o fasikül veya ünitedeki testleri açabilir ve hedeflerini tamamlamaya başlayabilirsin.
+                          </div>
+                          {subj.topics[0] && (
+                            <button
+                              type="button"
+                              onClick={() => toggleTopic(subj.topics[0].id)}
+                              style={{
+                                marginTop: 6,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                background: `linear-gradient(135deg, ${sc.from}, ${sc.to})`,
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '0.6rem 1.35rem',
+                                borderRadius: '0.85rem',
+                                fontSize: '0.88rem',
+                                fontWeight: 900,
+                                cursor: 'pointer',
+                                boxShadow: `0 4px 14px ${sc.accent}44`,
+                                transition: 'transform 0.15s ease'
+                              }}
+                            >
+                              🚀 1. Adımı Aç ({subj.topics[0].name.split(':')[0]})
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 🌟 OPENED TOPICS TESTS */}
+                      {subj.topics.map((topic, tpIdx) => {
+                        const isTopicOpen = Boolean(openTopics[topic.id]) || Boolean(testSearchQuery.trim());
+                        if (!isTopicOpen) return null;
+
+                        const matchNum = topic.name.match(/(\d+)/);
+                        const stepNum = matchNum ? matchNum[1] : (tpIdx + 1);
+
+                        return (
+                          <div key={topic.id} className="sbdp-anim" style={{ borderRadius: '1.15rem', border: '1.5px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+                            <div
+                              onClick={() => toggleTopic(topic.id)}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '0.85rem 1rem' : '1rem 1.25rem', cursor: 'pointer', background: 'var(--color-surface-hover)', borderBottom: '1px solid var(--color-border)', flexWrap: 'wrap', gap: '0.6rem' }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: 34, height: 34, borderRadius: 10, background: `linear-gradient(135deg, ${sc.from}, ${sc.to})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: '0.88rem', flexShrink: 0, boxShadow: `0 2px 8px ${sc.accent}44` }}>
+                                  {stepNum}
+                                </div>
+                                <div>
+                                  <span style={{ fontSize: isMobile ? '1.02rem' : '1.14rem', fontWeight: 900, color: 'var(--color-text)' }}>{topic.name}</span>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                    {topic.completedCount}/{topic.totalCount} Test Çözüldü
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); toggleTopic(topic.id); }}
+                                  style={{
+                                    background: 'var(--color-surface)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: 8,
+                                    padding: '4px 10px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    color: 'var(--color-text-muted)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4
+                                  }}
+                                >
+                                  <ChevronUp size={14} /> Gizle
+                                </button>
+                              </div>
+                            </div>
+
                             <div style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', background: 'var(--color-bg)' }}>
                               {topic.tests.map(test => {
                                 let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
@@ -4345,10 +4756,10 @@ export default function StudentBookDetailsPage() {
                                 );
                               })}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })
+                          </div>
+                        );
+                      })}
+                    </>
                   ) : (
                     subj.tests.map(test => {
                       let stateBg = 'var(--color-surface)', stateBorder = 'var(--color-border)', stateAccent = 'var(--color-border-input)';
