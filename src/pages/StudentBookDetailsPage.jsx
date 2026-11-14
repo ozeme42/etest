@@ -231,7 +231,7 @@ export default function StudentBookDetailsPage() {
 
   const toggleTopic = (topicId) => {
     setOpenTopics(prev => {
-      const isCurrentlyOpen = prev[topicId] !== false;
+      const isCurrentlyOpen = Boolean(prev[topicId]);
       return { ...prev, [topicId]: !isCurrentlyOpen };
     });
   };
@@ -1933,7 +1933,7 @@ export default function StudentBookDetailsPage() {
           <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', bottom: -60, right: 120, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
-          {/* 🧭 Minimalist Top Utility Bar inside Hero: Back Button & Quick Actions */}
+          {/* 🧭 Minimalist Top Utility Bar inside Hero: Back Button, Tab Switcher & Quick Actions */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', position: 'relative', zIndex: 30, gap: '0.75rem', flexWrap: 'wrap' }}>
             {/* Minimalist Back Button */}
             <button
@@ -1960,6 +1960,94 @@ export default function StudentBookDetailsPage() {
               <ArrowLeft size={17} />
               <span>{isFromTeacher ? 'Kitap Yönetimine Dön' : (book?.bookType === 'exam' ? 'Denemelere Dön' : 'Kitaplarıma Dön')}</span>
             </button>
+
+            {/* 📖 Testler & 📊 Kitap Analizi Glassmorphic Segmented Tabs */}
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              width: isMobile ? '100%' : 'auto',
+              background: 'rgba(0,0,0,0.26)',
+              backdropFilter: 'blur(12px)',
+              border: '1.5px solid rgba(255,255,255,0.28)',
+              borderRadius: '0.85rem',
+              padding: 3,
+              gap: 3,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+              order: isMobile ? 3 : 'unset'
+            }}>
+              <button
+                type="button"
+                onClick={() => setActiveBookTab('tests')}
+                style={{
+                  flex: isMobile ? 1 : 'initial',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: isMobile ? '0.45rem 0.65rem' : '0.48rem 1.1rem',
+                  borderRadius: '0.65rem',
+                  border: 'none',
+                  background: activeBookTab === 'tests' ? '#ffffff' : 'transparent',
+                  color: activeBookTab === 'tests' ? '#0f172a' : '#ffffff',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.8rem' : '0.88rem',
+                  cursor: 'pointer',
+                  boxShadow: activeBookTab === 'tests' ? '0 2px 10px rgba(0,0,0,0.2)' : 'none',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>📖 Testler & Konular</span>
+                <span style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  background: activeBookTab === 'tests' ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.2)',
+                  color: activeBookTab === 'tests' ? '#0f172a' : '#ffffff',
+                  padding: '1px 6px',
+                  borderRadius: 99
+                }}>
+                  {overallCompleted}/{overallTotal}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveBookTab('analytics')}
+                style={{
+                  flex: isMobile ? 1 : 'initial',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  padding: isMobile ? '0.45rem 0.65rem' : '0.48rem 1.1rem',
+                  borderRadius: '0.65rem',
+                  border: 'none',
+                  background: activeBookTab === 'analytics' ? '#ffffff' : 'transparent',
+                  color: activeBookTab === 'analytics' ? '#0f172a' : '#ffffff',
+                  fontWeight: 900,
+                  fontSize: isMobile ? '0.8rem' : '0.88rem',
+                  cursor: 'pointer',
+                  boxShadow: activeBookTab === 'analytics' ? '0 2px 10px rgba(0,0,0,0.2)' : 'none',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>📊 Kitap Analizi & Hatalar</span>
+                {bookMistakeStats.unclassifiedCount > 0 && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 900,
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    padding: '1px 6px',
+                    borderRadius: 99
+                  }}>
+                    {bookMistakeStats.unclassifiedCount}
+                  </span>
+                )}
+              </button>
+            </div>
 
             {/* Right: Odak Modu Switch & ⋯ İşlemler Menu */}
             <div ref={actionMenuRef} style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
@@ -2036,6 +2124,69 @@ export default function StudentBookDetailsPage() {
                   <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 6px' }}>
                     ⚡ Hızlı İşlemler
                   </div>
+
+                  {/* Sekme Geçişi: Testler / Analitik */}
+                  {activeBookTab === 'tests' ? (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveBookTab('analytics'); setIsActionMenuOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '0.7rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                        <BarChart2 size={18} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>Kitap Analizi & Hatalar</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Başarı grafiği ve hata analizi</span>
+                      </div>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveBookTab('tests'); setIsActionMenuOpen(false); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '0.7rem 0.85rem',
+                        borderRadius: '0.75rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--color-text)',
+                        fontWeight: 800,
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                        <FileText size={18} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span>Testler & Konular Listesi</span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Ünitelere ve testlere dön</span>
+                      </div>
+                    </button>
+                  )}
 
                   {/* Manuel Test Sonucu Ekle */}
                   <button
@@ -2294,126 +2445,55 @@ export default function StudentBookDetailsPage() {
         </div>
       </div>
 
-      {/* 🎛️ VIEW TAB SWITCHER */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '1.25rem',
-        flexWrap: 'wrap',
-        gap: 10
-      }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          background: 'var(--color-surface)',
-          border: '1.5px solid var(--color-border)',
-          borderRadius: 16,
-          padding: 4,
-          gap: 4,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-        }}>
-          <button
-            type="button"
-            onClick={() => setActiveBookTab('tests')}
-            style={{
-              padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
-              borderRadius: 12,
-              border: 'none',
-              background: activeBookTab === 'tests' ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : 'transparent',
-              color: activeBookTab === 'tests' ? '#ffffff' : 'var(--color-text-muted)',
-              fontWeight: activeBookTab === 'tests' ? 900 : 700,
-              fontSize: isMobile ? '0.78rem' : '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: activeBookTab === 'tests' ? '0 4px 14px rgba(79, 70, 229, 0.35)' : 'none',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            📖 Testler & Konular
-            <span style={{
-              background: activeBookTab === 'tests' ? 'rgba(255,255,255,0.25)' : 'rgba(99, 102, 241, 0.12)',
-              color: activeBookTab === 'tests' ? '#ffffff' : '#6366f1',
-              fontSize: '0.68rem',
-              fontWeight: 900,
-              padding: '0.1rem 0.45rem',
-              borderRadius: 99
-            }}>
-              {overallCompleted}/{overallTotal}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveBookTab('analytics')}
-            style={{
-              padding: isMobile ? '0.5rem 0.85rem' : '0.6rem 1.4rem',
-              borderRadius: 12,
-              border: 'none',
-              background: activeBookTab === 'analytics' ? 'linear-gradient(135deg, #059669, #10b981)' : 'transparent',
-              color: activeBookTab === 'analytics' ? '#ffffff' : 'var(--color-text-muted)',
-              fontWeight: activeBookTab === 'analytics' ? 900 : 700,
-              fontSize: isMobile ? '0.78rem' : '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: activeBookTab === 'analytics' ? '0 4px 14px rgba(16, 185, 129, 0.35)' : 'none',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            📊 Kitap Analizi & Hatalar
-            {bookMistakeStats.unclassifiedCount > 0 && (
-              <span style={{
-                background: activeBookTab === 'analytics' ? 'rgba(255,255,255,0.25)' : 'rgba(239, 68, 68, 0.15)',
-                color: activeBookTab === 'analytics' ? '#ffffff' : '#ef4444',
-                fontSize: '0.68rem',
-                fontWeight: 900,
-                padding: '0.1rem 0.45rem',
-                borderRadius: 99
-              }}>
-                {bookMistakeStats.unclassifiedCount} Bekleyen
-              </span>
-            )}
-          </button>
-
-          {!isMobile && (
+      {/* 📊 ANALİTİK & HATA SEBEPLERİ BÖLÜMÜ */}
+      {activeBookTab === 'analytics' && (
+        <>
+          {/* Analytics Header with Sleek Back-to-Tests Navigation */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+            gap: 10
+          }}>
             <button
               type="button"
-              onClick={() => setActiveBookTab('all')}
+              onClick={() => setActiveBookTab('tests')}
               style={{
-                padding: '0.6rem 1.4rem',
-                borderRadius: 12,
-                border: 'none',
-                background: activeBookTab === 'all' ? 'linear-gradient(135deg, #7c3aed, #8b5cf6)' : 'transparent',
-                color: activeBookTab === 'all' ? '#ffffff' : 'var(--color-text-muted)',
-                fontWeight: activeBookTab === 'all' ? 900 : 700,
-                fontSize: '0.85rem',
-                cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
-                boxShadow: activeBookTab === 'all' ? '0 4px 14px rgba(124, 58, 237, 0.35)' : 'none',
-                transition: 'all 0.2s ease'
+                gap: 8,
+                background: 'var(--color-surface)',
+                border: '1.5px solid var(--color-border)',
+                padding: '0.6rem 1.25rem',
+                borderRadius: '0.9rem',
+                fontSize: '0.9rem',
+                fontWeight: 900,
+                color: 'var(--color-text)',
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease'
               }}
             >
-              🌟 Tümü
+              <ArrowLeft size={17} /> 📖 Test Listesine Dön
             </button>
-          )}
-        </div>
-
-        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-          {activeBookTab === 'tests' && '🎯 Kitaptaki test listesi ve ünite takibi'}
-          {activeBookTab === 'analytics' && '📈 Soru dağılımı, başarı grafikleri ve yanlış sebepleri'}
-          {activeBookTab === 'all' && '✨ Tüm paneller aynı anda görüntüleniyor'}
-        </div>
-      </div>
-
-      {/* 📊 ANALİTİK & HATA SEBEPLERİ BÖLÜMÜ */}
-      {(activeBookTab === 'analytics' || activeBookTab === 'all') && (
-        <>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              color: 'var(--color-text-muted)',
+              background: 'var(--color-surface-hover)',
+              padding: '0.45rem 1rem',
+              borderRadius: '0.8rem',
+              border: '1px solid var(--color-border)'
+            }}>
+              <BarChart2 size={16} color="#059669" />
+              <span>Kitap Başarı Analitiği & Soru Hata Nedenleri</span>
+            </div>
+          </div>
           {subjectChartData.length > 0 && (
             <div className="sbdp-anim sbdp-chart-card" style={{ background: 'var(--color-surface)', borderRadius: isMobile ? '16px' : '1.4rem', border: '1.5px solid var(--color-border)', padding: isMobile ? '1rem 0.9rem' : '1.75rem 2rem', marginBottom: '1.5rem', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)' }}>
           
@@ -3035,7 +3115,7 @@ export default function StudentBookDetailsPage() {
       )}
 
       {/* 📖 TESTLER & KONULAR BÖLÜMÜ */}
-      {(activeBookTab === 'tests' || activeBookTab === 'all') && (
+      {activeBookTab === 'tests' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
         {/* 🎯 ODAK MODU AKTİFSE: SADE, BÜYÜK YAZILI, BÜYÜK BUTONLU HEDEF AKIŞI */}
@@ -4084,7 +4164,7 @@ export default function StudentBookDetailsPage() {
                   {/* Topics / Units List */}
                   {subj.topics && subj.topics.length > 0 ? (
                     subj.topics.map(topic => {
-                      const isTopicOpen = openTopics[topic.id] !== false || Boolean(testSearchQuery.trim());
+                      const isTopicOpen = Boolean(openTopics[topic.id]) || Boolean(testSearchQuery.trim());
 
                       return (
                         <div key={topic.id} style={{ borderRadius: '0.95rem', border: '1.5px solid var(--color-border)', overflow: 'hidden', background: 'var(--color-surface)', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
