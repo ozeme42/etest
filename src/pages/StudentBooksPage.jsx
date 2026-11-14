@@ -52,6 +52,84 @@ const getBookRank = (pct = 0) => {
   return { level: 1, label: '🌱 Başlangıç', color: '#06b6d4', badgeBg: 'rgba(6, 182, 212, 0.15)', borderColor: '#38bdf8' };
 };
 
+/* ── Subject-based Vibrant Full-Color Themes for Book Cards ─── */
+const getBookCardTheme = (book, idx) => {
+  const title = String(book?.title || '').toLowerCase();
+  const subjName = String(book?.subjects?.[0]?.name || '').toLowerCase();
+  const str = `${title} ${subjName}`;
+
+  if (str.includes('sosyal') || str.includes('inkılap') || str.includes('tarih') || str.includes('coğrafya')) {
+    return {
+      gradient: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 30%, #7c2d12 70%, #c2410c 100%)',
+      glow: 'rgba(234, 88, 12, 0.35)',
+      border: 'rgba(251, 146, 60, 0.45)',
+      accent: '#fb923c',
+      badge: '🌍 Sosyal Bilgiler',
+      btnColor: '#7c2d12'
+    };
+  }
+  if (str.includes('fen') || str.includes('fizik') || str.includes('kimya') || str.includes('biyoloji')) {
+    return {
+      gradient: 'linear-gradient(135deg, #064e3b 0%, #065f46 35%, #0f766e 70%, #0284c7 100%)',
+      glow: 'rgba(16, 185, 129, 0.35)',
+      border: 'rgba(52, 211, 153, 0.45)',
+      accent: '#34d399',
+      badge: '🔬 Fen Bilimleri',
+      btnColor: '#065f46'
+    };
+  }
+  if (str.includes('matematik') || str.includes('geometri')) {
+    return {
+      gradient: 'linear-gradient(135deg, #1e1b4b 0%, #3730a3 35%, #6b21a8 70%, #9d174d 100%)',
+      glow: 'rgba(99, 102, 241, 0.35)',
+      border: 'rgba(129, 140, 248, 0.45)',
+      accent: '#818cf8',
+      badge: '📐 Matematik',
+      btnColor: '#312e81'
+    };
+  }
+  if (str.includes('türkçe') || str.includes('edebiyat') || str.includes('paragraf')) {
+    return {
+      gradient: 'linear-gradient(135deg, #881337 0%, #9f1239 35%, #be123c 70%, #e11d48 100%)',
+      glow: 'rgba(225, 29, 72, 0.35)',
+      border: 'rgba(251, 113, 133, 0.45)',
+      accent: '#fb7185',
+      badge: '📖 Türkçe',
+      btnColor: '#9f1239'
+    };
+  }
+  if (str.includes('din') || str.includes('ahlak')) {
+    return {
+      gradient: 'linear-gradient(135deg, #134e4a 0%, #115e59 40%, #0f766e 70%, #0d9488 100%)',
+      glow: 'rgba(20, 184, 166, 0.35)',
+      border: 'rgba(45, 212, 191, 0.45)',
+      accent: '#2dd4bf',
+      badge: '🕌 Din Kültürü',
+      btnColor: '#115e59'
+    };
+  }
+  if (str.includes('ingilizce') || str.includes('english')) {
+    return {
+      gradient: 'linear-gradient(135deg, #4c1d95 0%, #5b21b6 40%, #6d28d9 70%, #7c3aed 100%)',
+      glow: 'rgba(139, 92, 246, 0.35)',
+      border: 'rgba(167, 139, 250, 0.45)',
+      accent: '#a78bfa',
+      badge: '🇬🇧 İngilizce',
+      btnColor: '#5b21b6'
+    };
+  }
+
+  const pal = palette(idx);
+  return {
+    gradient: `linear-gradient(135deg, #0f172a 0%, ${pal.from} 60%, ${pal.to} 100%)`,
+    glow: pal.shadow,
+    border: 'rgba(255, 255, 255, 0.25)',
+    accent: pal.accent,
+    badge: '📚 Kaynak Kitap',
+    btnColor: '#0f172a'
+  };
+};
+
 /* ── Mini Circular Progress Bar ─── */
 function CircularProgress({ pct, size = 52, stroke = 5, color = '#6366f1' }) {
   const r = (size - stroke) / 2;
@@ -2276,11 +2354,11 @@ export default function StudentBooksPage() {
             ) : (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
-                gap: isMobile ? '0.95rem' : '1.25rem'
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(235px, 1fr))',
+                gap: isMobile ? '0.75rem' : '0.85rem'
               }}>
                 {displayedBooks.map((book, bookIdx) => {
-                  const pal = palette(bookIdx);
+                  const cardTheme = getBookCardTheme(book, bookIdx);
                   const isCompleted = book.progressPct >= 100;
                   const pct = book.progressPct || 0;
                   const rank = getBookRank(pct);
@@ -2289,109 +2367,123 @@ export default function StudentBooksPage() {
                     <div
                       key={book.id || bookIdx}
                       onClick={() => navigate(`/student/books/${book.id}`)}
-                      className="game-card-elevated"
                       style={{
-                        background: 'var(--color-surface)',
-                        borderRadius: 20,
-                        border: isCompleted ? '2px solid #10b981' : '1.5px solid var(--color-border)',
-                        padding: isMobile ? '1.1rem 1rem' : '1.35rem',
+                        background: cardTheme.gradient,
+                        borderRadius: 16,
+                        border: isCompleted ? '2px solid #34d399' : `1.5px solid ${cardTheme.border}`,
+                        padding: '0.85rem 0.9rem',
                         cursor: 'pointer',
                         position: 'relative',
                         overflow: 'hidden',
-                        boxShadow: isCompleted ? '0 6px 20px rgba(16, 185, 129, 0.12)' : '0 4px 16px rgba(0,0,0,0.04)',
+                        boxShadow: `0 8px 22px ${cardTheme.glow}`,
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '1rem',
-                        transition: 'all 0.2s ease'
+                        gap: '0.65rem',
+                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                        color: '#ffffff'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.boxShadow = `0 12px 28px ${cardTheme.glow}`;
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = `0 8px 22px ${cardTheme.glow}`;
                       }}
                     >
-                      {/* Top Accent Stripe */}
+                      {/* Decorative ambient lighting */}
                       <div style={{
                         position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 4,
-                        background: isCompleted ? 'linear-gradient(90deg, #10b981, #059669)' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`
+                        top: -30,
+                        right: -30,
+                        width: 100,
+                        height: 100,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)',
+                        pointerEvents: 'none'
                       }} />
 
-                      {/* Book Info Section */}
+                      {/* Top Header: Mini Book Spine & Status Badge */}
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                          {/* 3D Book Spine Cover */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                          {/* Mini Book Spine Icon */}
                           <div style={{
-                            width: isMobile ? 48 : 56,
-                            height: isMobile ? 64 : 76,
-                            borderRadius: 12,
-                            background: `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+                            width: 34,
+                            height: 44,
+                            borderRadius: 8,
+                            background: 'rgba(255,255,255,0.18)',
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            backdropFilter: 'blur(4px)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#ffffff',
-                            boxShadow: `0 6px 16px ${pal.shadow}`,
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
                             flexShrink: 0,
                             position: 'relative'
                           }}>
-                            <BookMarked size={isMobile ? 22 : 26} />
+                            <BookMarked size={18} />
                             {isCompleted && (
                               <div style={{
                                 position: 'absolute',
-                                bottom: -5,
-                                right: -5,
+                                bottom: -4,
+                                right: -4,
                                 background: '#10b981',
                                 color: '#ffffff',
                                 borderRadius: 99,
-                                width: 20,
-                                height: 20,
+                                width: 16,
+                                height: 16,
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '0.65rem',
+                                fontSize: '0.6rem',
                                 fontWeight: 900,
-                                boxShadow: '0 2px 6px rgba(16,185,129,0.5)'
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.3)'
                               }}>
                                 ✓
                               </div>
                             )}
                           </div>
 
-                          {/* Badges */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                          {/* Status Badge */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             {isCompleted ? (
                               <span style={{
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                background: 'rgba(16, 185, 129, 0.9)',
                                 color: '#ffffff',
-                                padding: '3px 8px',
+                                padding: '2px 7px',
                                 borderRadius: 99,
-                                fontSize: '0.68rem',
+                                fontSize: '0.64rem',
                                 fontWeight: 900,
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4
+                                gap: 3,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                               }}>
-                                <Star size={11} fill="#ffffff" /> TAMAMLANDI
+                                <Star size={10} fill="#ffffff" /> BİTTİ
                               </span>
                             ) : book.remainingDays !== undefined && book.remainingDays <= 3 ? (
                               <span style={{
-                                background: '#ef4444',
+                                background: 'rgba(239, 68, 68, 0.9)',
                                 color: '#ffffff',
-                                padding: '3px 8px',
+                                padding: '2px 7px',
                                 borderRadius: 99,
-                                fontSize: '0.68rem',
-                                fontWeight: 900
+                                fontSize: '0.64rem',
+                                fontWeight: 900,
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
                               }}>
-                                ⚡ {book.remainingDays} gün kaldı
+                                ⚡ {book.remainingDays} gün
                               </span>
                             ) : (
                               <span style={{
-                                background: rank.badgeBg,
-                                color: rank.color,
-                                border: `1px solid ${rank.borderColor}`,
-                                padding: '2px 8px',
+                                background: 'rgba(0, 0, 0, 0.25)',
+                                color: 'rgba(255,255,255,0.95)',
+                                border: '1px solid rgba(255, 255, 255, 0.25)',
+                                padding: '2px 7px',
                                 borderRadius: 99,
-                                fontSize: '0.68rem',
-                                fontWeight: 900
+                                fontSize: '0.64rem',
+                                fontWeight: 800
                               }}>
                                 {rank.label}
                               </span>
@@ -2399,108 +2491,111 @@ export default function StudentBooksPage() {
                           </div>
                         </div>
 
-                        {/* Title & Publisher */}
-                        <h3 style={{
-                          margin: '0 0 4px',
-                          fontSize: isMobile ? '1rem' : '1.12rem',
-                          fontWeight: 900,
-                          color: 'var(--color-text)',
-                          lineHeight: 1.3,
-                          fontFamily: "'Outfit', sans-serif"
+                        {/* Subject & Publisher Meta */}
+                        <div style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          color: 'rgba(255,255,255,0.82)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          marginBottom: 3
                         }}>
+                          <span>{cardTheme.badge}</span>
+                          <span style={{ opacity: 0.5 }}>•</span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {book.publisher || 'Kaynak Kitap'}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 style={{
+                          margin: '0 0 6px',
+                          fontSize: '0.94rem',
+                          fontWeight: 900,
+                          color: '#ffffff',
+                          lineHeight: 1.25,
+                          fontFamily: "'Outfit', sans-serif",
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          minHeight: '2.4rem'
+                        }} title={book.title}>
                           {book.title}
                         </h3>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 700, marginBottom: 8 }}>
-                          {book.publisher || 'Kaynak Kitap'} • {book.totalSolvedTests} / {book.totalAssignedTests} Test Çözüldü
-                        </div>
 
-                        {/* Subject tags */}
-                        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
-                          {(book.subjects || []).slice(0, 3).map((s, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                background: 'var(--color-surface-hover)',
-                                color: 'var(--color-text)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 6,
-                                padding: '2px 7px',
-                                fontSize: '0.68rem',
-                                fontWeight: 800
-                              }}
-                            >
-                              {s?.name || s}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Clean Progress Bar */}
-                        <div style={{ marginBottom: 12 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, fontSize: '0.74rem', fontWeight: 800 }}>
-                            <span style={{ color: 'var(--color-text-muted)' }}>İlerleme</span>
-                            <span style={{ color: isCompleted ? '#10b981' : pal.to, fontWeight: 900 }}>%{pct}</span>
+                        {/* Micro Progress */}
+                        <div style={{ marginBottom: 6 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3, fontSize: '0.68rem', fontWeight: 800, color: 'rgba(255,255,255,0.88)' }}>
+                            <span>{book.totalSolvedTests}/{book.totalAssignedTests} Test</span>
+                            <span style={{ fontWeight: 900, color: isCompleted ? '#34d399' : '#ffffff' }}>%{pct}</span>
                           </div>
-                          <div style={{ height: 7, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{ height: 4.5, background: 'rgba(0,0,0,0.28)', borderRadius: 99, overflow: 'hidden' }}>
                             <div style={{
                               width: `${pct}%`,
                               height: '100%',
-                              background: isCompleted ? '#10b981' : `linear-gradient(90deg, ${pal.from}, ${pal.to})`,
+                              background: isCompleted ? '#34d399' : '#ffffff',
                               borderRadius: 99,
+                              boxShadow: '0 0 6px rgba(255,255,255,0.6)',
                               transition: 'width 0.6s ease'
                             }} />
                           </div>
                         </div>
 
-                        {/* 3 Clean Stats: Doğru, Yanlış, Başarı */}
+                        {/* 3 Glassmorphic Micro Stats */}
                         <div style={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(3, 1fr)',
-                          gap: 6,
-                          background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--color-surface-hover)',
-                          padding: '0.55rem',
-                          borderRadius: 12,
-                          border: '1px solid var(--color-border)',
+                          gap: 3,
+                          background: 'rgba(0, 0, 0, 0.22)',
+                          backdropFilter: 'blur(6px)',
+                          padding: '0.38rem 0.45rem',
+                          borderRadius: 10,
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
                           textAlign: 'center'
                         }}>
                           <div>
-                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>✅ Doğru</div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
+                            <div style={{ fontSize: '0.58rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>✅ Doğru</div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#34d399', marginTop: 1 }}>{book.totalCorrect}</div>
                           </div>
-                          <div style={{ borderLeft: '1px solid var(--color-border)', borderRight: '1px solid var(--color-border)' }}>
-                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>❌ Yanlış</div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
+                          <div style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', borderRight: '1px solid rgba(255,255,255,0.15)' }}>
+                            <div style={{ fontSize: '0.58rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>❌ Yanlış</div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#f87171', marginTop: 1 }}>{book.totalWrong}</div>
                           </div>
                           <div>
-                            <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--color-text-muted)' }}>🎯 Başarı</div>
-                            <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#2563eb', marginTop: 1 }}>%{book.successRate}</div>
+                            <div style={{ fontSize: '0.58rem', fontWeight: 800, color: 'rgba(255,255,255,0.75)' }}>🎯 Başarı</div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#67e8f9', marginTop: 1 }}>%{book.successRate}</div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Single Prominent CTA Button */}
-                      <div style={{ marginTop: 'auto' }}>
+                      {/* Compact CTA Button */}
+                      <div style={{ marginTop: 'auto', paddingTop: 2 }}>
                         {isCompleted ? (
                           <button
                             type="button"
                             onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                            className="game-btn-3d"
                             style={{
                               width: '100%',
-                              padding: isMobile ? '0.6rem' : '0.7rem',
-                              background: 'var(--color-surface-hover)',
-                              color: 'var(--color-text)',
-                              border: '1.5px solid var(--color-border)',
-                              borderRadius: 12,
+                              padding: '0.45rem 0.65rem',
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#ffffff',
+                              border: '1px solid rgba(255, 255, 255, 0.35)',
+                              borderRadius: 10,
                               fontWeight: 900,
-                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              fontSize: '0.76rem',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 6
+                              gap: 5,
+                              cursor: 'pointer',
+                              backdropFilter: 'blur(4px)',
+                              transition: 'all 0.15s ease'
                             }}
                           >
                             <span>🏆 Kitabı İncele</span>
-                            <ArrowRight size={15} />
+                            <ArrowRight size={13} />
                           </button>
                         ) : book.nextIncompleteTest ? (
                           <button
@@ -2509,47 +2604,55 @@ export default function StudentBooksPage() {
                               e.stopPropagation();
                               navigate(`/book-quiz/${book.nextIncompleteTest.id}?studentId=${studentId}`);
                             }}
-                            className="game-btn-3d game-btn-primary"
                             style={{
                               width: '100%',
-                              padding: isMobile ? '0.6rem' : '0.7rem',
-                              borderRadius: 12,
+                              padding: '0.45rem 0.65rem',
+                              background: '#ffffff',
+                              color: cardTheme.btnColor || '#0f172a',
+                              border: 'none',
+                              borderRadius: 10,
                               fontWeight: 900,
-                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              fontSize: '0.76rem',
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 6
+                              gap: 5,
+                              cursor: 'pointer',
+                              boxShadow: '0 4px 12px rgba(0,0,0,0.22)',
+                              transition: 'all 0.15s ease'
                             }}
                             title={`${book.nextIncompleteTest.name} testini hemen çöz`}
                           >
-                            <Play size={14} fill="#ffffff" />
+                            <Play size={11} fill="currentColor" />
                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              ⚡ Sıradaki: {book.nextIncompleteTest.name}
+                              Sıradaki: {book.nextIncompleteTest.name}
                             </span>
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={e => { e.stopPropagation(); navigate(`/student/books/${book.id}`); }}
-                            className="game-btn-3d"
                             style={{
                               width: '100%',
-                              padding: isMobile ? '0.6rem' : '0.7rem',
-                              background: 'var(--color-surface-hover)',
-                              color: 'var(--color-text)',
-                              border: '1.5px solid var(--color-border)',
-                              borderRadius: 12,
+                              padding: '0.45rem 0.65rem',
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              color: '#ffffff',
+                              border: '1px solid rgba(255, 255, 255, 0.35)',
+                              borderRadius: 10,
                               fontWeight: 900,
-                              fontSize: isMobile ? '0.8rem' : '0.86rem',
+                              fontSize: '0.76rem',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: 6
+                              gap: 5,
+                              cursor: 'pointer',
+                              backdropFilter: 'blur(4px)',
+                              transition: 'all 0.15s ease'
                             }}
                           >
-                            <MapIcon size={14} color="#06b6d4" />
-                            <span>Kitap Haritası</span>
+                            <MapIcon size={12} color="#ffffff" />
+                            <span>Kitaba Git</span>
+                            <ArrowRight size={12} />
                           </button>
                         )}
                       </div>
