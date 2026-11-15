@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp,
   Eye, EyeOff, Check, PlayCircle, ArrowLeft, Filter, Sparkles, Clock, HelpCircle,
-  Layers, Bookmark, ArrowRight, Award, Hash, Zap
+  Layers, Bookmark, ArrowRight, Award, Hash, Zap, FolderOpen, Folder
 } from 'lucide-react';
 import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
 import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
@@ -121,6 +121,8 @@ export default function StudyHomeworkPickerModal({
   // Seçili kitap ve seçili ünite state'leri
   const [selectedBookId, setSelectedBookId] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState('all'); // 'all' or specific unit ID
+  // TESTLER KAPALI GELSİN ÖNCE: openUnitIds başlangıçta tamamen boştur {}
+  const [openUnitIds, setOpenUnitIds] = useState({});
   const [mobileActiveStep, setMobileActiveStep] = useState('books'); // 'books' or 'tests' on mobile
   const searchInputRef = useRef(null);
 
@@ -135,6 +137,11 @@ export default function StudyHomeworkPickerModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [show, onClose]);
+
+  // Kitap değiştiğinde üniteleri kapalı başlat
+  useEffect(() => {
+    setOpenUnitIds({});
+  }, [selectedBookId]);
 
   // 1. O(1) Hızlı İndeks: Çözülen testlerin Set indeksini tek seferde oluşturur
   const precomputedSolvedIndex = useMemo(() => {
@@ -554,7 +561,7 @@ export default function StudyHomeworkPickerModal({
     return true;
   };
 
-  // Seçili üniteye ve arama sorgusuna göre filtrelenen testler
+  // Seçili üniteye ve arama sorgusuna göre filtrelenen üniteler
   const displayedUnits = useMemo(() => {
     if (selectedUnitId === 'all') {
       return selectedBookData.units.map(u => ({
@@ -569,6 +576,23 @@ export default function StudyHomeworkPickerModal({
         displayedTests: u.tests.filter(matchesTestFilter)
       }));
   }, [selectedBookData.units, selectedUnitId, hideCompletedTasks, hwSearchQuery]);
+
+  const toggleUnit = (unitId) => {
+    setOpenUnitIds(prev => ({
+      ...prev,
+      [unitId]: !prev[unitId]
+    }));
+  };
+
+  const expandAllUnits = () => {
+    const all = {};
+    selectedBookData.units.forEach(u => { all[u.id] = true; });
+    setOpenUnitIds(all);
+  };
+
+  const collapseAllUnits = () => {
+    setOpenUnitIds({});
+  };
 
   const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
@@ -592,7 +616,8 @@ export default function StudyHomeworkPickerModal({
         zIndex: 99999,
         width: '100vw',
         height: '100vh',
-        background: '#0a0d14',
+        // RENGİ AÇIK: Simsiyah yerine modern, ferah ve yumuşak slate-navy tonu
+        background: 'linear-gradient(135deg, #182238 0%, #1a243c 50%, #151d30 100%)',
         color: '#f8fafc',
         display: 'flex',
         flexDirection: 'column',
@@ -605,10 +630,10 @@ export default function StudyHomeworkPickerModal({
         style={{
           height: 64,
           flexShrink: 0,
-          background: 'rgba(15, 23, 42, 0.95)',
+          background: 'rgba(28, 39, 64, 0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -622,9 +647,9 @@ export default function StudyHomeworkPickerModal({
             type="button"
             onClick={onClose}
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#e2e8f0',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#f1f5f9',
               borderRadius: 12,
               padding: '0.45rem 0.85rem',
               fontSize: '0.82rem',
@@ -641,13 +666,13 @@ export default function StudyHomeworkPickerModal({
           </button>
 
           {!isMobile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.12)' }}>
               <span style={{ fontSize: '1.1rem' }}>🎯</span>
               <div>
                 <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
                   Çalışma Görevi & Test Seçimi
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                <div style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>
                   Kitaplardan, programından veya ödevlerinden bir test seç
                 </div>
               </div>
@@ -656,7 +681,7 @@ export default function StudyHomeworkPickerModal({
         </div>
 
         {/* Orta: 3 Ana Kaynak Sekmesi (Kitaplarım, Program, Ödevler) */}
-        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0, 0, 0, 0.4)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.12)' }}>
           {[
             { id: 'books', label: isMobile ? '📚 Kitaplarım' : '📚 Kitaplarım (Soru Bankası)', count: physicalBooksCount },
             { id: 'program', label: isMobile ? '📅 Program' : '📅 Ders Programı', count: programTotalCount },
@@ -676,7 +701,7 @@ export default function StudyHomeworkPickerModal({
                   borderRadius: 10,
                   border: 'none',
                   background: isActive ? 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' : 'transparent',
-                  color: isActive ? '#ffffff' : '#94a3b8',
+                  color: isActive ? '#ffffff' : '#cbd5e1',
                   fontWeight: 850,
                   fontSize: isMobile ? '0.74rem' : '0.82rem',
                   cursor: 'pointer',
@@ -692,8 +717,8 @@ export default function StudyHomeworkPickerModal({
                   style={{
                     fontSize: '0.68rem',
                     fontWeight: 900,
-                    background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)',
-                    color: isActive ? '#ffffff' : '#cbd5e1',
+                    background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)',
+                    color: '#ffffff',
                     padding: '1px 6px',
                     borderRadius: 99
                   }}
@@ -712,9 +737,9 @@ export default function StudyHomeworkPickerModal({
             onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
             title={hideCompletedTasks ? 'Biten testleri göster' : 'Biten testleri gizle'}
             style={{
-              background: hideCompletedTasks ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
-              border: `1px solid ${hideCompletedTasks ? '#10b981' : 'rgba(255, 255, 255, 0.12)'}`,
-              color: hideCompletedTasks ? '#10b981' : '#cbd5e1',
+              background: hideCompletedTasks ? 'rgba(16, 185, 129, 0.22)' : 'rgba(255, 255, 255, 0.08)',
+              border: `1px solid ${hideCompletedTasks ? '#10b981' : 'rgba(255, 255, 255, 0.15)'}`,
+              color: hideCompletedTasks ? '#10b981' : '#f1f5f9',
               borderRadius: 10,
               padding: '0.42rem 0.75rem',
               fontSize: '0.76rem',
@@ -737,9 +762,9 @@ export default function StudyHomeworkPickerModal({
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              color: '#94a3b8',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#f1f5f9',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -758,21 +783,21 @@ export default function StudyHomeworkPickerModal({
         {/* ========================================================================= */}
         {hwSourceTab === 'books' && (
           <div style={{ flex: 1, display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
-            {/* SOL SÜTUN: DERS FİLTRELERİ & KİTAP LİSTESİ & ÜNİTE KISAYOLLARI */}
+            {/* SOL SÜTUN: DERS FİLTRELERİ & KİTAP LİSTESİ */}
             <div
               style={{
                 width: isMobile ? '100%' : 370,
                 flexShrink: 0,
-                background: 'rgba(15, 23, 42, 0.65)',
-                borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(24, 33, 54, 0.95)',
+                borderRight: '1px solid rgba(255, 255, 255, 0.1)',
                 display: isMobile && mobileActiveStep === 'tests' ? 'none' : 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto'
               }}
             >
               {/* 1. Ders Filtre Çipleri */}
-              <div style={{ padding: '0.9rem 1rem 0.6rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              <div style={{ padding: '0.9rem 1rem 0.6rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
                   Ders Filtresi
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -795,9 +820,9 @@ export default function StudyHomeworkPickerModal({
                         style={{
                           padding: '0.35rem 0.75rem',
                           borderRadius: 99,
-                          border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-                          background: isSelected ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255, 255, 255, 0.04)',
-                          color: isSelected ? '#ffffff' : '#cbd5e1',
+                          border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: isSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.06)',
+                          color: isSelected ? '#ffffff' : '#e2e8f0',
                           fontSize: '0.74rem',
                           fontWeight: 800,
                           cursor: 'pointer',
@@ -818,10 +843,10 @@ export default function StudyHomeworkPickerModal({
               {/* 2. Soru Bankası Kitapları Listesi */}
               <div style={{ padding: '0.8rem 1rem', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#cbd5e1', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                     Soru Bankaları ({visiblePhysicalBooks.length})
                   </div>
-                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
                     Seçmek için dokunun
                   </span>
                 </div>
@@ -842,10 +867,10 @@ export default function StudyHomeworkPickerModal({
                           if (isMobile) setMobileActiveStep('tests');
                         }}
                         style={{
-                          padding: '0.75rem 0.95rem',
+                          padding: '0.8rem 1rem',
                           borderRadius: 14,
-                          background: isSelected ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255, 255, 255, 0.03)',
-                          border: isSelected ? '1.5px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.06)',
+                          background: isSelected ? 'rgba(168, 85, 247, 0.25)' : 'rgba(37, 50, 80, 0.65)',
+                          border: isSelected ? '1.5px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.1)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                           display: 'flex',
@@ -875,7 +900,7 @@ export default function StudyHomeworkPickerModal({
                           <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {book.title}
                           </div>
-                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ fontSize: '0.7rem', color: '#cbd5e1', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span>{bSubj}</span>
                             <span>•</span>
                             <span style={{ color: '#c084fc', fontWeight: 700 }}>
@@ -884,7 +909,7 @@ export default function StudyHomeworkPickerModal({
                           </div>
                         </div>
 
-                        <ChevronRight size={16} color={isSelected ? '#a855f7' : '#64748b'} />
+                        <ChevronRight size={16} color={isSelected ? '#a855f7' : '#94a3b8'} />
                       </div>
                     );
                   })}
@@ -898,12 +923,12 @@ export default function StudyHomeworkPickerModal({
                 flex: 1,
                 display: isMobile && mobileActiveStep === 'books' ? 'none' : 'flex',
                 flexDirection: 'column',
-                background: '#0e131f',
+                background: 'rgba(20, 27, 45, 0.98)',
                 overflow: 'hidden'
               }}
             >
               {!currentBook ? (
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: '0.9rem' }}>
                   Lütfen sol menüden bir soru bankası seçin.
                 </div>
               ) : (
@@ -912,8 +937,8 @@ export default function StudyHomeworkPickerModal({
                   <div
                     style={{
                       padding: '0.9rem 1.25rem',
-                      background: 'rgba(15, 23, 42, 0.8)',
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'rgba(28, 39, 64, 0.92)',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: 10,
@@ -948,7 +973,7 @@ export default function StudyHomeworkPickerModal({
                           <h2 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {currentBook.title}
                           </h2>
-                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 1 }}>
+                          <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: 1 }}>
                             {selectedBookData.units.length} Fasikül / Ünite • Toplam {selectedBookData.totalTestsCount} Test
                           </div>
                         </div>
@@ -957,13 +982,13 @@ export default function StudyHomeworkPickerModal({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <div
                           style={{
-                            background: 'rgba(168, 85, 247, 0.15)',
-                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                            background: 'rgba(168, 85, 247, 0.2)',
+                            border: '1px solid rgba(168, 85, 247, 0.35)',
                             padding: '0.35rem 0.75rem',
                             borderRadius: 10,
                             fontSize: '0.76rem',
                             fontWeight: 900,
-                            color: '#c084fc',
+                            color: '#e9d5ff',
                             display: 'flex',
                             alignItems: 'center',
                             gap: 5
@@ -975,21 +1000,21 @@ export default function StudyHomeworkPickerModal({
                       </div>
                     </div>
 
-                    {/* Alt Satır: Arama Kutusu */}
+                    {/* Alt Satır: Arama Kutusu & Tümünü Aç/Kapat Butonları */}
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <div
                         style={{
                           flex: 1,
-                          background: 'rgba(255, 255, 255, 0.05)',
+                          background: 'rgba(255, 255, 255, 0.08)',
                           borderRadius: 12,
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
                           padding: '0.45rem 0.85rem',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 8
                         }}
                       >
-                        <Search size={15} color="#94a3b8" />
+                        <Search size={15} color="#cbd5e1" />
                         <input
                           ref={searchInputRef}
                           type="text"
@@ -1010,15 +1035,60 @@ export default function StudyHomeworkPickerModal({
                           <button
                             type="button"
                             onClick={() => setHwSearchQuery('')}
-                            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                            style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 0 }}
                           >
                             <X size={14} />
                           </button>
                         )}
                       </div>
+
+                      {/* Hızlı Aç / Kapat Düğmeleri */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          onClick={expandAllUnits}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            color: '#f1f5f9',
+                            borderRadius: 10,
+                            padding: '0.45rem 0.75rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <FolderOpen size={13} color="#c084fc" />
+                          <span>Tümünü Aç</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={collapseAllUnits}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            color: '#f1f5f9',
+                            borderRadius: 10,
+                            padding: '0.45rem 0.75rem',
+                            fontSize: '0.72rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Folder size={13} color="#94a3b8" />
+                          <span>Tümünü Kapat</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Ünite / Fasikül Seçici Çipleri (Tek Dokunuşla Doğrudan O Üniteye Odaklanır) */}
+                    {/* Ünite / Fasikül Seçici Çipleri */}
                     <div
                       style={{
                         display: 'flex',
@@ -1035,8 +1105,8 @@ export default function StudyHomeworkPickerModal({
                         style={{
                           padding: '0.35rem 0.8rem',
                           borderRadius: 99,
-                          border: selectedUnitId === 'all' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-                          background: selectedUnitId === 'all' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.04)',
+                          border: selectedUnitId === 'all' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
+                          background: selectedUnitId === 'all' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.06)',
                           color: '#ffffff',
                           fontSize: '0.74rem',
                           fontWeight: 850,
@@ -1057,13 +1127,17 @@ export default function StudyHomeworkPickerModal({
                           <button
                             key={unit.id}
                             type="button"
-                            onClick={() => setSelectedUnitId(unit.id)}
+                            onClick={() => {
+                              setSelectedUnitId(unit.id);
+                              // Seçilen üniteyi otomatik aç
+                              setOpenUnitIds(prev => ({ ...prev, [unit.id]: true }));
+                            }}
                             style={{
                               padding: '0.35rem 0.8rem',
                               borderRadius: 99,
-                              border: isUnitSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-                              background: isUnitSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.04)',
-                              color: isUnitSelected ? '#ffffff' : '#cbd5e1',
+                              border: isUnitSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
+                              background: isUnitSelected ? 'rgba(168, 85, 247, 0.35)' : 'rgba(255, 255, 255, 0.06)',
+                              color: isUnitSelected ? '#ffffff' : '#e2e8f0',
                               fontSize: '0.74rem',
                               fontWeight: 800,
                               cursor: 'pointer',
@@ -1075,7 +1149,7 @@ export default function StudyHomeworkPickerModal({
                             }}
                           >
                             <span>📂 {unit.name.split(':')[0] || unit.name}</span>
-                            <span style={{ fontSize: '0.66rem', color: isUnitSelected ? '#c084fc' : '#94a3b8' }}>
+                            <span style={{ fontSize: '0.66rem', color: isUnitSelected ? '#e9d5ff' : '#cbd5e1' }}>
                               ({unit.completedCount}/{unit.totalCount})
                             </span>
                           </button>
@@ -1084,7 +1158,7 @@ export default function StudyHomeworkPickerModal({
                     </div>
                   </div>
 
-                  {/* Testler Grid / Liste Alanı */}
+                  {/* Testler Grid / Akordiyon Alanı */}
                   <div
                     style={{
                       flex: 1,
@@ -1092,11 +1166,11 @@ export default function StudyHomeworkPickerModal({
                       padding: '1.25rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 20
+                      gap: 14
                     }}
                   >
                     {displayedUnits.length === 0 || displayedUnits.every(u => u.displayedTests.length === 0) ? (
-                      <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                      <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
                         <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>🔍</div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
                           Aradığınız kriterlere uygun test bulunamadı.
@@ -1109,167 +1183,236 @@ export default function StudyHomeworkPickerModal({
                       displayedUnits.map(unit => {
                         if (unit.displayedTests.length === 0) return null;
 
+                        // Arama yapılıyorsa veya üniteye tıklanmışsa açık gelir, aksi takdirde KAPALI başlar!
+                        const isUnitOpen = Boolean(openUnitIds[unit.id]) || Boolean(hwSearchQuery.trim()) || (selectedUnitId === unit.id);
+
                         return (
-                          <div key={unit.id} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {/* Ünite / Fasikül Başlık Bandı */}
+                          <div
+                            key={unit.id}
+                            style={{
+                              background: 'rgba(30, 42, 68, 0.7)',
+                              border: isUnitOpen ? '1.5px solid rgba(168, 85, 247, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: 16,
+                              overflow: 'hidden',
+                              transition: 'all 0.2s ease',
+                              boxShadow: isUnitOpen ? '0 8px 24px rgba(0, 0, 0, 0.25)' : 'none'
+                            }}
+                          >
+                            {/* Ünite / Fasikül Akordiyon Başlığı */}
                             <div
+                              onClick={() => toggleUnit(unit.id)}
                               style={{
+                                padding: '0.85rem 1.15rem',
+                                background: isUnitOpen ? 'rgba(40, 56, 92, 0.75)' : 'rgba(30, 42, 68, 0.9)',
+                                borderBottom: isUnitOpen ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                paddingBottom: 6,
-                                borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                transition: 'all 0.15s ease'
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: '1.1rem' }}>📂</span>
-                                <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
-                                  {unit.name}
-                                </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div
+                                  style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 10,
+                                    background: isUnitOpen ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.08)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '1rem',
+                                    color: '#fff',
+                                    flexShrink: 0
+                                  }}
+                                >
+                                  📂
+                                </div>
+                                <div>
+                                  <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
+                                    {unit.name}
+                                  </div>
+                                  <div style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 600, marginTop: 2 }}>
+                                    {unit.totalCount} Test · {unit.completedCount} Çözüldü
+                                  </div>
+                                </div>
                               </div>
 
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
-                                {unit.completedCount} / {unit.totalCount} Çözüldü
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {unit.completedCount === unit.totalCount && unit.totalCount > 0 && (
+                                  <span
+                                    style={{
+                                      background: 'rgba(16, 185, 129, 0.2)',
+                                      color: '#10b981',
+                                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 800,
+                                      padding: '2px 8px',
+                                      borderRadius: 99
+                                    }}
+                                  >
+                                    ✓ Tamamlandı
+                                  </span>
+                                )}
+                                <div
+                                  style={{
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 8,
+                                    background: 'rgba(255, 255, 255, 0.08)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: '#cbd5e1'
+                                  }}
+                                >
+                                  {isUnitOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Test Kartları Grid */}
-                            <div
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
-                                gap: 10
-                              }}
-                            >
-                              {unit.displayedTests.map((test, tIdx) => {
-                                return (
-                                  <div
-                                    key={test.id}
-                                    onClick={() => onSelectTask(test)}
-                                    style={{
-                                      background: test.isCompleted ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.03)',
-                                      border: test.isCompleted
-                                        ? '1px solid rgba(16, 185, 129, 0.3)'
-                                        : '1px solid rgba(255, 255, 255, 0.08)',
-                                      borderRadius: 14,
-                                      padding: '0.85rem 1rem',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      cursor: 'pointer',
-                                      transition: 'all 0.15s ease',
-                                      gap: 12
-                                    }}
-                                    className="hover:border-purple-500/50 hover:bg-white/[0.05]"
-                                  >
-                                    <div style={{ minWidth: 0, flex: 1 }}>
-                                      {/* Üst Rozetler */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                                        <span
-                                          style={{
-                                            fontSize: '0.66rem',
-                                            fontWeight: 900,
-                                            background: 'rgba(59, 130, 246, 0.15)',
-                                            color: '#60a5fa',
-                                            padding: '1px 7px',
-                                            borderRadius: 6
-                                          }}
-                                        >
-                                          {test.questionCount || 12} Soru
-                                        </span>
-
-                                        {test.answerKey && (
+                            {/* Akordiyon İçeriği: Test Kartları (Yalnızca Açıldığında Görünür) */}
+                            {isUnitOpen && (
+                              <div
+                                style={{
+                                  padding: '1rem',
+                                  display: 'grid',
+                                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
+                                  gap: 10,
+                                  background: 'rgba(18, 25, 42, 0.4)'
+                                }}
+                              >
+                                {unit.displayedTests.map((test) => {
+                                  return (
+                                    <div
+                                      key={test.id}
+                                      onClick={() => onSelectTask(test)}
+                                      style={{
+                                        background: test.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(37, 50, 82, 0.75)',
+                                        border: test.isCompleted
+                                          ? '1px solid rgba(16, 185, 129, 0.35)'
+                                          : '1px solid rgba(255, 255, 255, 0.12)',
+                                        borderRadius: 14,
+                                        padding: '0.85rem 1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        gap: 12
+                                      }}
+                                    >
+                                      <div style={{ minWidth: 0, flex: 1 }}>
+                                        {/* Üst Rozetler */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
                                           <span
                                             style={{
                                               fontSize: '0.66rem',
                                               fontWeight: 900,
-                                              background: 'rgba(168, 85, 247, 0.15)',
-                                              color: '#c084fc',
+                                              background: 'rgba(59, 130, 246, 0.2)',
+                                              color: '#93c5fd',
                                               padding: '1px 7px',
                                               borderRadius: 6
                                             }}
                                           >
-                                            🔑 Cevap Anahtarlı
+                                            {test.questionCount || 12} Soru
                                           </span>
-                                        )}
 
-                                        {test.isCompleted ? (
-                                          <span
-                                            style={{
-                                              fontSize: '0.64rem',
-                                              fontWeight: 900,
-                                              background: 'rgba(16, 185, 129, 0.15)',
-                                              color: '#10b981',
-                                              padding: '1px 7px',
-                                              borderRadius: 99,
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: 3
-                                            }}
-                                          >
-                                            <CheckCircle2 size={11} /> Çözüldü
-                                          </span>
-                                        ) : (
-                                          <span
-                                            style={{
-                                              fontSize: '0.64rem',
-                                              fontWeight: 800,
-                                              background: 'rgba(255, 255, 255, 0.06)',
-                                              color: '#94a3b8',
-                                              padding: '1px 7px',
-                                              borderRadius: 99
-                                            }}
-                                          >
-                                            ⏳ Çözülmedi
-                                          </span>
-                                        )}
+                                          {test.answerKey && (
+                                            <span
+                                              style={{
+                                                fontSize: '0.66rem',
+                                                fontWeight: 900,
+                                                background: 'rgba(168, 85, 247, 0.2)',
+                                                color: '#e9d5ff',
+                                                padding: '1px 7px',
+                                                borderRadius: 6
+                                              }}
+                                            >
+                                              🔑 Cevap Anahtarlı
+                                            </span>
+                                          )}
+
+                                          {test.isCompleted ? (
+                                            <span
+                                              style={{
+                                                fontSize: '0.64rem',
+                                                fontWeight: 900,
+                                                background: 'rgba(16, 185, 129, 0.2)',
+                                                color: '#10b981',
+                                                padding: '1px 7px',
+                                                borderRadius: 99,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 3
+                                              }}
+                                            >
+                                              <CheckCircle2 size={11} /> Çözüldü
+                                            </span>
+                                          ) : (
+                                            <span
+                                              style={{
+                                                fontSize: '0.64rem',
+                                                fontWeight: 800,
+                                                background: 'rgba(255, 255, 255, 0.08)',
+                                                color: '#cbd5e1',
+                                                padding: '1px 7px',
+                                                borderRadius: 99
+                                              }}
+                                            >
+                                              ⏳ Çözülmedi
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Test Adı */}
+                                        <div
+                                          style={{
+                                            fontSize: '0.88rem',
+                                            fontWeight: 850,
+                                            color: test.isCompleted ? '#a7f3d0' : '#ffffff',
+                                            lineHeight: 1.3
+                                          }}
+                                        >
+                                          {test.name || test.title}
+                                        </div>
                                       </div>
 
-                                      {/* Test Adı */}
-                                      <div
+                                      {/* Odaya Al Butonu */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onSelectTask(test);
+                                        }}
                                         style={{
-                                          fontSize: '0.88rem',
-                                          fontWeight: 850,
-                                          color: test.isCompleted ? '#a7f3d0' : '#ffffff',
-                                          lineHeight: 1.3
+                                          background: test.isCompleted
+                                            ? 'rgba(16, 185, 129, 0.25)'
+                                            : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+                                          color: test.isCompleted ? '#10b981' : '#ffffff',
+                                          border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.45)' : 'none',
+                                          borderRadius: 10,
+                                          padding: '0.5rem 0.9rem',
+                                          fontSize: '0.78rem',
+                                          fontWeight: 900,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 5,
+                                          flexShrink: 0,
+                                          boxShadow: test.isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
                                         }}
                                       >
-                                        {test.name || test.title}
-                                      </div>
+                                        <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
+                                        <ArrowRight size={13} />
+                                      </button>
                                     </div>
-
-                                    {/* Odaya Al Butonu */}
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onSelectTask(test);
-                                      }}
-                                      style={{
-                                        background: test.isCompleted
-                                          ? 'rgba(16, 185, 129, 0.2)'
-                                          : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
-                                        color: test.isCompleted ? '#10b981' : '#ffffff',
-                                        border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
-                                        borderRadius: 10,
-                                        padding: '0.5rem 0.9rem',
-                                        fontSize: '0.78rem',
-                                        fontWeight: 900,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 5,
-                                        flexShrink: 0,
-                                        boxShadow: test.isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
-                                      }}
-                                    >
-                                      <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
-                                      <ArrowRight size={13} />
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })
@@ -1290,8 +1433,8 @@ export default function StudyHomeworkPickerModal({
             <div
               style={{
                 padding: '0.75rem 1.25rem',
-                background: 'rgba(15, 23, 42, 0.75)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(28, 39, 64, 0.92)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 gap: 8,
                 overflowX: 'auto',
@@ -1309,9 +1452,9 @@ export default function StudyHomeworkPickerModal({
                     style={{
                       padding: '0.55rem 1rem',
                       borderRadius: 12,
-                      border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
-                      background: isSelected ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.04)',
-                      color: isSelected ? '#ffffff' : '#cbd5e1',
+                      border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
+                      background: isSelected ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.06)',
+                      color: isSelected ? '#ffffff' : '#e2e8f0',
                       fontSize: '0.8rem',
                       fontWeight: 850,
                       cursor: 'pointer',
@@ -1325,7 +1468,7 @@ export default function StudyHomeworkPickerModal({
                     <span>{day.long}</span>
                     <span
                       style={{
-                        background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                        background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
                         color: '#ffffff',
                         fontSize: '0.66rem',
                         padding: '1px 6px',
@@ -1349,7 +1492,7 @@ export default function StudyHomeworkPickerModal({
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>📅</div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
                     {currentDayGroup.long || 'Bu gün'} için kayıtlı görev bulunamadı.
@@ -1369,8 +1512,8 @@ export default function StudyHomeworkPickerModal({
             <div
               style={{
                 padding: '0.75rem 1.25rem',
-                background: 'rgba(15, 23, 42, 0.75)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                background: 'rgba(28, 39, 64, 0.92)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                 display: 'flex',
                 gap: 10,
                 alignItems: 'center',
@@ -1380,16 +1523,16 @@ export default function StudyHomeworkPickerModal({
               <div
                 style={{
                   flex: 1,
-                  background: 'rgba(255, 255, 255, 0.05)',
+                  background: 'rgba(255, 255, 255, 0.08)',
                   borderRadius: 12,
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
                   padding: '0.45rem 0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8
                 }}
               >
-                <Search size={15} color="#94a3b8" />
+                <Search size={15} color="#cbd5e1" />
                 <input
                   type="text"
                   placeholder="Ödev başlığı veya ders ara..."
@@ -1417,7 +1560,7 @@ export default function StudyHomeworkPickerModal({
                   ))}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
                   <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>📝</div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
                     Atanmış ödev bulunamadı.
@@ -1443,8 +1586,8 @@ function ProgramTaskCard({ task, onSelectTask }) {
     <div
       onClick={() => onSelectTask(task)}
       style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+        background: 'rgba(37, 50, 82, 0.75)',
+        border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.12)',
         borderRadius: 14,
         padding: '0.85rem 1rem',
         display: 'flex',
@@ -1461,8 +1604,8 @@ function ProgramTaskCard({ task, onSelectTask }) {
             style={{
               fontSize: '0.66rem',
               fontWeight: 800,
-              background: 'rgba(99, 102, 241, 0.15)',
-              color: '#818cf8',
+              background: 'rgba(99, 102, 241, 0.25)',
+              color: '#a5b4fc',
               padding: '1px 6px',
               borderRadius: 6
             }}
@@ -1474,8 +1617,8 @@ function ProgramTaskCard({ task, onSelectTask }) {
             style={{
               fontSize: '0.66rem',
               fontWeight: 800,
-              background: 'rgba(255, 255, 255, 0.06)',
-              color: '#94a3b8',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#cbd5e1',
               padding: '1px 6px',
               borderRadius: 6
             }}
@@ -1488,7 +1631,7 @@ function ProgramTaskCard({ task, onSelectTask }) {
               style={{
                 fontSize: '0.64rem',
                 fontWeight: 900,
-                background: 'rgba(16, 185, 129, 0.15)',
+                background: 'rgba(16, 185, 129, 0.2)',
                 color: '#10b981',
                 padding: '1px 7px',
                 borderRadius: 99,
@@ -1507,7 +1650,7 @@ function ProgramTaskCard({ task, onSelectTask }) {
         </div>
 
         {(task.bookTitle || task.unit || task.topic) && (
-          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '0.7rem', color: '#cbd5e1', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {task.bookTitle ? `${task.bookTitle} • ` : ''}{task.unit || task.topic}
           </div>
         )}
@@ -1521,10 +1664,10 @@ function ProgramTaskCard({ task, onSelectTask }) {
         }}
         style={{
           background: task.isCompleted
-            ? 'rgba(16, 185, 129, 0.2)'
+            ? 'rgba(16, 185, 129, 0.25)'
             : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
           color: task.isCompleted ? '#10b981' : '#ffffff',
-          border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
+          border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.45)' : 'none',
           borderRadius: 10,
           padding: '0.45rem 0.85rem',
           fontSize: '0.76rem',
