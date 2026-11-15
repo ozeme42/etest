@@ -1,6 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp, Eye, EyeOff, Check, PlayCircle } from 'lucide-react';
-import { STUDY_SUBJECTS } from '../constants/studyRoomConstants';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp,
+  Eye, EyeOff, Check, PlayCircle, ArrowLeft, Filter, Sparkles, Clock, HelpCircle,
+  Layers, Bookmark, ArrowRight, Award, Hash, Zap
+} from 'lucide-react';
 import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
 import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
 
@@ -59,10 +62,10 @@ const getBookSubject = (b) => {
   if (b.subject && String(b.subject).trim() !== '' && b.subject !== 'Genel') return b.subject;
   if (b.subjects && b.subjects[0]?.name) return b.subjects[0].name;
   const t = String(b.title || '').toLowerCase();
-  if (t.includes('türkçe')) return 'Türkçe';
-  if (t.includes('matematik')) return 'Matematik';
+  if (t.includes('türkçe') || t.includes('turkce') || t.includes('paragraf')) return 'Türkçe';
+  if (t.includes('matematik') || t.includes('mat') || t.includes('problem')) return 'Matematik';
   if (t.includes('fen')) return 'Fen Bilimleri';
-  if (t.includes('sosyal')) return 'Sosyal Bilgiler';
+  if (t.includes('sosyal') || t.includes('inkılap') || t.includes('tarih')) return 'Sosyal Bilgiler';
   if (t.includes('ingilizce') || t.includes('ing')) return 'İngilizce';
   if (t.includes('din')) return 'Din Kültürü';
   return 'Genel';
@@ -70,13 +73,24 @@ const getBookSubject = (b) => {
 
 const getSubjectIcon = (subj) => {
   const s = String(subj || '').toLowerCase();
-  if (s.includes('türk')) return '📘';
-  if (s.includes('mat')) return '📐';
+  if (s.includes('türk') || s.includes('paragraf')) return '📘';
+  if (s.includes('mat') || s.includes('problem')) return '📐';
   if (s.includes('fen')) return '🔬';
-  if (s.includes('sosyal')) return '🌍';
+  if (s.includes('sosyal') || s.includes('tarih')) return '🌍';
   if (s.includes('ing')) return '🇬🇧';
   if (s.includes('din')) return '🕌';
   return '📚';
+};
+
+const getSubjectGradient = (subj) => {
+  const s = String(subj || '').toLowerCase();
+  if (s.includes('türk')) return 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+  if (s.includes('mat')) return 'linear-gradient(135deg, #8b5cf6, #6366f1)';
+  if (s.includes('fen')) return 'linear-gradient(135deg, #10b981, #059669)';
+  if (s.includes('sosyal')) return 'linear-gradient(135deg, #06b6d4, #0891b2)';
+  if (s.includes('ing')) return 'linear-gradient(135deg, #f59e0b, #d97706)';
+  if (s.includes('din')) return 'linear-gradient(135deg, #ec4899, #be185d)';
+  return 'linear-gradient(135deg, #6366f1, #4f46e5)';
 };
 
 export default function StudyHomeworkPickerModal({
@@ -104,19 +118,35 @@ export default function StudyHomeworkPickerModal({
   currentUserId = null,
   onSelectTask
 }) {
+  // Seçili kitap ve seçili ünite state'leri
   const [selectedBookId, setSelectedBookId] = useState(null);
-  const [openUnitIds, setOpenUnitIds] = useState({});
+  const [selectedUnitId, setSelectedUnitId] = useState('all'); // 'all' or specific unit ID
+  const [mobileActiveStep, setMobileActiveStep] = useState('books'); // 'books' or 'tests' on mobile
+  const searchInputRef = useRef(null);
 
+  // ESC tuşuyla tam sayfayı kapatma
+  useEffect(() => {
+    if (!show) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [show, onClose]);
+
+  // 1. O(1) Hızlı İndeks: Çözülen testlerin Set indeksini tek seferde oluşturur
   const precomputedSolvedIndex = useMemo(() => {
     return buildSolvedIndex(currentUserId, submissions, homeworks);
   }, [currentUserId, submissions, homeworks]);
 
-  // 1. Sadece fiziki soru bankaları (8 adet)
+  // 2. Sadece fiziki soru bankaları (8 adet)
   const physicalBooks = useMemo(() => {
     return (books || []).filter(isPhysicalQuestionBook);
   }, [books]);
 
-  // 2. Seçili derse göre filtrelenmiş kitaplar
+  // 3. Seçili derse göre filtrelenmiş soru bankaları
   const visiblePhysicalBooks = useMemo(() => {
     if (hwFilterSubject === 'all') return physicalBooks;
     return physicalBooks.filter(b => {
@@ -126,15 +156,17 @@ export default function StudyHomeworkPickerModal({
     });
   }, [physicalBooks, hwFilterSubject]);
 
-  // 3. Seçili kitap: Filtredeki ilk kitaba otomatik odaklan
+  // 4. Kitap seçimini otomatik senkronize et
   useEffect(() => {
     if (visiblePhysicalBooks.length > 0) {
       const exists = visiblePhysicalBooks.some(b => String(b.id) === String(selectedBookId));
       if (!exists) {
         setSelectedBookId(visiblePhysicalBooks[0].id);
+        setSelectedUnitId('all');
       }
     } else {
       setSelectedBookId(null);
+      setSelectedUnitId('all');
     }
   }, [visiblePhysicalBooks, selectedBookId]);
 
@@ -143,9 +175,9 @@ export default function StudyHomeworkPickerModal({
     return visiblePhysicalBooks.find(b => String(b.id) === String(selectedBookId)) || visiblePhysicalBooks[0];
   }, [visiblePhysicalBooks, selectedBookId]);
 
-  // 4. Seçili kitabın Ünitelerini ve Testlerini çıkarma
+  // 5. Seçili kitabın Ünitelerini ve Testlerini çıkarma (Kanonik ve DB testlerini eksiksiz birleştirir)
   const selectedBookData = useMemo(() => {
-    if (!currentBook) return { units: [], allTests: [] };
+    if (!currentBook) return { units: [], allTests: [], totalTestsCount: 0, solvedCount: 0 };
 
     const bId = String(currentBook.id || '');
     const cleanBId = bId.replace(/^b_/, '');
@@ -153,7 +185,7 @@ export default function StudyHomeworkPickerModal({
     const bLegacyUuid = String(legacyHexUUID(bId) || '');
     const normBookTitle = String(currentBook.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
 
-    // bookTests içindeki bu kitaba ait testler
+    // Bu kitaba ait DB testleri
     const testsInBook = (bookTests || []).filter(t => {
       if (!t || t.isDeleted || t.deleted) return false;
       const tBId = String(t.bookId || t.book_id || '');
@@ -193,16 +225,14 @@ export default function StudyHomeworkPickerModal({
           const tpId = String(tp.id || `tp_${tpIdx}`);
           const tpName = tp.name || `${tpIdx + 1}. Fasikül / Ünite`;
 
-          // 1. Bu konuya ait db testleri
+          // Konuya ait DB testleri
           const dbTopicTests = testsInBook.filter(t => {
             const tTpId = String(t.topicId || t.topic_id || '');
             return tTpId === tpId || tTpId === String(tp.id) || (toUUID(tTpId) && toUUID(tTpId) === toUUID(tpId));
           });
 
-          // 2. Konunun canonical testleri (kitabın json / subject verisindeki testler)
+          // Konunun kanonik testleri (kitap şemasındaki 138 test)
           const canonicalTests = Array.isArray(tp.tests) ? tp.tests : [];
-
-          // 3. Merged test list: Canonical testleri temel alarak db testleriyle zenginleştir
           const seenTestIds = new Set();
           const seenTestNames = new Set();
           const combinedRawTests = [];
@@ -241,7 +271,7 @@ export default function StudyHomeworkPickerModal({
               });
             });
 
-            // Canonical listede olmayan ama dbTopicTests içinde bulunan ekstra testleri ekle
+            // Ekstra DB testlerini ekle
             dbTopicTests.forEach((dt, dtIdx) => {
               if (!dt) return;
               const dtId = String(dt.id || `dt_${tpId}_${dtIdx}`);
@@ -259,7 +289,7 @@ export default function StudyHomeworkPickerModal({
           } else if (dbTopicTests.length > 0) {
             combinedRawTests.push(...dbTopicTests);
           } else {
-            // Hiç test yoksa 5 adet standart test üret
+            // Varsayılan testler
             for (let i = 1; i <= 5; i++) {
               combinedRawTests.push({
                 id: `tbt_${bId}_${subj.id || sIdx}_${tpId}_${i}`,
@@ -325,8 +355,10 @@ export default function StudyHomeworkPickerModal({
               name: tName,
               subject: sName,
               unit: tpName,
+              unitId: tpId,
               topic: tpName,
               topicId: tpId,
+              orderIndex: t.test_order || (tIdx + 1),
               questionCount: qCount,
               answerKey: matchedDbTest.answer_key || matchedDbTest.answerKey || t.answer_key || t.answerKey,
               isCompleted: isSolved,
@@ -340,7 +372,9 @@ export default function StudyHomeworkPickerModal({
             id: tpId,
             name: tpName,
             subjectName: sName,
-            tests: formattedTests
+            tests: formattedTests,
+            completedCount: formattedTests.filter(t => t.isCompleted).length,
+            totalCount: formattedTests.length
           });
         });
       } else {
@@ -457,7 +491,9 @@ export default function StudyHomeworkPickerModal({
             name: tName,
             subject: sName,
             unit: sName,
+            unitId: String(subj.id || sIdx),
             topic: '',
+            orderIndex: t.test_order || (tIdx + 1),
             questionCount: qCount,
             answerKey: matchedDbTest.answer_key || matchedDbTest.answerKey || t.answer_key || t.answerKey,
             isCompleted: isSolved,
@@ -471,26 +507,21 @@ export default function StudyHomeworkPickerModal({
           id: String(subj.id || sIdx),
           name: sName,
           subjectName: sName,
-          tests: formattedTests
+          tests: formattedTests,
+          completedCount: formattedTests.filter(t => t.isCompleted).length,
+          totalCount: formattedTests.length
         });
       }
     });
 
-    return { units, allTests };
+    const solvedCount = allTests.filter(t => t.isCompleted).length;
+    return {
+      units,
+      allTests,
+      totalTestsCount: allTests.length,
+      solvedCount
+    };
   }, [currentBook, bookTests, submissions, homeworks, studyAssignments, currentUserId, books, precomputedSolvedIndex]);
-
-  // İlk üniteyi otomatik açık getir
-  useEffect(() => {
-    if (selectedBookData.units.length > 0) {
-      const firstUnitId = selectedBookData.units[0].id;
-      setOpenUnitIds(prev => {
-        if (!prev || Object.keys(prev).length === 0) {
-          return { [firstUnitId]: true };
-        }
-        return prev;
-      });
-    }
-  }, [selectedBookId, selectedBookData.units]);
 
   // Arama & bitenler filtresi
   const matchesTestFilter = (test) => {
@@ -523,6 +554,22 @@ export default function StudyHomeworkPickerModal({
     return true;
   };
 
+  // Seçili üniteye ve arama sorgusuna göre filtrelenen testler
+  const displayedUnits = useMemo(() => {
+    if (selectedUnitId === 'all') {
+      return selectedBookData.units.map(u => ({
+        ...u,
+        displayedTests: u.tests.filter(matchesTestFilter)
+      }));
+    }
+    return selectedBookData.units
+      .filter(u => String(u.id) === String(selectedUnitId))
+      .map(u => ({
+        ...u,
+        displayedTests: u.tests.filter(matchesTestFilter)
+      }));
+  }, [selectedBookData.units, selectedUnitId, hideCompletedTasks, hwSearchQuery]);
+
   const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
   const homeworkTasks = allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
@@ -535,138 +582,122 @@ export default function StudyHomeworkPickerModal({
   const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
   const physicalBooksCount = physicalBooks.length;
 
-  // Modal kapalıysa hiçbir şey render etme (TÜM HOOK'LARIN ARDINDAN ÇAĞRILIR)
   if (!show) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.78)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      zIndex: 100,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: isMobile ? '0.5rem' : '1.5rem'
-    }}>
-      <div style={{
-        background: themeObj.cardBg,
-        border: `1px solid ${themeObj.border}`,
-        borderRadius: 24,
-        width: '100%',
-        maxWidth: 860,
-        height: '92vh',
-        maxHeight: 880,
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        width: '100vw',
+        height: '100vh',
+        background: '#0a0d14',
+        color: '#f8fafc',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 60px -15px rgba(0,0,0,0.6)',
-        overflow: 'hidden'
-      }}>
-        {/* Modal Başlığı */}
-        <div style={{
+        overflow: 'hidden',
+        fontFamily: "'Outfit', system-ui, -apple-system, sans-serif"
+      }}
+    >
+      {/* ─── 1. ÜST HEADER BAR (TAM SAYFA KONTROLÜ) ─── */}
+      <header
+        style={{
+          height: 64,
           flexShrink: 0,
-          padding: '1rem 1.25rem',
-          borderBottom: `1px solid ${themeObj.border}`,
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: themeObj.innerBg,
-          gap: 10
-        }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, color: themeObj.text, display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span>🎯</span>
-              <span>Çalışma Görevi / Test Seç</span>
-            </h3>
-            <div style={{ fontSize: '0.74rem', color: themeObj.subText, marginTop: 2 }}>
-              Fiziki soru bankalarından, ders programından veya ödevlerden bir test seç
+          padding: '0 1.25rem',
+          gap: 12
+        }}
+      >
+        {/* Sol: Geri / Çıkış butonu & Başlık */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#e2e8f0',
+              borderRadius: 12,
+              padding: '0.45rem 0.85rem',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>Çalışma Odasına Dön</span>
+          </button>
+
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '1.1rem' }}>🎯</span>
+              <div>
+                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
+                  Çalışma Görevi & Test Seçimi
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                  Kitaplardan, programından veya ödevlerinden bir test seç
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
-              style={{
-                background: hideCompletedTasks ? 'rgba(16, 185, 129, 0.15)' : themeObj.innerBg,
-                border: `1px solid ${hideCompletedTasks ? '#10b981' : themeObj.border}`,
-                color: hideCompletedTasks ? '#10b981' : themeObj.subText,
-                borderRadius: 10,
-                padding: '0.4rem 0.75rem',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5
-              }}
-            >
-              {hideCompletedTasks ? <EyeOff size={13} color="#10b981" /> : <Eye size={13} />}
-              <span>{hideCompletedTasks ? 'Bitenler Gizli' : 'Bitenleri Göster'}</span>
-            </button>
-
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: themeObj.subText,
-                cursor: 'pointer',
-                padding: 4,
-                borderRadius: 8
-              }}
-            >
-              <X size={20} />
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Ana Kaynak Sekmeleri (Kitaplarım, Ders Programı, Ödevler) */}
-        <div style={{
-          flexShrink: 0,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 8,
-          padding: '0.75rem 1.25rem 0.5rem',
-          background: themeObj.cardBg,
-          borderBottom: `1px solid ${themeObj.border}`
-        }}>
+        {/* Orta: 3 Ana Kaynak Sekmesi (Kitaplarım, Program, Ödevler) */}
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0, 0, 0, 0.4)', padding: 4, borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)' }}>
           {[
-            { id: 'books', label: '📚 Kitaplarım (Soru Bankası)', count: physicalBooksCount },
-            { id: 'program', label: '📅 Ders Programı', count: programTotalCount },
-            { id: 'homework', label: '📝 Atanmış Ödevler', count: homeworkTotalCount }
+            { id: 'books', label: isMobile ? '📚 Kitaplarım' : '📚 Kitaplarım (Soru Bankası)', count: physicalBooksCount },
+            { id: 'program', label: isMobile ? '📅 Program' : '📅 Ders Programı', count: programTotalCount },
+            { id: 'homework', label: isMobile ? '📝 Ödevler' : '📝 Atanmış Ödevler', count: homeworkTotalCount }
           ].map(tab => {
             const isActive = hwSourceTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setHwSourceTab(tab.id)}
+                type="button"
+                onClick={() => {
+                  setHwSourceTab(tab.id);
+                  if (tab.id === 'books') setMobileActiveStep('books');
+                }}
                 style={{
-                  padding: '0.6rem 0.5rem',
-                  borderRadius: 12,
-                  border: `1.5px solid ${isActive ? (themeObj.accent || '#a855f7') : themeObj.border}`,
-                  background: isActive ? (themeObj.accentGradient || themeObj.accent || '#a855f7') : themeObj.innerBg,
-                  color: isActive ? '#ffffff' : themeObj.text,
+                  padding: isMobile ? '0.4rem 0.65rem' : '0.45rem 1rem',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: isActive ? 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' : 'transparent',
+                  color: isActive ? '#ffffff' : '#94a3b8',
                   fontWeight: 850,
-                  fontSize: isMobile ? '0.72rem' : '0.84rem',
+                  fontSize: isMobile ? '0.74rem' : '0.82rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: 6,
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 4px 14px rgba(168, 85, 247, 0.35)' : 'none'
                 }}
               >
                 <span>{tab.label}</span>
-                <span style={{
-                  fontSize: '0.68rem',
-                  fontWeight: 900,
-                  background: isActive ? 'rgba(255,255,255,0.25)' : themeObj.cardBg,
-                  color: isActive ? '#ffffff' : themeObj.subText,
-                  padding: '1px 7px',
-                  borderRadius: 99
-                }}>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    fontWeight: 900,
+                    background: isActive ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.08)',
+                    color: isActive ? '#ffffff' : '#cbd5e1',
+                    padding: '1px 6px',
+                    borderRadius: 99
+                  }}
+                >
                   {tab.count}
                 </span>
               </button>
@@ -674,467 +705,735 @@ export default function StudyHomeworkPickerModal({
           })}
         </div>
 
-        {/* 📚 KİTAPLARIM SEKMESİ: DERS SEÇİMİ & FİZİKİ KİTAP SEKMELERİ */}
-        {hwSourceTab === 'books' && (
-          <div style={{
-            flexShrink: 0,
-            background: 'rgba(0, 0, 0, 0.12)',
-            borderBottom: `1px solid ${themeObj.border}`,
-            padding: '0.65rem 1.25rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8
-          }}>
-            {/* 1. Ders Filtre Çipleri (Aynı Soru Bankası Sayfası Gibi) */}
-            <div style={{
+        {/* Sağ: Bitenler Filtresi & Kapat */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
+            title={hideCompletedTasks ? 'Biten testleri göster' : 'Biten testleri gizle'}
+            style={{
+              background: hideCompletedTasks ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.06)',
+              border: `1px solid ${hideCompletedTasks ? '#10b981' : 'rgba(255, 255, 255, 0.12)'}`,
+              color: hideCompletedTasks ? '#10b981' : '#cbd5e1',
+              borderRadius: 10,
+              padding: '0.42rem 0.75rem',
+              fontSize: '0.76rem',
+              fontWeight: 800,
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
-              overflowX: 'auto',
-              paddingBottom: 2,
-              scrollbarWidth: 'none'
-            }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 800, color: themeObj.subText, whiteSpace: 'nowrap', marginRight: 4 }}>
-                Ders:
-              </span>
-              {[
-                { id: 'all', name: 'Tüm Dersler', icon: '🎯' },
-                { id: 'Türkçe', name: 'Türkçe', icon: '📘' },
-                { id: 'Matematik', name: 'Matematik', icon: '📐' },
-                { id: 'Fen Bilimleri', name: 'Fen Bilimleri', icon: '🔬' },
-                { id: 'Sosyal Bilgiler', name: 'Sosyal Bilgiler', icon: '🌍' }
-              ].map(subj => {
-                const isSelected = hwFilterSubject === subj.id;
-                return (
-                  <button
-                    key={subj.id}
-                    type="button"
-                    onClick={() => setHwFilterSubject(subj.id)}
-                    style={{
-                      padding: '0.35rem 0.8rem',
-                      borderRadius: 99,
-                      border: `1.5px solid ${isSelected ? (themeObj.accent || '#a855f7') : themeObj.border}`,
-                      background: isSelected ? (themeObj.accentGradient || themeObj.accent || '#a855f7') : themeObj.innerBg,
-                      color: isSelected ? '#ffffff' : themeObj.text,
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span>{subj.icon}</span>
-                    <span>{subj.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+              gap: 5,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {hideCompletedTasks ? <EyeOff size={14} color="#10b981" /> : <Eye size={14} />}
+            {!isMobile && <span>{hideCompletedTasks ? 'Bitenler Gizli' : 'Bitenleri Göster'}</span>}
+          </button>
 
-            {/* 2. Fiziki Kitap Sekmeleri (Asla sıkışmaz, tam görünür) */}
-            <div style={{
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#94a3b8',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              overflowX: 'auto',
-              paddingBottom: 4,
-              minHeight: 46
-            }}>
-              {visiblePhysicalBooks.map(book => {
-                const isSelected = String(currentBook?.id) === String(book.id);
-                const bSubj = getBookSubject(book);
-                const icon = getSubjectIcon(bSubj);
-                return (
-                  <button
-                    key={book.id}
-                    type="button"
-                    onClick={() => setSelectedBookId(book.id)}
-                    style={{
-                      flexShrink: 0,
-                      padding: '0.55rem 0.95rem',
-                      borderRadius: 14,
-                      border: `1.5px solid ${isSelected ? (themeObj.accent || '#a855f7') : themeObj.border}`,
-                      background: isSelected ? 'rgba(168, 85, 247, 0.25)' : themeObj.innerBg,
-                      color: isSelected ? '#ffffff' : themeObj.text,
-                      fontSize: '0.78rem',
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      boxShadow: isSelected ? '0 4px 16px rgba(168, 85, 247, 0.35)' : 'none',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9rem' }}>{icon}</span>
-                    <span>{book.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 📅 HAFTALIK PROGRAM GÜN ÇUBUĞU */}
-        {hwSourceTab === 'program' && (
-          <div style={{
-            flexShrink: 0,
-            display: 'flex',
-            gap: 6,
-            padding: '0.5rem 1.25rem',
-            overflowX: 'auto',
-            borderBottom: `1px solid ${themeObj.border}`
-          }}>
-            {weeklyProgramGrouped.map(day => {
-              const isSelected = selectedProgramDay === day.key;
-              const count = (day.tasks || []).filter(t => !hideCompletedTasks || !t.isCompleted).length;
-              return (
-                <button
-                  key={day.key}
-                  onClick={() => setSelectedProgramDay(day.key)}
-                  style={{
-                    padding: '0.45rem 0.8rem',
-                    borderRadius: 12,
-                    border: `1px solid ${isSelected ? (day.color || themeObj.accent) : themeObj.border}`,
-                    background: isSelected ? (day.color || themeObj.accent) : themeObj.innerBg,
-                    color: isSelected ? '#ffffff' : themeObj.text,
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5
-                  }}
-                >
-                  <span>{day.icon}</span>
-                  <span>{day.long}</span>
-                  <span style={{
-                    background: isSelected ? 'rgba(255,255,255,0.3)' : (count > 0 ? (day.color || themeObj.accent) : 'transparent'),
-                    color: isSelected ? '#ffffff' : (count > 0 ? '#ffffff' : themeObj.subText),
-                    fontSize: '0.62rem',
-                    padding: '1px 5px',
-                    borderRadius: 99,
-                    fontWeight: 900
-                  }}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ARAMA VE TEST SAYISI BİLGİ ŞERİDİ */}
-        <div style={{
-          flexShrink: 0,
-          padding: '0.5rem 1.25rem',
-          display: 'flex',
-          gap: 10,
-          alignItems: 'center',
-          borderBottom: `1px solid ${themeObj.border}`,
-          background: themeObj.cardBg
-        }}>
-          <div style={{
-            flex: 1,
-            background: themeObj.innerBg,
-            borderRadius: 12,
-            padding: '0.45rem 0.75rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            border: `1px solid ${themeObj.border}`
-          }}>
-            <Search size={15} color={themeObj.subText} />
-            <input
-              type="text"
-              placeholder={hwSourceTab === 'books' && currentBook ? `${currentBook.title} içinde test ara...` : "Test veya konu ara..."}
-              value={hwSearchQuery}
-              onChange={e => setHwSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'transparent',
-                border: 'none',
-                color: themeObj.text,
-                fontSize: '0.82rem',
-                outline: 'none',
-                fontWeight: 600
-              }}
-            />
-            {hwSearchQuery && (
-              <button
-                type="button"
-                onClick={() => setHwSearchQuery('')}
-                style={{ background: 'transparent', border: 'none', color: themeObj.subText, cursor: 'pointer', padding: 0 }}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {hwSourceTab === 'books' && currentBook && (
-            <div style={{ fontSize: '0.75rem', color: themeObj.subText, fontWeight: 800, whiteSpace: 'nowrap' }}>
-              <span>{selectedBookData.allTests.filter(t => t.isCompleted).length}</span> / <span>{selectedBookData.allTests.length} Çözüldü</span>
-            </div>
-          )}
+              justifyContent: 'center'
+            }}
+          >
+            <X size={18} />
+          </button>
         </div>
+      </header>
 
-        {/* ANA İÇERİK ALANI */}
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '0.85rem 1.25rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12
-        }}>
-          {hwSourceTab === 'books' ? (
-            !currentBook ? (
-              <EmptyStateMessage
-                message="Seçili derse ait fiziki soru bankası bulunamadı."
-                themeObj={themeObj}
-              />
-            ) : selectedBookData.units.length === 0 ? (
-              <EmptyStateMessage
-                message={`${currentBook.title} için henüz kayıtlı test bulunamadı.`}
-                themeObj={themeObj}
-              />
-            ) : (
-              /* 📂 KİTAP İÇERİĞİ: FASİKÜLLER & ÜNİTELER (Aynı Soru Bankası Sayfası Gibi Düzenli) */
-              selectedBookData.units.map((unit) => {
-                const isOpen = Boolean(openUnitIds[unit.id]) || Boolean(hwSearchQuery.trim());
-                const visibleTests = unit.tests.filter(matchesTestFilter);
-                const completedCount = unit.tests.filter(t => t.isCompleted).length;
+      {/* ─── 2. ANA ÇALIŞMA ALANI ─── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        {/* ========================================================================= */}
+        {/* SEKME 1: KİTAPLARIM (SORU BANKASI) - 2 SÜTUNLU MODERN SPLIT VIEW          */}
+        {/* ========================================================================= */}
+        {hwSourceTab === 'books' && (
+          <div style={{ flex: 1, display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
+            {/* SOL SÜTUN: DERS FİLTRELERİ & KİTAP LİSTESİ & ÜNİTE KISAYOLLARI */}
+            <div
+              style={{
+                width: isMobile ? '100%' : 370,
+                flexShrink: 0,
+                background: 'rgba(15, 23, 42, 0.65)',
+                borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+                display: isMobile && mobileActiveStep === 'tests' ? 'none' : 'flex',
+                flexDirection: 'column',
+                overflowY: 'auto'
+              }}
+            >
+              {/* 1. Ders Filtre Çipleri */}
+              <div style={{ padding: '0.9rem 1rem 0.6rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+                  Ders Filtresi
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {[
+                    { id: 'all', name: 'Tüm Dersler', icon: '🎯' },
+                    { id: 'Türkçe', name: 'Türkçe', icon: '📘' },
+                    { id: 'Matematik', name: 'Matematik', icon: '📐' },
+                    { id: 'Fen Bilimleri', name: 'Fen Bilimleri', icon: '🔬' },
+                    { id: 'Sosyal Bilgiler', name: 'Sosyal', icon: '🌍' }
+                  ].map(subj => {
+                    const isSelected = hwFilterSubject === subj.id;
+                    return (
+                      <button
+                        key={subj.id}
+                        type="button"
+                        onClick={() => {
+                          setHwFilterSubject(subj.id);
+                          setSelectedUnitId('all');
+                        }}
+                        style={{
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: 99,
+                          border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                          background: isSelected ? 'rgba(168, 85, 247, 0.25)' : 'rgba(255, 255, 255, 0.04)',
+                          color: isSelected ? '#ffffff' : '#cbd5e1',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <span>{subj.icon}</span>
+                        <span>{subj.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                return (
+              {/* 2. Soru Bankası Kitapları Listesi */}
+              <div style={{ padding: '0.8rem 1rem', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                    Soru Bankaları ({visiblePhysicalBooks.length})
+                  </div>
+                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                    Seçmek için dokunun
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {visiblePhysicalBooks.map(book => {
+                    const isSelected = String(currentBook?.id) === String(book.id);
+                    const bSubj = getBookSubject(book);
+                    const icon = getSubjectIcon(bSubj);
+                    const gradient = getSubjectGradient(bSubj);
+
+                    return (
+                      <div
+                        key={book.id}
+                        onClick={() => {
+                          setSelectedBookId(book.id);
+                          setSelectedUnitId('all');
+                          if (isMobile) setMobileActiveStep('tests');
+                        }}
+                        style={{
+                          padding: '0.75rem 0.95rem',
+                          borderRadius: 14,
+                          background: isSelected ? 'rgba(168, 85, 247, 0.18)' : 'rgba(255, 255, 255, 0.03)',
+                          border: isSelected ? '1.5px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.06)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          boxShadow: isSelected ? '0 4px 18px rgba(168, 85, 247, 0.25)' : 'none'
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 10,
+                            background: gradient,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.15rem',
+                            flexShrink: 0,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {icon}
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {book.title}
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span>{bSubj}</span>
+                            <span>•</span>
+                            <span style={{ color: '#c084fc', fontWeight: 700 }}>
+                              {book.publisher || 'Soru Bankası'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ChevronRight size={16} color={isSelected ? '#a855f7' : '#64748b'} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* SAĞ SÜTUN: TEST LİSTESİ & FASİKÜL SEÇİCİ & HIZLI ARAMA */}
+            <div
+              style={{
+                flex: 1,
+                display: isMobile && mobileActiveStep === 'books' ? 'none' : 'flex',
+                flexDirection: 'column',
+                background: '#0e131f',
+                overflow: 'hidden'
+              }}
+            >
+              {!currentBook ? (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+                  Lütfen sol menüden bir soru bankası seçin.
+                </div>
+              ) : (
+                <>
+                  {/* Kitap Bilgi & Arama ve Ünite Filtreleme Çubuğu */}
                   <div
-                    key={unit.id}
                     style={{
-                      background: themeObj.innerBg,
-                      border: `1px solid ${themeObj.border}`,
-                      borderRadius: 16,
-                      overflow: 'hidden',
-                      transition: 'all 0.2s ease'
+                      padding: '0.9rem 1.25rem',
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                      flexShrink: 0
                     }}
                   >
-                    {/* Ünite / Fasikül Başlığı */}
-                    <div
-                      onClick={() => setOpenUnitIds(prev => ({ ...prev, [unit.id]: !prev[unit.id] }))}
-                      style={{
-                        padding: '0.75rem 1rem',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        borderBottom: !isOpen ? 'none' : `1px solid ${themeObj.border}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        userSelect: 'none'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '1.05rem' }}>📂</span>
-                        <div>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text }}>
-                            {unit.name}
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: themeObj.subText, fontWeight: 700, marginTop: 1 }}>
-                            {unit.tests.length} Test · {completedCount} Çözüldü
+                    {/* Üst Satır: Mobil Geri + Kitap Başlığı + İstatistik */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                        {isMobile && (
+                          <button
+                            type="button"
+                            onClick={() => setMobileActiveStep('books')}
+                            style={{
+                              background: 'rgba(255,255,255,0.08)',
+                              border: 'none',
+                              color: '#cbd5e1',
+                              borderRadius: 8,
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: '0.74rem'
+                            }}
+                          >
+                            <ArrowLeft size={14} /> Kitaplar
+                          </button>
+                        )}
+                        <span style={{ fontSize: '1.25rem' }}>{getSubjectIcon(getBookSubject(currentBook))}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <h2 style={{ margin: 0, fontSize: isMobile ? '0.95rem' : '1.1rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {currentBook.title}
+                          </h2>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 1 }}>
+                            {selectedBookData.units.length} Fasikül / Ünite • Toplam {selectedBookData.totalTestsCount} Test
                           </div>
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {completedCount === unit.tests.length && unit.tests.length > 0 && (
-                          <span style={{
-                            background: 'rgba(16, 185, 129, 0.15)',
-                            color: '#10b981',
-                            fontSize: '0.66rem',
-                            fontWeight: 800,
-                            padding: '2px 8px',
-                            borderRadius: 99
-                          }}>
-                            ✓ Tamamlandı
-                          </span>
-                        )}
-                        <span style={{ color: themeObj.subText }}>
-                          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <div
+                          style={{
+                            background: 'rgba(168, 85, 247, 0.15)',
+                            border: '1px solid rgba(168, 85, 247, 0.3)',
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: 10,
+                            fontSize: '0.76rem',
+                            fontWeight: 900,
+                            color: '#c084fc',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
+                          }}
+                        >
+                          <CheckCircle2 size={13} color="#10b981" />
+                          <span>{selectedBookData.solvedCount} / {selectedBookData.totalTestsCount} Çözüldü</span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Ünitenin Testleri */}
-                    {isOpen && (
-                      <div style={{ padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {visibleTests.length > 0 ? (
-                          visibleTests.map(test => (
+                    {/* Alt Satır: Arama Kutusu */}
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          borderRadius: 12,
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          padding: '0.45rem 0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}
+                      >
+                        <Search size={15} color="#94a3b8" />
+                        <input
+                          ref={searchInputRef}
+                          type="text"
+                          placeholder={`${currentBook.title} içinde test ara (örn: Öğrendiğini Kanıtla, Test 3)...`}
+                          value={hwSearchQuery}
+                          onChange={e => setHwSearchQuery(e.target.value)}
+                          style={{
+                            width: '100%',
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#ffffff',
+                            fontSize: '0.82rem',
+                            outline: 'none',
+                            fontWeight: 600
+                          }}
+                        />
+                        {hwSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setHwSearchQuery('')}
+                            style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ünite / Fasikül Seçici Çipleri (Tek Dokunuşla Doğrudan O Üniteye Odaklanır) */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        overflowX: 'auto',
+                        paddingBottom: 2,
+                        scrollbarWidth: 'none'
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUnitId('all')}
+                        style={{
+                          padding: '0.35rem 0.8rem',
+                          borderRadius: 99,
+                          border: selectedUnitId === 'all' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                          background: selectedUnitId === 'all' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.04)',
+                          color: '#ffffff',
+                          fontSize: '0.74rem',
+                          fontWeight: 850,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5
+                        }}
+                      >
+                        <span>🌟 Tüm Fasiküller</span>
+                        <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>({selectedBookData.totalTestsCount})</span>
+                      </button>
+
+                      {selectedBookData.units.map(unit => {
+                        const isUnitSelected = String(selectedUnitId) === String(unit.id);
+                        return (
+                          <button
+                            key={unit.id}
+                            type="button"
+                            onClick={() => setSelectedUnitId(unit.id)}
+                            style={{
+                              padding: '0.35rem 0.8rem',
+                              borderRadius: 99,
+                              border: isUnitSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                              background: isUnitSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255, 255, 255, 0.04)',
+                              color: isUnitSelected ? '#ffffff' : '#cbd5e1',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <span>📂 {unit.name.split(':')[0] || unit.name}</span>
+                            <span style={{ fontSize: '0.66rem', color: isUnitSelected ? '#c084fc' : '#94a3b8' }}>
+                              ({unit.completedCount}/{unit.totalCount})
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Testler Grid / Liste Alanı */}
+                  <div
+                    style={{
+                      flex: 1,
+                      overflowY: 'auto',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 20
+                    }}
+                  >
+                    {displayedUnits.length === 0 || displayedUnits.every(u => u.displayedTests.length === 0) ? (
+                      <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                        <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>🔍</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
+                          Aradığınız kriterlere uygun test bulunamadı.
+                        </div>
+                        <div style={{ fontSize: '0.78rem', marginTop: 4 }}>
+                          {hideCompletedTasks ? 'Biten testleri görmek için üstteki "Bitenler Gizli" filtresini kapatabilirsiniz.' : 'Farklı bir arama terimi deneyin.'}
+                        </div>
+                      </div>
+                    ) : (
+                      displayedUnits.map(unit => {
+                        if (unit.displayedTests.length === 0) return null;
+
+                        return (
+                          <div key={unit.id} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {/* Ünite / Fasikül Başlık Bandı */}
                             <div
-                              key={test.id}
-                              onClick={() => onSelectTask(test)}
                               style={{
-                                background: themeObj.cardBg,
-                                border: `1px solid ${test.isCompleted ? 'rgba(16, 185, 129, 0.35)' : themeObj.border}`,
-                                borderRadius: 12,
-                                padding: '0.65rem 0.9rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                                gap: 12
+                                paddingBottom: 6,
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
                               }}
                             >
-                              <div style={{ minWidth: 0, flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-                                  <span style={{
-                                    fontSize: '0.68rem',
-                                    fontWeight: 800,
-                                    background: 'rgba(59, 130, 246, 0.15)',
-                                    color: '#60a5fa',
-                                    padding: '1px 6px',
-                                    borderRadius: 6
-                                  }}>
-                                    {test.questionCount || 12} Soru
-                                  </span>
-
-                                  {test.answerKey && (
-                                    <span style={{
-                                      fontSize: '0.68rem',
-                                      fontWeight: 800,
-                                      background: 'rgba(168, 85, 247, 0.15)',
-                                      color: '#c084fc',
-                                      padding: '1px 6px',
-                                      borderRadius: 6
-                                    }}>
-                                      🔑 Cevap Anahtarlı
-                                    </span>
-                                  )}
-
-                                  {test.isCompleted ? (
-                                    <span style={{
-                                      background: 'rgba(16, 185, 129, 0.15)',
-                                      color: '#10b981',
-                                      fontSize: '0.64rem',
-                                      fontWeight: 800,
-                                      padding: '1px 7px',
-                                      borderRadius: 99,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: 3
-                                    }}>
-                                      <CheckCircle2 size={11} /> Çözüldü
-                                    </span>
-                                  ) : (
-                                    <span style={{
-                                      background: 'rgba(255, 255, 255, 0.06)',
-                                      color: themeObj.subText,
-                                      fontSize: '0.64rem',
-                                      fontWeight: 700,
-                                      padding: '1px 7px',
-                                      borderRadius: 99
-                                    }}>
-                                      ⏳ Çözülmedi
-                                    </span>
-                                  )}
-                                </div>
-
-                                <div style={{
-                                  fontSize: '0.88rem',
-                                  fontWeight: 850,
-                                  color: themeObj.text,
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis'
-                                }}>
-                                  {test.name || test.title}
-                                </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: '1.1rem' }}>📂</span>
+                                <span style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
+                                  {unit.name}
+                                </span>
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSelectTask(test);
-                                }}
-                                style={{
-                                  background: test.isCompleted
-                                    ? 'rgba(16, 185, 129, 0.2)'
-                                    : (themeObj.accentGradient || themeObj.accent || '#a855f7'),
-                                  color: test.isCompleted ? '#10b981' : '#ffffff',
-                                  border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
-                                  borderRadius: 10,
-                                  padding: '0.45rem 0.85rem',
-                                  fontSize: '0.76rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  flexShrink: 0
-                                }}
-                              >
-                                <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
-                                <ChevronRight size={13} />
-                              </button>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>
+                                {unit.completedCount} / {unit.totalCount} Çözüldü
+                              </span>
                             </div>
-                          ))
-                        ) : (
-                          <div style={{
-                            padding: '1rem',
-                            textAlign: 'center',
-                            fontSize: '0.8rem',
-                            color: themeObj.subText,
-                            fontWeight: 700,
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            borderRadius: 10
-                          }}>
-                            {hideCompletedTasks && completedCount > 0
-                              ? '✓ Bu ünitedeki tüm testler tamamlandı. (Bitenleri görmek için sağ üstteki "Bitenler Gizli" filtresine tıklayabilirsiniz)'
-                              : 'Bu ünitede kriterlere uygun test bulunamadı.'}
+
+                            {/* Test Kartları Grid */}
+                            <div
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
+                                gap: 10
+                              }}
+                            >
+                              {unit.displayedTests.map((test, tIdx) => {
+                                return (
+                                  <div
+                                    key={test.id}
+                                    onClick={() => onSelectTask(test)}
+                                    style={{
+                                      background: test.isCompleted ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.03)',
+                                      border: test.isCompleted
+                                        ? '1px solid rgba(16, 185, 129, 0.3)'
+                                        : '1px solid rgba(255, 255, 255, 0.08)',
+                                      borderRadius: 14,
+                                      padding: '0.85rem 1rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      gap: 12
+                                    }}
+                                    className="hover:border-purple-500/50 hover:bg-white/[0.05]"
+                                  >
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                      {/* Üst Rozetler */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                                        <span
+                                          style={{
+                                            fontSize: '0.66rem',
+                                            fontWeight: 900,
+                                            background: 'rgba(59, 130, 246, 0.15)',
+                                            color: '#60a5fa',
+                                            padding: '1px 7px',
+                                            borderRadius: 6
+                                          }}
+                                        >
+                                          {test.questionCount || 12} Soru
+                                        </span>
+
+                                        {test.answerKey && (
+                                          <span
+                                            style={{
+                                              fontSize: '0.66rem',
+                                              fontWeight: 900,
+                                              background: 'rgba(168, 85, 247, 0.15)',
+                                              color: '#c084fc',
+                                              padding: '1px 7px',
+                                              borderRadius: 6
+                                            }}
+                                          >
+                                            🔑 Cevap Anahtarlı
+                                          </span>
+                                        )}
+
+                                        {test.isCompleted ? (
+                                          <span
+                                            style={{
+                                              fontSize: '0.64rem',
+                                              fontWeight: 900,
+                                              background: 'rgba(16, 185, 129, 0.15)',
+                                              color: '#10b981',
+                                              padding: '1px 7px',
+                                              borderRadius: 99,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 3
+                                            }}
+                                          >
+                                            <CheckCircle2 size={11} /> Çözüldü
+                                          </span>
+                                        ) : (
+                                          <span
+                                            style={{
+                                              fontSize: '0.64rem',
+                                              fontWeight: 800,
+                                              background: 'rgba(255, 255, 255, 0.06)',
+                                              color: '#94a3b8',
+                                              padding: '1px 7px',
+                                              borderRadius: 99
+                                            }}
+                                          >
+                                            ⏳ Çözülmedi
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Test Adı */}
+                                      <div
+                                        style={{
+                                          fontSize: '0.88rem',
+                                          fontWeight: 850,
+                                          color: test.isCompleted ? '#a7f3d0' : '#ffffff',
+                                          lineHeight: 1.3
+                                        }}
+                                      >
+                                        {test.name || test.title}
+                                      </div>
+                                    </div>
+
+                                    {/* Odaya Al Butonu */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectTask(test);
+                                      }}
+                                      style={{
+                                        background: test.isCompleted
+                                          ? 'rgba(16, 185, 129, 0.2)'
+                                          : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+                                        color: test.isCompleted ? '#10b981' : '#ffffff',
+                                        border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
+                                        borderRadius: 10,
+                                        padding: '0.5rem 0.9rem',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 5,
+                                        flexShrink: 0,
+                                        boxShadow: test.isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
+                                      }}
+                                    >
+                                      <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
+                                      <ArrowRight size={13} />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        );
+                      })
                     )}
                   </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SEKME 2: HAFTALIK DERS PROGRAMI                                            */}
+        {/* ========================================================================= */}
+        {hwSourceTab === 'program' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+            {/* Gün Seçici Çubuğu */}
+            <div
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: 'rgba(15, 23, 42, 0.75)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                gap: 8,
+                overflowX: 'auto',
+                flexShrink: 0
+              }}
+            >
+              {weeklyProgramGrouped.map(day => {
+                const isSelected = selectedProgramDay === day.key;
+                const count = (day.tasks || []).filter(t => !hideCompletedTasks || !t.isCompleted).length;
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    onClick={() => setSelectedProgramDay(day.key)}
+                    style={{
+                      padding: '0.55rem 1rem',
+                      borderRadius: 12,
+                      border: isSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isSelected ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.04)',
+                      color: isSelected ? '#ffffff' : '#cbd5e1',
+                      fontSize: '0.8rem',
+                      fontWeight: 850,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>{day.icon}</span>
+                    <span>{day.long}</span>
+                    <span
+                      style={{
+                        background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)',
+                        color: '#ffffff',
+                        fontSize: '0.66rem',
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                        fontWeight: 900
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </button>
                 );
-              })
-            )
-          ) : hwSourceTab === 'program' ? (
-            programTasksForDay.length > 0 ? (
-              programTasksForDay.map(task => (
-                <TaskListItem
-                  key={task.id || task.dedupeKey}
-                  task={task}
-                  themeObj={themeObj}
-                  onSelectTask={onSelectTask}
+              })}
+            </div>
+
+            {/* Günün Görevleri */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {programTasksForDay.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>
+                  {programTasksForDay.map(task => (
+                    <ProgramTaskCard key={task.id || task.dedupeKey} task={task} onSelectTask={onSelectTask} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>📅</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
+                    {currentDayGroup.long || 'Bu gün'} için kayıtlı görev bulunamadı.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SEKME 3: ATANMIŞ ÖDEVLER                                                  */}
+        {/* ========================================================================= */}
+        {hwSourceTab === 'homework' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflow: 'hidden' }}>
+            {/* Ödev Filtre Çubuğu */}
+            <div
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: 'rgba(15, 23, 42, 0.75)',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+                flexShrink: 0
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '0.45rem 0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                <Search size={15} color="#94a3b8" />
+                <input
+                  type="text"
+                  placeholder="Ödev başlığı veya ders ara..."
+                  value={hwSearchQuery}
+                  onChange={e => setHwSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    outline: 'none',
+                    fontWeight: 600
+                  }}
                 />
-              ))
-            ) : (
-              <EmptyStateMessage message={`${currentDayGroup.long || 'Bu gün'} için kayıtlı görev bulunamadı.`} themeObj={themeObj} />
-            )
-          ) : (
-            homeworkTasks.length > 0 ? (
-              homeworkTasks.map(task => (
-                <TaskListItem
-                  key={task.id || task.dedupeKey}
-                  task={task}
-                  themeObj={themeObj}
-                  onSelectTask={onSelectTask}
-                />
-              ))
-            ) : (
-              <EmptyStateMessage message="Atanmış ödev bulunamadı." themeObj={themeObj} />
-            )
-          )}
-        </div>
+              </div>
+            </div>
+
+            {/* Ödevler Listesi */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {homeworkTasks.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>
+                  {homeworkTasks.map(task => (
+                    <ProgramTaskCard key={task.id || task.dedupeKey} task={task} onSelectTask={onSelectTask} />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>📝</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
+                    Atanmış ödev bulunamadı.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function TaskListItem({ task, themeObj, onSelectTask }) {
+// ─── YARDIMCI GÖREV KARTI (DERS PROGRAMI & ÖDEVLER İÇİN) ───
+function ProgramTaskCard({ task, onSelectTask }) {
   const isReading = task.isReadingTask ||
     task.taskType === 'okuma' ||
     task.subject === 'Kitap Okuma' ||
@@ -1144,76 +1443,102 @@ function TaskListItem({ task, themeObj, onSelectTask }) {
     <div
       onClick={() => onSelectTask(task)}
       style={{
-        background: themeObj.innerBg,
-        border: `1px solid ${themeObj.border}`,
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
         borderRadius: 14,
-        padding: '0.75rem 1rem',
+        padding: '0.85rem 1rem',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         cursor: 'pointer',
+        gap: 12,
         transition: 'all 0.15s ease'
       }}
     >
-      <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: '0.86rem', fontWeight: 900, color: themeObj.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {task.title || task.name || (isReading ? 'Kitap Okuma' : 'Test')}
-          </span>
-          {task.isCompleted && (
-            <span style={{
-              background: 'rgba(16, 185, 129, 0.15)',
-              color: '#10b981',
-              fontSize: '0.62rem',
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+          <span
+            style={{
+              fontSize: '0.66rem',
               fontWeight: 800,
+              background: 'rgba(99, 102, 241, 0.15)',
+              color: '#818cf8',
               padding: '1px 6px',
-              borderRadius: 99
-            }}>
-              Tamamlandı
+              borderRadius: 6
+            }}
+          >
+            {task.subject || 'Ders'}
+          </span>
+
+          <span
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              background: 'rgba(255, 255, 255, 0.06)',
+              color: '#94a3b8',
+              padding: '1px 6px',
+              borderRadius: 6
+            }}
+          >
+            {isReading ? '📖 Okuma Görevi' : `${task.questionCount || 12} Soru`}
+          </span>
+
+          {task.isCompleted && (
+            <span
+              style={{
+                fontSize: '0.64rem',
+                fontWeight: 900,
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#10b981',
+                padding: '1px 7px',
+                borderRadius: 99,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3
+              }}
+            >
+              <CheckCircle2 size={11} /> Çözüldü
             </span>
           )}
         </div>
 
-        <div style={{ fontSize: '0.7rem', color: themeObj.subText, fontWeight: 600, marginTop: 2 }}>
-          {task.subject} · {isReading ? '📖 Okuma Görevi' : `${task.questionCount || 12} Soru`}
-          {task.bookTitle && ` · ${task.bookTitle}`}
-          {task.sourceLabel && ` · ${task.sourceLabel}`}
+        <div style={{ fontSize: '0.88rem', fontWeight: 850, color: '#ffffff', lineHeight: 1.3 }}>
+          {task.title || task.name || (isReading ? 'Kitap Okuma' : 'Test')}
         </div>
+
+        {(task.bookTitle || task.unit || task.topic) && (
+          <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {task.bookTitle ? `${task.bookTitle} • ` : ''}{task.unit || task.topic}
+          </div>
+        )}
       </div>
 
       <button
         type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectTask(task);
+        }}
         style={{
-          background: themeObj.accentGradient || themeObj.accent || '#a855f7',
-          color: '#ffffff',
-          border: 'none',
+          background: task.isCompleted
+            ? 'rgba(16, 185, 129, 0.2)'
+            : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+          color: task.isCompleted ? '#10b981' : '#ffffff',
+          border: task.isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
           borderRadius: 10,
-          padding: '0.4rem 0.8rem',
+          padding: '0.45rem 0.85rem',
           fontSize: '0.76rem',
-          fontWeight: 800,
+          fontWeight: 850,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: 4
+          gap: 4,
+          flexShrink: 0
         }}
       >
-        <span>Seç</span>
-        <ChevronRight size={13} />
+        <span>{task.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
+        <ArrowRight size={13} />
       </button>
-    </div>
-  );
-}
-
-function EmptyStateMessage({ message, themeObj }) {
-  return (
-    <div style={{
-      textAlign: 'center',
-      padding: '3rem 1rem',
-      color: themeObj.subText,
-      fontSize: '0.84rem',
-      fontWeight: 700
-    }}>
-      {message}
     </div>
   );
 }
