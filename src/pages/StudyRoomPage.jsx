@@ -102,7 +102,7 @@ export default function StudyRoomPage() {
   const [hwSearchQuery, setHwSearchQuery] = useState('');
   const [hwFilterSubject, setHwFilterSubject] = useState('all');
   const [hwSourceTab, setHwSourceTab] = useState('program');
-  const [hideCompletedTasks, setHideCompletedTasks] = useState(true);
+  const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
 
   const todayDayMap = ['Paz', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cts'];
   const currentTodayKey = todayDayMap[new Date().getDay()] || 'Pzt';

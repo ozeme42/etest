@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp, Eye, EyeOff, Check, PlayCircle } from 'lucide-react';
 import { STUDY_SUBJECTS } from '../constants/studyRoomConstants';
 import { checkIsTaskSolved } from '../../../components/ProgramCenter';
+import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
 
 // Yalnızca fiziki soru bankalarını filtreler (Denemeler, hazır bulunuşluk ve okuma kitaplarını ayıklar)
 const isPhysicalQuestionBook = (b) => {
@@ -89,7 +90,7 @@ export default function StudyHomeworkPickerModal({
   setHwFilterSubject,
   hwSearchQuery = '',
   setHwSearchQuery,
-  hideCompletedTasks = true,
+  hideCompletedTasks = false,
   setHideCompletedTasks,
   selectedProgramDay,
   setSelectedProgramDay,
@@ -144,12 +145,21 @@ export default function StudyHomeworkPickerModal({
 
     const bId = String(currentBook.id || '');
     const cleanBId = bId.replace(/^b_/, '');
+    const bUuid = String(toUUID(bId) || '');
+    const bLegacyUuid = String(legacyHexUUID(bId) || '');
+    const normBookTitle = String(currentBook.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
 
     // bookTests içindeki bu kitaba ait testler
     const testsInBook = (bookTests || []).filter(t => {
       if (!t || t.isDeleted || t.deleted) return false;
       const tBId = String(t.bookId || t.book_id || '');
-      return tBId === bId || tBId === cleanBId;
+      if (tBId === bId || tBId === cleanBId) return true;
+      if (bUuid && tBId === bUuid) return true;
+      if (bLegacyUuid && tBId === bLegacyUuid) return true;
+      if (toUUID(tBId) && toUUID(tBId) === bUuid) return true;
+      const tBTitle = String(t.bookTitle || t.book_title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+      if (tBTitle && normBookTitle && tBTitle === normBookTitle) return true;
+      return false;
     });
 
     const directTestMap = new Map();
@@ -157,6 +167,9 @@ export default function StudyHomeworkPickerModal({
       directTestMap.set(String(t.id), t);
       const cl = String(t.id).replace(/^bt_|^tbt_/, '');
       if (cl) directTestMap.set(cl, t);
+      const u = toUUID(cl || t.id);
+      if (u) directTestMap.set(String(u), t);
+      if (t.name) directTestMap.set(String(t.name).trim().toLowerCase(), t);
     });
 
     const units = [];
@@ -175,26 +188,110 @@ export default function StudyHomeworkPickerModal({
           const tpId = String(tp.id || `tp_${tpIdx}`);
           const tpName = tp.name || `${tpIdx + 1}. Fasikül / Ünite`;
 
-          // Bu konuya ait testler
-          let topicTests = testsInBook.filter(t => {
+          // 1. Bu konuya ait db testleri
+          const dbTopicTests = testsInBook.filter(t => {
             const tTpId = String(t.topicId || t.topic_id || '');
-            return tTpId === tpId || tTpId === String(tp.id);
+            return tTpId === tpId || tTpId === String(tp.id) || (toUUID(tTpId) && toUUID(tTpId) === toUUID(tpId));
           });
 
-          if (topicTests.length === 0 && Array.isArray(tp.tests) && tp.tests.length > 0) {
-            topicTests = tp.tests;
+          // 2. Konunun canonical testleri (kitabın json / subject verisindeki testler)
+          const canonicalTests = Array.isArray(tp.tests) ? tp.tests : [];
+
+          // 3. Merged test list: Canonical testleri temel alarak db testleriyle zenginleştir
+          const seenTestIds = new Set();
+          const seenTestNames = new Set();
+          const combinedRawTests = [];
+
+          if (canonicalTests.length > 0) {
+            canonicalTests.forEach((ct, ctIdx) => {
+              if (!ct) return;
+              const ctId = String(ct.id || `ct_${tpId}_${ctIdx}`);
+              const ctClean = ctId.replace(/^bt_|^tbt_/, '');
+              const ctName = String(ct.name || ct.title || `Test ${ctIdx + 1}`).trim();
+              const ctNameKey = ctName.toLowerCase();
+
+              const matchedDb = directTestMap.get(ctId) ||
+                                directTestMap.get(ctClean) ||
+                                (toUUID(ctClean) ? directTestMap.get(String(toUUID(ctClean))) : null) ||
+                                directTestMap.get(ctNameKey) ||
+                                dbTopicTests.find(dt => {
+                                  const dtName = String(dt.name || dt.title || '').trim().toLowerCase();
+                                  return dtName === ctNameKey;
+                                });
+
+              seenTestIds.add(ctId);
+              seenTestIds.add(ctClean);
+              if (ctNameKey) seenTestNames.add(ctNameKey);
+              if (matchedDb?.id) {
+                seenTestIds.add(String(matchedDb.id));
+                seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_/, ''));
+              }
+
+              combinedRawTests.push({
+                ...ct,
+                ...(matchedDb || {}),
+                id: ct.id || matchedDb?.id || ctId,
+                name: ctName,
+                test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
+              });
+            });
+
+            // Canonical listede olmayan ama dbTopicTests içinde bulunan ekstra testleri ekle
+            dbTopicTests.forEach((dt, dtIdx) => {
+              if (!dt) return;
+              const dtId = String(dt.id || `dt_${tpId}_${dtIdx}`);
+              const dtClean = dtId.replace(/^bt_|^tbt_/, '');
+              const dtName = String(dt.name || dt.title || '').trim();
+              const dtNameKey = dtName.toLowerCase();
+
+              if (!seenTestIds.has(dtId) && !seenTestIds.has(dtClean) && (!dtNameKey || !seenTestNames.has(dtNameKey))) {
+                seenTestIds.add(dtId);
+                seenTestIds.add(dtClean);
+                if (dtNameKey) seenTestNames.add(dtNameKey);
+                combinedRawTests.push(dt);
+              }
+            });
+          } else if (dbTopicTests.length > 0) {
+            combinedRawTests.push(...dbTopicTests);
+          } else {
+            // Hiç test yoksa 5 adet standart test üret
+            for (let i = 1; i <= 5; i++) {
+              combinedRawTests.push({
+                id: `tbt_${bId}_${subj.id || sIdx}_${tpId}_${i}`,
+                name: i <= 3 ? `Test-${i}` : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
+                questionCount: 20,
+                answerKey: {}
+              });
+            }
           }
 
-          const formattedTests = topicTests.map(t => {
-            const matchedDbTest = directTestMap.get(String(t.id)) || directTestMap.get(String(t.id).replace(/^bt_|^tbt_/, '')) || t;
+          const formattedTests = combinedRawTests.map((t, tIdx) => {
+            const matchedDbTest = directTestMap.get(String(t.id)) ||
+                                  directTestMap.get(String(t.id).replace(/^bt_|^tbt_/, '')) ||
+                                  t;
+
+            const tName = matchedDbTest.name || matchedDbTest.title || t.name || t.title || `Test ${t.test_order || (tIdx + 1)}`;
+            const cleanTitle = `${currentBook.title} • ${tName}`;
+            const testId = String(t.id || matchedDbTest.id || `t_${tpId}_${tIdx}`);
 
             const isSolved = checkIsTaskSolved(
               {
-                testId: t.id,
-                bookTestId: t.id,
+                id: testId,
+                testId: testId,
+                bookTestId: testId,
+                realTestId: testId,
                 taskType: 'kitap',
+                bookId: currentBook.id,
                 bookTitle: currentBook.title,
-                subject: sName
+                subject: sName,
+                subjectName: sName,
+                unit: tpName,
+                topic: tpName,
+                unitTopic: tpName,
+                topicId: tpId,
+                name: tName,
+                testName: tName,
+                title: cleanTitle
               },
               currentUserId,
               submissions,
@@ -205,21 +302,18 @@ export default function StudyHomeworkPickerModal({
               books
             );
 
-            const qCount = Number(matchedDbTest.questionCount || matchedDbTest.question_count || t.questionCount) ||
+            const qCount = Number(matchedDbTest.questionCount || matchedDbTest.question_count || t.questionCount || t.question_count) ||
               (matchedDbTest.answer_key ? Object.keys(matchedDbTest.answer_key).filter(k => !k.startsWith('_')).length : null) ||
               (matchedDbTest.answerKey ? Object.keys(matchedDbTest.answerKey).filter(k => !k.startsWith('_')).length : null) ||
               (t.answer_key ? Object.keys(t.answer_key).filter(k => !k.startsWith('_')).length : null) ||
               (t.answerKey ? Object.keys(t.answerKey).filter(k => !k.startsWith('_')).length : null) ||
               12;
 
-            const tName = matchedDbTest.name || matchedDbTest.title || t.name || t.title || `Test ${t.test_order || 1}`;
-            const cleanTitle = `${currentBook.title} • ${tName}`;
-
             return {
               ...matchedDbTest,
-              id: t.id,
-              realTestId: t.id,
-              bookTestId: t.id,
+              id: testId,
+              realTestId: testId,
+              bookTestId: testId,
               bookId: currentBook.id,
               bookTitle: currentBook.title,
               title: cleanTitle,
@@ -227,6 +321,7 @@ export default function StudyHomeworkPickerModal({
               subject: sName,
               unit: tpName,
               topic: tpName,
+              topicId: tpId,
               questionCount: qCount,
               answerKey: matchedDbTest.answer_key || matchedDbTest.answerKey || t.answer_key || t.answerKey,
               isCompleted: isSolved,
@@ -244,16 +339,97 @@ export default function StudyHomeworkPickerModal({
           });
         });
       } else {
-        let subjTests = testsInBook.filter(t => String(t.subjectId || t.subject_id) === String(subj.id));
-        if (subjTests.length === 0 && Array.isArray(subj.tests) && subj.tests.length > 0) {
-          subjTests = subj.tests;
+        const dbSubjTests = testsInBook.filter(t => String(t.subjectId || t.subject_id) === String(subj.id));
+        const canonicalSubjTests = Array.isArray(subj.tests) ? subj.tests : [];
+
+        const seenTestIds = new Set();
+        const seenTestNames = new Set();
+        const combinedSubjRawTests = [];
+
+        if (canonicalSubjTests.length > 0) {
+          canonicalSubjTests.forEach((ct, ctIdx) => {
+            if (!ct) return;
+            const ctId = String(ct.id || `ct_s_${sIdx}_${ctIdx}`);
+            const ctClean = ctId.replace(/^bt_|^tbt_/, '');
+            const ctName = String(ct.name || ct.title || `Test ${ctIdx + 1}`).trim();
+            const ctNameKey = ctName.toLowerCase();
+
+            const matchedDb = directTestMap.get(ctId) ||
+                              directTestMap.get(ctClean) ||
+                              (toUUID(ctClean) ? directTestMap.get(String(toUUID(ctClean))) : null) ||
+                              directTestMap.get(ctNameKey) ||
+                              dbSubjTests.find(dt => {
+                                const dtName = String(dt.name || dt.title || '').trim().toLowerCase();
+                                return dtName === ctNameKey;
+                              });
+
+            seenTestIds.add(ctId);
+            seenTestIds.add(ctClean);
+            if (ctNameKey) seenTestNames.add(ctNameKey);
+            if (matchedDb?.id) {
+              seenTestIds.add(String(matchedDb.id));
+              seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_/, ''));
+            }
+
+            combinedSubjRawTests.push({
+              ...ct,
+              ...(matchedDb || {}),
+              id: ct.id || matchedDb?.id || ctId,
+              name: ctName,
+              test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
+            });
+          });
+
+          dbSubjTests.forEach((dt, dtIdx) => {
+            if (!dt) return;
+            const dtId = String(dt.id || `dt_s_${sIdx}_${dtIdx}`);
+            const dtClean = dtId.replace(/^bt_|^tbt_/, '');
+            const dtName = String(dt.name || dt.title || '').trim();
+            const dtNameKey = dtName.toLowerCase();
+
+            if (!seenTestIds.has(dtId) && !seenTestIds.has(dtClean) && (!dtNameKey || !seenTestNames.has(dtNameKey))) {
+              seenTestIds.add(dtId);
+              seenTestIds.add(dtClean);
+              if (dtNameKey) seenTestNames.add(dtNameKey);
+              combinedSubjRawTests.push(dt);
+            }
+          });
+        } else if (dbSubjTests.length > 0) {
+          combinedSubjRawTests.push(...dbSubjTests);
+        } else {
+          for (let i = 1; i <= 5; i++) {
+            combinedSubjRawTests.push({
+              id: `tbt_${bId}_${subj.id || sIdx}_${i}`,
+              name: i <= 3 ? `Test-${i}` : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
+              questionCount: 20,
+              answerKey: {}
+            });
+          }
         }
 
-        const formattedTests = subjTests.map(t => {
+        const formattedTests = combinedSubjRawTests.map((t, tIdx) => {
           const matchedDbTest = directTestMap.get(String(t.id)) || directTestMap.get(String(t.id).replace(/^bt_|^tbt_/, '')) || t;
+          const tName = matchedDbTest.name || matchedDbTest.title || t.name || t.title || `Test ${t.test_order || (tIdx + 1)}`;
+          const testId = String(t.id || matchedDbTest.id || `t_s_${sIdx}_${tIdx}`);
+          const cleanTitle = `${currentBook.title} • ${tName}`;
 
           const isSolved = checkIsTaskSolved(
-            { testId: t.id, bookTestId: t.id, taskType: 'kitap', bookTitle: currentBook.title, subject: sName },
+            {
+              id: testId,
+              testId: testId,
+              bookTestId: testId,
+              realTestId: testId,
+              taskType: 'kitap',
+              bookId: currentBook.id,
+              bookTitle: currentBook.title,
+              subject: sName,
+              subjectName: sName,
+              unit: sName,
+              topic: '',
+              name: tName,
+              testName: tName,
+              title: cleanTitle
+            },
             currentUserId,
             submissions,
             homeworks,
@@ -263,17 +439,16 @@ export default function StudyHomeworkPickerModal({
             books
           );
 
-          const qCount = Number(matchedDbTest.questionCount || matchedDbTest.question_count || t.questionCount) || 12;
-          const tName = matchedDbTest.name || matchedDbTest.title || t.name || t.title || `Test ${t.test_order || 1}`;
+          const qCount = Number(matchedDbTest.questionCount || matchedDbTest.question_count || t.questionCount || t.question_count) || 12;
 
           return {
             ...matchedDbTest,
-            id: t.id,
-            realTestId: t.id,
-            bookTestId: t.id,
+            id: testId,
+            realTestId: testId,
+            bookTestId: testId,
             bookId: currentBook.id,
             bookTitle: currentBook.title,
-            title: `${currentBook.title} • ${tName}`,
+            title: cleanTitle,
             name: tName,
             subject: sName,
             unit: sName,
@@ -714,10 +889,6 @@ export default function StudyHomeworkPickerModal({
               selectedBookData.units.map((unit) => {
                 const isCollapsed = Boolean(collapsedUnits[unit.id]);
                 const visibleTests = unit.tests.filter(matchesTestFilter);
-                if (visibleTests.length === 0 && hideCompletedTasks && unit.tests.length > 0) {
-                  return null;
-                }
-
                 const completedCount = unit.tests.filter(t => t.isCompleted).length;
 
                 return (
@@ -892,8 +1063,18 @@ export default function StudyHomeworkPickerModal({
                             </div>
                           ))
                         ) : (
-                          <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.74rem', color: themeObj.subText, fontWeight: 700 }}>
-                            {hideCompletedTasks ? 'Bu ünitedeki tüm testler tamamlandı.' : 'Bu ünitede test bulunamadı.'}
+                          <div style={{
+                            padding: '1rem',
+                            textAlign: 'center',
+                            fontSize: '0.8rem',
+                            color: themeObj.subText,
+                            fontWeight: 700,
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            borderRadius: 10
+                          }}>
+                            {hideCompletedTasks && completedCount > 0
+                              ? '✓ Bu ünitedeki tüm testler tamamlandı. (Bitenleri görmek için sağ üstteki "Bitenler Gizli" filtresine tıklayabilirsiniz)'
+                              : 'Bu ünitede kriterlere uygun test bulunamadı.'}
                           </div>
                         )}
                       </div>
