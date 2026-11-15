@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import {
   Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
   Brain, Sparkles, LayoutGrid, Clock, Settings2, Plus, ArrowLeft,
-  CheckCircle2, X, FileText, Check, ChevronRight, Layers, Sliders,
+  CheckCircle2, X, FileText, Check, ChevronRight, ChevronDown, Layers, Sliders,
   Coffee, Zap, Flame, Compass, Target, BookOpen, Music, CheckSquare
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
