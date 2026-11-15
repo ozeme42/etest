@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp,
   Eye, EyeOff, Check, PlayCircle, ArrowLeft, Filter, Sparkles, Clock, HelpCircle,
-  Layers, Bookmark, ArrowRight, Award, Hash, Zap, FolderOpen, Folder
+  Layers, Bookmark, ArrowRight, Award, Hash, Zap, FolderOpen, Folder, ExternalLink
 } from 'lucide-react';
 import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
 import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
@@ -118,29 +118,31 @@ export default function StudyHomeworkPickerModal({
   currentUserId = null,
   onSelectTask
 }) {
-  // Seçili kitap ve seçili ünite state'leri
   const [selectedBookId, setSelectedBookId] = useState(null);
-  const [selectedUnitId, setSelectedUnitId] = useState('all'); // 'all' or specific unit ID
-  // TESTLER KAPALI GELSİN ÖNCE: openUnitIds başlangıçta tamamen boştur {}
-  const [openUnitIds, setOpenUnitIds] = useState({});
-  const [mobileActiveStep, setMobileActiveStep] = useState('books'); // 'books' or 'tests' on mobile
+  // KONUYA TIKLAYINCA AÇILACAK TEST PENCERESİ STATE'İ
+  const [selectedUnitForModal, setSelectedUnitForModal] = useState(null);
+  const [mobileActiveStep, setMobileActiveStep] = useState('books'); // 'books' or 'topics' on mobile
   const searchInputRef = useRef(null);
 
-  // ESC tuşuyla tam sayfayı kapatma
+  // ESC tuşuyla pencere veya tam sayfayı kapatma
   useEffect(() => {
     if (!show) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (selectedUnitForModal) {
+          setSelectedUnitForModal(null);
+        } else {
+          onClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [show, onClose]);
+  }, [show, selectedUnitForModal, onClose]);
 
-  // Kitap değiştiğinde üniteleri kapalı başlat
+  // Kitap değiştiğinde konu penceresini sıfırla
   useEffect(() => {
-    setOpenUnitIds({});
+    setSelectedUnitForModal(null);
   }, [selectedBookId]);
 
   // 1. O(1) Hızlı İndeks: Çözülen testlerin Set indeksini tek seferde oluşturur
@@ -169,11 +171,9 @@ export default function StudyHomeworkPickerModal({
       const exists = visiblePhysicalBooks.some(b => String(b.id) === String(selectedBookId));
       if (!exists) {
         setSelectedBookId(visiblePhysicalBooks[0].id);
-        setSelectedUnitId('all');
       }
     } else {
       setSelectedBookId(null);
-      setSelectedUnitId('all');
     }
   }, [visiblePhysicalBooks, selectedBookId]);
 
@@ -561,38 +561,11 @@ export default function StudyHomeworkPickerModal({
     return true;
   };
 
-  // Seçili üniteye ve arama sorgusuna göre filtrelenen üniteler
-  const displayedUnits = useMemo(() => {
-    if (selectedUnitId === 'all') {
-      return selectedBookData.units.map(u => ({
-        ...u,
-        displayedTests: u.tests.filter(matchesTestFilter)
-      }));
-    }
-    return selectedBookData.units
-      .filter(u => String(u.id) === String(selectedUnitId))
-      .map(u => ({
-        ...u,
-        displayedTests: u.tests.filter(matchesTestFilter)
-      }));
-  }, [selectedBookData.units, selectedUnitId, hideCompletedTasks, hwSearchQuery]);
-
-  const toggleUnit = (unitId) => {
-    setOpenUnitIds(prev => ({
-      ...prev,
-      [unitId]: !prev[unitId]
-    }));
-  };
-
-  const expandAllUnits = () => {
-    const all = {};
-    selectedBookData.units.forEach(u => { all[u.id] = true; });
-    setOpenUnitIds(all);
-  };
-
-  const collapseAllUnits = () => {
-    setOpenUnitIds({});
-  };
+  // Doğrudan arama yapılıyorsa eşleşen testler
+  const searchMatchingTests = useMemo(() => {
+    if (!hwSearchQuery.trim()) return [];
+    return selectedBookData.allTests.filter(matchesTestFilter);
+  }, [selectedBookData.allTests, hwSearchQuery, hideCompletedTasks]);
 
   const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
@@ -616,7 +589,6 @@ export default function StudyHomeworkPickerModal({
         zIndex: 99999,
         width: '100vw',
         height: '100vh',
-        // RENGİ AÇIK: Simsiyah yerine modern, ferah ve yumuşak slate-navy tonu
         background: 'linear-gradient(135deg, #182238 0%, #1a243c 50%, #151d30 100%)',
         color: '#f8fafc',
         display: 'flex',
@@ -779,7 +751,7 @@ export default function StudyHomeworkPickerModal({
       {/* ─── 2. ANA ÇALIŞMA ALANI ─── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* ========================================================================= */}
-        {/* SEKME 1: KİTAPLARIM (SORU BANKASI) - 2 SÜTUNLU MODERN SPLIT VIEW          */}
+        {/* SEKME 1: KİTAPLARIM (SORU BANKASI) - SOLDA KİTAPLAR, SAĞDA KONULAR        */}
         {/* ========================================================================= */}
         {hwSourceTab === 'books' && (
           <div style={{ flex: 1, display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
@@ -790,7 +762,7 @@ export default function StudyHomeworkPickerModal({
                 flexShrink: 0,
                 background: 'rgba(24, 33, 54, 0.95)',
                 borderRight: '1px solid rgba(255, 255, 255, 0.1)',
-                display: isMobile && mobileActiveStep === 'tests' ? 'none' : 'flex',
+                display: isMobile && mobileActiveStep === 'topics' ? 'none' : 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto'
               }}
@@ -815,7 +787,6 @@ export default function StudyHomeworkPickerModal({
                         type="button"
                         onClick={() => {
                           setHwFilterSubject(subj.id);
-                          setSelectedUnitId('all');
                         }}
                         style={{
                           padding: '0.35rem 0.75rem',
@@ -863,8 +834,7 @@ export default function StudyHomeworkPickerModal({
                         key={book.id}
                         onClick={() => {
                           setSelectedBookId(book.id);
-                          setSelectedUnitId('all');
-                          if (isMobile) setMobileActiveStep('tests');
+                          if (isMobile) setMobileActiveStep('topics');
                         }}
                         style={{
                           padding: '0.8rem 1rem',
@@ -917,7 +887,7 @@ export default function StudyHomeworkPickerModal({
               </div>
             </div>
 
-            {/* SAĞ SÜTUN: TEST LİSTESİ & FASİKÜL SEÇİCİ & HIZLI ARAMA */}
+            {/* SAĞ SÜTUN: KONULAR / FASİKÜLLER KARTLARI (TIKLAYINCA TESTLER PENCEREDE AÇILIR) */}
             <div
               style={{
                 flex: 1,
@@ -933,7 +903,7 @@ export default function StudyHomeworkPickerModal({
                 </div>
               ) : (
                 <>
-                  {/* Kitap Bilgi & Arama ve Ünite Filtreleme Çubuğu */}
+                  {/* Kitap Bilgi & Arama Çubuğu */}
                   <div
                     style={{
                       padding: '0.9rem 1.25rem',
@@ -1000,7 +970,7 @@ export default function StudyHomeworkPickerModal({
                       </div>
                     </div>
 
-                    {/* Alt Satır: Arama Kutusu & Tümünü Aç/Kapat Butonları */}
+                    {/* Arama Kutusu */}
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                       <div
                         style={{
@@ -1041,124 +1011,10 @@ export default function StudyHomeworkPickerModal({
                           </button>
                         )}
                       </div>
-
-                      {/* Hızlı Aç / Kapat Düğmeleri */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                        <button
-                          type="button"
-                          onClick={expandAllUnits}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                            color: '#f1f5f9',
-                            borderRadius: 10,
-                            padding: '0.45rem 0.75rem',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <FolderOpen size={13} color="#c084fc" />
-                          <span>Tümünü Aç</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={collapseAllUnits}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                            color: '#f1f5f9',
-                            borderRadius: 10,
-                            padding: '0.45rem 0.75rem',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <Folder size={13} color="#94a3b8" />
-                          <span>Tümünü Kapat</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Ünite / Fasikül Seçici Çipleri */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        overflowX: 'auto',
-                        paddingBottom: 2,
-                        scrollbarWidth: 'none'
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedUnitId('all')}
-                        style={{
-                          padding: '0.35rem 0.8rem',
-                          borderRadius: 99,
-                          border: selectedUnitId === 'all' ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
-                          background: selectedUnitId === 'all' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.06)',
-                          color: '#ffffff',
-                          fontSize: '0.74rem',
-                          fontWeight: 850,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5
-                        }}
-                      >
-                        <span>🌟 Tüm Fasiküller</span>
-                        <span style={{ fontSize: '0.66rem', opacity: 0.85 }}>({selectedBookData.totalTestsCount})</span>
-                      </button>
-
-                      {selectedBookData.units.map(unit => {
-                        const isUnitSelected = String(selectedUnitId) === String(unit.id);
-                        return (
-                          <button
-                            key={unit.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedUnitId(unit.id);
-                              // Seçilen üniteyi otomatik aç
-                              setOpenUnitIds(prev => ({ ...prev, [unit.id]: true }));
-                            }}
-                            style={{
-                              padding: '0.35rem 0.8rem',
-                              borderRadius: 99,
-                              border: isUnitSelected ? '1px solid #a855f7' : '1px solid rgba(255, 255, 255, 0.12)',
-                              background: isUnitSelected ? 'rgba(168, 85, 247, 0.35)' : 'rgba(255, 255, 255, 0.06)',
-                              color: isUnitSelected ? '#ffffff' : '#e2e8f0',
-                              fontSize: '0.74rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <span>📂 {unit.name.split(':')[0] || unit.name}</span>
-                            <span style={{ fontSize: '0.66rem', color: isUnitSelected ? '#e9d5ff' : '#cbd5e1' }}>
-                              ({unit.completedCount}/{unit.totalCount})
-                            </span>
-                          </button>
-                        );
-                      })}
                     </div>
                   </div>
 
-                  {/* Testler Grid / Akordiyon Alanı */}
+                  {/* 🌟 KONULAR LİSTESİ ALANI (TIKLANINCA PENCEREDE AÇILIR) */}
                   <div
                     style={{
                       flex: 1,
@@ -1166,256 +1022,149 @@ export default function StudyHomeworkPickerModal({
                       padding: '1.25rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 14
+                      gap: 12
                     }}
                   >
-                    {displayedUnits.length === 0 || displayedUnits.every(u => u.displayedTests.length === 0) ? (
-                      <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
-                        <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>🔍</div>
-                        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#ffffff' }}>
-                          Aradığınız kriterlere uygun test bulunamadı.
+                    {/* Arama yapılmışsa doğrudan arama sonuçlarını göster */}
+                    {hwSearchQuery.trim() ? (
+                      <div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 900, color: '#e9d5ff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Search size={15} />
+                          <span>"{hwSearchQuery}" ile eşleşen testler ({searchMatchingTests.length})</span>
                         </div>
-                        <div style={{ fontSize: '0.78rem', marginTop: 4 }}>
-                          {hideCompletedTasks ? 'Biten testleri görmek için üstteki "Bitenler Gizli" filtresini kapatabilirsiniz.' : 'Farklı bir arama terimi deneyin.'}
-                        </div>
+
+                        {searchMatchingTests.length === 0 ? (
+                          <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
+                            <div style={{ fontSize: '2rem', marginBottom: 6 }}>🔍</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>Eşleşen test bulunamadı.</div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))', gap: 10 }}>
+                            {searchMatchingTests.map(test => (
+                              <TestCardItem key={test.id} test={test} onSelectTask={onSelectTask} />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      displayedUnits.map(unit => {
-                        if (unit.displayedTests.length === 0) return null;
-
-                        // Arama yapılıyorsa veya üniteye tıklanmışsa açık gelir, aksi takdirde KAPALI başlar!
-                        const isUnitOpen = Boolean(openUnitIds[unit.id]) || Boolean(hwSearchQuery.trim()) || (selectedUnitId === unit.id);
-
-                        return (
-                          <div
-                            key={unit.id}
-                            style={{
-                              background: 'rgba(30, 42, 68, 0.7)',
-                              border: isUnitOpen ? '1.5px solid rgba(168, 85, 247, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
-                              borderRadius: 16,
-                              overflow: 'hidden',
-                              transition: 'all 0.2s ease',
-                              boxShadow: isUnitOpen ? '0 8px 24px rgba(0, 0, 0, 0.25)' : 'none'
-                            }}
-                          >
-                            {/* Ünite / Fasikül Akordiyon Başlığı */}
-                            <div
-                              onClick={() => toggleUnit(unit.id)}
-                              style={{
-                                padding: '0.85rem 1.15rem',
-                                background: isUnitOpen ? 'rgba(40, 56, 92, 0.75)' : 'rgba(30, 42, 68, 0.9)',
-                                borderBottom: isUnitOpen ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                cursor: 'pointer',
-                                userSelect: 'none',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div
-                                  style={{
-                                    width: 34,
-                                    height: 34,
-                                    borderRadius: 10,
-                                    background: isUnitOpen ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'rgba(255, 255, 255, 0.08)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '1rem',
-                                    color: '#fff',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  📂
-                                </div>
-                                <div>
-                                  <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#ffffff' }}>
-                                    {unit.name}
-                                  </div>
-                                  <div style={{ fontSize: '0.72rem', color: '#cbd5e1', fontWeight: 600, marginTop: 2 }}>
-                                    {unit.totalCount} Test · {unit.completedCount} Çözüldü
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                {unit.completedCount === unit.totalCount && unit.totalCount > 0 && (
-                                  <span
-                                    style={{
-                                      background: 'rgba(16, 185, 129, 0.2)',
-                                      color: '#10b981',
-                                      border: '1px solid rgba(16, 185, 129, 0.4)',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 800,
-                                      padding: '2px 8px',
-                                      borderRadius: 99
-                                    }}
-                                  >
-                                    ✓ Tamamlandı
-                                  </span>
-                                )}
-                                <div
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 8,
-                                    background: 'rgba(255, 255, 255, 0.08)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#cbd5e1'
-                                  }}
-                                >
-                                  {isUnitOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                </div>
-                              </div>
+                      /* Normal Görünüm: Konu / Fasikül Kartları */
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#ffffff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>📚</span>
+                              <span>Fasiküller ve Konular ({selectedBookData.units.length})</span>
                             </div>
+                            <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginTop: 2 }}>
+                              Testleri görmek ve çözmek için istediğiniz konuya dokunun; testler ayrı pencerede açılacaktır.
+                            </div>
+                          </div>
+                        </div>
 
-                            {/* Akordiyon İçeriği: Test Kartları (Yalnızca Açıldığında Görünür) */}
-                            {isUnitOpen && (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
+                            gap: 12
+                          }}
+                        >
+                          {selectedBookData.units.map((unit, uIdx) => {
+                            const isDone = unit.completedCount === unit.totalCount && unit.totalCount > 0;
+                            const pct = unit.totalCount > 0 ? Math.round((unit.completedCount / unit.totalCount) * 100) : 0;
+
+                            return (
                               <div
+                                key={unit.id}
+                                onClick={() => setSelectedUnitForModal(unit)}
                                 style={{
-                                  padding: '1rem',
-                                  display: 'grid',
-                                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(360px, 1fr))',
-                                  gap: 10,
-                                  background: 'rgba(18, 25, 42, 0.4)'
+                                  background: 'rgba(37, 50, 82, 0.75)',
+                                  border: isDone ? '1.5px solid rgba(16, 185, 129, 0.45)' : '1px solid rgba(255, 255, 255, 0.12)',
+                                  borderRadius: 16,
+                                  padding: '1.1rem 1.25rem',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 12,
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
                                 }}
+                                className="hover:border-purple-500 hover:bg-slate-700/60"
                               >
-                                {unit.displayedTests.map((test) => {
-                                  return (
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                     <div
-                                      key={test.id}
-                                      onClick={() => onSelectTask(test)}
                                       style={{
-                                        background: test.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(37, 50, 82, 0.75)',
-                                        border: test.isCompleted
-                                          ? '1px solid rgba(16, 185, 129, 0.35)'
-                                          : '1px solid rgba(255, 255, 255, 0.12)',
-                                        borderRadius: 14,
-                                        padding: '0.85rem 1rem',
+                                        width: 42,
+                                        height: 42,
+                                        borderRadius: 12,
+                                        background: isDone
+                                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                                          : 'linear-gradient(135deg, #8b5cf6, #6366f1)',
                                         display: 'flex',
                                         alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease',
-                                        gap: 12
+                                        justifyContent: 'center',
+                                        fontSize: '1.2rem',
+                                        color: '#ffffff',
+                                        fontWeight: 900,
+                                        flexShrink: 0,
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)'
                                       }}
                                     >
-                                      <div style={{ minWidth: 0, flex: 1 }}>
-                                        {/* Üst Rozetler */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-                                          <span
-                                            style={{
-                                              fontSize: '0.66rem',
-                                              fontWeight: 900,
-                                              background: 'rgba(59, 130, 246, 0.2)',
-                                              color: '#93c5fd',
-                                              padding: '1px 7px',
-                                              borderRadius: 6
-                                            }}
-                                          >
-                                            {test.questionCount || 12} Soru
-                                          </span>
-
-                                          {test.answerKey && (
-                                            <span
-                                              style={{
-                                                fontSize: '0.66rem',
-                                                fontWeight: 900,
-                                                background: 'rgba(168, 85, 247, 0.2)',
-                                                color: '#e9d5ff',
-                                                padding: '1px 7px',
-                                                borderRadius: 6
-                                              }}
-                                            >
-                                              🔑 Cevap Anahtarlı
-                                            </span>
-                                          )}
-
-                                          {test.isCompleted ? (
-                                            <span
-                                              style={{
-                                                fontSize: '0.64rem',
-                                                fontWeight: 900,
-                                                background: 'rgba(16, 185, 129, 0.2)',
-                                                color: '#10b981',
-                                                padding: '1px 7px',
-                                                borderRadius: 99,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 3
-                                              }}
-                                            >
-                                              <CheckCircle2 size={11} /> Çözüldü
-                                            </span>
-                                          ) : (
-                                            <span
-                                              style={{
-                                                fontSize: '0.64rem',
-                                                fontWeight: 800,
-                                                background: 'rgba(255, 255, 255, 0.08)',
-                                                color: '#cbd5e1',
-                                                padding: '1px 7px',
-                                                borderRadius: 99
-                                              }}
-                                            >
-                                              ⏳ Çözülmedi
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {/* Test Adı */}
-                                        <div
-                                          style={{
-                                            fontSize: '0.88rem',
-                                            fontWeight: 850,
-                                            color: test.isCompleted ? '#a7f3d0' : '#ffffff',
-                                            lineHeight: 1.3
-                                          }}
-                                        >
-                                          {test.name || test.title}
-                                        </div>
-                                      </div>
-
-                                      {/* Odaya Al Butonu */}
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onSelectTask(test);
-                                        }}
-                                        style={{
-                                          background: test.isCompleted
-                                            ? 'rgba(16, 185, 129, 0.25)'
-                                            : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
-                                          color: test.isCompleted ? '#10b981' : '#ffffff',
-                                          border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.45)' : 'none',
-                                          borderRadius: 10,
-                                          padding: '0.5rem 0.9rem',
-                                          fontSize: '0.78rem',
-                                          fontWeight: 900,
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: 5,
-                                          flexShrink: 0,
-                                          boxShadow: test.isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
-                                        }}
-                                      >
-                                        <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
-                                        <ArrowRight size={13} />
-                                      </button>
+                                      {uIdx + 1}
                                     </div>
-                                  );
-                                })}
+                                    <div>
+                                      <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', lineHeight: 1.3 }}>
+                                        {unit.name}
+                                      </div>
+                                      <div style={{ fontSize: '0.74rem', color: '#cbd5e1', fontWeight: 600, marginTop: 3 }}>
+                                        {unit.totalCount} Test • {unit.completedCount} Çözüldü
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      background: 'rgba(255, 255, 255, 0.08)',
+                                      borderRadius: 10,
+                                      padding: '0.4rem 0.75rem',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 850,
+                                      color: '#c084fc',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    <span>Testleri Aç</span>
+                                    <ChevronRight size={14} />
+                                  </div>
+                                </div>
+
+                                {/* İlerleme Çubuğu */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                  <div style={{ flex: 1, height: 6, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 99, overflow: 'hidden' }}>
+                                    <div
+                                      style={{
+                                        width: `${pct}%`,
+                                        height: '100%',
+                                        background: isDone
+                                          ? 'linear-gradient(90deg, #10b981, #34d399)'
+                                          : 'linear-gradient(90deg, #a855f7, #6366f1)',
+                                        borderRadius: 99,
+                                        transition: 'width 0.3s ease'
+                                      }}
+                                    />
+                                  </div>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: isDone ? '#10b981' : '#cbd5e1' }}>
+                                    %{pct}
+                                  </span>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </>
@@ -1571,6 +1320,371 @@ export default function StudyHomeworkPickerModal({
           </div>
         )}
       </div>
+
+      {/* ─── 3. KONU TESTLERİ PENCERESİ (MODAL DIALOG) ─── */}
+      {selectedUnitForModal && (
+        <TopicTestsModal
+          unit={selectedUnitForModal}
+          bookTitle={currentBook?.title || 'Soru Bankası'}
+          onClose={() => setSelectedUnitForModal(null)}
+          onSelectTask={onSelectTask}
+          hideCompletedTasks={hideCompletedTasks}
+          isMobile={isMobile}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── 📂 KONUYA TIKLAYINCA AÇILAN TESTLER PENCERESİ ───
+function TopicTestsModal({ unit, bookTitle, onClose, onSelectTask, hideCompletedTasks, isMobile }) {
+  const [localSearch, setLocalSearch] = useState('');
+
+  const filteredTests = useMemo(() => {
+    return (unit.tests || []).filter(t => {
+      if (hideCompletedTasks && t.isCompleted) return false;
+      if (localSearch.trim()) {
+        const q = localSearch.toLowerCase();
+        const match = (t.name || '').toLowerCase().includes(q) ||
+                      (t.title || '').toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [unit.tests, hideCompletedTasks, localSearch]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100010,
+        background: 'rgba(0, 0, 0, 0.72)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? '0.75rem' : '1.5rem'
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 960,
+          maxHeight: '88vh',
+          background: 'linear-gradient(135deg, #1c2742 0%, #172036 100%)',
+          border: '1.5px solid rgba(168, 85, 247, 0.35)',
+          borderRadius: 22,
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.7)',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Pencere Başlığı */}
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            background: 'rgba(30, 42, 68, 0.95)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem',
+                color: '#fff',
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              }}
+            >
+              📂
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {unit.name}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#cbd5e1', marginTop: 1 }}>
+                {bookTitle} • {unit.totalCount} Test • {unit.completedCount} Çözüldü
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#f1f5f9',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Arama ve Sayaç Şeridi */}
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            background: 'rgba(24, 33, 54, 0.85)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12
+          }}
+        >
+          <div
+            style={{
+              flex: 1,
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: 10,
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              padding: '0.45rem 0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <Search size={14} color="#cbd5e1" />
+            <input
+              type="text"
+              placeholder={`${unit.name} içinde test ara...`}
+              value={localSearch}
+              onChange={e => setLocalSearch(e.target.value)}
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '0.8rem',
+                outline: 'none',
+                fontWeight: 600
+              }}
+            />
+            {localSearch && (
+              <button
+                type="button"
+                onClick={() => setLocalSearch('')}
+                style={{ background: 'transparent', border: 'none', color: '#cbd5e1', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div style={{ fontSize: '0.76rem', color: '#c084fc', fontWeight: 800, whiteSpace: 'nowrap' }}>
+            {filteredTests.length} Test Gösteriliyor
+          </div>
+        </div>
+
+        {/* Testler Grid Alanı */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '1.25rem',
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(380px, 1fr))',
+            gap: 10,
+            alignContent: 'flex-start'
+          }}
+        >
+          {filteredTests.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3.5rem 1rem', color: '#cbd5e1' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 6 }}>🔍</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800 }}>Eşleşen test bulunamadı.</div>
+            </div>
+          ) : (
+            filteredTests.map(test => (
+              <TestCardItem key={test.id} test={test} onSelectTask={onSelectTask} />
+            ))
+          )}
+        </div>
+
+        {/* Pencere Altı */}
+        <div
+          style={{
+            padding: '0.75rem 1.25rem',
+            background: 'rgba(28, 39, 64, 0.95)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ fontSize: '0.76rem', color: '#cbd5e1', fontWeight: 700 }}>
+            {unit.totalCount} testten {unit.completedCount} tanesi çözüldü
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#ffffff',
+              borderRadius: 10,
+              padding: '0.45rem 1rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            Pencereyi Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TEKİL TEST KARTI (TIKLAYINCA ODAYA ALIR) ───
+function TestCardItem({ test, onSelectTask }) {
+  return (
+    <div
+      onClick={() => onSelectTask(test)}
+      style={{
+        background: test.isCompleted ? 'rgba(16, 185, 129, 0.08)' : 'rgba(37, 50, 82, 0.75)',
+        border: test.isCompleted
+          ? '1px solid rgba(16, 185, 129, 0.35)'
+          : '1px solid rgba(255, 255, 255, 0.12)',
+        borderRadius: 14,
+        padding: '0.85rem 1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        gap: 12
+      }}
+      className="hover:border-purple-500/60 hover:bg-slate-700/60"
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {/* Üst Rozetler */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+          <span
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 900,
+              background: 'rgba(59, 130, 246, 0.2)',
+              color: '#93c5fd',
+              padding: '1px 7px',
+              borderRadius: 6
+            }}
+          >
+            {test.questionCount || 12} Soru
+          </span>
+
+          {test.answerKey && (
+            <span
+              style={{
+                fontSize: '0.66rem',
+                fontWeight: 900,
+                background: 'rgba(168, 85, 247, 0.2)',
+                color: '#e9d5ff',
+                padding: '1px 7px',
+                borderRadius: 6
+              }}
+            >
+              🔑 Cevap Anahtarlı
+            </span>
+          )}
+
+          {test.isCompleted ? (
+            <span
+              style={{
+                fontSize: '0.64rem',
+                fontWeight: 900,
+                background: 'rgba(16, 185, 129, 0.2)',
+                color: '#10b981',
+                padding: '1px 7px',
+                borderRadius: 99,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3
+              }}
+            >
+              <CheckCircle2 size={11} /> Çözüldü
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: '0.64rem',
+                fontWeight: 800,
+                background: 'rgba(255, 255, 255, 0.08)',
+                color: '#cbd5e1',
+                padding: '1px 7px',
+                borderRadius: 99
+              }}
+            >
+              ⏳ Çözülmedi
+            </span>
+          )}
+        </div>
+
+        {/* Test Adı */}
+        <div
+          style={{
+            fontSize: '0.88rem',
+            fontWeight: 850,
+            color: test.isCompleted ? '#a7f3d0' : '#ffffff',
+            lineHeight: 1.3
+          }}
+        >
+          {test.name || test.title}
+        </div>
+      </div>
+
+      {/* Odaya Al Butonu */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectTask(test);
+        }}
+        style={{
+          background: test.isCompleted
+            ? 'rgba(16, 185, 129, 0.25)'
+            : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+          color: test.isCompleted ? '#10b981' : '#ffffff',
+          border: test.isCompleted ? '1px solid rgba(16, 185, 129, 0.45)' : 'none',
+          borderRadius: 10,
+          padding: '0.5rem 0.9rem',
+          fontSize: '0.78rem',
+          fontWeight: 900,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          flexShrink: 0,
+          boxShadow: test.isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
+        }}
+      >
+        <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
+        <ArrowRight size={13} />
+      </button>
     </div>
   );
 }
