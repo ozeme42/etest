@@ -78,7 +78,7 @@
   justify-content: space-between;
   gap: 12px;
   z-index: 40;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .focus-brand {
@@ -243,6 +243,7 @@
   max-width: 500px;
   padding: 0 16px;
   box-sizing: border-box;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Mode Switcher: Focus | Break */
@@ -466,7 +467,7 @@
   align-items: center;
   z-index: 30;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 768px) {
@@ -655,6 +656,7 @@
   flex-direction: column;
   gap: 8px;
   z-index: 40;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .focus-corner-btn {
@@ -688,6 +690,21 @@
   animation: focusFadeIn 0.2s ease;
 }
 
+/* Optical Drawer Overlay: MASAÜSTÜNDE ASLA ARKA PLANI KARARTMAZ / BLURLAMAZ! */
+.focus-drawer-overlay.optical-overlay {
+  display: none;
+  pointer-events: none;
+}
+
+@media (max-width: 959px) {
+  .focus-drawer-overlay.optical-overlay {
+    display: block;
+    pointer-events: auto;
+    background: rgba(4, 3, 10, 0.45);
+    backdrop-filter: blur(4px);
+  }
+}
+
 .focus-drawer-panel {
   position: fixed;
   top: 0;
@@ -703,6 +720,71 @@
   display: flex;
   flex-direction: column;
   animation: focusSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Floating Frosted Glass Optical Panel */
+.focus-drawer-panel.focus-optical-panel-glass {
+  background: rgba(18, 22, 38, 0.88);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@media (min-width: 960px) {
+  .focus-drawer-panel.focus-optical-panel-glass {
+    top: 14px;
+    bottom: 14px;
+    right: 16px;
+    height: calc(100vh - 28px);
+    width: 460px;
+    max-width: 45vw;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: -12px 16px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* ─── HARMONIOUS SPLIT MODE (OPTİK FORM AÇIKKEN ODA ARKA PLANDA KALMAZ) ─── */
+@media (min-width: 960px) {
+  /* Üst hap bar */
+  .focus-room-container.has-optical-open .focus-top-pill-bar {
+    left: calc((100% - 476px) / 2);
+    max-width: 720px;
+  }
+
+  /* Merkez Odak Odası (Zamanlayıcı, kontroller, mod seçici) */
+  .focus-room-container.has-optical-open .focus-center-stage {
+    left: calc((100% - 476px) / 2);
+    transform: translate(-50%, -52%);
+  }
+
+  /* Alt yüzen dock (Sesler, ortam seçici, zamanlayıcı) */
+  .focus-room-container.has-optical-open .focus-bottom-dock {
+    left: calc((100% - 476px) / 2);
+    max-width: 660px;
+    width: calc(100% - 520px);
+  }
+
+  /* Sağ alt köşe butonları (tam ekran, ses kapat/aç, notlar) */
+  .focus-room-container.has-optical-open .focus-corner-right {
+    right: calc(476px + 18px);
+  }
+}
+
+@media (min-width: 960px) and (max-width: 1200px) {
+  .focus-room-container.has-optical-open .focus-bottom-dock {
+    max-width: 560px;
+    grid-template-columns: 1fr 1.5fr 0.9fr;
+  }
+
+  .focus-room-container.has-optical-open .focus-circle-wrapper {
+    width: 270px;
+    height: 270px;
+  }
+
+  .focus-room-container.has-optical-open .focus-timer-digits {
+    font-size: 4.2rem;
+  }
 }
 
 .focus-drawer-header {
@@ -757,5 +839,12 @@
   border-color: rgba(168, 85, 247, 0.7);
   transform: translateY(-2px);
   box-shadow: 0 12px 28px rgba(168, 85, 247, 0.4);
+}
+
+.focus-center-optical-pill.active-pill {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.5);
 }
 

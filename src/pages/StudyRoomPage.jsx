@@ -1481,7 +1481,7 @@ export default function StudyRoomPage() {
   const answeredOpticalCount = Object.keys(opticalAnswers || {}).length;
 
   return (
-    <div className="focus-room-container">
+    <div className={`focus-room-container ${activeDrawerView === 'optical' ? 'has-optical-open' : ''}`}>
       {/* ─── 0. AMBIENT BACKDROP & MOOD LIGHTING ─── */}
       <div 
         className="focus-room-backdrop" 
@@ -1536,10 +1536,10 @@ export default function StudyRoomPage() {
             type="button"
             className={`focus-tab-btn ${activeDrawerView === 'optical' ? 'active' : ''}`}
             onClick={() => setActiveDrawerView(v => v === 'optical' ? null : 'optical')}
-            title="Optik Form & Görevler"
+            title="Optik Cevap Formu & Görevler"
           >
             <BookOpen size={15} />
-            <span>Rooms</span>
+            <span>Optik Form</span>
             {answeredOpticalCount > 0 && (
               <span style={{
                 background: '#a855f7',
@@ -1726,13 +1726,24 @@ export default function StudyRoomPage() {
         {selectedTask && !selectedTaskIsReading && (
           <button
             type="button"
-            className="focus-center-optical-pill"
-            onClick={() => setActiveDrawerView('optical')}
-            title="Optik Formu Aç & Cevapları İşaretle"
+            className={`focus-center-optical-pill ${activeDrawerView === 'optical' ? 'active-pill' : ''}`}
+            onClick={() => setActiveDrawerView(v => v === 'optical' ? null : 'optical')}
+            title={activeDrawerView === 'optical' ? "Optik Formu Gizle" : "Optik Formu Aç & Cevapları İşaretle"}
           >
             <BookOpen size={15} />
-            <span>Optik Formu Aç ({answeredOpticalCount}/{targetGoalCount || 12})</span>
-            <ChevronRight size={14} style={{ opacity: 0.7 }} />
+            <span>
+              {activeDrawerView === 'optical'
+                ? `Optik Form Açık (${answeredOpticalCount}/${targetGoalCount || 12})`
+                : `Optik Formu Aç (${answeredOpticalCount}/${targetGoalCount || 12})`}
+            </span>
+            <ChevronRight 
+              size={14} 
+              style={{ 
+                transform: activeDrawerView === 'optical' ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.25s ease',
+                opacity: 0.8 
+              }} 
+            />
           </button>
         )}
       </main>
@@ -1928,27 +1939,40 @@ export default function StudyRoomPage() {
       </aside>
 
       {/* ─── 5. SLIDE-OVER DRAWERS (ZERO FEATURE LOSS) ─── */}
-      {/* 5A. Optical Form Drawer */}
+      {/* 5A. Optical Form Drawer (Harmonious Dual Display, No Heavy Dimming) */}
       {activeDrawerView === 'optical' && (
         <>
-          <div className="focus-drawer-overlay" onClick={() => setActiveDrawerView(null)} />
-          <div className="focus-drawer-panel">
+          <div className="focus-drawer-overlay optical-overlay" onClick={() => setActiveDrawerView(null)} />
+          <div className="focus-drawer-panel focus-optical-panel-glass">
             <div className="focus-drawer-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   <BookOpen size={18} />
                 </div>
                 <div>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#ffffff' }}>
+                  <div style={{ fontSize: '0.96rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#ffffff' }}>
                     Optik Cevap Formu
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', maxWidth: 210, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {selectedTask ? (selectedTask.title || selectedTask.name) : `${selectedSubject} Testi`}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{
+                  background: 'rgba(168, 85, 247, 0.18)',
+                  color: '#e9d5ff',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: 8,
+                  whiteSpace: 'nowrap'
+                }}>
+                  {answeredOpticalCount} / {targetGoalCount || 12}
+                </span>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -1960,7 +1984,7 @@ export default function StudyRoomPage() {
                     border: '1px solid rgba(168, 85, 247, 0.4)',
                     color: '#e9d5ff',
                     borderRadius: 8,
-                    padding: '5px 11px',
+                    padding: '5px 10px',
                     fontSize: '0.74rem',
                     fontWeight: 800,
                     cursor: 'pointer',
@@ -1971,7 +1995,7 @@ export default function StudyRoomPage() {
                   title="Kütüphane kitaplarından test seç veya değiştir"
                 >
                   <BookOpen size={13} />
-                  <span>Test Değiştir</span>
+                  <span>Değiştir</span>
                 </button>
 
                 <button 
@@ -1979,6 +2003,7 @@ export default function StudyRoomPage() {
                   onClick={() => setActiveDrawerView(null)}
                   style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   className="hover:bg-white/15"
+                  title="Optik Formu Kapat / Gizle"
                 >
                   <X size={18} />
                 </button>
