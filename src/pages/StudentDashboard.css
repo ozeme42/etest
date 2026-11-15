@@ -914,3 +914,251 @@
     background: rgba(255, 255, 255, 0.22);
   }
 }
+
+/* =======================================================
+   EXACT REFERENCE STUDENT DASHBOARD DESIGN
+   ======================================================= */
+.etest-main-layout {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .etest-main-layout {
+    padding: 0.75rem 0.65rem 3rem;
+    gap: 0.9rem;
+  }
+}
+
+/* Top Navbar */
+.etest-top-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 0.15rem;
+}
+
+.etest-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: all 0.2s ease;
+}
+
+.etest-nav-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.etest-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: #1e1b4b;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+
+.etest-search-pill {
+  flex: 1;
+  max-width: 460px;
+  height: 42px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  transition: all 0.2s ease;
+}
+
+.etest-search-pill:focus-within {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.etest-search-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.etest-search-input::placeholder {
+  color: #94a3b8;
+}
+
+.etest-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 14px 4px 4px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.etest-profile-pill:hover {
+  border-color: #cbd5e1;
+}
+
+/* Hero Banner */
+.etest-hero-banner {
+  width: 100%;
+  min-height: 135px;
+  border-radius: 22px;
+  background: url('/assets/dashboard/hero_bg_clean.jpg') no-repeat center right / cover;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.08);
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .etest-hero-banner {
+    padding: 1.15rem 1rem;
+    min-height: 120px;
+    background-position: 70% center;
+  }
+}
+
+/* Row 2: Focus Card & Mini Cards */
+.etest-row-2 {
+  display: grid;
+  grid-template-columns: 1.38fr 1fr;
+  gap: 1.15rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .etest-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.etest-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 22px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.etest-card:hover {
+  box-shadow: 0 8px 26px rgba(99, 102, 241, 0.06);
+}
+
+/* 3 Mini Cards Grid */
+.etest-mini-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .etest-mini-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+/* Lower Section Grid */
+.etest-lower-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1fr;
+  gap: 1.15rem;
+  width: 100%;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .etest-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 6 Subject Cards Grid */
+.etest-subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .etest-subjects-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .etest-subjects-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+/* 2 Columns Under Subjects */
+.etest-bottom-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .etest-bottom-two-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] .etest-card,
+[data-theme="dark"] .etest-nav-btn,
+[data-theme="dark"] .etest-search-pill,
+[data-theme="dark"] .etest-profile-pill {
+  background: #1a1e36;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .etest-brand-logo {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .etest-search-input {
+  color: #ffffff;
+}
+
