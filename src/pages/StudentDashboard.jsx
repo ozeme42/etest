@@ -3623,120 +3623,290 @@ export default function StudentDashboard() {
       )}
 
       {/* ══════════════════════════════════════════════════════
-          ÖĞRENCİ KARŞILAMA VE GÖSTERGE PANELİ (SADE & KOMPAKT)
+          EDUQUEST GAMIFIED PLAYER STATUS HUD & COMMAND DECK
       ══════════════════════════════════════════════════════ */}
       <div style={{
         background: isDark
-          ? 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)'
-          : 'linear-gradient(135deg, #3730a3 0%, #4f46e5 100%)',
+          ? 'linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%)'
+          : 'linear-gradient(135deg, #1e1b4b 0%, #2e266d 40%, #4338ca 75%, #6366f1 100%)',
         position: 'relative',
+        overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        padding: isMobile ? '0.85rem 0.85rem 1.7rem' : '1.15rem clamp(1rem, 2vw, 2.5rem) 2.2rem',
-        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : 'none'
+        paddingBottom: isMobile ? '2.4rem' : '3rem',
+        borderBottom: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : 'none'
       }}>
+        {/* Subtle decorative game glow effects */}
+        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 220 : 360, height: isMobile ? 220 : 360, borderRadius:'50%', background:'radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 240, height: 240, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.18) 0%, transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 35%, #06b6d4 70%, #f59e0b 100%)', pointerEvents: 'none' }} />
+
+        {/* ── Player HUD Main Row ── */}
         <div style={{
           maxWidth: 1440,
           margin: '0 auto',
+          padding: isMobile ? '0.85rem 0.75rem 0.75rem' : '1.45rem clamp(1rem, 2vw, 2.5rem) 1.15rem',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'stretch' : 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
+          gap: isMobile ? '0.75rem' : '1.6rem',
           position: 'relative',
           zIndex: 1,
           width: '100%',
           boxSizing: 'border-box'
         }}>
-          {/* Sol: Sade Öğrenci Karşılaması */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 14, minWidth: 0 }}>
-            <div style={{
-              width: isMobile ? 40 : 46,
-              height: isMobile ? 40 : 46,
-              borderRadius: '50%',
-              background: 'rgba(255, 255, 255, 0.18)',
-              border: '2px solid rgba(255, 255, 255, 0.35)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: isMobile ? '1.15rem' : '1.35rem',
-              fontWeight: 800,
-              flexShrink: 0
-            }}>
-              {selectedStudent?.name ? selectedStudent.name.charAt(0).toUpperCase() : 'Ö'}
+          {/* SOL: Character Plate (Avatar + Lv Badge + Name + Game XP Bar) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.75rem' : '1.25rem', minWidth: 0, flex: 1 }}>
+            
+            {/* Interactive Player Avatar Frame with EduQuest Frame Glow */}
+            <div
+              onClick={() => setIsGamificationModalOpen(true)}
+              className="frame-gold"
+              style={{
+                position: 'relative',
+                flexShrink: 0,
+                width: isMobile ? 52 : 68,
+                height: isMobile ? 52 : 68,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                background: studentRank.bgGradient || `linear-gradient(145deg, ${avatarColor}cc 0%, ${avatarColor} 100%)`,
+                userSelect: 'none'
+              }}
+              title={`Rütbe: ${studentRank.title} (SV ${studentRank.level}) • XP: ${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} • Rozetleri Aç`}
+            >
+              <span style={{ fontSize: isMobile ? '1.45rem' : '1.9rem' }}>{studentRank.icon || '🛡️'}</span>
+
+              {/* EduQuest Level Badge at Bottom-Right */}
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: -3,
+                  right: -3,
+                  zIndex: 5,
+                  background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  color: '#ffffff',
+                  border: '2px solid #ffffff',
+                  borderRadius: 99,
+                  padding: isMobile ? '1px 5px' : '2px 8px',
+                  fontSize: isMobile ? '0.58rem' : '0.68rem',
+                  fontWeight: 900,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.1,
+                  letterSpacing: '0.04em'
+                }}
+              >
+                SV {studentRank.level}
+              </div>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <h1 style={{
-                  fontSize: isMobile ? '1.15rem' : '1.4rem',
-                  fontWeight: 900,
-                  color: '#ffffff',
-                  margin: 0,
-                  lineHeight: 1.2,
-                  letterSpacing: '-0.01em'
-                }}>
-                  Merhaba, {selectedStudent?.name || 'Öğrenci'}! 👋
-                </h1>
-                {studentStreak > 0 && (
-                  <span style={{
-                    background: 'rgba(249, 115, 22, 0.25)',
-                    border: '1px solid rgba(249, 115, 22, 0.5)',
-                    color: '#fdba74',
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    fontSize: '0.68rem',
-                    fontWeight: 800,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3
+            {/* Character Info & EduQuest XP Bar */}
+            <div style={{ minWidth: 0, flex: 1, maxWidth: 440 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                marginBottom: 4,
+                flexWrap: 'nowrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <h1 style={{
+                    fontSize: isMobile ? '1.1rem' : '1.45rem',
+                    fontWeight: 900,
+                    color: '#ffffff',
+                    margin: 0,
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.02em',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
                   }}>
-                    <Flame size={12} fill="#fdba74" />
-                    <span>{studentStreak} Günlük Seri</span>
+                    {selectedStudent?.name || 'Öğrenci'}
+                  </h1>
+
+                  <span style={{
+                    background: 'rgba(99, 102, 241, 0.25)',
+                    border: '1px solid rgba(165, 180, 252, 0.4)',
+                    color: '#c7d2fe',
+                    padding: '2px 7px',
+                    borderRadius: 99,
+                    fontSize: isMobile ? '0.58rem' : '0.68rem',
+                    fontWeight: 900,
+                    whiteSpace: 'nowrap',
+                    display: 'inline-block'
+                  }}>
+                    🌟 {studentRank.title}
                   </span>
-                )}
+                </div>
+
+                <span
+                  onClick={() => setIsGamificationModalOpen(true)}
+                  style={{
+                    fontSize: isMobile ? '0.66rem' : '0.74rem',
+                    fontWeight: 900,
+                    color: '#67e8f9',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Rozet ve Seviye Ayrıntılarını Gör"
+                >
+                  {studentRank.inTierXp || 0}/{studentRank.tierSpan || 150} XP
+                </span>
               </div>
-              <p style={{ margin: '3px 0 0', fontSize: isMobile ? '0.74rem' : '0.82rem', color: 'rgba(255, 255, 255, 0.8)', fontWeight: 600 }}>
-                Bugün hedeflerine bir adım daha yaklaş.
-              </p>
+
+              {/* EduQuest Sleek XP Progress Bar */}
+              <div
+                onClick={() => setIsGamificationModalOpen(true)}
+                style={{
+                  cursor: 'pointer',
+                  width: '100%',
+                  background: 'rgba(15, 23, 42, 0.55)',
+                  borderRadius: 999,
+                  height: isMobile ? 8 : 10,
+                  overflow: 'hidden',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  padding: 1,
+                  boxSizing: 'border-box'
+                }}
+                title={`Seviye İlerlemesi: %${studentRank.progressPercent || 0} (${studentRank.inTierXp || 0}/${studentRank.tierSpan || 150} XP)`}
+              >
+                <div style={{
+                  height: '100%',
+                  width: `${studentRank.progressPercent || 0}%`,
+                  background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #06b6d4 100%)',
+                  borderRadius: 999,
+                  boxShadow: '0 0 10px rgba(6, 182, 212, 0.6)',
+                  transition: 'width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }} />
+              </div>
             </div>
           </div>
 
-          {/* Sağ: Çalışma Odası & Hızlı Aksiyon */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {/* SAĞ: EduQuest Game Status Pills & Quick Actions */}
+          <div style={{
+            display: isMobile ? 'grid' : 'flex',
+            gridTemplateColumns: isMobile ? 'repeat(4, minmax(0, 1fr))' : undefined,
+            alignItems: 'center',
+            gap: isMobile ? 5 : 8,
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: isMobile ? 'stretch' : 'flex-end',
+            flexShrink: 0
+          }}>
+            {/* Günlük Seri (Streak) Pill */}
+            <div
+              style={{
+                background: studentStreak > 0 ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255,255,255,0.08)',
+                border: studentStreak > 0 ? '1.5px solid rgba(249, 115, 22, 0.45)' : '1px solid rgba(255,255,255,0.15)',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 900,
+                color: studentStreak > 0 ? '#fb923c' : 'rgba(255,255,255,0.85)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                boxShadow: studentStreak > 0 ? '0 2px 10px rgba(249, 115, 22, 0.25)' : 'none',
+                whiteSpace: 'nowrap'
+              }}
+              title="14 Günlük Kesintisiz Çalışma Serisi!"
+            >
+              <Flame size={isMobile ? 13 : 16} style={{ color: '#f97316' }} />
+              <span>{studentStreak > 0 ? `${studentStreak}g` : '0g'}</span>
+            </div>
+
+            {/* Altın / XP Puanı Pill */}
+            <div
+              onClick={() => setIsGamificationModalOpen(true)}
+              style={{
+                background: 'rgba(245, 158, 11, 0.18)',
+                border: '1.5px solid rgba(245, 158, 11, 0.45)',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 900,
+                color: '#fbbf24',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                boxShadow: '0 2px 10px rgba(245, 158, 11, 0.25)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+              title="Kazanılan Toplam Puan & XP"
+            >
+              <span>🪙</span>
+              <span>{(studentRank.totalXp || 0).toLocaleString('tr-TR')}</span>
+            </div>
+
+            {/* Başarı Oranı Pill */}
+            <button
+              type="button"
+              onClick={() => navigate('/student/results')}
+              style={{
+                background: 'rgba(99, 102, 241, 0.18)',
+                border: '1.5px solid rgba(165, 180, 252, 0.45)',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.45rem 0.85rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 900,
+                color: '#a5b4fc',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              title="Sınav ve Ödev Başarı Raporunu Aç"
+            >
+              <span>⚡</span>
+              <span>%{overallSuccessRate}</span>
+            </button>
+
+            {/* Pomodoro Odaklanma / Çalışma Odası Button */}
             <button
               type="button"
               onClick={() => navigate('/study-room')}
+              className="game-btn-3d"
               style={{
-                background: 'rgba(255, 255, 255, 0.16)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
+                background: 'linear-gradient(135deg, #f43f5e, #f59e0b)',
+                border: 'none',
+                borderRadius: isMobile ? 12 : 16,
+                padding: isMobile ? '0.4rem 0.25rem' : '0.5rem 1rem',
+                fontSize: isMobile ? '0.72rem' : '0.8rem',
+                fontWeight: 900,
                 color: '#ffffff',
-                borderRadius: 10,
-                padding: isMobile ? '0.35rem 0.65rem' : '0.45rem 0.95rem',
-                fontSize: isMobile ? '0.74rem' : '0.8rem',
-                fontWeight: 800,
-                cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
-                transition: 'all 0.15s ease'
+                justifyContent: 'center',
+                gap: 4,
+                cursor: 'pointer',
+                boxShadow: '0 4px 0 #be123c, 0 6px 16px rgba(244, 63, 94, 0.4)',
+                whiteSpace: 'nowrap'
               }}
-              title="Çalışma Odası & Pomodoro Zamanlayıcı"
+              title="Pomodoro Zamanlayıcı & Çalışma Odasını Başlat"
             >
-              <Headphones size={13} />
-              <span>Çalışma Odası</span>
+              <Headphones size={isMobile ? 13 : 15} />
+              <span>Odaklan</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── İstatistik & Durum Kartları ── */}
+      {/* ── Quest Resources Dock (Görev & Statü Çantası) ── */}
       <div style={{
         maxWidth: 1440,
         margin: '0 auto',
         padding: isMobile ? '0 0.65rem' : '0 clamp(1rem, 2.5vw, 2.5rem)',
-        marginTop: isMobile ? '-16px' : '-22px',
+        marginTop: isMobile ? '-20px' : '-28px',
         position: 'relative',
         zIndex: 10,
         width: '100%',
@@ -3745,51 +3915,53 @@ export default function StudentDashboard() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: isMobile ? '0.35rem' : '0.65rem',
+          gap: isMobile ? '0.3rem' : '0.65rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label: 'TOPLAM',     shortLabel: 'TOPLAM',     value: taskStats.totalCount,                                  color: '#4f46e5', bg: isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff', border: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', action: () => handleTabChange('tasks') },
-            { label: 'BEKLEYEN',   shortLabel: 'BEKLEYEN',   value: taskStats.pendingCount,                                color: '#f59e0b', bg: isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff', border: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', action: () => handleTabChange('tasks') },
-            { label: 'GECİKEN',    shortLabel: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), color: '#ef4444', bg: isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff', border: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', action: () => handleTabChange('remedial') },
-            { label: 'TAMAMLANDI', shortLabel: 'BİTEN',      value: taskStats.completedCount,                              color: '#10b981', bg: isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff', border: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', action: () => navigate('/student/results') },
-            { label: 'BAŞARI',     shortLabel: 'BAŞARI',     value: `%${overallSuccessRate}`,                              color: '#8b5cf6', bg: isDark ? 'rgba(30, 41, 59, 0.9)' : '#ffffff', border: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', action: () => navigate('/student/results') },
+            { label: 'TOPLAM',     shortLabel: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', grad: 'linear-gradient(145deg, #4f46e5 0%, #312e81 100%)', border: '#818cf8', glow: 'rgba(79,70,229,0.5)',   action: () => handleTabChange('tasks') },
+            { label: 'BEKLEYEN',   shortLabel: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', grad: 'linear-gradient(145deg, #f59e0b 0%, #b45309 100%)', border: '#fcd34d', glow: 'rgba(245,158,11,0.5)',  action: () => handleTabChange('tasks') },
+            { label: 'GECİKEN',    shortLabel: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', grad: 'linear-gradient(145deg, #ef4444 0%, #991b1b 100%)', border: '#fca5a5', glow: 'rgba(239,68,68,0.5)',   action: () => handleTabChange('remedial') },
+            { label: 'TAMAMLANDI', shortLabel: 'BİTEN',      value: taskStats.completedCount,                              emoji: '✅', grad: 'linear-gradient(145deg, #10b981 0%, #065f46 100%)', border: '#6ee7b7', glow: 'rgba(16,185,129,0.5)',  action: () => navigate('/student/results') },
+            { label: 'BAŞARI',     shortLabel: 'BAŞARI',     value: `%${overallSuccessRate}`,                              emoji: '🏆', grad: 'linear-gradient(145deg, #8b5cf6 0%, #5b21b6 100%)', border: '#c4b5fd', glow: 'rgba(139,92,246,0.5)', action: () => navigate('/student/results') },
           ].map((kpi) => (
             <div
               key={kpi.label}
               onClick={kpi.action}
+              className="game-resource-card"
               style={{
-                background: kpi.bg,
-                border: `1px solid ${kpi.border}`,
-                borderRadius: isMobile ? 12 : 14,
-                boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.04)',
-                padding: isMobile ? '0.45rem 0.2rem' : '0.65rem 0.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                textAlign: 'center',
-                minHeight: isMobile ? 54 : 64
+                background: kpi.grad,
+                border: '1.5px solid rgba(255,255,255,0.4)',
+                borderRadius: isMobile ? 14 : 18,
+                boxShadow: `0 8px 24px ${kpi.glow}, inset 0 2px 0 rgba(255,255,255,0.35)`,
+                padding: isMobile ? '0.55rem 0.15rem' : '0.65rem 0.35rem',
+                minHeight: isMobile ? 64 : 76
               }}
             >
+              <div style={{ fontSize: isMobile ? '0.95rem' : '1.2rem', lineHeight: 1, marginBottom: 2 }}>{kpi.emoji}</div>
               <div style={{
-                fontSize: isMobile ? '1.05rem' : '1.35rem',
+                fontSize: isMobile ? '1.12rem' : '1.55rem',
                 fontWeight: 900,
-                color: kpi.color,
+                color: '#ffffff',
                 lineHeight: 1.1,
-                letterSpacing: '-0.02em'
+                letterSpacing: '-0.02em',
+                textShadow: '0 2px 8px rgba(0,0,0,0.3)'
               }}>
                 {kpi.value}
               </div>
               <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                fontWeight: 800,
-                color: 'var(--color-text-muted)',
+                fontSize: isMobile ? '0.58rem' : '0.64rem',
+                fontWeight: 900,
+                color: '#ffffff',
+                letterSpacing: isMobile ? '0.01em' : '0.05em',
                 marginTop: 2,
-                letterSpacing: '0.04em'
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+                textShadow: '0 1px 3px rgba(0,0,0,0.4)'
               }}>
                 {isMobile ? kpi.shortLabel : kpi.label}
               </div>
@@ -3799,11 +3971,11 @@ export default function StudentDashboard() {
       </div>
 
       {/* ════════════════════════════════════════════
-          ANA İÇERİK — SEKMELER & GÖREV MERKEZİ
+          ANA İÇERİK — OYUN MODU & GÖREV MERKEZİ
       ════════════════════════════════════════════ */}
       <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0.85rem 0.65rem 2rem' : '1.5rem clamp(1rem, 2.5vw, 2.5rem) 4rem', width: '100%', boxSizing: 'border-box' }}>
 
-        {/* 🎛️ SEKME GEÇİŞİ — TEMİZ & DÜZENLİ DOK */}
+        {/* 🎛️ GAME MODE SWITCHER (MACERA MODLARI) — SAĞA SOLA YASLANMIŞ EŞİT DÜZEN */}
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -3829,35 +4001,35 @@ export default function StudentDashboard() {
             {[
               {
                 id: 'tasks',
-                label: isMobile ? 'Görev' : 'Görevler',
+                label: isMobile ? '⚔️ Görev' : '⚔️ Görevler',
                 count: pendingCount,
                 countColor: '#ef4444',
                 gradient: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
-                shadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
+                shadow: '0 4px 0 #1e40af, 0 8px 18px rgba(79, 70, 229, 0.4)'
               },
               {
                 id: 'books',
-                label: isMobile ? 'Kitap' : 'Kütüphane',
+                label: isMobile ? '🎒 Kitap' : '🎒 Kütüphane',
                 count: assignedBooksCount || assignedBooksList.length,
                 countColor: '#0284c7',
                 gradient: 'linear-gradient(135deg, #0284c7, #06b6d4)',
-                shadow: '0 4px 12px rgba(2, 132, 199, 0.3)'
+                shadow: '0 4px 0 #0e7490, 0 8px 18px rgba(2, 132, 199, 0.4)'
               },
               {
                 id: 'remedial',
-                label: isMobile ? 'Telafi' : 'Telafi Havuzu',
+                label: isMobile ? '🔥 Telafi' : '🔥 Telafi Havuzu',
                 count: catchUpTasks.length,
                 countColor: '#ef4444',
                 gradient: 'linear-gradient(135deg, #ea580c, #f59e0b)',
-                shadow: '0 4px 12px rgba(234, 88, 12, 0.3)'
+                shadow: '0 4px 0 #9a3412, 0 8px 18px rgba(234, 88, 12, 0.45)'
               },
               {
                 id: 'analytics',
-                label: isMobile ? 'İstatistik' : 'İstatistik & Analiz',
+                label: '🏆 Arena',
                 count: 0,
                 countColor: '',
                 gradient: 'linear-gradient(135deg, #059669, #10b981)',
-                shadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                shadow: '0 4px 0 #047857, 0 8px 18px rgba(16, 185, 129, 0.4)'
               }
             ].map((tab, idx) => {
               const isActive = activeDashboardTab === tab.id;
@@ -4090,10 +4262,23 @@ export default function StudentDashboard() {
           </Suspense>
         )}
 
-        {/* ── 4. MOD: İSTATİSTİK & ANALİZ ── */}
+        {/* ── 4. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
         {activeDashboardTab === 'analytics' && (
-          <Suspense fallback={<TabLoadingSkeleton text="İstatistikler yükleniyor..." />}>
+          <Suspense fallback={<TabLoadingSkeleton text="🏆 Arena & İstatistikler yükleniyor..." />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+              {/* Gamification Seviye & Rozet Kartı */}
+              <StudentGamificationCard
+                student={selectedStudent}
+                submissions={studentSubmissions}
+                homeworks={homeworks}
+                books={books}
+                bookTests={bookTests}
+                mockExams={studentMockExams}
+                studySessions={[]}
+                users={users}
+                gamificationData={studentGamification}
+              />
+
               {/* Analiz & Hedef Panoları (Masaüstünde 2 Sütunlu Kompakt Cockpit) */}
               <div style={{
                 display: 'grid',
@@ -4138,6 +4323,53 @@ export default function StudentDashboard() {
                 onReviewTest={handleReviewRecentTest}
                 selectedStudent={selectedStudent}
               />
+
+              {/* Günün İlhamı (Hikmet Parşömeni) */}
+              <div className="game-wisdom-card">
+                {(() => {
+                  const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
+                  return (
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: '1.25rem' }}>{currentQuote.emoji}</span>
+                          <div>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#c084fc', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block' }}>
+                              📜 Günün İlham Parşömeni
+                            </span>
+                            <span style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                              {currentQuote.category}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDashQuoteIdx(p => p + 1)}
+                          className="game-btn-3d"
+                          style={{
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                            border: '1.5px solid var(--color-border)',
+                            borderRadius: 999,
+                            padding: '0.3rem 0.75rem',
+                            fontSize: '0.7rem',
+                            boxShadow: '0 2px 0 var(--color-border), 0 3px 8px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <RefreshCw size={11} /> Yeni İlham
+                        </button>
+                      </div>
+
+                      <div style={{ fontSize: '0.9rem', color: 'var(--color-text)', fontStyle: 'italic', lineHeight: 1.6, marginBottom: 8, fontWeight: 600 }}>
+                        "{currentQuote.quote}"
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.74rem', fontWeight: 900, color: '#a855f7' }}>
+                        — {currentQuote.author}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </Suspense>
         )}

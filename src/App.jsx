@@ -706,6 +706,32 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
         ) : (
           // EXPANDED FOOTER
           <div className="tready-sidebar-footer">
+            {currentUser?.role === 'student' && (
+              <div 
+                style={{
+                  margin: '4px 6px 12px',
+                  padding: '16px 12px 14px',
+                  background: isDark 
+                    ? 'linear-gradient(180deg, rgba(30, 27, 75, 0.75) 0%, rgba(49, 46, 129, 0.6) 100%)' 
+                    : 'linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%)',
+                  borderRadius: 20,
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  border: isDark ? '1.5px solid rgba(129, 140, 248, 0.35)' : '1.5px solid rgba(199, 210, 254, 0.8)',
+                  boxShadow: isDark ? '0 10px 24px rgba(0,0,0,0.35)' : '0 10px 24px rgba(99, 102, 241, 0.08)'
+                }}
+              >
+                <div style={{ width: 50, height: 50, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.4))' }}>🏆</span>
+                </div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isDark ? '#e0e7ff' : '#1e1b4b', lineHeight: 1.35 }}>
+                  Hedeflerine odaklan, başaracaksın!
+                </div>
+              </div>
+            )}
+
             {currentUser ? (
               <div className="tready-user-card">
                 <div className="tready-user-avatar">

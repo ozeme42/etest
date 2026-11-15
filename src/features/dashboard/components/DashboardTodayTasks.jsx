@@ -1467,7 +1467,7 @@ export default memo(function DashboardTodayTasks({
                   Tebrikler! Bugünün Tüm Görevlerini Bitirdin!
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>
-                  {completedQuestions > 0 ? `${completedQuestions} soru çözüldü.` : `${completedTasks} görev tamamlandı.`} Harika bir gün!
+                  +{earnedXp} XP kazandın • {completedQuestions > 0 ? `${completedQuestions} Soru tamamlandı.` : `${completedTasks} Görev tamamlandı.`} Harika bir gün!
                 </div>
               </div>
             </div>
