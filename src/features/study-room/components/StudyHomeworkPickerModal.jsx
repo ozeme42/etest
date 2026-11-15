@@ -30,8 +30,6 @@ export default function StudyHomeworkPickerModal({
 }) {
   const [selectedBookId, setSelectedBookId] = useState('all');
 
-  if (!show) return null;
-
   // 1. Tüm kitaplardaki testleri derle
   const allBookTestsList = useMemo(() => {
     if (!books || !Array.isArray(books)) return [];
@@ -242,6 +240,8 @@ export default function StudyHomeworkPickerModal({
   }, 0);
   const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
   const booksTotalCount = allBookTestsList.filter(t => !hideCompletedTasks || !t.isCompleted).length;
+
+  if (!show) return null;
 
   return (
     <div style={{
