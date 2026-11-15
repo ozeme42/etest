@@ -275,21 +275,21 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <>
       <div className="mobile-header">
-        <Link to="/" className="sidebar-brand-link" onClick={closeSidebar}>
-          <div className="tready-brand-logo" style={{ width: 34, height: 34, borderRadius: 10 }}>
+        <Link to="/" className="tready-brand-link" onClick={closeSidebar}>
+          <div className="tready-brand-logo" style={{ width: 36, height: 36, borderRadius: 11 }}>
             <Rocket size={18} color="#ffffff" />
           </div>
-          <div>
-            <span className="sidebar-brand-title" style={{ fontSize: '1.15rem' }}>E-Test</span>
-            <span className="sidebar-brand-sub" style={{ fontSize: '0.58rem' }}>5. Sınıf Maarif Modeli</span>
+          <div className="tready-brand-info">
+            <span className="tready-brand-title" style={{ fontSize: '1.1rem' }}>E-Test</span>
+            <span className="tready-brand-sub" style={{ fontSize: '0.72rem' }}>5. Sınıf Maarif Modeli</span>
           </div>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button 
             onClick={toggleTheme}
             style={{
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--sidebar-card-bg)',
+              border: '1px solid var(--sidebar-card-border)',
               color: isDark ? '#fbbf24' : '#6366f1',
               borderRadius: '0.65rem',
               width: 36,
