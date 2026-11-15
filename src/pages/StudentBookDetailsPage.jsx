@@ -340,13 +340,31 @@ export default function StudentBookDetailsPage() {
     const ids = new Set();
     let targetDueDate = null;
 
+    const bIdStr = String(bookId || '');
+    const bUuidStr = toUUID(bIdStr);
+    const thisBookTestIdsSet = new Set();
+    (bookTests || []).forEach(bt => {
+      const btBId = String(bt.bookId || bt.book_id || '');
+      if (btBId === bIdStr || (bUuidStr && btBId === bUuidStr) || (toUUID(btBId) && toUUID(btBId) === bUuidStr)) {
+        thisBookTestIdsSet.add(String(bt.id));
+        const cl = String(bt.id).replace(/^bt_|^tbt_|^q_/, '');
+        thisBookTestIdsSet.add(cl);
+        const u = toUUID(cl || bt.id);
+        if (u) thisBookTestIdsSet.add(String(u));
+      }
+    });
+
     const bookAssignments = (homeworks || []).filter(hw => {
       if (isExamBook(hw)) return false;
       const raw = hw.raw_data || {};
       const hwBId = String(hw.bookId || raw.bookId || '');
-      const isMatchBook = (hwBId && (hwBId === String(bookId) || (toUUID(hwBId) && toUUID(hwBId) === toUUID(bookId)))) ||
+      const isMatchBook = (hwBId && (hwBId === bIdStr || (bUuidStr && hwBId === bUuidStr) || (toUUID(hwBId) && toUUID(hwBId) === bUuidStr))) ||
         (book && hw.title && (hw.title.toLowerCase().includes(String(book.title).toLowerCase().trim()) || String(book.title).toLowerCase().trim().includes(hw.title.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').toLowerCase().trim()))) ||
-        (Array.isArray(hw.tests) && hw.tests.length > 0 && hw.tests.some(tid => (bookTests || []).some(bt => (String(bt.id) === String(tid) || (toUUID(bt.id) && toUUID(bt.id) === toUUID(tid))) && (String(bt.bookId) === String(bookId) || (toUUID(bt.bookId) && toUUID(bt.bookId) === toUUID(bookId))))));
+        (Array.isArray(hw.tests) && hw.tests.length > 0 && hw.tests.some(tid => {
+          const strTid = String(tid);
+          const clTid = strTid.replace(/^bt_|^tbt_|^q_/, '');
+          return thisBookTestIdsSet.has(strTid) || thisBookTestIdsSet.has(clTid);
+        }));
       if (!isMatchBook) return false;
       return isHomeworkForStudent(hw, targetStudent, curData?.grades);
     });
@@ -606,34 +624,195 @@ export default function StudentBookDetailsPage() {
       });
     });
 
+    const directTestMap = new Map();
+    testsInBook.forEach(t => {
+      if (!t) return;
+      directTestMap.set(String(t.id), t);
+      const cl = String(t.id).replace(/^bt_|^tbt_|^q_/, '');
+      if (cl) directTestMap.set(cl, t);
+      const u = toUUID(cl || t.id);
+      if (u) directTestMap.set(String(u), t);
+      if (t.name) directTestMap.set(String(t.name).trim().toLowerCase(), t);
+    });
+
     return rawSubjects.map(subject => {
       const sId = String(subject.id || '');
 
-      // Find all tests in this book matching this subject
-      let allSubjectTests = testsInBook.filter(t => {
-        if (String(t.subjectId || t.subject_id) === sId) return true;
-        if (subject.topics && Array.isArray(subject.topics) && subject.topics.some(tp => String(tp.id) === String(t.topicId || t.topic_id))) return true;
-        return false;
-      });
+      const subjTopics = subject.topics && Array.isArray(subject.topics) ? subject.topics : [];
+      let combinedSubjectTests = [];
 
-      // Fallback: If no tests found in bookTests, generate default 5 tests per unit topic
-      if (allSubjectTests.length === 0 && subject.topics && Array.isArray(subject.topics)) {
-        const gathered = [];
-        subject.topics.forEach((tp) => {
-          for (let i = 1; i <= 5; i++) {
-            gathered.push({
-              id: `tbt_${bId}_${sId}_${tp.id}_${i}`,
+      if (subjTopics.length > 0) {
+        subjTopics.forEach((tp, tpIdx) => {
+          const tpId = String(tp.id || `tp_${tpIdx}`);
+          const dbTopicTests = testsInBook.filter(t => {
+            const tTpId = String(t.topicId || t.topic_id || '');
+            return tTpId === tpId || tTpId === String(tp.id) || (toUUID(tTpId) && toUUID(tTpId) === toUUID(tpId));
+          });
+
+          const canonicalTopicTests = Array.isArray(tp.tests) ? tp.tests : [];
+          const seenTestIds = new Set();
+          const seenTestNames = new Set();
+          const topicRawCombined = [];
+
+          if (canonicalTopicTests.length > 0) {
+            canonicalTopicTests.forEach((ct, ctIdx) => {
+              if (!ct) return;
+              const ctId = String(ct.id || `ct_${tpId}_${ctIdx}`);
+              const ctClean = ctId.replace(/^bt_|^tbt_|^q_/, '');
+              const ctName = String(ct.name || ct.title || `Test ${ctIdx + 1}`).trim();
+              const ctNameKey = ctName.toLowerCase();
+
+              const matchedDb = directTestMap.get(ctId) ||
+                                directTestMap.get(ctClean) ||
+                                (toUUID(ctClean) ? directTestMap.get(String(toUUID(ctClean))) : null) ||
+                                directTestMap.get(ctNameKey) ||
+                                dbTopicTests.find(dt => String(dt.name || dt.title || '').trim().toLowerCase() === ctNameKey);
+
+              seenTestIds.add(ctId);
+              seenTestIds.add(ctClean);
+              if (ctNameKey) seenTestNames.add(ctNameKey);
+              if (matchedDb?.id) {
+                seenTestIds.add(String(matchedDb.id));
+                seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_|^q_/, ''));
+              }
+
+              topicRawCombined.push({
+                ...ct,
+                ...(matchedDb || {}),
+                id: ct.id || matchedDb?.id || ctId,
+                name: ctName,
+                bookId: bId,
+                subjectId: sId,
+                topicId: tpId,
+                topic_id: tpId,
+                test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
+              });
+            });
+
+            dbTopicTests.forEach((dt, dtIdx) => {
+              if (!dt) return;
+              const dtId = String(dt.id || `dt_${tpId}_${dtIdx}`);
+              const dtClean = dtId.replace(/^bt_|^tbt_|^q_/, '');
+              const dtName = String(dt.name || dt.title || '').trim();
+              const dtNameKey = dtName.toLowerCase();
+
+              if (!seenTestIds.has(dtId) && !seenTestIds.has(dtClean) && (!dtNameKey || !seenTestNames.has(dtNameKey))) {
+                seenTestIds.add(dtId);
+                seenTestIds.add(dtClean);
+                if (dtNameKey) seenTestNames.add(dtNameKey);
+                topicRawCombined.push({
+                  ...dt,
+                  bookId: bId,
+                  subjectId: sId,
+                  topicId: tpId,
+                  topic_id: tpId
+                });
+              }
+            });
+          } else if (dbTopicTests.length > 0) {
+            dbTopicTests.forEach(dt => {
+              topicRawCombined.push({
+                ...dt,
+                bookId: bId,
+                subjectId: sId,
+                topicId: tpId,
+                topic_id: tpId
+              });
+            });
+          } else {
+            for (let i = 1; i <= 5; i++) {
+              topicRawCombined.push({
+                id: `tbt_${bId}_${sId}_${tpId}_${i}`,
+                bookId: bId,
+                subjectId: sId,
+                topicId: tpId,
+                topic_id: tpId,
+                name: i <= 3 ? `Test-${i}` : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
+                questionCount: 20,
+                answerKey: {}
+              });
+            }
+          }
+
+          combinedSubjectTests = combinedSubjectTests.concat(topicRawCombined);
+        });
+      } else {
+        const dbSubjTests = testsInBook.filter(t => String(t.subjectId || t.subject_id) === sId);
+        const canonicalSubjTests = Array.isArray(subject.tests) ? subject.tests : [];
+        const seenTestIds = new Set();
+        const seenTestNames = new Set();
+        const subjRawCombined = [];
+
+        if (canonicalSubjTests.length > 0) {
+          canonicalSubjTests.forEach((ct, ctIdx) => {
+            if (!ct) return;
+            const ctId = String(ct.id || `ct_s_${sId}_${ctIdx}`);
+            const ctClean = ctId.replace(/^bt_|^tbt_|^q_/, '');
+            const ctName = String(ct.name || ct.title || `Test ${ctIdx + 1}`).trim();
+            const ctNameKey = ctName.toLowerCase();
+
+            const matchedDb = directTestMap.get(ctId) ||
+                              directTestMap.get(ctClean) ||
+                              (toUUID(ctClean) ? directTestMap.get(String(toUUID(ctClean))) : null) ||
+                              directTestMap.get(ctNameKey) ||
+                              dbSubjTests.find(dt => String(dt.name || dt.title || '').trim().toLowerCase() === ctNameKey);
+
+            seenTestIds.add(ctId);
+            seenTestIds.add(ctClean);
+            if (ctNameKey) seenTestNames.add(ctNameKey);
+            if (matchedDb?.id) {
+              seenTestIds.add(String(matchedDb.id));
+              seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_|^q_/, ''));
+            }
+
+            subjRawCombined.push({
+              ...ct,
+              ...(matchedDb || {}),
+              id: ct.id || matchedDb?.id || ctId,
+              name: ctName,
               bookId: bId,
               subjectId: sId,
-              topicId: String(tp.id),
+              test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
+            });
+          });
+
+          dbSubjTests.forEach((dt, dtIdx) => {
+            if (!dt) return;
+            const dtId = String(dt.id || `dt_s_${sId}_${dtIdx}`);
+            const dtClean = dtId.replace(/^bt_|^tbt_|^q_/, '');
+            const dtName = String(dt.name || dt.title || '').trim();
+            const dtNameKey = dtName.toLowerCase();
+
+            if (!seenTestIds.has(dtId) && !seenTestIds.has(dtClean) && (!dtNameKey || !seenTestNames.has(dtNameKey))) {
+              seenTestIds.add(dtId);
+              seenTestIds.add(dtClean);
+              if (dtNameKey) seenTestNames.add(dtNameKey);
+              subjRawCombined.push({
+                ...dt,
+                bookId: bId,
+                subjectId: sId
+              });
+            }
+          });
+        } else if (dbSubjTests.length > 0) {
+          subjRawCombined.push(...dbSubjTests);
+        } else {
+          for (let i = 1; i <= 5; i++) {
+            subjRawCombined.push({
+              id: `tbt_${bId}_${sId}_${i}`,
+              bookId: bId,
+              subjectId: sId,
               name: i <= 3 ? `Test-${i}` : (i === 4 ? 'Yeni Nesil 1' : 'Yeni Nesil 2'),
               questionCount: 20,
               answerKey: {}
             });
           }
-        });
-        allSubjectTests = gathered;
+        }
+
+        combinedSubjectTests = subjRawCombined;
       }
+
+      const allSubjectTests = combinedSubjectTests;
 
       const subjCanonicalTests = subject.tests || [];
       const topicMap = new Map();
@@ -721,7 +900,7 @@ export default function StudentBookDetailsPage() {
                              (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tIdStr}`)) ||
                              (tTopicNum && solvedSubsMap.get(`u${tTopicNum}:::${tCleanId}`));
 
-        if (candidateSub && isSubmissionMatchingBookTest(candidateSub, contextualTest, testsInBook, books)) {
+        if (candidateSub) {
           matchedSubByTestId.set(t.id, candidateSub);
           unmatchedSubs.delete(candidateSub);
         }
@@ -731,9 +910,17 @@ export default function StudentBookDetailsPage() {
 
       // Quick fallback ONLY for the few remaining unmatched submissions (runs at most once per unmatched sub, not per test!)
       if (unmatchedSubs.size > 0) {
+        const testByNameMap = new Map();
+        contextualTests.forEach(t => {
+          if (!matchedSubByTestId.has(t.id)) {
+            const cleanName = normClean(t.name || t.title);
+            if (cleanName) testByNameMap.set(cleanName, t);
+          }
+        });
         for (const sub of Array.from(unmatchedSubs)) {
-          const matchedTest = contextualTests.find(t => !matchedSubByTestId.has(t.id) && isSubmissionMatchingBookTest(sub, t, testsInBook, books));
-          if (matchedTest) {
+          const subTitle = normClean(sub.testName || sub.title || sub.testTitle || '');
+          const matchedTest = subTitle ? testByNameMap.get(subTitle) : null;
+          if (matchedTest && !matchedSubByTestId.has(matchedTest.id)) {
             matchedSubByTestId.set(matchedTest.id, sub);
             unmatchedSubs.delete(sub);
           }
@@ -1059,6 +1246,22 @@ export default function StudentBookDetailsPage() {
       };
     }).filter(Boolean);
   }, [subjectProgress, testSearchQuery, testStatusFilter]);
+
+  // Auto-open first topic if no topic is currently open, so students immediately see tests
+  useEffect(() => {
+    if (filteredSubjectProgress && filteredSubjectProgress.length > 0) {
+      const firstSubj = filteredSubjectProgress[0];
+      if (firstSubj?.topics && firstSubj.topics.length > 0) {
+        const firstTopicId = firstSubj.topics[0].id;
+        setOpenTopics(prev => {
+          if (!prev || Object.keys(prev).length === 0) {
+            return { [firstTopicId]: true };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [filteredSubjectProgress]);
 
   const [isBulkSettingsModalOpen, setIsBulkSettingsModalOpen] = useState(false);
   const [bulkSettings, setBulkSettings] = useState({}); 

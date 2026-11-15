@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp, Eye, EyeOff, Check, PlayCircle } from 'lucide-react';
 import { STUDY_SUBJECTS } from '../constants/studyRoomConstants';
-import { checkIsTaskSolved } from '../../../components/ProgramCenter';
+import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
 import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
 
 // Yalnızca fiziki soru bankalarını filtreler (Denemeler, hazır bulunuşluk ve okuma kitaplarını ayıklar)
@@ -105,7 +105,11 @@ export default function StudyHomeworkPickerModal({
   onSelectTask
 }) {
   const [selectedBookId, setSelectedBookId] = useState(null);
-  const [collapsedUnits, setCollapsedUnits] = useState({});
+  const [openUnitIds, setOpenUnitIds] = useState({});
+
+  const precomputedSolvedIndex = useMemo(() => {
+    return buildSolvedIndex(currentUserId, submissions, homeworks);
+  }, [currentUserId, submissions, homeworks]);
 
   // 1. Sadece fiziki soru bankaları (8 adet)
   const physicalBooks = useMemo(() => {
@@ -175,9 +179,10 @@ export default function StudyHomeworkPickerModal({
     const units = [];
     let allTests = [];
 
-    const rawSubjects = currentBook.subjects && Array.isArray(currentBook.subjects) && currentBook.subjects.length > 0
+    const rawSubjects = (currentBook.subjects && Array.isArray(currentBook.subjects) && currentBook.subjects.length > 0
       ? currentBook.subjects
-      : [{ id: 'genel', name: getBookSubject(currentBook), topics: [], tests: [] }];
+      : (currentBook.raw_data?.subjects || [{ id: 'genel', name: getBookSubject(currentBook), topics: [], tests: [] }]))
+      .filter(s => s && s.id !== '__book_meta__' && !s.__meta && (s.name || (s.topics && s.topics.length > 0)));
 
     rawSubjects.forEach((subj, sIdx) => {
       const sName = subj.name || getBookSubject(currentBook);
@@ -297,7 +302,7 @@ export default function StudyHomeworkPickerModal({
               submissions,
               homeworks,
               studyAssignments,
-              null,
+              precomputedSolvedIndex,
               bookTests,
               books
             );
@@ -434,7 +439,7 @@ export default function StudyHomeworkPickerModal({
             submissions,
             homeworks,
             studyAssignments,
-            null,
+            precomputedSolvedIndex,
             bookTests,
             books
           );
@@ -472,7 +477,20 @@ export default function StudyHomeworkPickerModal({
     });
 
     return { units, allTests };
-  }, [currentBook, bookTests, submissions, homeworks, studyAssignments, currentUserId, books]);
+  }, [currentBook, bookTests, submissions, homeworks, studyAssignments, currentUserId, books, precomputedSolvedIndex]);
+
+  // İlk üniteyi otomatik açık getir
+  useEffect(() => {
+    if (selectedBookData.units.length > 0) {
+      const firstUnitId = selectedBookData.units[0].id;
+      setOpenUnitIds(prev => {
+        if (!prev || Object.keys(prev).length === 0) {
+          return { [firstUnitId]: true };
+        }
+        return prev;
+      });
+    }
+  }, [selectedBookId, selectedBookData.units]);
 
   // Arama & bitenler filtresi
   const matchesTestFilter = (test) => {
@@ -887,7 +905,7 @@ export default function StudyHomeworkPickerModal({
             ) : (
               /* 📂 KİTAP İÇERİĞİ: FASİKÜLLER & ÜNİTELER (Aynı Soru Bankası Sayfası Gibi Düzenli) */
               selectedBookData.units.map((unit) => {
-                const isCollapsed = Boolean(collapsedUnits[unit.id]);
+                const isOpen = Boolean(openUnitIds[unit.id]) || Boolean(hwSearchQuery.trim());
                 const visibleTests = unit.tests.filter(matchesTestFilter);
                 const completedCount = unit.tests.filter(t => t.isCompleted).length;
 
@@ -904,11 +922,11 @@ export default function StudyHomeworkPickerModal({
                   >
                     {/* Ünite / Fasikül Başlığı */}
                     <div
-                      onClick={() => setCollapsedUnits(prev => ({ ...prev, [unit.id]: !prev[unit.id] }))}
+                      onClick={() => setOpenUnitIds(prev => ({ ...prev, [unit.id]: !prev[unit.id] }))}
                       style={{
                         padding: '0.75rem 1rem',
                         background: 'rgba(255, 255, 255, 0.03)',
-                        borderBottom: isCollapsed ? 'none' : `1px solid ${themeObj.border}`,
+                        borderBottom: !isOpen ? 'none' : `1px solid ${themeObj.border}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -942,13 +960,13 @@ export default function StudyHomeworkPickerModal({
                           </span>
                         )}
                         <span style={{ color: themeObj.subText }}>
-                          {isCollapsed ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+                          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                         </span>
                       </div>
                     </div>
 
                     {/* Ünitenin Testleri */}
-                    {!isCollapsed && (
+                    {isOpen && (
                       <div style={{ padding: '0.6rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {visibleTests.length > 0 ? (
                           visibleTests.map(test => (
