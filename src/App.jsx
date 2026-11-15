@@ -7,7 +7,7 @@ import {
   GraduationCap, Users, Settings, Menu, X, BookOpen, 
   Target, BarChart2, ClipboardCheck, Database, BookMarked, Map, AlertCircle, LogIn, LogOut, ListTree, Award, AlertTriangle, Calendar,
   PanelLeftClose, PanelLeftOpen, Headphones, Search, Sparkles, Sun, Moon, Clock3, ShieldCheck, Scissors,
-  Compass, Rocket, Flame, ChevronRight
+  Compass, Rocket, Flame, ChevronRight, LayoutGrid, ChevronDown, FileText
 } from 'lucide-react';
 import ToastContainer from './components/ui/Toast';
 import CommandPalette from './components/CommandPalette';
@@ -268,12 +268,16 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   const isMobile = useMediaQuery('(max-width: 1024px)');
 
+  const openSearch = () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+  };
+
   return (
     <>
       <div className="mobile-header">
         <Link to="/" className="sidebar-brand-link" onClick={closeSidebar}>
-          <div className="sidebar-brand-avatar" style={{ width: 34, height: 34, borderRadius: 10 }}>
-            <Rocket size={18} />
+          <div className="tready-brand-logo" style={{ width: 34, height: 34, borderRadius: 10 }}>
+            <Rocket size={18} color="#ffffff" />
           </div>
           <div>
             <span className="sidebar-brand-title" style={{ fontSize: '1.15rem' }}>E-Test</span>
@@ -284,8 +288,8 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
           <button 
             onClick={toggleTheme}
             style={{
-              background: 'var(--color-surface-hover)',
-              border: '1.5px solid var(--color-border-input)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               color: isDark ? '#fbbf24' : '#6366f1',
               borderRadius: '0.65rem',
               width: 36,
@@ -293,10 +297,9 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+              cursor: 'pointer'
             }}
-            title={isDark ? 'Açık Temaya Geç (Light)' : 'Koyu Temaya Geç (Dark)'}
+            title={isDark ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -308,393 +311,461 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
 
       <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={closeSidebar}></div>
 
-      {/* FLOATING TOGGLE BUTTON (VISIBLE WHEN SIDEBAR IS COLLAPSED ON DESKTOP ONLY - NEVER ON MOBILE) */}
-      {!isMobile && isCollapsed && (
-        <button
-          onClick={toggleCollapse}
-          className="sidebar-floating-toggle-btn"
-          title="Menüyü Aç"
-        >
-          <PanelLeftOpen size={18} />
-          <span className="floating-btn-text">Menü</span>
-        </button>
-      )}
-
-      <nav className={`sidebar glass ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`}>
-        <div className="sidebar-header">
-          <Link to="/" className="sidebar-brand-link" onClick={closeSidebar}>
-            <div className="sidebar-brand-avatar">
-              <Rocket size={20} />
-            </div>
-            <div>
-              <span className="sidebar-brand-title">E-Test</span>
-              <span className="sidebar-brand-sub">
-                {currentUser?.role === 'student' ? '5. Sınıf Maarif Modeli' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
-              </span>
-            </div>
-          </Link>
-          <button 
-            onClick={isMobile ? closeSidebar : toggleCollapse}
-            className="sidebar-collapse-toggle-btn"
-            title={isMobile ? "Menüyü Kapat" : "Menüyü Gizle"}
-          >
-            {isMobile ? <X size={18} /> : <PanelLeftClose size={18} />}
-          </button>
-        </div>
-
-        {/* AUTH PROFILE STATUS BAR IN SIDEBAR */}
-        <div className="sidebar-profile-bento">
-          {currentUser ? (
-            <div className="sidebar-user-box">
-              <div className="sidebar-user-avatar">
-                {currentUser.name?.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-                <div className="sidebar-user-name">{currentUser.name}</div>
-                <div className="sidebar-user-role">
-                  <Sparkles size={10} />
-                  <span>{currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}</span>
-                </div>
-              </div>
-              <button 
-                onClick={async () => { 
-                  closeSidebar(); 
-                  await logout(); 
-                  navigate('/', { replace: true }); 
-                }}
-                title="Oturumu Kapat"
-                style={{ 
-                  width: '2rem', height: '2rem', borderRadius: '10px', 
-                  background: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2', 
-                  border: isDark ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid #fecaca', 
-                  color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0
-                }}
-                className="hover:scale-105 active:scale-95"
-              >
-                <LogOut size={14} />
-              </button>
-            </div>
-          ) : (
-            <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
-              <button style={{ width: '100%', padding: '0.6rem', borderRadius: '12px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', fontWeight: 800, fontSize: '0.82rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', boxShadow: '0 4px 14px rgba(79,70,229,0.35)' }}>
-                <LogIn size={15} /> Giriş Yap / Kayıt Ol
-              </button>
-            </Link>
-          )}
-
-          {/* Quick Search & Theme Switch Row */}
-          <div style={{ marginTop: '0.55rem', display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-            <button
-              onClick={() => {
-                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.45rem 0.65rem',
-                borderRadius: '11px',
-                background: 'var(--color-surface)',
-                border: '1.5px solid var(--color-border)',
-                color: 'var(--color-text-secondary)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                flex: 1,
-                boxSizing: 'border-box',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                transition: 'all 0.2s'
-              }}
+      <nav className={`sidebar ${isOpen ? 'open' : ''} ${!isMobile && isCollapsed ? 'collapsed' : ''}`}>
+        {/* TOP BRAND & SEARCH */}
+        {!isMobile && isCollapsed ? (
+          // RAIL HEADER (Left in image)
+          <div className="tready-rail-header">
+            <button 
+              type="button" 
+              onClick={toggleCollapse} 
+              className="tready-brand-logo" 
+              title="Menüyü Genişlet"
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Search size={13} color="#6366f1" /> Arama
-              </span>
-              <kbd style={{ background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', borderRadius: '5px', padding: '1px 5px', fontSize: '0.62rem', color: 'var(--color-text-muted)', fontWeight: 800 }}>Ctrl K</kbd>
+              <Rocket size={22} color="#ffffff" />
             </button>
-
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                padding: '0.45rem 0.65rem',
-                borderRadius: '11px',
-                background: isDark ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : 'linear-gradient(135deg, #fef3c7, #fef08a)',
-                border: isDark ? '1.5px solid #4338ca' : '1.5px solid #fde047',
-                color: isDark ? '#c7d2fe' : '#b45309',
-                fontSize: '0.74rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}
-              title={isDark ? 'Açık Temaya Geç (Light)' : 'Koyu Temaya Geç (Dark)'}
+            <button 
+              type="button"
+              onClick={openSearch}
+              className="tready-rail-search-btn"
+              data-tooltip="Arama (Ctrl K)"
+              title="Arama (Ctrl K)"
             >
-              {isDark ? <Sun size={14} color="#fbbf24" /> : <Moon size={14} color="#6366f1" />}
-              <span>{isDark ? 'Açık' : 'Koyu'}</span>
+              <Search size={18} />
             </button>
+            <div className="tready-rail-dot" />
           </div>
-        </div>
-        
-        <div className="nav-links custom-scrollbar">
-          
-          {/* ═════════ ÖĞRENCİ MENÜ GRUPLARI ═════════ */}
+        ) : (
+          // EXPANDED HEADER (Right in image)
+          <>
+            <div className="tready-sidebar-header">
+              <Link to="/" className="tready-brand-link" onClick={closeSidebar}>
+                <div className="tready-brand-logo">
+                  <Rocket size={22} color="#ffffff" />
+                </div>
+                <div className="tready-brand-info">
+                  <div className="tready-brand-title">E-Test</div>
+                  <div className="tready-brand-sub">
+                    {currentUser?.role === 'student' ? '5. Sınıf Maarif Modeli' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
+                  </div>
+                </div>
+              </Link>
+              <button 
+                type="button"
+                onClick={isMobile ? closeSidebar : toggleCollapse}
+                className="tready-header-toggle-btn"
+                title={isMobile ? "Menüyü Kapat" : "Menüyü Daralt"}
+              >
+                {isMobile ? <X size={18} /> : <ChevronDown size={18} />}
+              </button>
+            </div>
+
+            {/* SEARCH BAR (Matching image: Search input + ⌘ F badge) */}
+            <div 
+              className="tready-search-bar"
+              onClick={openSearch}
+              title="Arama (Ctrl K)"
+            >
+              <div className="tready-search-inner">
+                <Search size={16} className="tready-search-icon" />
+                <span className="tready-search-placeholder">Search</span>
+              </div>
+              <kbd className="tready-search-kbd">⌘ F</kbd>
+            </div>
+          </>
+        )}
+
+        {/* NAVIGATION ITEMS */}
+        <div className="tready-nav-container custom-scrollbar">
           {currentUser?.role === 'student' && (
             <>
-              {/* Grup 1: Aktif Görevler */}
-              <div className="nav-section-title">⚡ Görev &amp; Çalışma</div>
-              <NavLink to="/study-room" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>
-                  <Headphones size={16} color="white" />
-                </div>
-                <span>Çalışma Odası</span>
-                <span className="nav-hot-badge" style={{ background: 'linear-gradient(135deg, #a855f7, #6366f1)' }}>CANLI</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <div className="tready-section-title">MAIN MENU</div>
+              <NavLink 
+                to="/student" 
+                end 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Dashboard"
+              >
+                <div className="tready-nav-icon"><LayoutGrid size={19} /></div>
+                <span className="tready-nav-label">Dashboard</span>
               </NavLink>
-              <NavLink to="/student" end className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #06b6d4)' }}>
-                  <GraduationCap size={16} color="white" />
-                </div>
-                <span>Ana Panel</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/student/homeworks" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ef4444, #f97316)' }}>
-                  <BookMarked size={16} color="white" />
-                </div>
-                <span>Ödevlerim</span>
+
+              <NavLink 
+                to="/student/homeworks" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ödevlerim"
+              >
+                <div className="tready-nav-icon"><BookMarked size={19} /></div>
+                <span className="tready-nav-label">Ödevlerim</span>
                 {studentOverdueBadgeCount > 0 && (
-                  <span className="nav-hot-badge">
-                    🔥 {studentOverdueBadgeCount}
-                  </span>
+                  <span className="tready-nav-badge">🔥 {studentOverdueBadgeCount}</span>
                 )}
-                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
-              <NavLink to="/my-program" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #9333ea, #c084fc)' }}>
-                  <Calendar size={16} color="white" />
-                </div>
-                <span>Ders Programım</span>
-                <ChevronRight size={13} className="nav-chevron" />
+
+              <NavLink 
+                to="/study-room" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Çalışma Odası"
+              >
+                <div className="tready-nav-icon"><Headphones size={19} /></div>
+                <span className="tready-nav-label">Çalışma Odası</span>
+                <span className="tready-nav-badge" style={{ background: 'rgba(236,72,153,0.25)', color: '#f43f5e' }}>CANLI</span>
               </NavLink>
+
+              <NavLink 
+                to="/my-program" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ders Programım"
+              >
+                <div className="tready-nav-icon"><Calendar size={19} /></div>
+                <span className="tready-nav-label">Ders Programım</span>
+              </NavLink>
+
               <NavLink 
                 to="/student/roadmap" 
-                className={({ isActive }) => (isActive || location.pathname.startsWith('/student/study-plan') || location.pathname === '/student/roadmap') ? 'nav-link active' : 'nav-link'} 
+                className={({ isActive }) => `tready-nav-link ${(isActive || location.pathname.startsWith('/student/study-plan')) ? 'active' : ''}`}
                 onClick={closeSidebar}
+                data-tooltip="Yol Haritası"
               >
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }}>
-                  <Compass size={16} color="white" />
-                </div>
-                <span>Yol Haritası</span>
-                <ChevronRight size={13} className="nav-chevron" />
+                <div className="tready-nav-icon"><Compass size={19} /></div>
+                <span className="tready-nav-label">Yol Haritası</span>
               </NavLink>
+
               {isStudentCoached(currentUser?.id) && (
-                <NavLink to="/my-coaching" className="nav-link" onClick={closeSidebar}>
-                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)' }}>
-                    <Target size={16} color="white" />
-                  </div>
-                  <span>Koçluk Dosyam</span>
-                  <ChevronRight size={13} className="nav-chevron" />
+                <NavLink 
+                  to="/my-coaching" 
+                  className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                  onClick={closeSidebar}
+                  data-tooltip="Koçluk Dosyam"
+                >
+                  <div className="tready-nav-icon"><Target size={19} /></div>
+                  <span className="tready-nav-label">Koçluk Dosyam</span>
                 </NavLink>
               )}
 
-              {/* Grup 2: Kütüphane & İçerik */}
-              <div className="nav-section-title">📚 Kütüphane &amp; İçerik</div>
-              <NavLink to="/student/reading" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
-                  <BookOpen size={16} color="white" />
-                </div>
-                <span>Kitap Okuma</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/student/summaries" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
-                  <BookOpen size={16} color="white" />
-                </div>
-                <span>Ders Özetleri</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/student/books" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)' }}>
-                  <BookMarked size={16} color="white" />
-                </div>
-                <span>Kitaplarım (Soru Bankası)</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/student/exams" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #8b5cf6)' }}>
-                  <ClipboardCheck size={16} color="white" />
-                </div>
-                <span>Denemelerim</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <div className="tready-section-title">KÜTÜPHANE</div>
+
+              <NavLink 
+                to="/student/books" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Kitaplarım (Soru Bankası)"
+              >
+                <div className="tready-nav-icon"><BookOpen size={19} /></div>
+                <span className="tready-nav-label">Kitaplarım (Soru Bankası)</span>
               </NavLink>
 
-              {/* Grup 3: Gelişim & Analiz */}
-              <div className="nav-section-title">📊 Gelişim &amp; Takip</div>
-              <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
-                  <Award size={16} color="white" />
-                </div>
-                <span>Sonuçlarım</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <NavLink 
+                to="/student/reading" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Kitap Okuma"
+              >
+                <div className="tready-nav-icon"><BookMarked size={19} /></div>
+                <span className="tready-nav-label">Kitap Okuma</span>
               </NavLink>
-              <NavLink to="/wrong-answers" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #e11d48, #f43f5e)' }}>
-                  <AlertTriangle size={16} color="white" />
-                </div>
-                <span>Hatalarım &amp; Boşlarım</span>
-                <ChevronRight size={13} className="nav-chevron" />
+
+              <NavLink 
+                to="/student/summaries" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ders Özetleri"
+              >
+                <div className="tready-nav-icon"><FileText size={19} /></div>
+                <span className="tready-nav-label">Ders Özetleri</span>
+              </NavLink>
+
+              <NavLink 
+                to="/student/exams" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Denemelerim"
+              >
+                <div className="tready-nav-icon"><Award size={19} /></div>
+                <span className="tready-nav-label">Denemelerim</span>
+              </NavLink>
+
+              <div className="tready-section-title">GELİŞİM &amp; ANALİZ</div>
+
+              <NavLink 
+                to="/student-results" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Sonuçlarım"
+              >
+                <div className="tready-nav-icon"><BarChart2 size={19} /></div>
+                <span className="tready-nav-label">Sonuçlarım</span>
+              </NavLink>
+
+              <NavLink 
+                to="/wrong-answers" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Hatalarım &amp; Boşlarım"
+              >
+                <div className="tready-nav-icon"><AlertTriangle size={19} /></div>
+                <span className="tready-nav-label">Hatalarım &amp; Boşlarım</span>
               </NavLink>
             </>
           )}
 
-          {/* ═════════ ÖĞRETMEN & ADMİN MENÜ GRUPLARI ═════════ */}
+          {/* TEACHER / ADMIN */}
           {(currentUser?.role === 'teacher' || currentUser?.role === 'admin') && (
             <>
-              {/* Grup 1: Yönetim & Akış */}
-              <div className="nav-section-title">⚡ Yönetim &amp; Takip</div>
-              <NavLink to="/teacher" end className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}>
-                  <Users size={16} color="white" />
-                </div>
-                <span>Öğretmen Paneli</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <div className="tready-section-title">MAIN MENU</div>
+              <NavLink 
+                to="/teacher" 
+                end 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Dashboard"
+              >
+                <div className="tready-nav-icon"><LayoutGrid size={19} /></div>
+                <span className="tready-nav-label">Dashboard</span>
               </NavLink>
-              <NavLink to="/approvals" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                  <ShieldCheck size={16} color="white" />
-                </div>
-                <span>Onay Merkezi</span>
+
+              <NavLink 
+                to="/approvals" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Onay Merkezi"
+              >
+                <div className="tready-nav-icon"><ShieldCheck size={19} /></div>
+                <span className="tready-nav-label">Onay Merkezi</span>
                 {pendingApprovalsCount > 0 && (
-                  <span className="nav-hot-badge" style={{ background: '#7c3aed', color: 'white' }}>
+                  <span className="tready-nav-badge" style={{ background: '#ff1493', color: 'white' }}>
                     {pendingApprovalsCount}
                   </span>
                 )}
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/homeworks" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)' }}>
-                  <BookMarked size={16} color="white" />
-                </div>
-                <span>Ödev Yönetimi</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/remedials" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #f43f5e, #e11d48)' }}>
-                  <Scissors size={16} color="white" />
-                </div>
-                <span>Telafi &amp; Ustalık Takibi</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/evaluations" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}>
-                  <ClipboardCheck size={16} color="white" />
-                </div>
-                <span>Değerlendirmeler</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/physical-exam" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }}>
-                  <ClipboardCheck size={16} color="white" />
-                </div>
-                <span>Fiziki Deneme &amp; Optik</span>
-                <ChevronRight size={13} className="nav-chevron" />
               </NavLink>
 
-              {/* Grup 2: İçerik & Havuz */}
-              <div className="nav-section-title">📚 İçerik &amp; Soru Havuzu</div>
-              <NavLink to="/summaries" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #059669, #10b981)' }}>
-                  <BookOpen size={16} color="white" />
-                </div>
-                <span>Ders Özetleri Editörü</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/questions" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #6366f1)' }}>
-                  <Database size={16} color="white" />
-                </div>
-                <span>Soru Bankası</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/reading" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)' }}>
-                  <BookOpen size={16} color="white" />
-                </div>
-                <span>Kitap Okuma</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/books" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0284c7, #38bdf8)' }}>
-                  <BookMarked size={16} color="white" />
-                </div>
-                <span>Kitap Takip (Soru Bankası)</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/study-plans" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #8b5cf6, #a855f7)' }}>
-                  <Map size={16} color="white" />
-                </div>
-                <span>Yol Haritası</span>
-                <ChevronRight size={13} className="nav-chevron" />
-              </NavLink>
-              <NavLink to="/scales" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #db2777, #f43f5e)' }}>
-                  <ListTree size={16} color="white" />
-                </div>
-                <span>Ölçek &amp; Takip</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <NavLink 
+                to="/homeworks" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ödev Yönetimi"
+              >
+                <div className="tready-nav-icon"><BookMarked size={19} /></div>
+                <span className="tready-nav-label">Ödev Yönetimi</span>
               </NavLink>
 
-              {/* Grup 3: İstatistik & Admin */}
-              <div className="nav-section-title">📊 Analiz &amp; Sistem</div>
-              <NavLink to="/student-results" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
-                  <Award size={16} color="white" />
-                </div>
-                <span>Tüm Sonuçlar &amp; Karne</span>
-                <ChevronRight size={13} className="nav-chevron" />
+              <NavLink 
+                to="/remedials" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Telafi &amp; Ustalık"
+              >
+                <div className="tready-nav-icon"><Scissors size={19} /></div>
+                <span className="tready-nav-label">Telafi &amp; Ustalık</span>
               </NavLink>
-              <NavLink to="/statistics" className="nav-link" onClick={closeSidebar}>
-                <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)' }}>
-                  <BarChart2 size={16} color="white" />
-                </div>
-                <span>İstatistik &amp; Analiz</span>
-                <ChevronRight size={13} className="nav-chevron" />
+
+              <NavLink 
+                to="/evaluations" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Değerlendirmeler"
+              >
+                <div className="tready-nav-icon"><ClipboardCheck size={19} /></div>
+                <span className="tready-nav-label">Değerlendirmeler</span>
               </NavLink>
+
+              <NavLink 
+                to="/physical-exam" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Fiziki Deneme &amp; Optik"
+              >
+                <div className="tready-nav-icon"><ClipboardCheck size={19} /></div>
+                <span className="tready-nav-label">Fiziki Deneme &amp; Optik</span>
+              </NavLink>
+
+              <div className="tready-section-title">İÇERİK &amp; HAVUZ</div>
+
+              <NavLink 
+                to="/questions" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Soru Bankası"
+              >
+                <div className="tready-nav-icon"><Database size={19} /></div>
+                <span className="tready-nav-label">Soru Bankası</span>
+              </NavLink>
+
+              <NavLink 
+                to="/books" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Kitap Takip"
+              >
+                <div className="tready-nav-icon"><BookOpen size={19} /></div>
+                <span className="tready-nav-label">Kitap Takip</span>
+              </NavLink>
+
+              <NavLink 
+                to="/summaries" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ders Özetleri Editörü"
+              >
+                <div className="tready-nav-icon"><FileText size={19} /></div>
+                <span className="tready-nav-label">Ders Özetleri</span>
+              </NavLink>
+
+              <NavLink 
+                to="/reading" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Kitap Okuma"
+              >
+                <div className="tready-nav-icon"><BookMarked size={19} /></div>
+                <span className="tready-nav-label">Kitap Okuma</span>
+              </NavLink>
+
+              <NavLink 
+                to="/study-plans" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Yol Haritası"
+              >
+                <div className="tready-nav-icon"><Map size={19} /></div>
+                <span className="tready-nav-label">Yol Haritası</span>
+              </NavLink>
+
+              <NavLink 
+                to="/scales" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Ölçek &amp; Takip"
+              >
+                <div className="tready-nav-icon"><ListTree size={19} /></div>
+                <span className="tready-nav-label">Ölçek &amp; Takip</span>
+              </NavLink>
+
+              <div className="tready-section-title">ANALİZ &amp; SİSTEM</div>
+
+              <NavLink 
+                to="/student-results" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Tüm Sonuçlar &amp; Karne"
+              >
+                <div className="tready-nav-icon"><Award size={19} /></div>
+                <span className="tready-nav-label">Tüm Sonuçlar</span>
+              </NavLink>
+
+              <NavLink 
+                to="/statistics" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="İstatistik &amp; Analiz"
+              >
+                <div className="tready-nav-icon"><BarChart2 size={19} /></div>
+                <span className="tready-nav-label">İstatistik</span>
+              </NavLink>
+
               {currentUser?.role === 'admin' && (
-                <NavLink to="/admin" className="nav-link" onClick={closeSidebar}>
-                  <div className="nav-icon-badge" style={{ background: 'linear-gradient(135deg, #475569, #64748b)' }}>
-                    <Settings size={16} color="white" />
-                  </div>
-                  <span>Admin Kontrolü</span>
-                  <ChevronRight size={13} className="nav-chevron" />
+                <NavLink 
+                  to="/admin" 
+                  className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                  onClick={closeSidebar}
+                  data-tooltip="Admin Kontrolü"
+                >
+                  <div className="tready-nav-icon"><Settings size={19} /></div>
+                  <span className="tready-nav-label">Admin Kontrolü</span>
                 </NavLink>
               )}
             </>
           )}
         </div>
 
-        {/* BOTTOM GAMIFIED CARD FOR STUDENT */}
-        {currentUser?.role === 'student' && (
-          <Link to="/study-room" className="sidebar-focus-card" onClick={closeSidebar}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0, boxShadow: '0 2px 8px rgba(245,158,11,0.35)' }}>
-                <Flame size={18} />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-text)', fontFamily: 'Outfit, sans-serif' }}>Odak Odası</div>
-                <div style={{ fontSize: '0.64rem', fontWeight: 700, color: '#f59e0b' }}>⚡ +50 XP Kazan</div>
-              </div>
-            </div>
-            <ChevronRight size={15} color="var(--color-text-muted)" />
-          </Link>
-        )}
+        {/* BOTTOM USER / PROFILE & CONTROLS */}
+        {!isMobile && isCollapsed ? (
+          // RAIL FOOTER
+          <div className="tready-sidebar-footer">
+            <button 
+              type="button"
+              onClick={toggleTheme}
+              className="tready-rail-btn"
+              data-tooltip={isDark ? 'Açık Tema' : 'Koyu Tema'}
+              title={isDark ? 'Açık Tema' : 'Koyu Tema'}
+            >
+              {isDark ? <Sun size={17} color="#fbbf24" /> : <Moon size={17} color="#cbd5e1" />}
+            </button>
+            <button 
+              type="button"
+              onClick={toggleCollapse}
+              className="tready-rail-btn"
+              data-tooltip="Menüyü Genişlet"
+              title="Menüyü Genişlet"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        ) : (
+          // EXPANDED FOOTER
+          <div className="tready-sidebar-footer">
+            {currentUser?.role === 'student' && (
+              <Link to="/study-room" className="tready-focus-card" onClick={closeSidebar}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                    <Flame size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ffffff' }}>Odak Odası</div>
+                    <div style={{ fontSize: '0.64rem', fontWeight: 600, color: '#f59e0b' }}>⚡ +50 XP Kazan</div>
+                  </div>
+                </div>
+                <ChevronRight size={14} color="#8e95a5" />
+              </Link>
+            )}
 
+            {currentUser ? (
+              <div className="tready-user-card">
+                <div className="tready-user-avatar">
+                  {currentUser.name?.charAt(0).toUpperCase()}
+                </div>
+                <div className="tready-user-meta">
+                  <div className="tready-user-name">{currentUser.name}</div>
+                  <div className="tready-user-role">
+                    {currentUser.role === 'student' ? 'Öğrenci' : currentUser.role === 'teacher' ? 'Öğretmen' : 'Yönetici'}
+                  </div>
+                </div>
+                <div className="tready-footer-actions">
+                  <button 
+                    type="button"
+                    onClick={toggleTheme}
+                    className="tready-footer-btn"
+                    title={isDark ? 'Açık Tema' : 'Koyu Tema'}
+                  >
+                    {isDark ? <Sun size={15} color="#fbbf24" /> : <Moon size={15} color="#cbd5e1" />}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={async () => {
+                      closeSidebar();
+                      await logout();
+                      navigate('/', { replace: true });
+                    }}
+                    className="tready-footer-btn logout"
+                    title="Oturumu Kapat"
+                  >
+                    <LogOut size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Link to="/login" onClick={closeSidebar} style={{ textDecoration: 'none' }}>
+                <button style={{ width: '100%', padding: '0.65rem', borderRadius: '14px', background: 'linear-gradient(135deg, #ff1493, #db0074)', color: 'white', fontWeight: 700, fontSize: '0.84rem', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', boxShadow: '0 4px 16px rgba(240,24,138,0.4)' }}>
+                  <LogIn size={15} /> Giriş Yap
+                </button>
+              </Link>
+            )}
+          </div>
+        )}
       </nav>
     </>
   );
