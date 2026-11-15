@@ -1519,7 +1519,7 @@ export default function StudyRoomPage() {
             title="Çalışma Karnesi & Fidanlık"
           >
             <LayoutGrid size={15} />
-            <span>Dashboard</span>
+            <span>Ana Sayfa</span>
           </button>
 
           <button 

@@ -385,10 +385,10 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 end 
                 className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
                 onClick={closeSidebar}
-                data-tooltip="Dashboard"
+                data-tooltip="Ana Sayfa"
               >
                 <div className="tready-nav-icon"><LayoutGrid size={19} /></div>
-                <span className="tready-nav-label">Dashboard</span>
+                <span className="tready-nav-label">Ana Sayfa</span>
               </NavLink>
 
               <NavLink 
@@ -522,10 +522,10 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                 end 
                 className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
                 onClick={closeSidebar}
-                data-tooltip="Dashboard"
+                data-tooltip="Ana Sayfa"
               >
                 <div className="tready-nav-icon"><LayoutGrid size={19} /></div>
-                <span className="tready-nav-label">Dashboard</span>
+                <span className="tready-nav-label">Ana Sayfa</span>
               </NavLink>
 
               <NavLink 

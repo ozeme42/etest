@@ -4200,26 +4200,48 @@ export default function StudentDashboard() {
               <DashboardBooksCard
                 isMobile={isMobile}
                 isDark={isDark}
-                assignedBooksList={assignedBooksList}
-                onNavigateBooks={handleNavigateBooks}
+                books={books}
+                bookTests={bookTests}
+                submissions={submissions}
+                homeworks={homeworks}
+                currentUserId={selectedStudent?.id || currentUser?.id}
                 onNavigateBookDetail={handleNavigateBookDetail}
               />
 
-              {/* Kitap Okuma & Alışkanlık Takibi */}
-              <DashboardReadingCard
-                isMobile={isMobile}
-                isDark={isDark}
-                onNavigateReading={handleNavigateReading}
-              />
-
-              {/* Yol Haritam & Konu Takibi */}
-              <DashboardRoadmapCard
-                isMobile={isMobile}
-                isDark={isDark}
-                personalRoadmap={personalRoadmap}
-                myRoadmaps={myRoadmaps}
-                onNavigateRoadmap={handleNavigateRoadmap}
-              />
+              {/* Kitap Okuma & Yol Haritası (Ek Araçlar / Katlanabilir Bölüm) */}
+              <details style={{
+                background: isDark ? 'rgba(30, 41, 69, 0.5)' : '#ffffff',
+                borderRadius: 16,
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+                padding: '0.85rem 1.15rem'
+              }}>
+                <summary style={{
+                  fontSize: '0.86rem',
+                  fontWeight: 800,
+                  color: isDark ? '#cbd5e1' : '#475569',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  userSelect: 'none'
+                }}>
+                  <span>📖 Kitap Okuma Takibi & 🗺️ Yol Haritası Panellerini Göster</span>
+                </summary>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
+                  <DashboardReadingCard
+                    isMobile={isMobile}
+                    isDark={isDark}
+                    onNavigateReading={handleNavigateReading}
+                  />
+                  <DashboardRoadmapCard
+                    isMobile={isMobile}
+                    isDark={isDark}
+                    personalRoadmap={personalRoadmap}
+                    myRoadmaps={myRoadmaps}
+                    onNavigateRoadmap={handleNavigateRoadmap}
+                  />
+                </div>
+              </details>
             </div>
           </Suspense>
         )}

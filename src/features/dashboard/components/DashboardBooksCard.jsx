@@ -1,409 +1,1176 @@
-import React, { useState, useMemo } from 'react';
-import { BookOpen, ChevronRight, Trophy, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  BookOpen, Search, X, CheckCircle2, ChevronRight, PlayCircle, Filter,
+  ArrowRight, Folder, FolderOpen, ExternalLink, Sparkles, Check
+} from 'lucide-react';
+import { useTrackedBooks } from '../../../context/TrackedBookContext';
+import { useEvaluation } from '../../../context/EvaluationContext';
+import { useHomework } from '../../../context/HomeworkContext';
+import { useAuth } from '../../../context/AuthContext';
+import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
+import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
 
-const BOOK_PALETTES = [
-  { from: '#3b82f6', to: '#1d4ed8', border: '#60a5fa', shadow: 'rgba(59, 130, 246, 0.4)', tag: '#2563eb' },
-  { from: '#10b981', to: '#047857', border: '#34d399', shadow: 'rgba(16, 185, 129, 0.4)', tag: '#059669' },
-  { from: '#f59e0b', to: '#b45309', border: '#fbbf24', shadow: 'rgba(245, 158, 11, 0.4)', tag: '#d97706' },
-  { from: '#ec4899', to: '#be185d', border: '#f472b6', shadow: 'rgba(236, 72, 153, 0.4)', tag: '#db2777' },
-  { from: '#8b5cf6', to: '#6d28d9', border: '#c084fc', shadow: 'rgba(139, 92, 246, 0.4)', tag: '#7c3aed' },
-  { from: '#06b6d4', to: '#0e7490', border: '#38bdf8', shadow: 'rgba(6, 182, 212, 0.4)', tag: '#0891b2' },
-];
+// ─── YALNIZCA FİZİKİ SORU BANKALARINI FİLTRELER ───
+const isPhysicalQuestionBook = (b) => {
+  if (!b || b.isDeleted || b.deleted) return false;
+  const title = String(b.title || '').trim().toLowerCase();
+  const raw = b.raw_data || {};
 
-const DashboardBooksCard = React.memo(function DashboardBooksCard({
+  // 1. Denemeler ve genel sınavlar
+  if (
+    title.startsWith('deneme') ||
+    title.includes('deneme -') ||
+    title.includes('deneme sınavı') ||
+    title.includes('hazır bulunuşluk') ||
+    title.includes('kolejlere hazırlama') ||
+    title.includes('lgs deneme') ||
+    title.includes('bursluluk')
+  ) {
+    return false;
+  }
+
+  // 2. Sınav tipleri
+  if (
+    b.bookType === 'exam' ||
+    b.book_type === 'exam' ||
+    raw.bookType === 'exam' ||
+    b.isExam ||
+    raw.isExam ||
+    b.isExamBook ||
+    raw.isExamBook ||
+    b.isPhysicalExam === true ||
+    raw.isPhysicalExam === true ||
+    b.contentType === 'physicalExam' ||
+    raw.contentType === 'physicalExam'
+  ) {
+    return false;
+  }
+
+  // 3. Okuma kitapları
+  if (
+    b.bookType === 'reading' ||
+    b.book_type === 'reading' ||
+    raw.bookType === 'reading' ||
+    b.isReadingBook === true ||
+    title.includes('kitap okuma')
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
+// Kitabın ait olduğu ana dersi belirler
+const getBookSubject = (b) => {
+  if (b.subject && String(b.subject).trim() !== '' && b.subject !== 'Genel') return b.subject;
+  if (b.subjects && b.subjects[0]?.name) return b.subjects[0].name;
+  const t = String(b.title || '').toLowerCase();
+  if (t.includes('türkçe') || t.includes('turkce') || t.includes('paragraf')) return 'Türkçe';
+  if (t.includes('matematik') || t.includes('mat') || t.includes('problem')) return 'Matematik';
+  if (t.includes('fen')) return 'Fen Bilimleri';
+  if (t.includes('sosyal') || t.includes('inkılap') || t.includes('tarih')) return 'Sosyal Bilgiler';
+  if (t.includes('ingilizce') || t.includes('ing')) return 'İngilizce';
+  if (t.includes('din')) return 'Din Kültürü';
+  return 'Genel';
+};
+
+const getSubjectIcon = (subj) => {
+  const s = String(subj || '').toLowerCase();
+  if (s.includes('türk') || s.includes('paragraf')) return '📘';
+  if (s.includes('mat') || s.includes('problem')) return '📐';
+  if (s.includes('fen')) return '🔬';
+  if (s.includes('sosyal') || s.includes('tarih')) return '🌍';
+  if (s.includes('ing')) return '🇬🇧';
+  if (s.includes('din')) return '🕌';
+  return '📚';
+};
+
+export default function DashboardBooksCard({
   isMobile,
-  isDark,
-  assignedBooksList = [],
-  onNavigateBooks,
+  isDark = true,
+  books: propBooks,
+  bookTests: propBookTests,
+  submissions: propSubmissions,
+  homeworks: propHomeworks,
+  currentUserId: propUserId,
   onNavigateBookDetail
 }) {
-  const [showCompletedBooks, setShowCompletedBooks] = useState(false);
+  const navigate = useNavigate();
+  const authContext = useAuth();
+  const trackedBooksContext = useTrackedBooks();
+  const evalContext = useEvaluation();
+  const hwContext = useHomework();
 
-  const activeBooks = useMemo(() => {
-    return (assignedBooksList || []).filter(b => (b.progressPct || 0) < 100);
-  }, [assignedBooksList]);
+  // Props veya Context fallback
+  const books = propBooks || trackedBooksContext?.books || [];
+  const bookTests = propBookTests || trackedBooksContext?.bookTests || [];
+  const submissions = propSubmissions || evalContext?.submissions || [];
+  const homeworks = propHomeworks || hwContext?.homeworks || [];
+  const currentUserId = propUserId || authContext?.currentUser?.id || null;
 
-  const completedBooks = useMemo(() => {
-    return (assignedBooksList || []).filter(b => (b.progressPct || 0) >= 100);
-  }, [assignedBooksList]);
+  // State'ler
+  const [selectedSubject, setSelectedSubject] = useState('all');
+  const [selectedBookId, setSelectedBookId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUnitForModal, setSelectedUnitForModal] = useState(null);
 
-  const renderBookItem = (book, idx, isCompleted) => {
-    const pal = BOOK_PALETTES[idx % BOOK_PALETTES.length];
+  // 1. O(1) Çözülen Testler İndeksi
+  const precomputedSolvedIndex = useMemo(() => {
+    return buildSolvedIndex(currentUserId, submissions, homeworks);
+  }, [currentUserId, submissions, homeworks]);
 
-    return (
+  // 2. Yalnızca Fiziki Soru Bankaları
+  const physicalBooks = useMemo(() => {
+    return (books || []).filter(isPhysicalQuestionBook);
+  }, [books]);
+
+  // 3. Ders Filtresine Göre Kitaplar
+  const visiblePhysicalBooks = useMemo(() => {
+    if (selectedSubject === 'all') return physicalBooks;
+    return physicalBooks.filter(b => {
+      const bSubj = getBookSubject(b).toLowerCase();
+      const targetSubj = selectedSubject.toLowerCase();
+      return bSubj.includes(targetSubj) || targetSubj.includes(bSubj);
+    });
+  }, [physicalBooks, selectedSubject]);
+
+  // 4. Kitap seçimini senkronize et
+  useEffect(() => {
+    if (visiblePhysicalBooks.length > 0) {
+      const exists = visiblePhysicalBooks.some(b => String(b.id) === String(selectedBookId));
+      if (!exists) {
+        setSelectedBookId(visiblePhysicalBooks[0].id);
+      }
+    } else {
+      setSelectedBookId(null);
+    }
+  }, [visiblePhysicalBooks, selectedBookId]);
+
+  // Kitap değişince konu modalını kapat
+  useEffect(() => {
+    setSelectedUnitForModal(null);
+  }, [selectedBookId]);
+
+  // ESC ile konu modalını kapat
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && selectedUnitForModal) {
+        setSelectedUnitForModal(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedUnitForModal]);
+
+  const currentBook = useMemo(() => {
+    if (!visiblePhysicalBooks.length) return null;
+    return visiblePhysicalBooks.find(b => String(b.id) === String(selectedBookId)) || visiblePhysicalBooks[0];
+  }, [visiblePhysicalBooks, selectedBookId]);
+
+  // 5. Seçili Kitabın Üniteleri ve Testlerini Çıkarma
+  const selectedBookData = useMemo(() => {
+    if (!currentBook) return { units: [], allTests: [], totalTestsCount: 0, solvedCount: 0 };
+
+    const bId = String(currentBook.id || '');
+    const cleanBId = bId.replace(/^b_/, '');
+    const bUuid = String(toUUID(bId) || '');
+    const bLegacyUuid = String(legacyHexUUID(bId) || '');
+    const normBookTitle = String(currentBook.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+
+    // Bu kitaba ait DB testleri
+    const testsInBook = (bookTests || []).filter(t => {
+      if (!t || t.isDeleted || t.deleted) return false;
+      const tBId = String(t.bookId || t.book_id || '');
+      if (tBId === bId || tBId === cleanBId) return true;
+      if (bUuid && tBId === bUuid) return true;
+      if (bLegacyUuid && tBId === bLegacyUuid) return true;
+      if (toUUID(tBId) && toUUID(tBId) === bUuid) return true;
+      const tBTitle = String(t.bookTitle || t.book_title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+      if (tBTitle && normBookTitle && tBTitle === normBookTitle) return true;
+      return false;
+    });
+
+    const directTestMap = new Map();
+    testsInBook.forEach(t => {
+      directTestMap.set(String(t.id), t);
+      const cl = String(t.id).replace(/^bt_|^tbt_/, '');
+      if (cl) directTestMap.set(cl, t);
+      const u = toUUID(cl || t.id);
+      if (u) directTestMap.set(String(u), t);
+      if (t.name) directTestMap.set(String(t.name).trim().toLowerCase(), t);
+    });
+
+    const units = [];
+    let allTests = [];
+
+    const rawSubjects = (currentBook.subjects && Array.isArray(currentBook.subjects) && currentBook.subjects.length > 0
+      ? currentBook.subjects
+      : (currentBook.raw_data?.subjects || [{ id: 'genel', name: getBookSubject(currentBook), topics: [], tests: [] }]))
+      .filter(s => s && s.id !== '__book_meta__' && !s.__meta && (s.name || (s.topics && s.topics.length > 0)));
+
+    rawSubjects.forEach((subj, sIdx) => {
+      const sName = subj.name || getBookSubject(currentBook);
+      const subjTopics = subj.topics && Array.isArray(subj.topics) ? subj.topics : [];
+
+      if (subjTopics.length > 0) {
+        subjTopics.forEach((tp, tpIdx) => {
+          const tpId = String(tp.id || `tp_${tpIdx}`);
+          const tpName = tp.name || `${tpIdx + 1}. Fasikül / Ünite`;
+
+          const dbTopicTests = testsInBook.filter(t => {
+            const tTpId = String(t.topicId || t.topic_id || '');
+            return tTpId === tpId || tTpId === String(tp.id) || (toUUID(tTpId) && toUUID(tTpId) === toUUID(tpId));
+          });
+
+          const canonicalTests = Array.isArray(tp.tests) ? tp.tests : [];
+          const seenTestIds = new Set();
+          const seenTestNames = new Set();
+          const combinedRawTests = [];
+
+          if (canonicalTests.length > 0) {
+            canonicalTests.forEach((ct, ctIdx) => {
+              if (!ct) return;
+              const ctId = String(ct.id || `ct_${tpId}_${ctIdx}`);
+              const ctClean = ctId.replace(/^bt_|^tbt_/, '');
+              const ctName = String(ct.name || ct.title || `Test ${ctIdx + 1}`).trim();
+              const ctNameKey = ctName.toLowerCase();
+
+              const matchedDb = directTestMap.get(ctId) ||
+                                directTestMap.get(ctClean) ||
+                                (toUUID(ctClean) ? directTestMap.get(String(toUUID(ctClean))) : null) ||
+                                directTestMap.get(ctNameKey) ||
+                                dbTopicTests.find(dt => {
+                                  const dtName = String(dt.name || dt.title || '').trim().toLowerCase();
+                                  return dtName === ctNameKey;
+                                });
+
+              seenTestIds.add(ctId);
+              seenTestIds.add(ctClean);
+              if (ctNameKey) seenTestNames.add(ctNameKey);
+              if (matchedDb?.id) {
+                seenTestIds.add(String(matchedDb.id));
+                seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_/, ''));
+              }
+
+              combinedRawTests.push({
+                ...ct,
+                ...(matchedDb || {}),
+                id: ct.id || matchedDb?.id || ctId,
+                name: ctName,
+                test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
+              });
+            });
+
+            dbTopicTests.forEach((dt, dtIdx) => {
+              if (!dt) return;
+              const dtId = String(dt.id || `dt_${tpId}_${dtIdx}`);
+              const dtClean = dtId.replace(/^bt_|^tbt_/, '');
+              const dtName = String(dt.name || dt.title || '').trim();
+              const dtNameKey = dtName.toLowerCase();
+
+              if (!seenTestIds.has(dtId) && !seenTestIds.has(dtClean) && (!dtNameKey || !seenTestNames.has(dtNameKey))) {
+                seenTestIds.add(dtId);
+                seenTestIds.add(dtClean);
+                if (dtNameKey) seenTestNames.add(dtNameKey);
+                combinedRawTests.push(dt);
+              }
+            });
+          } else if (dbTopicTests.length > 0) {
+            combinedRawTests.push(...dbTopicTests);
+          } else {
+            for (let i = 1; i <= 5; i++) {
+              combinedRawTests.push({
+                id: `v_${tpId}_${i}`,
+                name: `${tpName} - Test ${i}`,
+                questionCount: 12
+              });
+            }
+          }
+
+          const processedTests = combinedRawTests.map((t, tIdx) => {
+            const isCompleted = checkIsTaskSolved(t, currentUserId, submissions, homeworks, precomputedSolvedIndex);
+            return {
+              ...t,
+              id: t.id || `gen_t_${tpId}_${tIdx}`,
+              name: t.name || t.title || `Test ${tIdx + 1}`,
+              title: t.name || t.title || `Test ${tIdx + 1}`,
+              bookId: currentBook.id,
+              bookTitle: currentBook.title,
+              bookPublisher: currentBook.publisher,
+              unitName: tpName,
+              subjectName: sName,
+              isCompleted,
+              questionCount: t.questionCount || (Array.isArray(t.questions) && t.questions.length) || 12,
+              answerKey: t.answerKey || t.answer_key || null
+            };
+          });
+
+          const completedCount = processedTests.filter(t => t.isCompleted).length;
+
+          units.push({
+            id: tpId,
+            name: tpName,
+            subjectName: sName,
+            totalCount: processedTests.length,
+            completedCount,
+            progressPct: processedTests.length > 0 ? Math.round((completedCount / processedTests.length) * 100) : 0,
+            tests: processedTests
+          });
+
+          allTests.push(...processedTests);
+        });
+      } else {
+        const uId = String(subj.id || `subj_${sIdx}`);
+        const uName = sName;
+        const fallbackTests = (testsInBook.length > 0 ? testsInBook : [1, 2, 3, 4, 5].map(i => ({ id: `ft_${i}`, name: `${uName} Test ${i}`, questionCount: 12 })))
+          .map((t, tIdx) => {
+            const isCompleted = checkIsTaskSolved(t, currentUserId, submissions, homeworks, precomputedSolvedIndex);
+            return {
+              ...t,
+              id: t.id || `ft_${uId}_${tIdx}`,
+              name: t.name || t.title || `Test ${tIdx + 1}`,
+              title: t.name || t.title || `Test ${tIdx + 1}`,
+              bookId: currentBook.id,
+              bookTitle: currentBook.title,
+              bookPublisher: currentBook.publisher,
+              unitName: uName,
+              subjectName: sName,
+              isCompleted,
+              questionCount: t.questionCount || (Array.isArray(t.questions) && t.questions.length) || 12,
+              answerKey: t.answerKey || t.answer_key || null
+            };
+          });
+
+        const completedCount = fallbackTests.filter(t => t.isCompleted).length;
+
+        units.push({
+          id: uId,
+          name: uName,
+          subjectName: sName,
+          totalCount: fallbackTests.length,
+          completedCount,
+          progressPct: fallbackTests.length > 0 ? Math.round((completedCount / fallbackTests.length) * 100) : 0,
+          tests: fallbackTests
+        });
+
+        allTests.push(...fallbackTests);
+      }
+    });
+
+    const solvedCount = allTests.filter(t => t.isCompleted).length;
+    return {
+      units,
+      allTests,
+      totalTestsCount: allTests.length,
+      solvedCount,
+      progressPct: allTests.length > 0 ? Math.round((solvedCount / allTests.length) * 100) : 0
+    };
+  }, [currentBook, bookTests, submissions, homeworks, currentUserId, precomputedSolvedIndex]);
+
+  // Arama filtresi
+  const searchMatchingTests = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase().trim();
+    return selectedBookData.allTests.filter(t => {
+      const name = String(t.name || t.title || '').toLowerCase();
+      const unit = String(t.unitName || '').toLowerCase();
+      return name.includes(q) || unit.includes(q);
+    });
+  }, [selectedBookData.allTests, searchQuery]);
+
+  // Test seçilip çalışma odasına yönlendirme
+  const handleStartTest = (test) => {
+    setSelectedUnitForModal(null);
+    navigate('/study-room', { state: { startTask: test } });
+  };
+
+  // Renk teması
+  const cardBg = isDark ? '#141c2e' : '#ffffff';
+  const innerCardBg = isDark ? 'rgba(30, 41, 69, 0.75)' : '#f8fafc';
+  const borderColor = isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0';
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const subTextColor = isDark ? '#94a3b8' : '#64748b';
+
+  return (
+    <div
+      style={{
+        background: cardBg,
+        borderRadius: 22,
+        border: `1px solid ${borderColor}`,
+        boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.45)' : '0 6px 24px rgba(0, 0, 0, 0.06)',
+        padding: isMobile ? '1rem 0.85rem' : '1.35rem 1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.1rem',
+        boxSizing: 'border-box',
+        width: '100%'
+      }}
+    >
+      {/* ── 1. DERS FİLTRE HAPLARI ── */}
       <div
-        key={book.id || idx}
-        onClick={() => onNavigateBookDetail && onNavigateBookDetail(book.id)}
-        className="game-book-card"
         style={{
-          borderTop: `5px solid ${isCompleted ? '#10b981' : pal.from}`,
-          borderLeft: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
-          borderRight: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
-          borderBottom: isCompleted ? '2px solid rgba(16, 185, 129, 0.4)' : `2px solid ${pal.from}50`,
-          padding: isMobile ? '1.05rem 0.95rem' : '1.35rem 1.45rem',
-          cursor: 'pointer',
-          background: isDark
-            ? (isCompleted ? 'rgba(16, 185, 129, 0.05)' : 'rgba(15, 23, 42, 0.9)')
-            : (isCompleted ? '#f0fdf4' : '#ffffff'),
-          boxShadow: isCompleted
-            ? '0 6px 20px rgba(16, 185, 129, 0.12)'
-            : `0 8px 24px ${pal.shadow}20`
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+          overflowX: 'auto',
+          paddingBottom: 4,
+          scrollbarWidth: 'none'
         }}
       >
-        {/* Top Header: Title, Publisher, Badge */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 0 }}>
-              <div style={{
-                width: isMobile ? 38 : 44,
-                height: isMobile ? 38 : 44,
-                borderRadius: 14,
-                background: isCompleted ? 'linear-gradient(135deg, #10b981, #059669)' : `linear-gradient(135deg, ${pal.from}, ${pal.to})`,
+        <span style={{ fontSize: '0.78rem', fontWeight: 900, color: subTextColor, marginRight: 2, flexShrink: 0 }}>
+          Ders:
+        </span>
+        {[
+          { id: 'all', label: 'Tüm Dersler', icon: '🎯' },
+          { id: 'Türkçe', label: 'Türkçe', icon: '📘' },
+          { id: 'Matematik', label: 'Matematik', icon: '📐' },
+          { id: 'Fen Bilimleri', label: 'Fen Bilimleri', icon: '🔬' },
+          { id: 'Sosyal Bilgiler', label: 'Sosyal Bilgiler', icon: '🌍' },
+          { id: 'İngilizce', label: 'İngilizce', icon: '🇬🇧' },
+          { id: 'Din Kültürü', label: 'Din Kültürü', icon: '🕌' }
+        ].map(item => {
+          const isSelected = selectedSubject === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSelectedSubject(item.id)}
+              style={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: isMobile ? '1.15rem' : '1.35rem',
-                boxShadow: isCompleted ? '0 4px 12px rgba(16, 185, 129, 0.4)' : `0 4px 14px ${pal.shadow}`,
-                color: '#ffffff',
-                flexShrink: 0
-              }}>
-                {isCompleted ? '🏆' : '📚'}
-              </div>
+                gap: 5,
+                padding: '0.42rem 0.85rem',
+                borderRadius: 999,
+                fontSize: '0.76rem',
+                fontWeight: 850,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+                border: isSelected ? '1.5px solid #a855f7' : `1px solid ${borderColor}`,
+                background: isSelected
+                  ? 'linear-gradient(135deg, #a855f7, #6366f1)'
+                  : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f1f5f9'),
+                color: isSelected ? '#ffffff' : (isDark ? '#e2e8f0' : '#334155'),
+                boxShadow: isSelected ? '0 4px 14px rgba(168, 85, 247, 0.35)' : 'none'
+              }}
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  fontFamily: '"Outfit", sans-serif',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '1.02rem' : '1.18rem',
-                  color: 'var(--color-text, #0f172a)',
-                  lineHeight: 1.25,
-                  wordBreak: 'break-word',
+      {/* ── 2. FİZİKİ SORU BANKALARI LİSTESİ (SEÇİM HAPLARI) ── */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          overflowX: 'auto',
+          paddingBottom: 4,
+          scrollbarWidth: 'none'
+        }}
+      >
+        {visiblePhysicalBooks.map(book => {
+          const isSelected = String(book.id) === String(selectedBookId);
+          const subj = getBookSubject(book);
+          const icon = getSubjectIcon(subj);
+
+          return (
+            <button
+              key={book.id}
+              type="button"
+              onClick={() => setSelectedBookId(book.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '0.5rem 0.95rem',
+                borderRadius: 14,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.18s ease',
+                border: isSelected
+                  ? '2px solid #a855f7'
+                  : `1px solid ${isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0'}`,
+                background: isSelected
+                  ? (isDark ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(99, 102, 241, 0.22))' : '#f3e8ff')
+                  : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc'),
+                color: isSelected ? (isDark ? '#f3e8ff' : '#6b21a8') : textColor,
+                boxShadow: isSelected ? '0 4px 16px rgba(168, 85, 247, 0.3)' : 'none',
+                flexShrink: 0
+              }}
+            >
+              <span style={{ fontSize: '1rem' }}>{icon}</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 850 }}>{book.title}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── 3. SEÇİLİ KİTAP DETAY BAŞLIĞI & İLERLEME ── */}
+      {currentBook ? (
+        <div
+          style={{
+            background: innerCardBg,
+            borderRadius: 16,
+            padding: '1rem 1.15rem',
+            border: `1px solid ${borderColor}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12
+          }}
+        >
+          {/* Kitap Bilgisi & İlerleme */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #a855f7, #6366f1)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 6
-                }}>
-                  <span>{book.title}</span>
-                  {isCompleted && (
-                    <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0 }} />
-                  )}
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  color: '#fff',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 14px rgba(168, 85, 247, 0.4)'
+                }}
+              >
+                {getSubjectIcon(getBookSubject(currentBook))}
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '1.02rem', fontWeight: 900, color: textColor }}>
+                    {currentBook.title}
+                  </span>
+                  <span
+                    style={{
+                      background: 'rgba(168, 85, 247, 0.18)',
+                      color: isDark ? '#e9d5ff' : '#7c3aed',
+                      border: '1px solid rgba(168, 85, 247, 0.35)',
+                      fontSize: '0.66rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: 8
+                    }}
+                  >
+                    Soru Bankası
+                  </span>
                 </div>
-                {book.publisher && (
-                  <div style={{ fontSize: '0.74rem', color: 'var(--color-text-muted, #64748b)', fontWeight: 800, marginTop: 2 }}>
-                    🏢 {book.publisher}
+                {currentBook.publisher && (
+                  <div style={{ fontSize: '0.74rem', color: subTextColor, fontWeight: 700, marginTop: 2 }}>
+                    🏢 {currentBook.publisher}
                   </div>
                 )}
               </div>
             </div>
 
-            {isCompleted ? (
-              <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 900,
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                color: '#ffffff',
-                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}>
-                ✓ BİTTİ
-              </span>
-            ) : book.remainingDays !== null ? (
-              <span style={{
-                fontSize: '0.7rem',
-                fontWeight: 900,
-                padding: '4px 10px',
-                borderRadius: 999,
-                background: book.remainingDays <= 3 
-                  ? 'linear-gradient(135deg, #ef4444, #b91c1c)'
-                  : 'linear-gradient(135deg, #0284c7, #0369a1)',
-                color: '#ffffff',
-                boxShadow: book.remainingDays <= 3 ? '0 2px 8px rgba(239, 68, 68, 0.35)' : 'none',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}>
-                {book.remainingDays === 0 ? '🔥 Bugün Son' : `⏳ ${book.remainingDays} gün`}
-              </span>
-            ) : (
-              <span className="game-badge-xp" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
-                +30 XP
-              </span>
-            )}
-          </div>
-
-          {/* Subjects */}
-          {(book.subjects || []).length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
-              {(book.subjects || []).slice(0, 4).map((subj, sIdx) => (
-                <span
-                  key={subj.id || sIdx}
+            {/* Çözülen Test Sayısı & Oran */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#10b981' }}>
+                  {selectedBookData.solvedCount} / {selectedBookData.totalTestsCount} Çözüldü
+                </div>
+                <div style={{ fontSize: '0.7rem', color: subTextColor, fontWeight: 700 }}>
+                  %{selectedBookData.progressPct} Tamamlandı
+                </div>
+              </div>
+              {onNavigateBookDetail && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateBookDetail(currentBook.id)}
                   style={{
-                    background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
-                    color: isDark ? '#e2e8f0' : '#334155',
-                    border: '1.5px solid var(--color-border)',
-                    borderRadius: 8,
-                    padding: '2px 8px',
-                    fontSize: '0.66rem',
-                    fontWeight: 800
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: `1px solid ${borderColor}`,
+                    color: textColor,
+                    borderRadius: 10,
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5
                   }}
+                  title="Kitabın haritasını ve detaylarını aç"
                 >
-                  {subj.name}
-                </span>
-              ))}
-              {(book.subjects || []).length > 4 && (
-                <span style={{
-                  background: 'var(--color-surface-hover)',
-                  color: 'var(--color-text-muted)',
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: 8,
-                  padding: '2px 7px',
-                  fontSize: '0.66rem',
-                  fontWeight: 900
-                }}>
-                  +{(book.subjects || []).length - 4}
-                </span>
+                  <span>Haritayı Aç</span>
+                  <ExternalLink size={12} />
+                </button>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Test Progress Box */}
-        <div style={{
-          background: isDark ? 'rgba(30, 41, 59, 0.65)' : '#f8fafc',
-          borderRadius: 16,
-          padding: isMobile ? '0.85rem' : '1rem 1.15rem',
-          border: '1.5px solid var(--color-border)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Test İlerlemesi
-            </span>
-            <span style={{
-              fontSize: '0.88rem',
-              fontWeight: 900,
-              color: isCompleted ? '#10b981' : pal.tag,
-              background: isCompleted ? 'rgba(16, 185, 129, 0.15)' : `${pal.tag}22`,
-              border: `1px solid ${isCompleted ? '#10b981' : pal.tag}50`,
-              padding: '2px 10px',
-              borderRadius: 999
-            }}>
-              %{book.progressPct}
-            </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: isMobile ? '0.84rem' : '0.92rem', fontWeight: 900, color: 'var(--color-text)' }}>
-            <span>{book.totalSolvedTests} / {book.totalBookTests} test tamamlandı</span>
-            <span style={{ fontSize: '0.74rem', color: isCompleted ? '#10b981' : 'var(--color-text-muted)', fontWeight: 800 }}>
-              {book.totalBookTests - book.totalSolvedTests > 0 ? `${book.totalBookTests - book.totalSolvedTests} test kaldı` : '🎉 Tamamı Bitti'}
-            </span>
+          {/* İlerleme Çubuğu */}
+          <div style={{ height: 8, background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${selectedBookData.progressPct}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #10b981 0%, #34d399 50%, #6366f1 100%)',
+                borderRadius: 99,
+                transition: 'width 0.4s ease'
+              }}
+            />
           </div>
 
-          <div style={{ height: 9, background: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0', borderRadius: 999, overflow: 'hidden', marginTop: 3 }}>
-            <div style={{
-              width: `${book.progressPct}%`,
-              height: '100%',
-              background: isCompleted
-                ? 'linear-gradient(90deg, #10b981, #059669)'
-                : `linear-gradient(90deg, ${pal.from}, #8b5cf6)`,
-              borderRadius: 999,
-              boxShadow: isCompleted ? '0 0 8px rgba(16, 185, 129, 0.5)' : `0 0 8px ${pal.shadow}`,
-              transition: 'width 0.6s ease'
-            }} />
-          </div>
-        </div>
-
-        {/* 4 KPI Stats: Doğru, Yanlış, Boş, Başarı - Göz Alıcı Renkler */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: isMobile ? 6 : 8 }}>
-          <div style={{ background: isDark ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5', border: '1.5px solid #10b981', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.64rem', color: '#10b981', fontWeight: 900, textTransform: 'uppercase' }}>Doğru</div>
-            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#10b981', marginTop: 1 }}>{book.totalCorrect}</div>
-          </div>
-          <div style={{ background: isDark ? 'rgba(239, 68, 68, 0.18)' : '#fef2f2', border: '1.5px solid #ef4444', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.64rem', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase' }}>Yanlış</div>
-            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#ef4444', marginTop: 1 }}>{book.totalWrong}</div>
-          </div>
-          <div style={{ background: isDark ? 'rgba(148, 163, 184, 0.18)' : '#f8fafc', border: '1.5px solid #94a3b8', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.64rem', color: 'var(--color-text-muted)', fontWeight: 900, textTransform: 'uppercase' }}>Boş</div>
-            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: 'var(--color-text)', marginTop: 1 }}>{book.totalBlank}</div>
-          </div>
-          <div style={{ background: isDark ? 'rgba(59, 130, 246, 0.18)' : '#eff6ff', border: '1.5px solid #3b82f6', borderRadius: 12, padding: '0.45rem 0.25rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '0.64rem', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase' }}>Başarı</div>
-            <div style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 900, color: '#3b82f6', marginTop: 1 }}>%{book.successRate}</div>
-          </div>
-        </div>
-
-        {/* 3D Action Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigateBookDetail && onNavigateBookDetail(book.id);
-          }}
-          className={`game-btn-3d ${isCompleted ? 'game-btn-emerald' : 'game-btn-primary'}`}
-          style={{
-            width: '100%',
-            padding: isMobile ? '0.75rem' : '0.85rem',
-            borderRadius: 14,
-            fontSize: isMobile ? '0.86rem' : '0.94rem',
-            marginTop: 4
-          }}
-        >
-          <span>{isCompleted ? '🏆 Haritayı & Sonuçları İncele' : '⚔️ Kitaba Devam Et'}</span>
-          <ChevronRight size={17} />
-        </button>
-      </div>
-    );
-  };
-
-  return (
-    <div className="game-card-elevated" style={{
-      padding: isMobile ? '1.1rem 0.9rem' : '1.5rem 1.8rem',
-      borderRadius: isMobile ? '0 0 16px 16px' : '0 0 20px 20px',
-      borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
-      marginTop: 0
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.6rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 40,
-            height: 40,
-            borderRadius: 14,
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.25rem',
-            boxShadow: '0 6px 18px rgba(99, 102, 241, 0.45)',
-            color: 'white',
-            flexShrink: 0
-          }}>
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: isMobile ? '1.1rem' : '1.28rem', fontWeight: 900, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
-                Soru Bankası Kitaplarım
-              </h2>
-              <span className="game-badge-xp" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
-                🎒 {activeBooks.length} Aktif Kitap
-              </span>
-            </div>
-            <span style={{ fontSize: '0.74rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
-              Kayıtlı kitaplar, test basamakları ve başarı haritan
-            </span>
-          </div>
-        </div>
-
-        <button
-          onClick={onNavigateBooks}
-          className="game-btn-3d"
-          style={{
-            background: 'var(--color-surface)',
-            color: 'var(--color-text)',
-            border: '2px solid var(--color-border)',
-            borderRadius: 999,
-            padding: isMobile ? '0.4rem 0.85rem' : '0.5rem 1.15rem',
-            fontSize: '0.76rem',
-            boxShadow: '0 2px 0 var(--color-border), 0 4px 12px rgba(0,0,0,0.05)'
-          }}
-        >
-          <span>Tüm Kitaplar ({assignedBooksList.length})</span>
-          <ChevronRight size={13} />
-        </button>
-      </div>
-
-      {assignedBooksList.length === 0 ? (
-        <div style={{ padding: '2.5rem 1rem', textAlign: 'center', background: 'var(--color-surface-hover, #f8fafc)', borderRadius: 20, border: '2px dashed var(--color-border-input, #cbd5e1)' }}>
-          <div style={{ fontSize: '2.6rem', marginBottom: 8 }}>📚</div>
-          <div style={{ fontWeight: 900, color: 'var(--color-text, #0f172a)', fontSize: '1rem', marginBottom: 4 }}>
-            Henüz kayıtlı veya atanmış bir kitap bulunmuyor
-          </div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #64748b)' }}>
-            Kitap eklendiğinde veya ödev verildiğinde kitap ilerleme haritanız burada listelenecektir.
+          {/* Test Arama Çubuğu */}
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: subTextColor }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`${currentBook.title} içinde test ara...`}
+              style={{
+                width: '100%',
+                padding: '0.6rem 2.2rem 0.6rem 2.4rem',
+                borderRadius: 12,
+                border: `1px solid ${borderColor}`,
+                background: isDark ? 'rgba(15, 23, 42, 0.8)' : '#ffffff',
+                color: textColor,
+                fontSize: '0.82rem',
+                fontWeight: 650,
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  color: subTextColor,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
       ) : (
-        <div>
-          {/* 1. AKTİF (DEVAM EDEN) KİTAPLAR */}
-          {activeBooks.length === 0 ? (
-            <div style={{
-              padding: '1.75rem 1.25rem',
-              borderRadius: 18,
-              background: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
-              border: '2px solid #10b981',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <span style={{ fontSize: '2.2rem' }}>🎉</span>
-              <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#10b981' }}>
-                Harika İş! Tüm Aktif Kitaplarını Bitirdin!
-              </div>
-              <div style={{ fontSize: '0.76rem', color: 'var(--color-text-muted)', fontWeight: 600, maxWidth: 420 }}>
-                Şu anda devam eden aktif bir kitabın kalmadı. Biten kitaplarını aşağıdaki butondan inceleyebilir veya kütüphaneden yeni kitap ekleyebilirsin.
-              </div>
+        <div style={{ textAlign: 'center', padding: '2rem 1rem', color: subTextColor, fontSize: '0.86rem' }}>
+          Bu derse ait soru bankası bulunamadı.
+        </div>
+      )}
+
+      {/* ── 4. ARAMA SONUÇLARI VEYA KONU / FASİKÜL KARTLARI ── */}
+      {searchQuery.trim() ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 850, color: subTextColor }}>
+            Arama Sonuçları ({searchMatchingTests.length} Test):
+          </div>
+          {searchMatchingTests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: subTextColor, fontSize: '0.82rem' }}>
+              "{searchQuery}" ile eşleşen test bulunamadı.
             </div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : (activeBooks.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
-              gap: isMobile ? '0.85rem' : '1.35rem'
-            }}>
-              {activeBooks.map((book, idx) => renderBookItem(book, idx, false))}
-            </div>
-          )}
-
-          {/* 2. BİTEN KİTAPLAR (AYRICA AÇILIR) */}
-          {completedBooks.length > 0 && (
-            <div style={{ marginTop: '1.35rem' }}>
-              <button
-                type="button"
-                onClick={() => setShowCompletedBooks(prev => !prev)}
-                className="game-btn-3d game-btn-emerald"
-                style={{
-                  width: '100%',
-                  padding: isMobile ? '0.8rem 1rem' : '0.95rem 1.35rem',
-                  borderRadius: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  fontSize: isMobile ? '0.88rem' : '0.98rem'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '1.25rem' }}>🏆</span>
-                  <span style={{ fontWeight: 900 }}>Biten / Tamamlanan Kitaplar ({completedBooks.length})</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 900 }}>
-                  <span>{showCompletedBooks ? 'Kapat' : 'Görüntüle / İncele'}</span>
-                  {showCompletedBooks ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </div>
-              </button>
-
-              {showCompletedBooks && (
-                <div style={{
-                  marginTop: '1rem',
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : (completedBooks.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))'),
-                  gap: isMobile ? '0.85rem' : '1.35rem',
-                  animation: 'sdFadeUp 0.25s ease'
-                }}>
-                  {completedBooks.map((book, idx) => renderBookItem(book, idx, true))}
-                </div>
-              )}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 8 }}>
+              {searchMatchingTests.map(test => (
+                <TestCardItem
+                  key={test.id}
+                  test={test}
+                  isDark={isDark}
+                  onStartTest={handleStartTest}
+                />
+              ))}
             </div>
           )}
         </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 850, color: subTextColor }}>
+              Konular & Fasiküller ({selectedBookData.units.length})
+            </span>
+            <span style={{ fontSize: '0.72rem', color: subTextColor }}>
+              Testleri görmek için konuya dokunun
+            </span>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+              gap: 10
+            }}
+          >
+            {selectedBookData.units.map((unit, uIdx) => (
+              <div
+                key={unit.id || uIdx}
+                onClick={() => setSelectedUnitForModal(unit)}
+                style={{
+                  background: innerCardBg,
+                  borderRadius: 16,
+                  border: `1.5px solid ${borderColor}`,
+                  padding: '1rem 1.15rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease'
+                }}
+                className="hover:scale-[1.01] hover:border-purple-500/60"
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        width: 38,
+                        height: 38,
+                        borderRadius: 11,
+                        background: unit.progressPct === 100
+                          ? 'linear-gradient(135deg, #10b981, #059669)'
+                          : 'linear-gradient(135deg, #a855f7, #6366f1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.1rem',
+                        color: '#fff',
+                        flexShrink: 0
+                      }}
+                    >
+                      {unit.progressPct === 100 ? '✓' : '📁'}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: '0.92rem',
+                          fontWeight: 850,
+                          color: textColor,
+                          lineHeight: 1.3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {unit.name}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: subTextColor, fontWeight: 700, marginTop: 2 }}>
+                        {unit.totalCount} Test • {unit.completedCount} Çözüldü
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedUnitForModal(unit);
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: 10,
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.74rem',
+                      fontWeight: 850,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      flexShrink: 0,
+                      boxShadow: '0 3px 10px rgba(168, 85, 247, 0.35)'
+                    }}
+                  >
+                    <span>Testleri Aç</span>
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+
+                {/* Konu İlerleme Çubuğu */}
+                <div style={{ height: 6, background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${unit.progressPct}%`,
+                      height: '100%',
+                      background: unit.progressPct === 100
+                        ? 'linear-gradient(90deg, #10b981, #059669)'
+                        : 'linear-gradient(90deg, #a855f7, #6366f1)',
+                      borderRadius: 99,
+                      transition: 'width 0.3s ease'
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. KONUYA TIKLAYINCA AÇILAN TEST PENCERESİ (MODAL DİYALOG) ── */}
+      {selectedUnitForModal && (
+        <TopicTestsModal
+          unit={selectedUnitForModal}
+          bookTitle={currentBook?.title || ''}
+          isDark={isDark}
+          isMobile={isMobile}
+          onClose={() => setSelectedUnitForModal(null)}
+          onStartTest={handleStartTest}
+        />
       )}
     </div>
   );
-});
+}
 
-export default DashboardBooksCard;
+// ─── KONU TESTLERİ ÖZEL PENCERESİ (MODAL) ───
+function TopicTestsModal({
+  unit,
+  bookTitle,
+  isDark = true,
+  isMobile,
+  onClose,
+  onStartTest
+}) {
+  const [topicSearch, setTopicSearch] = useState('');
+
+  const filteredTests = useMemo(() => {
+    if (!topicSearch.trim()) return unit.tests || [];
+    const q = topicSearch.toLowerCase().trim();
+    return (unit.tests || []).filter(t => {
+      const name = String(t.name || t.title || '').toLowerCase();
+      return name.includes(q);
+    });
+  }, [unit.tests, topicSearch]);
+
+  const modalBg = isDark ? '#182238' : '#ffffff';
+  const modalBorder = isDark ? 'rgba(255, 255, 255, 0.16)' : '#cbd5e1';
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const subTextColor = isDark ? '#94a3b8' : '#64748b';
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(5, 7, 15, 0.75)',
+        backdropFilter: 'blur(10px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        boxSizing: 'border-box'
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: 680,
+          maxHeight: '88vh',
+          background: modalBg,
+          borderRadius: 22,
+          border: `1.5px solid ${modalBorder}`,
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.65)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          animation: 'modalZoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}
+      >
+        <style>{`
+          @keyframes modalZoomIn {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+        `}</style>
+
+        {/* Modal Başlığı */}
+        <div
+          style={{
+            padding: '1.1rem 1.35rem',
+            background: isDark ? 'rgba(28, 39, 64, 0.95)' : '#f8fafc',
+            borderBottom: `1px solid ${modalBorder}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.2rem',
+                color: '#fff',
+                flexShrink: 0
+              }}
+            >
+              📁
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: textColor, lineHeight: 1.25 }}>
+                {unit.name}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: subTextColor, fontWeight: 700, marginTop: 2 }}>
+                {bookTitle} • {unit.totalCount} Test ({unit.completedCount} Çözüldü)
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0',
+              border: 'none',
+              color: textColor,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            className="hover:bg-red-500/20 hover:text-red-400"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Konu İçi Arama Çubuğu */}
+        <div style={{ padding: '0.75rem 1.35rem', borderBottom: `1px solid ${modalBorder}` }}>
+          <div style={{ position: 'relative', width: '100%' }}>
+            <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: subTextColor }} />
+            <input
+              type="text"
+              value={topicSearch}
+              onChange={(e) => setTopicSearch(e.target.value)}
+              placeholder="Bu konu içindeki testlerde ara..."
+              style={{
+                width: '100%',
+                padding: '0.55rem 1rem 0.55rem 2.2rem',
+                borderRadius: 10,
+                border: `1px solid ${modalBorder}`,
+                background: isDark ? 'rgba(15, 23, 42, 0.65)' : '#ffffff',
+                color: textColor,
+                fontSize: '0.8rem',
+                fontWeight: 650,
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Testler Listesi */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '1rem 1.35rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            maxHeight: '58vh'
+          }}
+        >
+          {filteredTests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: subTextColor, fontSize: '0.84rem' }}>
+              Test bulunamadı.
+            </div>
+          ) : (
+            filteredTests.map((test, tIdx) => (
+              <TestCardItem
+                key={test.id || tIdx}
+                test={test}
+                isDark={isDark}
+                onStartTest={onStartTest}
+              />
+            ))
+          )}
+        </div>
+
+        {/* Modal Alt Çubuğu */}
+        <div
+          style={{
+            padding: '0.85rem 1.35rem',
+            background: isDark ? 'rgba(28, 39, 64, 0.95)' : '#f8fafc',
+            borderTop: `1px solid ${modalBorder}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ fontSize: '0.76rem', color: subTextColor, fontWeight: 700 }}>
+            {unit.totalCount} testten {unit.completedCount} tanesi çözüldü
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: isDark ? 'rgba(255, 255, 255, 0.1)' : '#e2e8f0',
+              border: `1px solid ${modalBorder}`,
+              color: textColor,
+              borderRadius: 10,
+              padding: '0.45rem 1rem',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            Pencereyi Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TEKİL TEST KARTI (TIKLAYINCA ÇALIŞMA ODASINDA ÇÖZER) ───
+function TestCardItem({ test, isDark = true, onStartTest }) {
+  const isCompleted = test.isCompleted;
+
+  return (
+    <div
+      onClick={() => onStartTest(test)}
+      style={{
+        background: isCompleted
+          ? (isDark ? 'rgba(16, 185, 129, 0.08)' : '#f0fdf4')
+          : (isDark ? 'rgba(37, 50, 82, 0.75)' : '#ffffff'),
+        border: isCompleted
+          ? '1px solid rgba(16, 185, 129, 0.35)'
+          : `1px solid ${isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0'}`,
+        borderRadius: 14,
+        padding: '0.8rem 1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        gap: 12
+      }}
+      className="hover:scale-[1.01] hover:border-purple-500/60"
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {/* Üst Rozetler */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+          <span
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 900,
+              background: isDark ? 'rgba(59, 130, 246, 0.2)' : '#eff6ff',
+              color: isDark ? '#93c5fd' : '#2563eb',
+              padding: '1px 7px',
+              borderRadius: 6
+            }}
+          >
+            {test.questionCount || 12} Soru
+          </span>
+
+          {test.answerKey && (
+            <span
+              style={{
+                fontSize: '0.66rem',
+                fontWeight: 900,
+                background: isDark ? 'rgba(168, 85, 247, 0.2)' : '#f3e8ff',
+                color: isDark ? '#e9d5ff' : '#7c3aed',
+                padding: '1px 7px',
+                borderRadius: 6
+              }}
+            >
+              🔑 Cevap Anahtarlı
+            </span>
+          )}
+
+          {isCompleted ? (
+            <span
+              style={{
+                fontSize: '0.64rem',
+                fontWeight: 900,
+                background: 'rgba(16, 185, 129, 0.2)',
+                color: '#10b981',
+                padding: '1px 7px',
+                borderRadius: 99,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3
+              }}
+            >
+              <CheckCircle2 size={11} /> Çözüldü
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: '0.64rem',
+                fontWeight: 800,
+                background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#f1f5f9',
+                color: isDark ? '#cbd5e1' : '#64748b',
+                padding: '1px 7px',
+                borderRadius: 99
+              }}
+            >
+              ⏳ Çözülmedi
+            </span>
+          )}
+        </div>
+
+        {/* Test Adı */}
+        <div
+          style={{
+            fontSize: '0.88rem',
+            fontWeight: 850,
+            color: isCompleted ? '#10b981' : (isDark ? '#ffffff' : '#0f172a'),
+            lineHeight: 1.3
+          }}
+        >
+          {test.name || test.title}
+        </div>
+      </div>
+
+      {/* Çalışma Odasında Çöz Butonu */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onStartTest(test);
+        }}
+        style={{
+          background: isCompleted
+            ? 'rgba(16, 185, 129, 0.25)'
+            : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+          color: isCompleted ? '#10b981' : '#ffffff',
+          border: isCompleted ? '1px solid rgba(168, 85, 247, 0.45)' : 'none',
+          borderRadius: 10,
+          padding: '0.45rem 0.85rem',
+          fontSize: '0.76rem',
+          fontWeight: 900,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          flexShrink: 0,
+          boxShadow: isCompleted ? 'none' : '0 4px 12px rgba(168, 85, 247, 0.35)'
+        }}
+      >
+        <span>{isCompleted ? 'Yeniden Çöz 🔄' : 'Çöz & Başla 🚀'}</span>
+        <ArrowRight size={13} />
+      </button>
+    </div>
+  );
+}
