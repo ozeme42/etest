@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
+import {
+  Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Minimize2,
+  Brain, Sparkles, LayoutGrid, Clock, Settings2, Plus, ArrowLeft,
+  CheckCircle2, X, FileText, Check, ChevronRight, Layers, Sliders,
+  Coffee, Zap, Flame, Compass, Target, BookOpen, Music, CheckSquare
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTrackedBooks } from '../context/TrackedBookContext';
 import { useStudyPlan } from '../context/StudyPlanContext';
@@ -19,11 +25,14 @@ import {
   TREE_SPECIES,
   getThemeList,
   STUDY_SUBJECTS,
+  STUDY_ENVIRONMENTS,
+  AMBIENT_SOUNDS,
   formatSecToMinSec,
   getSpeedEvaluation,
   matchSubjectFromTask,
   extractQuestionCountFromTask
 } from '../features/study-room/constants/studyRoomConstants';
+import './StudyRoomPage.css';
 
 // Modular Subcomponents
 import StudyRoomHeader from '../features/study-room/components/StudyRoomHeader';
@@ -1374,760 +1383,566 @@ export default function StudyRoomPage() {
     );
   }, [selectedTask]);
 
-  const [isZenFocusMode, setIsZenFocusMode] = useState(false);
+  // ── 🎨 FOCUS ROOM ENVIRONMENT & AMBIENT AUDIO STATE ──
+  const [activeEnvId, setActiveEnvId] = useState(() => localStorage.getItem('study_env_id') || 'lofi_bedroom');
+  const activeEnv = useMemo(() => {
+    return STUDY_ENVIRONMENTS.find(e => e.id === activeEnvId) || STUDY_ENVIRONMENTS[0];
+  }, [activeEnvId]);
 
-  // Bugünkü Programdaki Bekleyen Görevler
-  const todayPendingTasks = useMemo(() => {
-    if (!Array.isArray(weeklyProgramGrouped) || weeklyProgramGrouped.length === 0) return [];
-    const todayObj = weeklyProgramGrouped.find(d => d && d.key === currentTodayKey) || weeklyProgramGrouped[0];
-    if (!todayObj || !Array.isArray(todayObj.tasks)) return [];
-    return todayObj.tasks.filter(t => Boolean(t && !t.isCompleted));
-  }, [weeklyProgramGrouped, currentTodayKey]);
+  const [activeSoundId, setActiveSoundId] = useState(() => localStorage.getItem('study_sound_id') || 'brownnoise');
+  const [soundVolume, setSoundVolume] = useState(() => {
+    const v = localStorage.getItem('study_sound_volume');
+    return v !== null ? Number(v) : 50;
+  });
+  const [isSoundMuted, setIsSoundMuted] = useState(false);
+  const [isSoundPlaying, setIsSoundPlaying] = useState(false);
+  const [showSoundPicker, setShowSoundPicker] = useState(false);
+
+  // ── 📂 SLIDE-OVER DRAWER STATE (No feature deletion) ──
+  // 'dashboard' | 'optical' | 'notes' | null
+  const [activeDrawerView, setActiveDrawerView] = useState(null);
+
+  // ── ⏱️ FOCUS / BREAK MODE TOGGLE (Matching reference image) ──
+  const [focusSegment, setFocusSegment] = useState('focus'); // 'focus' | 'break'
+
+  // Audio synchronization
+  useEffect(() => {
+    if (!isSoundPlaying || isSoundMuted || soundVolume <= 0) {
+      ambientAudio.stopAll();
+    } else {
+      Object.keys(ambientAudio.nodes || {}).forEach(k => {
+        if (k !== activeSoundId) ambientAudio.stopSound(k);
+      });
+      ambientAudio.setSoundVolume(activeSoundId, soundVolume / 100);
+    }
+  }, [activeSoundId, isSoundPlaying, isSoundMuted, soundVolume]);
+
+  useEffect(() => {
+    return () => {
+      ambientAudio.stopAll();
+    };
+  }, []);
+
+  const handleSelectEnv = (env) => {
+    setActiveEnvId(env.id);
+    localStorage.setItem('study_env_id', env.id);
+    if (env.defaultSound && env.defaultSound !== activeSoundId) {
+      setActiveSoundId(env.defaultSound);
+      localStorage.setItem('study_sound_id', env.defaultSound);
+    }
+  };
+
+  const toggleSoundPower = () => {
+    setIsSoundPlaying(p => {
+      const next = !p;
+      if (next && soundVolume <= 0) {
+        setSoundVolume(50);
+        localStorage.setItem('study_sound_volume', '50');
+      }
+      return next;
+    });
+  };
+
+  const handleVolumeChange = (e) => {
+    const v = Number(e.target.value);
+    setSoundVolume(v);
+    localStorage.setItem('study_sound_volume', String(v));
+    if (v > 0 && !isSoundPlaying) setIsSoundPlaying(true);
+    if (v === 0) setIsSoundPlaying(false);
+  };
+
+  const handleSelectFocusSegment = (seg) => {
+    setFocusSegment(seg);
+    setIsRunning(false);
+    if (seg === 'break') {
+      setTimeLeft(5 * 60);
+      setSessionElapsedSeconds(0);
+    } else {
+      setTimeLeft(calculatedBudgetMinutes * 60);
+      setSessionElapsedSeconds(0);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  // Level & XP
+  const currentXP = Number(currentUser?.xp) || (completedCycles * 40 + currentProgressCount * 10) || 50;
+  const currentLevel = Math.max(1, Math.floor(currentXP / 100) + 1);
+  const levelProgressPct = Math.min(100, Math.max(10, currentXP % 100));
+
+  const answeredOpticalCount = Object.keys(opticalAnswers || {}).length;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: themeObj.bg,
-      color: themeObj.text,
-      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-      display: 'flex',
-      flexDirection: 'column',
-      transition: 'background 0.3s ease, color 0.3s ease'
-    }}>
-      {/* ─── 0. TAM EKRAN ZEN ODAK SAHNESİ (ZEN FOCUS STAGE) ─── */}
-      {isZenFocusMode && (
-        <div className="zen-focus-stage">
-          {/* Üst Zen Bar */}
-          <div style={{
-            padding: isMobile ? '0.85rem 1rem' : '1.15rem 2.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'rgba(2, 6, 23, 0.72)',
-            backdropFilter: 'blur(20px)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 10
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: 14,
-                background: selectedTaskIsReading ? 'linear-gradient(135deg, #ec4899, #be185d)' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                boxShadow: selectedTaskIsReading ? '0 0 18px rgba(236, 72, 153, 0.65)' : '0 0 18px rgba(99, 102, 241, 0.65)',
-                fontSize: '1.2rem',
-                flexShrink: 0
-              }}>
-                {selectedTaskIsReading ? '📖' : '🎯'}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{
-                  fontSize: isMobile ? '0.92rem' : '1.12rem',
-                  fontWeight: 900,
-                  fontFamily: "'Outfit', sans-serif",
-                  color: '#ffffff',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {selectedTask ? (selectedTask.title || selectedTask.name) : (selectedTaskIsReading ? 'Kitap Okuma Odak Seansı' : `${selectedSubject} Odak Seansı`)}
-                </div>
-                <div style={{
-                  fontSize: '0.72rem',
-                  color: '#94a3b8',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginTop: 2
-                }}>
-                  <span style={{ color: selectedTaskIsReading ? '#f472b6' : '#a5b4fc', fontWeight: 800 }}>
-                    {selectedTaskIsReading ? 'Kitap Okuma' : selectedSubject}
-                  </span>
-                  <span>•</span>
-                  {selectedTaskIsReading ? (
-                    <span style={{ color: '#e0e7ff', fontWeight: 800 }}>📖 Odaklı Okuma Seansı</span>
-                  ) : (
-                    <span>{currentProgressCount} / {targetGoalCount} Soru Çözüldü</span>
-                  )}
-                  <span>•</span>
-                  <span style={{ color: '#38bdf8', fontWeight: 800 }}>⚡ +50 XP</span>
-                </div>
-              </div>
-            </div>
+    <div className="focus-room-container">
+      {/* ─── 0. AMBIENT BACKDROP & MOOD LIGHTING ─── */}
+      <div 
+        className="focus-room-backdrop" 
+        style={{
+          backgroundImage: `url(${activeEnv.image})`,
+          backgroundPosition: 'center',
+          backgroundColor: activeEnv.accent ? `${activeEnv.accent}15` : '#0b0c16'
+        }}
+      />
+      <div className="focus-room-overlay" style={{ background: activeEnv.overlay }} />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              {/* Streak */}
+      {activeEnv.id === 'lofi_bedroom' && (
+        <div 
+          className="focus-room-lamp-glow" 
+          style={{ background: `radial-gradient(circle, ${activeEnv.glowColor || 'rgba(251, 146, 60, 0.28)'} 0%, transparent 70%)` }} 
+        />
+      )}
+
+      {/* ─── 1. TOP FLOATING PILL BAR (Matching Reference Image) ─── */}
+      <header className="focus-top-pill-bar">
+        {/* Brand */}
+        <div className="focus-brand" onClick={() => navigate('/student')} title="Öğrenci Paneline Dön">
+          <div className="focus-brand-logo">
+            <Brain size={19} />
+          </div>
+          <span className="focus-brand-title">FocusRooms</span>
+        </div>
+
+        {/* Center Tabs: Dashboard | Solo Study | Rooms */}
+        <div className="focus-tabs-segment">
+          <button 
+            type="button"
+            className={`focus-tab-btn ${activeDrawerView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveDrawerView(v => v === 'dashboard' ? null : 'dashboard')}
+            title="Çalışma Karnesi & Fidanlık"
+          >
+            <LayoutGrid size={15} />
+            <span>Dashboard</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`focus-tab-btn ${!activeDrawerView ? 'active' : ''}`}
+            onClick={() => setActiveDrawerView(null)}
+            title="Bireysel Odak Odası"
+          >
+            <Zap size={15} />
+            <span>Solo Study</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`focus-tab-btn ${activeDrawerView === 'optical' ? 'active' : ''}`}
+            onClick={() => setActiveDrawerView(v => v === 'optical' ? null : 'optical')}
+            title="Optik Form & Görevler"
+          >
+            <BookOpen size={15} />
+            <span>Rooms</span>
+            {answeredOpticalCount > 0 && (
               <span style={{
-                background: 'rgba(249, 115, 22, 0.2)',
-                color: '#f97316',
-                border: '1.5px solid rgba(249, 115, 22, 0.4)',
-                borderRadius: 99,
-                padding: '0.2rem 0.6rem',
-                fontSize: '0.72rem',
+                background: '#a855f7',
+                color: '#ffffff',
+                fontSize: '0.62rem',
                 fontWeight: 900,
-                fontFamily: "'Outfit', sans-serif",
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4
+                padding: '1px 6px',
+                borderRadius: 99
               }}>
-                <span>🔥</span>
-                <span>{streakData?.currentStreak || 1} Gün</span>
+                {answeredOpticalCount}
               </span>
+            )}
+          </button>
+        </div>
 
-              {/* Odaktan Çık Butonu */}
-              <button
-                onClick={() => setIsZenFocusMode(false)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                  color: '#ffffff',
-                  borderRadius: 12,
-                  height: 38,
-                  padding: '0 0.95rem',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  fontFamily: "'Outfit', sans-serif",
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'all 0.2s'
-                }}
-                className="hover:bg-white/20 active:scale-95"
-              >
-                <span>✕</span>
-                {!isMobile && <span>Odaktan Çık</span>}
-              </button>
+        {/* Right Status: LVL Badge | Avatar | Exit */}
+        <div className="focus-top-right">
+          <div className="focus-level-badge" title={`${currentXP} XP • Seviye ${currentLevel}`}>
+            <span>LVL {currentLevel}</span>
+            <div className="focus-level-bar">
+              <div className="focus-level-fill" style={{ width: `${levelProgressPct}%` }} />
             </div>
           </div>
 
-          {/* Orta Alan: Büyük Odak Çemberi & Kontroller */}
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: isMobile ? '1.5rem 1rem' : '2.5rem 2rem',
-            position: 'relative'
-          }}>
-            {/* Arka plan nefes alan parıltı dairesi */}
+          <button 
+            type="button"
+            className="focus-avatar-btn" 
+            onClick={() => navigate('/student')}
+            title={currentUser?.name || 'Profil'}
+          >
+            <span style={{ fontSize: '0.76rem', fontWeight: 800 }}>
+              {(currentUser?.name || 'Ö')[0]?.toUpperCase()}
+            </span>
+          </button>
+
+          <button 
+            type="button"
+            className="focus-exit-btn" 
+            onClick={() => navigate('/student')} 
+            title="Çıkış (Panale Dön)"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        </div>
+      </header>
+
+      {/* ─── 2. CENTER STAGE (Minimal Zen Circle Timer) ─── */}
+      <main className="focus-center-stage">
+        {/* Focus | Break Mode Switcher */}
+        <div className="focus-mode-switcher">
+          <button 
+            type="button"
+            className={`focus-mode-btn ${focusSegment === 'focus' ? 'active' : ''}`}
+            onClick={() => handleSelectFocusSegment('focus')}
+          >
+            <Zap size={14} />
+            <span>Focus</span>
+          </button>
+          <button 
+            type="button"
+            className={`focus-mode-btn ${focusSegment === 'break' ? 'active' : ''}`}
+            onClick={() => handleSelectFocusSegment('break')}
+          >
+            <Coffee size={14} />
+            <span>Break</span>
+          </button>
+        </div>
+
+        {/* Circular SVG Timer */}
+        <div className="focus-circle-wrapper">
+          <svg className="focus-svg-ring" viewBox="0 0 300 300">
+            <circle
+              cx="150"
+              cy="150"
+              r="135"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.08)"
+              strokeWidth="4"
+            />
+            <circle
+              cx="150"
+              cy="150"
+              r="135"
+              fill="none"
+              stroke="url(#focusTimerGrad)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 135}
+              strokeDashoffset={((100 - Math.min(100, Math.max(0, progressPercentage))) / 100) * (2 * Math.PI * 135)}
+              style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+            />
+            <defs>
+              <linearGradient id="focusTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#c084fc" />
+                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#6366f1" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          <div className="focus-timer-content">
+            <div className="focus-timer-digits">
+              {displayTimerText}
+            </div>
+            <div className="focus-timer-sub">
+              {focusSegment === 'break' ? 'BREAK' : (isRunning ? 'FOCUSING' : (sessionElapsedSeconds > 0 ? 'PAUSED' : 'READY'))}
+            </div>
+          </div>
+        </div>
+
+        {/* Task Pill / Subject Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            type="button"
+            className="focus-task-pill"
+            onClick={() => setShowHomeworkPickerModal(true)}
+            title="Görevi Değiştir"
+          >
+            <span>{selectedTaskIsReading ? '📖' : '🎯'}</span>
+            <span>
+              {selectedTask ? (selectedTask.title || selectedTask.name) : `${selectedSubject} Odak Seansı`}
+            </span>
+            {!selectedTaskIsReading && (
+              <span style={{ color: '#c084fc', fontWeight: 800 }}>
+                • {currentProgressCount} / {targetGoalCount} Soru
+              </span>
+            )}
+            <ChevronRight size={14} style={{ opacity: 0.6 }} />
+          </button>
+
+          {!selectedTaskIsReading && (
+            <button
+              type="button"
+              className="focus-fast-add-btn"
+              onClick={() => {
+                handleIncrementProgress();
+                confetti({ particleCount: 30, spread: 55, origin: { y: 0.6 } });
+              }}
+              title="Bir soru tamamla (+1)"
+            >
+              <Plus size={14} />
+              <span>+1 Soru</span>
+            </button>
+          )}
+        </div>
+
+        {/* Controls: Reset | Play/Pause | Finish */}
+        <div className="focus-controls-row">
+          <button 
+            type="button"
+            className="focus-reset-btn"
+            onClick={() => {
+              setIsRunning(false);
+              setSessionElapsedSeconds(0);
+              setStopwatchSeconds(0);
+              setTimeLeft(calculatedBudgetMinutes * 60);
+            }}
+            title="Sıfırla"
+          >
+            <RotateCcw size={18} />
+          </button>
+
+          <button 
+            type="button"
+            className="focus-play-btn"
+            onClick={handleToggleTimer}
+            title={isRunning ? "Duraklat" : "Başlat"}
+          >
+            {isRunning ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: 3 }} />}
+          </button>
+
+          <button 
+            type="button"
+            className="focus-reset-btn"
+            onClick={handleCompleteSession}
+            title="Seansı Bitir"
+            style={{ color: '#34d399' }}
+          >
+            <CheckCircle2 size={19} />
+          </button>
+        </div>
+      </main>
+
+      {/* ─── 3. BOTTOM FLOATING DOCK (Matching Reference Image) ─── */}
+      <footer className="focus-bottom-dock">
+        {/* Left: Sound / Brown Noise Controller */}
+        <div className="focus-dock-col">
+          <div className="focus-dock-title">
+            <span 
+              onClick={() => setShowSoundPicker(s => !s)} 
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+              title="Sesi Değiştir"
+            >
+              <span>{AMBIENT_SOUNDS.find(s => s.id === activeSoundId)?.name || 'Brown Noise'}</span>
+              <ChevronDown size={12} />
+            </span>
+            <span style={{ fontSize: '0.68rem', color: isSoundPlaying && !isSoundMuted ? '#34d399' : '#64748b' }}>
+              {isSoundPlaying && !isSoundMuted ? 'Açık' : 'Kapalı'}
+            </span>
+          </div>
+
+          <div className="focus-sound-row">
+            <button 
+              type="button"
+              className="focus-sound-icon-btn"
+              onClick={toggleSoundPower}
+              title={isSoundPlaying ? "Sesi Kapat" : "Sesi Aç"}
+              style={{ color: isSoundPlaying && !isSoundMuted ? '#a855f7' : '#64748b' }}
+            >
+              <Music size={16} />
+            </button>
+
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={isSoundPlaying && !isSoundMuted ? soundVolume : 0}
+              onChange={handleVolumeChange}
+              className="focus-slider-track"
+              style={{ accentColor: '#a855f7', width: '100%', cursor: 'pointer' }}
+            />
+
+            <span className="focus-sound-label">
+              {isSoundPlaying && !isSoundMuted ? `${soundVolume}%` : 'Off'}
+            </span>
+          </div>
+
+          {/* Sound Selector Dropdown */}
+          {showSoundPicker && (
             <div style={{
               position: 'absolute',
-              width: isMobile ? 320 : 480,
-              height: isMobile ? 320 : 480,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 70%)',
-              filter: 'blur(35px)',
-              pointerEvents: 'none',
-              zIndex: 0
-            }} className="focus-aura-glow" />
-
-            {/* Büyük SVG Odak Halkası */}
-            <div style={{
-              position: 'relative',
-              width: isMobile ? 270 : 350,
-              height: isMobile ? 270 : 350,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1
+              bottom: 'calc(100% + 12px)',
+              left: 10,
+              width: 220,
+              background: 'rgba(20, 18, 30, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: 16,
+              padding: 8,
+              boxShadow: '0 16px 35px rgba(0,0,0,0.6)',
+              zIndex: 100
             }}>
-              <svg
-                width={isMobile ? 270 : 350}
-                height={isMobile ? 270 : 350}
-                viewBox="0 0 260 260"
-                style={{ position: 'absolute', top: 0, left: 0 }}
-              >
-                <circle
-                  cx="130"
-                  cy="130"
-                  r="112"
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.08)"
-                  strokeWidth="12"
-                />
-                <circle
-                  cx="130"
-                  cy="130"
-                  r="112"
-                  fill="none"
-                  stroke="url(#zenFocusGradient)"
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 112}
-                  strokeDashoffset={((100 - Math.min(100, Math.max(0, progressPercentage))) / 100) * (2 * Math.PI * 112)}
-                  className="zen-ring-circle"
-                />
-                <defs>
-                  <linearGradient id="zenFocusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#6366f1" />
-                    <stop offset="50%" stopColor="#a855f7" />
-                    <stop offset="100%" stopColor="#06b6d4" />
-                  </linearGradient>
-                </defs>
-              </svg>
-
-              {/* Halka İçi Metin */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 2,
-                textAlign: 'center',
-                padding: 10
-              }}>
-                {/* Durum Rozeti */}
-                <div style={{
-                  background: isRunning ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.2)',
-                  color: isRunning ? '#34d399' : '#94a3b8',
-                  border: `1.5px solid ${isRunning ? 'rgba(16, 185, 129, 0.4)' : 'rgba(148, 163, 184, 0.3)'}`,
-                  padding: '0.22rem 0.8rem',
-                  borderRadius: 99,
-                  fontSize: '0.74rem',
-                  fontWeight: 900,
-                  fontFamily: "'Outfit', sans-serif",
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginBottom: 6,
-                  boxShadow: isRunning ? '0 0 14px rgba(16, 185, 129, 0.35)' : 'none'
-                }}>
-                  <span style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    background: isRunning ? '#34d399' : '#94a3b8',
-                    boxShadow: isRunning ? '0 0 8px #34d399' : 'none'
-                  }} />
-                  <span>{timerStatusLabel}</span>
-                </div>
-
-                {/* Devasa Sayaç Metni */}
-                <div style={{
-                  fontSize: isMobile ? '4rem' : '5rem',
-                  fontWeight: 900,
-                  fontFamily: "'Outfit', sans-serif",
-                  letterSpacing: '-0.035em',
-                  fontVariantNumeric: 'tabular-nums',
-                  color: '#ffffff',
-                  lineHeight: 1,
-                  textShadow: '0 0 35px rgba(99, 102, 241, 0.7)'
-                }}>
-                  {displayTimerText}
-                </div>
-
-                {/* Soru / Okuma Durumu */}
-                <div style={{
-                  marginTop: 10,
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                  fontFamily: "'Outfit', sans-serif",
-                  color: '#c7d2fe'
-                }}>
-                  {selectedTaskIsReading ? '📖 Kitap Okuma Odak Seansı' : `🎯 ${currentProgressCount} / ${targetGoalCount} Soru Tamamlandı`}
-                </div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', padding: '4px 8px' }}>
+                ORTAM SESLERİ
               </div>
-            </div>
-
-            {/* Motivasyon Sözü */}
-            {activeQuote && (
-              <div style={{
-                fontSize: isMobile ? '0.76rem' : '0.85rem',
-                color: '#94a3b8',
-                fontStyle: 'italic',
-                textAlign: 'center',
-                marginTop: 20,
-                maxWidth: 480,
-                padding: '0 1rem'
-              }}>
-                “{activeQuote}”
-              </div>
-            )}
-
-            {/* Büyük Aksiyon Butonları */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              marginTop: 24,
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              zIndex: 2
-            }}>
-              {/* +1 Soru Çözüldü Butonu (Kitap okuma görevinde gösterilmez) */}
-              {!selectedTaskIsReading && (
-                <button
+              {AMBIENT_SOUNDS.map(s => (
+                <div
+                  key={s.id}
                   onClick={() => {
-                    handleIncrementProgress();
-                    confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+                    setActiveSoundId(s.id);
+                    localStorage.setItem('study_sound_id', s.id);
+                    setShowSoundPicker(false);
+                    if (!isSoundPlaying) setIsSoundPlaying(true);
                   }}
                   style={{
-                    height: isMobile ? 52 : 58,
-                    padding: isMobile ? '0 1.35rem' : '0 1.85rem',
-                    borderRadius: 18,
-                    border: 'none',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    fontWeight: 900,
-                    fontSize: isMobile ? '0.95rem' : '1.05rem',
-                    fontFamily: "'Outfit', sans-serif",
+                    padding: '8px 10px',
+                    borderRadius: 10,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 7,
-                    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                    justifyContent: 'space-between',
+                    background: activeSoundId === s.id ? 'rgba(168, 85, 247, 0.2)' : 'transparent',
+                    color: activeSoundId === s.id ? '#ffffff' : '#cbd5e1',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.15s'
                   }}
-                  className="hover:scale-105 active:scale-95"
+                  className="hover:bg-white/10"
                 >
-                  <span>➕</span>
-                  <span>+1 Soru Çözüldü</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span>{s.icon}</span>
+                    <span>{s.name}</span>
+                  </span>
+                  {activeSoundId === s.id && <Check size={14} color="#a855f7" />}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Center: Environment Thumbnails */}
+        <div className="focus-dock-col">
+          <div className="focus-dock-title">
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <LayoutGrid size={13} />
+              <span>Environment</span>
+            </span>
+            <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+              {activeEnv.name}
+            </span>
+          </div>
+
+          <div className="focus-env-grid">
+            {STUDY_ENVIRONMENTS.map(env => {
+              const isActive = activeEnvId === env.id;
+              return (
+                <button
+                  key={env.id}
+                  type="button"
+                  className={`focus-env-card ${isActive ? 'active' : ''}`}
+                  onClick={() => handleSelectEnv(env)}
+                  style={{
+                    backgroundImage: `url(${env.image})`,
+                    backgroundColor: env.accent ? `${env.accent}20` : '#1e1b4b'
+                  }}
+                  title={env.name}
+                >
+                  <span className="focus-env-name">
+                    {env.name.split(' ')[0]}
+                  </span>
                 </button>
-              )}
-
-              {/* Başlat / Duraklat */}
-              <button
-                onClick={handleToggleTimer}
-                style={{
-                  height: isMobile ? 52 : 58,
-                  padding: isMobile ? '0 1.35rem' : '0 1.85rem',
-                  borderRadius: 18,
-                  border: 'none',
-                  background: isRunning ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  fontSize: isMobile ? '0.95rem' : '1.05rem',
-                  fontFamily: "'Outfit', sans-serif",
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  boxShadow: isRunning ? '0 6px 20px rgba(239, 68, 68, 0.45)' : '0 6px 20px rgba(99, 102, 241, 0.45)',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                className="hover:scale-105 active:scale-95"
-              >
-                <span>{isRunning ? '⏸️ Duraklat' : '▶️ Başlat'}</span>
-              </button>
-
-              {/* Seansı Bitir */}
-              <button
-                onClick={() => {
-                  setIsZenFocusMode(false);
-                  handleCompleteSession();
-                }}
-                style={{
-                  height: isMobile ? 52 : 58,
-                  padding: isMobile ? '0 1.1rem' : '0 1.4rem',
-                  borderRadius: 18,
-                  border: '1.5px solid rgba(255, 255, 255, 0.2)',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: isMobile ? '0.86rem' : '0.94rem',
-                  fontFamily: "'Outfit', sans-serif",
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  transition: 'all 0.2s'
-                }}
-                className="hover:bg-white/15 active:scale-95"
-              >
-                <span>✓ Bitir</span>
-              </button>
-            </div>
-
-            {/* Alt Ambiyans Hızlı Ses Çubuğu */}
-            <div style={{
-              marginTop: 26,
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: 16,
-              padding: '0.6rem 1.1rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              zIndex: 2
-            }}>
-              <span style={{ fontSize: '0.76rem', color: '#94a3b8', fontWeight: 800 }}>🎧 Ambiyans:</span>
-              {[
-                { id: 'rain', icon: '🌧️', name: 'Yağmur' },
-                { id: 'cafe', icon: '☕', name: 'Kafe' },
-                { id: 'forest', icon: '🌲', name: 'Orman' }
-              ].map(snd => {
-                const isPlaying = (soundVolumes[snd.id] || 0) > 0;
-                return (
-                  <button
-                    key={snd.id}
-                    onClick={() => {
-                      const nextVol = isPlaying ? 0 : 50;
-                      setSoundVolumes(v => ({ ...v, [snd.id]: nextVol }));
-                      try {
-                        if (nextVol > 0) ambientAudio.playSound(snd.id, nextVol / 100);
-                        else ambientAudio.stopSound(snd.id);
-                      } catch {}
-                    }}
-                    style={{
-                      background: isPlaying ? 'rgba(99, 102, 241, 0.35)' : 'transparent',
-                      border: `1px solid ${isPlaying ? '#6366f1' : 'rgba(255, 255, 255, 0.15)'}`,
-                      color: isPlaying ? '#ffffff' : '#cbd5e1',
-                      padding: '0.28rem 0.6rem',
-                      borderRadius: 10,
-                      fontSize: '0.74rem',
-                      fontWeight: 800,
-                      fontFamily: "'Outfit', sans-serif",
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                  >
-                    <span>{snd.icon}</span>
-                    <span>{snd.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
         </div>
-      )}
 
-      {/* ─── 1. MODERN HEADER ─── */}
-      <StudyRoomHeader
-        themeObj={themeObj}
-        isMobile={isMobile}
-        currentUser={currentUser}
-        streakData={streakData}
-        wakeLockActive={wakeLockActive}
-        isFullscreen={isFullscreen}
-        toggleFullscreen={() => {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-          } else {
-            document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
-          }
-        }}
-        showSettingsDrawer={showSettingsDrawer}
-        setShowSettingsDrawer={setShowSettingsDrawer}
-        activeTheme={activeTheme}
-        setActiveTheme={t => {
-          setActiveTheme(t);
-          localStorage.setItem('study_theme', t);
-        }}
-        themes={THEMES}
-        onBack={() => navigate('/student')}
-        isZenFocusMode={isZenFocusMode}
-        onToggleZenMode={() => setIsZenFocusMode(z => !z)}
-      />
+        {/* Right: Timer Summary & Customize Button */}
+        <div className="focus-dock-col">
+          <div className="focus-dock-title">
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Clock size={13} />
+              <span>Timer</span>
+            </span>
+          </div>
 
-      {/* ─── 2. ANA SAYFA GÖVDESİ ─── */}
-      <main style={{
-        flex: 1,
-        maxWidth: (isDesktop && selectedTask && !selectedTaskIsReading) ? 1340 : 980,
-        margin: '0 auto',
-        width: '100%',
-        padding: isMobile ? '1rem 0.85rem calc(75px + env(safe-area-inset-bottom, 0px))' : '1.75rem 1.5rem 5rem',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '1.5rem',
-        boxSizing: 'border-box',
-        transition: 'max-width 0.25s ease'
-      }}>
-        {isDesktop && selectedTask && !selectedTaskIsReading ? (
-          /* ─── MASAÜSTÜ YAN YANA GÖRÜNÜM: SOLDA SAYAÇ, SAĞDA OPTİK FORM ─── */
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(460px, 1.2fr) minmax(380px, 1fr)',
-            gap: '1.5rem',
-            alignItems: 'start'
-          }}>
-            {/* SOL SÜTUN: Sayaç Kartı & Sekmeler */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <StudyHeroCard
-          themeObj={themeObj}
-          isMobile={isMobile}
-          activeStudyMode={activeStudyMode}
-          handleSwitchMasterMode={m => {
-            setActiveStudyMode(m);
-            localStorage.setItem('study_master_mode', m);
-            setIsRunning(false);
-          }}
-          selectedTask={selectedTask}
-          onOpenTaskPicker={() => setShowHomeworkPickerModal(true)}
-          onClearTask={handleClearTask}
-          selectedSubject={selectedSubject}
-          handleSelectSubject={handleSelectSubject}
-          minutesPerQuestion={minutesPerQuestion}
-          setMinutesPerQuestion={m => {
-            setMinutesPerQuestion(m);
-            localStorage.setItem('study_min_per_q', String(m));
-          }}
-          targetGoalCount={targetGoalCount}
-          handleSetNewTargetGoal={q => {
-            setTargetGoalCount(q);
-            localStorage.setItem('study_target_goal', String(q));
-          }}
-          currentProgressCount={currentProgressCount}
-          handleIncrementProgress={() => {
-            setCurrentProgressCount(c => {
-              const next = c + 1;
-              const todayKey = new Date().toISOString().split('T')[0];
-              localStorage.setItem(`study_progress_${todayKey}`, String(next));
-              return next;
-            });
-            if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
-          }}
-          handleDecrementProgress={() => {
-            setCurrentProgressCount(c => {
-              const next = Math.max(0, c - 1);
-              const todayKey = new Date().toISOString().split('T')[0];
-              localStorage.setItem(`study_progress_${todayKey}`, String(next));
-              return next;
-            });
-          }}
-          isRunning={isRunning}
-          handleToggleTimer={handleToggleTimer}
-          handleResetTimer={() => {
-            setIsRunning(false);
-            setSessionElapsedSeconds(0);
-            setStopwatchSeconds(0);
-            setTimeLeft(calculatedBudgetMinutes * 60);
-          }}
-          handleConfirmFinish={handleCompleteSession}
-          displayTimerText={displayTimerText}
-          timerStatusLabel={timerStatusLabel}
-          progressPercentage={progressPercentage}
-          activeQuote={activeQuote}
-          onNextQuote={() => setActiveQuoteIndex(i => i + 1)}
-          pomodoroMode={pomodoroMode}
-          handleSelectPomodoroMode={m => {
-            setPomodoroMode(m);
-            setIsRunning(false);
-          }}
-          completedCycles={completedCycles}
-          currentTree={currentTree}
-          activeToolTab={activeToolTab}
-          setActiveToolTab={setActiveToolTab}
-          opticalAnswerCount={Object.keys(opticalAnswers).length}
-          hasAnswerKey={Boolean(resolvedAnswerKey)}
-          isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
-          selectedTaskIsReading={selectedTaskIsReading}
-          todayPendingTasks={todayPendingTasks}
-          onSelectTodayTask={handleSelectTask}
-          onToggleZenMode={() => setIsZenFocusMode(z => !z)}
-        />
-
-              <div style={{
-          display: 'grid',
-          gridTemplateColumns: (selectedTask && !selectedTaskIsReading) ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-          gap: 7,
-          background: themeObj.innerBg,
-          padding: 5,
-          borderRadius: 20,
-          border: `1.5px solid ${themeObj.border}`
-        }}>
-          {selectedTask && !selectedTaskIsReading && (
-            <button
-              onClick={() => setActiveToolTab('optical')}
-              style={{
-                padding: '0.7rem 0.55rem',
-                borderRadius: 14,
-                border: 'none',
-                background: activeToolTab === 'optical' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-                color: activeToolTab === 'optical' ? '#ffffff' : themeObj.subText,
-                fontWeight: 900,
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: isMobile ? '0.76rem' : '0.84rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                transition: 'all 0.15s',
-                boxShadow: activeToolTab === 'optical' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-              }}
-              className="hover:scale-[1.02] active:scale-95"
-            >
-              <span>📋</span>
-              <span>{isSmallMobile ? 'Optik' : 'Optik Cevaplar'}</span>
-            </button>
-          )}
+          <div className="focus-timer-summary">
+            <span>Focus: {calculatedBudgetMinutes}m</span>
+            <span>Break: 5m</span>
+          </div>
 
           <button
-            onClick={() => setActiveToolTab('analytics')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'analytics' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'analytics' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'analytics' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
+            type="button"
+            className="focus-customize-btn"
+            onClick={() => setShowSettingsDrawer(true)}
+            title="Süre ve Ders Ayarları"
           >
-            <span>📊</span>
-            <span>{isSmallMobile ? 'Hız' : 'Hız Analizi'}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveToolTab('forest')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'forest' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'forest' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'forest' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
-          >
-            <span>🌲</span>
-            <span>{isSmallMobile ? 'Orman' : 'Başarı Ormanı'}</span>
-          </button>
-
-          <button
-            onClick={() => setActiveToolTab('ambient')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'ambient' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'ambient' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'ambient' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
-          >
-            <span>🎧</span>
-            <span>{isSmallMobile ? 'Notlar' : 'Ambiyans & Not'}</span>
+            <Sliders size={13} />
+            <span>Customize</span>
           </button>
         </div>
+      </footer>
 
-              {/* Kullanıcı Hız Analizi, Orman veya Ambiyans seçtiğinde sol sütunda açılır */}
-              {activeToolTab !== 'optical' && (
-                <div>
-                  {activeToolTab === 'analytics' && (
-            <StudySpeedAnalytics
-              themeObj={themeObj}
-              isMobile={isMobile}
-              overallAvgSecPerQ={overallAvgSecPerQ}
-              totalTrackedQuestions={allAssignedTasks.length}
-              fastestSubject={fastestSubject}
-              slowestSubject={slowestSubject}
-              trackedSubjectsList={trackedSubjectsList}
-              activeTrackedCount={activeTrackedCount}
-              selectedSubject={selectedSubject}
-              handleSelectSubject={handleSelectSubject}
-              handleSwitchMasterMode={m => setActiveStudyMode(m)}
-              clearSubjectStats={() => {
-                setSubjectStats({});
-                localStorage.removeItem('study_subject_stats');
-              }}
-              loadDemoSubjectStats={() => {
-                const demo = {
-                  'Matematik': { totalQuestions: 40, totalSeconds: 4800, sessionCount: 4 },
-                  'Türkçe': { totalQuestions: 35, totalSeconds: 2450, sessionCount: 3 },
-                  'Fen Bilimleri': { totalQuestions: 25, totalSeconds: 2250, sessionCount: 2 }
-                };
-                setSubjectStats(demo);
-                localStorage.setItem('study_subject_stats', JSON.stringify(demo));
-              }}
-            />
-          )}
+      {/* ─── 4. CORNER FLOATING CONTROLS ─── */}
+      <aside className="focus-corner-right">
+        <button 
+          type="button"
+          className="focus-corner-btn" 
+          onClick={() => setIsSoundMuted(m => !m)}
+          title={isSoundMuted ? "Sesi Aç" : "Sesi Kapat"}
+        >
+          {isSoundMuted ? <VolumeX size={18} color="#ef4444" /> : <Volume2 size={18} />}
+        </button>
 
-          {activeToolTab === 'forest' && (
-            <StudyForestBadges
-              themeObj={themeObj}
-              isMobile={isMobile}
-              plantedForest={plantedForest}
-              dailyStats={dailyStats}
-            />
-          )}
+        <button 
+          type="button"
+          className="focus-corner-btn" 
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran Yap"}
+        >
+          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
 
-          {activeToolTab === 'ambient' && (
-            <StudyAmbientNotes
-              themeObj={themeObj}
-              isMobile={isMobile}
-              soundVolumes={soundVolumes}
-              handleVolumeChange={(id, vol) => {
-                setSoundVolumes(v => ({ ...v, [id]: vol }));
-                try {
-                  if (vol > 0) ambientAudio.playSound(id, vol / 100);
-                  else ambientAudio.stopSound(id);
-                } catch {}
-              }}
-              ambientAudio={ambientAudio}
-              todoList={todoList}
-              newTodoText={newTodoText}
-              setNewTodoText={setNewTodoText}
-              handleAddTodo={() => {
-                if (!newTodoText.trim()) return;
-                const newItem = { id: Date.now(), text: newTodoText.trim(), completed: false };
-                const nextList = [...todoList, newItem];
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-                setNewTodoText('');
-              }}
-              handleToggleTodo={id => {
-                const nextList = todoList.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-              }}
-              handleDeleteTodo={id => {
-                const nextList = todoList.filter(t => t.id !== id);
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-              }}
-              scratchNotes={scratchNotes}
-              setScratchNotes={text => {
-                setScratchNotes(text);
-                localStorage.setItem('study_scratch_notes', text);
-              }}
-            />
-          )}
+        <button 
+          type="button"
+          className="focus-corner-btn" 
+          onClick={() => setActiveDrawerView(v => v === 'notes' ? null : 'notes')}
+          title="Not Defteri"
+          style={{ color: activeDrawerView === 'notes' ? '#a855f7' : '#cbd5e1' }}
+        >
+          <FileText size={18} />
+        </button>
+      </aside>
+
+      {/* ─── 5. SLIDE-OVER DRAWERS (ZERO FEATURE LOSS) ─── */}
+      {/* 5A. Optical Form Drawer */}
+      {activeDrawerView === 'optical' && (
+        <>
+          <div className="focus-drawer-overlay" onClick={() => setActiveDrawerView(null)} />
+          <div className="focus-drawer-panel">
+            <div className="focus-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #a855f7, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <BookOpen size={18} />
                 </div>
-              )}
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#ffffff' }}>
+                    Optik Cevap Formu
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    {selectedTask ? (selectedTask.title || selectedTask.name) : `${selectedSubject} Testi`}
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setActiveDrawerView(null)}
+                style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="hover:bg-white/15"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* SAĞ SÜTUN: Optik Form (Sayacın Tam Sağında Sabit Konumlanır) */}
-            <div style={{ position: 'sticky', top: '1.25rem', zIndex: 10 }}>
+            <div className="focus-drawer-body">
               <StudyOpticalPanel
                 themeObj={themeObj}
                 isMobile={isMobile}
@@ -2144,298 +1959,156 @@ export default function StudyRoomPage() {
               />
             </div>
           </div>
-        ) : (
-          /* ─── MOBİL VEYA GÖREVSİZ SERBEST ÇALIŞMA DÜZENİ (DİKEY SIRALI) ─── */
-          <>
-            <StudyHeroCard
-          themeObj={themeObj}
-          isMobile={isMobile}
-          activeStudyMode={activeStudyMode}
-          handleSwitchMasterMode={m => {
-            setActiveStudyMode(m);
-            localStorage.setItem('study_master_mode', m);
-            setIsRunning(false);
-          }}
-          selectedTask={selectedTask}
-          onOpenTaskPicker={() => setShowHomeworkPickerModal(true)}
-          onClearTask={handleClearTask}
-          selectedSubject={selectedSubject}
-          handleSelectSubject={handleSelectSubject}
-          minutesPerQuestion={minutesPerQuestion}
-          setMinutesPerQuestion={m => {
-            setMinutesPerQuestion(m);
-            localStorage.setItem('study_min_per_q', String(m));
-          }}
-          targetGoalCount={targetGoalCount}
-          handleSetNewTargetGoal={q => {
-            setTargetGoalCount(q);
-            localStorage.setItem('study_target_goal', String(q));
-          }}
-          currentProgressCount={currentProgressCount}
-          handleIncrementProgress={() => {
-            setCurrentProgressCount(c => {
-              const next = c + 1;
-              const todayKey = new Date().toISOString().split('T')[0];
-              localStorage.setItem(`study_progress_${todayKey}`, String(next));
-              return next;
-            });
-            if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
-          }}
-          handleDecrementProgress={() => {
-            setCurrentProgressCount(c => {
-              const next = Math.max(0, c - 1);
-              const todayKey = new Date().toISOString().split('T')[0];
-              localStorage.setItem(`study_progress_${todayKey}`, String(next));
-              return next;
-            });
-          }}
-          isRunning={isRunning}
-          handleToggleTimer={handleToggleTimer}
-          handleResetTimer={() => {
-            setIsRunning(false);
-            setSessionElapsedSeconds(0);
-            setStopwatchSeconds(0);
-            setTimeLeft(calculatedBudgetMinutes * 60);
-          }}
-          handleConfirmFinish={handleCompleteSession}
-          displayTimerText={displayTimerText}
-          timerStatusLabel={timerStatusLabel}
-          progressPercentage={progressPercentage}
-          activeQuote={activeQuote}
-          onNextQuote={() => setActiveQuoteIndex(i => i + 1)}
-          pomodoroMode={pomodoroMode}
-          handleSelectPomodoroMode={m => {
-            setPomodoroMode(m);
-            setIsRunning(false);
-          }}
-          completedCycles={completedCycles}
-          currentTree={currentTree}
-          activeToolTab={activeToolTab}
-          setActiveToolTab={setActiveToolTab}
-          opticalAnswerCount={Object.keys(opticalAnswers).length}
-          hasAnswerKey={Boolean(resolvedAnswerKey)}
-          isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
-          selectedTaskIsReading={selectedTaskIsReading}
-          todayPendingTasks={todayPendingTasks}
-          onSelectTodayTask={handleSelectTask}
-          onToggleZenMode={() => setIsZenFocusMode(z => !z)}
-        />
+        </>
+      )}
 
-            <div style={{
-          display: 'grid',
-          gridTemplateColumns: (selectedTask && !selectedTaskIsReading) ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-          gap: 7,
-          background: themeObj.innerBg,
-          padding: 5,
-          borderRadius: 20,
-          border: `1.5px solid ${themeObj.border}`
-        }}>
-          {selectedTask && !selectedTaskIsReading && (
-            <button
-              onClick={() => setActiveToolTab('optical')}
-              style={{
-                padding: '0.7rem 0.55rem',
-                borderRadius: 14,
-                border: 'none',
-                background: activeToolTab === 'optical' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-                color: activeToolTab === 'optical' ? '#ffffff' : themeObj.subText,
-                fontWeight: 900,
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: isMobile ? '0.76rem' : '0.84rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                transition: 'all 0.15s',
-                boxShadow: activeToolTab === 'optical' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-              }}
-              className="hover:scale-[1.02] active:scale-95"
-            >
-              <span>📋</span>
-              <span>{isSmallMobile ? 'Optik' : 'Optik Cevaplar'}</span>
-            </button>
-          )}
+      {/* 5B. Dashboard Drawer (Speed Analytics & Forest) */}
+      {activeDrawerView === 'dashboard' && (
+        <>
+          <div className="focus-drawer-overlay" onClick={() => setActiveDrawerView(null)} />
+          <div className="focus-drawer-panel" style={{ width: 560 }}>
+            <div className="focus-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #06b6d4, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <LayoutGrid size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#ffffff' }}>
+                    Çalışma Karnesi & Fidanlık
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Hız analizi, dikilen ağaçlar ve çalışma geçmişi
+                  </div>
+                </div>
+              </div>
 
-          <button
-            onClick={() => setActiveToolTab('analytics')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'analytics' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'analytics' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'analytics' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
-          >
-            <span>📊</span>
-            <span>{isSmallMobile ? 'Hız' : 'Hız Analizi'}</span>
-          </button>
+              <button 
+                type="button"
+                onClick={() => setActiveDrawerView(null)}
+                style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="hover:bg-white/15"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-          <button
-            onClick={() => setActiveToolTab('forest')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'forest' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'forest' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'forest' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
-          >
-            <span>🌲</span>
-            <span>{isSmallMobile ? 'Orman' : 'Başarı Ormanı'}</span>
-          </button>
+            <div className="focus-drawer-body">
+              <StudySpeedAnalytics
+                themeObj={themeObj}
+                isMobile={isMobile}
+                overallAvgSecPerQ={overallAvgSecPerQ}
+                totalTrackedQuestions={allAssignedTasks.length}
+                fastestSubject={fastestSubject}
+                slowestSubject={slowestSubject}
+                trackedSubjectsList={trackedSubjectsList}
+                activeTrackedCount={activeTrackedCount}
+                selectedSubject={selectedSubject}
+                handleSelectSubject={handleSelectSubject}
+                handleSwitchMasterMode={m => setActiveStudyMode(m)}
+                clearSubjectStats={() => {
+                  setSubjectStats({});
+                  localStorage.removeItem('study_subject_stats');
+                }}
+                loadDemoSubjectStats={() => {
+                  const demo = {
+                    'Matematik': { totalQuestions: 40, totalSeconds: 4800, sessionCount: 4 },
+                    'Türkçe': { totalQuestions: 35, totalSeconds: 2450, sessionCount: 3 },
+                    'Fen Bilimleri': { totalQuestions: 25, totalSeconds: 2250, sessionCount: 2 }
+                  };
+                  setSubjectStats(demo);
+                  localStorage.setItem('study_subject_stats', JSON.stringify(demo));
+                }}
+              />
 
-          <button
-            onClick={() => setActiveToolTab('ambient')}
-            style={{
-              padding: '0.7rem 0.55rem',
-              borderRadius: 14,
-              border: 'none',
-              background: activeToolTab === 'ambient' ? (themeObj.accentGradient || themeObj.accent) : 'transparent',
-              color: activeToolTab === 'ambient' ? '#ffffff' : themeObj.subText,
-              fontWeight: 900,
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: isMobile ? '0.76rem' : '0.84rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s',
-              boxShadow: activeToolTab === 'ambient' ? `0 4px 14px ${themeObj.accent}45` : 'none'
-            }}
-            className="hover:scale-[1.02] active:scale-95"
-          >
-            <span>🎧</span>
-            <span>{isSmallMobile ? 'Notlar' : 'Ambiyans & Not'}</span>
-          </button>
-        </div>
-
-            <div>
-              {activeToolTab === 'optical' && selectedTask && !selectedTaskIsReading && (
-                <StudyOpticalPanel
+              <div style={{ marginTop: 12 }}>
+                <StudyForestBadges
                   themeObj={themeObj}
                   isMobile={isMobile}
-                  targetGoalCount={targetGoalCount}
-                  opticalAnswers={opticalAnswers}
-                  handleSelectOpticalOption={handleSelectOpticalOption}
-                  handleSetOpticalTextAnswer={handleSetOpticalTextAnswer}
-                  handleClearOpticalAnswers={handleClearOpticalAnswers}
-                  handleFinishOpticalQuiz={handleFinishOpticalQuiz}
-                  isSubmittingOptical={isSubmittingOptical}
-                  isSelectedTaskOpenEnded={isSelectedTaskOpenEnded}
-                  rawAnswerKey={rawAnswerKey}
-                  resolvedAnswerKey={resolvedAnswerKey}
+                  plantedForest={plantedForest}
+                  dailyStats={dailyStats}
                 />
-              )}
-
-              {activeToolTab === 'analytics' && (
-            <StudySpeedAnalytics
-              themeObj={themeObj}
-              isMobile={isMobile}
-              overallAvgSecPerQ={overallAvgSecPerQ}
-              totalTrackedQuestions={allAssignedTasks.length}
-              fastestSubject={fastestSubject}
-              slowestSubject={slowestSubject}
-              trackedSubjectsList={trackedSubjectsList}
-              activeTrackedCount={activeTrackedCount}
-              selectedSubject={selectedSubject}
-              handleSelectSubject={handleSelectSubject}
-              handleSwitchMasterMode={m => setActiveStudyMode(m)}
-              clearSubjectStats={() => {
-                setSubjectStats({});
-                localStorage.removeItem('study_subject_stats');
-              }}
-              loadDemoSubjectStats={() => {
-                const demo = {
-                  'Matematik': { totalQuestions: 40, totalSeconds: 4800, sessionCount: 4 },
-                  'Türkçe': { totalQuestions: 35, totalSeconds: 2450, sessionCount: 3 },
-                  'Fen Bilimleri': { totalQuestions: 25, totalSeconds: 2250, sessionCount: 2 }
-                };
-                setSubjectStats(demo);
-                localStorage.setItem('study_subject_stats', JSON.stringify(demo));
-              }}
-            />
-          )}
-
-          {activeToolTab === 'forest' && (
-            <StudyForestBadges
-              themeObj={themeObj}
-              isMobile={isMobile}
-              plantedForest={plantedForest}
-              dailyStats={dailyStats}
-            />
-          )}
-
-          {activeToolTab === 'ambient' && (
-            <StudyAmbientNotes
-              themeObj={themeObj}
-              isMobile={isMobile}
-              soundVolumes={soundVolumes}
-              handleVolumeChange={(id, vol) => {
-                setSoundVolumes(v => ({ ...v, [id]: vol }));
-                try {
-                  if (vol > 0) ambientAudio.playSound(id, vol / 100);
-                  else ambientAudio.stopSound(id);
-                } catch {}
-              }}
-              ambientAudio={ambientAudio}
-              todoList={todoList}
-              newTodoText={newTodoText}
-              setNewTodoText={setNewTodoText}
-              handleAddTodo={() => {
-                if (!newTodoText.trim()) return;
-                const newItem = { id: Date.now(), text: newTodoText.trim(), completed: false };
-                const nextList = [...todoList, newItem];
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-                setNewTodoText('');
-              }}
-              handleToggleTodo={id => {
-                const nextList = todoList.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-              }}
-              handleDeleteTodo={id => {
-                const nextList = todoList.filter(t => t.id !== id);
-                setTodoList(nextList);
-                localStorage.setItem('study_todo_list', JSON.stringify(nextList));
-              }}
-              scratchNotes={scratchNotes}
-              setScratchNotes={text => {
-                setScratchNotes(text);
-                localStorage.setItem('study_scratch_notes', text);
-              }}
-            />
-          )}
+              </div>
             </div>
-          </>
-        )}
-      </main>
+          </div>
+        </>
+      )}
 
-      {/* ─── 5. MODAL VE ÇEKMECELER ─── */}
+      {/* 5C. Notes Drawer */}
+      {activeDrawerView === 'notes' && (
+        <>
+          <div className="focus-drawer-overlay" onClick={() => setActiveDrawerView(null)} />
+          <div className="focus-drawer-panel">
+            <div className="focus-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1rem', fontWeight: 800, fontFamily: "'Outfit', sans-serif", color: '#ffffff' }}>
+                    Çalışma Notları & Hedefler
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                    Anlık karalama ve yapılacaklar listesi
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setActiveDrawerView(null)}
+                style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="hover:bg-white/15"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="focus-drawer-body">
+              <StudyAmbientNotes
+                themeObj={themeObj}
+                isMobile={isMobile}
+                soundVolumes={soundVolumes}
+                handleVolumeChange={(id, vol) => {
+                  setSoundVolumes(v => ({ ...v, [id]: vol }));
+                  try {
+                    if (vol > 0) ambientAudio.playSound(id, vol / 100);
+                    else ambientAudio.stopSound(id);
+                  } catch {}
+                }}
+                ambientAudio={ambientAudio}
+                todoList={todoList}
+                newTodoText={newTodoText}
+                setNewTodoText={setNewTodoText}
+                handleAddTodo={() => {
+                  if (!newTodoText.trim()) return;
+                  const newItem = { id: Date.now(), text: newTodoText.trim(), completed: false };
+                  const nextList = [...todoList, newItem];
+                  setTodoList(nextList);
+                  localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+                  setNewTodoText('');
+                }}
+                handleToggleTodo={id => {
+                  const nextList = todoList.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+                  setTodoList(nextList);
+                  localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+                }}
+                handleDeleteTodo={id => {
+                  const nextList = todoList.filter(t => t.id !== id);
+                  setTodoList(nextList);
+                  localStorage.setItem('study_todo_list', JSON.stringify(nextList));
+                }}
+                scratchNotes={scratchNotes}
+                setScratchNotes={text => {
+                  setScratchNotes(text);
+                  localStorage.setItem('study_scratch_notes', text);
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ─── 6. MODALS ─── */}
       <StudyHomeworkPickerModal
         show={showHomeworkPickerModal}
         onClose={() => setShowHomeworkPickerModal(false)}
@@ -2480,13 +2153,7 @@ export default function StudyRoomPage() {
           localStorage.setItem('study_theme', t);
         }}
         isFullscreen={isFullscreen}
-        toggleFullscreen={() => {
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-          } else {
-            document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
-          }
-        }}
+        toggleFullscreen={toggleFullscreen}
         wakeLockActive={wakeLockActive}
         questionChimeEnabled={questionChimeEnabled}
         setQuestionChimeEnabled={setQuestionChimeEnabled}

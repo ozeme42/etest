@@ -18,6 +18,105 @@ export const TREE_SPECIES = [
   { icon: '🍎', name: 'Meyveli Elma Ağacı' }
 ];
 
+// ─── ENVIRONMENTS (STUDY ROOM VISUAL SCENES) ──────────────────────────────────
+export const STUDY_ENVIRONMENTS = [
+  {
+    id: 'lofi_bedroom',
+    name: 'Lofi Bedroom',
+    turkishName: 'Lofi Yatak Odası',
+    icon: '🛏️',
+    defaultSound: 'brownnoise',
+    accent: '#a855f7',
+    glowColor: 'rgba(249, 115, 22, 0.35)',
+    bgGradient: 'radial-gradient(circle at 25% 65%, rgba(249, 115, 22, 0.28) 0%, transparent 45%), radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.25) 0%, transparent 55%), #0c0a1a',
+    image: 'https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(12, 10, 26, 0.65) 0%, rgba(12, 10, 26, 0.45) 50%, rgba(12, 10, 26, 0.85) 100%)'
+  },
+  {
+    id: 'rainy_window',
+    name: 'Rainy Window',
+    turkishName: 'Yağmurlu Pencere',
+    icon: '🌧️',
+    defaultSound: 'rain',
+    accent: '#38bdf8',
+    glowColor: 'rgba(56, 189, 248, 0.3)',
+    bgGradient: 'radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.22) 0%, transparent 50%), #070d18',
+    image: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(7, 13, 24, 0.7) 0%, rgba(7, 13, 24, 0.45) 50%, rgba(7, 13, 24, 0.85) 100%)'
+  },
+  {
+    id: 'old_library',
+    name: 'Old Library',
+    turkishName: 'Eski Kütüphane',
+    icon: '📚',
+    defaultSound: 'fire',
+    accent: '#f59e0b',
+    glowColor: 'rgba(217, 119, 6, 0.3)',
+    bgGradient: 'radial-gradient(circle at 50% 60%, rgba(217, 119, 6, 0.22) 0%, transparent 50%), #140d07',
+    image: 'https://images.unsplash.com/photo-1507842229450-79883da4c2dd?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(20, 13, 7, 0.7) 0%, rgba(20, 13, 7, 0.45) 50%, rgba(20, 13, 7, 0.85) 100%)'
+  },
+  {
+    id: 'night_cafe',
+    name: 'Night Cafe',
+    turkishName: 'Gece Kafesi',
+    icon: '☕',
+    defaultSound: 'cafe',
+    accent: '#fb7185',
+    glowColor: 'rgba(244, 63, 94, 0.3)',
+    bgGradient: 'radial-gradient(circle at 60% 40%, rgba(244, 63, 94, 0.2) 0%, transparent 50%), #180d14',
+    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(24, 13, 20, 0.7) 0%, rgba(24, 13, 20, 0.45) 50%, rgba(24, 13, 20, 0.85) 100%)'
+  },
+  {
+    id: 'mystic_forest',
+    name: 'Mystic Forest',
+    turkishName: 'Gizemli Orman',
+    icon: '🌲',
+    defaultSound: 'rain',
+    accent: '#34d399',
+    glowColor: 'rgba(16, 185, 129, 0.3)',
+    bgGradient: 'radial-gradient(circle at 40% 70%, rgba(16, 185, 129, 0.22) 0%, transparent 50%), #061510',
+    image: 'https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(6, 21, 16, 0.7) 0%, rgba(6, 21, 16, 0.45) 50%, rgba(6, 21, 16, 0.85) 100%)'
+  },
+  {
+    id: 'deep_space',
+    name: 'Deep Space',
+    turkishName: 'Derin Uzay',
+    icon: '🌌',
+    defaultSound: 'binaural',
+    accent: '#c084fc',
+    glowColor: 'rgba(168, 85, 247, 0.35)',
+    bgGradient: 'radial-gradient(circle at 70% 30%, rgba(168, 85, 247, 0.28) 0%, transparent 50%), #070614',
+    image: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(7, 6, 20, 0.7) 0%, rgba(7, 6, 20, 0.45) 50%, rgba(7, 6, 20, 0.85) 100%)'
+  },
+  {
+    id: 'midnight_ocean',
+    name: 'Midnight Ocean',
+    turkishName: 'Gece Okyanusu',
+    icon: '🌊',
+    defaultSound: 'waves',
+    accent: '#38bdf8',
+    glowColor: 'rgba(14, 165, 233, 0.3)',
+    bgGradient: 'radial-gradient(circle at 50% 80%, rgba(14, 165, 233, 0.22) 0%, transparent 50%), #040d1a',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80',
+    overlay: 'linear-gradient(180deg, rgba(4, 13, 26, 0.7) 0%, rgba(4, 13, 26, 0.45) 50%, rgba(4, 13, 26, 0.85) 100%)'
+  }
+];
+
+// ─── AMBIENT SOUNDS ──────────────────────────────────────────────────────────
+export const AMBIENT_SOUNDS = [
+  { id: 'brownnoise', name: 'Brown Noise', icon: '〰️', desc: 'Derin & rahatlatıcı fısıltı' },
+  { id: 'rain', name: 'Yağmur', icon: '🌧️', desc: 'Pencereye vuran yağmur' },
+  { id: 'waves', name: 'Okyanus Dalgası', icon: '🌊', desc: 'Ritmik dingin dalgalar' },
+  { id: 'cafe', name: 'Gece Kafe', icon: '☕', desc: 'Sıcak kahve dükkanı' },
+  { id: 'fire', name: 'Şömine Çıقطısı', icon: '🔥', desc: 'Odun çıtırtısı & sıcaklık' },
+  { id: 'binaural', name: 'Binaural 432Hz', icon: '🧘', desc: 'Derin odak frekansı' },
+  { id: 'whitenoise', name: 'Beyaz Gürültü', icon: '📻', desc: 'Sabit arka plan sesi' }
+];
+
 // ─── THEMES ────────────────────────────────────────────────────────────────────
 export const getThemeList = (isDark) => [
   {
