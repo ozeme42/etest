@@ -37,6 +37,7 @@ import DashboardTodayTasks from '../features/dashboard/components/DashboardToday
 import DashboardHomeworksCard from '../features/dashboard/components/DashboardHomeworksCard';
 import DashboardHeroTaskCard from '../features/dashboard/components/DashboardHeroTaskCard';
 import SmartPullToRefresh from '../components/common/SmartPullToRefresh';
+import StudentModernOverview from '../features/dashboard/components/StudentModernOverview';
 import { computeStudentGamificationData } from '../services/gamificationService';
 import { isRemedialStageDone, getRemedialLockStatus } from '../services/remedialSpacedRepetitionService';
 
@@ -359,10 +360,10 @@ export default function StudentDashboard() {
   const [activeDashboardTab, setActiveDashboardTab] = useState(() => {
     try {
       const saved = localStorage.getItem('etest_student_active_tab_v2');
-      if (saved && saved !== 'all') return saved;
-      return 'tasks';
+      if (saved && ['overview', 'tasks', 'books', 'remedial', 'analytics'].includes(saved)) return saved;
+      return 'overview';
     } catch {
-      return 'tasks';
+      return 'overview';
     }
   });
 
@@ -373,6 +374,7 @@ export default function StudentDashboard() {
     } catch {}
   }, []);
 
+  const handleViewOverview = useCallback(() => handleTabChange('overview'), [handleTabChange]);
   const handleViewAllTasks = useCallback(() => handleTabChange('tasks'), [handleTabChange]);
   const handleExploreBooks = useCallback(() => handleTabChange('books'), [handleTabChange]);
   const handleViewRemedial = useCallback(() => handleTabChange('remedial'), [handleTabChange]);
@@ -3602,14 +3604,35 @@ export default function StudentDashboard() {
   return (
     <SmartPullToRefresh onRefresh={handleDashboardRefresh}>
       <div className="student-dashboard-page" style={{ paddingBottom: 'calc(58px + env(safe-area-inset-bottom, 0px) + 0.85rem)' }}>
+      {/* ── Teacher Selector (if teacher previewing a student) ── */}
+      {currentUser?.role !== 'student' && studentMembers.length > 1 && (
+        <div style={{ maxWidth: 1440, margin: '0.65rem auto 0.35rem', padding: isMobile ? '0 0.75rem 0.5rem' : '0 clamp(1rem, 2vw, 2.5rem) 0.5rem', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 10, width: '100%', boxSizing: 'border-box' }}>
+          <span style={{ fontSize: '0.74rem', fontWeight: 800, color: isDark ? '#fde68a' : '#4f46e5', whiteSpace: 'nowrap' }}>👁️ Önizlenen Öğrenci:</span>
+          <select
+            value={selectedStudent?.id || ''}
+            onChange={e => {
+              const s = studentMembers.find(st => String(st.id) === String(e.target.value));
+              if (s) {
+                setSelectedStudent(s);
+                try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
+              }
+            }}
+            style={{ background: isDark ? 'rgba(15,23,42,0.95)' : '#ffffff', color: isDark ? 'white' : '#0f172a', border: isDark ? '1px solid rgba(255,255,255,0.25)' : '1px solid #cbd5e1', borderRadius: 10, padding: '0.35rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, flex: 1, minWidth: 0 }}
+          >
+            {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
+          </select>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════
-      {/* ══════════════════════════════════════════════════════
-          EDUQUEST GAMIFIED PLAYER STATUS HUD & COMMAND DECK
+          EDUQUEST GAMIFIED PLAYER STATUS HUD & COMMAND DECK (Görev/Kütüphane/Telafi/Arena)
       ══════════════════════════════════════════════════════ */}
-      <div style={{
-        background: isDark
-          ? 'linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%)'
-          : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
+      {activeDashboardTab !== 'overview' && (
+        <>
+          <div style={{
+            background: isDark
+              ? 'linear-gradient(135deg, #090d16 0%, #0f172a 40%, #1e1b4b 100%)'
+              : 'linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #4338ca 70%, #6366f1 100%)',
         position: 'relative',
         overflow: 'hidden',
         width: '100%',
@@ -3880,26 +3903,6 @@ export default function StudentDashboard() {
             </button>
           </div>
         </div>
-
-        {/* Teacher Selector (if teacher previewing a student) */}
-        {currentUser?.role !== 'student' && studentMembers.length > 1 && (
-          <div style={{ maxWidth: 1440, margin: '0 auto', padding: isMobile ? '0 0.75rem 0.5rem' : '0 clamp(1rem, 2vw, 2.5rem) 0.5rem', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 1, width: '100%', boxSizing: 'border-box' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#fde68a', whiteSpace: 'nowrap' }}>👁️ Öğrenci:</span>
-            <select
-              value={selectedStudent?.id || ''}
-              onChange={e => {
-                const s = studentMembers.find(st => String(st.id) === String(e.target.value));
-                if (s) {
-                  setSelectedStudent(s);
-                  try { localStorage.setItem('etest_selected_student_id', s.id); } catch {}
-                }
-              }}
-              style={{ background: 'rgba(15,23,42,0.95)', color: 'white', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '0.35rem 0.65rem', fontSize: '0.76rem', fontWeight: 700, flex: 1, minWidth: 0 }}
-            >
-              {studentMembers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.className || 'Sınıf'})</option>)}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* ── Quest Resources Dock (Görev & Statü Çantası) ── */}
@@ -3970,6 +3973,8 @@ export default function StudentDashboard() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* ════════════════════════════════════════════
           ANA İÇERİK — OYUN MODU & GÖREV MERKEZİ
@@ -3989,17 +3994,26 @@ export default function StudentDashboard() {
             style={{
               width: '100%',
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
               gap: isMobile ? 0 : 8,
               boxSizing: 'border-box',
               padding: isMobile ? '4px' : '8px',
-              borderRadius: isMobile ? '18px 18px 0 0' : '22px 22px 0 0',
+              borderRadius: activeDashboardTab === 'overview' ? (isMobile ? 16 : 20) : (isMobile ? '18px 18px 0 0' : '22px 22px 0 0'),
               border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
-              borderBottom: 'none',
+              borderBottom: activeDashboardTab === 'overview' ? (isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0') : 'none',
+              marginBottom: activeDashboardTab === 'overview' ? '1.25rem' : 0,
               boxShadow: 'none'
             }}
           >
             {[
+              {
+                id: 'overview',
+                label: isMobile ? '🌟 Genel' : '🌟 Genel Bakış',
+                count: 0,
+                countColor: '',
+                gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                shadow: '0 4px 0 #3730a3, 0 8px 18px rgba(99, 102, 241, 0.4)'
+              },
               {
                 id: 'tasks',
                 label: isMobile ? '⚔️ Görev' : '⚔️ Görevler',
@@ -4085,7 +4099,7 @@ export default function StudentDashboard() {
                   </button>
 
                   {/* Mobilde sekmeler arasına çok belirgin dikey ayırıcı çizgi */}
-                  {idx < 3 && (
+                  {idx < 4 && (
                     <span
                       className="game-dock-divider"
                       aria-hidden="true"
@@ -4111,6 +4125,39 @@ export default function StudentDashboard() {
         {/* ════════════════════════════════════════════
             MACERA PANELLERİ
         ════════════════════════════════════════════ */}
+
+        {/* ── 0. MOD: MODERN GENEL BAKIŞ (MOCKUP EŞLEŞMESİ) ── */}
+        {activeDashboardTab === 'overview' && (
+          <StudentModernOverview
+            selectedStudent={selectedStudent}
+            currentUser={currentUser}
+            studentRank={studentRank}
+            studentStreak={studentStreak}
+            todayData={fullProcessedWeekMap[todayDayKey] || dayProgramInfo}
+            fullProcessedWeekMap={fullProcessedWeekMap}
+            physicalBooks={assignedBooksList.length > 0 ? assignedBooksList : books}
+            solvedQuestionsStats={solvedQuestionsStats}
+            overallSuccessRate={overallSuccessRate}
+            onNavigate={navigate}
+            onSwitchTab={handleTabChange}
+            onSelectBook={(book) => {
+              if (book?.id) {
+                navigate(`/student/books/${book.id}`);
+              } else {
+                handleTabChange('books');
+              }
+            }}
+            onStartTask={(task) => {
+              if (task?.homeworkId) {
+                navigate(`/homework/${task.homeworkId}`);
+              } else {
+                navigate('/study-room');
+              }
+            }}
+            isMobile={isMobile}
+            isDark={isDark}
+          />
+        )}
 
         {/* ── 1. MOD: GÖREVLER (⚔️ QUESTS) ── */}
         {activeDashboardTab === 'tasks' && (

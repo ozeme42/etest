@@ -341,12 +341,12 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
             <div className="tready-sidebar-header">
               <Link to="/" className="tready-brand-link" onClick={closeSidebar}>
                 <div className="tready-brand-logo">
-                  <Rocket size={22} color="#ffffff" />
+                  <GraduationCap size={22} color="#ffffff" />
                 </div>
                 <div className="tready-brand-info">
                   <div className="tready-brand-title">E-Test</div>
                   <div className="tready-brand-sub">
-                    {currentUser?.role === 'student' ? '5. Sınıf Maarif Modeli' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
+                    {currentUser?.role === 'student' ? 'Daha fazlasını öğren!' : currentUser?.role === 'teacher' ? 'Öğretmen Portalı' : 'Yönetim Paneli'}
                   </div>
                 </div>
               </Link>
@@ -379,7 +379,7 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
         <div className="tready-nav-container custom-scrollbar">
           {currentUser?.role === 'student' && (
             <>
-              <div className="tready-section-title">MAIN MENU</div>
+              <div className="tready-section-title">MENÜ</div>
               <NavLink 
                 to="/student" 
                 end 
@@ -389,6 +389,26 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               >
                 <div className="tready-nav-icon"><LayoutGrid size={19} /></div>
                 <span className="tready-nav-label">Ana Sayfa</span>
+              </NavLink>
+
+              <NavLink 
+                to="/my-program" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Çalışma Planım"
+              >
+                <div className="tready-nav-icon"><Calendar size={19} /></div>
+                <span className="tready-nav-label">Çalışma Planım</span>
+              </NavLink>
+
+              <NavLink 
+                to="/student/books" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Kitaplarım"
+              >
+                <div className="tready-nav-icon"><BookOpen size={19} /></div>
+                <span className="tready-nav-label">Kitaplarım</span>
               </NavLink>
 
               <NavLink 
@@ -405,6 +425,16 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               </NavLink>
 
               <NavLink 
+                to="/student-results" 
+                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
+                onClick={closeSidebar}
+                data-tooltip="Sonuçlarım"
+              >
+                <div className="tready-nav-icon"><BarChart2 size={19} /></div>
+                <span className="tready-nav-label">Sonuçlarım</span>
+              </NavLink>
+
+              <NavLink 
                 to="/study-room" 
                 className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
                 onClick={closeSidebar}
@@ -412,18 +442,10 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               >
                 <div className="tready-nav-icon"><Headphones size={19} /></div>
                 <span className="tready-nav-label">Çalışma Odası</span>
-                <span className="tready-nav-badge" style={{ background: 'rgba(236,72,153,0.25)', color: '#f43f5e' }}>CANLI</span>
+                <span className="tready-nav-badge" style={{ background: 'rgba(99, 102, 241, 0.25)', color: '#6366f1' }}>CANLI</span>
               </NavLink>
 
-              <NavLink 
-                to="/my-program" 
-                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
-                onClick={closeSidebar}
-                data-tooltip="Ders Programım"
-              >
-                <div className="tready-nav-icon"><Calendar size={19} /></div>
-                <span className="tready-nav-label">Ders Programım</span>
-              </NavLink>
+              <div className="tready-section-title">DİĞER MODÜLLER</div>
 
               <NavLink 
                 to="/student/roadmap" 
@@ -446,18 +468,6 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
                   <span className="tready-nav-label">Koçluk Dosyam</span>
                 </NavLink>
               )}
-
-              <div className="tready-section-title">KÜTÜPHANE</div>
-
-              <NavLink 
-                to="/student/books" 
-                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
-                onClick={closeSidebar}
-                data-tooltip="Kitaplarım (Soru Bankası)"
-              >
-                <div className="tready-nav-icon"><BookOpen size={19} /></div>
-                <span className="tready-nav-label">Kitaplarım (Soru Bankası)</span>
-              </NavLink>
 
               <NavLink 
                 to="/student/reading" 
@@ -487,18 +497,6 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
               >
                 <div className="tready-nav-icon"><Award size={19} /></div>
                 <span className="tready-nav-label">Denemelerim</span>
-              </NavLink>
-
-              <div className="tready-section-title">GELİŞİM &amp; ANALİZ</div>
-
-              <NavLink 
-                to="/student-results" 
-                className={({ isActive }) => `tready-nav-link ${isActive ? 'active' : ''}`}
-                onClick={closeSidebar}
-                data-tooltip="Sonuçlarım"
-              >
-                <div className="tready-nav-icon"><BarChart2 size={19} /></div>
-                <span className="tready-nav-label">Sonuçlarım</span>
               </NavLink>
 
               <NavLink 
@@ -709,18 +707,29 @@ const Sidebar = React.memo(function Sidebar({ isCollapsed, setIsCollapsed }) {
           // EXPANDED FOOTER
           <div className="tready-sidebar-footer">
             {currentUser?.role === 'student' && (
-              <Link to="/study-room" className="tready-focus-card" onClick={closeSidebar}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #f59e0b, #ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                    <Flame size={16} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#ffffff' }}>Odak Odası</div>
-                    <div style={{ fontSize: '0.64rem', fontWeight: 600, color: '#f59e0b' }}>⚡ +50 XP Kazan</div>
-                  </div>
+              <div 
+                style={{
+                  margin: '4px 6px 12px',
+                  padding: '16px 12px 14px',
+                  background: isDark 
+                    ? 'linear-gradient(180deg, rgba(30, 27, 75, 0.75) 0%, rgba(49, 46, 129, 0.6) 100%)' 
+                    : 'linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%)',
+                  borderRadius: 20,
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  border: isDark ? '1.5px solid rgba(129, 140, 248, 0.35)' : '1.5px solid rgba(199, 210, 254, 0.8)',
+                  boxShadow: isDark ? '0 10px 24px rgba(0,0,0,0.35)' : '0 10px 24px rgba(99, 102, 241, 0.08)'
+                }}
+              >
+                <div style={{ width: 50, height: 50, marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '2.5rem', filter: 'drop-shadow(0 4px 8px rgba(245, 158, 11, 0.4))' }}>🏆</span>
                 </div>
-                <ChevronRight size={14} color="#8e95a5" />
-              </Link>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: isDark ? '#e0e7ff' : '#1e1b4b', lineHeight: 1.35 }}>
+                  Hedeflerine odaklan, başaracaksın!
+                </div>
+              </div>
             )}
 
             {currentUser ? (

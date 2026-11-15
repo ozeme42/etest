@@ -176,8 +176,8 @@ html.ssp-in-fullscreen .sidebar {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #ff1493 0%, #db0074 100%);
-  box-shadow: 0 6px 20px rgba(240, 24, 138, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,10 +381,10 @@ html.ssp-in-fullscreen .sidebar {
 }
 
 .tready-nav-link.active {
-  background: linear-gradient(180deg, #ff1493 0%, #db0074 100%) !important;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow: 0 8px 24px -2px rgba(240, 24, 138, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 8px 24px -2px rgba(99, 102, 241, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
   border-color: transparent !important;
   transform: none !important;
 }
@@ -419,9 +419,9 @@ html.ssp-in-fullscreen .sidebar {
 }
 
 .tready-nav-link:not(.active) .tready-nav-badge {
-  background: rgba(240, 24, 138, 0.2);
-  color: #ff1493;
-  border: 1px solid rgba(240, 24, 138, 0.4);
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 /* Collapsed Rail Link Overrides */
@@ -451,7 +451,7 @@ html.ssp-in-fullscreen .sidebar {
   height: 8px;
   padding: 0;
   border-radius: 50%;
-  background: #ff1493;
+  background: #6366f1;
   border: 1.5px solid var(--sidebar-glass-bg);
   font-size: 0;
   color: transparent;
@@ -461,7 +461,7 @@ html.ssp-in-fullscreen .sidebar {
   width: 44px !important;
   height: 44px !important;
   border-radius: 14px !important;
-  box-shadow: 0 6px 20px -2px rgba(240, 24, 138, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 6px 20px -2px rgba(99, 102, 241, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
 }
 
 /* Tooltip on Collapsed Rail Hover */
