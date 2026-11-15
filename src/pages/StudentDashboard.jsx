@@ -4279,32 +4279,40 @@ export default function StudentDashboard() {
                 gamificationData={studentGamification}
               />
 
-              {/* Periyodik Soru & Başarı Analizi */}
-              <div>
-                {isAnalyticsReady ? (
-                  <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
-                    <PeriodicQuestionAnalytics
-                      homeworkSubmissions={otherHomeworkSubmissions}
-                      mockExams={generalTrialExams}
-                      studentName={selectedStudent?.name || 'Öğrenci'}
-                    />
-                  </Suspense>
-                ) : (
-                  <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
-                    📊 Analiz hazırlanıyor…
-                  </div>
-                )}
-              </div>
+              {/* Analiz & Hedef Panoları (Masaüstünde 2 Sütunlu Kompakt Cockpit) */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
+                gap: '1rem',
+                alignItems: 'start'
+              }}>
+                {/* Periyodik Soru & Başarı Analizi */}
+                <div>
+                  {isAnalyticsReady ? (
+                    <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
+                      <PeriodicQuestionAnalytics
+                        homeworkSubmissions={otherHomeworkSubmissions}
+                        mockExams={generalTrialExams}
+                        studentName={selectedStudent?.name || 'Öğrenci'}
+                      />
+                    </Suspense>
+                  ) : (
+                    <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
+                      📊 Analiz hazırlanıyor…
+                    </div>
+                  )}
+                </div>
 
-              {/* Hedef Takip Panosu */}
-              <DashboardGoalsCard
-                isMobile={isMobile}
-                goalTrackingData={goalTrackingData}
-                solvedQuestionsStats={solvedQuestionsStats}
-                onNavigateGoals={handleNavigateGoals}
-                onUpdateGoalProgress={updateGoalProgress}
-                goalTypeThemes={GOAL_TYPE_THEMES}
-              />
+                {/* Hedef Takip Panosu */}
+                <DashboardGoalsCard
+                  isMobile={isMobile}
+                  goalTrackingData={goalTrackingData}
+                  solvedQuestionsStats={solvedQuestionsStats}
+                  onNavigateGoals={handleNavigateGoals}
+                  onUpdateGoalProgress={updateGoalProgress}
+                  goalTypeThemes={GOAL_TYPE_THEMES}
+                />
+              </div>
 
               {/* Son Çözülen Testler */}
               <DashboardRecentSolvedCard

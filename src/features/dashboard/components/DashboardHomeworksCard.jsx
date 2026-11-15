@@ -98,26 +98,38 @@ export default memo(function DashboardHomeworksCard({
                 onClick={() => onHwClick && onHwClick(task)}
                 className="game-quest-row"
                 style={{
-                  borderLeft: `5px solid ${task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
+                  background: task.isDone
+                    ? 'rgba(16,185,129,0.04)'
+                    : isOverdue
+                    ? 'rgba(239, 68, 68, 0.04)'
+                    : 'var(--color-surface)',
+                  border: `1px solid ${task.isDone ? 'rgba(16,185,129,0.3)' : isOverdue ? 'rgba(239, 68, 68, 0.3)' : 'var(--color-border)'}`,
+                  borderLeft: `4px solid ${task.isDone ? '#10b981' : isOverdue ? '#ef4444' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1')}`,
+                  borderRadius: 12,
+                  padding: isMobile ? '0.55rem 0.7rem' : '0.65rem 0.95rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: isMobile ? 8 : 12,
                   cursor: 'pointer',
-                  flexWrap: isMobile ? 'wrap' : 'nowrap'
+                  transition: 'all 0.15s ease'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.65rem' : '0.85rem', flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10, flex: 1, minWidth: 0 }}>
                   <div style={{
-                    width: isMobile ? 32 : 38,
-                    height: isMobile ? 32 : 38,
-                    borderRadius: 12,
+                    width: isMobile ? 28 : 32,
+                    height: isMobile ? 28 : 32,
+                    borderRadius: 9,
                     background: task.isDone ? 'rgba(16,185,129,0.15)' : isOverdue ? 'rgba(225,29,72,0.15)' : isDueToday ? 'rgba(245,158,11,0.15)' : (rowTheme.badgeBg || 'var(--color-surface-hover)'),
                     color: task.isDone ? '#10b981' : isOverdue ? '#e11d48' : isDueToday ? '#f59e0b' : (rowTheme.accent || '#6366f1'),
                     border: `1.5px solid ${task.isDone ? 'rgba(16,185,129,0.4)' : isOverdue ? 'rgba(225,29,72,0.4)' : isDueToday ? 'rgba(245,158,11,0.4)' : (rowTheme.border || 'var(--color-border)')}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: isMobile ? '0.85rem' : '1.05rem', fontWeight: 900, flexShrink: 0
+                    fontSize: isMobile ? '0.78rem' : '0.92rem', fontWeight: 900, flexShrink: 0
                   }}>
                     {task.isDone ? '✓' : isOverdue ? '🔥' : isDueToday ? '⚡' : '📜'}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       {task.subject && (
                         <span style={{
@@ -126,31 +138,30 @@ export default memo(function DashboardHomeworksCard({
                           color: rowTheme.text || '#6366f1',
                           background: rowTheme.badgeBg || 'rgba(99, 102, 241, 0.12)',
                           border: `1px solid ${rowTheme.border || 'rgba(165, 180, 252, 0.35)'}`,
-                          padding: '1px 7px',
-                          borderRadius: 8,
+                          padding: '1px 6px',
+                          borderRadius: 6,
                           flexShrink: 0
                         }}>
                           {task.subject}
                         </span>
                       )}
-                      <span className="game-badge-xp" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
-                        +30 XP
-                      </span>
                       <span style={{
-                        fontSize: isMobile ? '0.86rem' : '0.94rem',
-                        fontWeight: 900,
+                        fontSize: isMobile ? '0.84rem' : '0.92rem',
+                        fontWeight: 800,
                         color: task.isDone ? 'var(--color-text-muted)' : 'var(--color-text)',
                         textDecoration: task.isDone ? 'line-through' : 'none',
-                        wordBreak: 'break-word',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                         lineHeight: 1.3
                       }}>
                         {displayTitle}
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.72rem', color: 'var(--color-text-muted)', fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: '0.7rem', color: 'var(--color-text-muted)', fontWeight: 650 }}>
                       {task.bookTitle && (
-                        <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 140 : 260 }}>
+                        <span style={{ color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: isMobile ? 130 : 220 }}>
                           📖 {task.bookTitle}
                         </span>
                       )}
@@ -168,16 +179,25 @@ export default memo(function DashboardHomeworksCard({
 
                 <button
                   type="button"
-                  className="game-btn-3d game-btn-primary"
                   style={{
-                    borderRadius: 12,
-                    padding: isMobile ? '0.55rem 0.95rem' : '0.55rem 1.15rem',
-                    fontSize: isMobile ? '0.8rem' : '0.84rem',
-                    width: isMobile ? '100%' : 'auto',
-                    justifyContent: 'center'
+                    borderRadius: 9,
+                    padding: isMobile ? '0.35rem 0.65rem' : '0.42rem 0.85rem',
+                    fontSize: isMobile ? '0.74rem' : '0.78rem',
+                    fontWeight: 850,
+                    background: task.isDone
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    color: task.isDone ? '#10b981' : '#ffffff',
+                    border: task.isDone ? '1px solid rgba(16, 185, 129, 0.3)' : 'none',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    flexShrink: 0
                   }}
                 >
-                  Görevi Çöz <ChevronRight size={14} />
+                  <span>{task.isDone ? 'İncele' : 'Çöz'}</span>
+                  <ChevronRight size={13} />
                 </button>
               </div>
             );

@@ -486,25 +486,25 @@ export default function DashboardBooksCard({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 7,
-                padding: '0.5rem 0.95rem',
-                borderRadius: 14,
+                gap: 6,
+                padding: '0.4rem 0.8rem',
+                borderRadius: 10,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.18s ease',
+                transition: 'all 0.15s ease',
                 border: isSelected
-                  ? '2px solid #a855f7'
+                  ? '1.5px solid #a855f7'
                   : `1px solid ${isDark ? 'rgba(255, 255, 255, 0.12)' : '#e2e8f0'}`,
                 background: isSelected
                   ? (isDark ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.28), rgba(99, 102, 241, 0.22))' : '#f3e8ff')
                   : (isDark ? 'rgba(255, 255, 255, 0.04)' : '#f8fafc'),
                 color: isSelected ? (isDark ? '#f3e8ff' : '#6b21a8') : textColor,
-                boxShadow: isSelected ? '0 4px 16px rgba(168, 85, 247, 0.3)' : 'none',
+                boxShadow: isSelected ? '0 2px 10px rgba(168, 85, 247, 0.25)' : 'none',
                 flexShrink: 0
               }}
             >
-              <span style={{ fontSize: '1rem' }}>{icon}</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 850 }}>{book.title}</span>
+              <span style={{ fontSize: '0.92rem' }}>{icon}</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800 }}>{book.title}</span>
             </button>
           );
         })}
@@ -716,31 +716,31 @@ export default function DashboardBooksCard({
                 onClick={() => setSelectedUnitForModal(unit)}
                 style={{
                   background: innerCardBg,
-                  borderRadius: 16,
-                  border: `1.5px solid ${borderColor}`,
-                  padding: '1rem 1.15rem',
+                  borderRadius: 12,
+                  border: `1px solid ${borderColor}`,
+                  padding: '0.65rem 0.95rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 10,
+                  gap: 6,
                   cursor: 'pointer',
-                  transition: 'all 0.18s ease'
+                  transition: 'all 0.15s ease'
                 }}
-                className="hover:scale-[1.01] hover:border-purple-500/60"
+                className="hover:scale-[1.005] hover:border-purple-500/50"
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 11,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 9,
                         background: unit.progressPct === 100
                           ? 'linear-gradient(135deg, #10b981, #059669)'
                           : 'linear-gradient(135deg, #a855f7, #6366f1)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '1.1rem',
+                        fontSize: '0.95rem',
                         color: '#fff',
                         flexShrink: 0
                       }}
@@ -750,10 +750,10 @@ export default function DashboardBooksCard({
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          fontSize: '0.92rem',
-                          fontWeight: 850,
+                          fontSize: '0.86rem',
+                          fontWeight: 800,
                           color: textColor,
-                          lineHeight: 1.3,
+                          lineHeight: 1.25,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -761,7 +761,7 @@ export default function DashboardBooksCard({
                       >
                         {unit.name}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: subTextColor, fontWeight: 700, marginTop: 2 }}>
+                      <div style={{ fontSize: '0.68rem', color: subTextColor, fontWeight: 650, marginTop: 1 }}>
                         {unit.totalCount} Test • {unit.completedCount} Çözüldü
                       </div>
                     </div>
@@ -777,25 +777,25 @@ export default function DashboardBooksCard({
                       background: 'linear-gradient(135deg, #a855f7, #6366f1)',
                       color: '#ffffff',
                       border: 'none',
-                      borderRadius: 10,
-                      padding: '0.45rem 0.85rem',
-                      fontSize: '0.74rem',
-                      fontWeight: 850,
+                      borderRadius: 8,
+                      padding: '0.35rem 0.75rem',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
                       flexShrink: 0,
-                      boxShadow: '0 3px 10px rgba(168, 85, 247, 0.35)'
+                      boxShadow: '0 2px 8px rgba(168, 85, 247, 0.25)'
                     }}
                   >
-                    <span>Testleri Aç</span>
-                    <ArrowRight size={12} />
+                    <span>Testler</span>
+                    <ArrowRight size={11} />
                   </button>
                 </div>
 
                 {/* Konu İlerleme Çubuğu */}
-                <div style={{ height: 6, background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
+                <div style={{ height: 4, background: isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
                   <div
                     style={{
                       width: `${unit.progressPct}%`,
