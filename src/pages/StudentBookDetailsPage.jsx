@@ -215,6 +215,37 @@ export default function StudentBookDetailsPage() {
     }
   };
 
+  const handleStartInStudyRoom = (test, subjectName = '', topicName = '') => {
+    if (!test) return;
+    const taskPayload = {
+      id: test.id,
+      realTestId: test.id,
+      bookTestId: test.id,
+      bookId: book?.id,
+      bookTitle: book?.title || 'Kitap',
+      title: `${book?.title || 'Kitap'} • ${test.name || test.title || 'Test'}`,
+      subtitle: topicName || subjectName || test.topicName || test.subjectName || book?.subject || '',
+      subject: subjectName || test.subjectName || book?.subject || 'Genel',
+      unit: topicName || subjectName || '',
+      topic: topicName || test.topicName || '',
+      questionCount: Number(test.questionCount) || (test.answer_key ? Object.keys(test.answer_key).filter(k => !k.startsWith('_')).length : (test.answerKey ? Object.keys(test.answerKey).filter(k => !k.startsWith('_')).length : 12)),
+      answerKey: test.answer_key || test.answerKey || test.correctAnswers,
+      isOpenEnded: Boolean(test.isOpenEnded || test.is_open_ended || test.questionType === 'acik_uclu' || (book?.bookType === 'open_ended')),
+      sourceType: 'book',
+      sourceLabel: '📚 Kütüphane Kitabı'
+    };
+
+    try {
+      localStorage.setItem('study_active_selected_task', JSON.stringify(taskPayload));
+    } catch {}
+
+    navigate('/study-room', {
+      state: {
+        autoStartTask: taskPayload
+      }
+    });
+  };
+
   const targetStudent = useMemo(() => {
     if (queryStudentId) {
       return (users || []).find(u => String(u.id) === String(queryStudentId) || toUUID(u.id) === toUUID(queryStudentId)) || { id: queryStudentId, name: 'Öğrenci' };
@@ -3694,6 +3725,29 @@ export default function StudentBookDetailsPage() {
 
                           <button
                             type="button"
+                            onClick={() => handleStartInStudyRoom(test, test.subjectName, test.topicName)}
+                            title="Çalışma Odasında Çöz"
+                            style={{
+                              minHeight: 50,
+                              padding: '0.75rem 1.25rem',
+                              fontSize: '0.92rem',
+                              fontWeight: 900,
+                              borderRadius: '0.85rem',
+                              border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                              color: '#9333ea',
+                              background: 'rgba(168, 85, 247, 0.08)',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6
+                            }}
+                          >
+                            <Target size={18} />
+                            <span>Odada Çöz</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
                             style={{
                               minHeight: 50,
@@ -3813,6 +3867,29 @@ export default function StudentBookDetailsPage() {
               >
                 <Edit3 size={16} />
                 <span>⚡ D/Y Gir</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleStartInStudyRoom(nextIncompleteTest.test, nextIncompleteTest.subject?.name, nextIncompleteTest.topic?.name)}
+                style={{
+                  minHeight: 48,
+                  padding: '0.7rem 1.35rem',
+                  borderRadius: 12,
+                  background: 'rgba(168, 85, 247, 0.12)',
+                  border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                  color: '#9333ea',
+                  fontWeight: 900,
+                  fontSize: '0.92rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7
+                }}
+                title="Çalışma Odasında Çöz"
+              >
+                <Target size={18} />
+                <span>🎯 Odada Çöz</span>
               </button>
 
               <button
@@ -4176,6 +4253,30 @@ export default function StudentBookDetailsPage() {
                                       <Edit size={14} /> Düzenle
                                     </button>
                                   )}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartInStudyRoom(test, subj.name, null);
+                                    }}
+                                    title="Çalışma Odasında Çöz"
+                                    style={{
+                                      minHeight: 46,
+                                      padding: '0.65rem 1rem',
+                                      fontSize: '0.88rem',
+                                      fontWeight: 850,
+                                      borderRadius: '0.75rem',
+                                      border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                                      color: '#9333ea',
+                                      background: 'rgba(168, 85, 247, 0.08)',
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 5
+                                    }}
+                                  >
+                                    <Target size={16} /> Odada Çöz
+                                  </button>
                                   <button
                                     className="sbdp-btn-solve"
                                     style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}
@@ -4770,6 +4871,30 @@ export default function StudentBookDetailsPage() {
                                             </button>
                                           )}
                                           <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleStartInStudyRoom(test, subj.name, topic.name);
+                                            }}
+                                            title="Çalışma Odasında Çöz"
+                                            style={{
+                                              minHeight: 46,
+                                              padding: '0.65rem 1rem',
+                                              fontSize: '0.88rem',
+                                              fontWeight: 850,
+                                              borderRadius: '0.75rem',
+                                              border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                                              color: '#9333ea',
+                                              background: 'rgba(168, 85, 247, 0.08)',
+                                              cursor: 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 5
+                                            }}
+                                          >
+                                            <Target size={16} /> Odada Çöz
+                                          </button>
+                                          <button
                                             className="sbdp-btn-solve"
                                             style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}
                                             onClick={() => test.isCompleted ? handleReviewTest(test) : navigate(`/book-quiz/${test.id}?studentId=${studentId}`)}
@@ -4906,6 +5031,30 @@ export default function StudentBookDetailsPage() {
                                     <Edit size={14} /> Düzenle
                                   </button>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartInStudyRoom(test, null, null);
+                                  }}
+                                  title="Çalışma Odasında Çöz"
+                                  style={{
+                                    minHeight: 46,
+                                    padding: '0.65rem 1rem',
+                                    fontSize: '0.88rem',
+                                    fontWeight: 850,
+                                    borderRadius: '0.75rem',
+                                    border: '1.5px solid rgba(168, 85, 247, 0.4)',
+                                    color: '#9333ea',
+                                    background: 'rgba(168, 85, 247, 0.08)',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5
+                                  }}
+                                >
+                                  <Target size={16} /> Odada Çöz
+                                </button>
                                 <button
                                   className="sbdp-btn-solve"
                                   style={{ minHeight: 46, padding: '0.65rem 1.45rem', fontSize: '0.95rem', fontWeight: 900, borderRadius: '0.75rem', border: 'none', color: 'white', background: `linear-gradient(135deg,${sc.from},${sc.to})`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: `0 4px 14px ${sc.accent}44` }}

@@ -1,31 +1,206 @@
-import React from 'react';
-import { Search, X, Calendar, BookOpen, CheckCircle, CheckCircle2, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, X, Calendar, BookOpen, CheckCircle, CheckCircle2, ChevronRight, Eye, EyeOff, BookMarked, Check, PlayCircle } from 'lucide-react';
 import { STUDY_SUBJECTS } from '../constants/studyRoomConstants';
+import { checkIsTaskSolved } from '../../../components/ProgramCenter';
 
 export default function StudyHomeworkPickerModal({
   show,
   onClose,
   themeObj,
   isMobile,
-  hwSourceTab,
+  hwSourceTab = 'program',
   setHwSourceTab,
-  hwFilterSubject,
+  hwFilterSubject = 'all',
   setHwFilterSubject,
-  hwSearchQuery,
+  hwSearchQuery = '',
   setHwSearchQuery,
-  hideCompletedTasks,
+  hideCompletedTasks = true,
   setHideCompletedTasks,
   selectedProgramDay,
   setSelectedProgramDay,
   weeklyProgramGrouped = [],
   allAssignedTasks = [],
+  books = [],
+  bookTests = [],
+  submissions = [],
+  homeworks = [],
+  studyAssignments = [],
+  currentUserId = null,
   onSelectTask
 }) {
+  const [selectedBookId, setSelectedBookId] = useState('all');
+
   if (!show) return null;
 
-  // 1. Haftalık Program sekmesi için seçili günün görevleri
-  const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
+  // 1. Tüm kitaplardaki testleri derle
+  const allBookTestsList = useMemo(() => {
+    if (!books || !Array.isArray(books)) return [];
 
+    const directTestsByBookId = new Map();
+    (bookTests || []).forEach(bt => {
+      if (!bt || bt.isDeleted || bt.deleted) return;
+      const bId = String(bt.bookId || bt.book_id || '');
+      if (!bId) return;
+      if (!directTestsByBookId.has(bId)) directTestsByBookId.set(bId, []);
+      directTestsByBookId.get(bId).push(bt);
+      const cleanBId = bId.replace(/^b_/, '');
+      if (!directTestsByBookId.has(cleanBId)) directTestsByBookId.set(cleanBId, []);
+      directTestsByBookId.get(cleanBId).push(bt);
+    });
+
+    const gathered = [];
+    const seenTestIds = new Set();
+
+    books.forEach(book => {
+      if (!book || book.isDeleted || book.deleted) return;
+      const bId = String(book.id || '');
+      const cleanBId = bId.replace(/^b_/, '');
+
+      const directTests = directTestsByBookId.get(bId) || directTestsByBookId.get(cleanBId) || [];
+
+      if (directTests.length > 0) {
+        directTests.forEach(t => {
+          const tId = String(t.id || '');
+          const dedupeKey = `${bId}_${tId}`;
+          if (seenTestIds.has(dedupeKey)) return;
+          seenTestIds.add(dedupeKey);
+
+          const isSolved = checkIsTaskSolved(
+            { testId: t.id, bookTestId: t.id, taskType: 'kitap', bookTitle: book.title, subject: t.subject || book.subject },
+            currentUserId,
+            submissions,
+            homeworks,
+            studyAssignments,
+            null,
+            bookTests,
+            books
+          );
+
+          const qCount = Number(t.questionCount || t.question_count) ||
+            (t.answer_key ? Object.keys(t.answer_key).filter(k => !k.startsWith('_')).length : null) ||
+            (t.answerKey ? Object.keys(t.answerKey).filter(k => !k.startsWith('_')).length : null) ||
+            12;
+
+          gathered.push({
+            ...t,
+            id: t.id,
+            realTestId: t.id,
+            bookTestId: t.id,
+            bookId: book.id,
+            bookTitle: book.title,
+            bookSubject: book.subject || 'Genel',
+            title: `${book.title} • ${t.name || t.title || 'Test'}`,
+            name: t.name || t.title || 'Test',
+            subject: t.subject || book.subject || 'Genel',
+            unit: t.unit || t.unitName || '',
+            topic: t.topic || t.topicName || '',
+            questionCount: qCount,
+            answerKey: t.answer_key || t.answerKey || t.correctAnswers,
+            isCompleted: isSolved,
+            sourceType: 'book',
+            sourceLabel: '📚 Kitap Testi'
+          });
+        });
+      } else if (Array.isArray(book.subjects)) {
+        // Fallback: book.subjects -> tests & topics
+        book.subjects.forEach(subj => {
+          const sName = subj.name || book.subject || 'Genel';
+          (subj.tests || []).forEach(t => {
+            const tId = String(t.id || '');
+            const dedupeKey = `${bId}_${tId}`;
+            if (seenTestIds.has(dedupeKey)) return;
+            seenTestIds.add(dedupeKey);
+
+            const isSolved = checkIsTaskSolved(
+              { testId: t.id, bookTestId: t.id, taskType: 'kitap', bookTitle: book.title, subject: sName },
+              currentUserId,
+              submissions,
+              homeworks,
+              studyAssignments,
+              null,
+              bookTests,
+              books
+            );
+
+            const qCount = Number(t.questionCount || t.question_count) ||
+              (t.answer_key ? Object.keys(t.answer_key).filter(k => !k.startsWith('_')).length : null) ||
+              (t.answerKey ? Object.keys(t.answerKey).filter(k => !k.startsWith('_')).length : null) ||
+              12;
+
+            gathered.push({
+              ...t,
+              id: t.id,
+              realTestId: t.id,
+              bookTestId: t.id,
+              bookId: book.id,
+              bookTitle: book.title,
+              bookSubject: book.subject || 'Genel',
+              title: `${book.title} • ${t.name || t.title || 'Test'}`,
+              name: t.name || t.title || 'Test',
+              subject: sName,
+              unit: sName,
+              topic: '',
+              questionCount: qCount,
+              answerKey: t.answer_key || t.answerKey || t.correctAnswers,
+              isCompleted: isSolved,
+              sourceType: 'book',
+              sourceLabel: '📚 Kitap Testi'
+            });
+          });
+
+          (subj.topics || []).forEach(tp => {
+            const tpName = tp.name || '';
+            (tp.tests || []).forEach(t => {
+              const tId = String(t.id || '');
+              const dedupeKey = `${bId}_${tId}`;
+              if (seenTestIds.has(dedupeKey)) return;
+              seenTestIds.add(dedupeKey);
+
+              const isSolved = checkIsTaskSolved(
+                { testId: t.id, bookTestId: t.id, taskType: 'kitap', bookTitle: book.title, subject: sName },
+                currentUserId,
+                submissions,
+                homeworks,
+                studyAssignments,
+                null,
+                bookTests,
+                books
+              );
+
+              const qCount = Number(t.questionCount || t.question_count) ||
+                (t.answer_key ? Object.keys(t.answer_key).filter(k => !k.startsWith('_')).length : null) ||
+                (t.answerKey ? Object.keys(t.answerKey).filter(k => !k.startsWith('_')).length : null) ||
+                12;
+
+              gathered.push({
+                ...t,
+                id: t.id,
+                realTestId: t.id,
+                bookTestId: t.id,
+                bookId: book.id,
+                bookTitle: book.title,
+                bookSubject: book.subject || 'Genel',
+                title: `${book.title} • ${t.name || t.title || 'Test'}`,
+                name: t.name || t.title || 'Test',
+                subject: sName,
+                unit: sName,
+                topic: tpName,
+                questionCount: qCount,
+                answerKey: t.answer_key || t.answerKey || t.correctAnswers,
+                isCompleted: isSolved,
+                sourceType: 'book',
+                sourceLabel: '📚 Kitap Testi'
+              });
+            });
+          });
+        });
+      }
+    });
+
+    return gathered;
+  }, [books, bookTests, submissions, homeworks, studyAssignments, currentUserId]);
+
+  // Filtre kontrolü
   const matchesFilter = (task) => {
     if (hideCompletedTasks && task.isCompleted) return false;
     if (hwFilterSubject !== 'all' && task.subject && !task.subject.toLowerCase().includes(hwFilterSubject.toLowerCase())) {
@@ -34,6 +209,8 @@ export default function StudyHomeworkPickerModal({
     if (hwSearchQuery.trim()) {
       const q = hwSearchQuery.toLowerCase();
       const match = (task.title || '').toLowerCase().includes(q) ||
+                    (task.name || '').toLowerCase().includes(q) ||
+                    (task.bookTitle || '').toLowerCase().includes(q) ||
                     (task.subtitle || '').toLowerCase().includes(q) ||
                     (task.subject || '').toLowerCase().includes(q) ||
                     (task.topic || '').toLowerCase().includes(q) ||
@@ -43,8 +220,20 @@ export default function StudyHomeworkPickerModal({
     return true;
   };
 
+  // 1. Haftalık Program sekmesi için seçili günün görevleri
+  const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
   const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
+
+  // 2. Ödevler sekmesi
   const homeworkTasks = allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
+
+  // 3. Kitaplar sekmesi
+  const filteredBookTests = allBookTestsList.filter(t => {
+    if (selectedBookId !== 'all' && String(t.bookId) !== String(selectedBookId)) {
+      return false;
+    }
+    return matchesFilter(t);
+  });
 
   // Tab sayıları
   const programTotalCount = (weeklyProgramGrouped || []).reduce((acc, g) => {
@@ -52,6 +241,7 @@ export default function StudyHomeworkPickerModal({
     return acc + valid.length;
   }, 0);
   const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
+  const booksTotalCount = allBookTestsList.filter(t => !hideCompletedTasks || !t.isCompleted).length;
 
   return (
     <div style={{
@@ -71,7 +261,7 @@ export default function StudyHomeworkPickerModal({
         border: `1px solid ${themeObj.border}`,
         borderRadius: 24,
         width: '100%',
-        maxWidth: 780,
+        maxWidth: 820,
         maxHeight: '92vh',
         display: 'flex',
         flexDirection: 'column',
@@ -93,7 +283,7 @@ export default function StudyHomeworkPickerModal({
               Çalışma Görevi / Test Seç
             </h3>
             <div style={{ fontSize: '0.74rem', color: themeObj.subText, marginTop: 2 }}>
-              Haftalık ders programından veya atanmış ödevlerden bir test seç
+              Kütüphane kitaplarından, haftalık ders programından veya ödevlerden test seç
             </div>
           </div>
 
@@ -134,16 +324,17 @@ export default function StudyHomeworkPickerModal({
           </div>
         </div>
 
-        {/* Ana Kaynak Sekmeleri (Tabs) */}
+        {/* Ana Kaynak Sekmeleri (Tabs: Kitaplar, Program, Ödevler) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 8,
           padding: '0.75rem 1.25rem 0.5rem',
           background: themeObj.cardBg
         }}>
           {[
-            { id: 'program', label: '📅 Haftalık Program', count: programTotalCount },
+            { id: 'books', label: '📚 Kitaplarım', count: booksTotalCount },
+            { id: 'program', label: '📅 Ders Programı', count: programTotalCount },
             { id: 'homework', label: '📝 Atanmış Ödevler', count: homeworkTotalCount }
           ].map(tab => {
             const isActive = hwSourceTab === tab.id;
@@ -183,7 +374,86 @@ export default function StudyHomeworkPickerModal({
           })}
         </div>
 
-        {/* Haftalık Program Seçiliyse: Günler Çubuğu */}
+        {/* 📚 Kitaplarım Seçiliyse: Kitap Seçim Şeridi */}
+        {hwSourceTab === 'books' && (
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            padding: '0.4rem 1.25rem 0.65rem',
+            overflowX: 'auto',
+            borderBottom: `1px solid ${themeObj.border}`
+          }}>
+            <button
+              onClick={() => setSelectedBookId('all')}
+              style={{
+                padding: '0.45rem 0.8rem',
+                borderRadius: 12,
+                border: `1px solid ${selectedBookId === 'all' ? themeObj.accent : themeObj.border}`,
+                background: selectedBookId === 'all' ? (themeObj.accentGradient || themeObj.accent) : themeObj.innerBg,
+                color: selectedBookId === 'all' ? '#ffffff' : themeObj.text,
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span>📚 Tüm Kitaplar</span>
+              <span style={{
+                background: selectedBookId === 'all' ? 'rgba(255,255,255,0.3)' : themeObj.cardBg,
+                color: selectedBookId === 'all' ? '#ffffff' : themeObj.subText,
+                fontSize: '0.62rem',
+                padding: '1px 6px',
+                borderRadius: 99,
+                fontWeight: 900
+              }}>
+                {allBookTestsList.length}
+              </span>
+            </button>
+
+            {books.map(book => {
+              const isSelected = String(selectedBookId) === String(book.id);
+              const bTests = allBookTestsList.filter(t => String(t.bookId) === String(book.id));
+              const bSolved = bTests.filter(t => t.isCompleted).length;
+              return (
+                <button
+                  key={book.id}
+                  onClick={() => setSelectedBookId(book.id)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: 12,
+                    border: `1px solid ${isSelected ? themeObj.accent : themeObj.border}`,
+                    background: isSelected ? (themeObj.accentGradient || themeObj.accent) : themeObj.innerBg,
+                    color: isSelected ? '#ffffff' : themeObj.text,
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>📖 {book.title}</span>
+                  <span style={{
+                    background: isSelected ? 'rgba(255,255,255,0.3)' : themeObj.cardBg,
+                    color: isSelected ? '#ffffff' : themeObj.subText,
+                    fontSize: '0.62rem',
+                    padding: '1px 6px',
+                    borderRadius: 99,
+                    fontWeight: 900
+                  }}>
+                    {bSolved}/{bTests.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 📅 Haftalık Program Seçiliyse: Günler Çubuğu */}
         {hwSourceTab === 'program' && (
           <div style={{
             display: 'flex',
@@ -256,7 +526,7 @@ export default function StudyHomeworkPickerModal({
             <Search size={14} color={themeObj.subText} />
             <input
               type="text"
-              placeholder="Test, ders veya konu ara..."
+              placeholder="Test, kitap, konu veya ünite ara..."
               value={hwSearchQuery}
               onChange={e => setHwSearchQuery(e.target.value)}
               style={{
@@ -291,7 +561,7 @@ export default function StudyHomeworkPickerModal({
           </select>
         </div>
 
-        {/* Görev Listesi */}
+        {/* Görev & Test Listesi */}
         <div style={{
           flex: 1,
           overflowY: 'auto',
@@ -300,7 +570,23 @@ export default function StudyHomeworkPickerModal({
           flexDirection: 'column',
           gap: 8
         }}>
-          {hwSourceTab === 'program' ? (
+          {hwSourceTab === 'books' ? (
+            filteredBookTests.length > 0 ? (
+              filteredBookTests.map(test => (
+                <BookTestListItem
+                  key={test.id || test.dedupeKey}
+                  test={test}
+                  themeObj={themeObj}
+                  onSelectTask={onSelectTask}
+                />
+              ))
+            ) : (
+              <EmptyStateMessage
+                message={books.length === 0 ? "Kütüphanenizde henüz kitap bulunamadı." : "Seçili filtreye uygun kitap testi bulunamadı."}
+                themeObj={themeObj}
+              />
+            )
+          ) : hwSourceTab === 'program' ? (
             programTasksForDay.length > 0 ? (
               programTasksForDay.map(task => (
                 <TaskListItem
@@ -329,6 +615,122 @@ export default function StudyHomeworkPickerModal({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function BookTestListItem({ test, themeObj, onSelectTask }) {
+  return (
+    <div
+      onClick={() => onSelectTask(test)}
+      style={{
+        background: themeObj.innerBg,
+        border: `1px solid ${themeObj.border}`,
+        borderRadius: 14,
+        padding: '0.8rem 1rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        gap: 12
+      }}
+    >
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+          <span style={{
+            fontSize: '0.66rem',
+            fontWeight: 800,
+            background: 'rgba(168, 85, 247, 0.15)',
+            color: '#c084fc',
+            padding: '2px 7px',
+            borderRadius: 6
+          }}>
+            📚 {test.bookTitle}
+          </span>
+          {test.subject && (
+            <span style={{
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              background: 'rgba(59, 130, 246, 0.15)',
+              color: '#60a5fa',
+              padding: '2px 7px',
+              borderRadius: 6
+            }}>
+              {test.subject}
+            </span>
+          )}
+          {test.isCompleted ? (
+            <span style={{
+              background: 'rgba(16, 185, 129, 0.15)',
+              color: '#10b981',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              padding: '2px 7px',
+              borderRadius: 99,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3
+            }}>
+              <CheckCircle2 size={11} /> Çözüldü
+            </span>
+          ) : (
+            <span style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              color: themeObj.subText,
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: 99
+            }}>
+              ⏳ Çözülmedi
+            </span>
+          )}
+        </div>
+
+        <div style={{
+          fontSize: '0.88rem',
+          fontWeight: 900,
+          color: themeObj.text,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}>
+          {test.name || test.title}
+        </div>
+
+        <div style={{ fontSize: '0.72rem', color: themeObj.subText, fontWeight: 600, marginTop: 3 }}>
+          {test.unit && <span>{test.unit} · </span>}
+          {test.topic && <span>{test.topic} · </span>}
+          <span>{test.questionCount || 12} Soru</span>
+          {test.answerKey && <span style={{ marginLeft: 6, color: '#38bdf8' }}>• 🔑 Cevap Anahtarlı</span>}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectTask(test);
+        }}
+        style={{
+          background: themeObj.accentGradient || themeObj.accent,
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: 10,
+          padding: '0.45rem 0.85rem',
+          fontSize: '0.76rem',
+          fontWeight: 800,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          flexShrink: 0
+        }}
+      >
+        <span>{test.isCompleted ? 'Yeniden Çöz' : 'Odaya Al'}</span>
+        <ChevronRight size={13} />
+      </button>
     </div>
   );
 }

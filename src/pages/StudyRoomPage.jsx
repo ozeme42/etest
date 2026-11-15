@@ -878,6 +878,7 @@ export default function StudyRoomPage() {
 
     if (incomingTask) {
       handleSelectTask(incomingTask);
+      setActiveDrawerView('optical');
     }
   }, [location.state]);
 
@@ -1054,6 +1055,7 @@ export default function StudyRoomPage() {
     }
 
     setActiveToolTab('optical');
+    setActiveDrawerView('optical');
 
     const matchedSubj = matchSubjectFromTask(task);
     if (matchedSubj) {
@@ -1719,6 +1721,20 @@ export default function StudyRoomPage() {
             <CheckCircle2 size={19} />
           </button>
         </div>
+
+        {/* Optical Form Quick Access Capsule */}
+        {selectedTask && !selectedTaskIsReading && (
+          <button
+            type="button"
+            className="focus-center-optical-pill"
+            onClick={() => setActiveDrawerView('optical')}
+            title="Optik Formu Aç & Cevapları İşaretle"
+          >
+            <BookOpen size={15} />
+            <span>Optik Formu Aç ({answeredOpticalCount}/{targetGoalCount || 12})</span>
+            <ChevronRight size={14} style={{ opacity: 0.7 }} />
+          </button>
+        )}
       </main>
 
       {/* ─── 3. BOTTOM FLOATING DOCK (Matching Reference Image) ─── */}
@@ -1932,14 +1948,41 @@ export default function StudyRoomPage() {
                 </div>
               </div>
 
-              <button 
-                type="button"
-                onClick={() => setActiveDrawerView(null)}
-                style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                className="hover:bg-white/15"
-              >
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHwSourceTab('books');
+                    setShowHomeworkPickerModal(true);
+                  }}
+                  style={{
+                    background: 'rgba(168, 85, 247, 0.2)',
+                    border: '1px solid rgba(168, 85, 247, 0.4)',
+                    color: '#e9d5ff',
+                    borderRadius: 8,
+                    padding: '5px 11px',
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5
+                  }}
+                  title="Kütüphane kitaplarından test seç veya değiştir"
+                >
+                  <BookOpen size={13} />
+                  <span>Test Değiştir</span>
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={() => setActiveDrawerView(null)}
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: 'none', color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  className="hover:bg-white/15"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             <div className="focus-drawer-body">
@@ -2126,6 +2169,12 @@ export default function StudyRoomPage() {
         setSelectedProgramDay={setSelectedProgramDay}
         weeklyProgramGrouped={weeklyProgramGrouped}
         allAssignedTasks={allAssignedTasks}
+        books={books}
+        bookTests={bookTests}
+        submissions={submissions}
+        homeworks={homeworks}
+        studyAssignments={studyAssignments}
+        currentUserId={currentUser?.id}
         onSelectTask={handleSelectTask}
       />
 
