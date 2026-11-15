@@ -3796,7 +3796,29 @@ export default function StudentDashboard() {
   ], []);
 
   const todayStudyGoalMinutes = 60;
-  const todayStudiedMinutes = todayStudyDurationMinutes > 0 ? todayStudyDurationMinutes : 45;
+  const todayStudiedMinutes = useMemo(() => {
+    try {
+      const todayKey = format(new Date(), 'yyyy-MM-dd');
+      const savedProgress = localStorage.getItem(`study_progress_${todayKey}`);
+      if (savedProgress) {
+        const parsed = JSON.parse(savedProgress);
+        if (parsed.studyMinutes) return Number(parsed.studyMinutes);
+      }
+      const savedDuration = localStorage.getItem('study_today_duration_minutes');
+      if (savedDuration && Number(savedDuration) > 0) return Number(savedDuration);
+    } catch {}
+
+    // Sum from today's solved tests if available
+    if (recentSolvedTests && recentSolvedTests.length > 0) {
+      const todayTotal = recentSolvedTests
+        .filter(t => t.date && isToday(new Date(t.date)))
+        .reduce((sum, t) => sum + (t.durationMinutes || 15), 0);
+      if (todayTotal > 0) return todayTotal;
+    }
+
+    return 45; // Default from reference design
+  }, [recentSolvedTests]);
+
   const studyProgressPercent = Math.min(100, Math.round((todayStudiedMinutes / todayStudyGoalMinutes) * 100));
   const remainingStudyMinutes = Math.max(0, todayStudyGoalMinutes - todayStudiedMinutes);
 
