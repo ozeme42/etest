@@ -3933,69 +3933,217 @@ export default function StudentDashboard() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-          gap: isMobile ? '0.3rem' : '0.65rem',
+          gap: isMobile ? '0.35rem' : '0.85rem',
           width: '100%',
           boxSizing: 'border-box'
         }}>
           {[
-            { label: 'TOPLAM',     shortLabel: 'TOPLAM',     value: taskStats.totalCount,                                  emoji: '📋', accent: '#4f46e5', action: () => handleTabChange('tasks') },
-            { label: 'BEKLEYEN',   shortLabel: 'BEKLEYEN',   value: taskStats.pendingCount,                                emoji: '⏳', accent: '#f59e0b', action: () => handleTabChange('tasks') },
-            { label: 'GECİKEN',    shortLabel: 'GECİKEN',    value: Math.max(taskStats.overdueCount, catchUpTasks.length), emoji: '🔥', accent: '#ef4444', action: () => handleTabChange('remedial') },
-            { label: 'TAMAMLANDI', shortLabel: 'BİTEN',      value: taskStats.completedCount,                              emoji: '✅', accent: '#10b981', action: () => navigate('/student/results') },
-            { label: 'BAŞARI',     shortLabel: 'BAŞARI',     value: `%${overallSuccessRate}`,                              emoji: '⭐', accent: '#8b5cf6', action: () => navigate('/student/results') },
-          ].map((kpi) => (
-            <div
-              key={kpi.label}
-              onClick={kpi.action}
-              className="etest-card"
-              style={{
-                background: isDark ? '#1a1e36' : '#ffffff',
-                border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #eef2f6',
-                borderTop: `3.5px solid ${kpi.accent}`,
-                borderRadius: isMobile ? 14 : 18,
-                boxShadow: '0 4px 18px rgba(0,0,0,0.04)',
-                padding: isMobile ? '0.6rem 0.25rem' : '0.85rem 0.65rem',
-                minHeight: isMobile ? 66 : 80,
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.2s ease',
-                textAlign: 'center'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(99, 102, 241, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 18px rgba(0,0,0,0.04)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 2 }}>
-                <span style={{ fontSize: isMobile ? '1.05rem' : '1.3rem', lineHeight: 1 }}>{kpi.emoji}</span>
+            {
+              id: 'total',
+              label: 'TOPLAM',
+              shortLabel: 'TOPLAM',
+              value: taskStats.totalCount,
+              badge: 'Tümü',
+              Icon: ClipboardList,
+              accent: '#4f46e5',
+              accentGradient: 'linear-gradient(90deg, #4f46e5, #6366f1)',
+              glow: 'rgba(79, 70, 229, 0.25)',
+              progressPct: 100,
+              action: () => handleTabChange('tasks')
+            },
+            {
+              id: 'pending',
+              label: 'BEKLEYEN',
+              shortLabel: 'BEKLEYEN',
+              value: taskStats.pendingCount,
+              badge: taskStats.pendingCount === 0 ? 'Sıfır ✨' : `${taskStats.pendingCount} Görev`,
+              Icon: Clock,
+              accent: '#f59e0b',
+              accentGradient: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+              glow: 'rgba(245, 158, 11, 0.25)',
+              progressPct: taskStats.totalCount > 0 ? Math.min(100, Math.round((taskStats.pendingCount / taskStats.totalCount) * 100)) : (taskStats.pendingCount > 0 ? 100 : 0),
+              action: () => handleTabChange('tasks')
+            },
+            {
+              id: 'overdue',
+              label: 'GECİKEN',
+              shortLabel: 'GECİKEN',
+              value: Math.max(taskStats.overdueCount, catchUpTasks.length),
+              badge: Math.max(taskStats.overdueCount, catchUpTasks.length) === 0 ? 'Yok 🎉' : 'Telafi',
+              Icon: Flame,
+              accent: '#ef4444',
+              accentGradient: 'linear-gradient(90deg, #ef4444, #f87171)',
+              glow: 'rgba(239, 68, 68, 0.25)',
+              progressPct: Math.max(taskStats.overdueCount, catchUpTasks.length) > 0 ? 100 : 0,
+              action: () => handleTabChange('remedial')
+            },
+            {
+              id: 'completed',
+              label: 'TAMAMLANDI',
+              shortLabel: 'BİTEN',
+              value: taskStats.completedCount,
+              badge: `%${taskStats.totalCount > 0 ? Math.round((taskStats.completedCount / taskStats.totalCount) * 100) : 0}`,
+              Icon: CheckCircle2,
+              accent: '#10b981',
+              accentGradient: 'linear-gradient(90deg, #10b981, #34d399)',
+              glow: 'rgba(16, 185, 129, 0.25)',
+              progressPct: taskStats.totalCount > 0 ? Math.min(100, Math.round((taskStats.completedCount / taskStats.totalCount) * 100)) : (taskStats.completedCount > 0 ? 100 : 0),
+              action: () => navigate('/student/results')
+            },
+            {
+              id: 'success',
+              label: 'BAŞARI',
+              shortLabel: 'BAŞARI',
+              value: `%${overallSuccessRate}`,
+              badge: overallSuccessRate >= 80 ? 'Harika' : (overallSuccessRate >= 60 ? 'İyi' : 'Normal'),
+              Icon: Award,
+              accent: '#8b5cf6',
+              accentGradient: 'linear-gradient(90deg, #8b5cf6, #a855f7)',
+              glow: 'rgba(139, 92, 246, 0.25)',
+              progressPct: Math.min(100, overallSuccessRate || 0),
+              action: () => navigate('/student/results')
+            }
+          ].map((kpi) => {
+            const KpiIcon = kpi.Icon;
+            return (
+              <div
+                key={kpi.label}
+                onClick={kpi.action}
+                style={{
+                  background: isDark
+                    ? 'linear-gradient(180deg, #1c223a 0%, #151a2e 100%)'
+                    : 'linear-gradient(180deg, #ffffff 0%, #fafbfc 100%)',
+                  border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #eef2f6',
+                  borderTop: `3px solid ${kpi.accent}`,
+                  borderRadius: isMobile ? 14 : 20,
+                  boxShadow: isDark
+                    ? '0 8px 24px rgba(0, 0, 0, 0.45)'
+                    : '0 6px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)',
+                  padding: isMobile ? '0.65rem 0.35rem 0.55rem' : '1rem 1.15rem 0.9rem',
+                  minHeight: isMobile ? 80 : 108,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.boxShadow = `0 12px 28px -4px ${kpi.glow}, 0 4px 12px rgba(0,0,0,0.04)`;
+                  e.currentTarget.style.borderColor = `${kpi.accent}66`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = isDark
+                    ? '0 8px 24px rgba(0, 0, 0, 0.45)'
+                    : '0 6px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)';
+                  e.currentTarget.style.borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : '#eef2f6';
+                }}
+              >
+                {/* Subtle top-right ambient glow */}
+                <div style={{
+                  position: 'absolute',
+                  top: -20,
+                  right: -20,
+                  width: 60,
+                  height: 60,
+                  borderRadius: '50%',
+                  background: kpi.accent,
+                  opacity: isDark ? 0.15 : 0.08,
+                  pointerEvents: 'none',
+                  filter: 'blur(16px)'
+                }} />
+
+                {/* Top Row: Icon Container + Badge (Desktop) */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: isMobile ? 'center' : 'space-between',
+                  gap: 4
+                }}>
+                  <div style={{
+                    width: isMobile ? 26 : 34,
+                    height: isMobile ? 26 : 34,
+                    borderRadius: isMobile ? 8 : 10,
+                    background: `${kpi.accent}14`,
+                    border: `1px solid ${kpi.accent}28`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: kpi.accent,
+                    flexShrink: 0
+                  }}>
+                    <KpiIcon size={isMobile ? 13 : 17} strokeWidth={2.4} />
+                  </div>
+
+                  {!isMobile && (
+                    <span style={{
+                      fontSize: '0.62rem',
+                      fontWeight: 800,
+                      color: kpi.accent,
+                      background: `${kpi.accent}12`,
+                      padding: '2px 7px',
+                      borderRadius: 99,
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {kpi.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Middle Row: Large Value */}
+                <div style={{
+                  fontSize: isMobile ? '1.18rem' : '1.75rem',
+                  fontWeight: 900,
+                  color: isDark ? '#ffffff' : '#0f172a',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.03em',
+                  margin: isMobile ? '4px 0 2px' : '6px 0 2px',
+                  textAlign: isMobile ? 'center' : 'left'
+                }}>
+                  {kpi.value}
+                </div>
+
+                {/* Bottom Row: Uppercase Label */}
+                <div style={{
+                  fontSize: isMobile ? '0.56rem' : '0.68rem',
+                  fontWeight: 800,
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  letterSpacing: isMobile ? '0.02em' : '0.05em',
+                  textTransform: 'uppercase',
+                  textAlign: isMobile ? 'center' : 'left',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {isMobile ? kpi.shortLabel : kpi.label}
+                </div>
+
+                {/* Desktop Micro Progress Fill Line */}
+                {!isMobile && (
+                  <div style={{
+                    marginTop: 6,
+                    width: '100%',
+                    height: 3,
+                    background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                    borderRadius: 999,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${kpi.progressPct}%`,
+                      background: kpi.accentGradient,
+                      borderRadius: 999,
+                      transition: 'width 0.6s ease'
+                    }} />
+                  </div>
+                )}
               </div>
-              <div style={{
-                fontSize: isMobile ? '1.15rem' : '1.55rem',
-                fontWeight: 900,
-                color: isDark ? '#ffffff' : '#0f172a',
-                lineHeight: 1.1,
-                letterSpacing: '-0.02em'
-              }}>
-                {kpi.value}
-              </div>
-              <div style={{
-                fontSize: isMobile ? '0.58rem' : '0.66rem',
-                fontWeight: 800,
-                color: isDark ? '#94a3b8' : '#64748b',
-                marginTop: 2,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase'
-              }}>
-                {isMobile ? kpi.shortLabel : kpi.label}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
