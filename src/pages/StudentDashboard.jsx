@@ -50,6 +50,7 @@ const DashboardRemedialCard = lazy(() => import('../features/dashboard/component
 const StudentGamificationCard = lazy(() => import('../components/gamification/StudentGamificationCard'));
 const GamificationModal = lazy(() => import('../components/gamification/GamificationModal'));
 const PeriodicQuestionAnalytics = lazy(() => import('../components/PeriodicQuestionAnalytics'));
+const DashboardArenaAnalytics = lazy(() => import('../features/dashboard/components/DashboardArenaAnalytics'));
 
 // Hafif ve Şık Sekme Yükleme İskeleti
 const TabLoadingSkeleton = ({ text = 'Yükleniyor...' }) => (
@@ -4362,149 +4363,32 @@ export default function StudentDashboard() {
         {/* ── 4. MOD: ARENA & BAŞARI (🏆 ACHIEVEMENTS & ANALYTICS) ── */}
         {activeDashboardTab === 'analytics' && (
           <Suspense fallback={<TabLoadingSkeleton text="🏆 Arena & İstatistikler yükleniyor..." />}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
-              {/* Gamification Seviye & Rozet Kartı */}
-              <StudentGamificationCard
-                student={selectedStudent}
-                submissions={studentSubmissions}
-                homeworks={homeworks}
-                books={books}
-                bookTests={bookTests}
-                mockExams={studentMockExams}
-                studySessions={[]}
-                users={users}
-                gamificationData={studentGamification}
-              />
-
-              {/* Analiz & Hedef Panoları (Masaüstünde 2 Sütunlu Kompakt Cockpit) */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-                gap: '1rem',
-                alignItems: 'start'
-              }}>
-                {/* Periyodik Soru & Başarı Analizi */}
-                <div>
-                  {isAnalyticsReady ? (
-                    <Suspense fallback={<div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5, fontSize: '0.85rem' }}>📊 Analiz yükleniyor…</div>}>
-                      <PeriodicQuestionAnalytics
-                        homeworkSubmissions={otherHomeworkSubmissions}
-                        mockExams={generalTrialExams}
-                        studentName={selectedStudent?.name || 'Öğrenci'}
-                      />
-                    </Suspense>
-                  ) : (
-                    <div style={{ height: 180, borderRadius: '1.25rem', background: isDark ? 'rgba(30, 41, 59, 0.3)' : 'rgba(241, 245, 249, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: '0.82rem' }}>
-                      📊 Analiz hazırlanıyor…
-                    </div>
-                  )}
-                </div>
-
-                {/* Hedef Takip Panosu */}
-                <DashboardGoalsCard
-                  isMobile={isMobile}
-                  goalTrackingData={goalTrackingData}
-                  solvedQuestionsStats={solvedQuestionsStats}
-                  onNavigateGoals={handleNavigateGoals}
-                  onUpdateGoalProgress={updateGoalProgress}
-                  goalTypeThemes={GOAL_TYPE_THEMES}
-                />
-              </div>
-
-              {/* Son Çözülen Testler */}
-              <DashboardRecentSolvedCard
-                isMobile={isMobile}
-                recentSolvedTests={recentSolvedTests}
-                onOpenManualModal={handleOpenManualModal}
-                onNavigateResults={handleNavigateResults}
-                onReviewTest={handleReviewRecentTest}
-                selectedStudent={selectedStudent}
-              />
-
-              {/* Günün İlhamı — Modern Banner with Rocket Illustration */}
-              <div style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%)',
-                borderRadius: 22,
-                padding: isMobile ? '1.25rem 1rem' : '1.6rem 2rem',
-                color: '#ffffff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 12px 36px rgba(99, 102, 241, 0.28)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '1.25rem',
-                flexWrap: isMobile ? 'wrap' : 'nowrap'
-              }}>
-                {(() => {
-                  const currentQuote = DASHBOARD_QUOTES[dashQuoteIdx % DASHBOARD_QUOTES.length];
-                  return (
-                    <>
-                      <div style={{ zIndex: 1, maxWidth: 680, flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                          <span style={{ fontSize: '1.15rem' }}>🚀</span>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#c7d2fe' }}>
-                            Unutma!
-                          </span>
-                          <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.18)', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
-                            {currentQuote.category}
-                          </span>
-                        </div>
-                        <h3 style={{
-                          fontSize: isMobile ? '1.05rem' : '1.3rem',
-                          fontWeight: 900,
-                          margin: '0 0 8px 0',
-                          lineHeight: 1.4,
-                          textShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                        }}>
-                          "{currentQuote.quote}"
-                        </h3>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#e0e7ff', fontWeight: 700 }}>
-                          — {currentQuote.author}
-                        </p>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, zIndex: 1, flexShrink: 0 }}>
-                        <button
-                          type="button"
-                          onClick={() => setDashQuoteIdx(p => p + 1)}
-                          style={{
-                            background: '#ffffff',
-                            color: '#4f46e5',
-                            border: 'none',
-                            borderRadius: 14,
-                            padding: isMobile ? '0.55rem 0.95rem' : '0.7rem 1.3rem',
-                            fontWeight: 900,
-                            fontSize: isMobile ? '0.78rem' : '0.86rem',
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            transition: 'all 0.2s ease',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          <RefreshCw size={13} />
-                          <span>Yeni İlham</span>
-                        </button>
-                        <img
-                          src="/assets/dashboard/rocket_illust.png"
-                          alt="Hedefine Ulaş"
-                          style={{
-                            width: isMobile ? 85 : 125,
-                            height: 'auto',
-                            objectFit: 'contain',
-                            filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.3))'
-                          }}
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
+            <DashboardArenaAnalytics
+              selectedStudent={selectedStudent}
+              studentSubmissions={studentSubmissions}
+              homeworks={homeworks}
+              books={books}
+              bookTests={bookTests}
+              studentMockExams={studentMockExams}
+              studentGamification={studentGamification}
+              studentRank={studentRank}
+              studentStreak={studentStreak}
+              overallSuccessRate={overallSuccessRate}
+              solvedQuestionsStats={solvedQuestionsStats}
+              goalTrackingData={goalTrackingData}
+              recentSolvedTests={recentSolvedTests}
+              otherHomeworkSubmissions={otherHomeworkSubmissions}
+              generalTrialExams={generalTrialExams}
+              isMobile={isMobile}
+              onOpenGamificationModal={() => setIsGamificationModalOpen(true)}
+              onNavigate={navigate}
+              onOpenManualModal={handleOpenManualModal}
+              onReviewRecentTest={handleReviewRecentTest}
+              onNavigateResults={handleNavigateResults}
+              onNavigateGoals={handleNavigateGoals}
+              onUpdateGoalProgress={updateGoalProgress}
+              onStartStudyRoom={() => navigate('/study-room')}
+            />
           </Suspense>
         )}
 
