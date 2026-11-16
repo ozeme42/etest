@@ -4303,6 +4303,8 @@ export default function StudentDashboard() {
                 homeworks={homeworks}
                 currentUserId={selectedStudent?.id || currentUser?.id}
                 onNavigateBookDetail={handleNavigateBookDetail}
+                onNavigateBooks={handleNavigateBooks}
+                onStartStudyRoom={() => navigate('/study-room')}
               />
 
               {/* Kitap Okuma & Yol Haritası (Ek Araçlar / Katlanabilir Bölüm) */}
