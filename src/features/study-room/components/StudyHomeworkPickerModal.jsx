@@ -93,7 +93,7 @@ const getSubjectGradient = (subj) => {
   return 'linear-gradient(135deg, #6366f1, #4f46e5)';
 };
 
-export default function StudyHomeworkPickerModal({
+export default React.memo(function StudyHomeworkPickerModal({
   show,
   onClose,
   themeObj,
@@ -118,6 +118,8 @@ export default function StudyHomeworkPickerModal({
   currentUserId = null,
   onSelectTask
 }) {
+  if (!show) return null;
+
   const [selectedBookId, setSelectedBookId] = useState(null);
   // KONUYA TIKLAYINCA AÇILACAK TEST PENCERESİ STATE'İ
   const [selectedUnitForModal, setSelectedUnitForModal] = useState(null);
@@ -1334,7 +1336,7 @@ export default function StudyHomeworkPickerModal({
       )}
     </div>
   );
-}
+});
 
 // ─── 📂 KONUYA TIKLAYINCA AÇILAN TESTLER PENCERESİ ───
 function TopicTestsModal({ unit, bookTitle, onClose, onSelectTask, hideCompletedTasks, isMobile }) {

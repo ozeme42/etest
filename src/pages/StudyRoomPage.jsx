@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import {
@@ -35,8 +35,6 @@ import {
 import './StudyRoomPage.css';
 
 // Modular Subcomponents
-import StudyRoomHeader from '../features/study-room/components/StudyRoomHeader';
-import StudyHeroCard from '../features/study-room/components/StudyHeroCard';
 import StudyOpticalPanel from '../features/study-room/components/StudyOpticalPanel';
 import StudySpeedAnalytics from '../features/study-room/components/StudySpeedAnalytics';
 import StudyForestBadges from '../features/study-room/components/StudyForestBadges';
@@ -164,9 +162,9 @@ export default function StudyRoomPage() {
     return null;
   };
 
-  // 1. Öğrenciye atanan tüm görevleri birleştir
+  // 1. Öğrenciye atanan tüm görevleri birleştir (Yalnızca modal açıkken hesaplanır)
   const allAssignedTasks = useMemo(() => {
-    if (!currentUser) return [];
+    if (!currentUser || !showHomeworkPickerModal) return [];
 
     const isMatchHw = (hw) => {
       if (!hw || !currentUser) return false;
@@ -397,10 +395,11 @@ export default function StudyRoomPage() {
     });
 
     return taskList;
-  }, [currentUser, studentIdStr, studentUuidStr, homeworks, books, bookTests, submissions, studyAssignments, coachingProfile, WEEK_DAYS_CONFIG, currentTodayKey]);
+  }, [showHomeworkPickerModal, currentUser, studentIdStr, studentUuidStr, homeworks, books, bookTests, submissions, studyAssignments, coachingProfile, WEEK_DAYS_CONFIG, currentTodayKey]);
 
-  // 2. Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Birebir Ders Programı ile Özdeş)
+  // 2. Haftalık Program Görevlerini Gün Gün Eksiksiz Gruplama (Yalnızca modal açıkken hesaplanır)
   const weeklyProgramGrouped = useMemo(() => {
+    if (!showHomeworkPickerModal) return [];
     const weeklyProg = coachingProfile?.weeklyProgram || [];
     const studentHws = (homeworks || []).filter(hw => {
       if (!hw || !currentUser) return false;
@@ -660,7 +659,7 @@ export default function StudyRoomPage() {
         completedCount: dayTasks.filter(t => t.isCompleted).length
       };
     });
-  }, [coachingProfile, homeworks, bookTests, books, submissions, studyAssignments, currentUser, studentIdStr, studentUuidStr, WEEK_DAYS_CONFIG, weekDayDateMap]);
+  }, [showHomeworkPickerModal, coachingProfile, homeworks, bookTests, books, submissions, studyAssignments, currentUser, studentIdStr, studentUuidStr, WEEK_DAYS_CONFIG, weekDayDateMap]);
 
   // ── 📚 DERS VE HIZ TAKİBİ ──
   const [selectedSubject, setSelectedSubject] = useState(() => localStorage.getItem('study_selected_subject') || 'Matematik');
@@ -903,23 +902,23 @@ export default function StudyRoomPage() {
     };
   }, [isRunning]);
 
-  // Sayaç Döngüsü (Interval Tick)
+  // Sayaç Döngüsü (Interval Tick - Optimize Edilmiş & Ayrıştırılmış)
   useEffect(() => {
     if (activeStudyMode === 'stopwatch') {
       if (isRunning) {
         stopwatchRef.current = setInterval(() => {
-          setStopwatchSeconds(prev => {
-            const next = prev + 1;
-            setSessionElapsedSeconds(e => e + 1);
-            if (next % 60 === 0) {
+          setStopwatchSeconds(prev => prev + 1);
+          setSessionElapsedSeconds(e => {
+            const nextElapsed = e + 1;
+            if (nextElapsed % 60 === 0) {
               setDailyStats(d => {
                 const updated = { ...d, totalMinutes: (d.totalMinutes || 0) + 1 };
                 const todayKey = new Date().toISOString().split('T')[0];
-                localStorage.setItem(`study_daily_${todayKey}`, JSON.stringify(updated));
+                try { localStorage.setItem(`study_daily_${todayKey}`, JSON.stringify(updated)); } catch {}
                 return updated;
               });
             }
-            return next;
+            return nextElapsed;
           });
         }, 1000);
       } else {
@@ -930,31 +929,31 @@ export default function StudyRoomPage() {
 
     if (isRunning) {
       timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          setSessionElapsedSeconds(e => {
-            const nextElapsed = e + 1;
-            if (activeStudyMode === 'question' && questionChimeEnabled && minutesPerQuestion > 0) {
-              const intervalSec = Math.round(minutesPerQuestion * 60);
-              if (intervalSec > 0 && nextElapsed % intervalSec === 0) {
-                ambientAudio.playSoftDing();
-              }
+        setSessionElapsedSeconds(e => {
+          const nextElapsed = e + 1;
+          if (activeStudyMode === 'question' && questionChimeEnabled && minutesPerQuestion > 0) {
+            const intervalSec = Math.round(minutesPerQuestion * 60);
+            if (intervalSec > 0 && nextElapsed % intervalSec === 0) {
+              ambientAudio.playSoftDing();
             }
-            return nextElapsed;
-          });
+          }
+          if (nextElapsed % 60 === 0) {
+            setDailyStats(d => {
+              const updated = { ...d, totalMinutes: (d.totalMinutes || 0) + 1 };
+              const todayKey = new Date().toISOString().split('T')[0];
+              try { localStorage.setItem(`study_daily_${todayKey}`, JSON.stringify(updated)); } catch {}
+              return updated;
+            });
+          }
+          return nextElapsed;
+        });
 
+        setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
             setIsRunning(false);
             handleCompleteSession();
             return 0;
-          }
-          if (prev % 60 === 0) {
-            setDailyStats(d => {
-              const updated = { ...d, totalMinutes: (d.totalMinutes || 0) + 1 };
-              const todayKey = new Date().toISOString().split('T')[0];
-              localStorage.setItem(`study_daily_${todayKey}`, JSON.stringify(updated));
-              return updated;
-            });
           }
           return prev - 1;
         });
@@ -1084,45 +1083,44 @@ export default function StudyRoomPage() {
     localStorage.removeItem('study_optical_answers');
   };
 
-  // Optik İşaretleme
-  const handleSelectOpticalOption = (qNo, optLetter) => {
+  // Optik İşaretleme (Anında Tepki Veren ve Gecikmesiz)
+  const handleSelectOpticalOption = useCallback((qNo, optLetter) => {
     setOpticalAnswers(prev => {
       const next = { ...prev };
       if (next[qNo] === optLetter) delete next[qNo];
       else next[qNo] = optLetter;
-
-      const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
-      try {
-        localStorage.setItem('study_optical_answers', JSON.stringify(next));
-        if (taskId) localStorage.setItem(`study_optical_answers_${taskId}`, JSON.stringify(next));
-      } catch {}
-
-      const answeredCount = Object.keys(next).length;
-      setCurrentProgressCount(answeredCount);
-
-      if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
       return next;
     });
-  };
+    if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
+  }, [isRunning, sessionElapsedSeconds]);
 
-  const handleSetOpticalTextAnswer = (qNo, textVal) => {
+  const handleSetOpticalTextAnswer = useCallback((qNo, textVal) => {
     setOpticalAnswers(prev => {
       const next = { ...prev };
       if (!textVal) delete next[qNo];
       else next[qNo] = textVal;
-
-      const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
-      try {
-        localStorage.setItem('study_optical_answers', JSON.stringify(next));
-        if (taskId) localStorage.setItem(`study_optical_answers_${taskId}`, JSON.stringify(next));
-      } catch {}
-
-      const answeredCount = Object.keys(next).length;
-      setCurrentProgressCount(answeredCount);
-      if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
       return next;
     });
-  };
+    if (!isRunning && sessionElapsedSeconds === 0) setIsRunning(true);
+  }, [isRunning, sessionElapsedSeconds]);
+
+  // Optik Cevapları Arka Planda Gecikmeli Senkronize Et (UI Donmasını Önler)
+  useEffect(() => {
+    const answeredCount = Object.keys(opticalAnswers).length;
+    setCurrentProgressCount(answeredCount);
+
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('study_optical_answers', JSON.stringify(opticalAnswers));
+        const taskId = selectedTask?.id || selectedTask?.testId || selectedTask?.bookTestId || selectedTask?.hwId;
+        if (taskId) {
+          localStorage.setItem(`study_optical_answers_${taskId}`, JSON.stringify(opticalAnswers));
+        }
+      } catch {}
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [opticalAnswers, selectedTask]);
 
   const handleClearOpticalAnswers = () => {
     setOpticalAnswers({});
@@ -2065,7 +2063,7 @@ export default function StudyRoomPage() {
                 themeObj={themeObj}
                 isMobile={isMobile}
                 overallAvgSecPerQ={overallAvgSecPerQ}
-                totalTrackedQuestions={allAssignedTasks.length}
+                totalTrackedQuestions={trackedSubjectsList.reduce((acc, s) => acc + (s.totalQuestions || 0), 0)}
                 fastestSubject={fastestSubject}
                 slowestSubject={slowestSubject}
                 trackedSubjectsList={trackedSubjectsList}
@@ -2177,63 +2175,69 @@ export default function StudyRoomPage() {
       )}
 
       {/* ─── 6. MODALS ─── */}
-      <StudyHomeworkPickerModal
-        show={showHomeworkPickerModal}
-        onClose={() => setShowHomeworkPickerModal(false)}
-        themeObj={themeObj}
-        isMobile={isMobile}
-        hwSourceTab={hwSourceTab}
-        setHwSourceTab={setHwSourceTab}
-        hwFilterSubject={hwFilterSubject}
-        setHwFilterSubject={setHwFilterSubject}
-        hwSearchQuery={hwSearchQuery}
-        setHwSearchQuery={setHwSearchQuery}
-        hideCompletedTasks={hideCompletedTasks}
-        setHideCompletedTasks={setHideCompletedTasks}
-        selectedProgramDay={selectedProgramDay}
-        setSelectedProgramDay={setSelectedProgramDay}
-        weeklyProgramGrouped={weeklyProgramGrouped}
-        allAssignedTasks={allAssignedTasks}
-        books={books}
-        bookTests={bookTests}
-        submissions={submissions}
-        homeworks={homeworks}
-        studyAssignments={studyAssignments}
-        currentUserId={currentUser?.id}
-        onSelectTask={handleSelectTask}
-      />
+      {showHomeworkPickerModal && (
+        <StudyHomeworkPickerModal
+          show={showHomeworkPickerModal}
+          onClose={() => setShowHomeworkPickerModal(false)}
+          themeObj={themeObj}
+          isMobile={isMobile}
+          hwSourceTab={hwSourceTab}
+          setHwSourceTab={setHwSourceTab}
+          hwFilterSubject={hwFilterSubject}
+          setHwFilterSubject={setHwFilterSubject}
+          hwSearchQuery={hwSearchQuery}
+          setHwSearchQuery={setHwSearchQuery}
+          hideCompletedTasks={hideCompletedTasks}
+          setHideCompletedTasks={setHideCompletedTasks}
+          selectedProgramDay={selectedProgramDay}
+          setSelectedProgramDay={setSelectedProgramDay}
+          weeklyProgramGrouped={weeklyProgramGrouped}
+          allAssignedTasks={allAssignedTasks}
+          books={books}
+          bookTests={bookTests}
+          submissions={submissions}
+          homeworks={homeworks}
+          studyAssignments={studyAssignments}
+          currentUserId={currentUser?.id}
+          onSelectTask={handleSelectTask}
+        />
+      )}
 
-      <StudyResultModal
-        result={completedQuizResult}
-        onClose={() => { setCompletedQuizResult(null); handleClearTask(); }}
-        onViewResults={() => {
-          setCompletedQuizResult(null);
-          handleClearTask();
-          navigate('/student-results');
-        }}
-        themeObj={themeObj}
-        isMobile={isMobile}
-      />
+      {completedQuizResult && (
+        <StudyResultModal
+          result={completedQuizResult}
+          onClose={() => { setCompletedQuizResult(null); handleClearTask(); }}
+          onViewResults={() => {
+            setCompletedQuizResult(null);
+            handleClearTask();
+            navigate('/student-results');
+          }}
+          themeObj={themeObj}
+          isMobile={isMobile}
+        />
+      )}
 
-      <StudySettingsDrawer
-        show={showSettingsDrawer}
-        onClose={() => setShowSettingsDrawer(false)}
-        themeObj={themeObj}
-        isMobile={isMobile}
-        themes={THEMES}
-        activeTheme={activeTheme}
-        setActiveTheme={t => {
-          setActiveTheme(t);
-          localStorage.setItem('study_theme', t);
-        }}
-        isFullscreen={isFullscreen}
-        toggleFullscreen={toggleFullscreen}
-        wakeLockActive={wakeLockActive}
-        questionChimeEnabled={questionChimeEnabled}
-        setQuestionChimeEnabled={setQuestionChimeEnabled}
-        pauseLimitMode={pauseLimitMode}
-        setPauseLimitMode={setPauseLimitMode}
-      />
+      {showSettingsDrawer && (
+        <StudySettingsDrawer
+          show={showSettingsDrawer}
+          onClose={() => setShowSettingsDrawer(false)}
+          themeObj={themeObj}
+          isMobile={isMobile}
+          themes={THEMES}
+          activeTheme={activeTheme}
+          setActiveTheme={t => {
+            setActiveTheme(t);
+            localStorage.setItem('study_theme', t);
+          }}
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          wakeLockActive={wakeLockActive}
+          questionChimeEnabled={questionChimeEnabled}
+          setQuestionChimeEnabled={setQuestionChimeEnabled}
+          pauseLimitMode={pauseLimitMode}
+          setPauseLimitMode={setPauseLimitMode}
+        />
+      )}
     </div>
   );
 }

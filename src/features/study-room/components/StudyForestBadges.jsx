@@ -1,7 +1,7 @@
 import React from 'react';
 import { TreePine, Sprout, Award, Flame, CheckCircle } from 'lucide-react';
 
-export default function StudyForestBadges({
+export default React.memo(function StudyForestBadges({
   themeObj,
   isMobile,
   plantedForest = [],
@@ -182,4 +182,4 @@ export default function StudyForestBadges({
       </div>
     </div>
   );
-}
+});

@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle2, Trophy, Clock, Target, ArrowRight, X } from 'lucide-react';
 import { formatSecToMinSec } from '../constants/studyRoomConstants';
 
-export default function StudyResultModal({
+export default React.memo(function StudyResultModal({
   result,
   onClose,
   onViewResults,
@@ -191,4 +191,4 @@ export default function StudyResultModal({
       </div>
     </div>
   );
-}
+});

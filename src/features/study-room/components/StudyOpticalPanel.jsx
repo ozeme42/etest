@@ -14,7 +14,7 @@ import {
   Edit3
 } from 'lucide-react';
 
-export default function StudyOpticalPanel({
+export default React.memo(function StudyOpticalPanel({
   themeObj,
   isMobile,
   targetGoalCount,
@@ -788,4 +788,4 @@ export default function StudyOpticalPanel({
       )}
     </div>
   );
-}
+});

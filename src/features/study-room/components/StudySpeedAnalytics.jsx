@@ -2,7 +2,7 @@ import React from 'react';
 import { Gauge, RotateCcw, Sparkles, Play, Clock } from 'lucide-react';
 import { formatSecToMinSec } from '../constants/studyRoomConstants';
 
-export default function StudySpeedAnalytics({
+export default React.memo(function StudySpeedAnalytics({
   themeObj,
   isMobile,
   overallAvgSecPerQ,
@@ -282,4 +282,4 @@ export default function StudySpeedAnalytics({
       )}
     </div>
   );
-}
+});

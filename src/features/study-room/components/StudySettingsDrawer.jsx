@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Settings2, Maximize2, Minimize2, Volume2, VolumeX, ShieldAlert, Sparkles, Sun } from 'lucide-react';
 
-export default function StudySettingsDrawer({
+export default React.memo(function StudySettingsDrawer({
   show,
   onClose,
   themeObj,
@@ -196,4 +196,4 @@ export default function StudySettingsDrawer({
       </div>
     </div>
   );
-}
+});

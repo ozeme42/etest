@@ -1,7 +1,7 @@
 import React from 'react';
 import { Volume2, VolumeX, Plus, Trash2, CheckSquare, Square, Edit3, Sparkles } from 'lucide-react';
 
-export default function StudyAmbientNotes({
+export default React.memo(function StudyAmbientNotes({
   themeObj,
   isMobile,
   // Ambient Audio
@@ -235,4 +235,4 @@ export default function StudyAmbientNotes({
       </div>
     </div>
   );
-}
+});
