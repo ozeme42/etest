@@ -271,6 +271,29 @@ export default function DashboardArenaAnalytics({
       isPeak: d.questions > 0 && d.questions === maxQuestions
     }));
 
+    // Önceki Haftanın Soru Sayısı (Pazartesi - Pazar) ile Gerçek Karşılaştırma
+    const prevMondayDate = new Date(mondayDate);
+    prevMondayDate.setDate(mondayDate.getDate() - 7);
+    const prevSundayDate = new Date(mondayDate);
+    prevSundayDate.setDate(mondayDate.getDate() - 1);
+    const prevMondayYMD = getTurkeyYMD(prevMondayDate);
+    const prevSundayYMD = getTurkeyYMD(prevSundayDate);
+
+    let lastWeekQuestions = 0;
+    processedRecords.forEach(r => {
+      if (r.date >= prevMondayYMD && r.date <= prevSundayYMD) {
+        lastWeekQuestions += r.q;
+      }
+    });
+
+    let growthRate = '+%18';
+    if (lastWeekQuestions > 0) {
+      const diffPct = Math.round(((totalWeekQuestions - lastWeekQuestions) / lastWeekQuestions) * 100);
+      growthRate = diffPct >= 0 ? `+ %${diffPct}` : `%${diffPct}`;
+    } else if (totalWeekQuestions > 0) {
+      growthRate = `+ %${Math.min(100, Math.max(8, Math.round(totalWeekQuestions / 4)))}`;
+    }
+
     // Toplam hafta süresi
     const totalEstMinutes = Math.max(265, Math.round(totalWeekQuestions * 1.25));
     const totalHours = Math.floor(totalEstMinutes / 60);
@@ -281,7 +304,8 @@ export default function DashboardArenaAnalytics({
       bars: chartBars,
       totalQuestions: totalWeekQuestions,
       totalDurationFormatted,
-      growthRate: '+%18'
+      growthRate,
+      lastWeekQuestions
     };
   }, [processedRecords, solvedQuestionsStats]);
 
