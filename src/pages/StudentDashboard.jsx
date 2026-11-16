@@ -4356,6 +4356,7 @@ export default function StudentDashboard() {
               getRowTheme={getRowTheme}
               onNavigateTasks={handleViewAllTasks}
               onNavigateBooks={handleExploreBooks}
+              onStartStudyRoom={() => navigate('/study-room')}
             />
           </Suspense>
         )}
