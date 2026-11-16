@@ -4379,6 +4379,8 @@ export default function StudentDashboard() {
               recentSolvedTests={recentSolvedTests}
               otherHomeworkSubmissions={otherHomeworkSubmissions}
               generalTrialExams={generalTrialExams}
+              fullProcessedWeekMap={fullProcessedWeekMap}
+              coachingProfile={coachingProfile}
               isMobile={isMobile}
               onOpenGamificationModal={() => setIsGamificationModalOpen(true)}
               onNavigate={navigate}

@@ -129,6 +129,8 @@ export default function DashboardArenaAnalytics({
   recentSolvedTests = [],
   otherHomeworkSubmissions = [],
   generalTrialExams = [],
+  fullProcessedWeekMap = {},
+  coachingProfile = null,
   isMobile = false,
   onOpenGamificationModal,
   onNavigate,
@@ -143,33 +145,90 @@ export default function DashboardArenaAnalytics({
 
   // ── States ──────────────────────────────────────────────────
   const [activeRange, setActiveRange] = useState('week'); // 'week' | 'month' | 'all'
-  const [activeChartTab, setActiveChartTab] = useState('distribution'); // 'distribution' | 'trend' | 'subjects' | 'table'
+  const [activeChartTab, setActiveChartTab] = useState('distribution'); // 'distribution' | 'trend'
+  const [weekViewMode, setWeekViewMode] = useState('rolling'); // 'rolling' (Son 7 Gün) | 'calendar' (Bu Hafta)
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('all');
   const [quoteIdx, setQuoteIdx] = useState(0);
 
-  // 1. Tüm Test ve Deneme Kayıtlarını Normalize Et
+  // 1. Tüm Test, Deneme, Ödev ve Program Kayıtlarını Eksiksiz Normalize Et
   const processedRecords = useMemo(() => {
     const list = [];
     const seen = new Set();
 
-    const pushItem = (item, type = 'test') => {
+    const pushItem = (item, defaultType = 'test') => {
       if (!item) return;
-      const d = Number(item.correctCount ?? item.correct ?? item.totalCorrect ?? 0);
-      const y = Number(item.wrongCount ?? item.wrong ?? item.totalWrong ?? 0);
-      const b = Number(item.emptyCount ?? item.blankCount ?? item.empty ?? item.totalEmpty ?? 0);
-      const q = d + y + b || Number(item.totalQuestions || item.questionCount || 0) || 10;
 
-      const dateStr = extractItemDate(item) || getTurkeyToday();
-      const rawSubj = item.subject || item.subjectName || item.subjectKey || 'Genel';
+      // 1. Doğru, Yanlış, Boş Tespiti
+      let d = Number(item.correctCount ?? item.correct_count ?? item.correct ?? item.totalCorrect ?? 0);
+      let y = Number(item.wrongCount ?? item.wrong_count ?? item.wrong ?? item.totalWrong ?? 0);
+      let b = Number(item.emptyCount ?? item.empty_count ?? item.blankCount ?? item.blank_count ?? item.empty ?? item.totalEmpty ?? 0);
+
+      // Deneme sınavları scores nesnesi kontrolü
+      if (item.scores && typeof item.scores === 'object') {
+        let scD = 0, scY = 0, scB = 0;
+        Object.values(item.scores).forEach(sc => {
+          if (sc && typeof sc === 'object') {
+            scD += Number(sc.d ?? sc.correct ?? 0);
+            scY += Number(sc.y ?? sc.wrong ?? 0);
+            scB += Number(sc.b ?? sc.empty ?? sc.blank ?? 0);
+          }
+        });
+        if (scD + scY + scB > 0) {
+          d = scD;
+          y = scY;
+          b = scB;
+        }
+      }
+
+      // 2. Soru Sayısı Tespiti
+      let q = Number(item.totalQuestions ?? item.questionCount ?? item.total_questions ?? item.question_count ?? 0);
+      if (q <= 0) {
+        if (d + y + b > 0) {
+          q = d + y + b;
+        } else if (Array.isArray(item.answers) && item.answers.length > 0) {
+          q = item.answers.filter(a => a && a.type !== 'metadata').length;
+        } else if (Array.isArray(item.studentAnswers) && item.studentAnswers.length > 0) {
+          q = item.studentAnswers.length;
+        } else if (item.questionsList && Array.isArray(item.questionsList) && item.questionsList.length > 0) {
+          q = item.questionsList.length;
+        } else {
+          q = (d > 0 || y > 0) ? (d + y) : 12;
+        }
+      }
+
+      // 3. Tarih Tespiti
+      let dateStr = null;
+      const rawDate = item.submittedAt || item.submitted_at || item.completedAt || item.completed_at || item.date || item.createdAt || item.created_at;
+      if (rawDate) {
+        dateStr = getTurkeyYMD(rawDate);
+      }
+      if (!dateStr) {
+        dateStr = extractItemDate(item);
+      }
+      if (!dateStr) {
+        dateStr = getTurkeyToday();
+      }
+
+      // 4. Branş & Başlık
+      const rawSubj = item.subject || item.subjectName || item.subjectKey || item.lesson || item.topic || 'Genel';
       const canonicalSubj = normalizeSubject(rawSubj);
-      const title = item.title || item.examName || item.testName || 'Test';
-      const key = `${item.id || item.submissionId || `${canonicalSubj}_${title}_${dateStr}_${d}_${y}`}`;
+      const title = item.title || item.testTitle || item.examName || item.testName || item.bookTitle || 'Test';
+
+      // 5. Deduplication
+      const candidateId = item.id || item.submissionId || item.supabaseId || item.testId;
+      const key = candidateId
+        ? String(candidateId)
+        : `${canonicalSubj}_${title}_${dateStr}_${d}_${y}_${q}`;
 
       if (seen.has(key)) return;
       seen.add(key);
 
-      const net = typeof item.totalNet === 'number' ? item.totalNet :
-        (typeof item.net === 'number' ? item.net : Math.max(0, parseFloat((d - (y / 3)).toFixed(2))));
+      // 6. Net Hesabı
+      const net = typeof item.totalNet === 'number'
+        ? item.totalNet
+        : (typeof item.net === 'number'
+          ? item.net
+          : Math.max(0, parseFloat((d - (y / 3)).toFixed(2))));
 
       list.push({
         id: key,
@@ -178,50 +237,180 @@ export default function DashboardArenaAnalytics({
         date: dateStr,
         d, y, b, q,
         net,
-        type,
-        accuracy: q > 0 ? Math.round((d / q) * 100) : 0,
+        type: item.type || defaultType,
+        accuracy: q > 0 ? Math.round((d / q) * 100) : (d + y > 0 ? Math.round((d / (d + y)) * 100) : 0),
         raw: item
       });
     };
 
+    // 1. Unified Solved Tests (Kitaplar, ödevler, optik testler)
+    (recentSolvedTests || []).forEach(s => pushItem(s, s.type || 'test'));
+
+    // 2. Doğrudan Öğrenci Değerlendirme Submissions
     (studentSubmissions || []).forEach(s => pushItem(s, 'test'));
+
+    // 3. Diğer Ödev Gönderimleri
+    (otherHomeworkSubmissions || []).forEach(h => pushItem(h, 'homework'));
+
+    // 4. Deneme Sınavları
     (studentMockExams || []).forEach(m => pushItem(m, 'mock'));
+    (generalTrialExams || []).forEach(m => pushItem(m, 'mock'));
+
+    // 5. Koçluk Günlük Logları
+    if (coachingProfile?.dailyLogs && Array.isArray(coachingProfile.dailyLogs)) {
+      coachingProfile.dailyLogs.forEach((log, lIdx) => {
+        if (!log?.date) return;
+        const logQ = Number(log.questionCount || log.questionsCount || 0);
+        if (logQ <= 0) return;
+        const logYMD = getTurkeyYMD(log.date);
+        if (!logYMD) return;
+        const logKey = `log_${logYMD}_${lIdx}`;
+        if (seen.has(logKey)) return;
+        seen.add(logKey);
+
+        const logD = Number(log.correctCount || Math.round(logQ * 0.82));
+        const logY = Number(log.wrongCount || Math.max(0, logQ - logD));
+        list.push({
+          id: logKey,
+          title: 'Çalışma Günlüğü',
+          subject: normalizeSubject(log.subject || 'Genel'),
+          date: logYMD,
+          d: logD,
+          y: logY,
+          b: 0,
+          q: logQ,
+          net: Math.max(0, parseFloat((logD - (logY / 3)).toFixed(2))),
+          type: 'log',
+          accuracy: logQ > 0 ? Math.round((logD / logQ) * 100) : 80,
+          raw: log
+        });
+      });
+    }
+
+    // 6. Haftalık Programda Tamamlanan Görevler
+    if (fullProcessedWeekMap && typeof fullProcessedWeekMap === 'object') {
+      Object.values(fullProcessedWeekMap).forEach(dayObj => {
+        if (!dayObj || !dayObj.ymd) return;
+        const dayYMD = dayObj.ymd;
+        (dayObj.items || []).forEach((taskItem, tIdx) => {
+          if (taskItem?.done) {
+            const subId = taskItem.submission?.id || taskItem.submission?.submissionId;
+            if (subId && seen.has(String(subId))) return;
+
+            const taskKey = `task_${dayYMD}_${taskItem.id || taskItem.testId || tIdx}`;
+            if (seen.has(taskKey)) return;
+            seen.add(taskKey);
+
+            const taskQ = Number(taskItem.questionCount || taskItem.totalQuestions || 15);
+            const taskD = Number(taskItem.testResult?.correctCount || taskItem.correctCount || Math.round(taskQ * 0.82));
+            const taskY = Number(taskItem.testResult?.wrongCount || taskItem.wrongCount || Math.max(0, taskQ - taskD));
+            const taskNet = Math.max(0, parseFloat((taskD - (taskY / 3)).toFixed(2)));
+            const rawSubj = taskItem.subject || taskItem.subjectName || taskItem.lesson || 'Genel';
+
+            list.push({
+              id: taskKey,
+              title: taskItem.title || taskItem.text || 'Program Görevi',
+              subject: normalizeSubject(rawSubj),
+              date: dayYMD,
+              d: taskD,
+              y: taskY,
+              b: 0,
+              q: taskQ,
+              net: taskNet,
+              type: 'task',
+              accuracy: taskQ > 0 ? Math.round((taskD / taskQ) * 100) : 80,
+              raw: taskItem
+            });
+          }
+        });
+      });
+    }
 
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [studentSubmissions, studentMockExams]);
+  }, [recentSolvedTests, studentSubmissions, otherHomeworkSubmissions, studentMockExams, generalTrialExams, coachingProfile, fullProcessedWeekMap]);
 
-  // 2. 7 Günlük Haftalık Gelişim Verisi (Mockup'taki "Bu Haftanın Gelişimi" Kartı İçin)
+  // Toplam Çözülen Soru Sayısı (Tüm zamanlar)
+  const totalAllTimeQuestions = useMemo(() => {
+    let sum = 0;
+    processedRecords.forEach(r => { sum += (r.q || 0); });
+    return Math.max(sum, Number(solvedQuestionsStats?.total || 0));
+  }, [processedRecords, solvedQuestionsStats?.total]);
+
+  // 2. 7 Günlük Performans & Soru Hacmi Gelişimi
   const weeklyDevelopment = useMemo(() => {
     const todayYMD = getTurkeyToday();
     const todayDate = parseSafeDate(todayYMD);
-    const currentDayOfWeek = todayDate.getDay(); // 0: Paz, 1: Pzt, ..., 6: Cmt
-    // Pazartesiye olan ofset: Pzt=1 => 0 gün önce, Sal=2 => 1 gün önce, Paz=0 => 6 gün önce
-    const mondayOffset = (currentDayOfWeek + 6) % 7;
-    const mondayDate = new Date(todayDate);
-    mondayDate.setDate(todayDate.getDate() - mondayOffset);
-
-    const dayLabels = [
-      { key: 'monday', label: 'Pzt', fullLabel: 'Pazartesi' },
-      { key: 'tuesday', label: 'Sal', fullLabel: 'Salı' },
-      { key: 'wednesday', label: 'Çar', fullLabel: 'Çarşamba' },
-      { key: 'thursday', label: 'Per', fullLabel: 'Perşembe' },
-      { key: 'friday', label: 'Cum', fullLabel: 'Cuma' },
-      { key: 'saturday', label: 'Cmt', fullLabel: 'Cumartesi' },
-      { key: 'sunday', label: 'Paz', fullLabel: 'Pazar' }
+    const TURKISH_DAYS = [
+      { key: 'sun', label: 'Paz', fullLabel: 'Pazar' },
+      { key: 'mon', label: 'Pzt', fullLabel: 'Pazartesi' },
+      { key: 'tue', label: 'Sal', fullLabel: 'Salı' },
+      { key: 'wed', label: 'Çar', fullLabel: 'Çarşamba' },
+      { key: 'thu', label: 'Per', fullLabel: 'Perşembe' },
+      { key: 'fri', label: 'Cum', fullLabel: 'Cuma' },
+      { key: 'sat', label: 'Cmt', fullLabel: 'Cumartesi' }
     ];
+
+    let targetDays = [];
+
+    if (weekViewMode === 'calendar') {
+      // Takvim Haftası: Pazartesi - Pazar
+      const currentDayOfWeek = todayDate.getDay(); // 0: Paz, 1: Pzt, ..., 6: Cmt
+      const mondayOffset = (currentDayOfWeek + 6) % 7;
+      const mondayDate = new Date(todayDate);
+      mondayDate.setDate(todayDate.getDate() - mondayOffset);
+
+      const calendarDayLabels = [
+        { key: 'monday', label: 'Pzt', fullLabel: 'Pazartesi' },
+        { key: 'tuesday', label: 'Sal', fullLabel: 'Salı' },
+        { key: 'wednesday', label: 'Çar', fullLabel: 'Çarşamba' },
+        { key: 'thursday', label: 'Per', fullLabel: 'Perşembe' },
+        { key: 'friday', label: 'Cum', fullLabel: 'Cuma' },
+        { key: 'saturday', label: 'Cmt', fullLabel: 'Cumartesi' },
+        { key: 'sunday', label: 'Paz', fullLabel: 'Pazar' }
+      ];
+
+      targetDays = calendarDayLabels.map((dObj, idx) => {
+        const curDate = new Date(mondayDate);
+        curDate.setDate(mondayDate.getDate() + idx);
+        const ymd = getTurkeyYMD(curDate);
+        return {
+          ...dObj,
+          ymd,
+          isToday: ymd === todayYMD,
+          isFuture: ymd > todayYMD,
+          dateLabel: `${curDate.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][curDate.getMonth()]}`
+        };
+      });
+    } else {
+      // Son 7 Gün (Rolling 7 Days: 6 gün önce -> Bugün)
+      for (let i = 6; i >= 0; i--) {
+        const curDate = new Date(todayDate);
+        curDate.setDate(todayDate.getDate() - i);
+        const ymd = getTurkeyYMD(curDate);
+        const dayIdx = curDate.getDay();
+        const dayMeta = TURKISH_DAYS[dayIdx];
+        const isToday = ymd === todayYMD;
+
+        targetDays.push({
+          key: `rolling_${ymd}`,
+          label: dayMeta.label,
+          shortLabel: dayMeta.label,
+          fullLabel: isToday ? `${dayMeta.fullLabel} (Bugün)` : dayMeta.fullLabel,
+          ymd,
+          isToday,
+          isFuture: false,
+          dateLabel: `${curDate.getDate()} ${['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'][curDate.getMonth()]}`
+        });
+      }
+    }
 
     let maxQuestions = 1;
     let totalWeekQuestions = 0;
     let totalWeekCorrect = 0;
     let totalWeekNet = 0;
 
-    const daysData = dayLabels.map((dObj, idx) => {
-      const curDate = new Date(mondayDate);
-      curDate.setDate(mondayDate.getDate() + idx);
-      const ymd = getTurkeyYMD(curDate);
-      const isToday = ymd === todayYMD;
-
-      const dayItems = processedRecords.filter(r => r.date === ymd);
+    const daysData = targetDays.map(dObj => {
+      const dayItems = processedRecords.filter(r => r.date === dObj.ymd);
       let dayQ = 0;
       let dayD = 0;
       let dayY = 0;
@@ -234,10 +423,12 @@ export default function DashboardArenaAnalytics({
         dayNet += it.net;
       });
 
-      // Eğer hiç veri yoksa ama bugünün verisi veya varsayılan varsa yumuşak fallback
-      if (dayQ === 0 && isToday && solvedQuestionsStats.today > 0) {
+      // Bugün için fallback
+      if (dayQ === 0 && dObj.isToday && solvedQuestionsStats?.today > 0) {
         dayQ = solvedQuestionsStats.today;
         dayD = Math.round(dayQ * 0.85);
+        dayY = Math.max(0, dayQ - dayD);
+        dayNet = parseFloat((dayD - (dayY / 3)).toFixed(1));
       }
 
       totalWeekQuestions += dayQ;
@@ -245,7 +436,6 @@ export default function DashboardArenaAnalytics({
       totalWeekNet += dayNet;
       if (dayQ > maxQuestions) maxQuestions = dayQ;
 
-      // Çalışma süresi tahmini: soru başı ortalama ~1.2 dakika
       const estimatedMinutes = Math.round(dayQ * 1.25);
       const hours = Math.floor(estimatedMinutes / 60);
       const mins = estimatedMinutes % 60;
@@ -253,8 +443,6 @@ export default function DashboardArenaAnalytics({
 
       return {
         ...dObj,
-        ymd,
-        isToday,
         questions: dayQ,
         correct: dayD,
         wrong: dayY,
@@ -264,50 +452,84 @@ export default function DashboardArenaAnalytics({
       };
     });
 
+    // Eğer tüm 7 günün toplamı 0 ise ama solvedQuestionsStats.thisWeek > 0 ise dağıt
+    if (totalWeekQuestions === 0 && solvedQuestionsStats?.thisWeek > 0) {
+      const weekTarget = solvedQuestionsStats.thisWeek;
+      totalWeekQuestions = weekTarget;
+      const perDay = Math.round(weekTarget / 3);
+      let remaining = weekTarget;
+      for (let i = daysData.length - 1; i >= Math.max(0, daysData.length - 3); i--) {
+        const take = Math.min(remaining, perDay);
+        daysData[i].questions = take;
+        daysData[i].correct = Math.round(take * 0.85);
+        daysData[i].wrong = take - daysData[i].correct;
+        daysData[i].net = parseFloat((daysData[i].correct - (daysData[i].wrong / 3)).toFixed(1));
+        const estMin = Math.round(take * 1.25);
+        daysData[i].durationMinutes = estMin;
+        const h = Math.floor(estMin / 60);
+        const m = estMin % 60;
+        daysData[i].durationStr = h > 0 ? `${h}s ${m}dk` : `${m}dk`;
+        remaining -= take;
+        if (take > maxQuestions) maxQuestions = take;
+      }
+    }
+
     // Bar yükseklik oranları
     const chartBars = daysData.map(d => ({
       ...d,
-      heightPercent: maxQuestions > 0 ? Math.max(14, Math.round((d.questions / maxQuestions) * 100)) : 18,
+      heightPercent: maxQuestions > 0 ? Math.max(16, Math.round((d.questions / maxQuestions) * 100)) : 18,
       isPeak: d.questions > 0 && d.questions === maxQuestions
     }));
 
-    // Önceki Haftanın Soru Sayısı (Pazartesi - Pazar) ile Gerçek Karşılaştırma
-    const prevMondayDate = new Date(mondayDate);
-    prevMondayDate.setDate(mondayDate.getDate() - 7);
-    const prevSundayDate = new Date(mondayDate);
-    prevSundayDate.setDate(mondayDate.getDate() - 1);
-    const prevMondayYMD = getTurkeyYMD(prevMondayDate);
-    const prevSundayYMD = getTurkeyYMD(prevSundayDate);
-
-    let lastWeekQuestions = 0;
-    processedRecords.forEach(r => {
-      if (r.date >= prevMondayYMD && r.date <= prevSundayYMD) {
-        lastWeekQuestions += r.q;
-      }
-    });
-
-    let growthRate = '+%18';
-    if (lastWeekQuestions > 0) {
-      const diffPct = Math.round(((totalWeekQuestions - lastWeekQuestions) / lastWeekQuestions) * 100);
-      growthRate = diffPct >= 0 ? `+ %${diffPct}` : `%${diffPct}`;
-    } else if (totalWeekQuestions > 0) {
-      growthRate = `+ %${Math.min(100, Math.max(8, Math.round(totalWeekQuestions / 4)))}`;
+    // Gelişim Oranı Hesaplama (Önceki 7 gün ile kıyas)
+    let lastPeriodQuestions = 0;
+    if (weekViewMode === 'calendar') {
+      const curMonDate = parseSafeDate(targetDays[0].ymd);
+      const prevMon = new Date(curMonDate);
+      prevMon.setDate(curMonDate.getDate() - 7);
+      const prevSun = new Date(curMonDate);
+      prevSun.setDate(curMonDate.getDate() - 1);
+      const prevStartYMD = getTurkeyYMD(prevMon);
+      const prevEndYMD = getTurkeyYMD(prevSun);
+      processedRecords.forEach(r => {
+        if (r.date >= prevStartYMD && r.date <= prevEndYMD) lastPeriodQuestions += r.q;
+      });
+    } else {
+      const rollingStart = parseSafeDate(targetDays[0].ymd);
+      const prevStart = new Date(rollingStart);
+      prevStart.setDate(rollingStart.getDate() - 7);
+      const prevEnd = new Date(rollingStart);
+      prevEnd.setDate(rollingStart.getDate() - 1);
+      const prevStartYMD = getTurkeyYMD(prevStart);
+      const prevEndYMD = getTurkeyYMD(prevEnd);
+      processedRecords.forEach(r => {
+        if (r.date >= prevStartYMD && r.date <= prevEndYMD) lastPeriodQuestions += r.q;
+      });
     }
 
-    // Toplam hafta süresi
-    const totalEstMinutes = Math.max(265, Math.round(totalWeekQuestions * 1.25));
+    let growthRate = '+%18';
+    if (lastPeriodQuestions > 0) {
+      const diffPct = Math.round(((totalWeekQuestions - lastPeriodQuestions) / lastPeriodQuestions) * 100);
+      growthRate = diffPct >= 0 ? `+ %${diffPct}` : `%${diffPct}`;
+    } else if (totalWeekQuestions > 0) {
+      growthRate = `+ %${Math.min(100, Math.max(12, Math.round(totalWeekQuestions / 3)))}`;
+    }
+
+    // Toplam süre formatı
+    const totalEstMinutes = Math.max(totalWeekQuestions > 0 ? 35 : 0, Math.round(totalWeekQuestions * 1.25));
     const totalHours = Math.floor(totalEstMinutes / 60);
     const remainingMins = totalEstMinutes % 60;
-    const totalDurationFormatted = `${totalHours}s ${remainingMins}dk`;
+    const totalDurationFormatted = totalHours > 0 ? `${totalHours}s ${remainingMins}dk` : `${remainingMins}dk`;
 
     return {
       bars: chartBars,
       totalQuestions: totalWeekQuestions,
       totalDurationFormatted,
       growthRate,
-      lastWeekQuestions
+      lastPeriodQuestions,
+      maxQuestions
     };
-  }, [processedRecords, solvedQuestionsStats]);
+  }, [processedRecords, solvedQuestionsStats, weekViewMode]);
 
   // 3. Branş Bazında Yetkinlik ve Dağılım İstatistikleri (6 Branş)
   const subjectMastery = useMemo(() => {
@@ -338,10 +560,10 @@ export default function DashboardArenaAnalytics({
       const data = map[sc.key];
       const q = data.totalQuestions;
       const d = data.correct;
-      const accuracy = q > 0 ? Math.round((d / q) * 100) : 80;
-      const avgNet = data.testCount > 0 ? (data.totalNet / data.testCount).toFixed(1) : '16.5';
+      const accuracy = q > 0 ? Math.round((d / q) * 100) : 0;
+      const avgNet = data.testCount > 0 ? (data.totalNet / data.testCount).toFixed(1) : '0.0';
 
-      let statusBadge = '📈 Gelişiyor';
+      let statusBadge = '🎯 Başlangıç';
       let statusColor = '#3b82f6';
       if (accuracy >= 85) {
         statusBadge = '🔥 Zirvede';
@@ -349,17 +571,20 @@ export default function DashboardArenaAnalytics({
       } else if (accuracy >= 75) {
         statusBadge = '✨ Çok İyi';
         statusColor = '#8b5cf6';
-      } else if (accuracy < 60 && q > 0) {
+      } else if (accuracy >= 55) {
+        statusBadge = '📈 Gelişiyor';
+        statusColor = '#f59e0b';
+      } else if (accuracy > 0) {
         statusBadge = '⚠️ Tekrar Önerilir';
         statusColor = '#ef4444';
       }
 
       return {
         ...sc,
-        totalQuestions: q > 0 ? q : 45,
-        testCount: data.testCount > 0 ? data.testCount : 6,
-        correct: d > 0 ? d : 36,
-        wrong: data.wrong > 0 ? data.wrong : 7,
+        totalQuestions: q,
+        testCount: data.testCount,
+        correct: d,
+        wrong: data.wrong,
         accuracy,
         avgNet,
         statusBadge,
@@ -474,7 +699,7 @@ export default function DashboardArenaAnalytics({
               padding: '2px 8px',
               borderRadius: 99
             }}>
-              ↑ +%18
+              ↑ {weeklyDevelopment.growthRate}
             </span>
           </div>
 
@@ -483,7 +708,7 @@ export default function DashboardArenaAnalytics({
               Toplam Soru
             </div>
             <div style={{ fontSize: isMobile ? '1.35rem' : '1.7rem', fontWeight: 900, color: textColor, lineHeight: 1.15 }}>
-              {solvedQuestionsStats.total > 0 ? solvedQuestionsStats.total.toLocaleString('tr-TR') : '1.280'}
+              {totalAllTimeQuestions > 0 ? totalAllTimeQuestions.toLocaleString('tr-TR') : (solvedQuestionsStats.total > 0 ? solvedQuestionsStats.total.toLocaleString('tr-TR') : '0')}
             </div>
           </div>
 
@@ -790,6 +1015,43 @@ export default function DashboardArenaAnalytics({
               ))}
             </div>
 
+            {/* Soru Hacmi Seçeneği: Son 7 Gün vs Bu Hafta */}
+            {activeChartTab === 'distribution' && (
+              <div style={{
+                display: 'flex',
+                background: 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                padding: 3,
+                borderRadius: 12
+              }}>
+                {[
+                  { id: 'rolling', label: 'Son 7 Gün' },
+                  { id: 'calendar', label: 'Bu Hafta' }
+                ].map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setWeekViewMode(m.id)}
+                    style={{
+                      border: 'none',
+                      background: weekViewMode === m.id ? 'rgba(255,255,255,0.22)' : 'transparent',
+                      color: weekViewMode === m.id ? '#ffffff' : '#cbd5e1',
+                      fontWeight: 800,
+                      fontSize: isMobile ? '0.68rem' : '0.74rem',
+                      padding: isMobile ? '4px 7px' : '4px 10px',
+                      borderRadius: 9,
+                      cursor: 'pointer',
+                      boxShadow: weekViewMode === m.id ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
+                      transition: 'all 0.18s ease'
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Zaman Aralığı (Sadece Trend Modunda) */}
             {activeChartTab === 'trend' && (
               <div style={{
@@ -883,12 +1145,12 @@ export default function DashboardArenaAnalytics({
 
                 {/* Soru Miktarı (Hover/Visible) */}
                 <span style={{
-                  fontSize: isMobile ? '0.62rem' : '0.72rem',
-                  fontWeight: 800,
-                  color: bar.isToday ? '#ffffff' : '#c7d2fe',
-                  opacity: bar.questions > 0 ? 1 : 0.6
+                  fontSize: isMobile ? '0.64rem' : '0.76rem',
+                  fontWeight: 900,
+                  color: bar.isToday ? '#ffffff' : (bar.isFuture ? '#94a3b8' : '#c7d2fe'),
+                  opacity: bar.isFuture ? 0.45 : (bar.questions > 0 ? 1 : 0.65)
                 }}>
-                  {bar.questions > 0 ? bar.questions : '—'}
+                  {bar.isFuture ? '—' : (bar.questions > 0 ? bar.questions : '0')}
                 </span>
 
                 {/* Sütun Çubuğu (Pill Bar) */}
@@ -898,26 +1160,34 @@ export default function DashboardArenaAnalytics({
                   height: `${bar.heightPercent}%`,
                   minHeight: 18,
                   borderRadius: '10px 10px 4px 4px',
-                  background: bar.isToday
-                    ? 'linear-gradient(180deg, #a855f7 0%, #6366f1 100%)'
-                    : (bar.isPeak
-                      ? 'linear-gradient(180deg, #818cf8 0%, #4f46e5 100%)'
-                      : 'linear-gradient(180deg, rgba(165, 180, 252, 0.45) 0%, rgba(99, 102, 241, 0.35) 100%)'),
-                  boxShadow: bar.isToday ? '0 0 16px rgba(168, 85, 247, 0.7)' : 'none',
-                  border: bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.18)',
+                  background: bar.isFuture
+                    ? 'rgba(255, 255, 255, 0.05)'
+                    : (bar.isToday
+                      ? 'linear-gradient(180deg, #c084fc 0%, #6366f1 100%)'
+                      : (bar.isPeak
+                        ? 'linear-gradient(180deg, #818cf8 0%, #4f46e5 100%)'
+                        : 'linear-gradient(180deg, rgba(165, 180, 252, 0.5) 0%, rgba(99, 102, 241, 0.38) 100%)')),
+                  boxShadow: bar.isToday ? '0 0 18px rgba(168, 85, 247, 0.75)' : 'none',
+                  border: bar.isFuture
+                    ? '1px dashed rgba(255,255,255,0.18)'
+                    : (bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.18)'),
                   transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   cursor: 'pointer'
                 }} />
 
                 {/* Günün Adı */}
-                <span style={{
-                  fontSize: isMobile ? '0.72rem' : '0.84rem',
-                  fontWeight: bar.isToday ? 900 : 700,
-                  color: bar.isToday ? '#ffffff' : '#a5b4fc',
-                  marginTop: 2
-                }}>
-                  {bar.label}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginTop: 2 }}>
+                  <span style={{
+                    fontSize: isMobile ? '0.72rem' : '0.84rem',
+                    fontWeight: bar.isToday ? 900 : 700,
+                    color: bar.isToday ? '#ffffff' : (bar.isFuture ? 'rgba(165, 180, 252, 0.45)' : '#a5b4fc')
+                  }}>
+                    {bar.label}
+                  </span>
+                  {bar.isToday && (
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -994,7 +1264,7 @@ export default function DashboardArenaAnalytics({
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: '0.85rem' }}>🎯</span>
               <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 800, color: '#e0e7ff' }}>
-                Haftalık Soru: <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalQuestions} Soru</strong>
+                {weekViewMode === 'rolling' ? 'Son 7 Gün:' : 'Haftalık Soru:'} <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalQuestions} Soru</strong>
               </span>
             </div>
           </div>
@@ -1278,7 +1548,7 @@ export default function DashboardArenaAnalytics({
               {
                 id: 'g_1',
                 title: 'Günlük Soru Hedefi',
-                current: solvedQuestionsStats.today || 45,
+                current: weeklyDevelopment.bars.find(b => b.isToday)?.questions || solvedQuestionsStats.today || 0,
                 target: 60,
                 unit: 'Soru',
                 color: '#3b82f6',
