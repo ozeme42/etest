@@ -474,12 +474,51 @@ export default function DashboardArenaAnalytics({
       }
     }
 
-    // Bar yükseklik oranları
-    const chartBars = daysData.map(d => ({
-      ...d,
-      heightPercent: maxQuestions > 0 ? Math.max(16, Math.round((d.questions / maxQuestions) * 100)) : 18,
-      isPeak: d.questions > 0 && d.questions === maxQuestions
-    }));
+    // Bar yükseklik oranları ve günlük başarı durumları
+    let totalWeekWrong = 0;
+    const chartBars = daysData.map(d => {
+      totalWeekWrong += d.wrong;
+      const accuracy = d.questions > 0
+        ? Math.round((d.correct / d.questions) * 100)
+        : (d.correct + d.wrong > 0 ? Math.round((d.correct / (d.correct + d.wrong)) * 100) : 0);
+
+      let successStatus = 'Henüz Yok';
+      let statusColor = '#94a3b8';
+      let statusBg = 'rgba(148, 163, 184, 0.16)';
+      if (d.questions > 0) {
+        if (accuracy >= 85) {
+          successStatus = 'Zirvede';
+          statusColor = '#10b981';
+          statusBg = 'rgba(16, 185, 129, 0.22)';
+        } else if (accuracy >= 70) {
+          successStatus = 'Çok İyi';
+          statusColor = '#8b5cf6';
+          statusBg = 'rgba(139, 92, 246, 0.22)';
+        } else if (accuracy >= 50) {
+          successStatus = 'Gelişiyor';
+          statusColor = '#f59e0b';
+          statusBg = 'rgba(245, 158, 11, 0.22)';
+        } else {
+          successStatus = 'Tekrar';
+          statusColor = '#ef4444';
+          statusBg = 'rgba(239, 68, 68, 0.22)';
+        }
+      }
+
+      return {
+        ...d,
+        accuracy,
+        successStatus,
+        statusColor,
+        statusBg,
+        heightPercent: maxQuestions > 0 ? Math.max(16, Math.round((d.questions / maxQuestions) * 100)) : 18,
+        isPeak: d.questions > 0 && d.questions === maxQuestions
+      };
+    });
+
+    const totalWeekAccuracy = totalWeekQuestions > 0
+      ? Math.round((totalWeekCorrect / totalWeekQuestions) * 100)
+      : 0;
 
     // Gelişim Oranı Hesaplama (Önceki 7 gün ile kıyas)
     let lastPeriodQuestions = 0;
@@ -524,6 +563,9 @@ export default function DashboardArenaAnalytics({
     return {
       bars: chartBars,
       totalQuestions: totalWeekQuestions,
+      totalCorrect: totalWeekCorrect,
+      totalWrong: totalWeekWrong,
+      totalAccuracy: totalWeekAccuracy,
       totalDurationFormatted,
       growthRate,
       lastPeriodQuestions,
@@ -966,7 +1008,7 @@ export default function DashboardArenaAnalytics({
                 color: '#c7d2fe',
                 fontWeight: 600
               }}>
-                Günlük soru temposu, net eğrisi ve odaklanma gelişimi
+                Günlük soru temposu, doğru/yanlış dağılımı ve başarı yüzdeleri
               </p>
             </div>
           </div>
@@ -1102,6 +1144,38 @@ export default function DashboardArenaAnalytics({
           </div>
         </div>
 
+        {/* ── HIZLI BİLGİ & RENK GÖSTERGESİ (LEGEND) ── */}
+        {activeChartTab === 'distribution' && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isMobile ? 'space-between' : 'flex-start',
+            gap: isMobile ? 8 : 16,
+            padding: isMobile ? '0.2rem 0.1rem 0.5rem' : '0.4rem 0.2rem 0.75rem',
+            flexWrap: 'wrap',
+            fontSize: isMobile ? '0.68rem' : '0.76rem',
+            fontWeight: 800,
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#34d399' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }} />
+              ✓ Doğru (D)
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#f87171' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px #ef4444' }} />
+              ✗ Yanlış (Y)
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#c084fc' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
+              % Başarı Durumu
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#facc15' }}>
+              <span>⚡</span> Zirve Gün
+            </span>
+          </div>
+        )}
+
         {/* ── GRAFİK ALANI: Soru Hacmi (7 Günlük Pill Sütunlar) VEYA Net Eğrisi (AreaChart) ── */}
         {activeChartTab === 'distribution' ? (
           <div style={{
@@ -1109,8 +1183,8 @@ export default function DashboardArenaAnalytics({
             gridTemplateColumns: 'repeat(7, 1fr)',
             gap: isMobile ? 6 : 14,
             alignItems: 'flex-end',
-            height: isMobile ? 150 : 190,
-            padding: isMobile ? '0.5rem 0 1rem' : '1rem 0.5rem 1.25rem',
+            height: isMobile ? 220 : 255,
+            padding: isMobile ? '0.75rem 0 0.5rem' : '1.25rem 0.5rem 0.75rem',
             position: 'relative',
             zIndex: 1
           }}>
@@ -1123,69 +1197,207 @@ export default function DashboardArenaAnalytics({
                   alignItems: 'center',
                   height: '100%',
                   justifyContent: 'flex-end',
-                  gap: 8,
+                  gap: isMobile ? 5 : 7,
                   position: 'relative'
                 }}
-                title={`${bar.fullLabel} (${bar.ymd}): ${bar.questions} Soru • ${bar.durationStr} • ${bar.net} Net`}
+                title={`${bar.fullLabel} (${bar.dateLabel || bar.ymd}): ${bar.questions} Soru • ${bar.correct} Doğru • ${bar.wrong} Yanlış • %${bar.accuracy} Başarı (${bar.successStatus}) • ${bar.net} Net`}
               >
                 {/* Zirve Rozeti (Peak) */}
                 {bar.isPeak && (
                   <div style={{
                     position: 'absolute',
-                    top: -24,
-                    fontSize: '0.72rem',
+                    top: isMobile ? -22 : -26,
+                    fontSize: isMobile ? '0.7rem' : '0.8rem',
                     fontWeight: 900,
                     color: '#facc15',
-                    textShadow: '0 0 8px rgba(250, 204, 21, 0.8)',
+                    textShadow: '0 0 10px rgba(250, 204, 21, 0.9)',
                     animation: 'pulse 2s infinite'
                   }}>
                     ⚡
                   </div>
                 )}
 
-                {/* Soru Miktarı (Hover/Visible) */}
-                <span style={{
-                  fontSize: isMobile ? '0.64rem' : '0.76rem',
-                  fontWeight: 900,
-                  color: bar.isToday ? '#ffffff' : (bar.isFuture ? '#94a3b8' : '#c7d2fe'),
-                  opacity: bar.isFuture ? 0.45 : (bar.questions > 0 ? 1 : 0.65)
-                }}>
-                  {bar.isFuture ? '—' : (bar.questions > 0 ? bar.questions : '0')}
-                </span>
+                {/* ÜST BİLGİ: Başarı Durumu (% Yüzde) + Toplam Soru */}
+                {bar.isFuture ? (
+                  <div style={{
+                    fontSize: isMobile ? '0.62rem' : '0.72rem',
+                    fontWeight: 800,
+                    color: '#94a3b8',
+                    opacity: 0.45,
+                    height: isMobile ? 28 : 32,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    —
+                  </div>
+                ) : bar.questions > 0 ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 2,
+                    minHeight: isMobile ? 28 : 32,
+                    justifyContent: 'flex-end'
+                  }}>
+                    {/* Başarı Yüzdesi Rozeti */}
+                    <span style={{
+                      fontSize: isMobile ? '0.62rem' : '0.72rem',
+                      fontWeight: 950,
+                      color: bar.statusColor,
+                      background: bar.statusBg,
+                      border: `1px solid ${bar.statusColor}40`,
+                      padding: isMobile ? '1px 5px' : '2px 7px',
+                      borderRadius: 8,
+                      lineHeight: 1.1,
+                      boxShadow: `0 2px 8px ${bar.statusColor}25`
+                    }}>
+                      %{bar.accuracy}
+                    </span>
+                    {/* Soru Hacmi */}
+                    <span style={{
+                      fontSize: isMobile ? '0.58rem' : '0.68rem',
+                      fontWeight: 800,
+                      color: bar.isToday ? '#ffffff' : '#c7d2fe',
+                      lineHeight: 1
+                    }}>
+                      {bar.questions} Soru
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 1,
+                    minHeight: isMobile ? 28 : 32,
+                    justifyContent: 'flex-end'
+                  }}>
+                    <span style={{
+                      fontSize: isMobile ? '0.58rem' : '0.68rem',
+                      fontWeight: 800,
+                      color: '#94a3b8',
+                      opacity: 0.5
+                    }}>
+                      0 Soru
+                    </span>
+                  </div>
+                )}
 
-                {/* Sütun Çubuğu (Pill Bar) */}
+                {/* SÜTUN ÇUBUĞU (Pill Bar - Doğru & Yanlış Orantılı Segmentli) */}
                 <div style={{
-                  width: isMobile ? '70%' : '52%',
-                  maxWidth: 42,
+                  width: isMobile ? '76%' : '56%',
+                  maxWidth: 44,
                   height: `${bar.heightPercent}%`,
-                  minHeight: 18,
-                  borderRadius: '10px 10px 4px 4px',
+                  minHeight: 22,
+                  borderRadius: '12px 12px 6px 6px',
                   background: bar.isFuture
                     ? 'rgba(255, 255, 255, 0.05)'
                     : (bar.isToday
                       ? 'linear-gradient(180deg, #c084fc 0%, #6366f1 100%)'
                       : (bar.isPeak
                         ? 'linear-gradient(180deg, #818cf8 0%, #4f46e5 100%)'
-                        : 'linear-gradient(180deg, rgba(165, 180, 252, 0.5) 0%, rgba(99, 102, 241, 0.38) 100%)')),
-                  boxShadow: bar.isToday ? '0 0 18px rgba(168, 85, 247, 0.75)' : 'none',
+                        : 'linear-gradient(180deg, rgba(165, 180, 252, 0.55) 0%, rgba(99, 102, 241, 0.4) 100%)')),
+                  boxShadow: bar.isToday ? '0 0 20px rgba(168, 85, 247, 0.8)' : 'none',
                   border: bar.isFuture
-                    ? '1px dashed rgba(255,255,255,0.18)'
-                    : (bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.18)'),
+                    ? '1.5px dashed rgba(255,255,255,0.18)'
+                    : (bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.2)'),
+                  position: 'relative',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
                   transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   cursor: 'pointer'
-                }} />
+                }}>
+                  {/* İç Dolgu: Yanlış (Kırmızı üst şerit) */}
+                  {bar.questions > 0 && bar.wrong > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: `${Math.max(12, Math.round((bar.wrong / bar.questions) * 100))}%`,
+                        background: 'linear-gradient(180deg, #f43f5e 0%, #e11d48 100%)',
+                        opacity: 0.9,
+                        borderBottom: '1px solid rgba(255,255,255,0.3)'
+                      }}
+                      title={`Yanlış Oranı: %${Math.round((bar.wrong / bar.questions) * 100)} (${bar.wrong} Y)`}
+                    />
+                  )}
+                </div>
 
-                {/* Günün Adı */}
+                {/* DOĞRU VE YANLIŞ SAYILARI (Grafikte açıkça yazsın ve görünsün) */}
+                {bar.isFuture ? (
+                  <div style={{ height: isMobile ? 14 : 16 }} />
+                ) : bar.questions > 0 ? (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: isMobile ? 4 : 6,
+                    background: 'rgba(15, 23, 42, 0.7)',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    padding: isMobile ? '2px 5px' : '2px 7px',
+                    borderRadius: 7,
+                    lineHeight: 1,
+                    marginTop: 1
+                  }}>
+                    {/* Doğru */}
+                    <span
+                      style={{
+                        fontSize: isMobile ? '0.62rem' : '0.72rem',
+                        fontWeight: 950,
+                        color: '#34d399',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                      title={`${bar.correct} Doğru`}
+                    >
+                      <span style={{ fontSize: '0.6rem' }}>✓</span>{bar.correct}D
+                    </span>
+                    {/* Yanlış */}
+                    <span
+                      style={{
+                        fontSize: isMobile ? '0.62rem' : '0.72rem',
+                        fontWeight: 950,
+                        color: bar.wrong > 0 ? '#f87171' : '#94a3b8',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                      title={`${bar.wrong} Yanlış`}
+                    >
+                      <span style={{ fontSize: '0.6rem' }}>✗</span>{bar.wrong}Y
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{
+                    fontSize: isMobile ? '0.58rem' : '0.66rem',
+                    fontWeight: 700,
+                    color: '#94a3b8',
+                    opacity: 0.45,
+                    height: isMobile ? 18 : 20,
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    —
+                  </div>
+                )}
+
+                {/* GÜNÜN ADI + BUGÜN NOKTASI */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginTop: 2 }}>
                   <span style={{
                     fontSize: isMobile ? '0.72rem' : '0.84rem',
-                    fontWeight: bar.isToday ? 900 : 700,
-                    color: bar.isToday ? '#ffffff' : (bar.isFuture ? 'rgba(165, 180, 252, 0.45)' : '#a5b4fc')
+                    fontWeight: bar.isToday ? 950 : 750,
+                    color: bar.isToday ? '#ffffff' : (bar.isFuture ? 'rgba(165, 180, 252, 0.45)' : '#a5b4fc'),
+                    letterSpacing: '0.01em'
                   }}>
                     {bar.label}
                   </span>
                   {bar.isToday && (
-                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#a855f7', boxShadow: '0 0 6px #a855f7' }} />
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#a855f7', boxShadow: '0 0 8px #a855f7' }} />
                   )}
                 </div>
               </div>
@@ -1194,7 +1406,7 @@ export default function DashboardArenaAnalytics({
         ) : (
           <div style={{
             width: '100%',
-            height: isMobile ? 150 : 190,
+            height: isMobile ? 180 : 220,
             padding: '0.5rem 0',
             position: 'relative',
             zIndex: 1
@@ -1218,15 +1430,20 @@ export default function DashboardArenaAnalytics({
                       <div style={{
                         background: 'rgba(15, 23, 42, 0.95)',
                         border: '1px solid rgba(255,255,255,0.22)',
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        padding: '10px 14px',
+                        borderRadius: 14,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                         color: '#ffffff',
-                        fontSize: '0.78rem'
+                        fontSize: '0.8rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 4
                       }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4 }}>{data.date}</div>
+                        <div style={{ fontWeight: 900, marginBottom: 2 }}>{data.date}</div>
                         <div style={{ color: '#c084fc', fontWeight: 900 }}>Net: {data.net}</div>
-                        <div style={{ color: '#34d399', fontWeight: 800 }}>Doğruluk: %{data.accuracy}</div>
+                        <div style={{ color: '#34d399', fontWeight: 800 }}>✓ Doğru: {data.correct} soru</div>
+                        <div style={{ color: '#f87171', fontWeight: 800 }}>✗ Yanlış: {data.wrong} soru</div>
+                        <div style={{ color: '#fbbf24', fontWeight: 900 }}>🎯 Başarı: %{data.accuracy}</div>
                       </div>
                     );
                   }}
@@ -1237,7 +1454,7 @@ export default function DashboardArenaAnalytics({
           </div>
         )}
 
-        {/* Alt Bilgi Çubuğu (Toplam Süre & Soru Hacmi & Gelişim Rozeti) */}
+        {/* Alt Bilgi Çubuğu (Toplam Süre & Soru Hacmi & Doğru / Yanlış & Gelişim Rozeti) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -1253,20 +1470,59 @@ export default function DashboardArenaAnalytics({
           zIndex: 1,
           marginTop: 6
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Clock size={16} style={{ color: '#818cf8' }} />
-              <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 800, color: '#e0e7ff' }}>
+              <span style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 800, color: '#e0e7ff' }}>
                 Toplam Çalışma: <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalDurationFormatted}</strong>
               </span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: '0.85rem' }}>🎯</span>
-              <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 800, color: '#e0e7ff' }}>
+              <span style={{ fontSize: isMobile ? '0.74rem' : '0.84rem', fontWeight: 800, color: '#e0e7ff' }}>
                 {weekViewMode === 'rolling' ? 'Son 7 Gün:' : 'Haftalık Soru:'} <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalQuestions} Soru</strong>
               </span>
             </div>
+
+            {/* Toplam Doğru & Yanlış & Başarı Rozetleri */}
+            {weeklyDevelopment.totalQuestions > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: isMobile ? '0.68rem' : '0.76rem',
+                  fontWeight: 900,
+                  color: '#34d399',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  padding: '2px 8px',
+                  borderRadius: 99
+                }}>
+                  ✓ {weeklyDevelopment.totalCorrect} Doğru
+                </span>
+                <span style={{
+                  fontSize: isMobile ? '0.68rem' : '0.76rem',
+                  fontWeight: 900,
+                  color: '#f87171',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  padding: '2px 8px',
+                  borderRadius: 99
+                }}>
+                  ✗ {weeklyDevelopment.totalWrong} Yanlış
+                </span>
+                <span style={{
+                  fontSize: isMobile ? '0.68rem' : '0.76rem',
+                  fontWeight: 900,
+                  color: '#c084fc',
+                  background: 'rgba(168, 85, 247, 0.15)',
+                  border: '1px solid rgba(168, 85, 247, 0.35)',
+                  padding: '2px 8px',
+                  borderRadius: 99
+                }}>
+                  ⭐ %{weeklyDevelopment.totalAccuracy} Başarı
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={{
