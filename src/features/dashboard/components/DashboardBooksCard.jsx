@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen, Search, X, CheckCircle2, ChevronRight, PlayCircle, Filter,
@@ -11,8 +11,8 @@ import { useEvaluation } from '../../../context/EvaluationContext';
 import { useHomework } from '../../../context/HomeworkContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
-import { checkIsTaskSolved, buildSolvedIndex } from '../../../components/ProgramCenter';
 import { toUUID, legacyHexUUID } from '../../../services/supabaseService';
+import { createCompositeTestKey, getSubmissionCompositeKey } from '../../../utils/testResolver';
 
 // ─── 🎨 6 BRANŞ İKON & RENK PROFİLLERİ ─────────────────────────────
 const SUBJECT_CONFIGS = {
@@ -106,6 +106,8 @@ const getSubjectConfig = (subj) => {
   return SUBJECT_CONFIGS['Genel'];
 };
 
+const normClean = (str) => String(str || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
+
 // ─── YALNIZCA FİZİKİ SORU BANKALARINI FİLTRELER ───────────────────
 const isPhysicalQuestionBook = (b) => {
   if (!b || b.isDeleted || b.deleted) return false;
@@ -181,8 +183,10 @@ export default function DashboardBooksCard({
   books: propBooks,
   bookTests: propBookTests,
   submissions: propSubmissions,
+  studentSubmissions: propStudentSubmissions,
   homeworks: propHomeworks,
   currentUserId: propUserId,
+  selectedStudent,
   onNavigateBookDetail,
   onNavigateBooks,
   onStartStudyRoom
@@ -199,9 +203,6 @@ export default function DashboardBooksCard({
   // Props veya Context fallback
   const books = propBooks || trackedBooksContext?.books || [];
   const bookTests = propBookTests || trackedBooksContext?.bookTests || [];
-  const submissions = propSubmissions || evalContext?.submissions || [];
-  const homeworks = propHomeworks || hwContext?.homeworks || [];
-  const currentUserId = propUserId || authContext?.currentUser?.id || null;
 
   // State'ler
   const [selectedSubject, setSelectedSubject] = useState('all');
@@ -210,17 +211,227 @@ export default function DashboardBooksCard({
   const [testStatusFilter, setTestStatusFilter] = useState('all'); // 'all' | 'unsolved' | 'solved'
   const [selectedUnitForModal, setSelectedUnitForModal] = useState(null);
 
-  // 1. O(1) Çözülen Testler İndeksi
-  const precomputedSolvedIndex = useMemo(() => {
-    return buildSolvedIndex(currentUserId, submissions, homeworks);
-  }, [currentUserId, submissions, homeworks]);
+  // 1. Hedef Öğrenci Kimlik Kümesi (Aliased IDs & UUIDs)
+  const allStudentIds = useMemo(() => {
+    const ids = new Set();
+    const addId = (val) => {
+      if (!val) return;
+      const sVal = String(val).trim();
+      ids.add(sVal);
+      const uv = toUUID(sVal);
+      if (uv) ids.add(String(uv));
+    };
 
-  // 2. Yalnızca Fiziki Soru Bankaları
+    if (propUserId) addId(propUserId);
+    if (selectedStudent?.id) addId(selectedStudent.id);
+    if (selectedStudent?.student_id) addId(selectedStudent.student_id);
+    if (selectedStudent?.studentId) addId(selectedStudent.studentId);
+    if (selectedStudent?.uuid) addId(selectedStudent.uuid);
+    if (authContext?.currentUser?.id) addId(authContext.currentUser.id);
+    return ids;
+  }, [propUserId, selectedStudent, authContext?.currentUser]);
+
+  // 2. Birleştirilmiş Öğrenci Çözümleri (submissions + homeworks.submissions)
+  const unifiedStudentSubs = useMemo(() => {
+    const list = [];
+    const seenSubIds = new Set();
+
+    const isMatch = (s) => {
+      if (!s) return false;
+      if (allStudentIds.size === 0) return true;
+      const sStdId = String(s.studentId || s.student_id || s.userId || s.user_id || '');
+      if (!sStdId) return true;
+      return allStudentIds.has(sStdId) || (toUUID(sStdId) && allStudentIds.has(toUUID(sStdId)));
+    };
+
+    const isDone = (s) => {
+      if (!s || s.status === 'in_progress' || s.status === 'draft') return false;
+      if (s.isManual && (s.approvalStatus === 'pending' || s.approvalStatus === 'rejected' || s.isApproved === false || s.status === 'pending_approval' || s.status === 'rejected')) return false;
+      return true;
+    };
+
+    // 1. propStudentSubmissions (Varsa öncelikli ve zenginleştirilmiş)
+    if (Array.isArray(propStudentSubmissions)) {
+      propStudentSubmissions.forEach(s => {
+        if (isDone(s) && isMatch(s)) {
+          const sid = s.id ? String(s.id) : null;
+          if (sid) seenSubIds.add(sid);
+          list.push(s);
+        }
+      });
+    }
+
+    // 2. submissions (prop veya context)
+    const baseSubs = propSubmissions || evalContext?.submissions || [];
+    baseSubs.forEach(s => {
+      if (isDone(s) && isMatch(s)) {
+        const sid = s.id ? String(s.id) : null;
+        if (!sid || !seenSubIds.has(sid)) {
+          if (sid) seenSubIds.add(sid);
+          list.push(s);
+        }
+      }
+    });
+
+    // 3. homeworks.submissions (Ödevler içindeki gömülü çözümler)
+    const hwList = propHomeworks || hwContext?.homeworks || [];
+    hwList.forEach(hw => {
+      const hwSubs = hw.submissions || hw.raw_data?.submissions || [];
+      if (Array.isArray(hwSubs)) {
+        hwSubs.forEach(sub => {
+          if (isDone(sub) && isMatch(sub)) {
+            const sid = sub.id ? String(sub.id) : null;
+            if (!sid || !seenSubIds.has(sid)) {
+              if (sid) seenSubIds.add(sid);
+              list.push(sub);
+            }
+          }
+        });
+      }
+    });
+
+    return list;
+  }, [propStudentSubmissions, propSubmissions, evalContext?.submissions, propHomeworks, hwContext?.homeworks, allStudentIds]);
+
+  // 3. O(1) Çözülen Testler Haritası (Çok Seviyeli Eşleştirme Motoru)
+  const solvedSubsMap = useMemo(() => {
+    const map = new Map();
+
+    unifiedStudentSubs.forEach(s => {
+      const meta = (s.answers && Array.isArray(s.answers))
+        ? (s.answers.find(a => a && a.type === 'metadata') || {})
+        : (s.metadata || {});
+
+      const sBookTitle = normClean(s.bookTitle || s.book_title || meta.bookTitle || meta.book_title || '');
+      const sSubject = normClean(s.subject || s.subjectName || meta.subjectName || meta.subject || s.lesson || '');
+      const sTopic = normClean(s.unitTopic || s.unit || s.unitName || s.topic || s.topicName || meta.unitTopic || meta.topicName || '');
+      const sTopicNum = sTopic.match(/(\d+)/)?.[1] || '';
+      const sBId = String(s.bookId || s.book_id || meta.bookId || meta.book_id || '');
+      const sBUuid = toUUID(sBId);
+
+      const ids = [
+        s.id,
+        s.test_id,
+        s.testId,
+        s.bookTestId,
+        s.realTestId,
+        meta.bookTestId,
+        meta.realTestId,
+        meta.testId,
+        meta.realId,
+        s.homework_id,
+        s.homeworkId,
+        s.hwId,
+        meta.hwId
+      ].filter(Boolean);
+
+      if (Array.isArray(s.bookTestIds)) ids.push(...s.bookTestIds);
+      if (Array.isArray(meta.bookTestIds)) ids.push(...meta.bookTestIds);
+
+      ids.forEach(id => {
+        const str = String(id);
+        const clean = str.replace(/^bt_|^tbt_|^q_/, '');
+        const u = toUUID(str || clean);
+
+        map.set(str, s);
+        map.set(clean, s);
+        if (u) map.set(String(u), s);
+
+        if (sBId) {
+          map.set(`${sBId}:::${str}`, s);
+          map.set(`${sBId}:::${clean}`, s);
+          if (sTopicNum) map.set(`${sBId}:::u${sTopicNum}:::${clean}`, s);
+        }
+        if (sBUuid && sBUuid !== sBId) {
+          map.set(`${sBUuid}:::${str}`, s);
+          map.set(`${sBUuid}:::${clean}`, s);
+          if (sTopicNum) map.set(`${sBUuid}:::u${sTopicNum}:::${clean}`, s);
+        }
+      });
+
+      // Composite Key Eşleşmesi
+      const compKey = getSubmissionCompositeKey(s) || meta.compositeKey;
+      if (compKey) map.set(compKey, s);
+
+      const customCompKey = createCompositeTestKey(sBookTitle, sSubject, sTopic, s.title || s.testTitle || s.testName || meta.title);
+      if (customCompKey) map.set(customCompKey, s);
+
+      // Başlık Eşleşmesi
+      const sTitle = normClean(s.title || s.testTitle || s.testName || meta.title || meta.testName || '');
+      if (sTitle) {
+        map.set(`title_${sTitle}`, s);
+        if (sBookTitle) {
+          map.set(`book_title_${sBookTitle}_${sTitle}`, s);
+        }
+      }
+    });
+
+    return map;
+  }, [unifiedStudentSubs]);
+
+  // 4. Testin Çözülüp Çözülmediğini Kontrol Eden Fonksiyon (100% Doğru Eşleştirme)
+  const isTestCompleted = useCallback((test, bookTitle = '', subjectName = '', unitName = '', bookId = '') => {
+    if (!test) return false;
+    if (test.isCompleted || test.done) return true;
+
+    const tIdStr = String(test.id || '');
+    const tCleanId = tIdStr.replace(/^bt_|^tbt_|^q_/, '');
+    const tUuid = toUUID(tIdStr || tCleanId);
+
+    const bNormTitle = normClean(bookTitle);
+    const sName = subjectName || test.subjectName || test.subject || '';
+    const uName = unitName || test.unitName || test.unitTopic || '';
+    const uNum = normClean(uName).match(/(\d+)/)?.[1] || '';
+    const tNormName = normClean(test.name || test.title || '');
+
+    // 1. Doğrudan ID / UUID Eşleşmesi
+    if (solvedSubsMap.has(tIdStr) || solvedSubsMap.has(tCleanId) || (tUuid && solvedSubsMap.has(String(tUuid)))) {
+      return true;
+    }
+
+    // 2. Özel Test Kimlikleri (realTestId / bookTestId / testId)
+    if (test.realTestId) {
+      const rId = String(test.realTestId);
+      if (solvedSubsMap.has(rId) || solvedSubsMap.has(rId.replace(/^bt_|^tbt_|^q_/, ''))) return true;
+    }
+    if (test.bookTestId) {
+      const btId = String(test.bookTestId);
+      if (solvedSubsMap.has(btId) || solvedSubsMap.has(btId.replace(/^bt_|^tbt_|^q_/, ''))) return true;
+    }
+    if (test.testId) {
+      const tId = String(test.testId);
+      if (solvedSubsMap.has(tId) || solvedSubsMap.has(tId.replace(/^bt_|^tbt_|^q_/, ''))) return true;
+    }
+
+    // 3. Composite Key Eşleşmesi
+    const testCompKey = createCompositeTestKey(bookTitle, sName, uName, test.name || test.title);
+    if (testCompKey && solvedSubsMap.has(testCompKey)) {
+      return true;
+    }
+
+    // 4. Kitap & Ünite Kapsamlı Eşleşme
+    if (bookId) {
+      const bUuid = toUUID(bookId);
+      if (solvedSubsMap.has(`${bookId}:::${tIdStr}`) || solvedSubsMap.has(`${bookId}:::${tCleanId}`)) return true;
+      if (bUuid && (solvedSubsMap.has(`${bUuid}:::${tIdStr}`) || solvedSubsMap.has(`${bUuid}:::${tCleanId}`))) return true;
+      if (uNum && solvedSubsMap.has(`${bookId}:::u${uNum}:::${tCleanId}`)) return true;
+    }
+
+    // 5. Test Başlığı ile Eşleşme
+    if (tNormName) {
+      if (bNormTitle && solvedSubsMap.has(`book_title_${bNormTitle}_${tNormName}`)) return true;
+      if (solvedSubsMap.has(`title_${tNormName}`)) return true;
+    }
+
+    return false;
+  }, [solvedSubsMap]);
+
+  // 5. Yalnızca Fiziki Soru Bankaları
   const physicalBooks = useMemo(() => {
     return (books || []).filter(isPhysicalQuestionBook);
   }, [books]);
 
-  // 3. Branş Bazında Kitap Sayıları
+  // 6. Branş Bazında Kitap Sayıları
   const subjectBookCounts = useMemo(() => {
     const counts = { all: physicalBooks.length };
     physicalBooks.forEach(b => {
@@ -230,7 +441,7 @@ export default function DashboardBooksCard({
     return counts;
   }, [physicalBooks]);
 
-  // 4. Ders Filtresine Göre Kitaplar
+  // 7. Ders Filtresine Göre Kitaplar
   const visiblePhysicalBooks = useMemo(() => {
     if (selectedSubject === 'all') return physicalBooks;
     return physicalBooks.filter(b => {
@@ -240,7 +451,7 @@ export default function DashboardBooksCard({
     });
   }, [physicalBooks, selectedSubject]);
 
-  // 5. Kitap seçimini senkronize et
+  // 8. Kitap seçimini senkronize et
   useEffect(() => {
     if (visiblePhysicalBooks.length > 0) {
       const exists = visiblePhysicalBooks.some(b => String(b.id) === String(selectedBookId));
@@ -274,7 +485,7 @@ export default function DashboardBooksCard({
     return visiblePhysicalBooks.find(b => String(b.id) === String(selectedBookId)) || visiblePhysicalBooks[0];
   }, [visiblePhysicalBooks, selectedBookId]);
 
-  // 6. Seçili Kitabın Üniteleri ve Testlerini Çıkarma
+  // 9. Seçili Kitabın Üniteleri ve Testlerini Çıkarma
   const selectedBookData = useMemo(() => {
     if (!currentBook) {
       return { units: [], allTests: [], totalTestsCount: 0, solvedCount: 0, progressPct: 0, nextUnsolvedTest: null };
@@ -397,7 +608,7 @@ export default function DashboardBooksCard({
           }
 
           const processedTests = combinedRawTests.map((t, tIdx) => {
-            const isCompleted = checkIsTaskSolved(t, currentUserId, submissions, homeworks, precomputedSolvedIndex);
+            const isCompleted = isTestCompleted(t, currentBook.title, sName, tpName, currentBook.id);
             return {
               ...t,
               id: t.id || `gen_t_${tpId}_${tIdx}`,
@@ -433,7 +644,7 @@ export default function DashboardBooksCard({
         const uName = sName;
         const fallbackTests = (testsInBook.length > 0 ? testsInBook : [1, 2, 3, 4, 5].map(i => ({ id: `ft_${i}`, name: `${uName} Test ${i}`, questionCount: 12 })))
           .map((t, tIdx) => {
-            const isCompleted = checkIsTaskSolved(t, currentUserId, submissions, homeworks, precomputedSolvedIndex);
+            const isCompleted = isTestCompleted(t, currentBook.title, sName, uName, currentBook.id);
             return {
               ...t,
               id: t.id || `ft_${uId}_${tIdx}`,
@@ -477,33 +688,15 @@ export default function DashboardBooksCard({
       progressPct: allTests.length > 0 ? Math.round((solvedCount / allTests.length) * 100) : 0,
       nextUnsolvedTest
     };
-  }, [currentBook, bookTests, submissions, homeworks, currentUserId, precomputedSolvedIndex]);
+  }, [currentBook, bookTests, isTestCompleted]);
 
-  // 7. Genel Kütüphane İstatistikleri (Tüm Kitapların Hızlı Özeti)
+  // 10. Genel Kütüphane İstatistikleri (Tüm Kitapların Hızlı ve Hatasız Özeti)
   const overallLibraryStats = useMemo(() => {
     let totalTests = 0;
     let totalSolved = 0;
     let totalQuestions = 0;
 
     physicalBooks.forEach(b => {
-      const bId = String(b.id || '');
-      const cleanBId = bId.replace(/^b_/, '');
-      const bUuid = String(toUUID(bId) || '');
-      const bLegacyUuid = String(legacyHexUUID(bId) || '');
-      const normBookTitle = String(b.title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-
-      const testsInBook = (bookTests || []).filter(t => {
-        if (!t || t.isDeleted || t.deleted) return false;
-        const tBId = String(t.bookId || t.book_id || '');
-        if (tBId === bId || tBId === cleanBId) return true;
-        if (bUuid && tBId === bUuid) return true;
-        if (bLegacyUuid && tBId === bLegacyUuid) return true;
-        if (toUUID(tBId) && toUUID(tBId) === bUuid) return true;
-        const tBTitle = String(t.bookTitle || t.book_title || '').toLowerCase().replace(/[^a-z0-9ğüşıöç]/g, '').trim();
-        if (tBTitle && normBookTitle && tBTitle === normBookTitle) return true;
-        return false;
-      });
-
       const rawSubjects = (b.subjects && Array.isArray(b.subjects) && b.subjects.length > 0
         ? b.subjects
         : (b.raw_data?.subjects || []))
@@ -514,6 +707,7 @@ export default function DashboardBooksCard({
 
       if (rawSubjects.length > 0) {
         rawSubjects.forEach(subj => {
+          const sName = subj.name || getBookSubject(b);
           const subjTopics = subj.topics && Array.isArray(subj.topics) ? subj.topics : [];
           if (subjTopics.length > 0) {
             subjTopics.forEach(tp => {
@@ -522,7 +716,7 @@ export default function DashboardBooksCard({
                 cTests.forEach(ct => {
                   bookTestsCount++;
                   totalQuestions += (ct.questionCount || 12);
-                  if (checkIsTaskSolved(ct, currentUserId, submissions, homeworks, precomputedSolvedIndex)) {
+                  if (isTestCompleted(ct, b.title, sName, tp.name, b.id)) {
                     bookSolvedCount++;
                   }
                 });
@@ -532,17 +726,9 @@ export default function DashboardBooksCard({
         });
       }
 
-      if (bookTestsCount === 0 && testsInBook.length > 0) {
-        bookTestsCount = testsInBook.length;
-        testsInBook.forEach(t => {
-          totalQuestions += (t.questionCount || 12);
-          if (checkIsTaskSolved(t, currentUserId, submissions, homeworks, precomputedSolvedIndex)) {
-            bookSolvedCount++;
-          }
-        });
-      } else if (bookTestsCount === 0) {
-        bookTestsCount = 8;
-        totalQuestions += 96;
+      if (bookTestsCount === 0) {
+        bookTestsCount = 10;
+        totalQuestions += 120;
       }
 
       totalTests += bookTestsCount;
@@ -560,9 +746,9 @@ export default function DashboardBooksCard({
       totalQuestions,
       completionPct
     };
-  }, [physicalBooks, bookTests, submissions, homeworks, currentUserId, precomputedSolvedIndex, subjectBookCounts]);
+  }, [physicalBooks, isTestCompleted, subjectBookCounts]);
 
-  // 8. Test Arama ve Durum Filtresi
+  // 11. Test Arama ve Durum Filtresi
   const filteredTestsList = useMemo(() => {
     let list = selectedBookData.allTests;
 

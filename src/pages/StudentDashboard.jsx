@@ -4299,8 +4299,10 @@ export default function StudentDashboard() {
                 isDark={isDark}
                 books={books}
                 bookTests={bookTests}
-                submissions={submissions}
+                submissions={studentSubmissions && studentSubmissions.length > 0 ? studentSubmissions : submissions}
+                studentSubmissions={studentSubmissions}
                 homeworks={homeworks}
+                selectedStudent={selectedStudent || currentUser}
                 currentUserId={selectedStudent?.id || currentUser?.id}
                 onNavigateBookDetail={handleNavigateBookDetail}
                 onNavigateBooks={handleNavigateBooks}
