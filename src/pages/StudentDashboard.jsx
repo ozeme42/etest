@@ -3627,24 +3627,25 @@ export default function StudentDashboard() {
       ══════════════════════════════════════════════════════ */}
       <div style={{
         background: isDark
-          ? 'linear-gradient(135deg, #0b0f19 0%, #111827 50%, #1e1b4b 100%)'
-          : "linear-gradient(180deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.42) 100%), url('/assets/dashboard/hero_bg_clean.jpg') no-repeat center right / cover",
+          ? "linear-gradient(180deg, rgba(11, 15, 25, 0.72) 0%, rgba(15, 23, 42, 0.88) 100%), url('/assets/dashboard/hero_banner_student.webp') no-repeat center 28% / cover"
+          : "linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0%, rgba(15, 23, 42, 0.22) 100%), url('/assets/dashboard/hero_banner_student.webp') no-repeat center 28% / cover",
         position: 'relative',
         overflow: 'hidden',
         width: '100%',
         boxSizing: 'border-box',
-        minHeight: isMobile ? 310 : 380,
+        minHeight: isMobile ? 320 : 'clamp(380px, 30vw, 440px)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         paddingTop: isMobile ? '1rem' : '1.75rem',
         paddingBottom: isMobile ? '1rem' : '1.5rem',
         borderBottom: isDark ? '1px solid rgba(99, 102, 241, 0.25)' : '1px solid rgba(0,0,0,0.06)',
-        boxShadow: '0 8px 30px rgba(99, 102, 241, 0.08)'
+        boxShadow: '0 8px 30px rgba(99, 102, 241, 0.08)',
+        imageRendering: '-webkit-optimize-contrast'
       }}>
         {/* Subtle decorative glow effects */}
-        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 220 : 360, height: isMobile ? 220 : 360, borderRadius:'50%', background:'radial-gradient(circle, rgba(168,85,247,0.18) 0%, transparent 68%)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 240, height: 240, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 65%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top: -70, right: isMobile ? -50 : 60, width: isMobile ? 220 : 360, height: isMobile ? 220 : 360, borderRadius:'50%', background:'radial-gradient(circle, rgba(168,85,247,0.12) 0%, transparent 68%)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom: -50, left: '10%', width: 240, height: 240, borderRadius:'50%', background:'radial-gradient(circle, rgba(6,182,212,0.10) 0%, transparent 65%)', pointerEvents:'none' }} />
         <div style={{ position:'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 35%, #06b6d4 70%, #f59e0b 100%)', pointerEvents: 'none' }} />
 
         {/* ── Player HUD Main Row ── */}

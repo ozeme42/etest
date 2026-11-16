@@ -1033,7 +1033,8 @@
   width: 100%;
   min-height: 135px;
   border-radius: 22px;
-  background: url('/assets/dashboard/hero_bg_clean.jpg') no-repeat center right / cover;
+  background: url('/assets/dashboard/hero_banner_student.webp') no-repeat center 28% / cover;
+  image-rendering: -webkit-optimize-contrast;
   display: flex;
   align-items: center;
   justify-content: space-between;
