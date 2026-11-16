@@ -424,19 +424,21 @@ export default function BookContentManager() {
         deduplicatedMap.set(key, t);
       } else {
         const existing = deduplicatedMap.get(key);
-        // Prefer the one that directly matches book.subjects ID format
-        const existingMatchesDirect = book?.subjects?.some(s => String(s.id) === String(existing.subjectId || existing.subject_id));
-        const newMatchesDirect = book?.subjects?.some(s => String(s.id) === String(t.subjectId || t.subject_id));
-        
-        if (newMatchesDirect && !existingMatchesDirect) {
+        // Prefer localLiveTests (freshly edited by teacher) over anything else
+        const isExistingLocal = localLiveTests?.some(lt => String(lt.id) === String(existing.id));
+        const isNewLocal = localLiveTests?.some(lt => String(lt.id) === String(t.id));
+        if (isExistingLocal && !isNewLocal) {
+          // Keep existing local test
+        } else if (isNewLocal && !isExistingLocal) {
           deduplicatedMap.set(key, t);
-        } else if (!newMatchesDirect && existingMatchesDirect) {
-          // keep existing
         } else {
-          const existingAnsCount = Object.keys(existing.answerKey || {}).filter(k => k !== '__meta').length;
-          const newAnsCount = Object.keys(t.answerKey || {}).filter(k => k !== '__meta').length;
-          if (newAnsCount > existingAnsCount) {
-            deduplicatedMap.set(key, t);
+          // Compare timestamps between existing and new
+          const existingTime = new Date(existing.updatedAt || existing.updated_at || existing.createdAt || existing.created_at || 0).getTime();
+          const newTime = new Date(t.updatedAt || t.updated_at || t.createdAt || t.created_at || 0).getTime();
+          if (newTime > existingTime) {
+            deduplicatedMap.set(key, { ...existing, ...t });
+          } else {
+            deduplicatedMap.set(key, { ...t, ...existing });
           }
         }
       }
@@ -1608,10 +1610,12 @@ export default function BookContentManager() {
     setCurrentSubject(subject || null);
     setCurrentTopic(topic || null);
     setCurrentTest(test);
-    const qCount = Number(test.questionCount) || (test.answerKey ? Object.keys(test.answerKey).length : 0) || 20;
+    const rawAns = test.answerKey || test.answer_key || {};
+    const validAnsKeysCount = Object.keys(rawAns).filter(k => k !== '__meta' && k !== 'meta').length;
+    const qCount = Number(test.questionCount || test.question_count) || validAnsKeysCount || 20;
 
     // Test bazında tip tespiti (karma kitaplar için)
-    const ansMeta = test.answerKey?.__meta || test.answer_key?.__meta || {};
+    const ansMeta = rawAns.__meta || {};
     const isExplicitOE = Boolean(
       test.isOpenEnded === true ||
       test.is_open_ended === true ||
@@ -1631,7 +1635,7 @@ export default function BookContentManager() {
       ansMeta.questionType === 'coktan_secmeli'
     );
 
-    const hasOptionLetters = Object.entries(test.answerKey || test.answer_key || {}).some(([k, v]) => 
+    const hasOptionLetters = Object.entries(rawAns).some(([k, v]) => 
       k !== '__meta' && k !== 'meta' && typeof v === 'string' && /^[A-Ea-e]$/.test(v.trim())
     );
 
@@ -1641,7 +1645,6 @@ export default function BookContentManager() {
 
     const testQuestionType = testIsOpenEnded ? 'acik_uclu' : 'coktan_secmeli';
 
-    const rawAns = test.answerKey || test.answer_key || {};
     let detectedStartQNo = Number(
       test.startQuestionNumber || 
       test.start_question_number || 
@@ -1651,7 +1654,7 @@ export default function BookContentManager() {
 
     if (detectedStartQNo === 1 && rawAns && typeof rawAns === 'object') {
       const numericKeys = Object.keys(rawAns)
-        .filter(k => k !== '__meta' && !isNaN(Number(k)))
+        .filter(k => k !== '__meta' && k !== 'meta' && !isNaN(Number(k)))
         .map(Number)
         .sort((a, b) => a - b);
       if (numericKeys.length > 0 && numericKeys[0] > 1) {
@@ -1663,8 +1666,8 @@ export default function BookContentManager() {
       name: test.name || '',
       questionCount: qCount,
       startQuestionNumber: detectedStartQNo,
-      answerKey: test.answerKey ? { ...test.answerKey } : {},
-      pdfUrl: test.pdfUrl || '',
+      answerKey: { ...rawAns },
+      pdfUrl: test.pdfUrl || test.pdf_url || '',
       isOpenEnded: testIsOpenEnded,
       questionType: testQuestionType
     });
@@ -1684,10 +1687,26 @@ export default function BookContentManager() {
     const qType = isOe ? 'acik_uclu' : 'coktan_secmeli';
 
     const startQNo = Number(testFormData.startQuestionNumber) || 1;
+    const qCount = Number(testFormData.questionCount) || 20;
+    const endQNo = startQNo + qCount - 1;
     const rawAnsKey = testFormData.answerKey || {};
+    
+    // Prune answers outside of valid question number range [startQNo, endQNo]
+    const cleanAnswerKey = {};
+    Object.entries(rawAnsKey).forEach(([k, v]) => {
+      if (k === '__meta' || k === 'meta') return;
+      const num = Number(k);
+      if (!isNaN(num)) {
+        if (num >= startQNo && num <= endQNo) {
+          cleanAnswerKey[num] = v;
+          cleanAnswerKey[String(num)] = v;
+        }
+      }
+    });
+
     const ansMeta = rawAnsKey.__meta || {};
     const enrichedAnswerKey = {
-      ...rawAnsKey,
+      ...cleanAnswerKey,
       __meta: {
         ...ansMeta,
         isOpenEnded: isOe,
@@ -1696,12 +1715,13 @@ export default function BookContentManager() {
       }
     };
 
+    const nowIso = new Date().toISOString();
     const testPayload = {
       bookId: String(book.id),
       subjectId: targetSubjectId ? String(targetSubjectId) : null,
       topicId: targetTopicId,
       name: testFormData.name.trim(),
-      questionCount: Number(testFormData.questionCount) || 20,
+      questionCount: qCount,
       startQuestionNumber: startQNo,
       start_question_number: startQNo,
       pdfUrl: testFormData.pdfUrl || '',
@@ -1710,7 +1730,8 @@ export default function BookContentManager() {
       questionType: qType,
       question_type: qType,
       answerKey: enrichedAnswerKey,
-      answer_key: enrichedAnswerKey
+      answer_key: enrichedAnswerKey,
+      updatedAt: nowIso
     };
 
     try {

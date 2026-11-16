@@ -118,31 +118,51 @@ export default function StudentBookDetailsPage() {
     try {
       const dStr = editTestFormData.dueDate || null;
       const startQNo = Number(editTestFormData.startQuestionNumber) || 1;
+      const qCount = Number(editTestFormData.questionCount) || 20;
+      const endQNo = startQNo + qCount - 1;
       const rawAnsKey = editTestFormData.answerKey || {};
+
+      // Prune answers outside of valid question range [startQNo, endQNo]
+      const cleanAnswerKey = {};
+      Object.entries(rawAnsKey).forEach(([k, v]) => {
+        if (k === '__meta' || k === 'meta') return;
+        const num = Number(k);
+        if (!isNaN(num)) {
+          if (num >= startQNo && num <= endQNo) {
+            cleanAnswerKey[num] = v;
+            cleanAnswerKey[String(num)] = v;
+          }
+        }
+      });
+
       const ansMeta = rawAnsKey.__meta || {};
       const enrichedAnswerKey = {
-        ...rawAnsKey,
+        ...cleanAnswerKey,
         __meta: {
           ...ansMeta,
           startQuestionNumber: startQNo
         }
       };
 
-      // 1. Update tracked_book_tests
-      await updateTrackedBookTest(editingTest.id, {
+      const nowIso = new Date().toISOString();
+      const testUpdates = {
         bookId: String(book?.id || editingTest.bookId),
         subjectId: editingTest.subjectId ? String(editingTest.subjectId) : null,
         topicId: editingTest.topicId ? String(editingTest.topicId) : null,
         name: editTestFormData.name.trim(),
-        questionCount: Number(editTestFormData.questionCount) || 20,
+        questionCount: qCount,
         startQuestionNumber: startQNo,
         start_question_number: startQNo,
         answerKey: enrichedAnswerKey,
         pdfUrl: editTestFormData.pdfUrl || '',
         dueDate: dStr,
         testDueDate: dStr,
-        date: dStr
-      });
+        date: dStr,
+        updatedAt: nowIso
+      };
+
+      // 1. Update tracked_book_tests
+      await updateTrackedBookTest(editingTest.id, testUpdates);
 
       // 2. Update matching homework in HomeworkContext & Supabase
       const bId = String(book?.id || editingTest.bookId || '');
@@ -161,12 +181,17 @@ export default function StudentBookDetailsPage() {
 
       // 3. Update book.subjects tests inside the book object
       if (typeof updateTrackedBook === 'function' && book?.id) {
+        const matchTest = (t) => {
+          return String(t.id) === String(editingTest.id) ||
+                 (toUUID(t.id) && toUUID(t.id) === toUUID(editingTest.id)) ||
+                 (t.name && editingTest.name && String(t.name).trim().toLowerCase() === String(editingTest.name).trim().toLowerCase());
+        };
         const updatedSubjects = (book.subjects || []).map(s => ({
           ...s,
-          tests: (s.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, name: editTestFormData.name.trim(), questionCount: Number(editTestFormData.questionCount) || 20, answerKey: editTestFormData.answerKey || {}, pdfUrl: editTestFormData.pdfUrl || '', dueDate: dStr, testDueDate: dStr } : t),
+          tests: (s.tests || []).map(t => matchTest(t) ? { ...t, ...testUpdates, id: t.id || editingTest.id } : t),
           topics: (s.topics || []).map(tp => ({
             ...tp,
-            tests: (tp.tests || []).map(t => String(t.id) === String(editingTest.id) ? { ...t, name: editTestFormData.name.trim(), questionCount: Number(editTestFormData.questionCount) || 20, answerKey: editTestFormData.answerKey || {}, pdfUrl: editTestFormData.pdfUrl || '', dueDate: dStr, testDueDate: dStr } : t)
+            tests: (tp.tests || []).map(t => matchTest(t) ? { ...t, ...testUpdates, id: t.id || editingTest.id } : t)
           }))
         }));
         await updateTrackedBook(book.id, { subjects: updatedSubjects });
@@ -676,15 +701,21 @@ export default function StudentBookDetailsPage() {
                 seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_|^q_/, ''));
               }
 
+              const ctTime = new Date(ct.updatedAt || ct.updated_at || ct.createdAt || ct.created_at || 0).getTime();
+              const dbTime = new Date(matchedDb?.updatedAt || matchedDb?.updated_at || matchedDb?.createdAt || matchedDb?.created_at || 0).getTime();
+              const preferCt = ctTime > dbTime;
+              const baseMerged = preferCt ? { ...(matchedDb || {}), ...ct } : { ...ct, ...(matchedDb || {}) };
+
               topicRawCombined.push({
-                ...ct,
-                ...(matchedDb || {}),
+                ...baseMerged,
                 id: ct.id || matchedDb?.id || ctId,
                 name: ctName,
                 bookId: bId,
                 subjectId: sId,
                 topicId: tpId,
                 topic_id: tpId,
+                questionCount: (preferCt ? (ct.questionCount ?? matchedDb?.questionCount) : (matchedDb?.questionCount ?? ct.questionCount)) || 20,
+                answerKey: (preferCt ? (ct.answerKey || matchedDb?.answerKey) : (matchedDb?.answerKey || ct.answerKey)) || {},
                 test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
               });
             });
@@ -765,13 +796,19 @@ export default function StudentBookDetailsPage() {
               seenTestIds.add(String(matchedDb.id).replace(/^bt_|^tbt_|^q_/, ''));
             }
 
+            const ctTime = new Date(ct.updatedAt || ct.updated_at || ct.createdAt || ct.created_at || 0).getTime();
+            const dbTime = new Date(matchedDb?.updatedAt || matchedDb?.updated_at || matchedDb?.createdAt || matchedDb?.created_at || 0).getTime();
+            const preferCt = ctTime > dbTime;
+            const baseMerged = preferCt ? { ...(matchedDb || {}), ...ct } : { ...ct, ...(matchedDb || {}) };
+
             subjRawCombined.push({
-              ...ct,
-              ...(matchedDb || {}),
+              ...baseMerged,
               id: ct.id || matchedDb?.id || ctId,
               name: ctName,
               bookId: bId,
               subjectId: sId,
+              questionCount: (preferCt ? (ct.questionCount ?? matchedDb?.questionCount) : (matchedDb?.questionCount ?? ct.questionCount)) || 20,
+              answerKey: (preferCt ? (ct.answerKey || matchedDb?.answerKey) : (matchedDb?.answerKey || ct.answerKey)) || {},
               test_order: ct.test_order ?? ct.order ?? ct.orderIndex ?? (ctIdx + 1)
             });
           });
@@ -1294,21 +1331,44 @@ export default function StudentBookDetailsPage() {
     setIsSavingBulk(true);
     try {
        const promises = [];
+       const bulkUpdatesMap = new Map();
+       const nowIso = new Date().toISOString();
        Object.entries(bulkSettings).forEach(([testId, data]) => {
          const akStr = (data.answerKeyString || '').replace(/[^A-Ea-e]/g, '').toUpperCase();
          const akObj = {};
          for(let i=0; i<akStr.length; i++) {
             akObj[i+1] = akStr[i];
+            akObj[String(i+1)] = akStr[i];
          }
-         
-         promises.push(
-           updateTrackedBookTest(testId, {
-             questionCount: data.questionCount,
-             answerKey: akObj
-           })
-         );
+         const qCount = Number(data.questionCount) || 20;
+         const payload = {
+           questionCount: qCount,
+           answerKey: akObj,
+           updatedAt: nowIso
+         };
+         bulkUpdatesMap.set(String(testId), payload);
+         promises.push(updateTrackedBookTest(testId, payload));
        });
        await Promise.all(promises);
+
+       if (typeof updateTrackedBook === 'function' && book?.id) {
+         const updatedSubjects = (book.subjects || []).map(s => ({
+           ...s,
+           tests: (s.tests || []).map(t => {
+             const u = bulkUpdatesMap.get(String(t.id)) || (toUUID(t.id) && bulkUpdatesMap.get(String(toUUID(t.id))));
+             return u ? { ...t, ...u } : t;
+           }),
+           topics: (s.topics || []).map(tp => ({
+             ...tp,
+             tests: (tp.tests || []).map(t => {
+               const u = bulkUpdatesMap.get(String(t.id)) || (toUUID(t.id) && bulkUpdatesMap.get(String(toUUID(t.id))));
+               return u ? { ...t, ...u } : t;
+             })
+           }))
+         }));
+         await updateTrackedBook(book.id, { subjects: updatedSubjects });
+       }
+
        setIsBulkSettingsModalOpen(false);
     } catch(e) {
       console.error('Save error:', e);

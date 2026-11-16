@@ -74,16 +74,19 @@ export function TrackedBookProvider({ children }) {
       const topKey = String(t.topicId || t.topic_id || t.topicName || t.topic || 'direct').trim().toLowerCase();
       const nameKey = String(t.name || '').trim().toLowerCase();
       
-      // Also include the original test ID in the key if available to ensure absolute uniqueness, 
-      // since some UUIDs might genuinely have the same book, subject, topic, and name but be different tests.
-      const idKey = String(t.id || '').trim();
-      const key = `${bCanonical}___${sKey}___${topKey}___${nameKey}___${idKey}`;
+      const key = `${bCanonical}___${sKey}___${topKey}___${nameKey}`;
       
       if (!map.has(key)) {
         map.set(key, t);
       } else {
         const existing = map.get(key);
-        map.set(key, { ...existing, ...t, id: existing.id || t.id });
+        const exTime = new Date(existing.updatedAt || existing.updated_at || existing.createdAt || existing.created_at || 0).getTime();
+        const curTime = new Date(t.updatedAt || t.updated_at || t.createdAt || t.created_at || 0).getTime();
+        if (curTime > exTime) {
+          map.set(key, { ...existing, ...t });
+        } else {
+          map.set(key, { ...t, ...existing });
+        }
       }
     });
     return Array.from(map.values());
@@ -558,22 +561,36 @@ export function TrackedBookProvider({ children }) {
     let updatedObj = null;
     const idStr = String(id);
     const idUuid = toUUID(idStr);
+    const nowIso = new Date().toISOString();
 
     sessionStorage.removeItem('eTestLastTrackedBooksSync');
 
     setBookTests(prev => {
       let found = false;
       const next = prev.map(test => {
-        const isMatch = String(test.id) === idStr || (idUuid && String(test.id) === idUuid) || (toUUID(test.id) && String(toUUID(test.id)) === idUuid);
+        const isMatch = String(test.id) === idStr || 
+                        (idUuid && String(test.id) === idUuid) || 
+                        (toUUID(test.id) && String(toUUID(test.id)) === idUuid) ||
+                        (updates.name && test.name && String(test.name).trim().toLowerCase() === String(updates.name).trim().toLowerCase() && (String(test.bookId) === String(updates.bookId) || (toUUID(test.bookId) && toUUID(test.bookId) === toUUID(updates.bookId))));
         if (isMatch) {
           found = true;
-          updatedObj = { ...test, ...updates, id: test.id, bookId: updates.bookId || test.bookId || test.book_id };
+          updatedObj = { 
+            ...test, 
+            ...updates, 
+            id: test.id, 
+            bookId: updates.bookId || test.bookId || test.book_id,
+            updatedAt: updates.updatedAt || nowIso
+          };
           return updatedObj;
         }
         return test;
       });
       if (!found) {
-        updatedObj = { id: idStr, ...updates };
+        updatedObj = { 
+          id: idStr, 
+          ...updates,
+          updatedAt: updates.updatedAt || nowIso
+        };
         next.push(updatedObj);
       }
       safeSetItem('eTestTrackedBookTests', JSON.stringify(next));
@@ -587,23 +604,27 @@ export function TrackedBookProvider({ children }) {
         let changed = false;
         const newSubjects = (b.subjects || []).map(s => {
           let sChanged = false;
+          const matchTestItem = (t) => {
+            return String(t.id) === idStr || 
+                   (idUuid && String(t.id) === idUuid) || 
+                   (toUUID(t.id) && String(toUUID(t.id)) === idUuid) ||
+                   (updates.name && t.name && String(t.name).trim().toLowerCase() === String(updates.name).trim().toLowerCase());
+          };
           const newTests = (s.tests || []).map(t => {
-            const isMatch = String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid);
-            if (isMatch) {
+            if (matchTestItem(t)) {
               sChanged = true;
               changed = true;
-              return { ...t, ...updates, id: t.id };
+              return { ...t, ...updates, id: t.id, updatedAt: updates.updatedAt || nowIso };
             }
             return t;
           });
           const newTopics = (s.topics || []).map(tp => {
             let tpChanged = false;
             const newTpTests = (tp.tests || []).map(t => {
-              const isMatch = String(t.id) === idStr || (idUuid && String(t.id) === idUuid) || (toUUID(t.id) && String(toUUID(t.id)) === idUuid);
-              if (isMatch) {
+              if (matchTestItem(t)) {
                 tpChanged = true;
                 changed = true;
-                return { ...t, ...updates, id: t.id };
+                return { ...t, ...updates, id: t.id, updatedAt: updates.updatedAt || nowIso };
               }
               return t;
             });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback, useDeferredValue } from 'react';
 import {
   Search, X, Calendar, BookOpen, CheckCircle2, ChevronRight, ChevronDown, ChevronUp,
   Eye, EyeOff, Check, PlayCircle, ArrowLeft, Filter, Sparkles, Clock, HelpCircle,
@@ -208,6 +208,9 @@ export default React.memo(function StudyHomeworkPickerModal({
     });
 
     const directTestMap = new Map();
+    const testsByTopicMap = new Map();
+    const testsBySubjMap = new Map();
+
     testsInBook.forEach(t => {
       directTestMap.set(String(t.id), t);
       const cl = String(t.id).replace(/^bt_|^tbt_/, '');
@@ -215,6 +218,22 @@ export default React.memo(function StudyHomeworkPickerModal({
       const u = toUUID(cl || t.id);
       if (u) directTestMap.set(String(u), t);
       if (t.name) directTestMap.set(String(t.name).trim().toLowerCase(), t);
+
+      const tpId = String(t.topicId || t.topic_id || '');
+      if (tpId) {
+        if (!testsByTopicMap.has(tpId)) testsByTopicMap.set(tpId, []);
+        testsByTopicMap.get(tpId).push(t);
+        const tpU = toUUID(tpId);
+        if (tpU && !testsByTopicMap.has(String(tpU))) {
+          testsByTopicMap.set(String(tpU), testsByTopicMap.get(tpId));
+        }
+      }
+
+      const sId = String(t.subjectId || t.subject_id || '');
+      if (sId) {
+        if (!testsBySubjMap.has(sId)) testsBySubjMap.set(sId, []);
+        testsBySubjMap.get(sId).push(t);
+      }
     });
 
     const units = [];
@@ -234,11 +253,8 @@ export default React.memo(function StudyHomeworkPickerModal({
           const tpId = String(tp.id || `tp_${tpIdx}`);
           const tpName = tp.name || `${tpIdx + 1}. Fasikül / Ünite`;
 
-          // Konuya ait DB testleri
-          const dbTopicTests = testsInBook.filter(t => {
-            const tTpId = String(t.topicId || t.topic_id || '');
-            return tTpId === tpId || tTpId === String(tp.id) || (toUUID(tTpId) && toUUID(tTpId) === toUUID(tpId));
-          });
+          // Konuya ait DB testleri (O(1) Map)
+          const dbTopicTests = testsByTopicMap.get(tpId) || testsByTopicMap.get(String(tp.id)) || [];
 
           // Konunun kanonik testleri (kitap şemasındaki 138 test)
           const canonicalTests = Array.isArray(tp.tests) ? tp.tests : [];
@@ -387,7 +403,7 @@ export default React.memo(function StudyHomeworkPickerModal({
           });
         });
       } else {
-        const dbSubjTests = testsInBook.filter(t => String(t.subjectId || t.subject_id) === String(subj.id));
+        const dbSubjTests = testsBySubjMap.get(String(subj.id)) || [];
         const canonicalSubjTests = Array.isArray(subj.tests) ? subj.tests : [];
 
         const seenTestIds = new Set();
@@ -532,11 +548,13 @@ export default React.memo(function StudyHomeworkPickerModal({
     };
   }, [currentBook, bookTests, submissions, homeworks, studyAssignments, currentUserId, books, precomputedSolvedIndex]);
 
-  // Arama & bitenler filtresi
-  const matchesTestFilter = (test) => {
+  const deferredSearch = useDeferredValue(hwSearchQuery);
+
+  // Arama & bitenler filtresi (useCallback & useDeferredValue)
+  const matchesTestFilter = useCallback((test) => {
     if (hideCompletedTasks && test.isCompleted) return false;
-    if (hwSearchQuery.trim()) {
-      const q = hwSearchQuery.toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       const match = (test.title || '').toLowerCase().includes(q) ||
                     (test.name || '').toLowerCase().includes(q) ||
                     (test.unit || '').toLowerCase().includes(q) ||
@@ -544,16 +562,16 @@ export default React.memo(function StudyHomeworkPickerModal({
       if (!match) return false;
     }
     return true;
-  };
+  }, [hideCompletedTasks, deferredSearch]);
 
-  // Haftalık Program & Ödev filtreleri
-  const matchesFilter = (task) => {
+  // Haftalık Program & Ödev filtreleri (useCallback & useDeferredValue)
+  const matchesFilter = useCallback((task) => {
     if (hideCompletedTasks && task.isCompleted) return false;
     if (hwFilterSubject !== 'all' && task.subject && !task.subject.toLowerCase().includes(hwFilterSubject.toLowerCase())) {
       return false;
     }
-    if (hwSearchQuery.trim()) {
-      const q = hwSearchQuery.toLowerCase();
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase();
       const match = (task.title || '').toLowerCase().includes(q) ||
                     (task.name || '').toLowerCase().includes(q) ||
                     (task.subtitle || '').toLowerCase().includes(q) ||
@@ -561,24 +579,38 @@ export default React.memo(function StudyHomeworkPickerModal({
       if (!match) return false;
     }
     return true;
-  };
+  }, [hideCompletedTasks, hwFilterSubject, deferredSearch]);
 
   // Doğrudan arama yapılıyorsa eşleşen testler
   const searchMatchingTests = useMemo(() => {
-    if (!hwSearchQuery.trim()) return [];
+    if (!deferredSearch.trim()) return [];
     return selectedBookData.allTests.filter(matchesTestFilter);
-  }, [selectedBookData.allTests, hwSearchQuery, hideCompletedTasks]);
+  }, [selectedBookData.allTests, deferredSearch, matchesTestFilter]);
 
-  const currentDayGroup = (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
-  const programTasksForDay = (currentDayGroup.tasks || []).filter(matchesFilter);
-  const homeworkTasks = allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
+  const currentDayGroup = useMemo(() => {
+    return (weeklyProgramGrouped || []).find(g => g.key === selectedProgramDay) || weeklyProgramGrouped?.[0] || { tasks: [] };
+  }, [weeklyProgramGrouped, selectedProgramDay]);
 
-  // Tab sayıları
-  const programTotalCount = (weeklyProgramGrouped || []).reduce((acc, g) => {
-    const valid = (g.tasks || []).filter(t => !hideCompletedTasks || !t.isCompleted);
-    return acc + valid.length;
-  }, 0);
-  const homeworkTotalCount = allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
+  const programTasksForDay = useMemo(() => {
+    return (currentDayGroup.tasks || []).filter(matchesFilter);
+  }, [currentDayGroup, matchesFilter]);
+
+  const homeworkTasks = useMemo(() => {
+    return allAssignedTasks.filter(t => t.sourceType === 'homework' && matchesFilter(t));
+  }, [allAssignedTasks, matchesFilter]);
+
+  // Tab sayıları (useMemo)
+  const programTotalCount = useMemo(() => {
+    return (weeklyProgramGrouped || []).reduce((acc, g) => {
+      const valid = (g.tasks || []).filter(t => !hideCompletedTasks || !t.isCompleted);
+      return acc + valid.length;
+    }, 0);
+  }, [weeklyProgramGrouped, hideCompletedTasks]);
+
+  const homeworkTotalCount = useMemo(() => {
+    return allAssignedTasks.filter(t => t.sourceType === 'homework' && (!hideCompletedTasks || !t.isCompleted)).length;
+  }, [allAssignedTasks, hideCompletedTasks]);
+
   const physicalBooksCount = physicalBooks.length;
 
   if (!show) return null;
@@ -1562,8 +1594,8 @@ function TopicTestsModal({ unit, bookTitle, onClose, onSelectTask, hideCompleted
   );
 }
 
-// ─── TEKİL TEST KARTI (TIKLAYINCA ODAYA ALIR) ───
-function TestCardItem({ test, onSelectTask }) {
+// ─── TEKİL TEST KARTI (TIKLAYINCA ODAYA ALIR - MEMO) ───
+const TestCardItem = React.memo(function TestCardItem({ test, onSelectTask }) {
   return (
     <div
       onClick={() => onSelectTask(test)}
@@ -1689,10 +1721,10 @@ function TestCardItem({ test, onSelectTask }) {
       </button>
     </div>
   );
-}
+});
 
-// ─── YARDIMCI GÖREV KARTI (DERS PROGRAMI & ÖDEVLER İÇİN) ───
-function ProgramTaskCard({ task, onSelectTask }) {
+// ─── YARDIMCI GÖREV KARTI (DERS PROGRAMI & ÖDEVLER İÇİN - MEMO) ───
+const ProgramTaskCard = React.memo(function ProgramTaskCard({ task, onSelectTask }) {
   const isReading = task.isReadingTask ||
     task.taskType === 'okuma' ||
     task.subject === 'Kitap Okuma' ||
@@ -1800,4 +1832,4 @@ function ProgramTaskCard({ task, onSelectTask }) {
       </button>
     </div>
   );
-}
+});

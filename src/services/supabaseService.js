@@ -2432,14 +2432,18 @@ export async function dbGetTrackedBooks() {
       if (!deduplicatedTestsMap.has(testKey)) {
         deduplicatedTestsMap.set(testKey, testObj);
       } else {
+        // tRes.data is ordered by created_at DESC (newest first).
+        // Therefore, existing is newer than testObj!
+        // Preserve existing's values, only fill missing fields from older testObj:
         const existing = deduplicatedTestsMap.get(testKey);
-        deduplicatedTestsMap.set(testKey, { ...existing, ...testObj });
+        deduplicatedTestsMap.set(testKey, { ...testObj, ...existing });
       }
     });
 
     // 3. Also harvest embedded tests from book subjects/topics
     (books || []).forEach(b => {
       const bId = String(b.id || '');
+      const canonicalBookId = idAliasMap.get(bId) || bId;
       const rawSubs = Array.isArray(b.subjects) ? b.subjects : (Array.isArray(b.raw_data?.subjects) ? b.raw_data.subjects : []);
       rawSubs.forEach(s => {
         if (!s || s.__meta === true || s.id === '__book_meta__') return;
@@ -2447,12 +2451,12 @@ export async function dbGetTrackedBooks() {
         (s.tests || []).forEach(t => {
           if (!t) return;
           const name = String(t.name || 'Test').trim();
-          const testKey = `${bId}___${sId.toLowerCase()}___direct___${name.toLowerCase()}`;
+          const testKey = `${canonicalBookId}___${sId.toLowerCase()}___direct___${name.toLowerCase()}`;
           if (!deduplicatedTestsMap.has(testKey)) {
             deduplicatedTestsMap.set(testKey, {
               ...t,
               id: String(t.id || `tbt_${Date.now()}_${Math.random()}`),
-              bookId: bId,
+              bookId: canonicalBookId,
               subjectId: sId,
               topicId: null,
               name: name,
@@ -2469,12 +2473,12 @@ export async function dbGetTrackedBooks() {
           (tp.tests || []).forEach(t => {
             if (!t) return;
             const name = String(t.name || 'Test').trim();
-            const testKey = `${bId}___${sId.toLowerCase()}___${topId.toLowerCase()}___${name.toLowerCase()}`;
+            const testKey = `${canonicalBookId}___${sId.toLowerCase()}___${topId.toLowerCase()}___${name.toLowerCase()}`;
             if (!deduplicatedTestsMap.has(testKey)) {
               deduplicatedTestsMap.set(testKey, {
                 ...t,
                 id: String(t.id || `tbt_${Date.now()}_${Math.random()}`),
-                bookId: bId,
+                bookId: canonicalBookId,
                 subjectId: sId,
                 topicId: topId,
                 name: name,
@@ -2487,6 +2491,69 @@ export async function dbGetTrackedBooks() {
           });
         });
       });
+    });
+
+    // 4. Synchronize canonical test updates back into book.subjects in memory
+    // so any component reading book.subjects directly has the latest questionCount and answerKey!
+    (books || []).forEach(b => {
+      const bId = String(b.id || '');
+      const canonicalBookId = idAliasMap.get(bId) || bId;
+      if (Array.isArray(b.subjects)) {
+        b.subjects.forEach(s => {
+          if (!s || s.__meta === true || s.id === '__book_meta__') return;
+          const sId = String(s.id || '');
+          if (Array.isArray(s.tests)) {
+            s.tests = s.tests.map(t => {
+              if (!t) return t;
+              const name = String(t.name || 'Test').trim();
+              const testKey = `${canonicalBookId}___${sId.toLowerCase()}___direct___${name.toLowerCase()}`;
+              const canonicalTest = deduplicatedTestsMap.get(testKey);
+              if (canonicalTest) {
+                return {
+                  ...t,
+                  questionCount: canonicalTest.questionCount,
+                  answerKey: canonicalTest.answerKey,
+                  name: canonicalTest.name,
+                  optionCount: canonicalTest.optionCount,
+                  isOpenEnded: canonicalTest.isOpenEnded,
+                  questionType: canonicalTest.questionType,
+                  pdfUrl: canonicalTest.pdfUrl || t.pdfUrl,
+                  dueDate: canonicalTest.dueDate || t.dueDate,
+                  testDueDate: canonicalTest.testDueDate || t.testDueDate
+                };
+              }
+              return t;
+            });
+          }
+          if (Array.isArray(s.topics)) {
+            s.topics.forEach(tp => {
+              if (!tp || !Array.isArray(tp.tests)) return;
+              const topId = String(tp.id || '');
+              tp.tests = tp.tests.map(t => {
+                if (!t) return t;
+                const name = String(t.name || 'Test').trim();
+                const testKey = `${canonicalBookId}___${sId.toLowerCase()}___${topId.toLowerCase()}___${name.toLowerCase()}`;
+                const canonicalTest = deduplicatedTestsMap.get(testKey);
+                if (canonicalTest) {
+                  return {
+                    ...t,
+                    questionCount: canonicalTest.questionCount,
+                    answerKey: canonicalTest.answerKey,
+                    name: canonicalTest.name,
+                    optionCount: canonicalTest.optionCount,
+                    isOpenEnded: canonicalTest.isOpenEnded,
+                    questionType: canonicalTest.questionType,
+                    pdfUrl: canonicalTest.pdfUrl || t.pdfUrl,
+                    dueDate: canonicalTest.dueDate || t.dueDate,
+                    testDueDate: canonicalTest.testDueDate || t.testDueDate
+                  };
+                }
+                return t;
+              });
+            });
+          }
+        });
+      }
     });
 
     const bookTests = Array.from(deduplicatedTestsMap.values());
@@ -2757,8 +2824,45 @@ export async function dbAddTrackedBookTest(test) {
   if (!isSupabaseConfigured() || !test) return null;
   try {
     const rawBId = test.bookId || test.book_id || null;
-    const safeBookId = rawBId ? toUUID(rawBId) : null;
-    const safeTestId = toUUID(test.id || `tbt_${Date.now()}`);
+    const safeBookId = rawBId ? String(rawBId) : null;
+    
+    // Check if row already exists in Supabase under test.id or its UUID variant
+    const candidateTestIds = Array.from(new Set([
+      test.id ? String(test.id) : null,
+      test.id ? toUUID(test.id) : null
+    ].filter(Boolean)));
+
+    let existingRowId = null;
+    if (candidateTestIds.length > 0) {
+      try {
+        const { data: existingRows } = await supabase
+          .from('tracked_book_tests')
+          .select('id, book_id')
+          .in('id', candidateTestIds)
+          .limit(1);
+        if (existingRows && existingRows.length > 0) {
+          existingRowId = existingRows[0].id;
+        }
+      } catch {}
+    }
+
+    // If not found by ID, check if a row already exists in Supabase by book_id and test name
+    if (!existingRowId && safeBookId && test.name) {
+      const candidateBookIds = Array.from(new Set([safeBookId, toUUID(safeBookId)].filter(Boolean)));
+      try {
+        const { data: nameMatchRows } = await supabase
+          .from('tracked_book_tests')
+          .select('id, book_id')
+          .in('book_id', candidateBookIds)
+          .ilike('name', String(test.name).trim())
+          .limit(1);
+        if (nameMatchRows && nameMatchRows.length > 0) {
+          existingRowId = nameMatchRows[0].id;
+        }
+      } catch {}
+    }
+
+    const safeTestId = existingRowId || (test.id ? String(test.id) : `tbt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`);
     const rawAnsKey = test.answerKey || test.answer_key || {};
     const ansMeta = rawAnsKey.__meta || {};
     const isExplicitOE = Boolean(
@@ -2812,6 +2916,20 @@ export async function dbAddTrackedBookTest(test) {
     };
     const { data, error } = await supabase.from('tracked_book_tests').upsert([row], { onConflict: 'id' }).select().maybeSingle();
     if (error) throw error;
+
+    // Clean up any stale duplicate rows for this test under the same book so duplicates don't conflict
+    if (safeBookId && test.name && safeTestId) {
+      try {
+        const candidateBookIds = Array.from(new Set([safeBookId, toUUID(safeBookId)].filter(Boolean)));
+        await supabase
+          .from('tracked_book_tests')
+          .delete()
+          .in('book_id', candidateBookIds)
+          .ilike('name', String(test.name).trim())
+          .neq('id', safeTestId);
+      } catch {}
+    }
+
     return data;
   } catch (err) {
     console.warn('[Supabase] dbAddTrackedBookTest error:', err.message);
@@ -2827,11 +2945,11 @@ export async function dbBatchUpsertTrackedBookTests(testList) {
 
     for (const t of testList) {
       const rawBId = t.bookId || t.book_id || null;
-      const safeBookId = rawBId ? toUUID(rawBId) : null;
+      const safeBookId = rawBId ? String(rawBId) : null;
       
-      let safeTestId = toUUID(t.id || `tbt_${Date.now()}_${Math.random()}`);
+      let safeTestId = t.id ? String(t.id) : `tbt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
       if (seenIds.has(safeTestId)) {
-        safeTestId = toUUID(`tbt_${Date.now()}_${Math.random()}_${Math.random()}`);
+        safeTestId = `${safeTestId}_${Math.random().toString(36).substr(2, 4)}`;
       }
       seenIds.add(safeTestId);
 
