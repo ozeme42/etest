@@ -909,80 +909,121 @@ export default function DashboardArenaAnalytics({
               onClick={() => setSelectedSubjectFilter(subj.key === selectedSubjectFilter ? 'all' : subj.key)}
               style={{
                 background: cardBg,
-                borderRadius: 18,
-                border: selectedSubjectFilter === subj.key ? `2px solid ${subj.color}` : cardBorder,
-                boxShadow: selectedSubjectFilter === subj.key ? `0 8px 24px ${subj.color}35` : cardShadow,
-                padding: isMobile ? '0.85rem 0.75rem' : '1rem 0.85rem',
+                borderRadius: 20,
+                border: selectedSubjectFilter === subj.key ? `2.5px solid ${subj.color}` : cardBorder,
+                boxShadow: selectedSubjectFilter === subj.key ? `0 10px 28px ${subj.color}40` : cardShadow,
+                padding: isMobile ? '0.9rem 0.8rem' : '1.15rem 1rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                gap: 8,
+                gap: 10,
                 cursor: 'pointer',
-                transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                transition: 'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 position: 'relative'
               }}
-              title={`${subj.title}: %${subj.accuracy} Doğruluk • Tıklayarak grafikleri bu derse göre filtreleyin`}
+              title={`${subj.title}: %${subj.accuracy} Başarı Oranı • Tıklayarak grafikleri bu derse göre filtreleyin`}
             >
-              {/* İkon & Durum Rozeti */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <img
-                  src={subj.iconUrl}
-                  alt={subj.title}
-                  style={{
-                    width: isMobile ? 32 : 36,
-                    height: isMobile ? 32 : 36,
-                    objectFit: 'contain'
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
-                  }}
-                />
-                <span style={{
-                  display: 'none',
-                  fontSize: '1.4rem'
-                }}>
-                  {subj.fallbackEmoji}
-                </span>
-
-                <span style={{
-                  fontSize: '0.6rem',
-                  fontWeight: 900,
-                  color: subj.color,
+              {/* Üst Satır: İkon + Akıllı Durum Rozeti */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                <div style={{
+                  width: isMobile ? 36 : 42,
+                  height: isMobile ? 36 : 42,
+                  borderRadius: 12,
                   background: subj.bgLight,
-                  padding: '1px 5px',
-                  borderRadius: 6
+                  border: `1.5px solid ${subj.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
                 }}>
-                  %{subj.accuracy}
+                  <img
+                    src={subj.iconUrl}
+                    alt={subj.title}
+                    style={{
+                      width: isMobile ? 24 : 28,
+                      height: isMobile ? 24 : 28,
+                      objectFit: 'contain'
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <span style={{
+                    display: 'none',
+                    fontSize: isMobile ? '1.2rem' : '1.4rem'
+                  }}>
+                    {subj.fallbackEmoji}
+                  </span>
+                </div>
+
+                {/* Akıllı Durum Rozeti */}
+                <span style={{
+                  fontSize: isMobile ? '0.62rem' : '0.68rem',
+                  fontWeight: 900,
+                  color: subj.statusColor,
+                  background: `${subj.statusColor}18`,
+                  padding: '2px 7px',
+                  borderRadius: 99,
+                  border: `1px solid ${subj.statusColor}30`,
+                  whiteSpace: 'nowrap'
+                }}>
+                  {subj.statusBadge}
                 </span>
               </div>
 
-              {/* Başlık & Soru Sayısı */}
-              <div>
+              {/* BÜYÜK BAŞARI YÜZDESİ VE METRİK */}
+              <div style={{ margin: '2px 0 0' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{
+                    fontSize: isMobile ? '1.65rem' : '2.05rem',
+                    fontWeight: 950,
+                    lineHeight: 1,
+                    letterSpacing: '-0.035em',
+                    color: subj.color,
+                    fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif"
+                  }}>
+                    %{subj.accuracy}
+                  </span>
+                  <span style={{
+                    fontSize: isMobile ? '0.65rem' : '0.72rem',
+                    fontWeight: 800,
+                    color: subTextColor,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em'
+                  }}>
+                    Başarı
+                  </span>
+                </div>
+
+                {/* Ders Başlığı */}
                 <div style={{
-                  fontSize: isMobile ? '0.82rem' : '0.9rem',
+                  fontSize: isMobile ? '0.88rem' : '0.98rem',
                   fontWeight: 900,
                   color: textColor,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
-                  textOverflow: 'ellipsis'
+                  textOverflow: 'ellipsis',
+                  marginTop: 6
                 }}>
                   {subj.shortTitle}
                 </div>
+
+                {/* Soru ve Net Detayı */}
                 <div style={{
-                  fontSize: isMobile ? '0.66rem' : '0.72rem',
+                  fontSize: isMobile ? '0.68rem' : '0.74rem',
                   fontWeight: 700,
                   color: subTextColor,
                   marginTop: 2
                 }}>
-                  {subj.totalQuestions} soru • {subj.testCount} test
+                  {subj.totalQuestions} soru • Ort. {subj.avgNet} net
                 </div>
               </div>
 
-              {/* İlerleme Çubuğu */}
+              {/* Kalın ve Işıltılı İlerleme Çubuğu */}
               <div style={{
                 width: '100%',
-                height: 5,
+                height: 7,
                 background: isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
                 borderRadius: 99,
                 overflow: 'hidden',
@@ -992,7 +1033,8 @@ export default function DashboardArenaAnalytics({
                   width: `${subj.accuracy}%`,
                   height: '100%',
                   background: subj.gradient,
-                  borderRadius: 99
+                  borderRadius: 99,
+                  boxShadow: `0 0 10px ${subj.color}60`
                 }} />
               </div>
             </div>
