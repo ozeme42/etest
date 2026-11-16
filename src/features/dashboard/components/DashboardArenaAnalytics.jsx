@@ -670,7 +670,7 @@ export default function DashboardArenaAnalytics({
       </div>
 
       {/* ══════════════════════════════════════════════════════
-          2. BU HAFTANIN GELİŞİMİ (MOCKUP'TAKİ İMZA KART)
+          2. PERFORMANS & SORU ANALİZ PANOSU (PREMIUM KUPA TASARIMI)
       ══════════════════════════════════════════════════════ */}
       <div style={{
         background: isDark
@@ -689,47 +689,51 @@ export default function DashboardArenaAnalytics({
           position: 'absolute',
           top: -40,
           right: -40,
-          width: 220,
-          height: 220,
+          width: 240,
+          height: 240,
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, transparent 70%)',
           pointerEvents: 'none'
         }} />
 
-        {/* Üst Başlık Satırı */}
+        {/* Üst Başlık Satırı & Filtreler */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: isMobile ? 'flex-start' : 'center',
           justifyContent: 'space-between',
-          marginBottom: isMobile ? '1.25rem' : '1.75rem',
+          flexDirection: isMobile ? 'column' : 'row',
+          gap: isMobile ? 12 : 16,
+          marginBottom: isMobile ? '1.25rem' : '1.65rem',
           position: 'relative',
-          zIndex: 1
+          zIndex: 2
         }}>
+          {/* Sol: İkon + Başlık */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
-              width: isMobile ? 38 : 46,
-              height: isMobile ? 38 : 46,
+              width: isMobile ? 40 : 48,
+              height: isMobile ? 40 : 48,
               borderRadius: 14,
-              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(245, 158, 11, 0.15))',
-              border: '1.5px solid rgba(251, 191, 36, 0.4)',
+              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.28), rgba(245, 158, 11, 0.16))',
+              border: '1.5px solid rgba(251, 191, 36, 0.45)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: isMobile ? '1.3rem' : '1.6rem',
-              boxShadow: '0 6px 18px rgba(245, 158, 11, 0.25)'
+              fontSize: isMobile ? '1.4rem' : '1.7rem',
+              boxShadow: '0 6px 18px rgba(245, 158, 11, 0.25)',
+              flexShrink: 0
             }}>
               🏆
             </div>
             <div>
               <h3 style={{
                 margin: 0,
-                fontSize: isMobile ? '1.15rem' : '1.4rem',
+                fontSize: isMobile ? '1.15rem' : '1.45rem',
                 fontWeight: 900,
                 color: '#ffffff',
                 letterSpacing: '-0.02em',
                 lineHeight: 1.2
               }}>
-                Bu Haftanın Gelişimi
+                Performans &amp; Soru Analiz Panosu
               </h3>
               <p style={{
                 margin: '3px 0 0',
@@ -737,126 +741,262 @@ export default function DashboardArenaAnalytics({
                 color: '#c7d2fe',
                 fontWeight: 600
               }}>
-                Günlük soru temposu ve odaklanma saatleri
+                Günlük soru temposu, net eğrisi ve odaklanma gelişimi
               </p>
             </div>
           </div>
 
-          {/* 3D Kupa İllüstrasyonu */}
-          <img
-            src="/assets/dashboard/gold_trophy.png"
-            alt="Haftanın Kupası"
-            style={{
-              width: isMobile ? 48 : 64,
-              height: isMobile ? 48 : 64,
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 8px 16px rgba(234, 179, 8, 0.45))'
-            }}
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-        </div>
-
-        {/* 7 Günlük Sütun Grafiği (Pzt - Paz) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: isMobile ? 6 : 14,
-          alignItems: 'flex-end',
-          height: isMobile ? 140 : 180,
-          padding: isMobile ? '0.5rem 0 1rem' : '1rem 0.5rem 1.25rem',
-          position: 'relative',
-          zIndex: 1
-        }}>
-          {weeklyDevelopment.bars.map((bar) => (
-            <div
-              key={bar.key}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                height: '100%',
-                justifyContent: 'flex-end',
-                gap: 8,
-                position: 'relative'
-              }}
-              title={`${bar.fullLabel} (${bar.ymd}): ${bar.questions} Soru • ${bar.durationStr}`}
-            >
-              {/* Zirve Rozeti (Peak) */}
-              {bar.isPeak && (
-                <div style={{
-                  position: 'absolute',
-                  top: -24,
-                  fontSize: '0.72rem',
-                  fontWeight: 900,
-                  color: '#facc15',
-                  textShadow: '0 0 8px rgba(250, 204, 21, 0.8)',
-                  animation: 'pulse 2s infinite'
-                }}>
-                  ⚡
-                </div>
-              )}
-
-              {/* Soru Miktarı (Hover/Visible) */}
-              <span style={{
-                fontSize: isMobile ? '0.62rem' : '0.72rem',
-                fontWeight: 800,
-                color: bar.isToday ? '#ffffff' : '#c7d2fe',
-                opacity: bar.questions > 0 ? 1 : 0.6
-              }}>
-                {bar.questions > 0 ? bar.questions : '—'}
-              </span>
-
-              {/* Sütun Çubuğu (Pill Bar) */}
-              <div style={{
-                width: isMobile ? '70%' : '52%',
-                maxWidth: 42,
-                height: `${bar.heightPercent}%`,
-                minHeight: 18,
-                borderRadius: '10px 10px 4px 4px',
-                background: bar.isToday
-                  ? 'linear-gradient(180deg, #a855f7 0%, #6366f1 100%)'
-                  : (bar.isPeak
-                    ? 'linear-gradient(180deg, #818cf8 0%, #4f46e5 100%)'
-                    : 'linear-gradient(180deg, rgba(165, 180, 252, 0.45) 0%, rgba(99, 102, 241, 0.35) 100%)'),
-                boxShadow: bar.isToday ? '0 0 16px rgba(168, 85, 247, 0.7)' : 'none',
-                border: bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.18)',
-                transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                cursor: 'pointer'
-              }} />
-
-              {/* Günün Adı */}
-              <span style={{
-                fontSize: isMobile ? '0.72rem' : '0.84rem',
-                fontWeight: bar.isToday ? 900 : 700,
-                color: bar.isToday ? '#ffffff' : '#a5b4fc',
-                marginTop: 2
-              }}>
-                {bar.label}
-              </span>
+          {/* Sağ: 3D Kupa & İnteraktif Mod / Zaman Filtresi Düğmeleri */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            flexWrap: 'wrap',
+            justifyContent: isMobile ? 'space-between' : 'flex-end',
+            width: isMobile ? '100%' : 'auto'
+          }}>
+            {/* Görünüm Tipi Seçici */}
+            <div style={{
+              display: 'flex',
+              background: 'rgba(15, 23, 42, 0.55)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              padding: 3,
+              borderRadius: 12
+            }}>
+              {[
+                { id: 'distribution', label: '📊 Soru Hacmi' },
+                { id: 'trend', label: '📈 Net Eğrisi' }
+              ].map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveChartTab(t.id)}
+                  style={{
+                    border: 'none',
+                    background: activeChartTab === t.id ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'transparent',
+                    color: activeChartTab === t.id ? '#ffffff' : '#cbd5e1',
+                    fontWeight: 800,
+                    fontSize: isMobile ? '0.7rem' : '0.76rem',
+                    padding: isMobile ? '4px 8px' : '5px 12px',
+                    borderRadius: 9,
+                    cursor: 'pointer',
+                    boxShadow: activeChartTab === t.id ? '0 2px 10px rgba(168, 85, 247, 0.4)' : 'none',
+                    transition: 'all 0.18s ease'
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-          ))}
+
+            {/* Zaman Aralığı (Sadece Trend Modunda) */}
+            {activeChartTab === 'trend' && (
+              <div style={{
+                display: 'flex',
+                background: 'rgba(15, 23, 42, 0.55)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                padding: 3,
+                borderRadius: 12
+              }}>
+                {[
+                  { id: 'week', label: '7G' },
+                  { id: 'month', label: '30G' }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setActiveRange(r.id)}
+                    style={{
+                      border: 'none',
+                      background: activeRange === r.id ? 'rgba(255,255,255,0.22)' : 'transparent',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      padding: '4px 8px',
+                      borderRadius: 8,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* 3D Kupa İllüstrasyonu */}
+            <img
+              src="/assets/dashboard/gold_trophy.png"
+              alt="Haftanın Kupası"
+              style={{
+                width: isMobile ? 36 : 48,
+                height: isMobile ? 36 : 48,
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 8px 16px rgba(234, 179, 8, 0.45))'
+              }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          </div>
         </div>
 
-        {/* Alt Bilgi Çubuğu (Toplam Süre & Gelişim Rozeti) */}
+        {/* ── GRAFİK ALANI: Soru Hacmi (7 Günlük Pill Sütunlar) VEYA Net Eğrisi (AreaChart) ── */}
+        {activeChartTab === 'distribution' ? (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: isMobile ? 6 : 14,
+            alignItems: 'flex-end',
+            height: isMobile ? 150 : 190,
+            padding: isMobile ? '0.5rem 0 1rem' : '1rem 0.5rem 1.25rem',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            {weeklyDevelopment.bars.map((bar) => (
+              <div
+                key={bar.key}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  height: '100%',
+                  justifyContent: 'flex-end',
+                  gap: 8,
+                  position: 'relative'
+                }}
+                title={`${bar.fullLabel} (${bar.ymd}): ${bar.questions} Soru • ${bar.durationStr} • ${bar.net} Net`}
+              >
+                {/* Zirve Rozeti (Peak) */}
+                {bar.isPeak && (
+                  <div style={{
+                    position: 'absolute',
+                    top: -24,
+                    fontSize: '0.72rem',
+                    fontWeight: 900,
+                    color: '#facc15',
+                    textShadow: '0 0 8px rgba(250, 204, 21, 0.8)',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    ⚡
+                  </div>
+                )}
+
+                {/* Soru Miktarı (Hover/Visible) */}
+                <span style={{
+                  fontSize: isMobile ? '0.62rem' : '0.72rem',
+                  fontWeight: 800,
+                  color: bar.isToday ? '#ffffff' : '#c7d2fe',
+                  opacity: bar.questions > 0 ? 1 : 0.6
+                }}>
+                  {bar.questions > 0 ? bar.questions : '—'}
+                </span>
+
+                {/* Sütun Çubuğu (Pill Bar) */}
+                <div style={{
+                  width: isMobile ? '70%' : '52%',
+                  maxWidth: 42,
+                  height: `${bar.heightPercent}%`,
+                  minHeight: 18,
+                  borderRadius: '10px 10px 4px 4px',
+                  background: bar.isToday
+                    ? 'linear-gradient(180deg, #a855f7 0%, #6366f1 100%)'
+                    : (bar.isPeak
+                      ? 'linear-gradient(180deg, #818cf8 0%, #4f46e5 100%)'
+                      : 'linear-gradient(180deg, rgba(165, 180, 252, 0.45) 0%, rgba(99, 102, 241, 0.35) 100%)'),
+                  boxShadow: bar.isToday ? '0 0 16px rgba(168, 85, 247, 0.7)' : 'none',
+                  border: bar.isToday ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.18)',
+                  transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  cursor: 'pointer'
+                }} />
+
+                {/* Günün Adı */}
+                <span style={{
+                  fontSize: isMobile ? '0.72rem' : '0.84rem',
+                  fontWeight: bar.isToday ? 900 : 700,
+                  color: bar.isToday ? '#ffffff' : '#a5b4fc',
+                  marginTop: 2
+                }}>
+                  {bar.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{
+            width: '100%',
+            height: isMobile ? 150 : 190,
+            padding: '0.5rem 0',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartDataset} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="areaNetTrophy" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a855f7" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" vertical={false} />
+                <XAxis dataKey="label" stroke="#a5b4fc" fontSize={isMobile ? 10 : 11} tickLine={false} />
+                <YAxis stroke="#a5b4fc" fontSize={isMobile ? 10 : 11} tickLine={false} axisLine={false} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const data = payload[0].payload;
+                    return (
+                      <div style={{
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid rgba(255,255,255,0.22)',
+                        padding: '8px 12px',
+                        borderRadius: 12,
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                        color: '#ffffff',
+                        fontSize: '0.78rem'
+                      }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4 }}>{data.date}</div>
+                        <div style={{ color: '#c084fc', fontWeight: 900 }}>Net: {data.net}</div>
+                        <div style={{ color: '#34d399', fontWeight: 800 }}>Doğruluk: %{data.accuracy}</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Area type="monotone" dataKey="net" stroke="#c084fc" strokeWidth={3} fill="url(#areaNetTrophy)" dot={{ r: 3, fill: '#c084fc' }} activeDot={{ r: 6 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Alt Bilgi Çubuğu (Toplam Süre & Soru Hacmi & Gelişim Rozeti) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 10,
-          background: 'rgba(15, 23, 42, 0.45)',
+          background: 'rgba(15, 23, 42, 0.55)',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
+          border: '1px solid rgba(255, 255, 255, 0.16)',
           borderRadius: 16,
-          padding: isMobile ? '0.65rem 0.85rem' : '0.75rem 1.25rem',
+          padding: isMobile ? '0.65rem 0.85rem' : '0.8rem 1.35rem',
           position: 'relative',
-          zIndex: 1
+          zIndex: 1,
+          marginTop: 6
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Clock size={17} style={{ color: '#818cf8' }} />
-            <span style={{ fontSize: isMobile ? '0.78rem' : '0.88rem', fontWeight: 800, color: '#e0e7ff' }}>
-              Toplam Çalışma Süren: <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalDurationFormatted}</strong>
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Clock size={16} style={{ color: '#818cf8' }} />
+              <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 800, color: '#e0e7ff' }}>
+                Toplam Çalışma: <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalDurationFormatted}</strong>
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: '0.85rem' }}>🎯</span>
+              <span style={{ fontSize: isMobile ? '0.76rem' : '0.86rem', fontWeight: 800, color: '#e0e7ff' }}>
+                Haftalık Soru: <strong style={{ color: '#ffffff' }}>{weeklyDevelopment.totalQuestions} Soru</strong>
+              </span>
+            </div>
           </div>
 
           <div style={{
@@ -1066,242 +1206,7 @@ export default function DashboardArenaAnalytics({
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          4. GELİŞMİŞ İNTERAKTİF GRAFİK ARENASI (RECHARTS)
-      ══════════════════════════════════════════════════════ */}
-      <div style={{
-        background: cardBg,
-        borderRadius: 24,
-        border: cardBorder,
-        boxShadow: cardShadow,
-        padding: isMobile ? '1.1rem 0.85rem' : '1.5rem 1.75rem',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        {/* Grafik Başlığı & Kontrol Düğmeleri */}
-        <div style={{
-          display: 'flex',
-          alignItems: isMobile ? 'stretch' : 'center',
-          justifyContent: 'space-between',
-          flexDirection: isMobile ? 'column' : 'row',
-          gap: isMobile ? 12 : 16,
-          marginBottom: '1.25rem'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Activity size={18} style={{ color: '#6366f1' }} />
-              <h3 style={{ margin: 0, fontSize: isMobile ? '1.05rem' : '1.2rem', fontWeight: 900, color: textColor }}>
-                Performans &amp; Soru Analiz Panosu
-              </h3>
-            </div>
-            <p style={{ margin: '2px 0 0', fontSize: isMobile ? '0.72rem' : '0.8rem', color: subTextColor, fontWeight: 600 }}>
-              {selectedSubjectFilter === 'all' ? 'Tüm Branşlar' : `${selectedSubjectFilter} Dersi`} • Doğruluk ve Net Gidişatı
-            </p>
-          </div>
 
-          {/* Filtre ve Görünüm Seçici Sekmeleri */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            flexWrap: 'wrap'
-          }}>
-            {/* Zaman Aralığı (Hafta / Ay / Tümü) */}
-            <div style={{
-              display: 'flex',
-              background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#f1f5f9',
-              padding: 3,
-              borderRadius: 12
-            }}>
-              {[
-                { id: 'week', label: '7 Gün' },
-                { id: 'month', label: '30 Gün' },
-                { id: 'all', label: 'Tümü' }
-              ].map(r => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setActiveRange(r.id)}
-                  style={{
-                    border: 'none',
-                    background: activeRange === r.id ? (isDark ? '#3b82f6' : '#ffffff') : 'transparent',
-                    color: activeRange === r.id ? (isDark ? '#ffffff' : '#0f172a') : subTextColor,
-                    fontWeight: 800,
-                    fontSize: '0.74rem',
-                    padding: '4px 9px',
-                    borderRadius: 9,
-                    cursor: 'pointer',
-                    boxShadow: activeRange === r.id && !isDark ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
-                  }}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Grafik Tipi (Soru Hacmi / Net Trendi / Ders Karşılaştırma) */}
-            <div style={{
-              display: 'flex',
-              background: isDark ? 'rgba(15, 23, 42, 0.6)' : '#f1f5f9',
-              padding: 3,
-              borderRadius: 12
-            }}>
-              {[
-                { id: 'distribution', label: '📊 Soru Hacmi' },
-                { id: 'trend', label: '📈 Net Trendi' },
-                { id: 'subjects', label: '🎯 Branşlar' }
-              ].map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveChartTab(t.id)}
-                  style={{
-                    border: 'none',
-                    background: activeChartTab === t.id ? (isDark ? '#6366f1' : '#ffffff') : 'transparent',
-                    color: activeChartTab === t.id ? (isDark ? '#ffffff' : '#4f46e5') : subTextColor,
-                    fontWeight: 800,
-                    fontSize: '0.74rem',
-                    padding: '4px 10px',
-                    borderRadius: 9,
-                    cursor: 'pointer',
-                    boxShadow: activeChartTab === t.id && !isDark ? '0 2px 6px rgba(0,0,0,0.06)' : 'none'
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── GRAFİK ÇİZİM ALANI ── */}
-        <div style={{ width: '100%', height: isMobile ? 240 : 300, minHeight: 220 }}>
-          {activeChartTab === 'distribution' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartDataset} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="barCorrect" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#059669" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="barWrong" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fb7185" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#e11d48" stopOpacity={0.9} />
-                  </linearGradient>
-                  <linearGradient id="barEmpty" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#64748b" stopOpacity={0.6} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(148, 163, 184, 0.18)'} vertical={false} />
-                <XAxis dataKey="label" stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} />
-                <YAxis stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const data = payload[0].payload;
-                    return (
-                      <div style={{
-                        background: isDark ? 'rgba(15, 23, 42, 0.95)' : '#ffffff',
-                        border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e2e8f0',
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                        color: textColor,
-                        fontSize: '0.78rem'
-                      }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4 }}>{data.date}</div>
-                        <div style={{ color: '#10b981', fontWeight: 800 }}>Doğru: {data.correct}</div>
-                        <div style={{ color: '#f43f5e', fontWeight: 800 }}>Yanlış: {data.wrong}</div>
-                        <div style={{ color: '#64748b', fontWeight: 800 }}>Boş: {data.empty}</div>
-                        <div style={{ color: '#6366f1', fontWeight: 900, marginTop: 3 }}>Net: {data.net}</div>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar dataKey="correct" name="Doğru" fill="url(#barCorrect)" stackId="q" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="wrong" name="Yanlış" fill="url(#barWrong)" stackId="q" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="empty" name="Boş" fill="url(#barEmpty)" stackId="q" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-
-          {activeChartTab === 'trend' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartDataset} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="areaNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.65} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(148, 163, 184, 0.18)'} vertical={false} />
-                <XAxis dataKey="label" stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} />
-                <YAxis stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const data = payload[0].payload;
-                    return (
-                      <div style={{
-                        background: isDark ? 'rgba(15, 23, 42, 0.95)' : '#ffffff',
-                        border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e2e8f0',
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                        color: textColor,
-                        fontSize: '0.78rem'
-                      }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4 }}>{data.date}</div>
-                        <div style={{ color: '#8b5cf6', fontWeight: 900 }}>Net: {data.net}</div>
-                        <div style={{ color: '#10b981', fontWeight: 800 }}>Doğruluk: %{data.accuracy}</div>
-                      </div>
-                    );
-                  }}
-                />
-                <Area type="monotone" dataKey="net" stroke="#8b5cf6" strokeWidth={3} fill="url(#areaNet)" dot={{ r: 3, fill: '#8b5cf6' }} activeDot={{ r: 6 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-
-          {activeChartTab === 'subjects' && (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={subjectMastery} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(148, 163, 184, 0.18)'} vertical={false} />
-                <XAxis dataKey="shortTitle" stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} />
-                <YAxis stroke={subTextColor} fontSize={isMobile ? 10 : 11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload || !payload.length) return null;
-                    const data = payload[0].payload;
-                    return (
-                      <div style={{
-                        background: isDark ? 'rgba(15, 23, 42, 0.95)' : '#ffffff',
-                        border: isDark ? '1px solid rgba(255,255,255,0.18)' : '1px solid #e2e8f0',
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                        color: textColor,
-                        fontSize: '0.78rem'
-                      }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4 }}>{data.title}</div>
-                        <div style={{ color: data.color, fontWeight: 900 }}>Başarı: %{data.accuracy}</div>
-                        <div style={{ color: '#6366f1', fontWeight: 800 }}>Toplam Soru: {data.totalQuestions}</div>
-                        <div style={{ color: '#10b981', fontWeight: 800 }}>Ortalama Net: {data.avgNet}</div>
-                      </div>
-                    );
-                  }}
-                />
-                <Bar dataKey="accuracy" name="Başarı %" radius={[6, 6, 0, 0]}>
-                  {subjectMastery.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
 
       {/* ══════════════════════════════════════════════════════
           5. İKİ SÜTUNLU COCKPIT: HEDEFLER & SON ÇÖZÜLENLER
