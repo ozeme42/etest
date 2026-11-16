@@ -311,16 +311,14 @@ export default memo(function DashboardTodayTasks({
           🎯 BİRLEŞTİRİLMİŞ MODERN ODAK MERKEZİ & HAFTALIK GÖREV TAKVİMİ
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        borderRadius: isMobile ? '0 0 20px 20px' : '0 0 24px 24px',
+        borderRadius: isMobile ? '0 0 16px 16px' : '0 0 20px 20px',
         overflow: 'hidden',
-        border: isDark ? '1.5px solid rgba(99, 102, 241, 0.3)' : '1.5px solid #e2e8f0',
-        borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
-        background: isDark
-          ? 'linear-gradient(180deg, #13192f 0%, #0d1222 100%)'
-          : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #eef2f6',
+        borderTop: 'none',
+        background: isDark ? '#1a1e36' : '#ffffff',
         boxShadow: isDark
-          ? '0 18px 45px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(99, 102, 241, 0.12)'
-          : '0 12px 35px -8px rgba(99, 102, 241, 0.08), 0 2px 8px rgba(0, 0, 0, 0.02)',
+          ? '0 18px 45px -10px rgba(0, 0, 0, 0.7)'
+          : '0 8px 30px rgba(0, 0, 0, 0.04)',
         width: '100%',
         boxSizing: 'border-box'
       }}>
