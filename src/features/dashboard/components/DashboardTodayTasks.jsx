@@ -21,8 +21,15 @@ import {
   Printer,
   ChevronRight,
   ChevronLeft,
-  ArrowRight
+  ArrowRight,
+  TrendingUp,
+  Award,
+  Layers,
+  Compass,
+  CheckCircle2,
+  Bookmark
 } from 'lucide-react';
+import { useTheme } from '../../../context/ThemeContext';
 import { getRemedialLockStatus } from '../../../services/remedialSpacedRepetitionService';
 
 const SUBJECT_THEMES = {
@@ -33,7 +40,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(59, 130, 246, 0.12)',
     badgeText: '#2563eb',
     badgeBorder: 'rgba(59, 130, 246, 0.3)',
-    glow: 'rgba(59, 130, 246, 0.22)'
+    glow: 'rgba(59, 130, 246, 0.28)'
   },
   'Türkçe': {
     from: '#f43f5e',
@@ -42,7 +49,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(244, 63, 94, 0.12)',
     badgeText: '#e11d48',
     badgeBorder: 'rgba(244, 63, 94, 0.3)',
-    glow: 'rgba(244, 63, 94, 0.22)'
+    glow: 'rgba(244, 63, 94, 0.28)'
   },
   'Fen Bilimleri': {
     from: '#10b981',
@@ -51,7 +58,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(16, 185, 129, 0.12)',
     badgeText: '#059669',
     badgeBorder: 'rgba(16, 185, 129, 0.3)',
-    glow: 'rgba(16, 185, 129, 0.22)'
+    glow: 'rgba(16, 185, 129, 0.28)'
   },
   'Sosyal Bilgiler': {
     from: '#f59e0b',
@@ -60,7 +67,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(245, 158, 11, 0.12)',
     badgeText: '#d97706',
     badgeBorder: 'rgba(245, 158, 11, 0.3)',
-    glow: 'rgba(245, 158, 11, 0.22)'
+    glow: 'rgba(245, 158, 11, 0.28)'
   },
   'İngilizce': {
     from: '#8b5cf6',
@@ -69,7 +76,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(139, 92, 246, 0.12)',
     badgeText: '#7c3aed',
     badgeBorder: 'rgba(139, 92, 246, 0.3)',
-    glow: 'rgba(139, 92, 246, 0.22)'
+    glow: 'rgba(139, 92, 246, 0.28)'
   },
   'Din Kültürü': {
     from: '#06b6d4',
@@ -78,7 +85,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(6, 182, 212, 0.12)',
     badgeText: '#0891b2',
     badgeBorder: 'rgba(6, 182, 212, 0.3)',
-    glow: 'rgba(6, 182, 212, 0.22)'
+    glow: 'rgba(6, 182, 212, 0.28)'
   },
   'Kitap Okuma': {
     from: '#ec4899',
@@ -87,7 +94,7 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(236, 72, 153, 0.12)',
     badgeText: '#db2777',
     badgeBorder: 'rgba(236, 72, 153, 0.3)',
-    glow: 'rgba(236, 72, 153, 0.22)'
+    glow: 'rgba(236, 72, 153, 0.28)'
   },
   'Deneme': {
     from: '#f97316',
@@ -96,16 +103,16 @@ const SUBJECT_THEMES = {
     badgeBg: 'rgba(249, 115, 22, 0.12)',
     badgeText: '#ea580c',
     badgeBorder: 'rgba(249, 115, 22, 0.3)',
-    glow: 'rgba(249, 115, 22, 0.22)'
+    glow: 'rgba(249, 115, 22, 0.28)'
   }
 };
 
 const DAY_PALETTE = [
   // 0: Pazartesi - Mavi
   {
-    bg: 'rgba(59, 130, 246, 0.12)',
-    darkBg: 'rgba(59, 130, 246, 0.2)',
-    border: 'rgba(59, 130, 246, 0.35)',
+    bg: 'rgba(59, 130, 246, 0.1)',
+    darkBg: 'rgba(59, 130, 246, 0.18)',
+    border: 'rgba(59, 130, 246, 0.3)',
     text: '#2563eb',
     darkText: '#93c5fd',
     activeBg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
@@ -113,9 +120,9 @@ const DAY_PALETTE = [
   },
   // 1: Salı - Mor
   {
-    bg: 'rgba(139, 92, 246, 0.12)',
-    darkBg: 'rgba(139, 92, 246, 0.2)',
-    border: 'rgba(139, 92, 246, 0.35)',
+    bg: 'rgba(139, 92, 246, 0.1)',
+    darkBg: 'rgba(139, 92, 246, 0.18)',
+    border: 'rgba(139, 92, 246, 0.3)',
     text: '#7c3aed',
     darkText: '#c4b5fd',
     activeBg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
@@ -123,9 +130,9 @@ const DAY_PALETTE = [
   },
   // 2: Çarşamba - Camgöbeği
   {
-    bg: 'rgba(6, 182, 212, 0.12)',
-    darkBg: 'rgba(6, 182, 212, 0.2)',
-    border: 'rgba(6, 182, 212, 0.35)',
+    bg: 'rgba(6, 182, 212, 0.1)',
+    darkBg: 'rgba(6, 182, 212, 0.18)',
+    border: 'rgba(6, 182, 212, 0.3)',
     text: '#0891b2',
     darkText: '#67e8f9',
     activeBg: 'linear-gradient(135deg, #06b6d4, #0891b2)',
@@ -133,9 +140,9 @@ const DAY_PALETTE = [
   },
   // 3: Perşembe - Zümrüt Yeşil
   {
-    bg: 'rgba(16, 185, 129, 0.12)',
-    darkBg: 'rgba(16, 185, 129, 0.2)',
-    border: 'rgba(16, 185, 129, 0.35)',
+    bg: 'rgba(16, 185, 129, 0.1)',
+    darkBg: 'rgba(16, 185, 129, 0.18)',
+    border: 'rgba(16, 185, 129, 0.3)',
     text: '#059669',
     darkText: '#6ee7b7',
     activeBg: 'linear-gradient(135deg, #10b981, #047857)',
@@ -143,9 +150,9 @@ const DAY_PALETTE = [
   },
   // 4: Cuma - Turuncu / Amber
   {
-    bg: 'rgba(245, 158, 11, 0.12)',
-    darkBg: 'rgba(245, 158, 11, 0.2)',
-    border: 'rgba(245, 158, 11, 0.35)',
+    bg: 'rgba(245, 158, 11, 0.1)',
+    darkBg: 'rgba(245, 158, 11, 0.18)',
+    border: 'rgba(245, 158, 11, 0.3)',
     text: '#d97706',
     darkText: '#fcd34d',
     activeBg: 'linear-gradient(135deg, #f59e0b, #b45309)',
@@ -153,9 +160,9 @@ const DAY_PALETTE = [
   },
   // 5: Cumartesi - Mercan Kırmızı
   {
-    bg: 'rgba(244, 63, 94, 0.12)',
-    darkBg: 'rgba(244, 63, 94, 0.2)',
-    border: 'rgba(244, 63, 94, 0.35)',
+    bg: 'rgba(244, 63, 94, 0.1)',
+    darkBg: 'rgba(244, 63, 94, 0.18)',
+    border: 'rgba(244, 63, 94, 0.3)',
     text: '#e11d48',
     darkText: '#fda4af',
     activeBg: 'linear-gradient(135deg, #f43f5e, #be123c)',
@@ -163,9 +170,9 @@ const DAY_PALETTE = [
   },
   // 6: Pazar - Pembe / Fuşya
   {
-    bg: 'rgba(236, 72, 153, 0.12)',
-    darkBg: 'rgba(236, 72, 153, 0.2)',
-    border: 'rgba(236, 72, 153, 0.35)',
+    bg: 'rgba(236, 72, 153, 0.1)',
+    darkBg: 'rgba(236, 72, 153, 0.18)',
+    border: 'rgba(236, 72, 153, 0.3)',
     text: '#db2777',
     darkText: '#f472b6',
     activeBg: 'linear-gradient(135deg, #ec4899, #be185d)',
@@ -174,7 +181,7 @@ const DAY_PALETTE = [
 ];
 
 const resolveSubjectTheme = (subj) => {
-  if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+  if (!subj) return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.25)' };
   const sStr = typeof subj === 'object' ? (subj?.name || subj?.title || subj?.subject || '') : String(subj || '');
   const s = sStr.toLowerCase();
   if (s.includes('matematik') || s.includes('geometri')) return SUBJECT_THEMES['Matematik'];
@@ -185,12 +192,12 @@ const resolveSubjectTheme = (subj) => {
   if (s.includes('din')) return SUBJECT_THEMES['Din Kültürü'];
   if (s.includes('okuma') || s.includes('kitap')) return SUBJECT_THEMES['Kitap Okuma'];
   if (s.includes('deneme')) return SUBJECT_THEMES['Deneme'];
-  return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.22)' };
+  return { from: '#6366f1', to: '#4f46e5', icon: '📝', badgeBg: 'rgba(99, 102, 241, 0.12)', badgeText: '#6366f1', badgeBorder: 'rgba(99, 102, 241, 0.3)', glow: 'rgba(99, 102, 241, 0.25)' };
 };
 
 export default memo(function DashboardTodayTasks({
   isMobile = false,
-  isDark = false,
+  isDark: propIsDark = null,
   // ─── BİRLEŞTİRİLMİŞ HAFTALIK TAKVİM PROPS ───
   daysOfWeek = null,
   activeDayKey = null,
@@ -218,7 +225,10 @@ export default memo(function DashboardTodayTasks({
   onNavigateBooks
 }) {
   const navigate = useNavigate();
-  const [filterStatus, setFilterStatus] = useState('pending'); // 'pending', 'completed'
+  const { isDark: themeIsDark } = useTheme();
+  const isDarkEffective = propIsDark !== null ? propIsDark : themeIsDark;
+
+  const [filterStatus, setFilterStatus] = useState('pending'); // 'pending', 'completed', 'all'
   const [selectedSubject, setSelectedSubject] = useState('all');
 
   const safeDayInfo = dayProgramInfo || { items: [], isToday: true, totalCount: 0, completedCount: 0 };
@@ -298,64 +308,372 @@ export default memo(function DashboardTodayTasks({
     });
   }, [items, filterStatus, selectedSubject]);
 
-  const headerGradient = safeDayInfo.isToday
-    ? 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%)'
-    : activeDayConfig?.color
-    ? `linear-gradient(135deg, ${activeDayConfig.color}, #3b82f6)`
-    : 'linear-gradient(135deg, #4f46e5, #6366f1)';
+  // Luxury Card Styling Constants
+  const cardBg = isDarkEffective ? 'rgba(26, 30, 54, 0.72)' : '#ffffff';
+  const cardBorder = isDarkEffective ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #edf2f7';
+  const cardShadow = isDarkEffective
+    ? '0 16px 36px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+    : '0 8px 24px -4px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02)';
+  const textColor = isDarkEffective ? '#ffffff' : '#0f172a';
+  const subTextColor = isDarkEffective ? '#94a3b8' : '#64748b';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.25rem', width: '100%' }}>
       
       {/* ═══════════════════════════════════════════════════════════════
-          🎯 BİRLEŞTİRİLMİŞ MODERN ODAK MERKEZİ & HAFTALIK GÖREV TAKVİMİ
+          💎 1. TOP 4 GLASSMORPHIC KPI STATUS CARDS (KOKPİT İSTATİSTİKLERİ)
           ═══════════════════════════════════════════════════════════════ */}
       <div style={{
-        borderRadius: isMobile ? '0 0 16px 16px' : '0 0 20px 20px',
-        overflow: 'hidden',
-        border: isDark ? '1.5px solid rgba(255, 255, 255, 0.08)' : '1.5px solid #eef2f6',
-        borderTop: 'none',
-        background: isDark ? '#1a1e36' : '#ffffff',
-        boxShadow: isDark
-          ? '0 18px 45px -10px rgba(0, 0, 0, 0.7)'
-          : '0 8px 30px rgba(0, 0, 0, 0.04)',
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+        gap: isMobile ? '0.65rem' : '1rem',
         width: '100%',
         boxSizing: 'border-box'
       }}>
         
-        {/* ── 1. KOMPAKT MODERN BAŞLIK & HIZLI AKSİYONLAR ── */}
+        {/* KART 1: Bugünkü Görevler */}
         <div style={{
-          padding: isMobile ? '0.75rem 0.85rem' : '0.85rem 1.4rem',
+          background: cardBg,
+          borderRadius: 20,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          padding: isMobile ? '0.85rem 0.85rem' : '1.15rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: 10,
+          position: 'relative',
+          overflow: 'hidden',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{
+              width: isMobile ? 38 : 44,
+              height: isMobile ? 38 : 44,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 6px 18px rgba(99, 102, 241, 0.35)',
+              fontSize: isMobile ? '1.2rem' : '1.4rem'
+            }}>
+              🎯
+            </div>
+            <span style={{
+              fontSize: isMobile ? '0.62rem' : '0.72rem',
+              fontWeight: 900,
+              color: '#6366f1',
+              background: 'rgba(99, 102, 241, 0.12)',
+              border: '1px solid rgba(99, 102, 241, 0.28)',
+              padding: '2px 8px',
+              borderRadius: 99
+            }}>
+              {safeDayInfo.isToday ? 'Bugün' : (safeDayInfo.dayName || 'Hedef')}
+            </span>
+          </div>
+
+          <div>
+            <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', fontWeight: 800, color: subTextColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Görev Durumu
+            </div>
+            <div style={{ fontSize: isMobile ? '1.3rem' : '1.65rem', fontWeight: 900, color: textColor, lineHeight: 1.15, fontFamily: "'Outfit', sans-serif" }}>
+              {completedTasks} <span style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', color: subTextColor, fontWeight: 700 }}>/ {totalTasks}</span>
+            </div>
+            <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: remainingTasks === 0 && totalTasks > 0 ? '#10b981' : '#6366f1', fontWeight: 800, marginTop: 2 }}>
+              {totalTasks === 0 ? 'Görev planlanmadı' : remainingTasks === 0 ? '✓ Tümü Tamamlandı!' : `${remainingTasks} görev bekliyor`}
+            </div>
+          </div>
+
+          <div style={{ width: '100%', height: 5, background: isDarkEffective ? 'rgba(255,255,255,0.08)' : '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{
+              width: `${totalTasks > 0 ? Math.min(100, Math.round((completedTasks / totalTasks) * 100)) : 0}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+              borderRadius: 99,
+              transition: 'width 0.4s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* KART 2: Bugünkü Soru Yükü */}
+        <div style={{
+          background: cardBg,
+          borderRadius: 20,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          padding: isMobile ? '0.85rem 0.85rem' : '1.15rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: 10,
+          position: 'relative',
+          overflow: 'hidden',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{
+              width: isMobile ? 38 : 44,
+              height: isMobile ? 38 : 44,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 6px 18px rgba(16, 185, 129, 0.35)',
+              fontSize: isMobile ? '1.2rem' : '1.4rem'
+            }}>
+              📝
+            </div>
+            <span style={{
+              fontSize: isMobile ? '0.62rem' : '0.72rem',
+              fontWeight: 900,
+              color: '#10b981',
+              background: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.28)',
+              padding: '2px 8px',
+              borderRadius: 99
+            }}>
+              Soru Çözümü
+            </span>
+          </div>
+
+          <div>
+            <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', fontWeight: 800, color: subTextColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Bugünkü Soru Yükü
+            </div>
+            <div style={{ fontSize: isMobile ? '1.3rem' : '1.65rem', fontWeight: 900, color: textColor, lineHeight: 1.15, fontFamily: "'Outfit', sans-serif" }}>
+              {completedQuestions} <span style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', color: subTextColor, fontWeight: 700 }}>/ {totalQuestions > 0 ? totalQuestions : '0'}</span>
+            </div>
+            <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: totalQuestions > 0 && completedQuestions >= totalQuestions ? '#10b981' : '#059669', fontWeight: 800, marginTop: 2 }}>
+              {totalQuestions === 0 ? 'Soru görevi yok' : completedQuestions >= totalQuestions ? '✓ Tüm Sorular Çözüldü!' : `${totalQuestions - completedQuestions} Soru Kaldı`}
+            </div>
+          </div>
+
+          <div style={{ width: '100%', height: 5, background: isDarkEffective ? 'rgba(255,255,255,0.08)' : '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{
+              width: `${totalQuestions > 0 ? Math.min(100, Math.round((completedQuestions / totalQuestions) * 100)) : 0}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #10b981, #06b6d4)',
+              borderRadius: 99,
+              transition: 'width 0.4s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* KART 3: Başarı & Tamamlanma Oranı */}
+        <div style={{
+          background: cardBg,
+          borderRadius: 20,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          padding: isMobile ? '0.85rem 0.85rem' : '1.15rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: 10,
+          position: 'relative',
+          overflow: 'hidden',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{
+              width: isMobile ? 38 : 44,
+              height: isMobile ? 38 : 44,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 6px 18px rgba(245, 158, 11, 0.35)',
+              fontSize: isMobile ? '1.2rem' : '1.4rem'
+            }}>
+              🔥
+            </div>
+            <span style={{
+              fontSize: isMobile ? '0.62rem' : '0.72rem',
+              fontWeight: 900,
+              color: '#f59e0b',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1px solid rgba(245, 158, 11, 0.28)',
+              padding: '2px 8px',
+              borderRadius: 99
+            }}>
+              İlerleme
+            </span>
+          </div>
+
+          <div>
+            <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', fontWeight: 800, color: subTextColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Tamamlanma %
+            </div>
+            <div style={{ fontSize: isMobile ? '1.3rem' : '1.65rem', fontWeight: 900, color: textColor, lineHeight: 1.15, fontFamily: "'Outfit', sans-serif" }}>
+              %{completionPct}
+            </div>
+            <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: completionPct === 100 ? '#10b981' : completionPct >= 50 ? '#f59e0b' : subTextColor, fontWeight: 800, marginTop: 2 }}>
+              {completionPct === 100 ? 'Kusursuz Gün 🌟' : completionPct >= 75 ? 'Harika Gidiyorsun 🚀' : completionPct >= 50 ? 'Yarılandın ⚡' : 'Hadi Başlayalım!'}
+            </div>
+          </div>
+
+          <div style={{ width: '100%', height: 5, background: isDarkEffective ? 'rgba(255,255,255,0.08)' : '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{
+              width: `${completionPct}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
+              borderRadius: 99,
+              transition: 'width 0.4s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* KART 4: Kazanılan XP & Enerji */}
+        <div style={{
+          background: cardBg,
+          borderRadius: 20,
+          border: cardBorder,
+          boxShadow: cardShadow,
+          padding: isMobile ? '0.85rem 0.85rem' : '1.15rem 1.25rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: 10,
+          position: 'relative',
+          overflow: 'hidden',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{
+              width: isMobile ? 38 : 44,
+              height: isMobile ? 38 : 44,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, #0ea5e9, #0284c7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 6px 18px rgba(14, 165, 233, 0.35)',
+              fontSize: isMobile ? '1.2rem' : '1.4rem'
+            }}>
+              ⚡
+            </div>
+            <span style={{
+              fontSize: isMobile ? '0.62rem' : '0.72rem',
+              fontWeight: 900,
+              color: '#0ea5e9',
+              background: 'rgba(14, 165, 233, 0.12)',
+              border: '1px solid rgba(14, 165, 233, 0.28)',
+              padding: '2px 8px',
+              borderRadius: 99
+            }}>
+              Ödül Puanı
+            </span>
+          </div>
+
+          <div>
+            <div style={{ fontSize: isMobile ? '0.7rem' : '0.78rem', fontWeight: 800, color: subTextColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Kazanılan XP
+            </div>
+            <div style={{ fontSize: isMobile ? '1.3rem' : '1.65rem', fontWeight: 900, color: '#0ea5e9', lineHeight: 1.15, fontFamily: "'Outfit', sans-serif" }}>
+              +{earnedXp} <span style={{ fontSize: isMobile ? '0.9rem' : '1.1rem', color: subTextColor, fontWeight: 700 }}>/ {totalXp} XP</span>
+            </div>
+            <div style={{ fontSize: isMobile ? '0.68rem' : '0.74rem', color: '#0ea5e9', fontWeight: 800, marginTop: 2 }}>
+              {earnedXp === totalXp && totalXp > 0 ? 'Tüm XP toplandı! 🏆' : `+${totalXp - earnedXp} XP daha kazanabilirsin`}
+            </div>
+          </div>
+
+          <div style={{ width: '100%', height: 5, background: isDarkEffective ? 'rgba(255,255,255,0.08)' : '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{
+              width: `${totalXp > 0 ? Math.min(100, Math.round((earnedXp / totalXp) * 100)) : 0}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #0ea5e9, #6366f1)',
+              borderRadius: 99,
+              transition: 'width 0.4s ease'
+            }} />
+          </div>
+        </div>
+
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          ⚔️ 2. ULTRA-LUXURY COCKPIT HERO BANNER & WEEK TIMELINE STRIP
+          ═══════════════════════════════════════════════════════════════ */}
+      <div style={{
+        borderRadius: 22,
+        overflow: 'hidden',
+        border: isDarkEffective ? '1.5px solid rgba(255, 255, 255, 0.09)' : '1.5px solid #edf2f7',
+        background: isDarkEffective ? 'rgba(22, 26, 46, 0.95)' : '#ffffff',
+        boxShadow: isDarkEffective
+          ? '0 20px 50px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
+          : '0 10px 35px -5px rgba(0, 0, 0, 0.05)',
+        width: '100%',
+        boxSizing: 'border-box',
+        position: 'relative'
+      }}>
+        
+        {/* Neon Rainbow Top Border Beam */}
+        <div style={{
+          width: '100%',
+          height: 3.5,
+          background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 35%, #ec4899 70%, #10b981 100%)'
+        }} />
+
+        {/* ── Cockpit Header: Title & Action Controls ── */}
+        <div style={{
+          padding: isMobile ? '0.85rem 1rem' : '1.1rem 1.6rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: 10,
-          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7'
+          gap: 12,
+          borderBottom: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #f1f5f9'
         }}>
-          {/* Sol: Kompakt Gün Başlığı & Kalan Görev Rozeti */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: isMobile ? '1.15rem' : '1.3rem', lineHeight: 1 }}>
-              {safeDayInfo.isToday ? '🎯' : (activeDayConfig?.icon || '📅')}
-            </span>
+          {/* Sol: 3D Badge + Gün Başlığı + Kalan Görev Rozeti */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{
-              fontSize: isMobile ? '0.98rem' : '1.15rem',
+              fontSize: '0.66rem',
               fontWeight: 900,
-              color: 'var(--color-text)',
-              fontFamily: "'Outfit', sans-serif",
-              letterSpacing: '-0.01em'
+              padding: '3px 9px',
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))',
+              border: '1px solid rgba(168, 85, 247, 0.35)',
+              color: '#a855f7',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase'
             }}>
-              {safeDayInfo.isToday ? 'Bugün Ne Yapacaksın?' : (`${safeDayInfo.dayName || 'Ders'} Programı`)}
+              ⚔️ GÜNLÜK HEDEF & GÖREV KOKPİTİ
             </span>
-            
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: isMobile ? '1.25rem' : '1.45rem', lineHeight: 1 }}>
+                {safeDayInfo.isToday ? '🎯' : (activeDayConfig?.icon || '📅')}
+              </span>
+              <span style={{
+                fontSize: isMobile ? '1.05rem' : '1.25rem',
+                fontWeight: 900,
+                color: textColor,
+                fontFamily: "'Outfit', sans-serif",
+                letterSpacing: '-0.02em'
+              }}>
+                {safeDayInfo.isToday ? 'Bugün Ne Yapacaksın?' : (`${safeDayInfo.dayName || 'Ders'} Programı`)}
+              </span>
+            </div>
+
             {safeDayInfo.fullDateLabel && (
               <span style={{
                 fontSize: isMobile ? '0.72rem' : '0.78rem',
-                color: 'var(--color-text-muted)',
+                color: subTextColor,
                 fontWeight: 700,
-                padding: '2px 8px',
+                padding: '2px 9px',
                 borderRadius: 8,
-                background: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'
+                background: isDarkEffective ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                border: isDarkEffective ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
               }}>
                 {safeDayInfo.fullDateLabel}
               </span>
@@ -363,33 +681,36 @@ export default memo(function DashboardTodayTasks({
 
             {safeDayInfo.hasAllCompleted && totalTasks > 0 ? (
               <span style={{
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 fontWeight: 900,
-                padding: '2px 8px',
+                padding: '3px 10px',
                 borderRadius: 99,
-                background: '#10b981',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#ffffff',
-                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.35)'
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
               }}>
-                ✓ Tamamlandı
+                <Check size={12} strokeWidth={3} /> Tüm Görevler Bitti
               </span>
             ) : remainingTasks > 0 ? (
               <span style={{
-                fontSize: '0.68rem',
+                fontSize: '0.7rem',
                 fontWeight: 900,
-                padding: '2px 8px',
+                padding: '3px 10px',
                 borderRadius: 99,
                 background: 'rgba(239, 68, 68, 0.12)',
                 color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.25)'
+                border: '1px solid rgba(239, 68, 68, 0.28)'
               }}>
-                {remainingTasks} Kaldı
+                {remainingTasks} Görev Kaldı
               </span>
             ) : null}
           </div>
 
-          {/* Sağ: Kompakt Aksiyon Butonları */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Sağ: Ultra-Şık Aksiyon Butonları */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             {(weekOffset !== 0 || (activeDayKey && todayDayKey && activeDayKey !== todayDayKey)) && (onCurrentWeek || onSelectDay) && (
               <button
                 type="button"
@@ -401,19 +722,20 @@ export default memo(function DashboardTodayTasks({
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   color: '#ffffff',
                   border: 'none',
-                  borderRadius: 10,
-                  padding: '0.35rem 0.65rem',
-                  fontSize: '0.74rem',
+                  borderRadius: 11,
+                  padding: isMobile ? '0.42rem 0.75rem' : '0.45rem 0.95rem',
+                  fontSize: isMobile ? '0.74rem' : '0.78rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
+                  gap: 5,
+                  boxShadow: '0 3px 10px rgba(245, 158, 11, 0.35)',
+                  transition: 'all 0.16s ease'
                 }}
               >
-                <Zap size={13} fill="#ffffff" />
-                <span>Bugün</span>
+                <Zap size={14} fill="#ffffff" />
+                <span>Bugüne Dön</span>
               </button>
             )}
 
@@ -422,22 +744,23 @@ export default memo(function DashboardTodayTasks({
                 type="button"
                 onClick={onAddTask}
                 style={{
-                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  background: 'linear-gradient(135deg, #4f46e5, #6366f1 60%, #8b5cf6)',
                   border: 'none',
                   color: '#ffffff',
-                  borderRadius: 10,
-                  padding: '0.38rem 0.85rem',
-                  fontSize: '0.76rem',
+                  borderRadius: 11,
+                  padding: isMobile ? '0.45rem 0.85rem' : '0.48rem 1.1rem',
+                  fontSize: isMobile ? '0.78rem' : '0.82rem',
                   fontWeight: 900,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 5,
-                  boxShadow: '0 3px 10px rgba(79, 70, 229, 0.3)'
+                  gap: 6,
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
+                  transition: 'all 0.18s ease'
                 }}
               >
-                <Plus size={14} strokeWidth={3} />
-                <span>Görev Ekle</span>
+                <Plus size={15} strokeWidth={3} />
+                <span>Yeni Görev Ekle</span>
               </button>
             )}
 
@@ -446,22 +769,22 @@ export default memo(function DashboardTodayTasks({
                 type="button"
                 onClick={() => navigate('/my-program')}
                 style={{
-                  background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
-                  border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
-                  color: 'var(--color-text)',
-                  borderRadius: 10,
-                  padding: '0.38rem 0.7rem',
-                  fontSize: '0.74rem',
+                  background: isDarkEffective ? 'rgba(255, 255, 255, 0.06)' : '#f8fafc',
+                  border: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+                  color: textColor,
+                  borderRadius: 11,
+                  padding: isMobile ? '0.45rem 0.7rem' : '0.48rem 0.85rem',
+                  fontSize: '0.76rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 5
                 }}
-                title="Haftalık Program"
+                title="Haftalık Program Sayfası"
               >
-                <CalendarDays size={13} />
-                <span style={{ display: isMobile ? 'none' : 'inline' }}>Program</span>
+                <CalendarDays size={14} />
+                <span style={{ display: isMobile ? 'none' : 'inline' }}>Haftalık Program</span>
               </button>
             )}
 
@@ -470,32 +793,32 @@ export default memo(function DashboardTodayTasks({
                 type="button"
                 onClick={onPrint}
                 style={{
-                  background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
-                  border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
-                  color: 'var(--color-text)',
-                  borderRadius: 10,
-                  padding: '0.38rem 0.65rem',
-                  fontSize: '0.74rem',
+                  background: isDarkEffective ? 'rgba(255, 255, 255, 0.06)' : '#f8fafc',
+                  border: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #e2e8f0',
+                  color: textColor,
+                  borderRadius: 11,
+                  padding: isMobile ? '0.45rem 0.65rem' : '0.48rem 0.75rem',
+                  fontSize: '0.76rem',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4
+                  gap: 5
                 }}
                 title="Haftalık Programı Yazdır"
               >
-                <Printer size={13} />
+                <Printer size={14} />
               </button>
             )}
           </div>
         </div>
 
-        {/* ── 2. ULTRA-KOMPAKT & ŞIK 7 GÜNLÜK TAKVİM ŞERİDİ ── */}
+        {/* ── 7-Day Futuristic Timeline & Calendar Strip ── */}
         {Array.isArray(daysOfWeek) && daysOfWeek.length > 0 && onSelectDay && (
           <div style={{
-            padding: isMobile ? '0.45rem 0.5rem' : '0.55rem 1.1rem',
-            background: isDark ? 'rgba(0, 0, 0, 0.15)' : 'rgba(248, 250, 252, 0.9)',
-            borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7'
+            padding: isMobile ? '0.55rem 0.65rem' : '0.75rem 1.4rem',
+            background: isDarkEffective ? 'rgba(0, 0, 0, 0.2)' : 'rgba(248, 250, 252, 0.95)',
+            borderBottom: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7'
           }}>
             {/* Hafta Gezinme Çubuğu */}
             {(onPrevWeek || onNextWeek || weekInfo?.weekRangeLabel) && (
@@ -503,44 +826,43 @@ export default memo(function DashboardTodayTasks({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: isMobile ? '0.4rem' : '0.5rem',
+                marginBottom: isMobile ? '0.45rem' : '0.65rem',
                 padding: '0 2px'
               }}>
                 <button
                   type="button"
                   onClick={onPrevWeek}
-                  className="game-btn-3d"
                   style={{
-                    background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
-                    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
-                    borderRadius: 9,
-                    padding: isMobile ? '0.24rem 0.45rem' : '0.28rem 0.75rem',
-                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    background: isDarkEffective ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                    border: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.12)' : '1.5px solid #cbd5e1',
+                    borderRadius: 10,
+                    padding: isMobile ? '0.28rem 0.55rem' : '0.35rem 0.85rem',
+                    fontSize: isMobile ? '0.7rem' : '0.76rem',
                     fontWeight: 800,
-                    color: isDark ? '#ffffff' : '#334155',
+                    color: textColor,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 3,
+                    gap: 4,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
                   }}
                   title="Önceki Hafta"
                 >
-                  <ChevronLeft size={isMobile ? 12 : 14} />
+                  <ChevronLeft size={isMobile ? 13 : 15} />
                   <span>{isMobile ? 'Önceki' : 'Önceki Hafta'}</span>
                 </button>
 
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                   <span style={{
-                    fontSize: isMobile ? '0.74rem' : '0.82rem',
+                    fontSize: isMobile ? '0.76rem' : '0.84rem',
                     fontWeight: 900,
-                    color: weekOffset === 0 ? 'var(--color-text)' : '#6366f1',
+                    color: weekOffset === 0 ? textColor : '#6366f1',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 4
+                    gap: 5
                   }}>
-                    <Calendar size={isMobile ? 12 : 13} />
-                    <span>{weekInfo?.weekRangeLabel || 'Hafta'}</span>
+                    <Calendar size={isMobile ? 13 : 14} color="#6366f1" />
+                    <span>{weekInfo?.weekRangeLabel || 'Haftalık Takvim'}</span>
                   </span>
 
                   {weekOffset !== 0 && (onCurrentWeek || onSelectDay) && (
@@ -555,8 +877,8 @@ export default memo(function DashboardTodayTasks({
                         color: '#ffffff',
                         border: 'none',
                         borderRadius: 8,
-                        padding: '1.5px 7px',
-                        fontSize: '0.62rem',
+                        padding: '2px 8px',
+                        fontSize: '0.64rem',
                         fontWeight: 900,
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -564,7 +886,7 @@ export default memo(function DashboardTodayTasks({
                         gap: 3,
                         boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)'
                       }}
-                      title="Bugünün Haftasına Dön"
+                      title="Bu Haftaya Dön"
                     >
                       <RotateCcw size={10} />
                       <span>Bu Hafta</span>
@@ -575,33 +897,33 @@ export default memo(function DashboardTodayTasks({
                 <button
                   type="button"
                   onClick={onNextWeek}
-                  className="game-btn-3d"
                   style={{
-                    background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
-                    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1.5px solid #cbd5e1',
-                    borderRadius: 9,
-                    padding: isMobile ? '0.24rem 0.45rem' : '0.28rem 0.75rem',
-                    fontSize: isMobile ? '0.68rem' : '0.74rem',
+                    background: isDarkEffective ? 'rgba(255, 255, 255, 0.06)' : '#ffffff',
+                    border: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.12)' : '1.5px solid #cbd5e1',
+                    borderRadius: 10,
+                    padding: isMobile ? '0.28rem 0.55rem' : '0.35rem 0.85rem',
+                    fontSize: isMobile ? '0.7rem' : '0.76rem',
                     fontWeight: 800,
-                    color: isDark ? '#ffffff' : '#334155',
+                    color: textColor,
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 3,
+                    gap: 4,
                     boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
                   }}
                   title="Sonraki Hafta"
                 >
                   <span>{isMobile ? 'Sonraki' : 'Sonraki Hafta'}</span>
-                  <ChevronRight size={isMobile ? 12 : 14} />
+                  <ChevronRight size={isMobile ? 13 : 15} />
                 </button>
               </div>
             )}
 
+            {/* 7 Günün Şık Kartları */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              gap: isMobile ? 4 : 8,
+              gap: isMobile ? 5 : 8,
               width: '100%',
               boxSizing: 'border-box'
             }}>
@@ -621,31 +943,32 @@ export default memo(function DashboardTodayTasks({
                     onClick={() => onSelectDay(day.key)}
                     title={`${day.name} (${dateNumber || ''})`}
                     style={{
-                      height: isMobile ? 38 : 44,
-                      borderRadius: 11,
+                      height: isMobile ? 42 : 50,
+                      borderRadius: 13,
                       border: isSelected
-                        ? (isDark ? '2px solid #ffffff' : `2px solid ${dayCol.activeBorder}`)
+                        ? (isDarkEffective ? '2px solid #ffffff' : '2px solid #6366f1')
                         : isCurrentToday
                         ? '2px solid #f59e0b'
                         : `1.5px solid ${dayCol.border}`,
                       background: isSelected
                         ? dayCol.activeBg
-                        : (isDark ? dayCol.darkBg : dayCol.bg),
+                        : (isDarkEffective ? dayCol.darkBg : dayCol.bg),
                       color: isSelected
                         ? '#ffffff'
-                        : (isDark ? dayCol.darkText : dayCol.text),
+                        : (isDarkEffective ? dayCol.darkText : dayCol.text),
                       cursor: 'pointer',
                       display: 'flex',
+                      flexDirection: isMobile ? 'row' : 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
                       boxShadow: isSelected
-                        ? `0 4px 14px ${dayCol.glow}`
+                        ? `0 5px 16px ${dayCol.glow}`
                         : (isCurrentToday ? '0 0 0 1px #f59e0b' : 'none'),
-                      transition: 'all 0.16s ease',
+                      transition: 'all 0.18s ease',
                       width: '100%',
                       boxSizing: 'border-box',
-                      padding: isMobile ? '0 2px' : '0 6px',
-                      transform: isSelected && !isMobile ? 'translateY(-1px)' : 'none'
+                      padding: isMobile ? '0 2px' : '0 8px',
+                      transform: isSelected && !isMobile ? 'translateY(-2px)' : 'none'
                     }}
                   >
                     <div style={{
@@ -655,16 +978,16 @@ export default memo(function DashboardTodayTasks({
                       gap: isMobile ? 3 : 6,
                       lineHeight: 1
                     }}>
-                      {/* Tarih Numarası ve Simge (Mobilde sadece sayı & simge, gün adı yok) */}
+                      {/* Tarih Numarası ve Simge */}
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: isMobile ? 3 : 4,
-                        fontSize: isMobile ? '0.88rem' : '1rem',
+                        gap: isMobile ? 2 : 4,
+                        fontSize: isMobile ? '0.9rem' : '1.05rem',
                         fontWeight: 900,
                         fontFamily: "'Outfit', sans-serif"
                       }}>
-                        <Calendar size={isMobile ? 11 : 12} style={{ opacity: isSelected ? 1 : 0.7, flexShrink: 0 }} />
+                        <Calendar size={isMobile ? 11 : 13} style={{ opacity: isSelected ? 1 : 0.7, flexShrink: 0 }} />
                         {dateNumber || '-'}
                       </span>
 
@@ -672,7 +995,7 @@ export default memo(function DashboardTodayTasks({
                       {!isMobile && (
                         <span style={{
                           width: '1.5px',
-                          height: '13px',
+                          height: '14px',
                           background: 'currentColor',
                           opacity: isSelected ? 0.6 : 0.4,
                           borderRadius: 99
@@ -682,7 +1005,7 @@ export default memo(function DashboardTodayTasks({
                       {/* Gün İsmi (Sadece Masaüstü) */}
                       {!isMobile && (
                         <span style={{
-                          fontSize: '0.82rem',
+                          fontSize: '0.84rem',
                           fontWeight: 800,
                           letterSpacing: '0.01em',
                           opacity: isSelected ? 1 : 0.95
@@ -696,18 +1019,18 @@ export default memo(function DashboardTodayTasks({
                         <span style={{
                           fontSize: '0.68rem',
                           fontWeight: 800,
-                          padding: '1px 6px',
+                          padding: '1.5px 6px',
                           borderRadius: 99,
                           background: isSelected
                             ? 'rgba(255, 255, 255, 0.28)'
-                            : (isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.75)'),
+                            : (isDarkEffective ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.8)'),
                           color: isSelected
                             ? '#ffffff'
                             : 'currentColor',
                           marginLeft: 2,
                           whiteSpace: 'nowrap'
                         }}>
-                          {taskCount > 0 ? `${taskCount} görev` : '-'}
+                          {taskCount > 0 ? `${taskCount}` : '-'}
                         </span>
                       )}
                     </div>
@@ -718,96 +1041,140 @@ export default memo(function DashboardTodayTasks({
           </div>
         )}
 
-        {/* ── Filtre Çipleri ── */}
-        {totalTasks > 1 && (
-          <div style={{
-            padding: isMobile ? '0.5rem 0.75rem' : '0.75rem 1.4rem',
-            background: 'var(--color-surface)',
-            borderBottom: '1.5px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? 6 : 8,
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            WebkitOverflowScrolling: 'touch'
-          }}>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('pending')}
-              className="today-filter-chip"
-              style={{
-                background: filterStatus === 'pending'
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
-                color: filterStatus === 'pending' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'pending' ? '#dc2626' : 'transparent',
-                boxShadow: filterStatus === 'pending' ? '0 4px 12px rgba(239, 68, 68, 0.35)' : 'none',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.74rem' : '0.8rem',
-                padding: isMobile ? '0.35rem 0.7rem' : '0.45rem 1rem',
-                borderRadius: 12
-              }}
-            >
-              <span>⏳ Bekleyen ({remainingTasks})</span>
-            </button>
+        {/* ── Filtre Çipleri (Bekleyen / Tamamlanan / Branşlar) ── */}
+        <div style={{
+          padding: isMobile ? '0.6rem 0.85rem' : '0.85rem 1.6rem',
+          background: isDarkEffective ? 'rgba(15, 18, 33, 0.75)' : '#ffffff',
+          borderBottom: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #edf2f7',
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? 6 : 8,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          {/* Bekleyen Görevler Butonu */}
+          <button
+            type="button"
+            onClick={() => setFilterStatus(prev => prev === 'pending' ? 'all' : 'pending')}
+            style={{
+              background: filterStatus === 'pending'
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : (isDarkEffective ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+              color: filterStatus === 'pending' ? '#ffffff' : subTextColor,
+              border: filterStatus === 'pending' ? '1.5px solid #dc2626' : '1.5px solid transparent',
+              boxShadow: filterStatus === 'pending' ? '0 4px 12px rgba(239, 68, 68, 0.35)' : 'none',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.74rem' : '0.8rem',
+              padding: isMobile ? '0.38rem 0.75rem' : '0.45rem 1rem',
+              borderRadius: 12,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>⏳ Bekleyen ({remainingTasks})</span>
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setFilterStatus('completed')}
-              className="today-filter-chip"
-              style={{
-                background: filterStatus === 'completed'
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                  : (isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
-                color: filterStatus === 'completed' ? '#ffffff' : 'var(--color-text-muted)',
-                borderColor: filterStatus === 'completed' ? '#059669' : 'transparent',
-                boxShadow: filterStatus === 'completed' ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
-                fontWeight: 900,
-                fontSize: isMobile ? '0.74rem' : '0.8rem',
-                padding: isMobile ? '0.35rem 0.7rem' : '0.45rem 1rem',
-                borderRadius: 12
-              }}
-            >
-              <span>✓ Tamamlanan ({completedTasks})</span>
-            </button>
+          {/* Tamamlanan Görevler Butonu */}
+          <button
+            type="button"
+            onClick={() => setFilterStatus(prev => prev === 'completed' ? 'all' : 'completed')}
+            style={{
+              background: filterStatus === 'completed'
+                ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                : (isDarkEffective ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+              color: filterStatus === 'completed' ? '#ffffff' : subTextColor,
+              border: filterStatus === 'completed' ? '1.5px solid #059669' : '1.5px solid transparent',
+              boxShadow: filterStatus === 'completed' ? '0 4px 12px rgba(16, 185, 129, 0.35)' : 'none',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.74rem' : '0.8rem',
+              padding: isMobile ? '0.38rem 0.75rem' : '0.45rem 1rem',
+              borderRadius: 12,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>✓ Tamamlanan ({completedTasks})</span>
+          </button>
 
-            {/* Ders Filtreleri */}
-            {subjects.length > 1 && (
-              <>
-                <div style={{ width: 1.5, height: 20, background: 'var(--color-border)', margin: '0 4px' }} />
-                {subjects.map(([subj, count]) => {
-                  const sTheme = resolveSubjectTheme(subj);
-                  const isSelected = selectedSubject === subj;
-                  return (
-                    <button
-                      key={subj}
-                      type="button"
-                      onClick={() => setSelectedSubject(prev => prev === subj ? 'all' : subj)}
-                      className="today-filter-chip"
-                      style={{
-                        background: isSelected ? sTheme.badgeBg : 'transparent',
-                        color: isSelected ? sTheme.badgeText : 'var(--color-text-muted)',
-                        border: isSelected ? `1.5px solid ${sTheme.from}` : '1.5px solid var(--color-border)',
-                        fontSize: isMobile ? '0.72rem' : '0.78rem',
-                        padding: isMobile ? '0.32rem 0.65rem' : '0.45rem 0.85rem'
-                      }}
-                    >
-                      <span>{sTheme.icon} {subj} ({count})</span>
-                    </button>
-                  );
-                })}
-              </>
-            )}
-          </div>
-        )}
+          {/* Tümü Filtresi */}
+          <button
+            type="button"
+            onClick={() => setFilterStatus('all')}
+            style={{
+              background: filterStatus === 'all'
+                ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                : (isDarkEffective ? 'rgba(255,255,255,0.06)' : '#f1f5f9'),
+              color: filterStatus === 'all' ? '#ffffff' : subTextColor,
+              border: filterStatus === 'all' ? '1.5px solid #4f46e5' : '1.5px solid transparent',
+              boxShadow: filterStatus === 'all' ? '0 4px 12px rgba(99, 102, 241, 0.35)' : 'none',
+              fontWeight: 900,
+              fontSize: isMobile ? '0.74rem' : '0.8rem',
+              padding: isMobile ? '0.38rem 0.75rem' : '0.45rem 1rem',
+              borderRadius: 12,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>Tümü ({totalTasks})</span>
+          </button>
 
-        {/* ── KOMPAKT & ŞIK GÖREV KARTLARI LİSTESİ ── */}
+          {/* Ders Filtreleri */}
+          {subjects.length > 1 && (
+            <>
+              <div style={{ width: 1.5, height: 22, background: isDarkEffective ? 'rgba(255,255,255,0.1)' : '#e2e8f0', margin: '0 4px', flexShrink: 0 }} />
+              {subjects.map(([subj, count]) => {
+                const sTheme = resolveSubjectTheme(subj);
+                const isSelected = selectedSubject === subj;
+                return (
+                  <button
+                    key={subj}
+                    type="button"
+                    onClick={() => setSelectedSubject(prev => prev === subj ? 'all' : subj)}
+                    style={{
+                      background: isSelected ? sTheme.badgeBg : (isDarkEffective ? 'rgba(255,255,255,0.04)' : '#f8fafc'),
+                      color: isSelected ? sTheme.badgeText : subTextColor,
+                      border: isSelected ? `1.5px solid ${sTheme.from}` : (isDarkEffective ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e2e8f0'),
+                      fontSize: isMobile ? '0.72rem' : '0.78rem',
+                      fontWeight: 800,
+                      padding: isMobile ? '0.34rem 0.7rem' : '0.42rem 0.85rem',
+                      borderRadius: 12,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      boxShadow: isSelected ? `0 3px 10px ${sTheme.glow}` : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span>{sTheme.icon} {subj} ({count})</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* ── 3. ULTRA-LUXURY QUEST CARDS (2-COLUMN GRID) ── */}
         {filteredTasks.length > 0 ? (
           <div style={{
-            padding: isMobile ? '0.5rem 0.5rem' : '0.85rem 1.15rem',
+            padding: isMobile ? '0.65rem 0.65rem' : '1.1rem 1.4rem',
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))',
-            gap: isMobile ? '0.45rem' : '0.65rem',
+            gap: isMobile ? '0.65rem' : '0.95rem',
             width: '100%',
             boxSizing: 'border-box'
           }}>
@@ -885,7 +1252,7 @@ export default memo(function DashboardTodayTasks({
                 isPendingEval: false
               } : null));
 
-              // Compute accurate success percentage with failsafe against raw net scores:
+              // Compute accurate success percentage
               const successScore = (() => {
                 if (!testResult) return null;
                 const c = Number(testResult.correctCount || 0);
@@ -898,7 +1265,6 @@ export default memo(function DashboardTodayTasks({
                 }
                 if (testResult.score !== undefined && testResult.score !== null && !isNaN(Number(testResult.score))) {
                   const rawSc = Number(testResult.score);
-                  // Guard against net score being mistakenly treated as percentage:
                   if (q > 0) {
                     const calculatedPct = Math.round((c / q) * 100);
                     if (rawSc < calculatedPct && (rawSc === c || rawSc === Number(testResult.net))) {
@@ -917,9 +1283,9 @@ export default memo(function DashboardTodayTasks({
               }
 
               const statusTag = successScore !== null ? (
-                successScore >= 80 ? { icon: '🏆', label: 'Güçlü', color: '#10b981', bg: isDark ? 'rgba(16,185,129,0.2)' : '#dcfce7', border: 'rgba(16,185,129,0.35)', text: '#15803d' }
-                : successScore >= 60 ? { icon: '📈', label: 'Gelişiyor', color: '#f59e0b', bg: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7', border: 'rgba(245,158,11,0.35)', text: '#b45309' }
-                : { icon: '⚠️', label: 'Tekrar Etmeli', color: '#ef4444', bg: isDark ? 'rgba(239,68,68,0.2)' : '#fee2e2', border: 'rgba(239,68,68,0.35)', text: '#b91c1c' }
+                successScore >= 80 ? { icon: '🏆', label: 'Güçlü', color: '#10b981', bg: isDarkEffective ? 'rgba(16,185,129,0.18)' : '#dcfce7', border: 'rgba(16,185,129,0.35)', text: '#15803d' }
+                : successScore >= 60 ? { icon: '📈', label: 'Gelişiyor', color: '#f59e0b', bg: isDarkEffective ? 'rgba(245,158,11,0.18)' : '#fef3c7', border: 'rgba(245,158,11,0.35)', text: '#b45309' }
+                : { icon: '⚠️', label: 'Tekrar Etmeli', color: '#ef4444', bg: isDarkEffective ? 'rgba(239,68,68,0.18)' : '#fee2e2', border: 'rgba(239,68,68,0.35)', text: '#b91c1c' }
               ) : null;
 
               const rawBook = sBook.replace(/\s*\(Tüm Kitap Görevi\)/gi, '').replace(/\s*\(Tüm Kitap\)/gi, '').replace(/\s*\(Kendi Eklediğim\)/gi, '').trim();
@@ -984,41 +1350,42 @@ export default memo(function DashboardTodayTasks({
                   className={`game-quest-row ${isNextTarget ? 'quest-next-target' : ''}`}
                   style={{
                     background: task.done 
-                      ? (isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.04)') 
+                      ? (isDarkEffective ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)') 
                       : (isNextTarget 
-                          ? (isDark ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.14), var(--color-surface))' : 'linear-gradient(145deg, rgba(99, 102, 241, 0.06), #ffffff)') 
-                          : (isDark ? 'rgba(255,255,255,0.025)' : '#ffffff')),
-                    border: `1.5px solid ${task.done ? 'rgba(16,185,129,0.35)' : isNextTarget ? '#818cf8' : (isDark ? 'rgba(255, 255, 255, 0.08)' : '#e2e8f0')}`,
-                    borderLeft: `4px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : sTheme.from}`,
-                    borderRadius: isMobile ? 12 : 14,
-                    padding: isMobile ? '0.55rem 0.65rem' : '0.65rem 0.95rem',
+                          ? (isDarkEffective ? 'linear-gradient(145deg, rgba(99, 102, 241, 0.18), rgba(26, 30, 54, 0.9))' : 'linear-gradient(145deg, rgba(99, 102, 241, 0.08), #ffffff)') 
+                          : (isDarkEffective ? 'rgba(255, 255, 255, 0.035)' : '#ffffff')),
+                    border: `1.5px solid ${task.done ? 'rgba(16,185,129,0.38)' : isNextTarget ? '#818cf8' : (isDarkEffective ? 'rgba(255, 255, 255, 0.09)' : '#e2e8f0')}`,
+                    borderLeft: `5px solid ${task.done ? '#10b981' : isNextTarget ? '#6366f1' : sTheme.from}`,
+                    borderRadius: isMobile ? 14 : 16,
+                    padding: isMobile ? '0.7rem 0.75rem' : '0.85rem 1.15rem',
                     cursor: 'pointer',
                     boxShadow: isNextTarget 
-                      ? '0 0 0 1.5px rgba(99, 102, 241, 0.25), 0 4px 14px rgba(99, 102, 241, 0.12)' 
-                      : (task.done ? '0 1px 4px rgba(16,185,129,0.05)' : '0 2px 8px rgba(0,0,0,0.03)'),
+                      ? '0 0 0 2px rgba(99, 102, 241, 0.3), 0 8px 24px rgba(99, 102, 241, 0.16)' 
+                      : (task.done ? '0 2px 8px rgba(16,185,129,0.06)' : '0 4px 14px rgba(0,0,0,0.03)'),
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: isMobile ? 8 : 12,
-                    transition: 'all 0.15s ease',
-                    boxSizing: 'border-box'
+                    gap: isMobile ? 9 : 14,
+                    transition: 'all 0.18s ease',
+                    boxSizing: 'border-box',
+                    position: 'relative'
                   }}
                 >
-                  {/* Sol: Hızlı Tamamlama Kutusu (Checkbox) */}
+                  {/* Sol: 3D Neon Checkbox */}
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onToggleTask && onToggleTask(task); }}
                     style={{
-                      width: isMobile ? 28 : 32,
-                      height: isMobile ? 28 : 32,
-                      minWidth: isMobile ? 28 : 32,
-                      borderRadius: isMobile ? 8 : 9,
+                      width: isMobile ? 32 : 36,
+                      height: isMobile ? 32 : 36,
+                      minWidth: isMobile ? 32 : 36,
+                      borderRadius: 11,
                       border: task.done 
                         ? '2px solid #10b981' 
-                        : isDark ? '2px solid rgba(255, 255, 255, 0.22)' : '2px solid #cbd5e1',
+                        : isDarkEffective ? '2px solid rgba(255, 255, 255, 0.25)' : '2px solid #cbd5e1',
                       background: task.done
                         ? 'linear-gradient(135deg, #10b981, #059669)'
-                        : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff'),
+                        : (isDarkEffective ? 'rgba(255, 255, 255, 0.05)' : '#ffffff'),
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
@@ -1026,41 +1393,41 @@ export default memo(function DashboardTodayTasks({
                       flexShrink: 0,
                       cursor: 'pointer',
                       padding: 0,
-                      boxShadow: task.done ? '0 2px 6px rgba(16, 185, 129, 0.3)' : 'none',
-                      transition: 'all 0.15s ease'
+                      boxShadow: task.done ? '0 4px 12px rgba(16, 185, 129, 0.4)' : 'none',
+                      transition: 'all 0.16s ease'
                     }}
                     title={task.done ? 'Tamamlandı (Geri almak için tıkla)' : 'Tamamlandı olarak işaretle'}
                   >
                     {task.done ? (
-                      <Check size={isMobile ? 16 : 18} color="#ffffff" strokeWidth={3.5} />
+                      <Check size={isMobile ? 18 : 20} color="#ffffff" strokeWidth={3.5} />
                     ) : null}
                   </button>
 
-                  {/* Orta: Ders, Başlık ve Alt Bilgi */}
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {/* Satır 1: Ders Rozeti + Görev Başlığı + Sonuç/Hedef Rozeti */}
+                  {/* Orta: Ders, Başlık ve Rozetler */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {/* Satır 1: Ders Rozeti + Başlık + Rozetler */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{
-                        fontSize: isMobile ? '0.64rem' : '0.68rem',
+                        fontSize: isMobile ? '0.64rem' : '0.7rem',
                         fontWeight: 900,
                         color: sTheme.badgeText,
                         background: sTheme.badgeBg,
                         border: `1px solid ${sTheme.badgeBorder}`,
-                        padding: '1.5px 6px',
-                        borderRadius: 6,
+                        padding: '2px 7px',
+                        borderRadius: 7,
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        gap: 4,
                         flexShrink: 0
                       }}>
-                        <span style={{ fontSize: isMobile ? '0.74rem' : '0.82rem', lineHeight: 1 }}>{sTheme.icon}</span>
+                        <span style={{ fontSize: isMobile ? '0.78rem' : '0.86rem', lineHeight: 1 }}>{sTheme.icon}</span>
                         <span>{cleanSubj}</span>
                       </span>
 
                       <span style={{
-                        fontSize: isMobile ? '0.85rem' : '0.94rem',
+                        fontSize: isMobile ? '0.88rem' : '0.98rem',
                         fontWeight: 800,
-                        color: task.done ? 'var(--color-text-muted)' : 'var(--color-text)',
+                        color: task.done ? subTextColor : textColor,
                         textDecoration: task.done ? 'line-through' : 'none',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1072,30 +1439,31 @@ export default memo(function DashboardTodayTasks({
 
                       {isNextTarget && (
                         <span style={{
-                          fontSize: '0.6rem',
+                          fontSize: '0.62rem',
                           fontWeight: 900,
                           color: '#ffffff',
                           background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                          padding: '1px 6px',
+                          padding: '2px 7px',
                           borderRadius: 99,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 2,
-                          flexShrink: 0
+                          gap: 3,
+                          flexShrink: 0,
+                          boxShadow: '0 2px 6px rgba(99, 102, 241, 0.35)'
                         }}>
-                          <Zap size={9} fill="#ffffff" /> Sıradaki
+                          <Zap size={10} fill="#ffffff" /> Sıradaki
                         </span>
                       )}
 
                       {task.done && isTestTask && statusTag && (
                         <span style={{
-                          fontSize: '0.62rem',
+                          fontSize: '0.64rem',
                           fontWeight: 800,
                           color: statusTag.color,
                           background: statusTag.bg,
                           border: `1px solid ${statusTag.border}`,
-                          padding: '1px 5px',
-                          borderRadius: 6,
+                          padding: '2px 6px',
+                          borderRadius: 7,
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 3,
@@ -1113,32 +1481,33 @@ export default memo(function DashboardTodayTasks({
                       alignItems: 'center',
                       gap: 6,
                       flexWrap: 'wrap',
-                      fontSize: isMobile ? '0.68rem' : '0.72rem',
-                      color: 'var(--color-text-muted)',
+                      fontSize: isMobile ? '0.68rem' : '0.74rem',
+                      color: subTextColor,
                       fontWeight: 650
                     }}>
                       {sBook && !/^kitap$/i.test(sBook.trim()) && !/^takip kitabı$/i.test(sBook.trim()) && (
                         <span style={{
-                          color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#7c3aed' : 'var(--color-text-secondary)',
+                          color: (task.roadmapAssignmentId || task.isRoadmapTask) ? '#a855f7' : subTextColor,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
-                          maxWidth: isMobile ? 140 : 200
+                          maxWidth: isMobile ? 150 : 220,
+                          fontWeight: 700
                         }}>
                           {(task.roadmapAssignmentId || task.isRoadmapTask) ? `🗺️ ${sBook}` : `📖 ${sBook}`}
                         </span>
                       )}
                       {task.questionCount && !isReadingTask && (
-                        <span>• 📝 {task.questionCount} Soru</span>
+                        <span style={{ color: '#10b981', fontWeight: 800 }}>• 📝 {task.questionCount} Soru</span>
                       )}
                       {isReadingTask && (
-                        <span style={{ color: '#db2777' }}>• 📚 Okuma</span>
+                        <span style={{ color: '#ec4899', fontWeight: 800 }}>• 📚 Kitap Okuma</span>
                       )}
                       {pageBadge && (
                         <span>• 📄 {pageBadge}</span>
                       )}
                       {isRemedialTask && (
-                        <span style={{ color: '#7c3aed', fontWeight: 800 }}>• 🔄 {syncAttemptNumber}. Tekrar</span>
+                        <span style={{ color: '#a855f7', fontWeight: 800 }}>• 🔄 {syncAttemptNumber}. Tekrar</span>
                       )}
                       {sUnit && !sBook && (
                         <span>• 📌 {sUnit}</span>
@@ -1149,18 +1518,18 @@ export default memo(function DashboardTodayTasks({
                     </div>
                   </div>
 
-                  {/* Sağ: Kompakt Aksiyon Butonu */}
+                  {/* Sağ: Ultra-Tactile 3D Aksiyon Butonu */}
                   <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {task.done ? (
                       isReadingTask || !isQuizTask ? (
                         <span style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
+                          fontSize: '0.74rem',
+                          fontWeight: 900,
                           color: '#10b981',
-                          background: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          padding: '0.3rem 0.65rem',
-                          borderRadius: 8
+                          background: isDarkEffective ? 'rgba(16, 185, 129, 0.18)' : 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          padding: isMobile ? '0.34rem 0.65rem' : '0.4rem 0.8rem',
+                          borderRadius: 9
                         }}>
                           ✓ Bitti
                         </span>
@@ -1169,13 +1538,13 @@ export default memo(function DashboardTodayTasks({
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onTaskClick && onTaskClick(task); }}
                           style={{
-                            fontSize: isMobile ? '0.7rem' : '0.75rem',
+                            fontSize: isMobile ? '0.72rem' : '0.78rem',
                             fontWeight: 800,
                             color: '#10b981',
-                            background: isDark ? 'rgba(16, 185, 129, 0.14)' : '#ecfdf5',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            padding: isMobile ? '0.32rem 0.6rem' : '0.38rem 0.75rem',
-                            borderRadius: 8,
+                            background: isDarkEffective ? 'rgba(16, 185, 129, 0.18)' : '#ecfdf5',
+                            border: '1px solid rgba(16, 185, 129, 0.35)',
+                            padding: isMobile ? '0.35rem 0.65rem' : '0.42rem 0.85rem',
+                            borderRadius: 9,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -1197,12 +1566,12 @@ export default memo(function DashboardTodayTasks({
                               alert(lockStatus.lockMessage);
                             }}
                             style={{
-                              background: isDark ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
-                              color: isDark ? '#94a3b8' : '#64748b',
-                              border: isDark ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid #e2e8f0',
-                              borderRadius: 8,
-                              padding: '0.35rem 0.65rem',
-                              fontSize: '0.72rem',
+                              background: isDarkEffective ? 'rgba(255, 255, 255, 0.06)' : '#f1f5f9',
+                              color: isDarkEffective ? '#94a3b8' : '#64748b',
+                              border: isDarkEffective ? '1px solid rgba(255, 255, 255, 0.14)' : '1px solid #e2e8f0',
+                              borderRadius: 9,
+                              padding: '0.38rem 0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 700,
                               cursor: 'pointer',
                               display: 'inline-flex',
@@ -1224,26 +1593,26 @@ export default memo(function DashboardTodayTasks({
                           background: `linear-gradient(135deg, ${sTheme.from}, ${sTheme.to})`,
                           color: '#ffffff',
                           border: 'none',
-                          borderRadius: 8,
-                          padding: isMobile ? '0.35rem 0.7rem' : '0.42rem 0.9rem',
-                          fontSize: isMobile ? '0.74rem' : '0.78rem',
-                          fontWeight: 850,
+                          borderRadius: 9,
+                          padding: isMobile ? '0.38rem 0.75rem' : '0.45rem 1rem',
+                          fontSize: isMobile ? '0.76rem' : '0.82rem',
+                          fontWeight: 900,
                           cursor: 'pointer',
-                          boxShadow: `0 2px 8px ${sTheme.glow}`,
+                          boxShadow: `0 3px 12px ${sTheme.glow}`,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 4
+                          gap: 5
                         }}
                       >
                         {isRemedialTask && syncAttemptNumber > 1 ? (
                           <>
-                            <RotateCcw size={12} />
+                            <RotateCcw size={13} />
                             <span>Tekrar</span>
                           </>
                         ) : (
                           <>
-                            <span>Çöz</span>
-                            <ArrowRight size={13} />
+                            <span>Çöz & Başla</span>
+                            <ArrowRight size={14} />
                           </>
                         )}
                       </button>
@@ -1255,23 +1624,27 @@ export default memo(function DashboardTodayTasks({
                           background: 'linear-gradient(135deg, #10b981, #059669)',
                           color: '#ffffff',
                           border: 'none',
-                          borderRadius: 8,
-                          padding: isMobile ? '0.35rem 0.7rem' : '0.42rem 0.9rem',
-                          fontSize: isMobile ? '0.74rem' : '0.78rem',
-                          fontWeight: 850,
+                          borderRadius: 9,
+                          padding: isMobile ? '0.38rem 0.75rem' : '0.45rem 1rem',
+                          fontSize: isMobile ? '0.76rem' : '0.82rem',
+                          fontWeight: 900,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 4
+                          gap: 5,
+                          boxShadow: '0 3px 12px rgba(16, 185, 129, 0.35)'
                         }}
                       >
                         {isReadingTask ? (
                           <>
-                            <BookOpen size={12} />
+                            <BookOpen size={13} />
                             <span>Okudum</span>
                           </>
                         ) : (
-                          <span>Tamamla</span>
+                          <>
+                            <Check size={14} strokeWidth={3} />
+                            <span>Tamamla</span>
+                          </>
                         )}
                       </button>
                     )}
@@ -1281,68 +1654,72 @@ export default memo(function DashboardTodayTasks({
             })}
           </div>
         ) : totalTasks > 0 ? (
-          <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: subTextColor }}>
             {filterStatus === 'pending' && remainingTasks === 0 ? (
               <div>
-                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎉</div>
-                <div style={{ fontWeight: 900, fontSize: '1.15rem', color: '#10b981', marginBottom: 6, fontFamily: "'Outfit', sans-serif" }}>
-                  Harika! Bekleyen hiçbir görev kalmadı.
+                <div style={{ fontSize: '3rem', marginBottom: 10 }}>🎉</div>
+                <div style={{ fontWeight: 900, fontSize: '1.25rem', color: '#10b981', marginBottom: 6, fontFamily: "'Outfit', sans-serif" }}>
+                  Harika! Bekleyen hiçbir görev kalmadı!
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: 14 }}>
-                  Günün tüm hedeflerini tamamladın!
+                <div style={{ fontSize: '0.88rem', color: subTextColor, marginBottom: 16 }}>
+                  Günün tüm hedeflerini tamamladın, tebrik ederiz!
                 </div>
                 <button
                   type="button"
                   onClick={() => setFilterStatus('completed')}
-                  className="game-btn-3d game-btn-emerald"
                   style={{
-                    padding: '0.6rem 1.35rem',
+                    padding: '0.65rem 1.4rem',
                     borderRadius: 14,
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     fontWeight: 900,
                     cursor: 'pointer',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    color: '#ffffff',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6
+                    gap: 6,
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <span>✓ Tamamlanan Görevleri Gör ({completedTasks})</span>
+                  <CheckCircle2 size={16} />
+                  <span>Tamamlanan Görevleri Gör ({completedTasks})</span>
                 </button>
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: '2rem', marginBottom: 8 }}>🔍</div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>Seçilen filtreye uygun görev bulunamadı.</div>
+                <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🔍</div>
+                <div style={{ fontWeight: 800, fontSize: '1rem', color: textColor }}>Seçilen filtreye uygun görev bulunamadı.</div>
                 <button
                   type="button"
-                  onClick={() => { setFilterStatus('pending'); setSelectedSubject('all'); }}
+                  onClick={() => { setFilterStatus('all'); setSelectedSubject('all'); }}
                   style={{
-                    marginTop: 10,
+                    marginTop: 12,
                     background: 'none',
                     border: 'none',
                     color: '#6366f1',
                     fontWeight: 800,
                     cursor: 'pointer',
-                    fontSize: '0.84rem',
+                    fontSize: '0.86rem',
                     textDecoration: 'underline'
                   }}
                 >
-                  Filtreleri Sıfırla
+                  Tüm Görevleri Göster
                 </button>
               </div>
             )}
           </div>
         ) : (
           /* Hiç görev yok */
-          <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🎉</div>
-            <div style={{ fontWeight: 900, color: '#10b981', fontSize: '1.2rem', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
+          <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '3rem', marginBottom: 12 }}>🚀</div>
+            <div style={{ fontWeight: 900, color: '#6366f1', fontSize: '1.25rem', marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>
               {dayProgramInfo.isToday
-                ? 'Bugün için planlanan tüm görevler bitti veya henüz görev eklenmedi!'
-                : `${dayProgramInfo.dayName} günü için kayıtlı görev bulunmuyor.`}
+                ? 'Bugün için planlanan görev bulunmuyor!'
+                : `${dayProgramInfo.dayName || 'Seçili gün'} için henüz görev planlanmamış.`}
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', maxWidth: 460, margin: '0 auto 1.5rem', lineHeight: 1.5 }}>
-              Harika bir disiplin! Kütüphaneden yeni testler çözebilir veya programına yeni ders hedefleri ekleyebilirsin.
+            <p style={{ fontSize: '0.88rem', color: subTextColor, maxWidth: 480, margin: '0 auto 1.6rem', lineHeight: 1.5 }}>
+              Harika bir çalışma günü tasarlayabilirsin! Kütüphaneden testler seçebilir veya programına yeni ders hedefleri ekleyebilirsin.
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -1350,39 +1727,43 @@ export default memo(function DashboardTodayTasks({
                 <button
                   type="button"
                   onClick={onAddTask}
-                  className="game-btn-3d game-btn-primary"
                   style={{
                     borderRadius: 14,
                     padding: '0.75rem 1.45rem',
                     fontSize: '0.88rem',
                     fontWeight: 900,
+                    background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                    border: 'none',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.4)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6
                   }}
                 >
-                  <Plus size={16} strokeWidth={2.5} /> Yeni Görev Ekle
+                  <Plus size={16} strokeWidth={3} /> Yeni Görev Ekle
                 </button>
               )}
               {onNavigateBooks && (
                 <button
                   type="button"
                   onClick={onNavigateBooks}
-                  className="game-btn-3d"
                   style={{
                     borderRadius: 14,
                     padding: '0.75rem 1.45rem',
                     fontSize: '0.88rem',
                     fontWeight: 900,
-                    background: isDark ? 'rgba(2, 132, 199, 0.2)' : '#f0f9ff',
+                    background: isDarkEffective ? 'rgba(2, 132, 199, 0.18)' : '#f0f9ff',
                     border: '1.5px solid #0284c7',
                     color: '#0284c7',
+                    cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 6
                   }}
                 >
-                  <BookOpen size={16} /> Kütüphaneye Git
+                  <BookOpen size={16} /> Kütüphaneyi Keşfet
                 </button>
               )}
             </div>
@@ -1391,17 +1772,17 @@ export default memo(function DashboardTodayTasks({
 
         {/* Daha Fazla Göster Butonu (Mobilde 6'dan fazla görev varsa) */}
         {isMobile && filteredTasks.length > 6 && (
-          <div style={{ padding: '0.75rem 0.95rem', background: 'var(--color-surface)', borderTop: '1.5px solid var(--color-border)' }}>
+          <div style={{ padding: '0.75rem 0.95rem', background: isDarkEffective ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderTop: isDarkEffective ? '1px solid rgba(255,255,255,0.08)' : '1px solid #edf2f7' }}>
             <button
               type="button"
               onClick={() => setShowAllDayTasks && setShowAllDayTasks(prev => !prev)}
               style={{
                 width: '100%',
-                background: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.08)',
-                border: '1.5px solid rgba(99, 102, 241, 0.25)',
+                background: isDarkEffective ? 'rgba(99, 102, 241, 0.16)' : 'rgba(99, 102, 241, 0.08)',
+                border: '1.5px solid rgba(99, 102, 241, 0.28)',
                 borderRadius: '0.85rem',
                 padding: '0.7rem 1rem',
-                color: isDark ? '#a5b4fc' : '#4f46e5',
+                color: isDarkEffective ? '#a5b4fc' : '#4f46e5',
                 fontWeight: 900,
                 fontSize: '0.84rem',
                 cursor: 'pointer',
@@ -1433,39 +1814,40 @@ export default memo(function DashboardTodayTasks({
         {/* ── Günün Tüm Görevleri Bittiğinde Kutlama Kartı ── */}
         {dayProgramInfo.hasAllCompleted && totalTasks > 0 && (
           <div style={{
-            margin: '0.75rem 1rem 1rem',
-            padding: '1.25rem 1.45rem',
-            borderRadius: 18,
-            background: isDark ? 'rgba(16, 185, 129, 0.12)' : 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
-            border: '1.5px solid rgba(16, 185, 129, 0.4)',
+            margin: '0.85rem 1rem 1.15rem',
+            padding: '1.35rem 1.55rem',
+            borderRadius: 20,
+            background: isDarkEffective ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(6, 182, 212, 0.1))' : 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+            border: '1.5px solid rgba(16, 185, 129, 0.45)',
+            boxShadow: '0 8px 30px rgba(16, 185, 129, 0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: 12
+            gap: 14
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: 16,
+                width: 52,
+                height: 52,
+                borderRadius: 18,
                 background: 'linear-gradient(135deg, #10b981, #059669)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.6rem',
-                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)',
+                fontSize: '1.75rem',
+                boxShadow: '0 6px 20px rgba(16, 185, 129, 0.4)',
                 flexShrink: 0
               }}>
                 🏆
               </div>
               <div>
-                <div style={{ fontWeight: 900, fontSize: '1.05rem', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>
-                  Tebrikler! Bugünün Tüm Görevlerini Bitirdin!
+                <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>
+                  Muhteşem Başarı! Bugünün Tüm Görevlerini Bitirdin!
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 700, marginTop: 3 }}>
-                  +{earnedXp} XP kazandın • {completedQuestions > 0 ? `${completedQuestions} Soru tamamlandı.` : `${completedTasks} Görev tamamlandı.`} Harika bir gün!
+                <div style={{ fontSize: '0.82rem', color: subTextColor, fontWeight: 700, marginTop: 4 }}>
+                  +{earnedXp} XP kazandın • {completedQuestions > 0 ? `${completedQuestions} Soru çözüldü.` : `${completedTasks} Görev tamamlandı.`} Disiplinin için tebrikler!
                 </div>
               </div>
             </div>
@@ -1475,18 +1857,22 @@ export default memo(function DashboardTodayTasks({
                 <button
                   type="button"
                   onClick={onNavigateBooks}
-                  className="game-btn-3d game-btn-emerald"
                   style={{
-                    borderRadius: 14,
+                    borderRadius: 12,
                     padding: '0.65rem 1.25rem',
                     fontSize: '0.84rem',
                     fontWeight: 900,
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    border: 'none',
+                    color: '#ffffff',
+                    cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6
+                    gap: 6,
+                    boxShadow: '0 3px 12px rgba(16, 185, 129, 0.35)'
                   }}
                 >
-                  <BookOpen size={16} /> Kitapları Aç
+                  <BookOpen size={16} /> Kütüphaneyi Aç
                 </button>
               )}
             </div>
